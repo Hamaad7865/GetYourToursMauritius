@@ -45,6 +45,7 @@ function detail(overrides: Partial<TourDetail> = {}): TourDetail {
     cancellationPolicy: 'Free cancellation up to 24 hours before.',
     seoTitle: null,
     seoDescription: null,
+    extra: {},
     images: [],
     options: [
       {

@@ -58,6 +58,24 @@ export const reviewSchema = z.object({
 });
 export type Review = z.infer<typeof reviewSchema>;
 
+export const itineraryStopSchema = z.object({
+  title: z.string(),
+  area: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  tags: z.array(z.string()).optional(),
+});
+export type ItineraryStop = z.infer<typeof itineraryStopSchema>;
+
+/** GetYourGuide-style presentational extras (itinerary, know-before-you-go, overview). */
+export const activityExtraSchema = z.object({
+  itinerary: z.array(itineraryStopSchema).optional(),
+  importantInfo: z.array(z.string()).optional(),
+  availability: z.string().nullable().optional(),
+  startWindow: z.string().nullable().optional(),
+  returnWindow: z.string().nullable().optional(),
+});
+export type ActivityExtra = z.infer<typeof activityExtraSchema>;
+
 export const tourDetailSchema = tourSummarySchema.extend({
   description: z.string().nullable(),
   meetingPoint: z.string().nullable(),
@@ -69,6 +87,7 @@ export const tourDetailSchema = tourSummarySchema.extend({
   cancellationPolicy: z.string().nullable(),
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
+  extra: activityExtraSchema.default({}),
   images: z.array(tourImageSchema),
   options: z.array(tourOptionSchema),
   translations: z.record(z.string(), tourTranslationSchema),
