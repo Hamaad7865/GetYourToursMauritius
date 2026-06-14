@@ -25,3 +25,9 @@ export const CATEGORIES = [
   'Island tours',
   'Airport transfers',
 ] as const;
+
+/** wa.me deep link with a pre-filled message (digits-only number derived from SITE.phone). */
+export function whatsappUrl(message: string): string {
+  const number = SITE.phone.replace(/[^\d]/g, '');
+  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+}

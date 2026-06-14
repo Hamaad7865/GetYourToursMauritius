@@ -1,15 +1,7 @@
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
+import { durationLabel } from '@/lib/catalogue/detail';
 import { IconPin, IconStar } from '@/components/ui/icons';
-
-function durationLabel(minutes: number | null): string | null {
-  if (minutes == null) return null;
-  if (minutes >= 60) {
-    const h = Math.round((minutes / 60) * 10) / 10;
-    return `${h % 1 === 0 ? h : h.toFixed(1)} h`;
-  }
-  return `${minutes} min`;
-}
 
 export function ActivityCard({ activity }: { activity: TourSummary }) {
   const duration = durationLabel(activity.durationMinutes);
