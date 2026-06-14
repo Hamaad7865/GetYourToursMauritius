@@ -47,7 +47,9 @@ export async function createTestDb(): Promise<TestDb> {
       }
       const role = claims.role === 'service_role' ? 'service_role' : 'authenticated';
       await pg.exec(`reset role;`);
-      await pg.query(`select set_config('request.jwt.claims', $1, false)`, [JSON.stringify(claims)]);
+      await pg.query(`select set_config('request.jwt.claims', $1, false)`, [
+        JSON.stringify(claims),
+      ]);
       await pg.exec(`set role ${role};`);
     },
     async asOwner() {

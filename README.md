@@ -2,7 +2,9 @@
 
 Production tours-booking platform for **Belle Mare Tours** (east-coast Mauritius): a server-rendered SEO catalogue, online booking + payments, an AI booking assistant, and an owner admin panel. **API-first** — the same token-authenticated backend is built to be reused by a future mobile app with no backend/DB changes.
 
-> **Status: Phase 0 (scaffold) complete.** The walking skeleton — tooling, brand tokens, edge runtime, the framework-agnostic service layer, one real `/api/v1` endpoint, and the test harness — is in place and green. Catalogue, booking/payments, AI assistant and admin land in later phases. See [the build plan](#build-phases).
+> **Status: Phases 0–1 complete.** Phase 0 = the edge-safe, API-first walking skeleton. Phase 1 = the modular-monolith data model: 19 tables with RLS on every one, atomic booking-core RPCs (holds + computed capacity + event-sourced payment ledger), the bilingual catalogue seed, and generated DB types — all verified against real Postgres (PGlite) with 48 tests. Public catalogue, booking/payments, AI assistant and admin land in later phases. See [the build plan](#build-phases).
+>
+> Without Docker/Supabase CLI locally, schema/RLS/RPCs are tested via **PGlite** (real Postgres in-process). Migrations live in `supabase/migrations/`; the seed is `seed/catalogue.json` → `npm run seed:gen` → `supabase/seed.sql`.
 
 ## Stack
 
@@ -85,7 +87,7 @@ No real accounts are required to build or test: external services sit behind int
 ## Build phases
 
 0. **Scaffold** ✅ — tooling, brand tokens, service-layer seams, one real API endpoint, tests.
-1. Data model: Supabase migrations + RLS + generated types + bilingual seed (`tour_translations`).
+1. **Data model** ✅ — 19-table modular-monolith schema, RLS on every table, atomic booking-core RPCs (holds + computed capacity + event-sourced payment ledger), generated DB types, bilingual catalogue seed; 48 DB-backed tests.
 2. Service layer + `/api/v1` + OpenAPI + tests.
 3. Public catalogue + activity/transport detail pages + SEO/JSON-LD + sitemap + edge caching.
 4. Auth + booking flow + Peach checkout + verified webhook.

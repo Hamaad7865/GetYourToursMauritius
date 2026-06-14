@@ -19,7 +19,10 @@ describe('row level security', () => {
 
     // users + profiles
     for (const id of [USER_A, USER_B, STAFF]) {
-      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [id, `${id}@example.com`]);
+      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [
+        id,
+        `${id}@example.com`,
+      ]);
     }
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [USER_A]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [USER_B]);
@@ -59,9 +62,13 @@ describe('row level security', () => {
 
   it('anon reads published activities but not drafts', async () => {
     await db.as(null);
-    const { rows: pub } = await db.pg.query(`select id from activities where id = $1`, [publishedActivityId]);
+    const { rows: pub } = await db.pg.query(`select id from activities where id = $1`, [
+      publishedActivityId,
+    ]);
     expect(pub).toHaveLength(1);
-    const { rows: draft } = await db.pg.query(`select id from activities where id = $1`, [draftActivityId]);
+    const { rows: draft } = await db.pg.query(`select id from activities where id = $1`, [
+      draftActivityId,
+    ]);
     expect(draft).toHaveLength(0);
   });
 
@@ -71,7 +78,9 @@ describe('row level security', () => {
     expect(own).toHaveLength(1);
 
     await db.as({ sub: USER_B, role: 'authenticated' });
-    const { rows: notMine } = await db.pg.query(`select id from bookings where id = $1`, [bookingId]);
+    const { rows: notMine } = await db.pg.query(`select id from bookings where id = $1`, [
+      bookingId,
+    ]);
     expect(notMine).toHaveLength(0);
 
     await db.as(null);
@@ -81,9 +90,13 @@ describe('row level security', () => {
 
   it('staff see all bookings and draft activities', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
-    const { rows: booking } = await db.pg.query(`select id from bookings where id = $1`, [bookingId]);
+    const { rows: booking } = await db.pg.query(`select id from bookings where id = $1`, [
+      bookingId,
+    ]);
     expect(booking).toHaveLength(1);
-    const { rows: draft } = await db.pg.query(`select id from activities where id = $1`, [draftActivityId]);
+    const { rows: draft } = await db.pg.query(`select id from activities where id = $1`, [
+      draftActivityId,
+    ]);
     expect(draft).toHaveLength(1);
   });
 
@@ -99,11 +112,15 @@ describe('row level security', () => {
 
   it('a customer cannot read another customer payment, but the owner can', async () => {
     await db.as({ sub: USER_B, role: 'authenticated' });
-    const { rows: hidden } = await db.pg.query(`select id from payments where id = $1`, [paymentId]);
+    const { rows: hidden } = await db.pg.query(`select id from payments where id = $1`, [
+      paymentId,
+    ]);
     expect(hidden).toHaveLength(0);
 
     await db.as({ sub: USER_A, role: 'authenticated' });
-    const { rows: visible } = await db.pg.query(`select id from payments where id = $1`, [paymentId]);
+    const { rows: visible } = await db.pg.query(`select id from payments where id = $1`, [
+      paymentId,
+    ]);
     expect(visible).toHaveLength(1);
   });
 

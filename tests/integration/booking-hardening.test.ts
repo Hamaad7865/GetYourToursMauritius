@@ -15,45 +15,58 @@ describe('booking core hardening', () => {
 
   it('prices from the DB, ignoring any client-supplied amount', async () => {
     const { occurrenceId, optionId } = await seedOccurrence(db, 10);
-    const { rows: hold } = await db.pg.query<{ id: string }>(`select * from create_hold($1, $2, $3)`, [
-      occurrenceId,
-      2,
-      'harden-price',
-    ]);
+    const { rows: hold } = await db.pg.query<{ id: string }>(
+      `select * from create_hold($1, $2, $3)`,
+      [occurrenceId, 2, 'harden-price'],
+    );
     // Client tries to pay 1 minor unit each; the RPC must use the DB price (7500).
-    const items = [{ price_label: 'Adult', quantity: 2, unit_amount_minor: 1, activity_option_id: 'spoofed' }];
+    const items = [
+      { price_label: 'Adult', quantity: 2, unit_amount_minor: 1, activity_option_id: 'spoofed' },
+    ];
     const { rows: booking } = await db.pg.query<{ id: string; total_minor: number }>(
       `select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`,
-      ['harden-price-bk', hold[0]!.id, 'Eve', 'eve@example.com', null, 'web', JSON.stringify(items)],
+      [
+        'harden-price-bk',
+        hold[0]!.id,
+        'Eve',
+        'eve@example.com',
+        null,
+        'web',
+        JSON.stringify(items),
+      ],
     );
     expect(booking[0]!.total_minor).toBe(15000); // 2 × 7500, not 2 × 1
 
-    const { rows: bi } = await db.pg.query<{ unit_amount_minor: number; activity_option_id: string }>(
-      `select unit_amount_minor, activity_option_id from booking_items where booking_id = $1`,
-      [booking[0]!.id],
-    );
+    const { rows: bi } = await db.pg.query<{
+      unit_amount_minor: number;
+      activity_option_id: string;
+    }>(`select unit_amount_minor, activity_option_id from booking_items where booking_id = $1`, [
+      booking[0]!.id,
+    ]);
     expect(bi[0]!.unit_amount_minor).toBe(7500);
     expect(bi[0]!.activity_option_id).toBe(optionId); // forced to the occurrence's option
   });
 
   it('rejects an unknown price tier', async () => {
     const { occurrenceId } = await seedOccurrence(db, 10);
-    const { rows: hold } = await db.pg.query<{ id: string }>(`select * from create_hold($1, $2, $3)`, [
-      occurrenceId,
-      2,
-      'harden-unknown',
-    ]);
+    const { rows: hold } = await db.pg.query<{ id: string }>(
+      `select * from create_hold($1, $2, $3)`,
+      [occurrenceId, 2, 'harden-unknown'],
+    );
     const items = [{ price_label: 'Senior', quantity: 2 }];
     await expect(
-      db.pg.query(`select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`, [
-        'harden-unknown-bk',
-        hold[0]!.id,
-        'X',
-        'x@example.com',
-        null,
-        'web',
-        JSON.stringify(items),
-      ]),
+      db.pg.query(
+        `select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`,
+        [
+          'harden-unknown-bk',
+          hold[0]!.id,
+          'X',
+          'x@example.com',
+          null,
+          'web',
+          JSON.stringify(items),
+        ],
+      ),
     ).rejects.toThrow(/unknown_price_tier/);
   });
 
@@ -63,32 +76,25 @@ describe('booking core hardening', () => {
       `insert into activity_option_prices (activity_option_id, label, amount_minor, max_guests) values ($1, 'Private group', 30000, 2)`,
       [optionId],
     );
-    const { rows: hold } = await db.pg.query<{ id: string }>(`select * from create_hold($1, $2, $3)`, [
-      occurrenceId,
-      3,
-      'harden-max',
-    ]);
+    const { rows: hold } = await db.pg.query<{ id: string }>(
+      `select * from create_hold($1, $2, $3)`,
+      [occurrenceId, 3, 'harden-max'],
+    );
     const items = [{ price_label: 'Private group', quantity: 3 }];
     await expect(
-      db.pg.query(`select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`, [
-        'harden-max-bk',
-        hold[0]!.id,
-        'X',
-        'x@example.com',
-        null,
-        'web',
-        JSON.stringify(items),
-      ]),
+      db.pg.query(
+        `select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`,
+        ['harden-max-bk', hold[0]!.id, 'X', 'x@example.com', null, 'web', JSON.stringify(items)],
+      ),
     ).rejects.toThrow(/exceeds_max_guests/);
   });
 
   it('does not confirm a booking on partial payment, but does on full payment', async () => {
     const { occurrenceId } = await seedOccurrence(db, 10);
-    const { rows: hold } = await db.pg.query<{ id: string }>(`select * from create_hold($1, $2, $3)`, [
-      occurrenceId,
-      2,
-      'harden-pay',
-    ]);
+    const { rows: hold } = await db.pg.query<{ id: string }>(
+      `select * from create_hold($1, $2, $3)`,
+      [occurrenceId, 2, 'harden-pay'],
+    );
     const items = [{ price_label: 'Adult', quantity: 2 }];
     const { rows: booking } = await db.pg.query<{ id: string; total_minor: number }>(
       `select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`,
@@ -109,9 +115,10 @@ describe('booking core hardening', () => {
       [paymentId, 10000],
     );
     expect(partial[0]!.status).toBe('pending');
-    const { rows: b1 } = await db.pg.query<{ status: string }>(`select status from bookings where id = $1`, [
-      bookingId,
-    ]);
+    const { rows: b1 } = await db.pg.query<{ status: string }>(
+      `select status from bookings where id = $1`,
+      [bookingId],
+    );
     expect(b1[0]!.status).toBe('payment_pending');
 
     // Remaining payment brings it to the full amount: now it confirms.
@@ -120,9 +127,10 @@ describe('booking core hardening', () => {
       [paymentId, 5000],
     );
     expect(full[0]!.status).toBe('paid');
-    const { rows: b2 } = await db.pg.query<{ status: string }>(`select status from bookings where id = $1`, [
-      bookingId,
-    ]);
+    const { rows: b2 } = await db.pg.query<{ status: string }>(
+      `select status from bookings where id = $1`,
+      [bookingId],
+    );
     expect(b2[0]!.status).toBe('confirmed');
   });
 

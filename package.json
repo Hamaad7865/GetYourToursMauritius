@@ -22,6 +22,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "openapi:write": "tsx scripts/write-openapi.ts",
+    "seed:gen": "tsx scripts/seed.ts",
+    "import:catalogue": "tsx scripts/import-catalogue.ts",
     "gen:types": "supabase gen types typescript --local > src/lib/supabase/types.ts"
   },
   "dependencies": {

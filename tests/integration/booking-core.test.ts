@@ -3,7 +3,9 @@ import { createTestDb, type TestDb } from '../db/pglite';
 import { seedOccurrence } from '../db/seed';
 
 async function usedCapacity(db: TestDb, occurrenceId: string): Promise<number> {
-  const { rows } = await db.pg.query<{ u: number }>(`select used_capacity($1) as u`, [occurrenceId]);
+  const { rows } = await db.pg.query<{ u: number }>(`select used_capacity($1) as u`, [
+    occurrenceId,
+  ]);
   return Number(rows[0]!.u);
 }
 
@@ -53,7 +55,9 @@ describe('booking core RPCs', () => {
         db.pg.query(`select * from create_hold($1, $2, $3)`, [occurrenceId, 0, 'q0']),
       ).rejects.toThrow(/invalid_quantity/);
 
-      await db.pg.query(`update session_occurrences set status = 'closed' where id = $1`, [occurrenceId]);
+      await db.pg.query(`update session_occurrences set status = 'closed' where id = $1`, [
+        occurrenceId,
+      ]);
       await expect(
         db.pg.query(`select * from create_hold($1, $2, $3)`, [occurrenceId, 1, 'closed']),
       ).rejects.toThrow(/occurrence_not_bookable/);
@@ -70,11 +74,27 @@ describe('booking core RPCs', () => {
       );
       const holdId = hold[0]!.id;
 
-      const items = [{ activity_option_id: optionId, price_label: 'Adult', quantity: 6, unit_amount_minor: 7500 }];
-      const { rows: booking } = await db.pg.query<{ id: string; status: string; total_minor: number }>(
-        `select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`,
-        ['booking-1', holdId, 'Asha T', 'asha@example.com', null, 'web', JSON.stringify(items)],
-      );
+      const items = [
+        {
+          activity_option_id: optionId,
+          price_label: 'Adult',
+          quantity: 6,
+          unit_amount_minor: 7500,
+        },
+      ];
+      const { rows: booking } = await db.pg.query<{
+        id: string;
+        status: string;
+        total_minor: number;
+      }>(`select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`, [
+        'booking-1',
+        holdId,
+        'Asha T',
+        'asha@example.com',
+        null,
+        'web',
+        JSON.stringify(items),
+      ]);
       expect(booking[0]!.status).toBe('payment_pending');
       expect(booking[0]!.total_minor).toBe(45000);
       const bookingId = booking[0]!.id;
@@ -149,17 +169,27 @@ describe('booking core RPCs', () => {
         `select * from create_hold($1, $2, $3)`,
         [occurrenceId, 4, 'mismatch-hold'],
       );
-      const items = [{ activity_option_id: optionId, price_label: 'Adult', quantity: 3, unit_amount_minor: 7500 }];
+      const items = [
+        {
+          activity_option_id: optionId,
+          price_label: 'Adult',
+          quantity: 3,
+          unit_amount_minor: 7500,
+        },
+      ];
       await expect(
-        db.pg.query(`select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`, [
-          'mismatch-booking',
-          hold[0]!.id,
-          'X',
-          'x@example.com',
-          null,
-          'web',
-          JSON.stringify(items),
-        ]),
+        db.pg.query(
+          `select * from create_booking($1, $2, $3, $4, $5, $6::booking_source, $7::jsonb)`,
+          [
+            'mismatch-booking',
+            hold[0]!.id,
+            'X',
+            'x@example.com',
+            null,
+            'web',
+            JSON.stringify(items),
+          ],
+        ),
       ).rejects.toThrow(/items_quantity_mismatch/);
     });
   });
