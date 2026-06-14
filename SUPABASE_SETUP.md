@@ -16,13 +16,38 @@ storage work. No Docker or Supabase CLI required — you paste one SQL file.
 
 ## 2. Apply the schema + seed
 
-1. In the dashboard: **SQL Editor → New query**.
-2. Open `supabase/setup.sql` from this repo, copy the **whole file**, paste, **Run**.
-   - It's wrapped in a transaction (all-or-nothing) — 13 migrations + 23 seeded
-     activities (operators, options, prices, occurrences, translations).
-   - Regenerate it any time with `npm run seed:gen && npm run setup:sql`.
-3. Verify: **Table Editor** should now list `activities`, `bookings`, `payments`, … and
-   `activities` should hold 23 published rows.
+`supabase/setup.sql` is 13 migrations + 23 seeded activities, wrapped in one
+transaction (all-or-nothing). Regenerate any time with
+`npm run seed:gen && npm run setup:sql`.
+
+### Recommended: apply over the connection string (no paste)
+
+Pasting ~1800 lines into the SQL Editor can truncate or mangle multibyte text
+(`Île`, `Chéri`, `–`) mid-string, which surfaces as a confusing
+`relation "the" does not exist`. Applying it over the wire avoids that entirely:
+
+1. Supabase: **Settings → Database → Connection string → URI** — copy it and fill in
+   your DB password. Use the **`:5432`** direct/"Session pooler" string (not `:6543`).
+2. Add it to `.env.local`:
+   ```
+   SUPABASE_DB_URL=postgresql://postgres:YOUR-PASSWORD@db.YOUR-PROJECT.supabase.co:5432/postgres
+   ```
+3. Run:
+   ```
+   npm run db:setup
+   ```
+   It applies the file and prints `✓ Applied. activities rows: 23`. On any SQL error it
+   prints the exact line/column + context.
+
+### Alternative: SQL Editor
+
+**SQL Editor → New query** → paste **all** of `supabase/setup.sql` → **Run**. If you hit
+a parse error, it's almost always a truncated paste — use the connection-string method
+above, or paste the files in `supabase/migrations/` one at a time (in name order),
+then `supabase/seed.sql`.
+
+**Verify** either way: **Table Editor** lists `activities`, `bookings`, `payments`, … and
+`activities` holds 23 published rows.
 
 ## 3. Grab the keys
 
