@@ -49,6 +49,39 @@ if (!url) {
   process.exit(1);
 }
 
+/**
+ * Tolerant connection-string parser: splits creds/host on the LAST '@' and user/password
+ * on the FIRST ':', so an un-encoded special char in the password (e.g. '@', ':') still
+ * parses correctly. Returns a pg config object (pg does not require URL-encoding there).
+ */
+function buildClientConfig(url: string): pg.ClientConfig {
+  const m = url.match(/^postgres(?:ql)?:\/\/(.+)$/i);
+  if (!m) throw new Error('SUPABASE_DB_URL must start with postgres:// or postgresql://');
+  const rest = m[1]!;
+  const at = rest.lastIndexOf('@');
+  if (at === -1) throw new Error('SUPABASE_DB_URL is missing "@host"');
+  const creds = rest.slice(0, at);
+  let hostPart = rest.slice(at + 1);
+  const colon = creds.indexOf(':');
+  const user = colon === -1 ? creds : creds.slice(0, colon);
+  const password = colon === -1 ? '' : creds.slice(colon + 1);
+  let database = 'postgres';
+  const slash = hostPart.indexOf('/');
+  if (slash !== -1) {
+    database = hostPart.slice(slash + 1).split('?')[0] || 'postgres';
+    hostPart = hostPart.slice(0, slash);
+  }
+  const [host, portStr] = hostPart.split(':');
+  return {
+    host,
+    port: portStr ? Number(portStr) : 5432,
+    user,
+    password,
+    database,
+    ssl: { rejectUnauthorized: false },
+  };
+}
+
 const sql = readFileSync(join(root, 'supabase', 'setup.sql'), 'utf8');
 
 function locate(position: number): string {
@@ -64,7 +97,7 @@ function locate(position: number): string {
   return `at line ${line}, col ${col}:\n${ctx}`;
 }
 
-const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+const client = new pg.Client(buildClientConfig(url));
 
 try {
   await client.connect();
@@ -79,7 +112,14 @@ try {
   if (e.position) {
     console.error(`✗ ${e.code ?? ''} ${e.message ?? ''}\n${locate(Number(e.position))}`);
   } else {
-    console.error('✗', e.message ?? error);
+    console.error('✗', e.code ?? '', e.message ?? error);
+  }
+  if (e.code && ['ENETUNREACH', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN'].includes(e.code)) {
+    console.error(
+      '\nCouldn\'t reach the host. The direct host (db.<ref>.supabase.co) is often IPv6-only.\n' +
+        'Use the IPv4 "Session pooler" string from Supabase → Connect → Session pooler\n' +
+        '(host like aws-0-<region>.pooler.supabase.com, user like postgres.<ref>).',
+    );
   }
   process.exitCode = 1;
 } finally {

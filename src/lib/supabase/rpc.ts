@@ -10,7 +10,9 @@ import type { DbRpc, RpcParams } from '@/lib/db/rpc';
 export function supabaseRpc(client: SupabaseClient<Database>): DbRpc {
   return {
     async rpc<T>(fn: string, params: RpcParams): Promise<T> {
-      const call = client.rpc as unknown as (
+      // Bind to `client` — supabase-js's rpc() reads `this.rest`, so calling a
+      // detached reference throws "Cannot read properties of undefined (reading 'rest')".
+      const call = client.rpc.bind(client) as unknown as (
         name: string,
         args: { p: RpcParams },
       ) => Promise<{ data: unknown; error: { message: string } | null }>;
