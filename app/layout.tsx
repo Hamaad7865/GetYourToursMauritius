@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { organizationJsonLd } from '@/lib/seo/jsonld';
 import './globals.css';
 
 const display = Fraunces({
@@ -33,7 +35,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
-      <body>{children}</body>
+      <body>
+        <JsonLd data={organizationJsonLd()} />
+        {children}
+      </body>
     </html>
   );
 }

@@ -3,17 +3,21 @@
 @tailwind utilities;
 
 /*
- * Brand tokens — single source of truth, mapped into Tailwind in tailwind.config.ts.
+ * Brand tokens as RGB channels so Tailwind opacity modifiers (text-ink/70,
+ * border-ink/10, …) work. Single source of truth, mapped in tailwind.config.ts.
  * Verified against design-reference/BelleMareTours-handoff.zip.
  */
 :root {
-  --color-cream: #faf5ec;
-  --color-ink: #0a2e36;
-  --color-ink-muted: #51666b;
-  --color-coral: #f76c5e;
-  --color-teal: #0e8c92;
-  --color-teal-dark: #0b5c63;
-  --color-teal-tint: #eaf7f5;
+  --color-cream: 250 245 236;
+  --color-ink: 10 46 54;
+  --color-ink-muted: 81 102 107;
+  --color-coral: 247 108 94;
+  --color-teal: 14 140 146;
+  --color-teal-dark: 11 92 99;
+  --color-teal-tint: 234 247 245;
+  --color-teal-bright: 19 160 166;
+  --color-gold: 201 138 18;
+  --color-gold-light: 245 166 35;
 }
 
 @layer base {
@@ -27,7 +31,7 @@
   }
 
   :focus-visible {
-    outline: 3px solid var(--color-coral);
+    outline: 3px solid rgb(var(--color-coral));
     outline-offset: 2px;
     border-radius: 6px;
   }

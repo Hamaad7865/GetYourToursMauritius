@@ -13,6 +13,7 @@ export default tseslint.config(
     ignores: [
       '.next/**',
       '.vercel/**',
+      '.design-tmp/**',
       'node_modules/**',
       'coverage/**',
       'playwright-report/**',

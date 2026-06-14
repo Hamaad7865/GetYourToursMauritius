@@ -10,16 +10,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        cream: 'var(--color-cream)',
+        cream: 'rgb(var(--color-cream) / <alpha-value>)',
         ink: {
-          DEFAULT: 'var(--color-ink)',
-          muted: 'var(--color-ink-muted)',
+          DEFAULT: 'rgb(var(--color-ink) / <alpha-value>)',
+          muted: 'rgb(var(--color-ink-muted) / <alpha-value>)',
         },
-        coral: 'var(--color-coral)',
+        coral: 'rgb(var(--color-coral) / <alpha-value>)',
         teal: {
-          DEFAULT: 'var(--color-teal)',
-          dark: 'var(--color-teal-dark)',
-          tint: 'var(--color-teal-tint)',
+          DEFAULT: 'rgb(var(--color-teal) / <alpha-value>)',
+          dark: 'rgb(var(--color-teal-dark) / <alpha-value>)',
+          tint: 'rgb(var(--color-teal-tint) / <alpha-value>)',
+          bright: 'rgb(var(--color-teal-bright) / <alpha-value>)',
+        },
+        gold: {
+          DEFAULT: 'rgb(var(--color-gold) / <alpha-value>)',
+          light: 'rgb(var(--color-gold-light) / <alpha-value>)',
         },
       },
       fontFamily: {

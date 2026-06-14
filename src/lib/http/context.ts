@@ -20,3 +20,13 @@ export function buildServiceContext(req: Request): ServiceContext {
     now: () => new Date(),
   };
 }
+
+/** Anonymous context for public server components (RLS shows published only). */
+export function publicServiceContext(): ServiceContext {
+  return {
+    db: supabaseRpc(createUserClient(null)),
+    payments: getPaymentProvider(),
+    ai: getAiProvider(),
+    now: () => new Date(),
+  };
+}

@@ -14,8 +14,16 @@ const nextConfig = {
   },
   images: {
     // Cloudflare Pages does not run Next's default image optimizer on the edge.
-    // A custom loader is wired in Phase 3; until then ship images unoptimized.
     unoptimized: true,
+  },
+  // Edge-cache the public catalogue at the CDN (anonymous, non-personalised).
+  async headers() {
+    const cache = 'public, s-maxage=300, stale-while-revalidate=600';
+    return [
+      { source: '/', headers: [{ key: 'Cache-Control', value: cache }] },
+      { source: '/activities', headers: [{ key: 'Cache-Control', value: cache }] },
+      { source: '/activities/:slug*', headers: [{ key: 'Cache-Control', value: cache }] },
+    ];
   },
 };
 

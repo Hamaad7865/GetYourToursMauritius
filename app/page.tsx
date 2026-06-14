@@ -1,44 +1,73 @@
+import type { Metadata } from 'next';
+import { SiteHeader } from '@/components/site/SiteHeader';
+import { SiteFooter } from '@/components/site/SiteFooter';
+import { Hero } from '@/components/marketing/Hero';
+import { WhyBookDirect } from '@/components/marketing/WhyBookDirect';
+import { CategoryChips } from '@/components/catalogue/CategoryChips';
+import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
+import { publicServiceContext } from '@/lib/http/context';
+import { searchActivities } from '@/lib/services/activities';
+import type { TourSummary } from '@/lib/validation/tours';
+
 export const runtime = 'edge';
 
-const CATEGORIES = [
-  'Catamaran cruises',
-  'Île aux Cerfs',
-  'Dolphin swims',
-  'Sea walks & diving',
-  'Parasailing',
-  'Island tours',
-  'Airport transfers',
-] as const;
+export const metadata: Metadata = {
+  title: 'Belle Mare Tours & Mauritius East-Coast Activities',
+  description:
+    "Book Belle Mare Tours direct: catamaran cruises to Île aux Cerfs, dolphin swims, undersea walks, parasailing and island day tours across Mauritius's east coast. Instant confirmation, no reseller markup.",
+  alternates: { canonical: '/' },
+  openGraph: {
+    type: 'website',
+    title: 'Belle Mare Tours & Mauritius East-Coast Activities',
+    description:
+      'The official booking platform of Belle Mare Tours — booked direct, no reseller markup.',
+    locale: 'en_GB',
+    alternateLocale: 'fr_FR',
+  },
+};
 
-export default function HomePage() {
+async function getFeaturedActivities(): Promise<TourSummary[]> {
+  try {
+    const { items } = await searchActivities(publicServiceContext(), { page: 1, pageSize: 12 });
+    return items;
+  } catch (error) {
+    console.error('[home] catalogue fetch failed', error);
+    return [];
+  }
+}
+
+export default async function HomePage() {
+  const activities = await getFeaturedActivities();
+
   return (
-    <main className="mx-auto max-w-shell px-6 py-20">
-      <p className="font-display text-sm uppercase tracking-[0.2em] text-teal-dark">
-        Belle Mare Tours · East-Coast Mauritius
-      </p>
-      <h1 className="mt-4 max-w-3xl font-display text-4xl font-semibold leading-tight text-ink sm:text-5xl">
-        Catamaran cruises, dolphin swims and island days — booked direct.
-      </h1>
-      <p className="mt-5 max-w-2xl text-lg text-ink-muted">
-        The official booking platform of Belle Mare Tours. No reseller markup, instant confirmation.
-      </p>
+    <>
+      <SiteHeader />
+      <Hero />
+      <main>
+        <section className="relative z-10 bg-cream">
+          <div className="mx-auto max-w-shell px-6">
+            <CategoryChips />
+          </div>
+        </section>
 
-      <div className="mt-10 flex flex-wrap gap-3">
-        {CATEGORIES.map((category) => (
-          <span
-            key={category}
-            className="rounded-full border border-teal/30 bg-teal-tint px-4 py-2 text-sm font-medium text-teal-dark"
-          >
-            {category}
-          </span>
-        ))}
-      </div>
+        <section className="bg-cream">
+          <div className="mx-auto max-w-shell px-6 pb-16">
+            <div className="mb-6 mt-2">
+              <h2 className="m-0 font-display text-3xl font-medium tracking-tight text-ink">
+                All activities
+              </h2>
+              <p className="mt-1.5 text-sm text-ink-muted">
+                {activities.length > 0 ? `${activities.length} experiences` : 'Experiences'}{' '}
+                operated by Belle Mare Tours · East-coast Mauritius
+              </p>
+            </div>
+            <ActivityGrid activities={activities} />
+          </div>
+        </section>
 
-      <p className="mt-16 rounded-card border border-teal/20 bg-white/60 p-6 text-sm text-ink-muted">
-        Phase 0 scaffold — the full catalogue, booking flow, AI assistant and admin panel land in
-        later phases. Brand tokens, edge runtime and the API-first service layer are wired and
-        verified.
-      </p>
-    </main>
+        <WhyBookDirect />
+      </main>
+      <SiteFooter />
+    </>
   );
 }
