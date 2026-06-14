@@ -1,6 +1,14 @@
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
 import { SITE } from './site';
 
+/**
+ * Serialises JSON-LD for safe embedding in a <script> tag. Escapes `<` so a value
+ * containing `</script>` (or `<!--`) cannot break out of the tag (stored XSS).
+ */
+export function serializeJsonLd(data: Record<string, unknown>): string {
+  return JSON.stringify(data).replace(/</g, '\\u003c');
+}
+
 /** Site-wide TravelAgency / LocalBusiness entity for Belle Mare Tours. */
 export function organizationJsonLd(): Record<string, unknown> {
   return {

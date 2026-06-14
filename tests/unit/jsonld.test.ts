@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { organizationJsonLd, productJsonLd } from '@/lib/seo/jsonld';
+import { organizationJsonLd, productJsonLd, serializeJsonLd } from '@/lib/seo/jsonld';
 import type { TourSummary } from '@/lib/validation/tours';
 
 const base: TourSummary = {
@@ -37,5 +37,13 @@ describe('JSON-LD', () => {
     const p = productJsonLd({ ...base, fromPriceEur: null, ratingAvg: null, ratingCount: 0 });
     expect(p.offers).toBeUndefined();
     expect(p.aggregateRating).toBeUndefined();
+  });
+
+  it('escapes </script> so JSON-LD cannot break out of the tag (XSS)', () => {
+    const out = serializeJsonLd(
+      productJsonLd({ ...base, title: 'Cruise </script><script>alert(1)</script>' }),
+    );
+    expect(out).not.toContain('</script>');
+    expect(out).toContain('\\u003c/script>');
   });
 });
