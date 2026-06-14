@@ -20,6 +20,32 @@ export type TourType = z.infer<typeof tourTypeSchema>;
 export const tourStatusSchema = z.enum(['draft', 'published']);
 export type TourStatus = z.infer<typeof tourStatusSchema>;
 
+export const bookingStatusSchema = z.enum([
+  'draft',
+  'held',
+  'payment_pending',
+  'confirmed',
+  'completed',
+  'cancelled',
+  'expired',
+  'refund_pending',
+  'refunded',
+  'failed',
+]);
+export type BookingStatus = z.infer<typeof bookingStatusSchema>;
+
+export const paymentStateSchema = z.enum([
+  'pending',
+  'paid',
+  'partially_refunded',
+  'refunded',
+  'failed',
+]);
+export type PaymentState = z.infer<typeof paymentStateSchema>;
+
+export const bookingSourceSchema = z.enum(['web', 'ai_chat', 'whatsapp']);
+export type BookingSource = z.infer<typeof bookingSourceSchema>;
+
 export const localeSchema = z.enum(['en', 'fr']);
 export type Locale = z.infer<typeof localeSchema>;
 

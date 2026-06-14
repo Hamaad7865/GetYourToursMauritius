@@ -1,27 +1,23 @@
+import { z } from 'zod';
 import type { ServiceContext } from './context';
-import { NotImplementedError } from './errors';
-
-export interface AvailabilitySlot {
-  id: string;
-  /** ISO date (YYYY-MM-DD). */
-  date: string;
-  /** Local start time (HH:MM), or null for all-day items. */
-  startTime: string | null;
-  capacity: number;
-  seatsLeft: number;
-}
+import { callRpc } from './rpc';
+import { availabilitySlotSchema, type AvailabilitySlot } from '@/lib/validation/tours';
 
 export interface CheckAvailabilityInput {
-  tourId: string;
-  /** Inclusive ISO date range. */
-  from: string;
-  to: string;
+  slug: string;
+  /** Inclusive ISO date range (YYYY-MM-DD); defaults to the next 30 days. */
+  from?: string;
+  to?: string;
 }
 
 export async function checkAvailability(
-  _ctx: ServiceContext,
+  ctx: ServiceContext,
   input: CheckAvailabilityInput,
 ): Promise<AvailabilitySlot[]> {
-  // Phase 2: query the `availability` table; capacity/seats_left logic lives here.
-  throw new NotImplementedError(`checkAvailability("${input.tourId}")`);
+  const data = await callRpc(ctx, 'api_list_availability', {
+    slug: input.slug,
+    from: input.from ?? null,
+    to: input.to ?? null,
+  });
+  return z.array(availabilitySlotSchema).parse(data);
 }

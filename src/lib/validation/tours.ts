@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { categorySchema, paginationQuerySchema, tourTypeSchema } from './common';
 
+// Catalogue DTOs — these match the `api_*` Postgres function output exactly.
+
 export const tourPriceSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -11,7 +13,7 @@ export type TourPrice = z.infer<typeof tourPriceSchema>;
 
 export const tourImageSchema = z.object({
   id: z.string(),
-  url: z.string().url(),
+  url: z.string(),
   alt: z.string().nullable(),
   position: z.number().int(),
 });
@@ -33,6 +35,29 @@ export const tourSummarySchema = z.object({
 });
 export type TourSummary = z.infer<typeof tourSummarySchema>;
 
+export const tourOptionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  prices: z.array(tourPriceSchema),
+});
+export type TourOption = z.infer<typeof tourOptionSchema>;
+
+export const tourTranslationSchema = z.object({
+  title: z.string().nullable(),
+  summary: z.string().nullable(),
+  description: z.string().nullable(),
+});
+
+export const reviewSchema = z.object({
+  id: z.string(),
+  author: z.string(),
+  rating: z.number().int(),
+  text: z.string().nullable(),
+  createdAt: z.string(),
+});
+export type Review = z.infer<typeof reviewSchema>;
+
 export const tourDetailSchema = tourSummarySchema.extend({
   description: z.string().nullable(),
   meetingPoint: z.string().nullable(),
@@ -44,10 +69,24 @@ export const tourDetailSchema = tourSummarySchema.extend({
   cancellationPolicy: z.string().nullable(),
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
-  prices: z.array(tourPriceSchema),
   images: z.array(tourImageSchema),
+  options: z.array(tourOptionSchema),
+  translations: z.record(z.string(), tourTranslationSchema),
+  reviews: z.array(reviewSchema),
 });
 export type TourDetail = z.infer<typeof tourDetailSchema>;
+
+export const availabilitySlotSchema = z.object({
+  occurrenceId: z.string(),
+  activityOptionId: z.string(),
+  optionName: z.string(),
+  startsAt: z.string(),
+  endsAt: z.string(),
+  capacity: z.number().int(),
+  seatsLeft: z.number().int(),
+  status: z.string(),
+});
+export type AvailabilitySlot = z.infer<typeof availabilitySlotSchema>;
 
 export const searchToursQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().min(1).max(120).optional(),
@@ -55,3 +94,9 @@ export const searchToursQuerySchema = paginationQuerySchema.extend({
   type: tourTypeSchema.optional(),
 });
 export type SearchToursQuery = z.infer<typeof searchToursQuerySchema>;
+
+export const availabilityQuerySchema = z.object({
+  from: z.string().date().optional(),
+  to: z.string().date().optional(),
+});
+export type AvailabilityQuery = z.infer<typeof availabilityQuerySchema>;

@@ -40,14 +40,14 @@ export async function parseJsonBody<S extends ZodTypeAny>(
  * Wraps a route handler with consistent error handling and CORS headers, so each
  * endpoint stays a thin adapter over the service layer.
  */
-export function apiHandler(
-  handler: (req: Request) => Promise<Response>,
-): (req: Request) => Promise<Response> {
-  return async (req: Request): Promise<Response> => {
+export function apiHandler<C = unknown>(
+  handler: (req: Request, routeCtx: C) => Promise<Response>,
+): (req: Request, routeCtx?: C) => Promise<Response> {
+  return async (req: Request, routeCtx?: C): Promise<Response> => {
     const origin = req.headers.get('origin');
     const cors = corsHeaders(origin);
     try {
-      const res = await handler(req);
+      const res = await handler(req, routeCtx as C);
       for (const [key, value] of Object.entries(cors)) {
         res.headers.set(key, value);
       }

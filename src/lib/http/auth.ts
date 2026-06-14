@@ -71,3 +71,14 @@ export async function optionalUser(req: Request): Promise<AuthUser | null> {
     return null;
   }
 }
+
+/**
+ * For public-or-authenticated endpoints: no token → anonymous (null); a token that
+ * is present but invalid → 401. This validates the JWT when supplied while still
+ * allowing public access (RLS gates the data as anon).
+ */
+export async function authenticateOptional(req: Request): Promise<AuthUser | null> {
+  const token = getBearerToken(req);
+  if (!token) return null;
+  return verifyAccessToken(token);
+}

@@ -8,9 +8,11 @@ describe('OpenAPI document', () => {
     expect(doc.info.title).toBe('GetYourToursMauritius API');
   });
 
-  it('registers the /tours operation with bearer security', () => {
+  it('registers the catalogue + booking operations with a bearer scheme', () => {
     const doc = buildOpenApiDocument();
-    expect(doc.paths?.['/tours']?.get?.operationId).toBe('searchTours');
+    expect(doc.paths?.['/activities']?.get?.operationId).toBe('searchActivities');
+    expect(doc.paths?.['/bookings']?.post?.operationId).toBe('createBooking');
+    expect(doc.paths?.['/bookings/{ref}']?.get?.operationId).toBe('getBooking');
     expect(doc.components?.securitySchemes?.bearerAuth).toMatchObject({
       type: 'http',
       scheme: 'bearer',

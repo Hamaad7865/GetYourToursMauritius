@@ -1,23 +1,20 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Database } from '@/lib/supabase/types';
+import type { DbRpc } from '@/lib/db/rpc';
 import type { PaymentProvider } from '@/lib/payments/types';
 import type { AiProvider } from '@/lib/ai/types';
 
 /**
  * The single dependency bundle every service function receives as its first
  * argument. This is the seam that keeps the service layer framework-agnostic and
- * fully mockable: tests pass a fake `db` and stub providers; route handlers build
- * a real context. Nothing here imports Next.js.
+ * fully mockable: tests pass a PGlite-backed DbRpc and stub providers; route
+ * handlers build a Supabase-backed one. Nothing here imports Next.js.
  *
- * `db` may be a user-scoped client (RLS as the caller) or a service-role client,
- * chosen by the caller depending on the trust boundary.
+ * `db` is the narrow rpc port (services only call Postgres `api_*` functions). It
+ * may wrap a user-scoped client (RLS as the caller) or a service-role client.
  */
 export interface ServiceContext {
-  db: SupabaseClient<Database>;
+  db: DbRpc;
   payments: PaymentProvider;
   ai: AiProvider;
   /** Injectable clock for deterministic tests. */
   now: () => Date;
 }
-
-export type DbClient = SupabaseClient<Database>;

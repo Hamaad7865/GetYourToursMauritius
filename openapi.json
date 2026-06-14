@@ -1,0 +1,1729 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "GetYourToursMauritius API",
+    "version": "1.0.0",
+    "description": "API-first backend for Belle Mare Tours — catalogue, availability, bookings, payments and the AI assistant. The same token-authenticated API serves web and mobile clients."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "v1"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Catalogue",
+      "description": "Activity search, detail and availability"
+    },
+    {
+      "name": "Bookings",
+      "description": "Create and track bookings"
+    },
+    {
+      "name": "Payments",
+      "description": "Hosted checkout links"
+    },
+    {
+      "name": "Leads",
+      "description": "Sales lead capture"
+    },
+    {
+      "name": "Meta",
+      "description": "Specification and service metadata"
+    }
+  ],
+  "paths": {
+    "/activities": {
+      "get": {
+        "operationId": "searchActivities",
+        "summary": "Search the published tour & transport catalogue",
+        "tags": [
+          "Catalogue"
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "pageSize",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "Catamaran cruises",
+                "Île aux Cerfs",
+                "Dolphin swims",
+                "Sea walks & diving",
+                "Parasailing",
+                "Island tours",
+                "Airport transfers"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "activity",
+                "transport"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of activities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "type": "string",
+                            "enum": [
+                              "activity",
+                              "transport"
+                            ]
+                          },
+                          "title": {
+                            "type": "string"
+                          },
+                          "summary": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "category": {
+                            "type": "string",
+                            "enum": [
+                              "Catamaran cruises",
+                              "Île aux Cerfs",
+                              "Dolphin swims",
+                              "Sea walks & diving",
+                              "Parasailing",
+                              "Island tours",
+                              "Airport transfers"
+                            ]
+                          },
+                          "location": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
+                          "durationMinutes": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
+                          },
+                          "fromPriceEur": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "minimum": 0
+                          },
+                          "ratingAvg": {
+                            "type": [
+                              "number",
+                              "null"
+                            ]
+                          },
+                          "ratingCount": {
+                            "type": "integer"
+                          },
+                          "heroImage": {
+                            "type": [
+                              "object",
+                              "null"
+                            ],
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "alt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "position": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "url",
+                              "alt",
+                              "position"
+                            ]
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "slug",
+                          "type",
+                          "title",
+                          "summary",
+                          "category",
+                          "location",
+                          "durationMinutes",
+                          "fromPriceEur",
+                          "ratingAvg",
+                          "ratingCount",
+                          "heroImage"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{slug}": {
+      "get": {
+        "operationId": "getActivity",
+        "summary": "Get full activity detail by slug",
+        "tags": [
+          "Catalogue"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        },
+                        "type": {
+                          "type": "string",
+                          "enum": [
+                            "activity",
+                            "transport"
+                          ]
+                        },
+                        "title": {
+                          "type": "string"
+                        },
+                        "summary": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "category": {
+                          "type": "string",
+                          "enum": [
+                            "Catamaran cruises",
+                            "Île aux Cerfs",
+                            "Dolphin swims",
+                            "Sea walks & diving",
+                            "Parasailing",
+                            "Island tours",
+                            "Airport transfers"
+                          ]
+                        },
+                        "location": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "durationMinutes": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "fromPriceEur": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "ratingAvg": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "ratingCount": {
+                          "type": "integer"
+                        },
+                        "heroImage": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "id": {
+                              "type": "string"
+                            },
+                            "url": {
+                              "type": "string"
+                            },
+                            "alt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "position": {
+                              "type": "integer"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "url",
+                            "alt",
+                            "position"
+                          ]
+                        },
+                        "description": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "meetingPoint": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "pickupAvailable": {
+                          "type": "boolean"
+                        },
+                        "languages": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "inclusions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "exclusions": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "highlights": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "cancellationPolicy": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "seoTitle": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "seoDescription": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "images": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "alt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "position": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "url",
+                              "alt",
+                              "position"
+                            ]
+                          }
+                        },
+                        "options": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "description": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "prices": {
+                                "type": "array",
+                                "items": {
+                                  "type": "object",
+                                  "properties": {
+                                    "id": {
+                                      "type": "string"
+                                    },
+                                    "label": {
+                                      "type": "string"
+                                    },
+                                    "amountEur": {
+                                      "type": "number",
+                                      "minimum": 0
+                                    },
+                                    "maxGuests": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ],
+                                      "exclusiveMinimum": 0
+                                    }
+                                  },
+                                  "required": [
+                                    "id",
+                                    "label",
+                                    "amountEur",
+                                    "maxGuests"
+                                  ]
+                                }
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "description",
+                              "prices"
+                            ]
+                          }
+                        },
+                        "translations": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "summary": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "description": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "title",
+                              "summary",
+                              "description"
+                            ]
+                          }
+                        },
+                        "reviews": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "author": {
+                                "type": "string"
+                              },
+                              "rating": {
+                                "type": "integer"
+                              },
+                              "text": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "createdAt": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "author",
+                              "rating",
+                              "text",
+                              "createdAt"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "slug",
+                        "type",
+                        "title",
+                        "summary",
+                        "category",
+                        "location",
+                        "durationMinutes",
+                        "fromPriceEur",
+                        "ratingAvg",
+                        "ratingCount",
+                        "heroImage",
+                        "description",
+                        "meetingPoint",
+                        "pickupAvailable",
+                        "languages",
+                        "inclusions",
+                        "exclusions",
+                        "highlights",
+                        "cancellationPolicy",
+                        "seoTitle",
+                        "seoDescription",
+                        "images",
+                        "options",
+                        "translations",
+                        "reviews"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Activity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/activities/{slug}/availability": {
+      "get": {
+        "operationId": "listAvailability",
+        "summary": "List bookable occurrences with live seats_left",
+        "tags": [
+          "Catalogue"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "slug",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "occurrenceId": {
+                            "type": "string"
+                          },
+                          "activityOptionId": {
+                            "type": "string"
+                          },
+                          "optionName": {
+                            "type": "string"
+                          },
+                          "startsAt": {
+                            "type": "string"
+                          },
+                          "endsAt": {
+                            "type": "string"
+                          },
+                          "capacity": {
+                            "type": "integer"
+                          },
+                          "seatsLeft": {
+                            "type": "integer"
+                          },
+                          "status": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "occurrenceId",
+                          "activityOptionId",
+                          "optionName",
+                          "startsAt",
+                          "endsAt",
+                          "capacity",
+                          "seatsLeft",
+                          "status"
+                        ]
+                      }
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings": {
+      "post": {
+        "operationId": "createBooking",
+        "summary": "Create a payment_pending booking (prices come from the DB)",
+        "tags": [
+          "Bookings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "occurrenceId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "party": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "customer": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 120
+                      },
+                      "email": {
+                        "type": "string",
+                        "format": "email"
+                      },
+                      "phone": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 40
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "email"
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "enum": [
+                      "web",
+                      "ai_chat",
+                      "whatsapp"
+                    ]
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "occurrenceId",
+                  "party",
+                  "customer"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Booking created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "ref": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "draft",
+                            "held",
+                            "payment_pending",
+                            "confirmed",
+                            "completed",
+                            "cancelled",
+                            "expired",
+                            "refund_pending",
+                            "refunded",
+                            "failed"
+                          ]
+                        },
+                        "paymentState": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "paid",
+                            "partially_refunded",
+                            "refunded",
+                            "failed"
+                          ]
+                        },
+                        "customerName": {
+                          "type": "string"
+                        },
+                        "customerEmail": {
+                          "type": "string"
+                        },
+                        "totalEur": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string",
+                          "enum": [
+                            "web",
+                            "ai_chat",
+                            "whatsapp"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "priceLabel": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "integer"
+                              },
+                              "unitAmountEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "subtotalEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "occurrenceId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "priceLabel",
+                              "quantity",
+                              "unitAmountEur",
+                              "subtotalEur",
+                              "occurrenceId"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "ref",
+                        "status",
+                        "paymentState",
+                        "customerName",
+                        "customerEmail",
+                        "totalEur",
+                        "currency",
+                        "source",
+                        "createdAt",
+                        "items"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not enough availability",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{ref}": {
+      "get": {
+        "operationId": "getBooking",
+        "summary": "Get booking status by reference",
+        "tags": [
+          "Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "ref": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "draft",
+                            "held",
+                            "payment_pending",
+                            "confirmed",
+                            "completed",
+                            "cancelled",
+                            "expired",
+                            "refund_pending",
+                            "refunded",
+                            "failed"
+                          ]
+                        },
+                        "paymentState": {
+                          "type": "string",
+                          "enum": [
+                            "pending",
+                            "paid",
+                            "partially_refunded",
+                            "refunded",
+                            "failed"
+                          ]
+                        },
+                        "customerName": {
+                          "type": "string"
+                        },
+                        "customerEmail": {
+                          "type": "string"
+                        },
+                        "totalEur": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "source": {
+                          "type": "string",
+                          "enum": [
+                            "web",
+                            "ai_chat",
+                            "whatsapp"
+                          ]
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        },
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "priceLabel": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "integer"
+                              },
+                              "unitAmountEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "subtotalEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "occurrenceId": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "priceLabel",
+                              "quantity",
+                              "unitAmountEur",
+                              "subtotalEur",
+                              "occurrenceId"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "ref",
+                        "status",
+                        "paymentState",
+                        "customerName",
+                        "customerEmail",
+                        "totalEur",
+                        "currency",
+                        "source",
+                        "createdAt",
+                        "items"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/payments": {
+      "post": {
+        "operationId": "createPayment",
+        "summary": "Create a payment + hosted-checkout link for a booking",
+        "tags": [
+          "Payments"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "bookingRef": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 40
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "bookingRef"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Checkout link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "sessionId": {
+                          "type": "string"
+                        },
+                        "redirectUrl": {
+                          "type": "string"
+                        },
+                        "provider": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "sessionId",
+                        "redirectUrl",
+                        "provider"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/leads": {
+      "post": {
+        "operationId": "captureLead",
+        "summary": "Capture a sales lead",
+        "tags": [
+          "Leads"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "contact": {
+                    "type": "string",
+                    "minLength": 3,
+                    "maxLength": 200
+                  },
+                  "interestActivityId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "source": {
+                    "type": "string",
+                    "maxLength": 40
+                  }
+                },
+                "required": [
+                  "name",
+                  "contact"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lead captured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "contact": {
+                          "type": "string"
+                        },
+                        "interestActivityId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "new",
+                            "contacted",
+                            "converted"
+                          ]
+                        },
+                        "source": {
+                          "type": "string"
+                        },
+                        "createdAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name",
+                        "contact",
+                        "interestActivityId",
+                        "status",
+                        "source",
+                        "createdAt"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi": {
+      "get": {
+        "operationId": "getOpenApiSpec",
+        "summary": "The OpenAPI 3.1 specification for this API",
+        "tags": [
+          "Meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "OpenAPI document",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Supabase access token (JWT) from the Authorization header."
+      }
+    }
+  }
+}

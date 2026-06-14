@@ -26,7 +26,10 @@ export function buildOpenApiDocument() {
       },
     },
     tags: [
-      { name: 'Tours', description: 'Catalogue search and detail' },
+      { name: 'Catalogue', description: 'Activity search, detail and availability' },
+      { name: 'Bookings', description: 'Create and track bookings' },
+      { name: 'Payments', description: 'Hosted checkout links' },
+      { name: 'Leads', description: 'Sales lead capture' },
       { name: 'Meta', description: 'Specification and service metadata' },
     ],
     paths: apiPaths,
