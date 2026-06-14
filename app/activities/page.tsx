@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { CategoryChips } from '@/components/catalogue/CategoryChips';
@@ -64,6 +65,11 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
   const params = parseBrowseParams(await searchParams);
   const { items, total } = await loadResults(params);
   const totalPages = Math.max(1, Math.ceil(total / BROWSE_PAGE_SIZE));
+  // A tampered/stale ?page beyond the last page would render an empty grid under a
+  // "Page N of N" footer — send the visitor to the last real page instead.
+  if (total > 0 && params.page > totalPages) {
+    redirect(`/activities${browseQueryString({ ...params, page: totalPages })}`);
+  }
   const page = Math.min(params.page, totalPages);
 
   return (

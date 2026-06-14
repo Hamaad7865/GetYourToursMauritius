@@ -17,7 +17,6 @@ import {
   breadcrumbJsonLd,
   breadcrumbTrail,
   buildFaq,
-  durationLabel,
   quickFacts,
   relatedActivities,
 } from '@/lib/catalogue/detail';
@@ -111,7 +110,6 @@ export default async function ActivityDetailPage({
   const trail = breadcrumbTrail(activity);
   const facts = quickFacts(activity);
   const faqs = buildFaq(activity);
-  const duration = durationLabel(activity.durationMinutes);
   const descriptionParas = (activity.description ?? '')
     .split(/\n{2,}/)
     .map((p) => p.trim())
@@ -347,11 +345,6 @@ export default async function ActivityDetailPage({
               <SectionTitle>Frequently asked questions</SectionTitle>
               <Faq items={faqs} />
             </section>
-
-            {/* Duration footnote when present but no facts shown it */}
-            {duration && facts.length === 0 && (
-              <p className="text-sm text-ink-muted">Duration: {duration}</p>
-            )}
           </div>
         </div>
 
