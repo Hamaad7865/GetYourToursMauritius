@@ -1,0 +1,14 @@
+# Server-only secrets for `wrangler pages dev` (the local Cloudflare edge runtime).
+# Copy to `.dev.vars`. These mirror the SERVER-ONLY values from `.env.local`.
+# `next dev` reads `.env.local`; `wrangler pages dev` reads `.dev.vars` — keep both.
+
+NEXT_PUBLIC_SUPABASE_URL="https://YOUR-PROJECT.supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="YOUR-SUPABASE-ANON-KEY"
+SUPABASE_SERVICE_ROLE_KEY="YOUR-SUPABASE-SERVICE-ROLE-KEY"
+SUPABASE_JWT_SECRET="YOUR-SUPABASE-JWT-SECRET"
+AI_PROVIDER="google"
+GOOGLE_GENERATIVE_AI_API_KEY="YOUR-GEMINI-API-KEY"
+PEACH_ENTITY_ID="YOUR-PEACH-ENTITY-ID"
+PEACH_ACCESS_TOKEN="YOUR-PEACH-ACCESS-TOKEN"
+PEACH_WEBHOOK_SECRET="YOUR-PEACH-WEBHOOK-SECRET"
+PEACH_ENVIRONMENT="test"

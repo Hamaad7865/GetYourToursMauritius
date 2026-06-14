@@ -1,0 +1,60 @@
+{
+  "name": "getyourtoursmauritius",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Production tours-booking platform for Belle Mare Tours (Mauritius). API-first, edge-deployed on Cloudflare Pages.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "pages:dev": "wrangler pages dev .vercel/output/static",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,css,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,css,md}\"",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "openapi:write": "tsx scripts/write-openapi.ts",
+    "gen:types": "supabase gen types typescript --local > src/lib/supabase/types.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^1.1.17",
+    "@supabase/supabase-js": "^2.49.1",
+    "ai": "^4.1.46",
+    "jose": "^5.10.0",
+    "next": "15.5.19",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "zod": "^3.24.2",
+    "zod-openapi": "^4.2.3"
+  },
+  "devDependencies": {
+    "@cloudflare/next-on-pages": "^1.13.7",
+    "@eslint/eslintrc": "^3.2.0",
+    "@playwright/test": "^1.50.1",
+    "@types/node": "^22.13.4",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.20.1",
+    "eslint-config-next": "^15.5.0",
+    "eslint-config-prettier": "^10.0.1",
+    "postcss": "^8.5.2",
+    "prettier": "^3.5.1",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.24.1",
+    "vercel": "^41.1.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^2.1.9",
+    "wrangler": "^3.109.1"
+  }
+}

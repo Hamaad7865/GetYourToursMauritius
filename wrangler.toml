@@ -1,0 +1,9 @@
+# Cloudflare Pages configuration for the next-on-pages build output.
+# Used by `npm run pages:dev` (local edge runtime) and Cloudflare Pages deploys.
+name = "getyourtoursmauritius"
+compatibility_date = "2025-02-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
+
+# Secrets/vars (SUPABASE_SERVICE_ROLE_KEY, PEACH_*, AI keys) are configured in the
+# Cloudflare Pages dashboard, never committed. Local edge dev reads them from .dev.vars.
