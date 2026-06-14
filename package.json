@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@cloudflare/next-on-pages": "^1.13.7",
+    "@electric-sql/pglite": "^0.5.2",
     "@eslint/eslintrc": "^3.2.0",
     "@playwright/test": "^1.50.1",
     "@types/node": "^22.13.4",
