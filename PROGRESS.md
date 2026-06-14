@@ -1,6 +1,6 @@
 # GetYourToursMauritius — Build Progress / Session Handoff
 
-Status snapshot for resuming after a context compaction. **Phases 0–2 complete & reviewed; Phase 3a complete & reviewed.** Everything below is committed on branch `main`. Full gate is green: `npm run typecheck && npm run lint && npm run test && npm run build` (**81 tests**).
+Status snapshot for resuming after a context compaction. **Phases 0–2 complete & reviewed; Phase 3 (3a + 3b) complete.** Everything below is committed on branch `main`. Full gate is green: `npm run typecheck && npm run lint && npm run test && npm run build` (**99 tests**).
 
 ## What this is
 
@@ -46,10 +46,11 @@ operators, profiles, activities, activity_translations, activity_images, activit
 - **Phase 1** — data model: 19 tables + RLS + atomic RPCs + bilingual seed (`seed/catalogue.json`, 23 activities from visitemaurice.com EN/FR; `npm run seed:gen` → `supabase/seed.sql`) + hand-authored types. Reviewed: 16 bugs found, 14 fixed.
 - **Phase 2** — service layer + `/api/v1` + OpenAPI. Reviewed: 5 bugs; fixed guest-payment authz hole (+ a SQL `null=null` NULL gotcha) and db-error mapping.
 - **Phase 3a** — public **home page** (edge SSR) + component library (`src/components/{site,marketing,catalogue,ui,seo}`) + SEO (TravelAgency + Product JSON-LD, `serializeJsonLd` is XSS-safe) + `app/sitemap.ts` + `app/robots.ts` + Cache-Control headers. Reviewed: fixed JSON-LD stored-XSS.
+- **Phase 3b** — **activity detail page** (`app/activities/[slug]/page.tsx`, edge SSR): gallery, quick facts, highlights, description, included/excluded, meeting point, options & pricing, guest reviews (`ReviewList`), zero-JS FAQ (`<details>`), "you might also like", **sticky `BookingPanel`** (client). **Browse/filter page** (`app/activities/page.tsx`): search + type facet via a no-JS GET `SearchFilterBar`, active category chips, paginated grid; segment `not-found.tsx`. Product + **BreadcrumbList** JSON-LD; per-activity `generateMetadata`. Pure helpers `src/lib/catalogue/{detail,browse}.ts` (+18 unit tests). Self-reviewed (3 fixes: clickable date control, message string, per-request `cache()` dedupe). **Decision flagged:** the booking CTA is an **interim WhatsApp reservation** (pre-filled from `whatsappUrl()` using `SITE.phone`) until the Phase 4 Peach hosted checkout replaces it — easily swapped, low-risk.
 
 ## Key commits (newest first)
 
-`ef6b403` 3a review (JSON-LD XSS) · `1f8579b` 3a home+SEO · `d2c9e80` P2 review fixes · `bbd1eda` P2 service+api · `7633f77` P1 review fixes (14) · `a340ed7` P1 seed+types · `265cc42` P1 harden · `a050b2f` P1 core · `3a33de0` P0 scaffold.
+`e4abc8a` 3b detail+browse pages · `fbacb63` PROGRESS handoff · `ef6b403` 3a review (JSON-LD XSS) · `1f8579b` 3a home+SEO · `d2c9e80` P2 review fixes · `bbd1eda` P2 service+api · `7633f77` P1 review fixes (14) · `a340ed7` P1 seed+types · `265cc42` P1 harden · `a050b2f` P1 core · `3a33de0` P0 scaffold.
 
 ## Known issues / deferred (honest)
 
@@ -57,12 +58,11 @@ operators, profiles, activities, activity_translations, activity_images, activit
 - Idempotency race → **409, not atomic-return** (correct on retry).
 - Guest booking unreadable by its creator until Phase 4 (secure-token guest checkout).
 - ZodError on rpc-output drift → 500 (low). FK hard-delete semantics → soft-delete in admin phase. `create_hold` stale-replay (guarded downstream). Reviews unmoderated.
-- `/activities`, `/account` links **404 until Phase 3b/4**. CDN cache safe **only while the header is anonymous** (Phase 4 personalization must be client-side). next-on-pages header emission unverified until deploy.
+- `/account` (auth) and footer stubs (`/about`, `/help`, `/contact`, `/terms`, `/privacy`) **404 until Phase 4+**. `BookingPanel` "Reserve on WhatsApp" is an **interim** CTA (no online payment yet) — Phase 4 swaps it for Peach hosted checkout. CDN cache safe **only while the header is anonymous** (Phase 4 personalization must be client-side). next-on-pages header emission unverified until deploy.
 
 ## What's next
 
-- **Phase 3b** — activity/transport **detail page** (gallery, highlights, included/excluded, meeting point, itinerary, reviews, FAQ, "you might also like", **sticky booking panel**) + **browse/filter** page (`/activities`). Build against the design at `design-reference/BelleMareTours-handoff.zip` → `Activity Detail.dc.html` (extract to `.design-tmp/`, gitignored).
-- **Phase 4** — auth (email + Google) + account area + booking flow UI + Peach hosted checkout + verified webhook (`/api/v1/webhooks/peach` → `append_payment_event`) + confirmation/voucher + reconciliation job.
+- **Phase 4 (next)** — auth (email + Google) + account area + **booking flow UI** (the design's 4-step checkout overlay in `Activity Detail.dc.html`: pickup → contact → payment → confirmation) replacing the interim WhatsApp CTA + Peach hosted checkout + verified webhook (`/api/v1/webhooks/peach` → `append_payment_event`) + confirmation/voucher + reconciliation job. Secure-token guest-checkout lands here too.
 - **Phase 5** — AI assistant (widget + `/api/chat` agent loop + DB-backed tools).
 - **Phase 6** — admin panel `/admin` (design: `Back Office.dc.html`).
 - **Phase 7** — a11y, full test run, SEO check, deploy config + README, env wiring.
