@@ -86,14 +86,21 @@ export function catalogueToSeedSql(catalogue: Catalogue): string {
     }
   }
 
-  // Sample bookable inventory: 7 daily occurrences for every option that has a price.
+  // Sample bookable inventory: 7 daily 09:00 (Mauritius local) departures for every
+  // option that has a price. Anchored to 'Indian/Mauritius' so the stored timestamptz
+  // is the correct UTC instant regardless of the server's session timezone. Idempotent
+  // via ON CONFLICT on the (activity_option_id, starts_at) unique constraint.
   lines.push(
     `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity) ` +
       `select o.id, a.operator_id, gs, gs + interval '4 hours', 20 ` +
       `from activity_options o ` +
       `join activities a on a.id = o.activity_id ` +
-      `cross join generate_series((current_date + 1)::timestamp + time '09:00', (current_date + 7)::timestamp + time '09:00', interval '1 day') gs ` +
-      `where exists (select 1 from activity_option_prices p where p.activity_option_id = o.id);`,
+      `cross join generate_series(` +
+      `((current_date + 1)::timestamp + time '09:00') at time zone 'Indian/Mauritius', ` +
+      `((current_date + 7)::timestamp + time '09:00') at time zone 'Indian/Mauritius', ` +
+      `interval '1 day') gs ` +
+      `where exists (select 1 from activity_option_prices p where p.activity_option_id = o.id) ` +
+      `on conflict (activity_option_id, starts_at) do nothing;`,
   );
 
   return lines.join('\n');
