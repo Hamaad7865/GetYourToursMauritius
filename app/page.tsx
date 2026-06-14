@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
-import { SiteHeader } from '@/components/site/SiteHeader';
+import Link from 'next/link';
+import { GygHeader } from '@/components/gyg/GygHeader';
+import { GygHero } from '@/components/gyg/GygHero';
+import { ContinuePlanning } from '@/components/gyg/ContinuePlanning';
+import { Rail } from '@/components/gyg/Rail';
+import { GygCard } from '@/components/gyg/GygCard';
 import { SiteFooter } from '@/components/site/SiteFooter';
-import { Hero } from '@/components/marketing/Hero';
-import { WhyBookDirect } from '@/components/marketing/WhyBookDirect';
-import { CategoryChips } from '@/components/catalogue/CategoryChips';
-import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
+import { CATEGORIES } from '@/lib/seo/site';
+import { IconArrowRight } from '@/components/ui/icons';
 import type { TourSummary } from '@/lib/validation/tours';
 
 export const runtime = 'edge';
@@ -26,9 +29,9 @@ export const metadata: Metadata = {
   },
 };
 
-async function getFeaturedActivities(): Promise<TourSummary[]> {
+async function getActivities(): Promise<TourSummary[]> {
   try {
-    const { items } = await searchActivities(publicServiceContext(), { page: 1, pageSize: 12 });
+    const { items } = await searchActivities(publicServiceContext(), { page: 1, pageSize: 100 });
     return items;
   } catch (error) {
     console.error('[home] catalogue fetch failed', error);
@@ -37,36 +40,50 @@ async function getFeaturedActivities(): Promise<TourSummary[]> {
 }
 
 export default async function HomePage() {
-  const activities = await getFeaturedActivities();
+  const activities = await getActivities();
+  const byCategory = CATEGORIES.map((category) => ({
+    category,
+    items: activities.filter((a) => a.category === category),
+  })).filter((group) => group.items.length > 0);
 
   return (
     <>
-      <SiteHeader />
-      <Hero />
-      <main>
-        <section className="relative z-10 bg-cream">
-          <div className="mx-auto max-w-shell px-6">
-            <CategoryChips />
-          </div>
-        </section>
+      <GygHeader heroMode />
+      <GygHero />
 
-        <section className="bg-cream">
-          <div className="mx-auto max-w-shell px-6 pb-16">
-            <div className="mb-6 mt-2">
-              <h2 className="m-0 font-display text-3xl font-medium tracking-tight text-ink">
-                All activities
+      <main className="bg-cream pb-12">
+        <ContinuePlanning pool={activities} />
+
+        {byCategory.map((group) => (
+          <section key={group.category} className="mx-auto max-w-shell px-6 py-6">
+            <div className="mb-4 flex items-end justify-between gap-4">
+              <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+                {group.category}
               </h2>
-              <p className="mt-1.5 text-sm text-ink-muted">
-                {activities.length > 0 ? `${activities.length} experiences` : 'Experiences'}{' '}
-                operated by Belle Mare Tours · East-coast Mauritius
-              </p>
+              <Link
+                href={`/activities?category=${encodeURIComponent(group.category)}`}
+                className="flex shrink-0 items-center gap-1 text-sm font-bold text-teal hover:text-teal-dark"
+              >
+                See all <IconArrowRight width={16} height={16} />
+              </Link>
             </div>
-            <ActivityGrid activities={activities} />
-          </div>
-        </section>
+            <Rail ariaLabel={group.category}>
+              {group.items.map((activity) => (
+                <GygCard key={activity.id} activity={activity} rail />
+              ))}
+            </Rail>
+          </section>
+        ))}
 
-        <WhyBookDirect />
+        {byCategory.length === 0 && (
+          <div className="mx-auto max-w-shell px-6 py-16">
+            <div className="rounded-2xl border border-teal/20 bg-white/60 p-10 text-center text-sm text-ink-muted">
+              Experiences appear here once the catalogue is connected.
+            </div>
+          </div>
+        )}
       </main>
+
       <SiteFooter />
     </>
   );

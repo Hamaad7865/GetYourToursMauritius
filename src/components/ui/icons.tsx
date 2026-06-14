@@ -153,3 +153,51 @@ export const IconPlus = (p: SVGProps<SVGSVGElement>) => (
     <path d="M12 5v14M5 12h14" />
   </Svg>
 );
+
+export const IconChevronLeft = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="m15 18-6-6 6-6" />
+  </Svg>
+);
+
+export const IconChevronRight = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="m9 18 6-6-6-6" />
+  </Svg>
+);
+
+export const IconCart = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M5 6h16l-1.6 9.2a2 2 0 0 1-2 1.6H8.6a2 2 0 0 1-2-1.6L4.5 3H2" />
+    <circle cx="9" cy="20.5" r="1.4" fill="currentColor" />
+    <circle cx="17.5" cy="20.5" r="1.4" fill="currentColor" />
+  </Svg>
+);
+
+export const IconBookings = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M4 5h16a1 1 0 0 1 1 1v3a2 2 0 0 0 0 4v3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3a2 2 0 0 0 0-4V6a1 1 0 0 1 1-1Z" />
+    <path d="M14 5v14" strokeDasharray="2 2" />
+  </Svg>
+);
+
+export const IconSliders = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M4 6h10M18 6h2M4 12h2M10 12h10M4 18h7M15 18h5" />
+    <circle cx="16" cy="6" r="2" />
+    <circle cx="8" cy="12" r="2" />
+    <circle cx="13" cy="18" r="2" />
+  </Svg>
+);
+
+export const IconArrowRight = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M5 12h14M13 6l6 6-6 6" />
+  </Svg>
+);
+
+export const IconMenu = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M3 6h18M3 12h18M3 18h18" />
+  </Svg>
+);
