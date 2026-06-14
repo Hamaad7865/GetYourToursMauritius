@@ -131,6 +131,21 @@ describe('api_* service functions', () => {
     await db.asOwner();
   });
 
+  it('api_create_payment refuses an anonymous caller (a ref is not a bearer token)', async () => {
+    await db.as(null);
+    const booking = await rpc<{ ref: string }>(db, 'api_book', {
+      occurrenceId,
+      party: { 'Private group': 1 },
+      customerName: 'Guest',
+      customerEmail: 'guest@example.com',
+      idempotencyKey: 'guest-book-1',
+    });
+    await expect(
+      rpc(db, 'api_create_payment', { bookingRef: booking.ref, idempotencyKey: 'guest-pay-1' }),
+    ).rejects.toThrow(/forbidden/);
+    await db.asOwner();
+  });
+
   it('api_capture_lead inserts a lead', async () => {
     await db.as(null);
     const lead = await rpc<{ id: string; status: string }>(db, 'api_capture_lead', {

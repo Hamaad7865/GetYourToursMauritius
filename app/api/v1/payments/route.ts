@@ -1,7 +1,7 @@
 import { apiHandler, parseJsonBody } from '@/lib/http/handler';
 import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
-import { authenticateOptional } from '@/lib/http/auth';
+import { requireUser } from '@/lib/http/auth';
 import { buildServiceContext } from '@/lib/http/context';
 import { getServerEnv } from '@/lib/config/env';
 import { createPaymentInputSchema } from '@/lib/validation/booking';
@@ -11,11 +11,12 @@ export const runtime = 'edge';
 
 /**
  * POST /api/v1/payments — create a payment + hosted-checkout link for a booking.
- * The return URL is derived server-side (no client-controlled redirect); the
- * amount comes only from the DB.
+ * Requires the booking owner (the public ref is NOT a bearer credential); guest
+ * self-service checkout via an emailed token lands in Phase 4. The return URL is
+ * derived server-side (no client redirect); the amount comes only from the DB.
  */
 export const POST = apiHandler(async (req) => {
-  await authenticateOptional(req);
+  await requireUser(req);
   const input = await parseJsonBody(req, createPaymentInputSchema);
   const ctx = buildServiceContext(req);
   const returnUrl = `${getServerEnv().NEXT_PUBLIC_SITE_URL}/bookings/${input.bookingRef}`;

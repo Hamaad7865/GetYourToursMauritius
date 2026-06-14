@@ -19,6 +19,8 @@ const catalogue = catalogueSchema.parse(
   JSON.parse(readFileSync(join(process.cwd(), 'seed', 'catalogue.json'), 'utf8')),
 );
 
+const USER = 'a9a9a9a9-a9a9-a9a9-a9a9-a9a9a9a9a9a9';
+
 describe('service layer (via PGlite rpc)', () => {
   let db: TestDb;
   let ctx: ServiceContext;
@@ -41,6 +43,9 @@ describe('service layer (via PGlite rpc)', () => {
        where a.slug = 'private-south-tour-with-pickup' limit 1`,
     );
     occurrenceId = rows[0]!.id;
+    // Run the suite as a logged-in customer so bookings are owned (payment requires ownership).
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [USER]);
+    await db.as({ sub: USER, role: 'authenticated' });
   });
 
   afterAll(async () => {
