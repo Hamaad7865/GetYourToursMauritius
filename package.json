@@ -31,8 +31,10 @@
   "dependencies": {
     "@ai-sdk/google": "^1.1.17",
     "@supabase/supabase-js": "^2.49.1",
+    "@types/leaflet": "^1.9.21",
     "ai": "^4.1.46",
     "jose": "^5.10.0",
+    "leaflet": "^1.9.4",
     "next": "15.5.19",
     "react": "19.0.0",
     "react-dom": "19.0.0",

@@ -1,4 +1,5 @@
 import type { ActivityExtra, ItineraryStop } from '@/lib/validation/tours';
+import { RouteMap } from './RouteMap';
 import { durationLabel } from '@/lib/catalogue/detail';
 import {
   IconCalendar,
@@ -125,6 +126,7 @@ export function Itinerary({
   meetingPoint?: string | null;
 }) {
   if (stops.length === 0) return null;
+  const hasCoords = stops.some((s) => typeof s.lat === 'number' && typeof s.lng === 'number');
   const nodes = [
     ...(meetingPoint
       ? [{ title: 'Pickup location', area: meetingPoint, pickup: true } as const]
@@ -166,20 +168,24 @@ export function Itinerary({
         ))}
       </ol>
       <div>
-        <iframe
-          src={mapEmbedSrc(stops)}
-          title="Tour route map"
-          loading="lazy"
-          allowFullScreen
-          referrerPolicy="no-referrer-when-downgrade"
-          className="h-[300px] w-full rounded-2xl border border-ink/10 lg:h-[360px]"
-        />
+        {hasCoords ? (
+          <RouteMap stops={stops} />
+        ) : (
+          <iframe
+            src={mapEmbedSrc(stops)}
+            title="Tour route map"
+            loading="lazy"
+            allowFullScreen
+            referrerPolicy="no-referrer-when-downgrade"
+            className="h-[300px] w-full rounded-2xl border border-ink/10 lg:h-[360px]"
+          />
+        )}
         <div className="mt-2 flex items-center gap-4 text-[12px] text-ink-muted">
           <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-coral" /> Pickup / main stop
+            <span className="h-3 w-3 rounded-full bg-coral" /> Start / main stop
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full border-2 border-teal bg-white" /> Other stop
+            <span className="h-3 w-3 rounded-full bg-ink" /> Tour stop
           </span>
         </div>
       </div>

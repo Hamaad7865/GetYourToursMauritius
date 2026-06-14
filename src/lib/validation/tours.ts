@@ -63,6 +63,8 @@ export const itineraryStopSchema = z.object({
   area: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   tags: z.array(z.string()).optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 });
 export type ItineraryStop = z.infer<typeof itineraryStopSchema>;
 
