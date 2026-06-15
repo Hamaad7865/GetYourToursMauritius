@@ -58,7 +58,7 @@ export default async function HomePage() {
     <>
       <GygHeader heroMode />
       <GygHero>
-        <ContinuePlanning pool={activities} onHero />
+        <ContinuePlanning pool={activities} />
       </GygHero>
 
       <main className="bg-cream pb-12 pt-2">

@@ -12,7 +12,7 @@ const KEY = 'gytm:recent';
  * (from localStorage); with no history it falls back to a "Popular right now" rail so
  * the section is never empty.
  */
-export function ContinuePlanning({ pool, onHero = false }: { pool: TourSummary[]; onHero?: boolean }) {
+export function ContinuePlanning({ pool }: { pool: TourSummary[] }) {
   const [recent, setRecent] = useState<string[]>([]);
 
   useEffect(() => {
@@ -33,9 +33,7 @@ export function ContinuePlanning({ pool, onHero = false }: { pool: TourSummary[]
 
   return (
     <section className="mx-auto max-w-shell px-6 py-8">
-      <h2
-        className={`mb-4 text-[22px] font-extrabold tracking-tight ${onHero ? 'text-white' : 'text-ink'}`}
-      >
+      <h2 className="mb-4 text-[22px] font-extrabold tracking-tight text-ink">
         {hasHistory ? 'Continue planning your trip' : 'Popular right now'}
       </h2>
       <Rail ariaLabel={hasHistory ? 'Recently viewed' : 'Popular activities'}>
