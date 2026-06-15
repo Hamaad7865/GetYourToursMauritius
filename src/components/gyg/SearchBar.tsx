@@ -2,11 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CATEGORIES } from '@/lib/seo/site';
+import { addRecentSearch, getRecentSearches } from '@/lib/search/recent';
 import {
   IconChevron,
   IconChevronLeft,
   IconChevronRight,
+  IconClock,
   IconMinus,
+  IconPin,
   IconPlus,
   IconSearch,
 } from '@/components/ui/icons';
@@ -61,6 +65,8 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   const [adults, setAdults] = useState(1);
   const [kids, setKids] = useState(0);
   const [panel, setPanel] = useState<'date' | 'travellers' | null>(null);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [recents, setRecents] = useState<string[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
   const lastTrigger = useRef<HTMLButtonElement | null>(null);
 
@@ -73,16 +79,28 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   }
   function toggle(which: 'date' | 'travellers', e: React.MouseEvent<HTMLButtonElement>) {
     lastTrigger.current = e.currentTarget;
+    setSuggestOpen(false);
     setPanel((p) => (p === which ? null : which));
+  }
+  function openSuggest() {
+    setRecents(getRecentSearches());
+    setPanel(null);
+    setSuggestOpen(true);
   }
 
   useEffect(() => {
-    if (!panel) return;
+    if (!panel && !suggestOpen) return;
     const onClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) close();
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        close();
+        setSuggestOpen(false);
+      }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeAndRestore();
+      if (e.key === 'Escape') {
+        closeAndRestore();
+        setSuggestOpen(false);
+      }
     };
     window.addEventListener('mousedown', onClick);
     window.addEventListener('keydown', onKey);
@@ -90,17 +108,25 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
       window.removeEventListener('mousedown', onClick);
       window.removeEventListener('keydown', onKey);
     };
-  }, [panel]);
+  }, [panel, suggestOpen]);
 
-  function submit() {
+  function go(q: string) {
     const params = new URLSearchParams();
-    if (query.trim()) params.set('q', query.trim());
+    const trimmed = q.trim();
+    if (trimmed) {
+      params.set('q', trimmed);
+      addRecentSearch(trimmed);
+    }
     if (date) params.set('date', toIso(date));
     if (adults !== 1) params.set('adults', String(adults));
     if (kids > 0) params.set('children', String(kids));
     const qs = params.toString();
     setPanel(null);
+    setSuggestOpen(false);
     router.push(`/activities${qs ? `?${qs}` : ''}`);
+  }
+  function submit() {
+    go(query);
   }
 
   const total = adults + kids;
@@ -134,6 +160,7 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onFocus={openSuggest}
             onKeyDown={(e) => {
               if (e.key === 'Enter') submit();
             }}
@@ -179,6 +206,53 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
           </button>
         </div>
       </div>
+
+      {suggestOpen && !panel && (
+        <div className="absolute left-0 top-full z-30 mt-3 w-[min(560px,calc(100vw-2rem))] rounded-3xl border border-ink/10 bg-white p-3 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)]">
+          {recents.length > 0 && (
+            <>
+              <p className="px-3 pb-1 pt-1 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                Recent searches
+              </p>
+              {recents.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => go(r)}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-cream"
+                >
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink/[0.06] text-ink-muted">
+                    <IconClock width={16} height={16} />
+                  </span>
+                  <span className="truncate text-sm font-medium text-ink">{r}</span>
+                </button>
+              ))}
+            </>
+          )}
+          <p className="px-3 pb-1 pt-2 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+            Suggestions
+          </p>
+          {CATEGORIES.map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={() => {
+                setSuggestOpen(false);
+                router.push(`/activities?category=${encodeURIComponent(category)}`);
+              }}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-cream"
+            >
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
+                <IconPin width={17} height={17} />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-bold text-ink">{category}</span>
+                <span className="block text-[12px] text-ink-muted">Belle Mare, Mauritius</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {panel === 'date' && (
         <DatePanel

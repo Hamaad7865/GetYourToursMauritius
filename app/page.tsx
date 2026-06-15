@@ -50,11 +50,11 @@ export default async function HomePage() {
   return (
     <>
       <GygHeader heroMode />
-      <GygHero />
+      <GygHero>
+        <ContinuePlanning pool={activities} onHero />
+      </GygHero>
 
-      <main className="bg-cream pb-12">
-        <ContinuePlanning pool={activities} />
-
+      <main className="bg-cream pb-12 pt-2">
         {byCategory.map((group) => (
           <section key={group.category} className="mx-auto max-w-shell px-6 py-6">
             <div className="mb-4 flex items-end justify-between gap-4">
