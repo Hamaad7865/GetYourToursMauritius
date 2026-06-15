@@ -180,10 +180,6 @@ export default async function ActivityDetailPage({
             </aside>
 
             <div className="min-w-0 lg:col-start-1 lg:row-start-2">
-              {activity.summary && (
-                <p className="m-0 mb-5 text-[15px] leading-relaxed text-ink/80">{activity.summary}</p>
-              )}
-
               <QuickFacts
                 durationMinutes={activity.durationMinutes}
                 languages={activity.languages}
