@@ -21,7 +21,7 @@ import {
  *  action carry the centre-out coral underline (see <Underline/>). */
 function navItemClass(light: boolean, extra = ''): string {
   return `group relative flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors ${
-    light ? 'text-white hover:text-coral' : 'text-ink hover:text-coral'
+    light ? 'text-white hover:text-teal-bright' : 'text-ink hover:text-teal'
   } ${extra}`;
 }
 

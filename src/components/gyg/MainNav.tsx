@@ -35,8 +35,8 @@ function NavLabel({ label, light, hasMenu }: { label: string; light: boolean; ha
   return (
     <span className="relative inline-flex items-center gap-1">
       <span
-        className={`text-sm font-bold transition-colors group-hover:text-coral ${
-          light ? 'text-white' : 'text-ink'
+        className={`text-sm font-bold transition-colors ${
+          light ? 'text-white group-hover:text-teal-bright' : 'text-ink group-hover:text-teal'
         }`}
       >
         {label}
@@ -45,8 +45,8 @@ function NavLabel({ label, light, hasMenu }: { label: string; light: boolean; ha
         <IconChevron
           width={14}
           height={14}
-          className={`transition-transform duration-200 group-hover:rotate-180 group-hover:text-coral ${
-            light ? 'text-white/70' : 'text-ink-muted'
+          className={`transition-transform duration-200 group-hover:rotate-180 ${
+            light ? 'text-white/70 group-hover:text-teal-bright' : 'text-ink-muted group-hover:text-teal'
           }`}
         />
       )}
