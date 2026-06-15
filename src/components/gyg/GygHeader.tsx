@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Logo } from '@/components/site/Logo';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { usePreferences } from '@/components/site/PreferencesProvider';
+import { SearchBar } from './SearchBar';
 import { CATEGORIES } from '@/lib/seo/site';
 import {
   IconArrowRight,
@@ -14,7 +15,6 @@ import {
   IconGlobe,
   IconHeart,
   IconLogOut,
-  IconSearch,
   IconUser,
 } from '@/components/ui/icons';
 
@@ -130,27 +130,6 @@ function PrefsButton({ overHero }: { overHero: boolean }) {
   );
 }
 
-/** Compact search field that docks into the navbar on scroll. */
-function DockedSearch({ shown }: { shown: boolean }) {
-  return (
-    <Link
-      href="/activities"
-      aria-label="Search activities"
-      className={`flex min-w-0 flex-1 items-center gap-2 rounded-full border border-ink/15 bg-white py-2 pl-4 pr-2 shadow-sm transition-all duration-300 ${
-        shown ? 'max-w-[460px] opacity-100' : 'pointer-events-none max-w-0 border-transparent opacity-0'
-      }`}
-    >
-      <IconSearch width={18} height={18} className="shrink-0 text-teal" />
-      <span className="flex-1 truncate text-left text-sm font-medium text-ink-muted">
-        Find places and things to do
-      </span>
-      <span className="shrink-0 rounded-full bg-teal px-4 py-1.5 text-[13px] font-bold text-white">
-        Search
-      </span>
-    </Link>
-  );
-}
-
 function HeaderAction({
   icon,
   label,
@@ -217,7 +196,11 @@ export function GygHeader({
         <div className="mx-auto flex max-w-shell items-center gap-4 px-6 py-2.5">
           <Logo tone={overHero ? 'dark' : 'light'} />
           <div className="hidden min-w-0 flex-1 justify-center px-2 sm:flex">
-            <DockedSearch shown={searchShown} />
+            {searchShown && (
+              <div className="w-full max-w-[560px]">
+                <SearchBar variant="compact" />
+              </div>
+            )}
           </div>
           <nav className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
             <HeaderAction label="Wishlist" light={overHero} icon={<IconHeart width={20} height={20} />} />

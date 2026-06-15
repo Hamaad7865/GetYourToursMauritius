@@ -1,4 +1,4 @@
-import { HeroSearch } from './HeroSearch';
+import { SearchBar } from './SearchBar';
 
 /** GetYourGuide-style hero: full-bleed branded background, bold headline and the
  *  interactive search (query + date picker + travellers). The section is NOT clipped so
@@ -23,7 +23,7 @@ export function GygHero() {
           swims, island days and transfers.
         </p>
 
-        <HeroSearch />
+        <SearchBar variant="hero" />
       </div>
     </section>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   IconChevron,
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/icons';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-const MAX_TRAVELLERS = 16;
+const MAX_PER_GROUP = 16;
 
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -30,7 +30,6 @@ function sameDay(a: Date | null, b: Date | null): boolean {
 function toIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-/** Cells for a month grid, Monday-first, with leading nulls for alignment. */
 function monthCells(year: number, month: number): Array<Date | null> {
   const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7; // Sun(0) → 6
   const days = new Date(year, month + 1, 0).getDate();
@@ -39,12 +38,19 @@ function monthCells(year: number, month: number): Array<Date | null> {
   return cells;
 }
 
-/** GetYourGuide-style hero search: place/activity query + date picker + traveller count. */
-export function HeroSearch() {
+type Variant = 'hero' | 'compact';
+
+/**
+ * GetYourGuide-style search: place/activity query + date picker + travellers (adults +
+ * children). Used both in the hero (`variant="hero"`) and docked into the navbar on scroll
+ * (`variant="compact"`), so the full search travels with the user everywhere.
+ */
+export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   const router = useRouter();
   const [query, setQuery] = useState('');
   const [date, setDate] = useState<Date | null>(null);
-  const [travellers, setTravellers] = useState(1);
+  const [adults, setAdults] = useState(1);
+  const [kids, setKids] = useState(0);
   const [panel, setPanel] = useState<'date' | 'travellers' | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -68,19 +74,38 @@ export function HeroSearch() {
     const params = new URLSearchParams();
     if (query.trim()) params.set('q', query.trim());
     if (date) params.set('date', toIso(date));
-    if (travellers > 1) params.set('travellers', String(travellers));
+    if (adults !== 1) params.set('adults', String(adults));
+    if (kids > 0) params.set('children', String(kids));
     const qs = params.toString();
+    setPanel(null);
     router.push(`/activities${qs ? `?${qs}` : ''}`);
   }
 
+  const total = adults + kids;
   const dateLabel = date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Anytime';
-  const travellersLabel = `${travellers} ${travellers === 1 ? 'traveller' : 'travellers'}`;
+  const travellersLabel = `${total} ${total === 1 ? 'traveller' : 'travellers'}`;
+
+  const compact = variant === 'compact';
+  const segClass = `hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full font-medium hover:bg-cream sm:flex ${
+    compact ? 'px-2.5 py-1 text-[12.5px]' : 'px-4 py-2.5 text-[14px]'
+  }`;
 
   return (
-    <div ref={rootRef} className="relative z-30 mx-auto mt-8 max-w-3xl text-left">
-      <div className="flex items-center gap-1 rounded-full bg-white p-2 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.5)]">
-        <span className="grid h-10 w-10 shrink-0 place-items-center text-teal">
-          <IconSearch width={22} height={22} />
+    <div
+      ref={rootRef}
+      className={`relative z-30 text-left ${compact ? 'w-full' : 'mx-auto mt-8 max-w-3xl'}`}
+    >
+      <div
+        className={`flex items-center bg-white ${
+          compact
+            ? 'gap-0.5 rounded-full border border-ink/15 p-1 pl-1.5 shadow-sm'
+            : 'gap-1 rounded-full p-2 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.5)]'
+        }`}
+      >
+        <span
+          className={`grid shrink-0 place-items-center text-teal ${compact ? 'h-8 w-8' : 'h-10 w-10'}`}
+        >
+          <IconSearch width={compact ? 18 : 22} height={compact ? 18 : 22} />
         </span>
         <input
           type="search"
@@ -91,37 +116,39 @@ export function HeroSearch() {
           }}
           placeholder="Search places or activities"
           aria-label="Search places or activities"
-          className="min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-muted"
+          className={`min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-ink-muted ${
+            compact ? 'text-[13px]' : 'text-[15px]'
+          }`}
         />
 
-        <div className="hidden h-8 w-px shrink-0 bg-ink/10 sm:block" />
+        <div className="hidden h-7 w-px shrink-0 bg-ink/10 sm:block" />
         <button
           type="button"
           onClick={() => setPanel((p) => (p === 'date' ? null : 'date'))}
           aria-expanded={panel === 'date'}
-          className={`hidden shrink-0 items-center gap-1.5 rounded-full px-4 py-2.5 text-[14px] font-medium hover:bg-cream sm:flex ${
-            date ? 'text-ink' : 'text-ink-muted'
-          }`}
+          className={`${segClass} ${date ? 'text-ink' : 'text-ink-muted'}`}
         >
           {dateLabel}
-          <IconChevron width={15} height={15} className="text-ink-muted" />
+          <IconChevron width={14} height={14} className="text-ink-muted" />
         </button>
 
-        <div className="hidden h-8 w-px shrink-0 bg-ink/10 sm:block" />
+        <div className="hidden h-7 w-px shrink-0 bg-ink/10 sm:block" />
         <button
           type="button"
           onClick={() => setPanel((p) => (p === 'travellers' ? null : 'travellers'))}
           aria-expanded={panel === 'travellers'}
-          className="hidden shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-4 py-2.5 text-[14px] font-medium text-ink hover:bg-cream sm:flex"
+          className={`${segClass} text-ink`}
         >
           {travellersLabel}
-          <IconChevron width={15} height={15} className="text-ink-muted" />
+          <IconChevron width={14} height={14} className="text-ink-muted" />
         </button>
 
         <button
           type="button"
           onClick={submit}
-          className="shrink-0 rounded-full bg-teal px-6 py-3 text-[15px] font-bold text-white transition hover:bg-teal-dark"
+          className={`shrink-0 rounded-full bg-teal font-bold text-white transition hover:bg-teal-dark ${
+            compact ? 'px-4 py-1.5 text-[13px]' : 'px-6 py-3 text-[15px]'
+          }`}
         >
           Search
         </button>
@@ -137,7 +164,13 @@ export function HeroSearch() {
         />
       )}
       {panel === 'travellers' && (
-        <TravellersPanel value={travellers} onChange={setTravellers} onDone={() => setPanel(null)} />
+        <TravellersPanel
+          adults={adults}
+          kids={kids}
+          onAdults={setAdults}
+          onKids={setKids}
+          onDone={() => setPanel(null)}
+        />
       )}
     </div>
   );
@@ -157,7 +190,7 @@ function DatePanel({ selected, onPick }: { selected: Date | null; onPick: (d: Da
   ];
 
   return (
-    <div className="absolute left-0 right-0 top-full z-30 mt-3 rounded-3xl border border-ink/10 bg-white p-5 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)]">
+    <div className="absolute left-0 top-full z-30 mt-3 w-[min(680px,calc(100vw-2rem))] rounded-3xl border border-ink/10 bg-white p-5 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)]">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
@@ -251,44 +284,68 @@ function DatePanel({ selected, onPick }: { selected: Date | null; onPick: (d: Da
   );
 }
 
-function TravellersPanel({
+function Stepper({
+  label,
+  hint,
   value,
+  min,
   onChange,
+}: {
+  label: string;
+  hint: string;
+  value: number;
+  min: number;
+  onChange: (n: number) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <div>
+        <p className="text-sm font-bold text-ink">{label}</p>
+        <p className="text-[12px] text-ink-muted">{hint}</p>
+      </div>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label={`Remove ${label.toLowerCase()}`}
+          disabled={value <= min}
+          onClick={() => onChange(Math.max(min, value - 1))}
+          className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
+        >
+          <IconMinus width={15} height={15} />
+        </button>
+        <span className="w-6 text-center text-[15px] font-bold text-ink">{value}</span>
+        <button
+          type="button"
+          aria-label={`Add ${label.toLowerCase()}`}
+          disabled={value >= MAX_PER_GROUP}
+          onClick={() => onChange(Math.min(MAX_PER_GROUP, value + 1))}
+          className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
+        >
+          <IconPlus width={15} height={15} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function TravellersPanel({
+  adults,
+  kids,
+  onAdults,
+  onKids,
   onDone,
 }: {
-  value: number;
-  onChange: (n: number) => void;
+  adults: number;
+  kids: number;
+  onAdults: (n: number) => void;
+  onKids: (n: number) => void;
   onDone: () => void;
 }) {
   return (
-    <div className="absolute right-0 top-full z-30 mt-3 w-72 rounded-3xl border border-ink/10 bg-white p-5 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)]">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm font-bold text-ink">Travellers</p>
-          <p className="text-[12px] text-ink-muted">How many of you?</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            aria-label="Remove traveller"
-            disabled={value <= 1}
-            onClick={() => onChange(Math.max(1, value - 1))}
-            className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
-          >
-            <IconMinus width={16} height={16} />
-          </button>
-          <span className="w-6 text-center text-[15px] font-bold text-ink">{value}</span>
-          <button
-            type="button"
-            aria-label="Add traveller"
-            disabled={value >= MAX_TRAVELLERS}
-            onClick={() => onChange(Math.min(MAX_TRAVELLERS, value + 1))}
-            className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
-          >
-            <IconPlus width={16} height={16} />
-          </button>
-        </div>
-      </div>
+    <div className="absolute right-0 top-full z-30 mt-3 w-[min(320px,calc(100vw-2rem))] rounded-3xl border border-ink/10 bg-white p-5 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)]">
+      <Stepper label="Adults" hint="Ages 18 and above" value={adults} min={1} onChange={onAdults} />
+      <div className="h-px bg-ink/10" />
+      <Stepper label="Children" hint="Ages 0–17" value={kids} min={0} onChange={onKids} />
       <button
         type="button"
         onClick={onDone}
