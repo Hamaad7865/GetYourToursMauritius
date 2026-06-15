@@ -67,6 +67,7 @@ type ActivitiesRow = {
   seo_description: string | null;
   rating_avg: number | null;
   rating_count: number;
+  extra: Json;
   created_at: string;
 };
 type ActivitiesInsert = {
@@ -92,6 +93,7 @@ type ActivitiesInsert = {
   seo_description?: string | null;
   rating_avg?: number | null;
   rating_count?: number;
+  extra?: Json;
   created_at?: string;
 };
 
