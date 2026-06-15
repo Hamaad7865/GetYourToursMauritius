@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCategories } from '@/lib/categories/useCategories';
+import { useHomeShowcase, showActivitiesOnHome } from './HomeShowcaseContext';
 import { IconChevron } from '@/components/ui/icons';
 
 /**
@@ -85,20 +86,35 @@ function RentMenu() {
 }
 
 export function MainNav({ light }: { light: boolean }) {
+  const showcase = useHomeShowcase();
   return (
     <div className="mx-auto flex max-w-shell items-center gap-2 px-6">
-      {NAV_ITEMS.map((item) => (
-        <div key={item.label} className="group relative">
-          <Link
-            href={item.href}
-            className="flex items-center whitespace-nowrap py-3 pr-1 outline-none"
-          >
-            <NavLabel label={item.label} light={light} hasMenu={!!item.menu} />
-          </Link>
-          {item.menu === 'categories' && <CategoriesMenu />}
-          {item.menu === 'rent' && <RentMenu />}
-        </div>
-      ))}
+      {NAV_ITEMS.map((item) => {
+        // On the homepage, "Activities" swaps the showcase in place instead of navigating.
+        const swapsOnHome = item.label === 'Activities' && showcase !== null;
+        return (
+          <div key={item.label} className="group relative">
+            {swapsOnHome ? (
+              <button
+                type="button"
+                onClick={() => showActivitiesOnHome(showcase)}
+                className="flex items-center whitespace-nowrap py-3 pr-1 outline-none"
+              >
+                <NavLabel label={item.label} light={light} hasMenu />
+              </button>
+            ) : (
+              <Link
+                href={item.href}
+                className="flex items-center whitespace-nowrap py-3 pr-1 outline-none"
+              >
+                <NavLabel label={item.label} light={light} hasMenu={!!item.menu} />
+              </Link>
+            )}
+            {item.menu === 'categories' && <CategoriesMenu />}
+            {item.menu === 'rent' && <RentMenu />}
+          </div>
+        );
+      })}
     </div>
   );
 }

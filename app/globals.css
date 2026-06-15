@@ -48,4 +48,29 @@
   .no-bar::-webkit-scrollbar {
     display: none; /* Chrome/Safari */
   }
+
+  /* Soft staggered entrance for showcase tiles/cards (transform+opacity only). */
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .animate-fade-up {
+    animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+}
+
+/* Honour reduced-motion: no entrance animation, no smooth scroll. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .animate-fade-up {
+    animation: none;
+  }
 }
