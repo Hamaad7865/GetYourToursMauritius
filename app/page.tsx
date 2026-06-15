@@ -8,7 +8,6 @@ import { PlaceCard } from '@/components/gyg/PlaceCard';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
-import { withLocalPhotos } from '@/lib/catalogue/local-photos';
 import { FALLBACK_CATEGORIES } from '@/lib/categories/categories';
 import { IconArrowRight } from '@/components/ui/icons';
 import type { TourSummary } from '@/lib/validation/tours';
@@ -33,7 +32,7 @@ export const metadata: Metadata = {
 async function getActivities(): Promise<TourSummary[]> {
   try {
     const { items } = await searchActivities(publicServiceContext(), { page: 1, pageSize: 100 });
-    return items.map(withLocalPhotos);
+    return items;
   } catch (error) {
     console.error('[home] catalogue fetch failed', error);
     return [];

@@ -8,7 +8,6 @@ import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
 import { SearchFilterBar } from '@/components/catalogue/SearchFilterBar';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
-import { withLocalPhotos } from '@/lib/catalogue/local-photos';
 import {
   BROWSE_PAGE_SIZE,
   browseQueryString,
@@ -56,7 +55,7 @@ async function loadResults(
       category: params.category,
       type: params.type,
     });
-    return { ...result, items: result.items.map(withLocalPhotos) };
+    return result;
   } catch (error) {
     console.error('[browse] catalogue fetch failed', error);
     return { items: [], total: 0 };

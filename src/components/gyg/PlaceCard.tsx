@@ -1,10 +1,7 @@
-'use client';
-
-import { useState } from 'react';
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
 import { WishHeart } from './WishHeart';
-import { IconChevronLeft, IconChevronRight, IconStar } from '@/components/ui/icons';
+import { IconStar } from '@/components/ui/icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -17,11 +14,10 @@ function durationLabel(minutes: number | null): string | null {
 }
 
 /**
- * Activity card, recoloured to the Belle Mare brand. The card and its text are deliberately
- * STATIC — the only hover effect is a gentle zoom on the photo itself. When an activity has
- * several photos they become a click-through carousel (arrows + dots); the image slide is
- * the only thing that moves. The whole card is a stretched link to the detail page, with the
- * carousel/heart controls layered above it.
+ * Activity card, recoloured to the Belle Mare brand. Every card shows a single photo (the
+ * activity's hero image) — no carousel — so all cards look identical regardless of how many
+ * photos an activity has. The only hover effect is a gentle zoom on the photo; the card and
+ * its text never move. The whole card is a stretched link to the detail page.
  */
 export function PlaceCard({
   activity,
@@ -35,18 +31,7 @@ export function PlaceCard({
   compact?: boolean;
   className?: string;
 }) {
-  // Prefer the full photo array (for the carousel); degrade to the hero image alone when
-  // the search result predates the images-array migration, so a card is never imageless.
-  const images =
-    activity.images.length > 0 ? activity.images : activity.heroImage ? [activity.heroImage] : [];
-  const [index, setIndex] = useState(0);
-
-  function go(dir: 1 | -1, e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    if (images.length === 0) return;
-    setIndex((i) => (i + dir + images.length) % images.length);
-  }
+  const image = activity.heroImage ?? activity.images[0] ?? null;
 
   const topRated = activity.ratingAvg != null && activity.ratingAvg >= 4.7;
   // Price unit follows what staff set: a tier with a group size shows "per group up to N",
@@ -70,50 +55,19 @@ export function PlaceCard({
       } ${className}`}
     >
       <div className={`relative overflow-hidden ${compact ? 'aspect-[16/10]' : 'aspect-[4/3]'}`}>
-        {/* Zoom layer: only the image scales on hover — the card and text never move. */}
-        {images.length > 0 ? (
-          <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-105">
-            <div
-              className="flex h-full w-full transition-transform duration-300 ease-out"
-              style={{ transform: `translateX(-${index * 100}%)` }}
-            >
-              {images.map((img) => (
-                <img
-                  key={img.id}
-                  src={img.url}
-                  alt={img.alt ?? activity.title}
-                  loading="lazy"
-                  className="h-full w-full shrink-0 object-cover"
-                />
-              ))}
-            </div>
-          </div>
+        {/* Only the image scales on hover — the card and text never move. */}
+        {image ? (
+          <img
+            src={image.url}
+            alt={image.alt ?? activity.title}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+          />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(152deg,#13a0a6_0%,#0E8C92_46%,#0B5C63_100%)] transition-transform duration-500 ease-out group-hover:scale-105">
+          <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(152deg,#13a0a6_0%,#0E8C92_46%,#0B5C63_100%)] transition-transform duration-500 ease-out group-hover:scale-105">
             <span className="font-display text-3xl font-semibold text-white/90">
               {activity.title.slice(0, 1)}
             </span>
-          </div>
-        )}
-
-        {images.length > 1 && (
-          <div className="absolute inset-0 z-10 flex items-center justify-between p-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
-            <button
-              type="button"
-              onClick={(e) => go(-1, e)}
-              aria-label="Previous photo"
-              className="grid h-8 w-8 place-items-center rounded-full bg-black/35 text-white transition-colors hover:bg-black/55"
-            >
-              <IconChevronLeft width={18} height={18} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => go(1, e)}
-              aria-label="Next photo"
-              className="grid h-8 w-8 place-items-center rounded-full bg-black/35 text-white transition-colors hover:bg-black/55"
-            >
-              <IconChevronRight width={18} height={18} />
-            </button>
           </div>
         )}
 
@@ -126,24 +80,6 @@ export function PlaceCard({
           </span>
         )}
         <WishHeart slug={activity.slug} className="absolute right-3 top-3 z-10 h-8 w-8 shadow-sm" />
-
-        {images.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 gap-1.5">
-            {images.map((img, i) => (
-              <button
-                key={img.id}
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIndex(i);
-                }}
-                aria-label={`Show photo ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${i === index ? 'w-4 bg-white' : 'w-1.5 bg-white/60'}`}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       <div className={`flex flex-1 flex-col ${compact ? 'px-3.5 pb-3 pt-2.5' : 'px-4 pb-4 pt-3'}`}>
@@ -186,7 +122,7 @@ export function PlaceCard({
         </div>
       </div>
 
-      {/* Stretched link to detail — above the content, below the carousel/heart controls. */}
+      {/* Stretched link to detail — above the content, below the heart control. */}
       <Link href={`/activities/${activity.slug}`} aria-label={activity.title} className="absolute inset-0 z-0" />
     </div>
   );
