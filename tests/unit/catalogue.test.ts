@@ -28,6 +28,7 @@ function summary(overrides: Partial<TourSummary> = {}): TourSummary {
     ratingAvg: 4.8,
     ratingCount: 1158,
     heroImage: null,
+    images: [],
     ...overrides,
   };
 }

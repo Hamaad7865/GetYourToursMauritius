@@ -8,6 +8,7 @@ import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
 import { SearchFilterBar } from '@/components/catalogue/SearchFilterBar';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
+import { withLocalPhotos } from '@/lib/catalogue/local-photos';
 import {
   BROWSE_PAGE_SIZE,
   browseQueryString,
@@ -48,13 +49,14 @@ async function loadResults(
   params: BrowseParams,
 ): Promise<{ items: TourSummary[]; total: number }> {
   try {
-    return await searchActivities(publicServiceContext(), {
+    const result = await searchActivities(publicServiceContext(), {
       page: params.page,
       pageSize: BROWSE_PAGE_SIZE,
       q: params.q,
       category: params.category,
       type: params.type,
     });
+    return { ...result, items: result.items.map(withLocalPhotos) };
   } catch (error) {
     console.error('[browse] catalogue fetch failed', error);
     return { items: [], total: 0 };

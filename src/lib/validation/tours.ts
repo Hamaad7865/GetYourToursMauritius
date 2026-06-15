@@ -32,6 +32,7 @@ export const tourSummarySchema = z.object({
   ratingAvg: z.number().nullable(),
   ratingCount: z.number().int(),
   heroImage: tourImageSchema.nullable(),
+  images: z.array(tourImageSchema).default([]),
 });
 export type TourSummary = z.infer<typeof tourSummarySchema>;
 

@@ -15,6 +15,7 @@ const base: TourSummary = {
   ratingAvg: 4.8,
   ratingCount: 1158,
   heroImage: null,
+  images: [],
 };
 
 describe('JSON-LD', () => {

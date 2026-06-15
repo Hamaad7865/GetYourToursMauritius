@@ -97,6 +97,7 @@ function toSummary(activity: SeedActivity): TourSummary {
     ratingAvg: Math.round(rating.avg * 10) / 10,
     ratingCount: rating.count,
     heroImage: images[0] ?? null,
+    images,
   });
 }
 

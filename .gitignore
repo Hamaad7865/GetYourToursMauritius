@@ -49,3 +49,6 @@ Thumbs.db
 /supabase/.branches
 /supabase/.temp
 .design-tmp/
+
+# Local source-asset staging (curated copies live in public/)
+Activity Pictures/

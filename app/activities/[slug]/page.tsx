@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { Rail } from '@/components/gyg/Rail';
-import { GygCard } from '@/components/gyg/GygCard';
+import { PlaceCard } from '@/components/gyg/PlaceCard';
 import { WishHeart } from '@/components/gyg/WishHeart';
 import { RecordView } from '@/components/gyg/RecordView';
 import { Gallery } from '@/components/gyg/detail/Gallery';
@@ -20,6 +20,7 @@ import { publicServiceContext } from '@/lib/http/context';
 import { getActivity, searchActivities } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
 import { breadcrumbJsonLd, breadcrumbTrail, buildFaq, relatedActivities } from '@/lib/catalogue/detail';
+import { withLocalPhotos } from '@/lib/catalogue/local-photos';
 import { productJsonLd } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
@@ -29,7 +30,7 @@ export const runtime = 'edge';
 
 const loadActivity = cache(async (slug: string): Promise<TourDetail | null> => {
   try {
-    return await getActivity(publicServiceContext(), slug);
+    return withLocalPhotos(await getActivity(publicServiceContext(), slug));
   } catch (error) {
     if (error instanceof NotFoundError) return null;
     console.error('[activity] fetch failed', error);
@@ -44,7 +45,7 @@ async function loadRelated(activity: TourDetail): Promise<TourSummary[]> {
       pageSize: 10,
       category: activity.category,
     });
-    return relatedActivities(items, activity.slug, 6);
+    return relatedActivities(items, activity.slug, 6).map(withLocalPhotos);
   } catch (error) {
     console.error('[activity] related fetch failed', error);
     return [];
@@ -295,7 +296,7 @@ export default async function ActivityDetailPage({
               <SectionTitle>You might also like</SectionTitle>
               <Rail ariaLabel="You might also like">
                 {related.map((item) => (
-                  <GygCard key={item.id} activity={item} rail />
+                  <PlaceCard key={item.id} activity={item} rail />
                 ))}
               </Rail>
             </section>

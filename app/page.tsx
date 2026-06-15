@@ -4,10 +4,11 @@ import { GygHeader } from '@/components/gyg/GygHeader';
 import { GygHero } from '@/components/gyg/GygHero';
 import { ContinuePlanning } from '@/components/gyg/ContinuePlanning';
 import { Rail } from '@/components/gyg/Rail';
-import { GygCard } from '@/components/gyg/GygCard';
+import { PlaceCard } from '@/components/gyg/PlaceCard';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
+import { withLocalPhotos } from '@/lib/catalogue/local-photos';
 import { CATEGORIES } from '@/lib/seo/site';
 import { IconArrowRight } from '@/components/ui/icons';
 import type { TourSummary } from '@/lib/validation/tours';
@@ -32,7 +33,7 @@ export const metadata: Metadata = {
 async function getActivities(): Promise<TourSummary[]> {
   try {
     const { items } = await searchActivities(publicServiceContext(), { page: 1, pageSize: 100 });
-    return items;
+    return items.map(withLocalPhotos);
   } catch (error) {
     console.error('[home] catalogue fetch failed', error);
     return [];
@@ -69,7 +70,7 @@ export default async function HomePage() {
             </div>
             <Rail ariaLabel={group.category}>
               {group.items.map((activity) => (
-                <GygCard key={activity.id} activity={activity} rail />
+                <PlaceCard key={activity.id} activity={activity} rail />
               ))}
             </Rail>
           </section>

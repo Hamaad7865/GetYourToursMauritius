@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { TourSummary } from '@/lib/validation/tours';
 import { Rail } from './Rail';
-import { GygCard } from './GygCard';
+import { PlaceCard } from './PlaceCard';
 
 const KEY = 'gytm:recent';
 
@@ -38,7 +38,7 @@ export function ContinuePlanning({ pool }: { pool: TourSummary[] }) {
       </h2>
       <Rail ariaLabel={hasHistory ? 'Recently viewed' : 'Popular activities'}>
         {items.map((activity) => (
-          <GygCard key={activity.id} activity={activity} rail />
+          <PlaceCard key={activity.id} activity={activity} rail />
         ))}
       </Rail>
     </section>
