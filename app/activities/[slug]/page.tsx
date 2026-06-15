@@ -107,9 +107,9 @@ export default async function ActivityDetailPage({
       <JsonLd data={productJsonLd(activity)} />
       <JsonLd data={breadcrumbJsonLd(activity)} />
       <RecordView slug={activity.slug} />
-      <GygHeader sticky={false} showSearch={false} />
+      <GygHeader sticky={false} />
 
-      <main className="bg-cream">
+      <main className="bg-white">
         <div className="mx-auto max-w-shell px-6 pb-16 pt-5">
           {/* Breadcrumb */}
           <nav
@@ -161,13 +161,15 @@ export default async function ActivityDetailPage({
             </div>
           </div>
 
-          {activity.images.length > 0 && (
-            <Gallery images={activity.images} title={activity.title} />
-          )}
+          {/* GYG layout: gallery (left, top) + sticky booking (right), content below gallery */}
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">
+            <div className="lg:col-start-1 lg:row-start-1">
+              {activity.images.length > 0 && (
+                <Gallery images={activity.images} title={activity.title} />
+              )}
+            </div>
 
-          {/* Reservation on top (mobile), top-right column (desktop), then content */}
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-x-10">
-            <aside className="mb-8 lg:col-start-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
+            <aside className="mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
               <BookingCard
                 type={activity.type}
                 title={activity.title}
@@ -176,7 +178,8 @@ export default async function ActivityDetailPage({
                 languages={activity.languages}
               />
             </aside>
-            <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+
+            <div className="min-w-0 lg:col-start-1 lg:row-start-2">
               {activity.summary && (
                 <p className="m-0 mb-5 text-[15px] leading-relaxed text-ink/80">{activity.summary}</p>
               )}

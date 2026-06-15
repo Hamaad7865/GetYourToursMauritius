@@ -6,9 +6,23 @@ import { IconChevronLeft, IconChevronRight, IconX } from '@/components/ui/icons'
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
-function Tile({ image, title, onOpen }: { image: TourImage; title: string; onOpen: () => void }) {
+function Tile({
+  image,
+  title,
+  onOpen,
+  rounded,
+}: {
+  image: TourImage;
+  title: string;
+  onOpen: () => void;
+  rounded: string;
+}) {
   return (
-    <button type="button" onClick={onOpen} className="group relative h-full w-full overflow-hidden">
+    <button
+      type="button"
+      onClick={onOpen}
+      className={`group relative h-full w-full overflow-hidden ${rounded}`}
+    >
       <img
         src={image.url}
         alt={image.alt ?? title}
@@ -18,8 +32,8 @@ function Tile({ image, title, onOpen }: { image: TourImage; title: string; onOpe
   );
 }
 
-/** GetYourGuide-style gallery: one large image + a 2×2 grid, with a "View all photos"
- *  button opening a keyboard-navigable lightbox. Falls back to a branded gradient. */
+/** GetYourGuide-style gallery: one large image + a 2×2 grid (equal height), with a
+ *  "View all photos" button opening a keyboard-navigable lightbox. */
 export function Gallery({ images, title }: { images: TourImage[]; title: string }) {
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
@@ -51,7 +65,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
 
   if (images.length === 0) {
     return (
-      <div className="mb-6 flex h-[300px] items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(152deg,#13a0a6_0%,#0E8C92_46%,#0B5C63_100%)] sm:h-[440px]">
+      <div className="mb-6 flex h-[260px] items-center justify-center overflow-hidden rounded-2xl bg-[linear-gradient(152deg,#13a0a6_0%,#0E8C92_46%,#0B5C63_100%)] sm:h-[400px]">
         <span className="font-display text-5xl font-semibold text-cream/90">
           {title.slice(0, 1)}
         </span>
@@ -63,14 +77,18 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
 
   return (
     <div className="mb-6">
-      <div className="relative grid h-[300px] grid-cols-2 gap-2 overflow-hidden rounded-2xl sm:h-[440px] sm:grid-cols-[1.5fr_1fr]">
-        <div className="col-span-2 row-span-2 sm:col-span-1">
-          <Tile image={grid[0]!} title={title} onOpen={() => openAt(0)} />
-        </div>
+      <div className="relative grid h-[260px] gap-2 sm:h-[400px] sm:grid-cols-[1.6fr_1fr]">
+        <Tile image={grid[0]!} title={title} onOpen={() => openAt(0)} rounded="rounded-2xl" />
         {grid.length > 1 && (
           <div className="hidden grid-cols-2 grid-rows-2 gap-2 sm:grid">
             {grid.slice(1, 5).map((img, i) => (
-              <Tile key={img.id} image={img} title={title} onOpen={() => openAt(i + 1)} />
+              <Tile
+                key={img.id}
+                image={img}
+                title={title}
+                onOpen={() => openAt(i + 1)}
+                rounded="rounded-xl"
+              />
             ))}
           </div>
         )}

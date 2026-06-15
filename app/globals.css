@@ -8,7 +8,9 @@
  * Verified against design-reference/BelleMareTours-handoff.zip.
  */
 :root {
-  --color-cream: 250 245 236;
+  /* Site background is white (the warm cream was retired on request). The token name
+     is kept so existing bg-cream / text-cream utilities resolve to white. */
+  --color-cream: 255 255 255;
   --color-ink: 10 46 54;
   --color-ink-muted: 81 102 107;
   --color-coral: 247 108 94;
