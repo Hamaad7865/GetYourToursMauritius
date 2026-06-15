@@ -207,7 +207,7 @@ export function GygHeader({
     <header className={`${position} z-50 ${bg} transition-colors duration-300`}>
       <div className={overHero ? '' : 'border-b border-ink/[0.08]'}>
         <div className="mx-auto flex max-w-shell items-center gap-4 px-6 py-2.5">
-          <Logo tone="light" />
+          <Logo tone={overHero ? 'dark' : 'light'} />
           <div className="hidden min-w-0 flex-1 justify-center px-2 sm:flex">
             {searchShown && (
               <div className="w-full max-w-[560px]">
@@ -216,21 +216,22 @@ export function GygHeader({
             )}
           </div>
           <nav className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
-            <HeaderAction label="Wishlist" icon={<IconHeart width={20} height={20} />} />
+            <HeaderAction label="Wishlist" light={overHero} icon={<IconHeart width={20} height={20} />} />
             <HeaderAction
               label="Cart"
+              light={overHero}
               className="hidden sm:flex"
               icon={<IconCart width={20} height={20} />}
             />
-            <PrefsButton overHero={false} />
-            <ProfileMenu overHero={false} />
+            <PrefsButton overHero={overHero} />
+            <ProfileMenu overHero={overHero} />
           </nav>
         </div>
       </div>
 
       {showNav && (
         <div className={`hidden md:block ${overHero ? '' : 'border-b border-ink/[0.06]'}`}>
-          <MainNav light={false} />
+          <MainNav light={overHero} />
         </div>
       )}
     </header>

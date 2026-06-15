@@ -1,23 +1,26 @@
 import type { ReactNode } from 'react';
 import { SearchBar } from './SearchBar';
 
-/** GetYourGuide-style hero: full-bleed branded background, bold headline and the
- *  interactive search (query + date picker + travellers). The section is NOT clipped so
- *  the search dropdowns can spill over the content below, like GetYourGuide. An optional
- *  slot below the search hosts the "Continue planning" rail, so it lives in the hero. */
+/* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
+
+/** Hero with a full-bleed Mauritius photo, a soft dark scrim for legibility, the tagline and
+ *  the interactive search (query + date picker + travellers). The section is NOT clipped so
+ *  the search dropdowns can spill over the content below. */
 export function GygHero({ children }: { children?: ReactNode }) {
   return (
-    <section className="relative bg-[radial-gradient(120%_120%_at_50%_-20%,#EAF7F5_0%,#F4FAFA_45%,#ffffff_100%)]">
+    <section className="relative isolate flex min-h-[440px] flex-col justify-center overflow-visible">
+      <img
+        src="/hero-mauritius.jpg"
+        alt="Aerial view of Le Morne, Mauritius — turquoise lagoon and beach"
+        className="absolute inset-0 -z-10 h-full w-full object-cover"
+      />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-hidden opacity-50"
-        style={{
-          backgroundImage:
-            'radial-gradient(36rem 18rem at 12% 12%, rgba(14,140,146,0.10), transparent), radial-gradient(28rem 16rem at 88% 80%, rgba(247,108,94,0.10), transparent)',
-        }}
+        className="absolute inset-0 -z-10 bg-gradient-to-b from-ink/45 via-ink/25 to-ink/55"
       />
-      <div className="relative mx-auto max-w-shell px-6 pb-5 pt-24 text-center sm:pt-28">
-        <p className="mx-auto max-w-xl text-[15px] font-semibold text-ink/75">
+
+      <div className="relative mx-auto w-full max-w-shell px-6 pb-6 pt-28 text-center sm:pt-32">
+        <p className="mx-auto max-w-xl text-[16px] font-semibold text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.4)]">
           Belle Mare Tours — Mauritius&apos; east coast, booked direct. Catamaran cruises, dolphin
           swims, island days and transfers.
         </p>
