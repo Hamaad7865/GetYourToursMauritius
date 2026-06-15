@@ -1,104 +1,145 @@
-# GetYourToursMauritius — Build Progress / Session Handoff
+# GetYourToursMauritius — Progress & Handoff
 
-Snapshot for resuming after a context compaction. Branch `main`, local == remote on GitHub (`Hamaad7865/GetYourToursMauritius`, **private**). **Supabase is LIVE.** Full gate green: `npm run typecheck && npm run lint && npm run test && npm run build` (**102 tests**).
+> Session handoff doc. Read this first after a compaction. Production tours-booking
+> platform for **Belle Mare Tours** (east-coast Mauritius). API-first, edge-deployed
+> on Cloudflare Pages. Visual target: a **GetYourGuide clone recoloured to our brand**
+> (teal primary, coral urgency, ink "top rated", **white** background, Plus Jakarta Sans).
+>
+> Repo: GitHub `Hamaad7865/GetYourToursMauritius` (**private**). Branch `main`.
+> **Supabase is LIVE.** Full gate green: typecheck + lint + **112 tests** + build.
 
-> ⚠️ There are **uncommitted working-tree changes** (the home header transparent-over-hero behaviour) — see [Uncommitted WIP](#uncommitted-wip-not-on-github-yet). Everything else below is committed.
+---
 
-## What this is
+## 1. Stack & environment
 
-Production tours-booking platform for **Belle Mare Tours** (east-coast Mauritius), brand **GetYourToursMauritius**. API-first. 8 phases (0–7). Phases 0–3 done; now mid a **GetYourGuide-clone UI redesign** (home + detail done; listing page not yet; Phase 4 auth/booking not started).
+- **Next.js 15.5.19** App Router, TypeScript strict, **every route `runtime='edge'`**, Tailwind 3.4.
+- **Supabase** (live, see §2) reached two ways:
+  - **Server `/api/v1`** via `api_*` Postgres RPCs with a Bearer JWT (verified at the edge).
+  - **Browser client** (`src/lib/supabase/browser.ts`, persisted session) for web auth + admin writes, under RLS.
+- **PGlite** (real Postgres WASM) for tests — no Docker/Supabase CLI. Migrations in `supabase/migrations/**` are applied in order by the harness (`tests/db/pglite.ts`).
+- Payments behind a `PaymentProvider` interface: **StubPaymentProvider** (active, no Peach keys) + `PeachPaymentProvider` (placeholder, throws NotImplemented).
 
-## Current status at a glance
+### Environment constraints (this Windows machine)
+- Use **npm**, not pnpm.
+- `npm run pages:build` FAILS on Windows (next-on-pages CLI bug). `next build` proves edge-compat; run `pages:build` under WSL/CI.
+- **Build clobbers the dev server's `.next`** → always: stop preview → `rm -rf .next` → `npm run build` → `rm -rf .next` → restart preview. Building while the dev server runs causes "Failed to collect page data" errors (corrupted `.next`, not a code bug).
+- Node 24, npm 11, Bash tool = Git Bash. Preview screenshots are flaky after many HMR cycles — a clean restart fixes it.
 
-| Area                                          | Status                                                                 |
-| --------------------------------------------- | ---------------------------------------------------------------------- |
-| Backend (schema, RLS, RPCs, /api/v1, OpenAPI) | ✅ Phases 0–2                                                          |
-| Supabase project (live) + data wired          | ✅ app reads live data                                                 |
-| Home page — GYG clone (our brand)             | ✅ (header transparent-hero WIP uncommitted)                           |
-| Activity **detail** page — GYG clone          | ✅ heavily polished against `north-tour`                               |
-| **Listing** page (`/activities`)              | ⚠️ still old Phase-3b style (header/cards inconsistent)                |
-| Auth / sign-in / session / **My bookings**    | ❌ Phase 4, not started (header icons are placeholders → /account 404) |
-| Booking flow                                  | ⚠️ interim **"Reserve on WhatsApp"** CTA only                          |
+### Green gate (after every change)
+`npm run typecheck && npm run lint && npm run test && npm run build` — currently **112 tests, all green**.
 
-## Environment constraints (important)
+---
 
-- **Use `npm`** (not pnpm — corepack EPERM). Node 24. Bash tool = Git Bash. Windows 11.
-- **No Docker / Supabase CLI** → DB is tested with **PGlite** (real Postgres WASM, in-process). `src/lib/supabase/types.ts` is hand-authored.
-- **`npm run build` and `next dev` share `.next`** → running a build while the dev/preview server is up **clobbers its CSS** (page renders unstyled). Workflow: **stop the preview → `npm run build` → `rm -rf .next` → restart preview.**
-- **Preview MCP (`mcp__Claude_Preview__*`) is flaky**: servers die between turns, viewport resets/collapses to ~7px, and client hydration goes stale after many HMR cycles (a clean stop + `rm -rf .next` + start fixes hydration). Verify via `preview_eval` measurements; screenshots often time out. The user reviews in their own Chrome — give changes then say "hard-refresh (Ctrl+Shift+R)".
-- `.npmrc` has `legacy-peer-deps=true`.
+## 2. Live Supabase (wired)
 
-## Supabase (LIVE)
+- **Project ref:** `dwjkfowhrrvdiqligxcj`. `.env.local` (gitignored) has:
+  `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
+  `SUPABASE_DB_URL`, `NEXT_PUBLIC_SITE_URL`, **`SUPABASE_JWT_SECRET`** (legacy HS256 secret).
+- **JWT signing is ES256 (asymmetric)** — JWKS at `/auth/v1/.well-known/jwks.json`. The legacy HS256 key is the *previous* key (revoke once old tokens expire). Edge verify (`src/lib/http/auth.ts`) supports **both**: ES256→JWKS, HS256→shared secret.
+- **The auto-mode classifier BLOCKS the assistant from live-DB writes** (applying migrations, creating auth users, deleting rows). Workarounds: North Tour photos as a `public/` overlay; the user runs `admin-setup.sql` themselves.
+- Secrets were pasted in chat (legacy JWT secret, an old DB password, service_role) — **rotate them**.
 
-- Project ref **`dwjkfowhrrvdiqligxcj`**, region eu-central-1. URL `https://dwjkfowhrrvdiqligxcj.supabase.co`.
-- Credentials are in **`.env.local`** (gitignored): `SUPABASE_DB_URL` (session-pooler, `aws-1-eu-central-1.pooler.supabase.com:5432`), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` (legacy `eyJ…anon`), `SUPABASE_SERVICE_ROLE_KEY`.
-- **STILL MISSING: `SUPABASE_JWT_SECRET`** (Settings → API → JWT Settings → Reveal — a plain string, NOT a `eyJ…` token). Needed for Phase 4 edge token verification. Ask the user for it.
-- **Security TODO (flagged to user):** the DB password + service_role key were pasted in chat — they should reset the DB password and roll the JWT secret.
-- **How the schema got applied (no CLI):** `npm run setup:sql` bundles all migrations+seed into `supabase/setup.sql`; `npm run db:setup` (`scripts/db-setup.ts`) applies it over the connection string via the `pg` package (tolerant parser handles `@`/`:` in passwords; hints to use the IPv4 session pooler, not the IPv6 direct host). `scripts/db-exec.ts <file…>` runs arbitrary SQL files (used for patches). Guide: `SUPABASE_SETUP.md`.
-- **Dev fallback:** when no Supabase env is set (non-prod), `src/lib/http/context.ts#selectDb` uses `src/lib/dev/seed-rpc.ts` (serves `seed/catalogue.json` with picsum/placeholder enrichment) so the catalogue renders without a project.
+---
 
-### 🔴 Critical bug fixed this session
+## 3. Phase status
 
-`supabaseRpc` extracted `client.rpc` into a detached variable → `this` lost → every real-Supabase call threw `Cannot read properties of undefined (reading 'rest')` → 502. Only surfaced once a live project existed (all tests use the PGlite adapter). Fixed by binding to the client (`6c1ce0b`); guarded by `tests/unit/supabase-rpc.test.ts`.
+| Phase | What | Status |
+|---|---|---|
+| 0 | Scaffold + seams + green gate | ✅ |
+| 1 | 19-table schema + RLS (deny-by-default) + atomic plpgsql RPCs (`create_hold`, `create_booking`, `append_payment_event`, `expire_holds`) + hand-authored `supabase/types.ts` + bilingual `seed/catalogue.json` (23 activities) | ✅ |
+| 2 | Service layer (DB access only via `api_*` RPCs; `DbRpc` port = `supabaseRpc` prod + `pgliteRpc` tests) + `/api/v1` + OpenAPI | ✅ |
+| 3 | Public catalogue: home, browse, **activity detail**, SEO/JSON-LD, sitemap | ✅ |
+| — | **GYG redesign**: home (transparent header over hero + scroll-collapse), detail clone, white bg | ✅ |
+| 4a | **Auth**: email + Google + Apple + Facebook; retained session; profile; bookings history | ✅ |
+| — | **JWKS edge verify** (ES256) + HS256 fallback | ✅ |
+| 6 (slice) | **Admin panel**: Activities CRUD + availability | ✅ |
+| 4b | **Booking**: bookable activities, payment webhook, confirmation, 3-step checkout | ✅ |
+| 5 | AI assistant | ⏳ not started |
+| 6 (rest) | Admin dashboard / bookings table / leads | ⏳ |
+| 7 | Final pass (a11y, deploy, README) | ⏳ |
 
-## Stack
+---
 
-Next.js 15.5.19 (App Router, TS strict, all server code `runtime='edge'`) · Tailwind 3.4 (tokens RGB channels; **`--color-cream` is now `255 255 255` = white** — site background was switched from cream to white) · Supabase via **`api_*` RPCs only** · Peach (stub) · Vercel AI SDK (stub) · Zod · `jose` · `zod-openapi` · Vitest + PGlite. **New deps:** `pg` (db scripts), `leaflet` + `@types/leaflet` (itinerary map), `@types/google.maps` (for future Google Maps switch).
+## 4. What this session built (recent → oldest)
 
-## Locked architecture decisions (do NOT re-litigate)
+### Cards & photos
+- **`PlaceCard`** — static card, **image-only hover zoom**, CSS photo carousel, stretched `<Link>`. Replaced `GygCard` (deleted). framer-motion removed.
+- **North Tour real photos**: 5 in `public/activities/north-tour/`, overlaid via `src/lib/catalogue/local-photos.ts` (`withLocalPhotos`) on home/browse/detail — no Storage upload / DB write. Source folder `Activity Pictures/` is gitignored.
+- `images: TourImage[]` on `TourSummary`; `api_search_activities` returns it (migration `20260615121500_search_images.sql`).
 
-- Framework-agnostic service layer (`src/lib/services/**`, zero Next imports); narrow `DbRpc` port with `supabaseRpc` (prod) + `pgliteRpc` (tests) running identical SQL.
-- Concurrency-safe booking core (`session_occurrences` + `booking_holds`, computed availability, atomic plpgsql RPCs); event-sourced `payment_events` ledger; multi-operator data / single-brand storefront; RLS deny-by-default; bigint money.
-- **GYG-clone UI, our colours:** full GetYourGuide layout/effects recoloured to teal (primary) / coral (urgency·sale) / ink ("Top rated"). White background. Bold Plus Jakarta Sans headings (no Fraunces on GYG pages). Components under `src/components/gyg/**`.
+### Navbar / header (exactly GetYourGuide)
+- `GygHeader` navbar = **Wishlist · Cart · EN/EUR € · Profile** (dropped standalone Bookings + Sign in/up buttons).
+- **Profile dropdown**: signed-out → "Log in or sign up"; signed-in → My profile / **My bookings** / Log out. **Bookings only shown when signed in.**
+- **Language/Currency modal** via `PreferencesProvider` — **English + Français**, EUR; persisted; navbar shows "EN/EUR €" ↔ "FR/EUR €". (Selector + persistence only; full content translation = later i18n pass.)
+- Browse page uses `GygHeader` too.
 
-## Schema (`supabase/migrations/`)
+### Search bar
+- Shared **`SearchBar`** in the hero AND docked in the navbar on scroll. Query + two-month date calendar (Today/Tomorrow/Next weekend chips) + **Adults/Children** travellers → `/activities?q&date&adults&children`. Responsive + a11y.
 
-20 columns of note: the 19 tables from Phase 1, **plus** `activities.extra jsonb` (migration `20260615121400_activity_extra.sql`) holding GYG presentational extras: `{ itinerary:[{title,area,tags[],lat,lng}], importantInfo:[…], availability, startWindow, returnWindow }`. `api_get_activity` returns `extra`; `TourDetail.extra` (Zod) in `src/lib/validation/tours.ts` (incl. `itineraryStopSchema` with lat/lng/tags). Content patches live in `supabase/patches/` (north-tour content, itinerary tags, coords).
+### Auth (4a) — `src/components/auth/**`
+- `AuthProvider`/`useAuth` (persisted session, profile upsert on first sign-in), `AuthDialog` (email + Google/Apple/Facebook, focus-restore + scroll-lock), `/auth/callback`.
+- `/account` (editable profile) + `/account/bookings` (history) — read directly under RLS.
 
-`api_*` (single jsonb arg): `api_search_activities`, `api_get_activity` (+extra), `api_list_availability`, `api_book`, `api_create_payment`, `api_get_booking`, `api_capture_lead`, `booking_json`.
+### Admin (Phase 6 Activities-CRUD slice) — `app/admin/**`, `src/components/admin/**`
+- `AdminGuard` (role staff/admin). `/admin/activities` list (New/Edit/**Availability**/Delete).
+- **`ActivityForm`** captures every North-Tour field: basics, slug, category (enum), type, status, location, duration, summary/description, meeting point, cancellation, pickup, highlights/inclusions/exclusions/languages, **photos (Storage upload AND URL paste)**, options + price tiers, itinerary (→ `extra` jsonb).
+- **Writes go DIRECT via the authed admin client** — staff RLS grants full write on activities/images/options/prices, so **no admin RPC/migration**. (`src/lib/admin/activity-write.ts`.)
+- **Availability** (`AvailabilityEditor` + `availability-write.ts`): a **daily capacity + "Make bookable" / "Stop"** — no date/time/repeat. Materialises a daily slot (**noon UTC** — timezone-stable) per option across a rolling year (idempotent upsert, updates capacity). "Stop" deletes upcoming slots **except** days with bookings/active holds.
 
-## GYG redesign — what's built
+### Booking + payment (4b)
+- **`BookingWidget`** (GYG look): **Participants** stepper + custom **Date calendar** (greys past/today + full days) + custom **Language** dropdown (English/French). Cheapest tier/option. **"Book now"** (always shown) → `/checkout` with the selection in query params.
+- **`/checkout` — 3 steps** (`src/components/checkout/Checkout.tsx`): (1) **Transport** (pickup radio + hold-spot countdown + spinner on Continue); (2) **Contact** (sign in / create account if needed; auto-advances on session); (3) **Payment** (booking with idempotency key + payment → redirect to `/bookings/[ref]`).
+- **`POST /api/v1/webhooks/payments`** — the ONLY confirm path: verifies the event, appends via `append_payment_event` (service-role), idempotent. **Unauthenticated in stub mode by design** (real Peach signature closes it — don't deploy stub publicly).
+- **`/bookings/[ref]`** (`BookingConfirmation`): shows the booking; stub return offers **"Complete payment (test)"** → webhook → confirmed → appears in My bookings.
+- Money-path RPCs (`api_book`, `api_create_payment`, `append_payment_event`, stub) built in Phase 1–2. **Peach stubbed** (no keys).
 
-**`src/components/gyg/`** (all our brand):
+### Tests added
+- `tests/integration/admin-catalogue.test.ts` (admin write → public read, drafts hidden, edits reflected).
+- `tests/integration/booking-flow.test.ts` (availability → book → pay → webhook → confirmed; seats drop; overbooking rejected; idempotent).
+- `tests/unit/auth-jwt.test.ts` (ES256/JWKS).
 
-- `GygHeader.tsx` (client) — sticky/transparent header. `heroMode` (home), `sticky`, `showSearch` props. On home it should overlay the hero transparent then go solid-white + hide the nav row on scroll (**this exact behaviour is the uncommitted WIP**). Detail page passes `sticky={false}` (non-sticky) but keeps the search.
-- `GygHero.tsx` — branded teal-gradient hero + big search (no-JS GET form).
-- `Rail.tsx` (client) — horizontal scroll-snap with ‹ › arrows; scrollbar hidden via the `.no-bar` utility added to `app/globals.css`.
-- `GygCard.tsx` — GYG product card (heart, Top-rated badge, location, meta, rating, From price/unit) with stretched-link so the `WishHeart` stays clickable.
-- `WishHeart.tsx`, `RecordView.tsx`, `ContinuePlanning.tsx` — localStorage wishlist + recently-viewed "Continue planning" rail.
-- `detail/Gallery.tsx` (client) — 1-big + 2×2 grid, "View all photos" lightbox. Height `sm:h-[360px]` (landscape; do NOT make it viewport-tall — that squeezes the images).
-- `detail/BookingCard.tsx` (client) — sticky widget (badge, From price, participants/date/language, total, "Reserve on WhatsApp" interim CTA).
-- `detail/Sections.tsx` — `QuickFacts` (2-col icon-tile grid + "Loved by travellers" banner), `Overview`, `Itinerary` (uses RouteMap), `Includes`.
-- `detail/RouteMap.tsx` (client) — **Leaflet + OpenStreetMap** map with a pin per itinerary stop, route polyline, re-center button. No API key. Owner wants **Google Maps** eventually (needs a Maps API key + billing; `@types/google.maps` already installed).
-- `detail/ItineraryTimeline.tsx` (client) — collapses to first stops with "Show full itinerary" toggle when >3 locations.
-- `detail/SeeMore.tsx`, `detail/ShareButton.tsx`.
+### Adversarial reviews (multi-agent workflows)
+- Phase 4a auth → 11 fixed. Search bar → 13 fixed. Booking/checkout/admin → **8 fixed** (idempotent retries, noon-UTC timezone, `stopAvailability` busy-skip, atomic activity update, session-race, friendly capacity error). 3 noted (see §6).
 
-**Pages:** `app/page.tsx` (GYG home: header + hero + Continue rail + per-category rails) and `app/activities/[slug]/page.tsx` (GYG detail) are rebuilt. **`app/activities/page.tsx` (listing) is NOT yet converted** — still SiteHeader/ActivityGrid (Phase 3b). Detail-page layout: gallery (left) + sticky booking (right), content below; title one line; description right under the gallery; non-sticky header.
+---
 
-## North Tour (the demo activity)
+## 5. ⚠️ Setup the USER must run (classifier blocks the assistant)
 
-`north-tour` was enriched with the operator's **real content** (description, 6 highlights, 12 includes, 4 excludes, 5+1 itinerary stops with tags + coords, €70 "Private group up to 4", extra overview, 4.8/126 rating) via `supabase/patches/`. Gallery currently uses **picsum placeholders**. **Real photos provided** in `Activity Pictures/North Tours/` (central-market.jpg, cover-pamplemousse-garden.jpg, pereybere-beach.jpg, shutterstock_443614957.jpg, …) — **next step: upload to Supabase Storage and update `activity_images.url`** (the folder is untracked/local).
+Run **`supabase/admin-setup.sql`** ONCE on the live DB (Supabase SQL editor, or `npx tsx scripts/db-exec.ts supabase/admin-setup.sql`). It:
+1. **Deletes all activities except `north-tour`** (permanent — user's choice).
+2. **Makes an account admin** — `update profiles set role='admin'` for `boodoo.sheik786@gmail.com` (must have **signed up in the app first**).
+3. Creates the public **`activity-images` Storage bucket** + staff-write/public-read policies (admin photo uploads).
+> Do **not** run `npm run db:setup` afterward — it re-seeds the 23 demo activities.
 
-## Uncommitted WIP (NOT on GitHub yet)
+### Make North Tour bookable live
+`/admin/activities` → **Availability** on North Tour → set capacity → **Make bookable**. Then on the site: pick a date → **Book now** → checkout → sign in → pay → **Complete payment (test)** → confirmed under My bookings.
 
-`git status` shows **`src/components/gyg/GygHeader.tsx`** and **`src/components/gyg/GygHero.tsx`** modified — the home header that **overlays the hero transparently at the top, then turns solid white + hides the "Things to do" nav row on scroll** (per the owner's last request, matching GYG). Header changed to `position: fixed` in heroMode; `GygHero` got extra top padding (`pt-32 sm:pt-40`) to clear it; bg uses `bg-white` (not `bg-white/97`, which wasn't generating). **Verified:** initial state correct (transparent + nav shown + white logo at top), no console errors, typecheck/lint pass, 102 tests pass. **NOT verified:** the scroll reaction (transparent→white, nav hide, search dock) — the flaky preview wouldn't hydrate reliably, but the scroll-listener pattern is the same one that worked in the owner's browser earlier. **TODO: confirm in a real browser, then `npm run build` (preview stopped) + commit + push.** (A stray `/*  */` edit to `envelope.ts` was reverted.)
+---
 
-## Key commits (newest first)
+## 6. Open items / decisions pending
 
-`20f1322` richer quick-facts + loved banner · `9f1728e` hide rail scrollbar · `00e0dc6` gallery landscape height · `c1122dd`/`bca165e`/`16d3ccb`/`9b256b9`/`5eded04`/`482c2bd` detail-page polish rounds · `c05f1a7` Leaflet pin map · `5ae487e` GYG detail page + extra column · `6a7a699` GYG home · `6c1ce0b` **supabaseRpc bind fix** · `ee7f884`/`9a7504d` Supabase setup tooling · `7905035` dev seed adapter · `44ec050` Phase 3b review · `e4abc8a` Phase 3b pages.
+- **Google Maps**: `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` is wired; user is getting a key (enable Maps JS API + Places, create + restrict by HTTP referrer, add to `.env.local` + Cloudflare env). Then wire the **pickup map in checkout** and/or swap the **itinerary map** (currently Leaflet/OSM) to Google.
+- **Peach payments**: stubbed until keys (`PEACH_ENTITY_ID/ACCESS_TOKEN/WEBHOOK_SECRET`). Implement `src/lib/payments/peach.ts`.
+- **Known follow-up bugs (not fixed):**
+  1. **Occurrence↔activity binding** — a hand-edited `/checkout?occ=` could book a different activity's slot than the title shown (self-inflicted; DB charges the real price). Proper fix = add a slug check to `api_book` (a migration the user applies).
+  2. Availability window goes stale if the page is open past midnight (cosmetic; reload fixes).
+  3. `openAvailability` sends ~365×options rows in one upsert (fine normally; could time out with many options).
+- **Full French translation** of UI + content (FR data exists in `activity_translations`; selector/locale persist, content not switched yet).
+- **"Additional works"** the user mentioned before the next phase — ask them.
+- Pending task: GYG-ify the old listing-page styling further if wanted.
 
-## What's next (suggested order)
+---
 
-1. **Finish & commit the home header WIP** (verify scroll behaviour in real Chrome).
-2. **Upload the real North Tour photos** (Supabase Storage) → swap `activity_images.url`.
-3. **GYG-ify the listing page** (`app/activities/page.tsx`) using `GygHeader` + `GygCard` + rails — last inconsistent page in the flow.
-4. **Google Maps** (optional, needs key) — swap the Leaflet tile layer / use Maps JS API for the route.
-5. **Phase 4 — auth + bookings** (the owner explicitly wants GYG-style: sign in → retained session → profile → **Bookings** history): Supabase email + Google auth, session-aware header (wire the placeholder Wishlist/Cart/Bookings/Sign-up), `/account` + "My bookings" page, the real 4-step checkout replacing the WhatsApp CTA, Peach behind the stub. **Needs the JWT secret first.**
-6. Phases 5 (AI assistant), 6 (admin `/admin`), 7 (a11y/SEO/deploy — consider OpenNext over the deprecated next-on-pages).
+## 7. Key files
 
-## Pointers
+- Detail: `app/activities/[slug]/page.tsx` · widget `src/components/gyg/detail/BookingWidget.tsx`
+- Checkout: `app/checkout/page.tsx` · `src/components/checkout/Checkout.tsx`
+- Webhook: `app/api/v1/webhooks/payments/route.ts` · Confirmation: `src/components/gyg/detail/BookingConfirmation.tsx`
+- Admin: `app/admin/**`, `src/components/admin/**`, `src/lib/admin/{activity-write,availability-write}.ts`
+- Auth: `src/components/auth/**`, edge verify `src/lib/http/auth.ts`, browser client `src/lib/supabase/browser.ts`
+- Prefs/search/header: `src/components/site/{PreferencesProvider,LangCurrencyModal}.tsx`, `src/components/gyg/{GygHeader,SearchBar,PlaceCard}.tsx`
+- Catalogue overlay: `src/lib/catalogue/local-photos.ts`
+- Migrations: `supabase/migrations/**` · One-time setup: `supabase/admin-setup.sql`
+- Memory (persists across sessions): `~/.claude/projects/.../memory/` — `gytm-build-decisions.md`, `gytm-gyg-redesign.md`.
 
-- Memory: `~/.claude/projects/C--Projects-GetYourToursMauritius/memory/` — `gytm-build-decisions.md`, `gytm-gyg-redesign.md` (detail-page layout rules: non-sticky header + search, gallery-left/booking-right, pin map, white bg).
-- Setup: `SUPABASE_SETUP.md`. Scripts: `db:setup`, `db:exec` (via `tsx scripts/db-exec.ts`), `setup:sql`, `seed:gen`, `openapi:write`.
-- Test harness: `tests/db/{pglite.ts,auth-shim.sql,seed.ts,rpc.ts,route-context.ts}`. Plan: `~/.claude/plans/content-import-seed-data-reactive-dragonfly.md`.
-- Preview launch config: `.claude/launch.json` (`npm run dev`).
+**All work committed on `main`** (and pushed to the private GitHub repo per the prior handoff). Stub/test secrets only in `.env.local` (gitignored).
