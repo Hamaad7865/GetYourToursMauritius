@@ -97,6 +97,12 @@ export function AdminActivities() {
                   </p>
                 </div>
                 <Link
+                  href={`/admin/activities/${row.id}/availability`}
+                  className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-bold text-ink-muted hover:bg-cream hover:text-teal"
+                >
+                  Availability
+                </Link>
+                <Link
                   href={`/admin/activities/${row.id}/edit`}
                   className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-bold text-teal hover:bg-cream"
                 >

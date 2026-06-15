@@ -8,7 +8,7 @@ import { PlaceCard } from '@/components/gyg/PlaceCard';
 import { WishHeart } from '@/components/gyg/WishHeart';
 import { RecordView } from '@/components/gyg/RecordView';
 import { Gallery } from '@/components/gyg/detail/Gallery';
-import { BookingCard } from '@/components/gyg/detail/BookingCard';
+import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
 import { QuickFacts, Overview, Itinerary, Includes } from '@/components/gyg/detail/Sections';
@@ -171,12 +171,11 @@ export default async function ActivityDetailPage({
             </div>
 
             <aside className="mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
-              <BookingCard
+              <BookingWidget
+                slug={activity.slug}
                 type={activity.type}
-                title={activity.title}
                 fromPriceEur={activity.fromPriceEur}
                 options={activity.options}
-                languages={activity.languages}
               />
             </aside>
 
