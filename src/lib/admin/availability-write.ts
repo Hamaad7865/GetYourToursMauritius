@@ -101,23 +101,21 @@ export async function deleteOccurrence(id: string): Promise<void> {
 }
 
 const OPEN_HORIZON_DAYS = 365;
+// Customers choose a DATE, not a time, so the daily slot uses a fixed internal start.
+const DAILY_START_HOUR = 9;
 
 /**
- * Make an activity "always available": materialise a daily slot at `time` for every option,
- * for the next year. Idempotent (re-running tops the window back up). Run again any time to
- * extend the horizon further out.
+ * Make an activity bookable every day with a daily `capacity` (e.g. "20 per day"), for the
+ * next year — no per-date entry. Idempotent: re-running tops the rolling window back up AND
+ * updates the capacity on existing upcoming days.
  */
-export async function openAvailability(
-  activityId: string,
-  opts: { time: string; capacity: number },
-): Promise<number> {
+export async function openAvailability(activityId: string, opts: { capacity: number }): Promise<number> {
   const sb = getBrowserSupabase();
   const meta = await loadActivityOptions(activityId);
   if (meta.options.length === 0) {
     throw new Error('Add a booking option (with a price) to the activity first.');
   }
   const duration = meta.durationMinutes ?? 240;
-  const [h, m] = opts.time.split(':').map(Number);
   const rows: Array<{
     activity_option_id: string;
     operator_id: string;
@@ -129,7 +127,7 @@ export async function openAvailability(
     for (let i = 1; i <= OPEN_HORIZON_DAYS; i += 1) {
       const start = new Date();
       start.setDate(start.getDate() + i);
-      start.setHours(h ?? 9, m ?? 0, 0, 0);
+      start.setHours(DAILY_START_HOUR, 0, 0, 0);
       const end = new Date(start.getTime() + duration * 60_000);
       rows.push({
         activity_option_id: option.id,
@@ -140,9 +138,10 @@ export async function openAvailability(
       });
     }
   }
+  // No ignoreDuplicates → re-running updates the capacity on days that already exist.
   const { error, count } = await sb
     .from('session_occurrences')
-    .upsert(rows, { onConflict: 'activity_option_id,starts_at', ignoreDuplicates: true, count: 'exact' });
+    .upsert(rows, { onConflict: 'activity_option_id,starts_at', count: 'exact' });
   if (error) throw error;
   return count ?? rows.length;
 }

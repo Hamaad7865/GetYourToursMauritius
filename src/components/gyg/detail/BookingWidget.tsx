@@ -20,7 +20,6 @@ interface Slot {
   activityOptionId: string;
   optionName: string;
   startsAt: string;
-  endsAt: string;
   seatsLeft: number;
   status: string;
 }
@@ -28,19 +27,18 @@ interface Slot {
 function eur(n: number): string {
   return Number.isInteger(n) ? `€${n}` : `€${n.toFixed(2)}`;
 }
-
-function fmtSlot(s: Slot): string {
-  const d = new Date(s.startsAt);
-  const when = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-  const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  return `${when}, ${time} · ${s.optionName} · ${s.seatsLeft} left`;
+function pad(n: number): string {
+  return String(n).padStart(2, '0');
+}
+/** Local YYYY-MM-DD for a Date (so the picker + slot map agree in the visitor's timezone). */
+function dateKey(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 /**
- * GetYourGuide-style sticky booking widget, wired to the real flow: load availability →
- * pick a slot → quantities per price tier → create booking → start payment → redirect to
- * checkout. Booking + payment use the signed-in account (owner) so there are no inline
- * customer fields; the booking carries the account name + email.
+ * GetYourGuide-style sticky booking widget. Availability is open every day (a daily
+ * capacity set in the admin), so the visitor picks a DATE; we map it to that day's slot,
+ * choose quantities per price tier, then book → pay → redirect. Uses the signed-in account.
  */
 export function BookingWidget({
   slug,
@@ -55,8 +53,11 @@ export function BookingWidget({
 }) {
   const { user, profile, session, openAuth } = useAuth();
   const [slots, setSlots] = useState<Slot[] | null>(null);
-  const [occurrenceId, setOccurrenceId] = useState('');
+  const [date, setDate] = useState('');
+  const [optionId, setOptionId] = useState('');
   const [party, setParty] = useState<Record<string, number>>({});
+  const [minDate, setMinDate] = useState('');
+  const [maxDate, setMaxDate] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,8 +74,16 @@ export function BookingWidget({
       : 'per person';
 
   useEffect(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const horizon = new Date();
+    horizon.setDate(horizon.getDate() + 180);
+    setMinDate(dateKey(tomorrow));
+    setMaxDate(dateKey(horizon));
+
     let active = true;
-    fetch(`/api/v1/activities/${slug}/availability`)
+    const from = dateKey(new Date());
+    fetch(`/api/v1/activities/${slug}/availability?from=${from}&to=${dateKey(horizon)}`)
       .then((r) => r.json())
       .then((body) => active && setSlots(body.ok ? (body.data as Slot[]) : []))
       .catch(() => active && setSlots([]));
@@ -83,16 +92,36 @@ export function BookingWidget({
     };
   }, [slug]);
 
-  const slot = slots?.find((s) => s.occurrenceId === occurrenceId) ?? null;
+  // Slots grouped by local date.
+  const byDate = useMemo(() => {
+    const m = new Map<string, Slot[]>();
+    for (const s of slots ?? []) {
+      const key = dateKey(new Date(s.startsAt));
+      (m.get(key) ?? m.set(key, []).get(key)!).push(s);
+    }
+    return m;
+  }, [slots]);
+
+  const daySlots = date ? (byDate.get(date) ?? []) : [];
+  const slot = daySlots.find((s) => s.activityOptionId === optionId) ?? null;
   const tiers = useMemo(
     () => (slot ? (options.find((o) => o.id === slot.activityOptionId)?.prices ?? []) : []),
     [slot, options],
   );
 
-  function selectSlot(id: string) {
-    setOccurrenceId(id);
-    const s = slots?.find((x) => x.occurrenceId === id);
-    const opt = s ? options.find((o) => o.id === s.activityOptionId) : undefined;
+  function pickDate(value: string) {
+    setDate(value);
+    setError(null);
+    const day = byDate.get(value) ?? [];
+    const firstOption = day[0]?.activityOptionId ?? '';
+    setOptionId(firstOption);
+    const opt = options.find((o) => o.id === firstOption);
+    setParty(opt?.prices[0] ? { [opt.prices[0].label]: 1 } : {});
+  }
+
+  function pickOption(id: string) {
+    setOptionId(id);
+    const opt = options.find((o) => o.id === id);
     setParty(opt?.prices[0] ? { [opt.prices[0].label]: 1 } : {});
   }
 
@@ -102,10 +131,19 @@ export function BookingWidget({
 
   const guests = Object.values(party).reduce((a, b) => a + b, 0);
   const total = tiers.reduce((sum, t) => sum + (party[t.label] ?? 0) * t.amountEur, 0);
+  const dateText = date
+    ? new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : 'Select a date';
+  const noAvailability = slots !== null && slots.length === 0;
 
   async function book() {
     if (!session) return openAuth('signin');
-    if (!occurrenceId) return setError('Please choose a date.');
+    if (!slot) return setError('Please choose a date.');
     if (guests <= 0) return setError('Please add at least one guest.');
     setBusy(true);
     setError(null);
@@ -119,7 +157,7 @@ export function BookingWidget({
         method: 'POST',
         headers,
         body: JSON.stringify({
-          occurrenceId,
+          occurrenceId: slot.occurrenceId,
           party: partyClean,
           customer: {
             name: profile?.fullName || user?.email || 'Guest',
@@ -173,38 +211,54 @@ export function BookingWidget({
         <div className="text-[13px] text-ink-muted">{unitLabel}</div>
 
         <div className="mt-4 flex flex-col gap-2.5">
-          {/* Date & time */}
-          <div className="flex items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-3 focus-within:border-teal">
+          {/* Date */}
+          <label className="relative flex cursor-pointer items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-3 focus-within:border-teal">
             <IconCalendar width={18} height={18} className="shrink-0 text-teal" />
-            {slots === null ? (
-              <span className="flex-1 text-[14px] text-ink-muted">Loading availability…</span>
-            ) : slots.length === 0 ? (
-              <span className="flex-1 text-[14px] text-ink-muted">No dates available yet</span>
-            ) : (
+            <span className={`flex-1 text-[14px] font-semibold ${date ? 'text-ink' : 'text-ink-muted'}`}>
+              {noAvailability ? 'No dates available yet' : dateText}
+            </span>
+            <IconChevron width={16} height={16} className="shrink-0 text-ink-muted" />
+            <input
+              type="date"
+              value={date}
+              min={minDate || undefined}
+              max={maxDate || undefined}
+              disabled={noAvailability}
+              onChange={(e) => pickDate(e.target.value)}
+              aria-label="Select a date"
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-default"
+            />
+          </label>
+
+          {date && daySlots.length === 0 && !noAvailability && (
+            <p className="text-[13px] font-medium text-coral">
+              Not running on that date — please choose another.
+            </p>
+          )}
+
+          {/* Option (only when the day has more than one) */}
+          {date && daySlots.length > 1 && (
+            <label className="flex items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-3">
+              <IconUsers width={18} height={18} className="shrink-0 text-teal" />
               <select
-                value={occurrenceId}
-                onChange={(e) => selectSlot(e.target.value)}
-                aria-label="Choose a date"
+                value={optionId}
+                onChange={(e) => pickOption(e.target.value)}
+                aria-label="Choose an option"
                 className="flex-1 cursor-pointer bg-transparent text-[14px] font-semibold text-ink outline-none"
               >
-                <option value="">Select a date</option>
-                {slots.map((s) => (
-                  <option key={s.occurrenceId} value={s.occurrenceId} disabled={s.seatsLeft <= 0}>
-                    {fmtSlot(s)}
+                {daySlots.map((s) => (
+                  <option key={s.activityOptionId} value={s.activityOptionId}>
+                    {s.optionName} · {s.seatsLeft} left
                   </option>
                 ))}
               </select>
-            )}
-            <IconChevron width={16} height={16} className="shrink-0 text-ink-muted" />
-          </div>
+            </label>
+          )}
 
           {/* Quantities per price tier */}
           {slot &&
             tiers.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-2.5"
-              >
+              <div key={t.id} className="flex items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-2.5">
                 <IconUsers width={18} height={18} className="shrink-0 text-teal" />
                 <span className="flex-1 text-[14px] font-semibold text-ink">
                   {t.label} <span className="text-ink-muted">{eur(t.amountEur)}</span>
@@ -224,7 +278,10 @@ export function BookingWidget({
                     type="button"
                     aria-label={`More ${t.label}`}
                     onClick={() => setQty(t.label, (party[t.label] ?? 0) + 1)}
-                    disabled={t.maxGuests != null && (party[t.label] ?? 0) >= t.maxGuests}
+                    disabled={
+                      (t.maxGuests != null && (party[t.label] ?? 0) >= t.maxGuests) ||
+                      (slot != null && guests >= slot.seatsLeft)
+                    }
                     className="grid h-8 w-8 place-items-center rounded-lg border border-ink/15 text-ink hover:border-teal hover:text-teal disabled:opacity-40"
                   >
                     <IconPlus width={15} height={15} />
