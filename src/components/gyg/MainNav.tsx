@@ -34,25 +34,21 @@ const RENT_LINKS = [
 function NavLabel({ label, light, hasMenu }: { label: string; light: boolean; hasMenu?: boolean }) {
   return (
     <span className="relative inline-flex items-center gap-1">
-      <span
-        className={`text-sm font-bold transition-colors ${
-          light ? 'text-white group-hover:text-teal-bright' : 'text-ink group-hover:text-teal'
-        }`}
-      >
-        {label}
-      </span>
+      <span className={`text-sm font-bold ${light ? 'text-white' : 'text-ink'}`}>{label}</span>
       {hasMenu && (
         <IconChevron
           width={14}
           height={14}
           className={`transition-transform duration-200 group-hover:rotate-180 ${
-            light ? 'text-white/70 group-hover:text-teal-bright' : 'text-ink-muted group-hover:text-teal'
+            light ? 'text-white/70' : 'text-ink-muted'
           }`}
         />
       )}
       <span
         aria-hidden
-        className="absolute -bottom-1 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-coral transition-[width] duration-300 ease-out group-hover:w-full group-focus-within:w-full"
+        className={`absolute -bottom-1 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full transition-[width] duration-300 ease-out group-hover:w-full group-focus-within:w-full ${
+          light ? 'bg-white' : 'bg-teal'
+        }`}
       />
     </span>
   );

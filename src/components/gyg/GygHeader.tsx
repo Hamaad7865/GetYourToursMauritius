@@ -20,17 +20,20 @@ import {
 /** Shared icon-over-label styling for the navbar actions. The `group relative` lets each
  *  action carry the centre-out coral underline (see <Underline/>). */
 function navItemClass(light: boolean, extra = ''): string {
-  return `group relative flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-semibold transition-colors ${
-    light ? 'text-white hover:text-teal-bright' : 'text-ink hover:text-teal'
+  return `group relative flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-semibold ${
+    light ? 'text-white' : 'text-ink'
   } ${extra}`;
 }
 
-/** Coral underline that grows from the centre outward on hover — matches the main nav. */
-function Underline() {
+/** Underline that grows from the centre outward on hover. White over the photo hero,
+ *  teal on the solid bar (a white line would be invisible there). */
+function Underline({ light = false }: { light?: boolean }) {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute -bottom-0.5 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-coral transition-[width] duration-300 ease-out group-hover:w-full"
+      className={`pointer-events-none absolute -bottom-0.5 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full transition-[width] duration-300 ease-out group-hover:w-full ${
+        light ? 'bg-white' : 'bg-teal'
+      }`}
     />
   );
 }
@@ -69,7 +72,7 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
       >
         <IconUser width={20} height={20} />
         <span className="hidden lg:block">Profile</span>
-        <Underline />
+        <Underline light={overHero} />
       </button>
 
       {open && (
@@ -137,7 +140,7 @@ function PrefsButton({ overHero }: { overHero: boolean }) {
     <button type="button" onClick={() => openPrefs('language')} className={navItemClass(overHero)} aria-label="Language and currency">
       <IconGlobe width={20} height={20} />
       <span className="hidden lg:block">{language.toUpperCase()}/EUR €</span>
-      <Underline />
+      <Underline light={overHero} />
     </button>
   );
 }
@@ -159,7 +162,7 @@ function HeaderAction({
     <Link href={href} className={navItemClass(light, className)}>
       {icon}
       <span className="hidden lg:block">{label}</span>
-      <Underline />
+      <Underline light={light} />
     </Link>
   );
 }
