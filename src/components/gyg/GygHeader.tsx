@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/site/Logo';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { CATEGORIES } from '@/lib/seo/site';
 import {
   IconBookings,
@@ -10,8 +11,107 @@ import {
   IconChevron,
   IconGlobe,
   IconHeart,
+  IconLogOut,
   IconSearch,
+  IconUser,
 } from '@/components/ui/icons';
+
+/** Signed-out: sign in / sign up buttons. Signed-in: an avatar with an account dropdown. */
+function AuthControls({ overHero }: { overHero: boolean }) {
+  const { user, profile, loading, openAuth, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener('mousedown', onClick);
+    return () => window.removeEventListener('mousedown', onClick);
+  }, [open]);
+
+  if (loading) {
+    return <div className="ml-1 h-9 w-9 animate-pulse rounded-full bg-ink/10" />;
+  }
+
+  if (!user) {
+    return (
+      <div className="ml-1 flex items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => openAuth('signin')}
+          className={`hidden rounded-full px-3 py-2 text-[13px] font-bold sm:block ${
+            overHero ? 'text-white hover:text-white/80' : 'text-ink hover:text-teal'
+          }`}
+        >
+          Sign in
+        </button>
+        <button
+          type="button"
+          onClick={() => openAuth('signup')}
+          className={`rounded-full px-4 py-2 text-[13px] font-bold ${
+            overHero ? 'bg-white text-teal hover:bg-white/90' : 'bg-teal text-white hover:bg-teal-dark'
+          }`}
+        >
+          Sign up
+        </button>
+      </div>
+    );
+  }
+
+  const initial = (profile?.fullName ?? user.email ?? '?').trim().charAt(0).toUpperCase();
+
+  return (
+    <div ref={ref} className="relative ml-1">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Account menu"
+        aria-expanded={open}
+        className={`grid h-9 w-9 place-items-center rounded-full text-sm font-bold ${
+          overHero ? 'bg-white text-teal' : 'bg-teal text-white'
+        }`}
+      >
+        {initial}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-ink/10 bg-white p-2 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+          <div className="px-3 py-2">
+            <p className="truncate text-sm font-bold text-ink">{profile?.fullName ?? 'Traveller'}</p>
+            <p className="truncate text-[12px] text-ink-muted">{user.email}</p>
+          </div>
+          <div className="my-1 h-px bg-ink/10" />
+          <Link
+            href="/account"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
+          >
+            <IconUser width={18} height={18} /> My profile
+          </Link>
+          <Link
+            href="/account/bookings"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
+          >
+            <IconBookings width={18} height={18} /> My bookings
+          </Link>
+          <div className="my-1 h-px bg-ink/10" />
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false);
+              void signOut();
+            }}
+            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-coral"
+          >
+            <IconLogOut width={18} height={18} /> Log out
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Compact search field that docks into the navbar on scroll. */
 function DockedSearch({ shown }: { shown: boolean }) {
@@ -115,6 +215,7 @@ export function GygHeader({
             />
             <HeaderAction
               label="Bookings"
+              href="/account/bookings"
               light={overHero}
               className="hidden lg:flex"
               icon={<IconBookings width={20} height={20} />}
@@ -127,14 +228,7 @@ export function GygHeader({
             >
               <IconGlobe width={18} height={18} /> EN/€
             </button>
-            <Link
-              href="/account"
-              className={`ml-1 rounded-full px-4 py-2 text-[13px] font-bold ${
-                overHero ? 'bg-white text-teal hover:bg-white/90' : 'bg-teal text-white hover:bg-teal-dark'
-              }`}
-            >
-              Sign up
-            </Link>
+            <AuthControls overHero={overHero} />
           </nav>
         </div>
       </div>
