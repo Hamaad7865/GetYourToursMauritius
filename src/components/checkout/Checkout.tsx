@@ -1,0 +1,280 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { Logo } from '@/components/site/Logo';
+import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
+
+const STEPS = ['Transport', 'Contact', 'Payment'];
+
+function Spinner() {
+  return <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />;
+}
+
+/**
+ * GetYourGuide-style 3-step checkout: (1) confirm transport/pickup, (2) contact — sign in
+ * or create an account if needed, (3) payment. The selection arrives via query params from
+ * the booking widget; the booking + payment are created at the payment step (once signed in).
+ */
+export function Checkout() {
+  const params = useSearchParams();
+  const { user, profile, session, openAuth } = useAuth();
+
+  const occ = params.get('occ') ?? '';
+  const label = params.get('label') ?? '';
+  const qty = Math.max(1, Number(params.get('qty') ?? '1'));
+  const slug = params.get('slug') ?? '';
+  const title = params.get('title') ?? 'Your booking';
+  const lang = params.get('lang') ?? 'English';
+  const total = params.get('total') ?? '';
+  const when = params.get('when') ?? '';
+  const guests = params.get('guests') ?? '';
+  const unit = params.get('unit') ?? '';
+
+  const [step, setStep] = useState(1);
+  const [pickup, setPickup] = useState<'known' | 'unknown' | null>(null);
+  const [pickupLoc, setPickupLoc] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [secs, setSecs] = useState(30 * 60);
+
+  useEffect(() => {
+    const t = window.setInterval(() => setSecs((s) => Math.max(0, s - 1)), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  // Signing in on the Contact step advances to Payment.
+  useEffect(() => {
+    if (step === 2 && user) setStep(3);
+  }, [step, user]);
+
+  if (!occ || !slug) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-sm text-ink-muted">Your selection expired — please choose your date again.</p>
+        <Link href={slug ? `/activities/${slug}` : '/activities'} className="mt-3 inline-block text-sm font-bold text-teal">
+          Back to the activity
+        </Link>
+      </div>
+    );
+  }
+
+  const mm = String(Math.floor(secs / 60)).padStart(2, '0');
+  const ss = String(secs % 60).padStart(2, '0');
+
+  function continueFromTransport() {
+    setBusy(true);
+    setError(null);
+    window.setTimeout(() => {
+      setBusy(false);
+      setStep(user ? 3 : 2);
+    }, 700);
+  }
+
+  async function pay() {
+    if (!session) return openAuth('signin');
+    setBusy(true);
+    setError(null);
+    try {
+      const headers = { 'content-type': 'application/json', authorization: `Bearer ${session.access_token}` };
+      const bookingRes = await fetch('/api/v1/bookings', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          occurrenceId: occ,
+          party: { [label]: qty },
+          customer: {
+            name: profile?.fullName || user?.email || 'Guest',
+            email: user?.email,
+            phone: profile?.phone || null,
+          },
+          source: 'web',
+        }),
+      }).then((r) => r.json());
+      if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
+
+      const payRes = await fetch('/api/v1/payments', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ bookingRef: bookingRes.data.ref }),
+      }).then((r) => r.json());
+      if (!payRes.ok) throw new Error(payRes.error?.message ?? 'Could not start payment.');
+      window.location.href = payRes.data.redirectUrl as string;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-white">
+      <header className="border-b border-ink/10">
+        <div className="mx-auto flex max-w-5xl items-center gap-6 px-6 py-3">
+          <Logo tone="light" />
+          <ol className="ml-auto flex items-center gap-3 text-[13px] font-bold sm:gap-7">
+            {STEPS.map((s, i) => {
+              const n = i + 1;
+              const done = step > n;
+              const active = step === n;
+              return (
+                <li key={s} className="flex items-center gap-2">
+                  <span
+                    className={`grid h-6 w-6 place-items-center rounded-full text-[12px] ${
+                      done ? 'bg-teal text-white' : active ? 'bg-ink text-white' : 'bg-ink/10 text-ink-muted'
+                    }`}
+                  >
+                    {done ? '✓' : n}
+                  </span>
+                  <span className={`hidden sm:inline ${active || done ? 'text-ink' : 'text-ink-muted'}`}>{s}</span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </header>
+
+      <main className="mx-auto grid max-w-5xl gap-8 px-6 py-8 lg:grid-cols-[1fr_340px]">
+        <div>
+          <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-semibold text-coral">
+            <IconClock width={15} height={15} /> We&apos;ll hold your spot for {mm}:{ss} minutes.
+          </div>
+
+          {step === 1 && (
+            <section>
+              <h1 className="font-display text-2xl font-semibold text-ink">
+                Do you know where you want to be picked up?
+              </h1>
+              <div className="mt-5 flex flex-col gap-2">
+                <PickRadio checked={pickup === 'known'} onClick={() => setPickup('known')} title="Yes, I can add it now">
+                  {pickup === 'known' && (
+                    <input
+                      value={pickupLoc}
+                      onChange={(e) => setPickupLoc(e.target.value)}
+                      placeholder="Hotel name or address"
+                      className="mt-2 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm outline-none focus:border-teal"
+                    />
+                  )}
+                </PickRadio>
+                <PickRadio checked={pickup === 'unknown'} onClick={() => setPickup('unknown')} title="I don't know yet">
+                  {pickup === 'unknown' && (
+                    <span className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
+                      Add your pickup location 24 hours before your activity (ideally sooner) so your provider can
+                      accommodate you.
+                    </span>
+                  )}
+                </PickRadio>
+              </div>
+              <button
+                type="button"
+                onClick={continueFromTransport}
+                disabled={busy}
+                className="mt-6 flex items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+              >
+                {busy ? <Spinner /> : 'Next: Personal details'}
+              </button>
+            </section>
+          )}
+
+          {step === 2 && (
+            <section>
+              <h1 className="font-display text-2xl font-semibold text-ink">
+                Where should we send your booking confirmation?
+              </h1>
+              <p className="mt-2 text-sm text-ink-muted">
+                Sign in or create an account — by email, Google, Apple or Facebook — to continue.
+              </p>
+              <button
+                type="button"
+                onClick={() => openAuth('signin')}
+                className="mt-5 rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark"
+              >
+                Sign in / Create account
+              </button>
+            </section>
+          )}
+
+          {step === 3 && (
+            <section>
+              <h1 className="font-display text-2xl font-semibold text-ink">Review &amp; pay</h1>
+              <p className="mt-2 text-sm text-ink-muted">Signed in as {user?.email}.</p>
+              {error && (
+                <p role="alert" className="mt-3 text-[13px] font-medium text-coral">
+                  {error}
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={pay}
+                disabled={busy}
+                className="mt-5 flex items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+              >
+                {busy ? <Spinner /> : total ? `Pay €${total}` : 'Continue to payment'}
+              </button>
+              <p className="mt-2 text-[12px] text-ink-muted">
+                You&apos;ll confirm the payment on the next screen.
+              </p>
+            </section>
+          )}
+        </div>
+
+        <aside className="h-fit rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.45)]">
+          <h2 className="font-display text-lg font-semibold text-ink">Order summary</h2>
+          <p className="mt-3 font-bold text-ink">{title}</p>
+          <dl className="mt-3 flex flex-col gap-2 text-[13px] text-ink/80">
+            <div className="flex items-center gap-2">
+              <IconCalendar width={15} height={15} className="text-teal" /> {when || '—'}
+            </div>
+            <div className="flex items-center gap-2">
+              <IconUsers width={15} height={15} className="text-teal" /> {guests} {Number(guests) === 1 ? 'guest' : 'guests'}
+              {unit ? ` · ${unit}` : ''}
+            </div>
+            <div className="flex items-center gap-2">
+              <IconGlobe width={15} height={15} className="text-teal" /> {lang}
+            </div>
+          </dl>
+          <div className="mt-4 flex items-center justify-between border-t border-ink/10 pt-3">
+            <span className="font-bold text-ink">Total</span>
+            <span className="text-lg font-extrabold text-ink">{total ? `€${total}` : '—'}</span>
+          </div>
+          <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
+            <IconCheck width={15} height={15} className="text-teal" /> Free cancellation up to 24 hours before
+          </div>
+        </aside>
+      </main>
+    </div>
+  );
+}
+
+function PickRadio({
+  checked,
+  onClick,
+  title,
+  children,
+}: {
+  checked: boolean;
+  onClick: () => void;
+  title: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onClick()}
+      className={`cursor-pointer rounded-xl border px-4 py-3 ${
+        checked ? 'border-teal bg-teal/5' : 'border-ink/15 hover:border-ink/30'
+      }`}
+    >
+      <span className="flex items-center gap-2.5 text-sm font-semibold text-ink">
+        <span className={`grid h-5 w-5 place-items-center rounded-full border-2 ${checked ? 'border-teal' : 'border-ink/30'}`}>
+          {checked && <span className="h-2.5 w-2.5 rounded-full bg-teal" />}
+        </span>
+        {title}
+      </span>
+      {children}
+    </div>
+  );
+}

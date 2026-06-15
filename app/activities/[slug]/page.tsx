@@ -176,6 +176,8 @@ export default async function ActivityDetailPage({
                 type={activity.type}
                 fromPriceEur={activity.fromPriceEur}
                 options={activity.options}
+                languages={activity.languages}
+                title={activity.title}
               />
             </aside>
 
