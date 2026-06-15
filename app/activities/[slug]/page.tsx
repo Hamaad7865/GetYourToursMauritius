@@ -107,7 +107,7 @@ export default async function ActivityDetailPage({
       <JsonLd data={productJsonLd(activity)} />
       <JsonLd data={breadcrumbJsonLd(activity)} />
       <RecordView slug={activity.slug} />
-      <GygHeader />
+      <GygHeader sticky={false} showSearch={false} />
 
       <main className="bg-cream">
         <div className="mx-auto max-w-shell px-6 pb-16 pt-5">
@@ -161,11 +161,22 @@ export default async function ActivityDetailPage({
             </div>
           </div>
 
-          <Gallery images={activity.images} title={activity.title} />
+          {activity.images.length > 0 && (
+            <Gallery images={activity.images} title={activity.title} />
+          )}
 
-          {/* Content + sticky booking */}
+          {/* Reservation on top (mobile), top-right column (desktop), then content */}
           <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start lg:gap-x-10">
-            <div className="min-w-0">
+            <aside className="mb-8 lg:col-start-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
+              <BookingCard
+                type={activity.type}
+                title={activity.title}
+                fromPriceEur={activity.fromPriceEur}
+                options={activity.options}
+                languages={activity.languages}
+              />
+            </aside>
+            <div className="min-w-0 lg:col-start-1 lg:row-start-1">
               {activity.summary && (
                 <p className="m-0 mb-5 text-[15px] leading-relaxed text-ink/80">{activity.summary}</p>
               )}
@@ -268,16 +279,6 @@ export default async function ActivityDetailPage({
                 <Faq items={faqs} />
               </section>
             </div>
-
-            <aside className="mt-7 lg:mt-0 lg:sticky lg:top-[92px]">
-              <BookingCard
-                type={activity.type}
-                title={activity.title}
-                fromPriceEur={activity.fromPriceEur}
-                options={activity.options}
-                languages={activity.languages}
-              />
-            </aside>
           </div>
 
           {related.length > 0 && (

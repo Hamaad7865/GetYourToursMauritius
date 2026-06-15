@@ -61,7 +61,17 @@ function HeaderAction({
  * the hero and only docks into the navbar after you scroll past it; elsewhere the
  * docked search is always shown.
  */
-export function GygHeader({ heroMode = false }: { heroMode?: boolean }) {
+export function GygHeader({
+  heroMode = false,
+  sticky = true,
+  showSearch = true,
+}: {
+  heroMode?: boolean;
+  /** Stick to the top on scroll (home/listing). Detail pages pass false. */
+  sticky?: boolean;
+  /** Show the docked search field in the navbar (non-hero pages). */
+  showSearch?: boolean;
+}) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -72,10 +82,10 @@ export function GygHeader({ heroMode = false }: { heroMode?: boolean }) {
     return () => window.removeEventListener('scroll', onScroll);
   }, [heroMode]);
 
-  const searchShown = !heroMode || scrolled;
+  const searchShown = heroMode ? scrolled : showSearch;
 
   return (
-    <header className="sticky top-0 z-50 bg-white/97 backdrop-blur">
+    <header className={`${sticky ? 'sticky top-0' : 'relative'} z-50 bg-white/97 backdrop-blur`}>
       <div className="border-b border-ink/[0.08]">
         <div className="mx-auto flex max-w-shell items-center gap-4 px-6 py-2.5">
           <Logo />
