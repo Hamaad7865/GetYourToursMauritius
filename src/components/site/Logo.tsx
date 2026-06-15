@@ -2,8 +2,9 @@ import Link from 'next/link';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
-/** GetYourTours · Mauritius horizontal logo. The source art is white (for the photo hero +
- *  dark footer); on light surfaces a `brightness-0` filter renders it dark. */
+/** GetYourTours · Mauritius horizontal logo (vector, teal-blue gradient). Shown in colour on
+ *  light surfaces; over dark backgrounds (photo hero, footer) it's reversed to white so it
+ *  always reads. */
 export function Logo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
   return (
     <Link
@@ -12,9 +13,9 @@ export function Logo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
       aria-label="GetYourTours Mauritius — home"
     >
       <img
-        src="/logo.png"
+        src="/logo.svg"
         alt="GetYourTours Mauritius"
-        className={`h-9 w-auto object-contain sm:h-11 ${tone === 'light' ? 'brightness-0' : ''}`}
+        className={`h-10 w-auto sm:h-12 ${tone === 'dark' ? 'brightness-0 invert' : ''}`}
       />
     </Link>
   );

@@ -6,7 +6,15 @@ import type { TourSummary } from '@/lib/validation/tours';
 import { useCategories } from '@/lib/categories/useCategories';
 import { useHomeShowcase, type ShowcaseView } from './HomeShowcaseContext';
 import { PlaceCard } from './PlaceCard';
-import { IconPin } from '@/components/ui/icons';
+
+/* Tonal brand gradients for image-less category cards — cycled so the grid reads as an
+ * intentional palette, not a row of identical placeholders. */
+const TILE_GRADIENTS = [
+  'linear-gradient(155deg,#16b6bc 0%,#0E8C92 52%,#0a4f55 100%)',
+  'linear-gradient(155deg,#1aa6cf 0%,#0e7c92 52%,#0a4a63 100%)',
+  'linear-gradient(155deg,#13a0a6 0%,#0b6c80 52%,#0a3f55 100%)',
+  'linear-gradient(155deg,#2bbfa6 0%,#0E8C92 52%,#0a5560 100%)',
+];
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -81,7 +89,7 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
         className="mt-9"
       >
         {view === 'categories' ? (
-          <div className="flex flex-wrap justify-center gap-x-5 gap-y-7">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {categories.map((category, i) => {
               const img = category.imageUrl ?? imageFor(category.name);
               return (
@@ -89,25 +97,29 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
                   key={category.slug}
                   href={`/activities?category=${encodeURIComponent(category.name)}`}
                   style={{ animationDelay: `${i * 45}ms` }}
-                  className="group animate-fade-up w-[150px] sm:w-[178px]"
+                  className="group animate-fade-up relative block aspect-[4/5] overflow-hidden rounded-2xl shadow-[0_10px_26px_-12px_rgba(10,46,54,0.5)] transition-shadow duration-300 hover:shadow-[0_22px_44px_-16px_rgba(10,46,54,0.6)]"
                 >
-                  <div className="relative aspect-square overflow-hidden rounded-2xl shadow-[0_2px_10px_-4px_rgba(10,46,54,0.3)] transition-shadow duration-300 group-hover:shadow-[0_16px_34px_-14px_rgba(10,46,54,0.45)]">
-                    {img ? (
-                      <img
-                        src={img}
-                        alt={category.name}
-                        loading="lazy"
-                        className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-110"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(152deg,#13a0a6_0%,#0E8C92_46%,#0B5C63_100%)] transition-transform duration-500 ease-out group-hover:scale-110">
-                        <IconPin width={30} height={30} className="text-white/45" />
-                      </div>
-                    )}
-                  </div>
-                  <p className="mt-2.5 text-center text-[15px] font-bold text-ink transition-colors group-hover:text-teal">
+                  {img ? (
+                    <img
+                      src={img}
+                      alt=""
+                      loading="lazy"
+                      className="h-full w-full object-cover transition-transform duration-[650ms] ease-out group-hover:scale-[1.08]"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      style={{ backgroundImage: TILE_GRADIENTS[i % TILE_GRADIENTS.length] }}
+                      className="block h-full w-full transition-transform duration-[650ms] ease-out group-hover:scale-[1.08]"
+                    />
+                  )}
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/15 to-transparent"
+                  />
+                  <span className="absolute inset-x-3.5 bottom-3 text-[15px] font-extrabold leading-tight text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]">
                     {category.name}
-                  </p>
+                  </span>
                 </Link>
               );
             })}
