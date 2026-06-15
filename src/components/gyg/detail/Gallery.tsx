@@ -77,7 +77,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
 
   return (
     <div className="mb-6">
-      <div className="relative grid h-[240px] gap-2 sm:h-[360px] sm:grid-cols-[1.6fr_1fr] lg:h-[calc(100vh-248px)] lg:max-h-[600px] lg:min-h-[420px]">
+      <div className="relative grid h-[240px] gap-2 sm:h-[360px] sm:grid-cols-[1.6fr_1fr]">
         <Tile image={grid[0]!} title={title} onOpen={() => openAt(0)} rounded="rounded-2xl" />
         {grid.length > 1 && (
           <div className="hidden grid-cols-2 grid-rows-2 gap-2 sm:grid">
