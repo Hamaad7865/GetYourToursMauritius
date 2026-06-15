@@ -2,9 +2,10 @@ import Link from 'next/link';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
-/** GetYourTours · Mauritius pin mark. A transparent PNG, so it sits cleanly on any
- *  background — no wordmark image (which carries a white box) and no tile behind it. */
-export function Logo({ tone: _tone = 'light' }: { tone?: 'light' | 'dark' }) {
+/** GetYourTours · Mauritius logo lockup (transparent PNG). Sized by height with auto width so
+ *  the full lockup is legible. Over dark backgrounds (photo hero, footer) it's shown as a clean
+ *  white reverse via a filter so it stays visible. */
+export function Logo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
   return (
     <Link
       href="/"
@@ -14,7 +15,7 @@ export function Logo({ tone: _tone = 'light' }: { tone?: 'light' | 'dark' }) {
       <img
         src="/logo-mark.png"
         alt="GetYourTours Mauritius"
-        className="h-10 w-10 shrink-0 object-contain"
+        className={`h-16 w-auto object-contain sm:h-[68px] ${tone === 'dark' ? 'brightness-0 invert' : ''}`}
       />
     </Link>
   );

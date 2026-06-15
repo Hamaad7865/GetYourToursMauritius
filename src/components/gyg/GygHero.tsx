@@ -18,6 +18,11 @@ export function GygHero({ children }: { children?: ReactNode }) {
         aria-hidden
         className="absolute inset-0 bg-gradient-to-b from-ink/45 via-ink/25 to-ink/55"
       />
+      {/* Extra darkening across the header zone so the white logo + nav read over a bright sky. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-ink/60 to-transparent"
+      />
 
       {/* relative z-10 lifts the content (and its search dropdowns) above the sections below */}
       <div className="relative z-10 mx-auto w-full max-w-shell px-6 pb-6 pt-28 text-center sm:pt-32">
