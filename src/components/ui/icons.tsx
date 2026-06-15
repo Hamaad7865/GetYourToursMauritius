@@ -201,3 +201,10 @@ export const IconMenu = (p: SVGProps<SVGSVGElement>) => (
     <path d="M3 6h18M3 12h18M3 18h18" />
   </Svg>
 );
+
+export const IconTrophy = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z" />
+    <path d="M7 6H5a2 2 0 0 0 0 4h2M17 6h2a2 2 0 0 1 0 4h-2" />
+  </Svg>
+);

@@ -191,6 +191,10 @@ export default async function ActivityDetailPage({
                 languages={activity.languages}
                 pickupAvailable={activity.pickupAvailable}
                 type={activity.type}
+                cancellationPolicy={activity.cancellationPolicy}
+                ratingAvg={activity.ratingAvg}
+                ratingCount={activity.ratingCount}
+                startWindow={activity.extra.startWindow}
               />
 
               {(activity.extra.availability || activity.extra.startWindow) && (

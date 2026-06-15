@@ -3,58 +3,119 @@ import { RouteMap } from './RouteMap';
 import { ItineraryTimeline } from './ItineraryTimeline';
 import { durationLabel } from '@/lib/catalogue/detail';
 import {
+  IconBolt,
   IconCalendar,
   IconCheck,
   IconClock,
   IconGlobe,
   IconPin,
+  IconTrophy,
   IconUsers,
+  IconWallet,
   IconX,
 } from '@/components/ui/icons';
 
-/** Row of at-a-glance facts under the title, GetYourGuide style. */
+/** Two-column "at a glance" facts grid + a "loved by travellers" banner, GetYourGuide style. */
 export function QuickFacts({
   durationMinutes,
   languages,
   pickupAvailable,
   type,
+  cancellationPolicy,
+  ratingAvg,
+  ratingCount,
+  startWindow,
 }: {
   durationMinutes: number | null;
   languages: string[];
   pickupAvailable: boolean;
   type: 'activity' | 'transport';
+  cancellationPolicy: string | null;
+  ratingAvg: number | null;
+  ratingCount: number;
+  startWindow?: string | null;
 }) {
-  const facts: Array<{ icon: React.ReactNode; label: string; sub: string }> = [];
   const duration = durationLabel(durationMinutes);
-  if (duration) facts.push({ icon: <IconClock width={22} height={22} />, label: 'Duration', sub: duration });
-  if (languages.length > 0)
+  const facts: Array<{ icon: React.ReactNode; title: string; sub: string }> = [];
+
+  if (cancellationPolicy) {
+    facts.push({
+      icon: <IconCalendar width={22} height={22} />,
+      title: 'Free cancellation',
+      sub: cancellationPolicy,
+    });
+  }
+  facts.push({
+    icon: <IconWallet width={22} height={22} />,
+    title: 'Reserve now & pay later',
+    sub: 'Book your spot today and settle up closer to the date.',
+  });
+  if (duration) {
+    facts.push({
+      icon: <IconClock width={22} height={22} />,
+      title: `Duration ${duration}`,
+      sub: startWindow ?? 'Check availability for start times',
+    });
+  }
+  if (languages.length > 0) {
     facts.push({
       icon: <IconGlobe width={22} height={22} />,
-      label: 'Live tour guide',
+      title: 'Live tour guide',
       sub: languages.join(', '),
     });
+  }
   facts.push(
     pickupAvailable
-      ? { icon: <IconPin width={22} height={22} />, label: 'Pickup included', sub: 'Hotel / port pickup' }
-      : { icon: <IconPin width={22} height={22} />, label: 'Meeting point', sub: 'On your voucher' },
+      ? {
+          icon: <IconPin width={22} height={22} />,
+          title: 'Pickup included',
+          sub: 'Hotel or port pickup & drop-off',
+        }
+      : {
+          icon: <IconPin width={22} height={22} />,
+          title: 'Meeting point',
+          sub: 'Shared on your voucher',
+        },
   );
   facts.push({
     icon: <IconUsers width={22} height={22} />,
-    label: type === 'transport' ? 'Private transfer' : 'Private group',
-    sub: 'Only your party',
+    title: type === 'transport' ? 'Private transfer' : 'Private group',
+    sub: 'Only your party — no strangers',
+  });
+  facts.push({
+    icon: <IconBolt width={22} height={22} />,
+    title: 'Instant confirmation',
+    sub: 'E-voucher sent straight to your inbox',
   });
 
+  const loved = ratingAvg != null && ratingAvg >= 4.5 && ratingCount > 0;
+
   return (
-    <div className="grid grid-cols-2 gap-4 border-y border-ink/10 py-5 sm:grid-cols-4">
-      {facts.map((f) => (
-        <div key={f.label} className="flex items-start gap-3">
-          <span className="mt-0.5 text-teal">{f.icon}</span>
-          <span className="min-w-0">
-            <span className="block text-[14px] font-bold text-ink">{f.label}</span>
-            <span className="block text-[12.5px] text-ink-muted">{f.sub}</span>
+    <div className="border-t border-ink/10 pt-6">
+      {loved && (
+        <div className="mb-6 flex items-center gap-3.5 rounded-2xl border border-ink/10 bg-white px-4 py-3.5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-coral/10 text-coral">
+            <IconTrophy width={22} height={22} />
           </span>
+          <p className="m-0 text-[14px] leading-snug text-ink/80">
+            <b className="text-ink">Loved by travellers</b> — rated {ratingAvg.toFixed(1)}&#9733; by{' '}
+            {ratingCount} guests
+          </p>
         </div>
-      ))}
+      )}
+      <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+        {facts.map((f) => (
+          <div key={f.title} className="flex items-start gap-3.5">
+            <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-ink/[0.05] text-ink">
+              {f.icon}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[15px] font-bold leading-tight text-ink">{f.title}</span>
+              <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">{f.sub}</span>
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
