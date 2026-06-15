@@ -34,12 +34,18 @@ const RENT_LINKS = [
 function NavLabel({ label, light, hasMenu }: { label: string; light: boolean; hasMenu?: boolean }) {
   return (
     <span className="relative inline-flex items-center gap-1">
-      <span className={`text-sm font-bold ${light ? 'text-white' : 'text-ink'}`}>{label}</span>
+      <span
+        className={`text-sm font-bold transition-colors group-hover:text-coral ${
+          light ? 'text-white' : 'text-ink'
+        }`}
+      >
+        {label}
+      </span>
       {hasMenu && (
         <IconChevron
           width={14}
           height={14}
-          className={`transition-transform duration-200 group-hover:rotate-180 ${
+          className={`transition-transform duration-200 group-hover:rotate-180 group-hover:text-coral ${
             light ? 'text-white/70' : 'text-ink-muted'
           }`}
         />
