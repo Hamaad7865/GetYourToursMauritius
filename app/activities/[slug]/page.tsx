@@ -110,7 +110,7 @@ export default async function ActivityDetailPage({
       <GygHeader sticky={false} />
 
       <main className="bg-white">
-        <div className="mx-auto max-w-shell px-6 pb-16 pt-5">
+        <div className="mx-auto max-w-shell px-6 pb-16 pt-3">
           {/* Breadcrumb */}
           <nav
             aria-label="Breadcrumb"
@@ -128,12 +128,12 @@ export default async function ActivityDetailPage({
           </nav>
 
           {/* Title row */}
-          <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
+          <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="m-0 max-w-[24ch] text-[clamp(26px,3.4vw,40px)] font-extrabold leading-[1.08] tracking-tight text-ink">
+              <h1 className="m-0 text-[clamp(20px,2.3vw,30px)] font-extrabold leading-[1.15] tracking-tight text-ink">
                 {activity.title}
               </h1>
-              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
                 {activity.ratingCount > 0 ? (
                   <span className="flex items-center gap-1.5 text-ink">
                     <IconStar width={16} height={16} className="text-gold-light" />

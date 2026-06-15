@@ -1,5 +1,6 @@
 import type { ActivityExtra, ItineraryStop } from '@/lib/validation/tours';
 import { RouteMap } from './RouteMap';
+import { ItineraryTimeline } from './ItineraryTimeline';
 import { durationLabel } from '@/lib/catalogue/detail';
 import {
   IconCalendar,
@@ -136,37 +137,7 @@ export function Itinerary({
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
-      <ol className="relative m-0 list-none p-0">
-        {nodes.map((stop, i) => (
-          <li key={`${stop.title}-${i}`} className="relative flex gap-4 pb-6 last:pb-0">
-            {i < nodes.length - 1 && (
-              <span className="absolute left-[7px] top-6 h-full w-0.5 bg-teal/25" aria-hidden />
-            )}
-            <span
-              className={`z-[1] mt-1 grid h-4 w-4 shrink-0 place-items-center rounded-full border-[3px] ${
-                stop.pickup ? 'border-coral bg-coral' : 'border-teal bg-white'
-              }`}
-              aria-hidden
-            />
-            <div className="min-w-0">
-              <div className="text-[15px] font-bold text-ink">{stop.title}</div>
-              {stop.area && <div className="text-[13px] text-ink-muted">{stop.area}</div>}
-              {'tags' in stop && stop.tags && stop.tags.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {stop.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-teal/8 px-2 py-0.5 text-[11.5px] font-semibold text-teal"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-          </li>
-        ))}
-      </ol>
+      <ItineraryTimeline nodes={nodes} collapseAt={meetingPoint ? 4 : 3} />
       <div>
         {hasCoords ? (
           <RouteMap stops={stops} />
