@@ -142,7 +142,7 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   return (
     <div
       ref={rootRef}
-      className={`relative z-30 text-left ${compact ? 'w-full' : 'mx-auto mt-8 max-w-3xl'}`}
+      className={`relative z-30 text-left ${compact ? 'w-full' : 'mx-auto mt-5 max-w-3xl'}`}
     >
       <div
         className={`flex flex-col bg-white sm:flex-row sm:items-center ${

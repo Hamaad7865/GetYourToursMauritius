@@ -26,10 +26,13 @@ function durationLabel(minutes: number | null): string | null {
 export function PlaceCard({
   activity,
   rail = false,
+  compact = false,
   className = '',
 }: {
   activity: TourSummary;
   rail?: boolean;
+  /** Shorter, narrower card for the hero "Continue planning" rail so it fits above the fold. */
+  compact?: boolean;
   className?: string;
 }) {
   // Prefer the full photo array (for the carousel); degrade to the hero image alone when
@@ -55,10 +58,10 @@ export function PlaceCard({
   return (
     <div
       className={`group relative flex flex-col overflow-hidden rounded-2xl border border-ink/[0.08] bg-white shadow-[0_1px_3px_rgba(10,46,54,0.06)] ${
-        rail ? 'w-[300px] shrink-0' : ''
+        rail ? `${compact ? 'w-[228px]' : 'w-[300px]'} shrink-0` : ''
       } ${className}`}
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
+      <div className={`relative overflow-hidden ${compact ? 'aspect-[16/10]' : 'aspect-[4/3]'}`}>
         {/* Zoom layer: only the image scales on hover — the card and text never move. */}
         {images.length > 0 ? (
           <div className="absolute inset-0 transition-transform duration-500 ease-out group-hover:scale-105">
@@ -135,18 +138,22 @@ export function PlaceCard({
         )}
       </div>
 
-      <div className="flex flex-1 flex-col px-4 pb-4 pt-3">
+      <div className={`flex flex-1 flex-col ${compact ? 'px-3.5 pb-3 pt-2.5' : 'px-4 pb-4 pt-3'}`}>
         {activity.location && (
           <div className="text-[12px] font-bold uppercase tracking-wide text-teal">
             {activity.location}
           </div>
         )}
-        <h3 className="mt-1 line-clamp-2 min-h-[44px] text-[15px] font-bold leading-snug text-ink">
+        <h3
+          className={`mt-1 line-clamp-2 font-bold leading-snug text-ink ${
+            compact ? 'text-[14px]' : 'min-h-[44px] text-[15px]'
+          }`}
+        >
           {activity.title}
         </h3>
-        {meta && <div className="mt-1.5 text-[12.5px] text-ink-muted">{meta}</div>}
+        {meta && !compact && <div className="mt-1.5 text-[12.5px] text-ink-muted">{meta}</div>}
 
-        <div className="mt-auto flex items-end justify-between pt-3">
+        <div className={`mt-auto flex items-end justify-between ${compact ? 'pt-2' : 'pt-3'}`}>
           {activity.ratingCount > 0 ? (
             <span className="flex items-center gap-1 text-[13px] text-ink">
               <IconStar width={14} height={14} className="text-gold-light" />

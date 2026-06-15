@@ -16,11 +16,11 @@ export function GygHero({ children }: { children?: ReactNode }) {
             'radial-gradient(36rem 18rem at 12% 12%, rgba(14,140,146,0.10), transparent), radial-gradient(28rem 16rem at 88% 80%, rgba(247,108,94,0.10), transparent)',
         }}
       />
-      <div className="relative mx-auto max-w-shell px-6 pb-10 pt-32 text-center sm:pt-40">
-        <h1 className="mx-auto max-w-4xl text-[clamp(34px,6vw,68px)] font-extrabold leading-[1.02] tracking-tight text-ink">
+      <div className="relative mx-auto max-w-shell px-6 pb-5 pt-20 text-center sm:pt-24">
+        <h1 className="mx-auto max-w-3xl text-[clamp(28px,4.4vw,46px)] font-extrabold leading-[1.05] tracking-tight text-ink">
           Discover &amp; book things to do
         </h1>
-        <p className="mx-auto mt-4 max-w-xl text-[15px] font-medium text-ink/70 sm:text-base">
+        <p className="mx-auto mt-2.5 max-w-xl text-[14px] font-medium text-ink/70">
           Belle Mare Tours — Mauritius&apos; east coast, booked direct. Catamaran cruises, dolphin
           swims, island days and transfers.
         </p>
@@ -28,7 +28,7 @@ export function GygHero({ children }: { children?: ReactNode }) {
         <SearchBar variant="hero" />
       </div>
 
-      {children && <div className="relative pb-12">{children}</div>}
+      {children && <div className="relative pb-8">{children}</div>}
     </section>
   );
 }
