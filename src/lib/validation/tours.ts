@@ -29,6 +29,10 @@ export const tourSummarySchema = z.object({
   location: z.string().nullable(),
   durationMinutes: z.number().int().nullable(),
   fromPriceEur: z.number().nonnegative().nullable(),
+  // Group size of the cheapest tier: when set, the price is "per group up to N" (e.g. a
+  // private tour for 4); null/absent means per-person pricing. Nullish so summaries from a
+  // DB that predates this field still parse.
+  fromPriceMaxGuests: z.number().int().positive().nullish(),
   ratingAvg: z.number().nullable(),
   ratingCount: z.number().int(),
   heroImage: tourImageSchema.nullable(),

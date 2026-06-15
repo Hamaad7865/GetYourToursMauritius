@@ -198,7 +198,10 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         <ImagesEditor images={v.images} slug={v.slug} onChange={(x) => set('images', x)} />
       </Section>
 
-      <Section title="Options & pricing" hint="Each option (e.g. Shared, Private) has one or more price tiers.">
+      <Section
+        title="Options & pricing"
+        hint="Each option (e.g. Shared, Private) has price tiers: label, € price, and an optional group size. Set the group size (e.g. 4) for “per group up to 4” pricing; leave it blank for per-person."
+      >
         <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
       </Section>
 
@@ -484,8 +487,9 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                       ),
                     })
                   }
-                  placeholder="Max"
-                  aria-label="Max guests"
+                  placeholder="Group"
+                  aria-label="Group size (max guests) — leave blank for per-person pricing"
+                  title="Group size — set e.g. 4 for &quot;per group up to 4&quot;; leave blank for per-person"
                 />
                 <button
                   type="button"

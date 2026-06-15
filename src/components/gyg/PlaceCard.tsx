@@ -49,7 +49,15 @@ export function PlaceCard({
   }
 
   const topRated = activity.ratingAvg != null && activity.ratingAvg >= 4.7;
-  const unit = activity.type === 'transport' ? 'per vehicle' : 'per person';
+  // Price unit follows what staff set: a tier with a group size shows "per group up to N",
+  // otherwise it's per person (or per vehicle for transport).
+  const groupSize = activity.fromPriceMaxGuests;
+  const unit =
+    activity.type === 'transport'
+      ? 'per vehicle'
+      : groupSize && groupSize > 1
+        ? `per group up to ${groupSize}`
+        : 'per person';
   const duration = durationLabel(activity.durationMinutes);
   const meta = [duration, activity.type === 'transport' ? 'Private transfer' : 'Pickup available']
     .filter(Boolean)
