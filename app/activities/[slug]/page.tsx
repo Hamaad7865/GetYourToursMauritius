@@ -12,6 +12,7 @@ import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
 import { QuickFacts, Overview, Itinerary, Includes } from '@/components/gyg/detail/Sections';
+import { LocationMap } from '@/components/maps/LocationMap';
 import { ReviewList } from '@/components/catalogue/ReviewList';
 import { Faq } from '@/components/catalogue/Faq';
 import { SiteFooter } from '@/components/site/SiteFooter';
@@ -259,6 +260,14 @@ export default async function ActivityDetailPage({
                     <p className="m-0 mb-3 text-[14.5px] text-ink/80">
                       <b className="text-ink">Meeting point / pickup:</b> {activity.meetingPoint}
                     </p>
+                  )}
+                  {(activity.location || activity.meetingPoint) && (
+                    <div className="mb-4">
+                      <LocationMap
+                        query={activity.location || activity.meetingPoint || activity.title}
+                        label={activity.meetingPoint || activity.location || undefined}
+                      />
+                    </div>
                   )}
                   {importantInfo.length > 0 && (
                     <SeeMore>

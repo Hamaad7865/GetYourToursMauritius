@@ -17,8 +17,10 @@ import { z } from 'zod';
 const ServerEnvSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url().default('http://localhost:3000'),
 
-  // Optional. Enables the route-with-stops Google Map (Maps Embed API) on activity
-  // detail pages. Without it, a keyless region map is shown instead.
+  // Optional. Enables the interactive Google Maps (Maps JavaScript API + Geocoding +
+  // Places) used for the itinerary route map, activity location pin and checkout pickup
+  // picker. Without it (or if those APIs aren't enabled), a keyless "View on Google Maps"
+  // link is shown instead, so the pages never break.
   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
 
   NEXT_PUBLIC_SUPABASE_URL: z.string().url().optional(),

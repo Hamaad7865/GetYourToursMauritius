@@ -1,6 +1,6 @@
 import type { ActivityExtra, ItineraryStop } from '@/lib/validation/tours';
-import { RouteMap } from './RouteMap';
 import { ItineraryTimeline } from './ItineraryTimeline';
+import { RouteMap } from '@/components/maps/RouteMap';
 import { durationLabel } from '@/lib/catalogue/detail';
 import {
   IconBolt,
@@ -153,33 +153,7 @@ export function Overview({
   );
 }
 
-function placeQuery(s: string): string {
-  return encodeURIComponent(`${s}, Mauritius`);
-}
-
-/** Builds a Google Maps embed URL: the route through every stop when a Maps Embed API
- *  key is configured, otherwise a keyless region map (no key required). */
-function mapEmbedSrc(stops: ItineraryStop[]): string {
-  const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (key && stops.length >= 2) {
-    const origin = placeQuery(stops[0]!.title);
-    const destination = placeQuery(stops[stops.length - 1]!.title);
-    const waypoints = stops
-      .slice(1, -1)
-      .map((s) => placeQuery(s.title))
-      .join('|');
-    return `https://www.google.com/maps/embed/v1/directions?key=${key}&origin=${origin}&destination=${destination}${
-      waypoints ? `&waypoints=${waypoints}` : ''
-    }&mode=driving`;
-  }
-  if (key) {
-    return `https://www.google.com/maps/embed/v1/place?key=${key}&q=${placeQuery(stops[0]!.title)}&zoom=10`;
-  }
-  const center = stops[Math.floor(stops.length / 2)]!.title;
-  return `https://maps.google.com/maps?q=${placeQuery(center)}&z=10&output=embed`;
-}
-
-/** Itinerary timeline + a real embedded Google Map, GetYourGuide style. */
+/** Itinerary timeline + a real Google Map of the route, GetYourGuide style. */
 export function Itinerary({
   stops,
   meetingPoint,
@@ -188,7 +162,6 @@ export function Itinerary({
   meetingPoint?: string | null;
 }) {
   if (stops.length === 0) return null;
-  const hasCoords = stops.some((s) => typeof s.lat === 'number' && typeof s.lng === 'number');
   const nodes = [
     ...(meetingPoint
       ? [{ title: 'Pickup location', area: meetingPoint, pickup: true } as const]
@@ -200,18 +173,7 @@ export function Itinerary({
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
       <ItineraryTimeline nodes={nodes} collapseAt={meetingPoint ? 4 : 3} />
       <div>
-        {hasCoords ? (
-          <RouteMap stops={stops} />
-        ) : (
-          <iframe
-            src={mapEmbedSrc(stops)}
-            title="Tour route map"
-            loading="lazy"
-            allowFullScreen
-            referrerPolicy="no-referrer-when-downgrade"
-            className="h-[300px] w-full rounded-2xl border border-ink/10 lg:h-[360px]"
-          />
-        )}
+        <RouteMap stops={stops} />
         <div className="mt-2 flex items-center gap-4 text-[12px] text-ink-muted">
           <span className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-full bg-coral" /> Start / main stop

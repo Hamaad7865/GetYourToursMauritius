@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Logo } from '@/components/site/Logo';
+import { PickupMap } from '@/components/maps/PickupMap';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
 const STEPS = ['Transport', 'Contact', 'Payment'];
@@ -161,14 +162,7 @@ export function Checkout() {
               </h1>
               <div className="mt-5 flex flex-col gap-2">
                 <PickRadio checked={pickup === 'known'} onClick={() => setPickup('known')} title="Yes, I can add it now">
-                  {pickup === 'known' && (
-                    <input
-                      value={pickupLoc}
-                      onChange={(e) => setPickupLoc(e.target.value)}
-                      placeholder="Hotel name or address"
-                      className="mt-2 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm outline-none focus:border-teal"
-                    />
-                  )}
+                  {pickup === 'known' && <PickupMap value={pickupLoc} onChange={setPickupLoc} />}
                 </PickRadio>
                 <PickRadio checked={pickup === 'unknown'} onClick={() => setPickup('unknown')} title="I don't know yet">
                   {pickup === 'unknown' && (
