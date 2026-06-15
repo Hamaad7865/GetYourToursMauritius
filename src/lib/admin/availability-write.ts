@@ -99,3 +99,64 @@ export async function deleteOccurrence(id: string): Promise<void> {
   const { error } = await getBrowserSupabase().from('session_occurrences').delete().eq('id', id);
   if (error) throw error;
 }
+
+const OPEN_HORIZON_DAYS = 365;
+
+/**
+ * Make an activity "always available": materialise a daily slot at `time` for every option,
+ * for the next year. Idempotent (re-running tops the window back up). Run again any time to
+ * extend the horizon further out.
+ */
+export async function openAvailability(
+  activityId: string,
+  opts: { time: string; capacity: number },
+): Promise<number> {
+  const sb = getBrowserSupabase();
+  const meta = await loadActivityOptions(activityId);
+  if (meta.options.length === 0) {
+    throw new Error('Add a booking option (with a price) to the activity first.');
+  }
+  const duration = meta.durationMinutes ?? 240;
+  const [h, m] = opts.time.split(':').map(Number);
+  const rows: Array<{
+    activity_option_id: string;
+    operator_id: string;
+    starts_at: string;
+    ends_at: string;
+    capacity: number;
+  }> = [];
+  for (const option of meta.options) {
+    for (let i = 1; i <= OPEN_HORIZON_DAYS; i += 1) {
+      const start = new Date();
+      start.setDate(start.getDate() + i);
+      start.setHours(h ?? 9, m ?? 0, 0, 0);
+      const end = new Date(start.getTime() + duration * 60_000);
+      rows.push({
+        activity_option_id: option.id,
+        operator_id: meta.operatorId,
+        starts_at: start.toISOString(),
+        ends_at: end.toISOString(),
+        capacity: opts.capacity,
+      });
+    }
+  }
+  const { error, count } = await sb
+    .from('session_occurrences')
+    .upsert(rows, { onConflict: 'activity_option_id,starts_at', ignoreDuplicates: true, count: 'exact' });
+  if (error) throw error;
+  return count ?? rows.length;
+}
+
+/** Stop availability: remove every upcoming slot for the activity (past bookings untouched). */
+export async function stopAvailability(activityId: string): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { data: opts } = await sb.from('activity_options').select('id').eq('activity_id', activityId);
+  const optionIds = (opts ?? []).map((o) => o.id);
+  if (optionIds.length === 0) return;
+  const { error } = await sb
+    .from('session_occurrences')
+    .delete()
+    .in('activity_option_id', optionIds)
+    .gte('starts_at', new Date().toISOString());
+  if (error) throw error;
+}
