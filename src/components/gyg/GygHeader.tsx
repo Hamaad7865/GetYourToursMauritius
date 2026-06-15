@@ -6,23 +6,33 @@ import { Logo } from '@/components/site/Logo';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { usePreferences } from '@/components/site/PreferencesProvider';
 import { SearchBar } from './SearchBar';
-import { CATEGORIES } from '@/lib/seo/site';
+import { MainNav } from './MainNav';
 import {
   IconArrowRight,
   IconBookings,
   IconCart,
-  IconChevron,
   IconGlobe,
   IconHeart,
   IconLogOut,
   IconUser,
 } from '@/components/ui/icons';
 
-/** Shared icon-over-label styling for the navbar actions. */
+/** Shared icon-over-label styling for the navbar actions. The `group relative` lets each
+ *  action carry the centre-out coral underline (see <Underline/>). */
 function navItemClass(light: boolean, extra = ''): string {
-  return `flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-semibold ${
+  return `group relative flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-semibold ${
     light ? 'text-white hover:text-white/80' : 'text-ink hover:text-teal'
   } ${extra}`;
+}
+
+/** Coral underline that grows from the centre outward on hover — matches the main nav. */
+function Underline() {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute -bottom-0.5 left-1/2 h-[2px] w-0 -translate-x-1/2 rounded-full bg-coral transition-[width] duration-300 ease-out group-hover:w-full"
+    />
+  );
 }
 
 /** Profile navbar item — opens a dropdown. Signed out it offers sign-in; signed in it
@@ -59,6 +69,7 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
       >
         <IconUser width={20} height={20} />
         <span className="hidden lg:block">Profile</span>
+        <Underline />
       </button>
 
       {open && (
@@ -126,6 +137,7 @@ function PrefsButton({ overHero }: { overHero: boolean }) {
     <button type="button" onClick={() => openPrefs('language')} className={navItemClass(overHero)} aria-label="Language and currency">
       <IconGlobe width={20} height={20} />
       <span className="hidden lg:block">{language.toUpperCase()}/EUR €</span>
+      <Underline />
     </button>
   );
 }
@@ -147,6 +159,7 @@ function HeaderAction({
     <Link href={href} className={navItemClass(light, className)}>
       {icon}
       <span className="hidden lg:block">{label}</span>
+      <Underline />
     </Link>
   );
 }
@@ -217,45 +230,8 @@ export function GygHeader({
       </div>
 
       {showNav && (
-        <div className={overHero ? '' : 'border-b border-ink/[0.06]'}>
-          <div className="mx-auto flex max-w-shell items-center gap-1 px-6">
-            <div className="group relative">
-              <button
-                className={`flex items-center gap-1.5 py-3 pr-3 text-sm font-bold ${
-                  overHero ? 'text-white' : 'text-ink'
-                }`}
-              >
-                Things to do{' '}
-                <IconChevron
-                  width={15}
-                  height={15}
-                  className={overHero ? 'text-white/70' : 'text-ink-muted'}
-                />
-              </button>
-              <div className="invisible absolute left-0 top-full z-50 w-64 -translate-y-1 rounded-2xl border border-ink/10 bg-white p-2 opacity-0 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
-                {CATEGORIES.map((category) => (
-                  <Link
-                    key={category}
-                    href={`/activities?category=${encodeURIComponent(category)}`}
-                    className="block rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
-                  >
-                    {category}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            {CATEGORIES.slice(0, 5).map((category) => (
-              <Link
-                key={category}
-                href={`/activities?category=${encodeURIComponent(category)}`}
-                className={`hidden whitespace-nowrap rounded-lg px-3 py-3 text-sm font-medium lg:block ${
-                  overHero ? 'text-white/90 hover:text-white' : 'text-ink-muted hover:text-teal'
-                }`}
-              >
-                {category}
-              </Link>
-            ))}
-          </div>
+        <div className={`hidden md:block ${overHero ? '' : 'border-b border-ink/[0.06]'}`}>
+          <MainNav light={overHero} />
         </div>
       )}
     </header>
