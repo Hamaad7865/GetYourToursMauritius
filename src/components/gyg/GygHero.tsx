@@ -13,7 +13,7 @@ export function GygHero() {
             'radial-gradient(40rem 20rem at 15% 20%, rgba(255,255,255,0.25), transparent), radial-gradient(30rem 18rem at 85% 80%, rgba(247,108,94,0.35), transparent)',
         }}
       />
-      <div className="relative mx-auto max-w-shell px-6 pb-16 pt-14 text-center sm:pb-20 sm:pt-20">
+      <div className="relative mx-auto max-w-shell px-6 pb-16 pt-32 text-center sm:pb-20 sm:pt-40">
         <h1 className="mx-auto max-w-4xl text-[clamp(34px,6vw,68px)] font-extrabold leading-[1.02] tracking-tight text-white">
           Discover &amp; book things to do
         </h1>
