@@ -7,7 +7,16 @@ import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons';
  * Horizontal, scroll-snapping rail with GetYourGuide-style circular ‹ › arrow
  * buttons that appear only when there's more to scroll in that direction.
  */
-export function Rail({ children, ariaLabel }: { children: React.ReactNode; ariaLabel?: string }) {
+export function Rail({
+  children,
+  ariaLabel,
+  center = false,
+}: {
+  children: React.ReactNode;
+  ariaLabel?: string;
+  /** Centre the cards when they don't fill the width (still scrolls if they overflow). */
+  center?: boolean;
+}) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -42,7 +51,9 @@ export function Rail({ children, ariaLabel }: { children: React.ReactNode; ariaL
       <div
         ref={trackRef}
         aria-label={ariaLabel}
-        className="no-bar flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-2"
+        className={`no-bar flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-2 ${
+          center ? 'justify-center' : ''
+        }`}
       >
         {children}
       </div>

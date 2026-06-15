@@ -32,11 +32,11 @@ export function ContinuePlanning({ pool }: { pool: TourSummary[] }) {
   const items = (hasHistory ? [...recentItems, ...rest] : pool).slice(0, 8);
 
   return (
-    <section className="mx-auto max-w-shell px-6 py-4">
+    <section className="mx-auto max-w-shell px-6 py-4 text-center">
       <h2 className="mb-3 text-[20px] font-extrabold tracking-tight text-ink">
         {hasHistory ? 'Continue planning your trip' : 'Popular right now'}
       </h2>
-      <Rail ariaLabel={hasHistory ? 'Recently viewed' : 'Popular activities'}>
+      <Rail ariaLabel={hasHistory ? 'Recently viewed' : 'Popular activities'} center>
         {items.map((activity) => (
           <PlaceCard key={activity.id} activity={activity} rail compact />
         ))}
