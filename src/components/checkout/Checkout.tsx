@@ -39,16 +39,21 @@ export function Checkout() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secs, setSecs] = useState(30 * 60);
+  // Stable idempotency key + booking ref so a retry reuses the same booking/payment
+  // instead of creating an orphaned, seat-holding duplicate.
+  const [idemKey] = useState(() => crypto.randomUUID());
+  const [bookingRef, setBookingRef] = useState<string | null>(null);
 
   useEffect(() => {
     const t = window.setInterval(() => setSecs((s) => Math.max(0, s - 1)), 1000);
     return () => window.clearInterval(t);
   }, []);
 
-  // Signing in on the Contact step advances to Payment.
+  // Signing in on the Contact step advances to Payment. Gate on `session` (not just
+  // `user`) so we don't advance before the access token the payment step needs is ready.
   useEffect(() => {
-    if (step === 2 && user) setStep(3);
-  }, [step, user]);
+    if (step === 2 && session) setStep(3);
+  }, [step, session]);
 
   if (!occ || !slug) {
     return (
@@ -69,7 +74,7 @@ export function Checkout() {
     setError(null);
     window.setTimeout(() => {
       setBusy(false);
-      setStep(user ? 3 : 2);
+      setStep(session ? 3 : 2);
     }, 700);
   }
 
@@ -79,31 +84,39 @@ export function Checkout() {
     setError(null);
     try {
       const headers = { 'content-type': 'application/json', authorization: `Bearer ${session.access_token}` };
-      const bookingRes = await fetch('/api/v1/bookings', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          occurrenceId: occ,
-          party: { [label]: qty },
-          customer: {
-            name: profile?.fullName || user?.email || 'Guest',
-            email: user?.email,
-            phone: profile?.phone || null,
-          },
-          source: 'web',
-        }),
-      }).then((r) => r.json());
-      if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
+      // Create the booking once (idempotent + remembered); a retry reuses it.
+      let ref = bookingRef;
+      if (!ref) {
+        const bookingRes = await fetch('/api/v1/bookings', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            occurrenceId: occ,
+            party: { [label]: qty },
+            customer: {
+              name: profile?.fullName || user?.email || 'Guest',
+              email: user?.email,
+              phone: profile?.phone || null,
+            },
+            source: 'web',
+            idempotencyKey: idemKey,
+          }),
+        }).then((r) => r.json());
+        if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
+        ref = bookingRes.data.ref as string;
+        setBookingRef(ref);
+      }
 
       const payRes = await fetch('/api/v1/payments', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ bookingRef: bookingRes.data.ref }),
+        body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${idemKey}:pay` }),
       }).then((r) => r.json());
       if (!payRes.ok) throw new Error(payRes.error?.message ?? 'Could not start payment.');
       window.location.href = payRes.data.redirectUrl as string;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      const msg = err instanceof Error ? err.message : 'Something went wrong.';
+      setError(/capacity/i.test(msg) ? 'Sorry — this date just filled up. Please pick another date.' : msg);
       setBusy(false);
     }
   }

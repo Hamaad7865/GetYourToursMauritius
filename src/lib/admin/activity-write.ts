@@ -175,10 +175,16 @@ export async function updateActivity(id: string, v: ActivityFormValues): Promise
   const opId = await operatorId();
   const { error } = await sb.from('activities').update(activityRow(v, opId)).eq('id', id);
   if (error) throw error;
-  // Replace children (options cascade-delete their prices).
-  await sb.from('activity_images').delete().eq('activity_id', id);
-  await sb.from('activity_options').delete().eq('activity_id', id);
+  // Write the NEW children first, then remove the OLD ones — so a mid-write failure leaves
+  // the activity with (at worst) duplicate options, never an empty/unbookable one. (Options
+  // cascade-delete their prices.)
+  const { data: oldImages } = await sb.from('activity_images').select('id').eq('activity_id', id);
+  const { data: oldOptions } = await sb.from('activity_options').select('id').eq('activity_id', id);
   await writeChildren(id, v);
+  const oldImageIds = (oldImages ?? []).map((o) => o.id);
+  const oldOptionIds = (oldOptions ?? []).map((o) => o.id);
+  if (oldImageIds.length) await sb.from('activity_images').delete().in('id', oldImageIds);
+  if (oldOptionIds.length) await sb.from('activity_options').delete().in('id', oldOptionIds);
 }
 
 export async function deleteActivity(id: string): Promise<void> {

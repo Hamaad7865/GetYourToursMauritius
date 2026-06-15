@@ -101,8 +101,6 @@ export async function deleteOccurrence(id: string): Promise<void> {
 }
 
 const OPEN_HORIZON_DAYS = 365;
-// Customers choose a DATE, not a time, so the daily slot uses a fixed internal start.
-const DAILY_START_HOUR = 9;
 
 /**
  * Make an activity bookable every day with a daily `capacity` (e.g. "20 per day"), for the
@@ -125,15 +123,18 @@ export async function openAvailability(activityId: string, opts: { capacity: num
   }> = [];
   for (const option of meta.options) {
     for (let i = 1; i <= OPEN_HORIZON_DAYS; i += 1) {
-      const start = new Date();
-      start.setDate(start.getDate() + i);
-      start.setHours(DAILY_START_HOUR, 0, 0, 0);
-      const end = new Date(start.getTime() + duration * 60_000);
+      const day = new Date();
+      day.setDate(day.getDate() + i);
+      // Anchor each slot at NOON UTC of the calendar day. The visitor's calendar reads the
+      // date from the local components of starts_at, and noon UTC stays on the same calendar
+      // day for every timezone within ±11h — so a date never shifts by one between admin and
+      // customer (the time itself isn't shown; customers choose a day, not a time).
+      const startMs = Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0, 0);
       rows.push({
         activity_option_id: option.id,
         operator_id: meta.operatorId,
-        starts_at: start.toISOString(),
-        ends_at: end.toISOString(),
+        starts_at: new Date(startMs).toISOString(),
+        ends_at: new Date(startMs + duration * 60_000).toISOString(),
         capacity: opts.capacity,
       });
     }
@@ -146,16 +147,41 @@ export async function openAvailability(activityId: string, opts: { capacity: num
   return count ?? rows.length;
 }
 
-/** Stop availability: remove every upcoming slot for the activity (past bookings untouched). */
+/**
+ * Stop availability: remove upcoming slots for the activity — but only ones with NO booked
+ * items and NO active holds, so we never strand a customer's confirmed booking (FK restrict)
+ * or silently cascade-delete a live hold. Days that already have bookings stay put.
+ */
 export async function stopAvailability(activityId: string): Promise<void> {
   const sb = getBrowserSupabase();
   const { data: opts } = await sb.from('activity_options').select('id').eq('activity_id', activityId);
   const optionIds = (opts ?? []).map((o) => o.id);
   if (optionIds.length === 0) return;
-  const { error } = await sb
+
+  const { data: occ } = await sb
     .from('session_occurrences')
-    .delete()
+    .select('id')
     .in('activity_option_id', optionIds)
     .gte('starts_at', new Date().toISOString());
+  const occIds = (occ ?? []).map((o) => o.id);
+  if (occIds.length === 0) return;
+
+  const { data: items } = await sb
+    .from('booking_items')
+    .select('session_occurrence_id')
+    .in('session_occurrence_id', occIds);
+  const { data: holds } = await sb
+    .from('booking_holds')
+    .select('session_occurrence_id')
+    .in('session_occurrence_id', occIds)
+    .eq('status', 'active');
+  const busy = new Set<string>([
+    ...(items ?? []).map((i) => i.session_occurrence_id),
+    ...(holds ?? []).map((h) => h.session_occurrence_id),
+  ]);
+  const deletable = occIds.filter((id) => !busy.has(id));
+  if (deletable.length === 0) return;
+
+  const { error } = await sb.from('session_occurrences').delete().in('id', deletable);
   if (error) throw error;
 }
