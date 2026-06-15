@@ -34,6 +34,8 @@ export interface ActivityFormValues {
   description: string;
   meetingPoint: string;
   pickupAvailable: boolean;
+  /** Island-tour pricing: charge per group (ceil(people / group size) × price) instead of per head. */
+  groupPricing: boolean;
   cancellationPolicy: string;
   status: 'draft' | 'published';
   languages: string[];
@@ -56,6 +58,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   description: '',
   meetingPoint: '',
   pickupAvailable: false,
+  groupPricing: false,
   cancellationPolicy: 'Free cancellation up to 24 hours before your activity for a full refund.',
   status: 'published',
   languages: ['English'],
@@ -113,6 +116,7 @@ function activityRow(v: ActivityFormValues, opId: string) {
     duration_minutes: v.durationMinutes,
     meeting_point: v.meetingPoint.trim() || null,
     pickup_available: v.pickupAvailable,
+    group_pricing: v.groupPricing,
     languages: v.languages.filter((l) => l.trim()),
     inclusions: v.inclusions.filter((l) => l.trim()),
     exclusions: v.exclusions.filter((l) => l.trim()),
@@ -245,6 +249,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     description: act.description ?? '',
     meetingPoint: act.meeting_point ?? '',
     pickupAvailable: act.pickup_available,
+    groupPricing: act.group_pricing ?? false,
     cancellationPolicy: act.cancellation_policy ?? '',
     status: act.status,
     languages: act.languages.length ? act.languages : ['English'],

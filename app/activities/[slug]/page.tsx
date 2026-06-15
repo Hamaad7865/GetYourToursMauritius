@@ -178,6 +178,7 @@ export default async function ActivityDetailPage({
                 options={activity.options}
                 languages={activity.languages}
                 title={activity.title}
+                groupPricing={activity.groupPricing}
               />
             </aside>
 

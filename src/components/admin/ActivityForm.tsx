@@ -185,6 +185,21 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             />
             Hotel pickup available
           </label>
+          <label className="flex items-start gap-2.5 text-sm font-medium text-ink">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-teal"
+              checked={v.groupPricing}
+              onChange={(e) => set('groupPricing', e.target.checked)}
+            />
+            <span>
+              Charge per group (island-tour pricing)
+              <span className="mt-0.5 block text-[12px] font-normal text-ink-muted">
+                Price buys one group of up to “group size” people; bigger parties pay for extra
+                groups — e.g. €70 for 4, €140 for 5–8, €210 for 9–12.
+              </span>
+            </span>
+          </label>
           <div className="grid gap-5 sm:grid-cols-2">
             <StringList label="Highlights" items={v.highlights} onChange={(x) => set('highlights', x)} />
             <StringList label="Languages" items={v.languages} onChange={(x) => set('languages', x)} />

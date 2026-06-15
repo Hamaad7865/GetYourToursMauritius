@@ -65,6 +65,7 @@ export function BookingWidget({
   options,
   languages,
   title,
+  groupPricing = false,
 }: {
   slug: string;
   type: TourType;
@@ -72,6 +73,8 @@ export function BookingWidget({
   options: TourOption[];
   languages: string[];
   title: string;
+  /** Island-tour style: bill per group (ceil(people / maxGuests) × price), no hard cap. */
+  groupPricing?: boolean;
 }) {
   const router = useRouter();
   const [days, setDays] = useState<Map<string, DayInfo> | null>(null);
@@ -99,7 +102,8 @@ export function BookingWidget({
     return best;
   }, [options]);
   const isTransport = type === 'transport';
-  const isGroup = cheapest?.maxGuests != null;
+  // Per-group pricing only applies when the activity opts in (e.g. island tours).
+  const isGroup = groupPricing && cheapest?.maxGuests != null;
   const unitLabel = isGroup
     ? `per group up to ${cheapest!.maxGuests}`
     : isTransport
@@ -155,11 +159,13 @@ export function BookingWidget({
 
   const selected = date ? days?.get(date) : undefined;
   const seatsLeft = selected?.seatsLeft ?? 0;
-  const maxParticipants = isGroup
-    ? (cheapest!.maxGuests ?? 1)
-    : Math.max(1, Math.min(12, date ? seatsLeft : 12));
+  const maxParticipants = Math.max(1, Math.min(16, date ? seatsLeft : 16));
 
-  const total = cheapest == null ? null : isGroup ? cheapest.amountEur : cheapest.amountEur * participants;
+  // Group tiers are billed per group: total = ceil(people / group size) x price.
+  const groups =
+    isGroup && cheapest?.maxGuests ? Math.ceil(participants / cheapest.maxGuests) : participants;
+  const total =
+    cheapest == null ? null : isGroup ? cheapest.amountEur * groups : cheapest.amountEur * participants;
   const dateText = date
     ? new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Select a date';
@@ -177,17 +183,17 @@ export function BookingWidget({
     setOpen(null);
     setError(null);
     const left = days?.get(key)?.seatsLeft ?? 0;
-    if (!isGroup) setParticipants((p) => Math.max(1, Math.min(p, Math.min(12, left))));
+    setParticipants((p) => Math.max(1, Math.min(p, Math.max(1, Math.min(16, left)))));
   }
 
   function goToCheckout() {
     if (!selected || !cheapest) return setError('Please choose a date.');
     if (participants <= 0) return setError('Please add at least one guest.');
-    if (!isGroup && participants > seatsLeft) return setError('Not enough space left on that date.');
+    if (participants > seatsLeft) return setError('Not enough space left on that date.');
     const q = new URLSearchParams({
       occ: selected.occurrenceId,
       label: cheapest.label,
-      qty: String(isGroup ? 1 : participants),
+      qty: String(participants),
       slug,
       title,
       lang,

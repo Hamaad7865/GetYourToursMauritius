@@ -33,6 +33,9 @@ export const tourSummarySchema = z.object({
   // private tour for 4); null/absent means per-person pricing. Nullish so summaries from a
   // DB that predates this field still parse.
   fromPriceMaxGuests: z.number().int().positive().nullish(),
+  // When true, fromPriceMaxGuests is a GROUP SIZE billed per group (ceil(people / size) ×
+  // price), e.g. island tours; otherwise the price is per person (or per vehicle for transport).
+  groupPricing: z.boolean().default(false),
   ratingAvg: z.number().nullable(),
   ratingCount: z.number().int(),
   heroImage: tourImageSchema.nullable(),

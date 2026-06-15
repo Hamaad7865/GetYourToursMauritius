@@ -94,7 +94,7 @@ describe('security & integrity fixes', () => {
     ).rejects.toThrow(/occurrence_not_bookable/);
   });
 
-  it('enforces per-tier max_guests across duplicate item lines', async () => {
+  it('enforces per-tier max_guests across duplicate item lines (non-group activity)', async () => {
     await db.asOwner();
     const { occurrenceId, optionId } = await seedOccurrence(db, 10);
     await db.pg.query(
@@ -115,6 +115,37 @@ describe('security & integrity fixes', () => {
         [h[0]!.id, items],
       ),
     ).rejects.toThrow(/exceeds_max_guests/);
+  });
+
+  it('charges per group when the activity opts into group pricing — the island-tour model', async () => {
+    for (const [people, groups] of [
+      [4, 1],
+      [5, 2],
+      [8, 2],
+      [9, 3],
+    ] as const) {
+      await db.asOwner();
+      const { occurrenceId, optionId } = await seedOccurrence(db, 50);
+      // Opt this activity into per-group pricing.
+      await db.pg.query(
+        `update activities set group_pricing = true where id = (select activity_id from activity_options where id = $1)`,
+        [optionId],
+      );
+      await db.pg.query(
+        `insert into activity_option_prices (activity_option_id, label, amount_minor, max_guests) values ($1, 'Island group', 7000, 4)`,
+        [optionId],
+      );
+      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, $2, $3)`, [
+        occurrenceId,
+        people,
+        `grp-${people}`,
+      ]);
+      const { rows: b } = await db.pg.query<{ total_minor: number | string }>(
+        `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb)`,
+        [`grp-bk-${people}`, h[0]!.id, JSON.stringify([{ price_label: 'Island group', quantity: people }])],
+      );
+      expect(Number(b[0]!.total_minor)).toBe(groups * 7000); // 4->70, 5->140, 8->140, 9->210
+    }
   });
 
   it('does not project a refund that arrives before any payment', async () => {

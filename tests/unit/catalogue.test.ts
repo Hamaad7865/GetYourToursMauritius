@@ -25,6 +25,7 @@ function summary(overrides: Partial<TourSummary> = {}): TourSummary {
     location: 'Belle Mare',
     durationMinutes: 480,
     fromPriceEur: 75,
+    groupPricing: false,
     ratingAvg: 4.8,
     ratingCount: 1158,
     heroImage: null,

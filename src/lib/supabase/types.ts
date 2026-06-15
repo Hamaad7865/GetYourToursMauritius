@@ -57,6 +57,7 @@ type ActivitiesRow = {
   duration_minutes: number | null;
   meeting_point: string | null;
   pickup_available: boolean;
+  group_pricing: boolean;
   languages: string[];
   inclusions: string[];
   exclusions: string[];
@@ -83,6 +84,7 @@ type ActivitiesInsert = {
   duration_minutes?: number | null;
   meeting_point?: string | null;
   pickup_available?: boolean;
+  group_pricing?: boolean;
   languages?: string[];
   inclusions?: string[];
   exclusions?: string[];
