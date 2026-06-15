@@ -20,6 +20,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             Admin
           </span>
           <nav className="ml-auto flex items-center gap-1 text-sm font-bold">
+            <Link href="/admin/bookings" className="rounded-lg px-3 py-1.5 text-ink hover:bg-cream hover:text-teal">
+              Bookings
+            </Link>
             <Link href="/admin/activities" className="rounded-lg px-3 py-1.5 text-ink hover:bg-cream hover:text-teal">
               Activities
             </Link>
