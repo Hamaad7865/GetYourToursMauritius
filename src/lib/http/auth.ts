@@ -1,4 +1,4 @@
-import { jwtVerify } from 'jose';
+import { createRemoteJWKSet, decodeProtectedHeader, jwtVerify, type JWTPayload } from 'jose';
 import { getServerEnv } from '@/lib/config/env';
 import { ConfigError, UnauthorizedError } from '@/lib/services/errors';
 
@@ -6,6 +6,18 @@ export interface AuthUser {
   id: string;
   email: string | null;
   role: string | null;
+}
+
+// Cache the remote JWKS per project (jose fetches + caches the keys internally).
+let jwksEndpoint: string | null = null;
+let jwks: ReturnType<typeof createRemoteJWKSet> | null = null;
+function getJwks(supabaseUrl: string): ReturnType<typeof createRemoteJWKSet> {
+  const endpoint = `${supabaseUrl.replace(/\/$/, '')}/auth/v1/.well-known/jwks.json`;
+  if (!jwks || jwksEndpoint !== endpoint) {
+    jwksEndpoint = endpoint;
+    jwks = createRemoteJWKSet(new URL(endpoint));
+  }
+  return jwks;
 }
 
 /** Extracts a Bearer token from the Authorization header (no cookie reliance). */
@@ -21,25 +33,48 @@ export function getBearerToken(req: Request): string | null {
 }
 
 /**
- * Verifies a Supabase access token (HS256, signed with the project JWT secret)
- * on the edge using `jose`. Works identically for web and mobile.
- *
- * TODO(Phase 4+): also support Supabase asymmetric signing keys via JWKS.
+ * Verifies a Supabase access token on the edge using `jose`. Branches on the token's
+ * algorithm so both signing schemes work identically for web and mobile:
+ *  - ES256/RS256 → the project's current asymmetric signing keys, verified via JWKS.
+ *  - HS256       → the legacy shared secret (`SUPABASE_JWT_SECRET`); also the test harness.
  */
 export async function verifyAccessToken(token: string): Promise<AuthUser> {
   const env = getServerEnv();
-  if (!env.SUPABASE_JWT_SECRET) {
-    throw new ConfigError('SUPABASE_JWT_SECRET is not configured');
-  }
 
-  let payload: Record<string, unknown>;
+  let alg: string | undefined;
   try {
-    const result = await jwtVerify(token, new TextEncoder().encode(env.SUPABASE_JWT_SECRET), {
-      algorithms: ['HS256'],
-    });
-    payload = result.payload as Record<string, unknown>;
+    alg = decodeProtectedHeader(token).alg;
   } catch {
     throw new UnauthorizedError('Invalid or expired token');
+  }
+
+  let payload: JWTPayload;
+  if (alg === 'HS256') {
+    if (!env.SUPABASE_JWT_SECRET) {
+      throw new ConfigError('SUPABASE_JWT_SECRET is not configured');
+    }
+    try {
+      payload = (
+        await jwtVerify(token, new TextEncoder().encode(env.SUPABASE_JWT_SECRET), {
+          algorithms: ['HS256'],
+        })
+      ).payload;
+    } catch {
+      throw new UnauthorizedError('Invalid or expired token');
+    }
+  } else {
+    if (!env.NEXT_PUBLIC_SUPABASE_URL) {
+      throw new ConfigError('NEXT_PUBLIC_SUPABASE_URL is not configured');
+    }
+    try {
+      payload = (
+        await jwtVerify(token, getJwks(env.NEXT_PUBLIC_SUPABASE_URL), {
+          algorithms: ['ES256', 'RS256'],
+        })
+      ).payload;
+    } catch {
+      throw new UnauthorizedError('Invalid or expired token');
+    }
   }
 
   const sub = payload.sub;
