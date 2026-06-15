@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/site/Logo';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { usePreferences } from '@/components/site/PreferencesProvider';
 import { CATEGORIES } from '@/lib/seo/site';
 import {
+  IconArrowRight,
   IconBookings,
   IconCart,
   IconChevron,
@@ -16,8 +18,16 @@ import {
   IconUser,
 } from '@/components/ui/icons';
 
-/** Signed-out: sign in / sign up buttons. Signed-in: an avatar with an account dropdown. */
-function AuthControls({ overHero }: { overHero: boolean }) {
+/** Shared icon-over-label styling for the navbar actions. */
+function navItemClass(light: boolean, extra = ''): string {
+  return `flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-semibold ${
+    light ? 'text-white hover:text-white/80' : 'text-ink hover:text-teal'
+  } ${extra}`;
+}
+
+/** Profile navbar item — opens a dropdown. Signed out it offers sign-in; signed in it
+ *  shows the account links (bookings only appear here, never before sign-in). */
+function ProfileMenu({ overHero }: { overHero: boolean }) {
   const { user, profile, loading, openAuth, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -38,85 +48,85 @@ function AuthControls({ overHero }: { overHero: boolean }) {
     };
   }, [open]);
 
-  if (loading) {
-    return <div className="ml-1 h-9 w-9 animate-pulse rounded-full bg-ink/10" />;
-  }
-
-  if (!user) {
-    return (
-      <div className="ml-1 flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => openAuth('signin')}
-          className={`hidden rounded-full px-3 py-2 text-[13px] font-bold sm:block ${
-            overHero ? 'text-white hover:text-white/80' : 'text-ink hover:text-teal'
-          }`}
-        >
-          Sign in
-        </button>
-        <button
-          type="button"
-          onClick={() => openAuth('signup')}
-          className={`rounded-full px-4 py-2 text-[13px] font-bold ${
-            overHero ? 'bg-white text-teal hover:bg-white/90' : 'bg-teal text-white hover:bg-teal-dark'
-          }`}
-        >
-          Sign up
-        </button>
-      </div>
-    );
-  }
-
-  const initial = (profile?.fullName ?? user.email ?? '?').trim().charAt(0).toUpperCase();
-
   return (
-    <div ref={ref} className="relative ml-1">
+    <div ref={ref} className="relative">
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label="Account menu"
+        aria-label="Profile"
         aria-expanded={open}
-        className={`grid h-9 w-9 place-items-center rounded-full text-sm font-bold ${
-          overHero ? 'bg-white text-teal' : 'bg-teal text-white'
-        }`}
+        className={navItemClass(overHero)}
       >
-        {initial}
+        <IconUser width={20} height={20} />
+        <span className="hidden lg:block">Profile</span>
       </button>
+
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-ink/10 bg-white p-2 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
-          <div className="px-3 py-2">
-            <p className="truncate text-sm font-bold text-ink">{profile?.fullName ?? 'Traveller'}</p>
-            <p className="truncate text-[12px] text-ink-muted">{user.email}</p>
-          </div>
-          <div className="my-1 h-px bg-ink/10" />
-          <Link
-            href="/account"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
-          >
-            <IconUser width={18} height={18} /> My profile
-          </Link>
-          <Link
-            href="/account/bookings"
-            onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
-          >
-            <IconBookings width={18} height={18} /> My bookings
-          </Link>
-          <div className="my-1 h-px bg-ink/10" />
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(false);
-              void signOut();
-            }}
-            className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-coral"
-          >
-            <IconLogOut width={18} height={18} /> Log out
-          </button>
+        <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-ink/10 bg-white p-2 text-ink shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+          {loading ? (
+            <div className="px-3 py-3 text-sm text-ink-muted">Loading…</div>
+          ) : user ? (
+            <>
+              <div className="px-3 pb-1 pt-2">
+                <p className="truncate text-sm font-bold text-ink">{profile?.fullName ?? 'Traveller'}</p>
+                <p className="truncate text-[12px] text-ink-muted">{user.email}</p>
+              </div>
+              <div className="my-1 h-px bg-ink/10" />
+              <Link
+                href="/account"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal"
+              >
+                <IconUser width={18} height={18} /> My profile
+              </Link>
+              <Link
+                href="/account/bookings"
+                onClick={() => setOpen(false)}
+                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal"
+              >
+                <IconBookings width={18} height={18} /> My bookings
+              </Link>
+              <div className="my-1 h-px bg-ink/10" />
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  void signOut();
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-coral"
+              >
+                <IconLogOut width={18} height={18} /> Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="px-3 pb-1 pt-2 text-[15px] font-bold text-ink">Profile</div>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  openAuth('signin');
+                }}
+                className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-cream hover:text-teal"
+              >
+                <IconArrowRight width={18} height={18} /> Log in or sign up
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>
+  );
+}
+
+/** Language + currency navbar item — opens the picker modal. */
+function PrefsButton({ overHero }: { overHero: boolean }) {
+  const { language, openPrefs } = usePreferences();
+  return (
+    <button type="button" onClick={() => openPrefs('language')} className={navItemClass(overHero)} aria-label="Language and currency">
+      <IconGlobe width={20} height={20} />
+      <span className="hidden lg:block">{language.toUpperCase()}/EUR €</span>
+    </button>
   );
 }
 
@@ -155,12 +165,7 @@ function HeaderAction({
   light?: boolean;
 }) {
   return (
-    <Link
-      href={href}
-      className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-1 text-[11px] font-semibold ${
-        light ? 'text-white hover:text-white/80' : 'text-ink hover:text-teal'
-      } ${className}`}
-    >
+    <Link href={href} className={navItemClass(light, className)}>
       {icon}
       <span className="hidden lg:block">{label}</span>
     </Link>
@@ -171,6 +176,8 @@ function HeaderAction({
  * GetYourGuide-style sticky header. On the home page (`heroMode`) it overlays the
  * hero transparently at the top, then on scroll becomes a solid white bar with the
  * secondary nav row hidden and the search docked in. Elsewhere it's a plain white bar.
+ *
+ * Navbar actions mirror GetYourGuide: Wishlist · Cart · language/currency · Profile.
  */
 export function GygHeader({
   heroMode = false,
@@ -217,25 +224,11 @@ export function GygHeader({
             <HeaderAction
               label="Cart"
               light={overHero}
-              className="hidden lg:flex"
+              className="hidden sm:flex"
               icon={<IconCart width={20} height={20} />}
             />
-            <HeaderAction
-              label="Bookings"
-              href="/account/bookings"
-              light={overHero}
-              className="hidden lg:flex"
-              icon={<IconBookings width={20} height={20} />}
-            />
-            <button
-              type="button"
-              className={`hidden items-center gap-1 rounded-lg px-2 py-1.5 text-[13px] font-semibold md:flex ${
-                overHero ? 'text-white hover:text-white/80' : 'text-ink hover:text-teal'
-              }`}
-            >
-              <IconGlobe width={18} height={18} /> EN/€
-            </button>
-            <AuthControls overHero={overHero} />
+            <PrefsButton overHero={overHero} />
+            <ProfileMenu overHero={overHero} />
           </nav>
         </div>
       </div>

@@ -1,13 +1,14 @@
-import { IconSearch } from '@/components/ui/icons';
+import { HeroSearch } from './HeroSearch';
 
-/** GetYourGuide-style hero: full-bleed branded background, bold headline and a large
- *  search pill (a no-JS GET form to /activities). */
+/** GetYourGuide-style hero: full-bleed branded background, bold headline and the
+ *  interactive search (query + date picker + travellers). The section is NOT clipped so
+ *  the search dropdowns can spill over the content below, like GetYourGuide. */
 export function GygHero() {
   return (
-    <section className="relative overflow-hidden bg-[radial-gradient(120%_120%_at_50%_-10%,#13a0a6_0%,#0E8C92_38%,#0B5C63_100%)]">
+    <section className="relative bg-[radial-gradient(120%_120%_at_50%_-10%,#13a0a6_0%,#0E8C92_38%,#0B5C63_100%)]">
       <div
         aria-hidden
-        className="absolute inset-0 opacity-20"
+        className="pointer-events-none absolute inset-0 overflow-hidden opacity-20"
         style={{
           backgroundImage:
             'radial-gradient(40rem 20rem at 15% 20%, rgba(255,255,255,0.25), transparent), radial-gradient(30rem 18rem at 85% 80%, rgba(247,108,94,0.35), transparent)',
@@ -22,28 +23,7 @@ export function GygHero() {
           swims, island days and transfers.
         </p>
 
-        <form
-          method="get"
-          action="/activities"
-          className="mx-auto mt-8 flex max-w-2xl items-center gap-2 rounded-full bg-white p-2 shadow-[0_24px_60px_-24px_rgba(0,0,0,0.5)]"
-        >
-          <span className="grid h-10 w-10 shrink-0 place-items-center text-teal">
-            <IconSearch width={22} height={22} />
-          </span>
-          <input
-            type="search"
-            name="q"
-            placeholder="Find places and things to do"
-            aria-label="Find places and things to do"
-            className="min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-muted"
-          />
-          <button
-            type="submit"
-            className="shrink-0 rounded-full bg-teal px-6 py-3 text-[15px] font-bold text-white transition hover:bg-teal-dark"
-          >
-            Search
-          </button>
-        </form>
+        <HeroSearch />
       </div>
     </section>
   );

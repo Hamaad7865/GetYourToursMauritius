@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { SiteHeader } from '@/components/site/SiteHeader';
+import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { CategoryChips } from '@/components/catalogue/CategoryChips';
 import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
@@ -76,7 +76,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
 
   return (
     <>
-      <SiteHeader />
+      <GygHeader showSearch={false} />
       <main className="bg-cream">
         <div className="mx-auto max-w-shell px-6 pb-16 pt-6">
           <div className="mb-2">
