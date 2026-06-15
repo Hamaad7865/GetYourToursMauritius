@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { GygHero } from '@/components/gyg/GygHero';
-import { ContinuePlanning } from '@/components/gyg/ContinuePlanning';
+import { CategoryShowcase } from '@/components/gyg/CategoryShowcase';
 import { Rail } from '@/components/gyg/Rail';
 import { PlaceCard } from '@/components/gyg/PlaceCard';
 import { SiteFooter } from '@/components/site/SiteFooter';
@@ -57,11 +57,11 @@ export default async function HomePage() {
   return (
     <>
       <GygHeader heroMode />
-      <GygHero>
-        <ContinuePlanning pool={activities} />
-      </GygHero>
+      <GygHero />
 
       <main className="bg-cream pb-12 pt-2">
+        <CategoryShowcase pool={activities} />
+
         {byCategory.map((group) => (
           <section key={group.category} className="mx-auto max-w-shell px-6 py-6">
             <div className="mb-4 flex items-end justify-between gap-4">
