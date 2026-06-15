@@ -38,3 +38,14 @@
     border-radius: 6px;
   }
 }
+
+@layer utilities {
+  /* Horizontal rails / chip strips scroll via the ‹ › arrows + drag; hide the bar. */
+  .no-bar {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* old Edge/IE */
+  }
+  .no-bar::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+}
