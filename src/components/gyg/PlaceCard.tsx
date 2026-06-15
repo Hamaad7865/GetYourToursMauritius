@@ -86,7 +86,7 @@ export function PlaceCard({
         )}
 
         {images.length > 1 && (
-          <div className="absolute inset-0 z-10 flex items-center justify-between p-2 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="absolute inset-0 z-10 flex items-center justify-between p-2 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100">
             <button
               type="button"
               onClick={(e) => go(-1, e)}

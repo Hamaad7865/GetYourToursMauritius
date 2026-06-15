@@ -64,7 +64,11 @@ export function AccountBookings() {
       <h1 className="font-display text-2xl font-semibold text-ink">My bookings</h1>
       <p className="mt-1 text-sm text-ink-muted">Every trip you&apos;ve booked with Belle Mare Tours.</p>
 
-      {error && <p className="mt-6 text-[13px] font-medium text-coral">{error}</p>}
+      {error && (
+        <p role="alert" className="mt-6 text-[13px] font-medium text-coral">
+          {error}
+        </p>
+      )}
 
       {bookings === null && !error && <div className="mt-6"><AccountSpinner /></div>}
 

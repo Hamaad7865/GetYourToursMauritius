@@ -68,11 +68,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (typeof meta.full_name === 'string' && meta.full_name) ||
       (typeof meta.name === 'string' && meta.name) ||
       null;
-    const { data: inserted } = await sb
+    const { data: inserted, error: insertError } = await sb
       .from('profiles')
       .insert({ id: current.id, full_name: fullName })
       .select('id, full_name, phone, role')
       .maybeSingle();
+
+    if (insertError) {
+      // A concurrent sign-in (e.g. a second tab) may have created the row first, tripping
+      // the primary-key constraint — re-read it rather than masking the failure.
+      const { data: existing } = await sb
+        .from('profiles')
+        .select('id, full_name, phone, role')
+        .eq('id', current.id)
+        .maybeSingle();
+      setProfile(
+        existing
+          ? { id: existing.id, fullName: existing.full_name, phone: existing.phone, role: existing.role }
+          : null,
+      );
+      return;
+    }
+
     setProfile(
       inserted
         ? { id: inserted.id, fullName: inserted.full_name, phone: inserted.phone, role: inserted.role }
@@ -83,22 +100,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const sb = getBrowserSupabase();
     let active = true;
+    // Track which user we've already loaded a profile for, so the initial getSession and
+    // the INITIAL_SESSION event (and token refreshes) don't each refetch the profile.
+    let loadedFor: string | null = null;
 
-    sb.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) void loadProfile(data.session.user);
-      setLoading(false);
-    });
-
-    const { data: sub } = sb.auth.onAuthStateChange((_event, nextSession) => {
+    const apply = (nextSession: Session | null) => {
       if (!active) return;
       setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-      if (nextSession?.user) void loadProfile(nextSession.user);
-      else setProfile(null);
+      const u = nextSession?.user ?? null;
+      setUser(u);
+      if (u) {
+        if (u.id !== loadedFor) {
+          loadedFor = u.id;
+          void loadProfile(u);
+        }
+      } else {
+        loadedFor = null;
+        setProfile(null);
+      }
+    };
+
+    sb.auth.getSession().then(({ data }) => {
+      apply(data.session);
+      if (active) setLoading(false);
     });
+
+    const { data: sub } = sb.auth.onAuthStateChange((_event, nextSession) => apply(nextSession));
 
     return () => {
       active = false;

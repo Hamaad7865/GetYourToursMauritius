@@ -13,10 +13,15 @@ export function AccountProfile() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Seed the form once per profile (keyed on id, not its values) so a post-save
+  // refreshProfile() can't clobber edits the user has started typing.
   useEffect(() => {
     setFullName(profile?.fullName ?? '');
     setPhone(profile?.phone ?? '');
-  }, [profile?.fullName, profile?.phone]);
+    // Intentionally keyed on identity only — syncing on every value change would overwrite
+    // in-progress edits when refreshProfile() runs after a save.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id]);
 
   if (loading) return <AccountSpinner />;
   if (!user) return <SignedOutPrompt message="Sign in to view and edit your profile." />;
@@ -27,12 +32,18 @@ export function AccountProfile() {
     setSaving(true);
     setError(null);
     setSaved(false);
-    const { error } = await getBrowserSupabase()
+    // Return the row so we can confirm a row was actually updated — an RLS denial or a
+    // missing profile row updates zero rows WITHOUT an error, which must not read as "Saved".
+    const { data: updated, error } = await getBrowserSupabase()
       .from('profiles')
       .update({ full_name: fullName || null, phone: phone || null })
-      .eq('id', user.id);
+      .eq('id', user.id)
+      .select('id')
+      .maybeSingle();
     if (error) {
       setError(error.message);
+    } else if (!updated) {
+      setError('Could not save your changes. Please sign in again and retry.');
     } else {
       setSaved(true);
       await refreshProfile();
@@ -76,8 +87,16 @@ export function AccountProfile() {
           />
         </label>
 
-        {error && <p className="text-[13px] font-medium text-coral">{error}</p>}
-        {saved && <p className="text-[13px] font-medium text-teal-dark">Saved.</p>}
+        {error && (
+          <p role="alert" className="text-[13px] font-medium text-coral">
+            {error}
+          </p>
+        )}
+        {saved && (
+          <p role="status" className="text-[13px] font-medium text-teal-dark">
+            Saved.
+          </p>
+        )}
 
         <div>
           <button
