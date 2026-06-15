@@ -23,7 +23,6 @@ export const CATEGORIES = [
   'Sea walks & diving',
   'Parasailing',
   'Island tours',
-  'Airport transfers',
 ] as const;
 
 /** wa.me deep link with a pre-filled message (digits-only number derived from SITE.phone). */

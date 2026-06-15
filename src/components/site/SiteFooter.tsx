@@ -12,14 +12,20 @@ const COLUMNS = [
       'Dolphin swims',
       'Sea walks & diving',
       'Island tours',
-      'Airport transfers',
     ].map((c) => ({ label: c, href: `/activities?category=${encodeURIComponent(c)}` })),
+  },
+  {
+    title: 'Transport & rentals',
+    links: [
+      { label: 'Airport transfers', href: '/airport-transfer' },
+      { label: 'Taxi & private driver', href: '/taxi' },
+      { label: 'Car & scooter rental', href: '/rent' },
+    ],
   },
   {
     title: 'Company',
     links: [
       { label: 'About Belle Mare Tours', href: '/about' },
-      { label: 'Guest reviews', href: '/activities' },
       { label: 'Contact & pickups', href: '/contact' },
     ],
   },
@@ -63,7 +69,7 @@ export function SiteFooter() {
           </a>
         </div>
 
-        <div className="mt-10 grid grid-cols-2 gap-7 md:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-7 sm:grid-cols-3 lg:grid-cols-5">
           {COLUMNS.map((col) => (
             <div key={col.title}>
               <div className="mb-3 text-xs font-bold uppercase tracking-wider text-gold-light">

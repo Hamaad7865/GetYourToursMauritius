@@ -21,8 +21,7 @@ insert into categories (name, slug, position) values
   ('Dolphin swims', 'dolphin-swims', 2),
   ('Sea walks & diving', 'sea-walks-diving', 3),
   ('Parasailing', 'parasailing', 4),
-  ('Island tours', 'island-tours', 5),
-  ('Airport transfers', 'airport-transfers', 6)
+  ('Island tours', 'island-tours', 5)
 on conflict (name) do nothing;
 
 -- Free activities.category from the enum so newly-created categories are assignable. The only

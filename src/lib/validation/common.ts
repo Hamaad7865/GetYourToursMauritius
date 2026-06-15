@@ -10,7 +10,6 @@ export const TOUR_CATEGORIES = [
   'Sea walks & diving',
   'Parasailing',
   'Island tours',
-  'Airport transfers',
 ] as const;
 
 export const categorySchema = z.string().min(1).max(80);
