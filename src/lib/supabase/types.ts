@@ -52,7 +52,7 @@ type ActivitiesRow = {
   title: string;
   summary: string | null;
   description: string | null;
-  category: Database['public']['Enums']['activity_category'];
+  category: string;
   location: string | null;
   duration_minutes: number | null;
   meeting_point: string | null;
@@ -78,7 +78,7 @@ type ActivitiesInsert = {
   title: string;
   summary?: string | null;
   description?: string | null;
-  category: Database['public']['Enums']['activity_category'];
+  category: string;
   location?: string | null;
   duration_minutes?: number | null;
   meeting_point?: string | null;
@@ -449,11 +449,31 @@ type ChatMessagesInsert = {
   created_at?: string;
 };
 
+type CategoriesRow = {
+  id: string;
+  name: string;
+  slug: string;
+  position: number;
+  image_url: string | null;
+  status: string;
+  created_at: string;
+};
+type CategoriesInsert = {
+  id?: string;
+  name: string;
+  slug: string;
+  position?: number;
+  image_url?: string | null;
+  status?: string;
+  created_at?: string;
+};
+
 type TableDef<Row, Insert> = { Row: Row; Insert: Insert; Update: Partial<Insert>; Relationships: [] };
 
 export interface Database {
   public: {
     Tables: {
+      categories: TableDef<CategoriesRow, CategoriesInsert>;
       operators: TableDef<OperatorsRow, OperatorsInsert>;
       profiles: TableDef<ProfilesRow, ProfilesInsert>;
       activities: TableDef<ActivitiesRow, ActivitiesInsert>;

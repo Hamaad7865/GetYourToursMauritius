@@ -203,9 +203,11 @@ describe('parseBrowseParams', () => {
     });
   });
 
-  it('drops invalid category/type and clamps page to ≥ 1', () => {
+  it('keeps any non-empty category (dynamic), drops an invalid type, clamps page to ≥ 1', () => {
+    // Categories are now user-managed, so an unknown name is accepted (it simply matches no
+    // activities) rather than being silently dropped. Type is still a fixed enum.
     const parsed = parseBrowseParams({ category: 'Nope', type: 'boat', page: '0' });
-    expect(parsed.category).toBeUndefined();
+    expect(parsed.category).toBe('Nope');
     expect(parsed.type).toBeUndefined();
     expect(parsed.page).toBe(1);
   });

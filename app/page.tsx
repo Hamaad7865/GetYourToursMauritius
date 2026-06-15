@@ -9,7 +9,7 @@ import { SiteFooter } from '@/components/site/SiteFooter';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
 import { withLocalPhotos } from '@/lib/catalogue/local-photos';
-import { CATEGORIES } from '@/lib/seo/site';
+import { FALLBACK_CATEGORIES } from '@/lib/categories/categories';
 import { IconArrowRight } from '@/components/ui/icons';
 import type { TourSummary } from '@/lib/validation/tours';
 
@@ -42,10 +42,17 @@ async function getActivities(): Promise<TourSummary[]> {
 
 export default async function HomePage() {
   const activities = await getActivities();
-  const byCategory = CATEGORIES.map((category) => ({
-    category,
-    items: activities.filter((a) => a.category === category),
-  })).filter((group) => group.items.length > 0);
+  // Group by the categories actually present, keeping the canonical order first and appending
+  // any newly-created categories after it. (Avoids a server-side categories fetch.)
+  const present = new Set(activities.map((a) => a.category));
+  const known = FALLBACK_CATEGORIES.map((c) => c.name).filter((n) => present.has(n));
+  const extra = [...present].filter((n) => !FALLBACK_CATEGORIES.some((c) => c.name === n));
+  const byCategory = [...known, ...extra]
+    .map((category) => ({
+      category,
+      items: activities.filter((a) => a.category === category),
+    }))
+    .filter((group) => group.items.length > 0);
 
   return (
     <>

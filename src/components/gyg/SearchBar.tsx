@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CATEGORIES } from '@/lib/seo/site';
+import { useCategories } from '@/lib/categories/useCategories';
 import { addRecentSearch, getRecentSearches } from '@/lib/search/recent';
 import {
   IconChevron,
@@ -60,6 +60,7 @@ type Variant = 'hero' | 'compact';
  */
 export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   const router = useRouter();
+  const categories = useCategories();
   const [query, setQuery] = useState('');
   const [date, setDate] = useState<Date | null>(null);
   const [adults, setAdults] = useState(1);
@@ -232,13 +233,13 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
           <p className="px-3 pb-1 pt-2 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
             Suggestions
           </p>
-          {CATEGORIES.map((category) => (
+          {categories.map((category) => (
             <button
-              key={category}
+              key={category.slug}
               type="button"
               onClick={() => {
                 setSuggestOpen(false);
-                router.push(`/activities?category=${encodeURIComponent(category)}`);
+                router.push(`/activities?category=${encodeURIComponent(category.name)}`);
               }}
               className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-cream"
             >
@@ -246,7 +247,7 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
                 <IconPin width={17} height={17} />
               </span>
               <span className="min-w-0">
-                <span className="block truncate text-sm font-bold text-ink">{category}</span>
+                <span className="block truncate text-sm font-bold text-ink">{category.name}</span>
                 <span className="block text-[12px] text-ink-muted">Belle Mare, Mauritius</span>
               </span>
             </button>

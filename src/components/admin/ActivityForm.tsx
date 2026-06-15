@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CATEGORIES } from '@/lib/seo/site';
+import { useCategories } from '@/lib/categories/useCategories';
 import { IconPlus, IconX } from '@/components/ui/icons';
 import {
   EMPTY_ACTIVITY,
@@ -19,6 +19,7 @@ import {
 
 export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }) {
   const router = useRouter();
+  const categories = useCategories();
   const [values, setValues] = useState<ActivityFormValues | null>(mode === 'new' ? EMPTY_ACTIVITY : null);
   const [loading, setLoading] = useState(mode === 'edit');
   const [saving, setSaving] = useState(false);
@@ -90,7 +91,9 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
           </Field>
           <Field label="Category" required>
             <select className={inputClass} value={v.category} onChange={(e) => set('category', e.target.value)}>
-              {CATEGORIES.map((c) => (
+              {/* Always include the current value so editing an activity in a removed/renamed
+                  category still shows it. */}
+              {[...new Set([...categories.map((c) => c.name), v.category].filter(Boolean))].map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>

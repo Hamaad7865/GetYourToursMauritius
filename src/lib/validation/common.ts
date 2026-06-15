@@ -1,6 +1,8 @@
 import { z } from 'zod';
 
-/** The seven operator categories (English primary). */
+/** The seven original categories — now the seed/fallback list, not a closed set. Categories
+ *  are managed dynamically in the `categories` table, so validation accepts any non-empty
+ *  category name rather than a fixed enum. */
 export const TOUR_CATEGORIES = [
   'Catamaran cruises',
   'Île aux Cerfs',
@@ -11,8 +13,8 @@ export const TOUR_CATEGORIES = [
   'Airport transfers',
 ] as const;
 
-export const categorySchema = z.enum(TOUR_CATEGORIES);
-export type Category = z.infer<typeof categorySchema>;
+export const categorySchema = z.string().min(1).max(80);
+export type Category = string;
 
 export const tourTypeSchema = z.enum(['activity', 'transport']);
 export type TourType = z.infer<typeof tourTypeSchema>;

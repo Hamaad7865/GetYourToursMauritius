@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { CATEGORIES } from '@/lib/seo/site';
+import { useCategories } from '@/lib/categories/useCategories';
 import { IconChevron } from '@/components/ui/icons';
 
 /**
@@ -53,15 +53,16 @@ function NavLabel({ label, light, hasMenu }: { label: string; light: boolean; ha
 }
 
 function CategoriesMenu() {
+  const categories = useCategories();
   return (
     <div className="invisible absolute left-0 top-full z-50 w-64 -translate-y-1 rounded-2xl border border-ink/10 bg-white p-2 opacity-0 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-      {CATEGORIES.map((category) => (
+      {categories.map((category) => (
         <Link
-          key={category}
-          href={`/activities?category=${encodeURIComponent(category)}`}
+          key={category.slug}
+          href={`/activities?category=${encodeURIComponent(category.name)}`}
           className="block rounded-lg px-3 py-2 text-sm font-medium text-ink hover:bg-cream hover:text-teal"
         >
-          {category}
+          {category.name}
         </Link>
       ))}
     </div>
