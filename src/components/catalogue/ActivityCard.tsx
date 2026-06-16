@@ -2,32 +2,33 @@ import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { IconPin, IconStar } from '@/components/ui/icons';
+import { WishHeart } from '@/components/gyg/WishHeart';
+
+/* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
 export function ActivityCard({ activity }: { activity: TourSummary }) {
   const duration = durationLabel(activity.durationMinutes);
   return (
-    <Link
-      href={`/activities/${activity.slug}`}
-      className="group flex flex-col overflow-hidden rounded-card border border-ink/[0.08] bg-white shadow-sm transition hover:-translate-y-1.5 hover:shadow-xl"
-    >
+    <div className="group relative flex flex-col overflow-hidden rounded-card border border-ink/[0.08] bg-white shadow-sm transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)]">
       <div className="relative aspect-[4/3] overflow-hidden">
         {activity.heroImage ? (
-          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={activity.heroImage.url}
             alt={activity.heroImage.alt ?? activity.title}
+            loading="lazy"
             className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-[linear-gradient(152deg,#13a0a6_0%,#0E8C92_46%,#0B5C63_100%)] transition duration-500 group-hover:scale-105">
-            <span className="font-display text-2xl font-medium text-cream/90">
+            <span className="font-display text-2xl font-medium text-white/90">
               {activity.title.slice(0, 1)}
             </span>
           </div>
         )}
-        <span className="absolute left-3 top-3 rounded-full bg-cream/95 px-2.5 py-1 text-[11px] font-bold text-teal-dark">
+        <span className="absolute left-3 top-3 z-10 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-bold text-teal-dark backdrop-blur">
           {activity.category}
         </span>
+        <WishHeart slug={activity.slug} className="absolute right-3 top-3 z-10 h-8 w-8 shadow-sm" />
       </div>
 
       <div className="flex flex-1 flex-col p-4">
@@ -59,6 +60,13 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
           </span>
         </div>
       </div>
-    </Link>
+
+      {/* Stretched link to detail — below the heart + category chip so they stay clickable. */}
+      <Link
+        href={`/activities/${activity.slug}`}
+        aria-label={activity.title}
+        className="absolute inset-0 z-0"
+      />
+    </div>
   );
 }
