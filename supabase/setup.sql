@@ -174,7 +174,7 @@ create index session_occurrences_operator_idx on session_occurrences (operator_i
 
 create table bookings (
   id uuid primary key default gen_random_uuid(),
-  ref text not null unique default ('BMT-' || upper(substr(md5(gen_random_uuid()::text), 1, 8))),
+  ref text not null unique default ('BMT-' || upper(substr(md5(gen_random_uuid()::text), 1, 16))),
   -- Idempotency anchor for create_booking (client-supplied, server fallback).
   idempotency_key text unique,
   user_id uuid references auth.users (id) on delete set null,

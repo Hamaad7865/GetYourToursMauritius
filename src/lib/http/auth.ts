@@ -36,7 +36,7 @@ export function getBearerToken(req: Request): string | null {
  * Verifies a Supabase access token on the edge using `jose`. Branches on the token's
  * algorithm so both signing schemes work identically for web and mobile:
  *  - ES256/RS256 → the project's current asymmetric signing keys, verified via JWKS.
- *  - HS256       → the legacy shared secret (`SUPABASE_JWT_SECRET`); also the test harness.
+ *  - HS256       → the legacy shared secret, DISABLED by default (see ACCEPT_LEGACY_HS256).
  */
 export async function verifyAccessToken(token: string): Promise<AuthUser> {
   const env = getServerEnv();
@@ -50,6 +50,12 @@ export async function verifyAccessToken(token: string): Promise<AuthUser> {
 
   let payload: JWTPayload;
   if (alg === 'HS256') {
+    // Reject symmetric tokens unless explicitly re-enabled. A leaked/known shared secret
+    // lets anyone forge an HS256 token for any subject and role, so this is treated as an
+    // invalid token (401), not a misconfiguration, when the legacy path is off.
+    if (!env.ACCEPT_LEGACY_HS256) {
+      throw new UnauthorizedError('Invalid or expired token');
+    }
     if (!env.SUPABASE_JWT_SECRET) {
       throw new ConfigError('SUPABASE_JWT_SECRET is not configured');
     }

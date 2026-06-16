@@ -14,6 +14,7 @@ export default tseslint.config(
       '.next/**',
       '.vercel/**',
       '.design-tmp/**',
+      '.claude/**',
       'node_modules/**',
       'coverage/**',
       'playwright-report/**',

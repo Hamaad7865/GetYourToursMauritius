@@ -1,9 +1,10 @@
 -- ============================================================================
 -- Belle Mare Tours — catch-up to latest (run once in the Supabase SQL editor)
 -- Your live DB has 121000/121200/121300?/121400/121700/121900 but is missing
--- 121600 (booking guards) + 20260616120000 (open availability). All statements
--- below are idempotent (create-or-replace / drop-if-exists / if-not-exists), so
--- it is safe even if a part is already present.
+-- 121600 (booking guards) + 20260616120000 (open availability) + 20260616130000
+-- (wider booking ref). All statements below are idempotent (create-or-replace /
+-- drop-if-exists / if-not-exists / alter ... set default), so it is safe even if
+-- a part is already present.
 -- ============================================================================
 
 begin;
@@ -236,5 +237,12 @@ begin
   return v_result;
 end;
 $$;
+
+-- ---- 20260616130000_widen_booking_ref --------------------------------------
+-- Widen the booking reference from 8 to 16 hex chars (~32 -> ~64 bits). The ref guards
+-- /bookings/{ref} and the confirm webhook lookup; 32 bits is brute-forceable. Existing refs
+-- stay valid; only new bookings get the wider space.
+alter table bookings
+  alter column ref set default ('BMT-' || upper(substr(md5(gen_random_uuid()::text), 1, 16)));
 
 commit;
