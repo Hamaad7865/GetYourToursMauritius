@@ -82,7 +82,7 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
           </div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {cat.items.slice(0, 4).map((activity) => (
-              <PlaceCard key={activity.id} activity={activity} />
+              <PlaceCard key={activity.id} activity={activity} titleAs="h4" />
             ))}
           </div>
         </section>

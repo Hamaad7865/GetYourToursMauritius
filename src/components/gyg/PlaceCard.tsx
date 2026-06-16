@@ -24,12 +24,15 @@ export function PlaceCard({
   rail = false,
   compact = false,
   className = '',
+  titleAs: TitleTag = 'h3',
 }: {
   activity: TourSummary;
   rail?: boolean;
   /** Shorter, narrower card for the hero "Continue planning" rail so it fits above the fold. */
   compact?: boolean;
   className?: string;
+  /** Heading level for the card title, so it nests correctly under the surrounding heading. */
+  titleAs?: 'h3' | 'h4';
 }) {
   const image = activity.heroImage ?? activity.images[0] ?? null;
 
@@ -88,13 +91,13 @@ export function PlaceCard({
             {activity.location}
           </div>
         )}
-        <h3
+        <TitleTag
           className={`mt-1 line-clamp-2 font-bold leading-snug text-ink ${
             compact ? 'text-[14px]' : 'min-h-[44px] text-[15px]'
           }`}
         >
           {activity.title}
-        </h3>
+        </TitleTag>
         {meta && !compact && <div className="mt-1.5 text-[12.5px] text-ink-muted">{meta}</div>}
 
         <div className={`mt-auto flex items-end justify-between ${compact ? 'pt-2' : 'pt-3'}`}>

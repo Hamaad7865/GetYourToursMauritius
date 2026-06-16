@@ -10,6 +10,9 @@ import './globals.css';
 const display = Fraunces({
   subsets: ['latin'],
   weight: ['400', '500', '600'],
+  // Ship the real italic face — the hero's signature word relies on Fraunces' true italic,
+  // not a synthesized oblique.
+  style: ['normal', 'italic'],
   variable: '--font-display',
   display: 'swap',
 });

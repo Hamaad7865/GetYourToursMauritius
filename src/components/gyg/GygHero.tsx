@@ -32,11 +32,11 @@ export function GygHero({ children }: { children?: ReactNode }) {
       {/* Short top fade so the white logo + nav read — not a full dark band. */}
       <div aria-hidden className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-ink/55 to-transparent" />
       {/* Contrast pad under the search pill + chips. */}
-      <div aria-hidden className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-ink/40 to-transparent" />
+      <div aria-hidden className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-ink/55 to-transparent" />
 
       <div className="relative z-10 mx-auto w-full max-w-shell px-6 pb-12 pt-32">
         <div className="lg:max-w-[58%]">
-          <p className="animate-fade-up flex items-center gap-2.5 text-[13px] font-semibold uppercase tracking-[0.22em] text-white/85">
+          <p className="animate-fade-up flex items-center gap-2.5 text-[13px] font-semibold uppercase tracking-[0.22em] text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)]">
             <span className="relative grid h-2 w-2 place-items-center">
               <span aria-hidden className="absolute h-2 w-2 rounded-full bg-teal-bright motion-safe:animate-ping" />
               <span aria-hidden className="relative h-2 w-2 rounded-full bg-teal-bright" />
@@ -52,7 +52,7 @@ export function GygHero({ children }: { children?: ReactNode }) {
             booked direct.
           </h1>
 
-          <p className="animate-fade-up mt-6 max-w-md text-[16px] font-medium leading-relaxed text-white/90 [animation-delay:160ms]">
+          <p className="animate-fade-up mt-6 max-w-md text-[16px] font-medium leading-relaxed text-white [text-shadow:0_1px_10px_rgba(10,46,54,0.65)] [animation-delay:160ms]">
             Catamaran days to Île aux Cerfs, dolphin swims, sea-walks and parasailing — reserved
             straight with the local crew who run the boats.{' '}
             <span className="relative whitespace-nowrap">
@@ -70,7 +70,7 @@ export function GygHero({ children }: { children?: ReactNode }) {
             <SearchBar variant="hero" />
           </div>
 
-          <ul className="animate-fade-up mt-5 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white/85 [animation-delay:320ms]">
+          <ul className="animate-fade-up mt-5 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)] [animation-delay:320ms]">
             <li className="flex items-center gap-1.5">
               <IconShield width={14} height={14} /> Booked direct with the local operator
             </li>
