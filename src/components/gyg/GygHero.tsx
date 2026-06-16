@@ -1,26 +1,18 @@
 import type { ReactNode } from 'react';
 import { IconShield, IconBolt, IconCheck, IconUsers } from '@/components/ui/icons';
-import { HeroGallery, type HeroImage } from './HeroGallery';
+import { HeroGallery } from './HeroGallery';
 
 /**
- * Hero — "The east-coast lagoon, booked direct."
+ * Hero — "Explore Mauritius your way."
  *
- * An IMAGE-FREE animated backdrop (pure CSS + inline SVG, no JS): a vertical teal depth
- * gradient with heavily-blurred, screen-blended radial "light" blobs that drift via transform —
- * sunlight wandering under turquoise water — plus one calm waterline wave. Under
- * prefers-reduced-motion it freezes to a composed still. The headline is an oversized Fraunces
- * stack with the single word "lagoon," in italic; the search is docked flush-left; teal and
- * coral are each rationed. The section is NOT clipped so the search dropdowns spill over the
- * white body below.
+ * An animated backdrop (pure CSS + inline SVG, no JS): a vertical teal depth gradient with
+ * heavily-blurred, screen-blended radial "light" blobs that drift via transform — sunlight
+ * wandering under turquoise water — plus one calm waterline wave. Under prefers-reduced-motion it
+ * freezes to a composed still. The headline is an oversized Fraunces stack with "your way." in
+ * italic; the open right side carries a sliding wall of real Belle Mare trip photos (HeroGallery).
+ * The section is NOT clipped so the navbar search dropdowns spill over the white body below.
  */
-export function GygHero({
-  children,
-  gallery = [],
-}: {
-  children?: ReactNode;
-  /** Framed photos for the decorative pile on the hero's open right side. */
-  gallery?: HeroImage[];
-}) {
+export function GygHero({ children }: { children?: ReactNode }) {
   return (
     <section className="relative isolate flex min-h-[560px] flex-col justify-center overflow-visible lg:min-h-[620px]">
       {/* Image-free animated lagoon backdrop (server component, no JS). Every layer is -z-10,
@@ -128,28 +120,27 @@ export function GygHero({
               <span aria-hidden className="absolute h-2 w-2 rounded-full bg-teal-bright motion-safe:animate-ping" />
               <span aria-hidden className="relative h-2 w-2 rounded-full bg-teal-bright" />
             </span>
-            Belle Mare · Mauritius East Coast
+            Belle Mare Tours · Mauritius
           </p>
 
           <h1 className="animate-fade-up mt-5 font-display text-5xl font-medium leading-[0.92] tracking-[-0.02em] text-white drop-shadow-[0_2px_16px_rgba(10,46,54,0.45)] [animation-delay:80ms] sm:text-6xl lg:text-7xl xl:text-[5.25rem]">
-            The east-coast
+            Explore
             <br />
-            <span className="font-semibold italic">lagoon,</span>
+            Mauritius
             <br />
-            booked direct.
+            <span className="font-semibold italic">your way.</span>
           </h1>
 
           <p className="animate-fade-up mt-6 max-w-md text-[16px] font-medium leading-relaxed text-white [text-shadow:0_1px_10px_rgba(10,46,54,0.65)] [animation-delay:160ms]">
-            Catamaran days to Île aux Cerfs, dolphin swims, sea-walks and parasailing — reserved
-            straight with the local crew who run the boats.{' '}
+            Book private tours, island activities and{' '}
             <span className="relative whitespace-nowrap">
-              No reseller
+              custom trips
               <span
                 aria-hidden
                 className="absolute -bottom-0.5 left-0 h-[3px] w-full rounded bg-coral/90"
               />
-            </span>
-            , no markup.
+            </span>{' '}
+            — with ease.
           </p>
 
           {/* The search now lives in the navbar; the hero carries just the message + proof. */}
@@ -170,7 +161,7 @@ export function GygHero({
         </div>
       </div>
 
-      <HeroGallery images={gallery} />
+      <HeroGallery />
 
       {children && <div className="relative pb-8">{children}</div>}
     </section>
