@@ -23,6 +23,8 @@ export interface CartItem {
   unitEur: number;
   groupPricing: boolean;
   maxGuests: number | null;
+  /** Seats left on the occurrence when added — the ceiling the guests stepper clamps to. */
+  seatsLeft: number;
   /** Display unit, e.g. "per person" / "per group up to 4" / "per vehicle". */
   unit: string;
   /** ms epoch when added, for the 30-minute expiry. */
@@ -33,6 +35,14 @@ export interface CartItem {
 export function itemTotal(i: CartItem): number {
   const groups = i.groupPricing && i.maxGuests ? Math.ceil(i.guests / i.maxGuests) : i.guests;
   return Math.round(i.unitEur * groups * 100) / 100;
+}
+
+/** Largest party a line can hold: bounded by seats, and by the tier cap when not group-priced
+ *  (a non-group tier's max_guests is a hard cap the server enforces). */
+export function lineCap(i: CartItem): number {
+  const bySeats = i.seatsLeft && i.seatsLeft > 0 ? i.seatsLeft : Infinity;
+  const byTier = !i.groupPricing && i.maxGuests ? i.maxGuests : Infinity;
+  return Math.min(bySeats, byTier);
 }
 
 function read(): CartItem[] {
@@ -84,7 +94,9 @@ export function useCart() {
   }, []);
 
   const setGuests = useCallback((id: string, guests: number) => {
-    write(read().map((i) => (i.id === id ? { ...i, guests: Math.max(1, guests) } : i)));
+    write(
+      read().map((i) => (i.id === id ? { ...i, guests: Math.max(1, Math.min(lineCap(i), guests)) } : i)),
+    );
   }, []);
 
   const clear = useCallback(() => write([]), []);

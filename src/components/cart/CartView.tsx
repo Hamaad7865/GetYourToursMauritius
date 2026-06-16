@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useCart, itemTotal, CART_TTL_MS, type CartItem } from '@/lib/cart/useCart';
+import { useCart, itemTotal, lineCap, CART_TTL_MS, type CartItem } from '@/lib/cart/useCart';
 import { IconCart, IconCalendar, IconGlobe, IconMinus, IconPlus, IconX, IconClock } from '@/components/ui/icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
@@ -67,6 +67,11 @@ function HoldTimer({ items }: { items: CartItem[] }) {
   }, []);
   const soonest = Math.min(...items.map((i) => i.addedAt + CART_TTL_MS));
   const left = Math.max(0, Math.floor((soonest - now) / 1000));
+  // When the soonest item hits zero, nudge the store to prune it immediately (instead of
+  // waiting for the next 15s sync) so the countdown and the list agree.
+  useEffect(() => {
+    if (left === 0) window.dispatchEvent(new Event('gytm:cart'));
+  }, [left]);
   const mm = String(Math.floor(left / 60)).padStart(2, '0');
   const ss = String(left % 60).padStart(2, '0');
   return (
@@ -76,12 +81,22 @@ function HoldTimer({ items }: { items: CartItem[] }) {
   );
 }
 
-function Stepper({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+function Stepper({
+  value,
+  max,
+  noun = 'guests',
+  onChange,
+}: {
+  value: number;
+  max: number;
+  noun?: string;
+  onChange: (n: number) => void;
+}) {
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-1.5 py-1">
       <button
         type="button"
-        aria-label="Fewer guests"
+        aria-label={`Fewer ${noun}`}
         onClick={() => onChange(value - 1)}
         disabled={value <= 1}
         className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-40"
@@ -91,9 +106,10 @@ function Stepper({ value, onChange }: { value: number; onChange: (n: number) => 
       <span className="min-w-[1.5rem] text-center text-sm font-bold text-ink">{value}</span>
       <button
         type="button"
-        aria-label="More guests"
+        aria-label={`More ${noun}`}
         onClick={() => onChange(value + 1)}
-        className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream"
+        disabled={value >= max}
+        className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-40"
       >
         <IconPlus width={15} height={15} />
       </button>
@@ -144,7 +160,12 @@ export function CartView() {
                 </div>
                 <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
                   <div>
-                    <Stepper value={i.guests} onChange={(n) => setGuests(i.id, n)} />
+                    <Stepper
+                      value={i.guests}
+                      max={lineCap(i)}
+                      noun={i.groupPricing ? 'people' : i.unit === 'per vehicle' ? 'passengers' : 'guests'}
+                      onChange={(n) => setGuests(i.id, n)}
+                    />
                     <div className="mt-1 text-[11px] text-ink-muted">{i.unit}</div>
                   </div>
                   <div className="text-right">
@@ -166,7 +187,7 @@ export function CartView() {
         <aside className="h-fit rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.45)]">
           <h2 className="font-display text-lg font-semibold text-ink">Order summary</h2>
           <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-3">
-            <span className="font-bold text-ink">Total</span>
+            <span className="font-bold text-ink">{items.length > 1 ? 'Estimated total' : 'Total'}</span>
             <span className="text-lg font-extrabold text-ink">€{subtotal.toFixed(2)}</span>
           </div>
           {items.length === 1 ? (

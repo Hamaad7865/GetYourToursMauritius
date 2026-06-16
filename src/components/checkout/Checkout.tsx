@@ -29,7 +29,9 @@ export function Checkout() {
   const slug = params.get('slug') ?? '';
   const title = params.get('title') ?? 'Your booking';
   const lang = params.get('lang') ?? 'English';
-  const total = params.get('total') ?? '';
+  // Treat the URL `total` as an untrusted display hint: coerce it, and never echo garbage.
+  const totalNum = Number(params.get('total'));
+  const total = Number.isFinite(totalNum) && totalNum > 0 ? totalNum.toFixed(2) : '';
   const when = params.get('when') ?? '';
   const guests = params.get('guests') ?? '';
   const unit = params.get('unit') ?? '';
@@ -44,6 +46,9 @@ export function Checkout() {
   // instead of creating an orphaned, seat-holding duplicate.
   const [idemKey] = useState(() => crypto.randomUUID());
   const [bookingRef, setBookingRef] = useState<string | null>(null);
+  // Authoritative price from the created booking — what the customer is actually charged.
+  const [serverTotal, setServerTotal] = useState<number | null>(null);
+  const displayTotal = serverTotal != null ? serverTotal.toFixed(2) : total;
 
   useEffect(() => {
     const t = window.setInterval(() => setSecs((s) => Math.max(0, s - 1)), 1000);
@@ -106,6 +111,16 @@ export function Checkout() {
         if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
         ref = bookingRes.data.ref as string;
         setBookingRef(ref);
+        // Reconcile the price the server actually computed against what we showed. If it moved
+        // (a tier was edited since add-to-cart), surface the real amount and require a second
+        // confirm before sending the customer to the hosted payment page.
+        const srv = typeof bookingRes.data.totalEur === 'number' ? bookingRes.data.totalEur : null;
+        if (srv != null) setServerTotal(srv);
+        if (srv != null && total && Math.abs(srv - Number(total)) >= 0.005) {
+          setError(`The price for this date is €${srv.toFixed(2)}. Tap Pay again to continue.`);
+          setBusy(false);
+          return;
+        }
       }
 
       const payRes = await fetch('/api/v1/payments', {
@@ -217,7 +232,7 @@ export function Checkout() {
                 disabled={busy}
                 className="mt-5 flex items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
               >
-                {busy ? <Spinner /> : total ? `Pay €${total}` : 'Continue to payment'}
+                {busy ? <Spinner /> : displayTotal ? `Pay €${displayTotal}` : 'Continue to payment'}
               </button>
               <p className="mt-2 text-[12px] text-ink-muted">
                 You&apos;ll confirm the payment on the next screen.
@@ -243,7 +258,7 @@ export function Checkout() {
           </dl>
           <div className="mt-4 flex items-center justify-between border-t border-ink/10 pt-3">
             <span className="font-bold text-ink">Total</span>
-            <span className="text-lg font-extrabold text-ink">{total ? `€${total}` : '—'}</span>
+            <span className="text-lg font-extrabold text-ink">{displayTotal ? `€${displayTotal}` : '—'}</span>
           </div>
           <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
             <IconCheck width={15} height={15} className="text-teal" /> Free cancellation up to 24 hours before

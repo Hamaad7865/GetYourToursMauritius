@@ -138,11 +138,18 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
 function CartAction({ overHero }: { overHero: boolean }) {
   const { count } = useCart();
   return (
-    <Link href="/cart" className={navItemClass(overHero, 'relative hidden sm:flex')}>
+    <Link
+      href="/cart"
+      aria-label={count > 0 ? `Cart, ${count} item${count === 1 ? '' : 's'}` : 'Cart'}
+      className={navItemClass(overHero, 'relative hidden sm:flex')}
+    >
       <span className="relative">
         <IconCart width={20} height={20} />
         {count > 0 && (
-          <span className="absolute -right-2 -top-1.5 grid h-4 min-w-[1rem] place-items-center rounded-full bg-coral px-1 text-[10px] font-extrabold leading-none text-white">
+          <span
+            aria-hidden
+            className="absolute -right-2 -top-1.5 grid h-4 min-w-[1rem] place-items-center rounded-full bg-coral px-1 text-[10px] font-extrabold leading-none text-ink"
+          >
             {count}
           </span>
         )}

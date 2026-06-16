@@ -167,7 +167,10 @@ export function BookingWidget({
 
   const selected = date ? days?.get(date) : undefined;
   const seatsLeft = selected?.seatsLeft ?? 0;
-  const maxParticipants = Math.max(1, Math.min(16, date ? seatsLeft : 16));
+  // A non-group tier's max_guests is a hard cap the server enforces — don't let the stepper
+  // exceed it (group tiers scale freely up to the occurrence's seats).
+  const tierCap = !isGroup && cheapest?.maxGuests ? cheapest.maxGuests : Infinity;
+  const maxParticipants = Math.max(1, Math.min(16, tierCap, date ? seatsLeft : 16));
 
   // Group tiers are billed per group: total = ceil(people / group size) x price.
   const groups =
@@ -230,6 +233,7 @@ export function BookingWidget({
       unitEur: cheapest.amountEur,
       groupPricing: isGroup,
       maxGuests: cheapest.maxGuests,
+      seatsLeft,
       unit: unitLabel,
     });
     setError(null);
