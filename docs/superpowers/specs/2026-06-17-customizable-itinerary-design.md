@@ -63,15 +63,35 @@ Zod schema needs the two new optional fields; no SQL change to the catalogue fun
 
 - **`src/components/gyg/detail/ItineraryBuilder.tsx`** (new, client) replaces the static `Itinerary`
   section when the tour has `optionalStops` (else the read-only `Itinerary` renders as today):
+  - **Pickup origin (preview-only):** a pickup-location input at the top (reusing the geocoding behind
+    the checkout `PickupMap`). It anchors the route's **place 1** on the map. It is **not** saved to the
+    booking and **not** carried to checkout — checkout keeps its own pickup step unchanged. If left
+    blank, the route starts at the first chosen stop.
   - Starts from `extra.itinerary` (defaults selected). Each selected stop shows a **remove (×)** and
     **move up/down** (no drag-and-drop). An **"Add a stop"** picker lists `optionalStops` not already
     chosen; adding appends to the route. Enforces `maxStops`.
-  - Renders the existing **`RouteMap`** with the live chosen stops (it already re-renders on `stops`
-    change) + an **"Open in Google Maps"** link built from `mapsDirectionsUrl(stops.map(s => s.title))`
-    (helper already exists).
-  - Persists the chosen route to a **client store keyed by slug** (sessionStorage `gytm:itinerary:<slug>`,
-    mirroring the cart's localStorage pattern) so the booking widget — a sibling client component —
-    can read it without prop-drilling through the server component page.
+  - **Driving map with an animated car (see below)** + an **"Open in Google Maps"** link built from
+    `mapsDirectionsUrl([pickup?, ...stops].map(s => s.title))` (helper exists).
+  - Persists the chosen **stops** (not the preview pickup) to a **client store keyed by slug**
+    (sessionStorage `gytm:itinerary:<slug>`, mirroring the cart's localStorage pattern) so the booking
+    widget — a sibling client component — can read it without prop-drilling through the server page.
+
+### Map — real driving route + animated car
+
+Upgrade `RouteMap` (used by both the builder and the read-only `Itinerary`) from straight dashed lines
+to an actual **driving route**:
+
+- Use the Google Maps JS **`DirectionsService`** with `travelMode: DRIVING`, `origin` = the builder
+  pickup (or first stop), `destination` = last stop, and the middle stops as `waypoints`
+  (≤ `maxStops` ≤ 25, within the API limit). Render the road polyline (brand teal) + the existing
+  numbered pins (coral first, ink rest); fit bounds to the route.
+- **Animated car:** an SVG car `Marker` steps along the decoded route path with `requestAnimationFrame`
+  (place 1 → last stop, then loops). Respects `prefers-reduced-motion` — when reduced, the car sits
+  static at the start (no movement).
+- **Fallback:** if Directions fails / is unavailable / the key lacks the Directions API, fall back to
+  the current straight dashed polyline + static car pin (and the existing keyless `MapLinkCard`). The
+  feature degrades, never breaks.
+- Re-renders on `stops`/`origin` change (debounced so dragging the count doesn't spam Directions).
 - **`BookingWidget`**: on "Book now" it leaves the route in sessionStorage for checkout; on "Add to
   cart" it stores the route on the `CartItem` (`itinerary?: ItineraryStop[]`).
 - **`Checkout.tsx`**: reads `gytm:itinerary:<slug>` (or the cart item's route) and includes
@@ -118,8 +138,16 @@ rewritten `api_book` (post-create update) + `booking_json` (expose). Append an i
 ## Verification
 
 - Green gate: `npm run typecheck && npm run lint && npm run test && npm run build`.
-- Preview: on a vehicle tour with optional stops configured, remove a default stop, add Fort Adelaide,
-  reorder, watch the map update + the "Open in Google Maps" link; book and confirm the voucher shows
-  the chosen route; check it appears in admin. Confirm the vehicle option card renders and its button
-  scrolls to the booking widget.
+- Preview: on a vehicle tour with optional stops configured, enter a pickup, remove a default stop,
+  add Fort Adelaide, reorder — watch the **road route redraw and the car animate** along it + the
+  "Open in Google Maps" link; book and confirm the voucher shows the chosen route; check it appears in
+  admin. Confirm the vehicle option card renders and its button scrolls to the booking widget.
 - Owner runs `catch-up-2026-06-17-custom-itinerary.sql` on live.
+
+## Dependencies / risks
+
+- The driving route needs the **Directions API** enabled on the existing Google Maps key (the app
+  already uses Maps JS + Geocoding). If it isn't enabled, the map degrades to the straight-line
+  fallback — so this is non-blocking, but the owner should enable Directions for the full effect.
+- Directions billing is per-request; the debounce + the small waypoint count (≤ maxStops) keep volume
+  low. The animated car is pure client rAF — no extra API cost.
