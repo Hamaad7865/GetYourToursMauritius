@@ -16,12 +16,14 @@ describe('getPaymentProvider — fail-closed', () => {
   afterEach(() => {
     clearPeachKeys();
     process.env.PEACH_ENVIRONMENT = 'test';
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     resetServerEnvCache();
   });
 
-  it('falls back to the stub in a non-live environment when Peach keys are absent', () => {
+  it('falls back to the stub in local dev / CI (no production signals) when Peach keys are absent', () => {
     clearPeachKeys();
     process.env.PEACH_ENVIRONMENT = 'test';
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     resetServerEnvCache();
     expect(getPaymentProvider().name).toBe('stub');
   });
@@ -31,6 +33,16 @@ describe('getPaymentProvider — fail-closed', () => {
     process.env.PEACH_ENVIRONMENT = 'live';
     resetServerEnvCache();
     expect(() => getPaymentProvider()).toThrow(/PEACH_ENVIRONMENT=live/);
+  });
+
+  it('REFUSES the stub when the backend is production-configured, even with PEACH_ENVIRONMENT=test (F1)', () => {
+    // The danger config: Supabase live, Peach keys absent, PEACH_ENVIRONMENT left at its default.
+    // The gate must fail closed on the service-role-key signal rather than trust PEACH_ENVIRONMENT.
+    clearPeachKeys();
+    process.env.PEACH_ENVIRONMENT = 'test';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key-present';
+    resetServerEnvCache();
+    expect(() => getPaymentProvider()).toThrow(/Refusing to serve the unauthenticated stub/);
   });
 
   it('uses the real provider when fully configured (even in live)', () => {

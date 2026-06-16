@@ -26,6 +26,15 @@ function formatWhen(iso: string): string {
     d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 
+// The public contact form stores free text in `contact`. Only turn it into a mailto: link when it
+// is strictly a single email address — otherwise an attacker controls the URL after `mailto:` and
+// could pre-populate `?cc=/&subject=/&body=` for a staff click. Anything else renders as plain text.
+const EMAIL_RE = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+function mailtoHref(contact: string): string | null {
+  const trimmed = contact.trim();
+  return EMAIL_RE.test(trimmed) ? `mailto:${trimmed}` : null;
+}
+
 export function AdminLeads() {
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -115,13 +124,19 @@ export function AdminLeads() {
               </tr>
             </thead>
             <tbody>
-              {shown.map((lead) => (
+              {shown.map((lead) => {
+                const href = mailtoHref(lead.contact);
+                return (
                 <tr key={lead.id} className="border-b border-ink/5 last:border-0">
                   <td className="px-4 py-3 font-semibold text-ink">{lead.name}</td>
                   <td className="px-4 py-3 text-ink">
-                    <a href={`mailto:${lead.contact}`} className="text-teal hover:text-teal-dark">
-                      {lead.contact}
-                    </a>
+                    {href ? (
+                      <a href={href} className="text-teal hover:text-teal-dark">
+                        {lead.contact}
+                      </a>
+                    ) : (
+                      <span>{lead.contact}</span>
+                    )}
                   </td>
                   <td className="hidden px-4 py-3 text-ink-muted sm:table-cell">
                     {lead.interestActivityTitle ?? '—'}
@@ -145,7 +160,8 @@ export function AdminLeads() {
                     </select>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

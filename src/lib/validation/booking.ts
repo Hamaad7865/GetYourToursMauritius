@@ -8,8 +8,9 @@ export const createBookingInputSchema = z.object({
    *  belongs to it and rejects a mismatch (stops a tampered occurrenceId booking another
    *  activity's slot). Optional for backward compatibility. */
   expectedSlug: z.string().min(1).max(120).optional(),
-  /** Quantity per price-tier label, e.g. { "Adult": 2, "Child": 1 }. */
-  party: z.record(z.string(), z.number().int().nonnegative()),
+  /** Quantity per price-tier label, e.g. { "Adult": 2, "Child": 1 }. Bounded so an absurd or
+   *  overflowing quantity is a clean validation error rather than a DB int overflow. */
+  party: z.record(z.string().min(1).max(80), z.number().int().min(0).max(1000)),
   customer: z.object({
     name: z.string().min(1).max(120),
     email: z.string().email(),
@@ -72,6 +73,8 @@ export const captureLeadInputSchema = z.object({
   contact: z.string().min(3).max(200),
   interestActivityId: z.string().uuid().optional(),
   source: z.string().max(40).optional(),
+  /** Honeypot: a hidden field real users never fill. If present and non-empty, the lead is dropped. */
+  company: z.string().max(200).optional(),
 });
 export type CaptureLeadInput = z.infer<typeof captureLeadInputSchema>;
 

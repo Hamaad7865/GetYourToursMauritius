@@ -20,6 +20,31 @@ function getJwks(supabaseUrl: string): ReturnType<typeof createRemoteJWKSet> {
   return jwks;
 }
 
+/**
+ * Constant-time comparison for shared secrets (e.g. the internal worker token), edge-safe via Web
+ * Crypto. Compares HMAC-SHA256 digests rather than the raw strings, so neither the matched prefix
+ * (via `!==` short-circuit) nor the length leaks through timing. Returns false for an absent value.
+ */
+export async function timingSafeEqual(
+  provided: string | null | undefined,
+  expected: string,
+): Promise<boolean> {
+  if (provided == null) return false;
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    enc.encode(expected),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const a = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(provided)));
+  const b = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(expected)));
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) diff |= a[i]! ^ b[i]!;
+  return diff === 0;
+}
+
 /** Extracts a Bearer token from the Authorization header (no cookie reliance). */
 export function getBearerToken(req: Request): string | null {
   const header = req.headers.get('authorization');

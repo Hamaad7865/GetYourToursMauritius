@@ -54,13 +54,20 @@ export const POST = apiHandler(async (req) => {
   if (paymentErr) throw new Error(paymentErr.message);
   if (!payment) return jsonError(404, 'not_found', 'No payment exists for this booking');
 
-  // Only settlement events carry money; a 'paid' stub credits the full amount due.
+  // Only settlement events carry money. Prefer the provider-reported amount (supports partial
+  // captures/refunds — the ledger reducer handles those); fall back to the full booking total when
+  // the provider did not report one (e.g. the dev stub).
   const settled = event.outcome === 'paid' || event.outcome === 'refunded';
+  const reported =
+    typeof event.amountMinor === 'number' && Number.isFinite(event.amountMinor) && event.amountMinor >= 0
+      ? Math.round(event.amountMinor)
+      : null;
+  const amountMinor = settled ? (reported ?? payment.amount_minor) : 0;
   const { error: rpcErr } = await admin.rpc('append_payment_event', {
     p_payment_id: payment.id,
     p_type: event.outcome,
     p_provider_event_id: event.providerReference,
-    p_amount_minor: settled ? payment.amount_minor : 0,
+    p_amount_minor: amountMinor,
     p_occurred_at: new Date().toISOString(),
     p_payload: (event.raw ?? {}) as Json,
   });

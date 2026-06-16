@@ -43,10 +43,41 @@ export function jsonError(
   });
 }
 
-/** Maps any thrown value to a consistent error response. ServiceErrors keep their status/code. */
+/** Generic, non-revealing message for a 5xx service error code. */
+function genericServerMessage(code: string): string {
+  switch (code) {
+    case 'config_error':
+      return 'The service is temporarily unavailable';
+    case 'provider_error':
+      return 'An upstream service is unavailable';
+    case 'not_implemented':
+      return 'This operation is not available yet';
+    default:
+      return 'Something went wrong';
+  }
+}
+
+/** Maps any thrown value to a consistent error response. 4xx ServiceErrors keep their message. */
 export function errorToResponse(error: unknown, headers?: Record<string, string>): Response {
   if (isServiceError(error)) {
-    return jsonError(error.status, error.code, error.message, error.details, headers);
+    // Client errors (4xx) are safe to surface verbatim — they describe the caller's mistake.
+    if (error.status < 500) {
+      return jsonError(error.status, error.code, error.message, error.details, headers);
+    }
+    // Server errors (5xx) may carry internal detail (e.g. WHICH env var is missing, upstream
+    // specifics). Log the real message with a correlation id; return only a generic message + id.
+    const errorId = crypto.randomUUID();
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        event: 'service_error',
+        errorId,
+        code: error.code,
+        message: error.message,
+        time: new Date().toISOString(),
+      }),
+    );
+    return jsonError(error.status, error.code, genericServerMessage(error.code), { errorId }, headers);
   }
   // Unhandled error: emit a single structured JSON line (parseable by Cloudflare Logpush / any log
   // sink) with a correlation id, and return that id to the client so a report can be traced — but

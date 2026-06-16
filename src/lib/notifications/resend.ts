@@ -26,7 +26,9 @@ function render(message: NotificationMessage): { subject: string; text: string }
 
 /**
  * Resend (https://resend.com) transactional-email provider. Edge-safe: a single fetch + JSON,
- * no SDK. Only the email channel is wired today; other channels are skipped (not failed).
+ * no SDK. Only the email channel is wired today; a non-email row must FAIL (not silently succeed),
+ * otherwise the drain would mark it 'sent' without delivering it. Failing routes it to retry and
+ * eventually 'failed', where it is visible — until a provider for that channel exists.
  */
 export class ResendNotificationProvider implements NotificationProvider {
   readonly name = 'resend';
@@ -34,7 +36,9 @@ export class ResendNotificationProvider implements NotificationProvider {
   constructor(private readonly config: { apiKey: string; from: string }) {}
 
   async send(message: NotificationMessage): Promise<void> {
-    if (message.channel !== 'email') return;
+    if (message.channel !== 'email') {
+      throw new Error(`Resend cannot deliver channel '${message.channel}' — no provider configured`);
+    }
     const { subject, text } = render(message);
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',

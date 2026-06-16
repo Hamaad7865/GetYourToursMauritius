@@ -137,9 +137,12 @@ describe('api_* service functions', () => {
     expect(slots.length).toBeGreaterThan(5);
     expect(slots.every((s) => s.capacity === 8 && s.seatsLeft === 8)).toBe(true);
 
-    // Today is materialised (same-day bookable, not skipped).
+    // Today's open-ended slot is at noon UTC; the read now mirrors create_hold (F16), so it is
+    // offered only while still in the future — shown before noon UTC, correctly hidden after.
+    const noonUtcToday = new Date();
+    noonUtcToday.setUTCHours(12, 0, 0, 0);
     const sameDay = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to: from });
-    expect(sameDay.length).toBe(1);
+    expect(sameDay.length).toBe(Date.now() < noonUtcToday.getTime() ? 1 : 0);
 
     // Materialization is idempotent — a second run creates no duplicates.
     await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: a[0]!.id })]);

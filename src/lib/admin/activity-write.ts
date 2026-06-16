@@ -163,10 +163,22 @@ async function replaceImages(activityId: string, images: ImageInput[]): Promise<
   }
 }
 
-/** Prices aren't FK-referenced (booking_items snapshots label+amount), so a full replace is safe. */
+/**
+ * Prices aren't FK-referenced (booking_items snapshots label+amount), so a full replace is safe.
+ * INSERT the new tiers BEFORE deleting the old ones: the browser client can't wrap this in a
+ * transaction, so a delete-then-insert whose insert fails (constraint / transient error / the user
+ * navigating away) would strand the option with ZERO price tiers — and create_booking then raises
+ * unknown_price_tier for every customer who picks it. Insert-first means a failure leaves the
+ * existing tiers intact.
+ */
 async function replacePrices(optionId: string, prices: PriceInput[]): Promise<void> {
   const sb = getBrowserSupabase();
-  await sb.from('activity_option_prices').delete().eq('activity_option_id', optionId);
+  const { data: old, error: readErr } = await sb
+    .from('activity_option_prices')
+    .select('id')
+    .eq('activity_option_id', optionId);
+  if (readErr) throw readErr;
+
   const rows = prices
     .filter((p) => p.label.trim() && p.amountEur != null)
     .map((p, position) => ({
@@ -180,6 +192,11 @@ async function replacePrices(optionId: string, prices: PriceInput[]): Promise<vo
     const { error } = await sb.from('activity_option_prices').insert(rows);
     if (error) throw error;
   }
+  const oldIds = (old ?? []).map((o) => o.id);
+  if (oldIds.length) {
+    const { error } = await sb.from('activity_option_prices').delete().in('id', oldIds);
+    if (error) throw error;
+  }
 }
 
 /**
@@ -190,7 +207,13 @@ async function replacePrices(optionId: string, prices: PriceInput[]): Promise<vo
  */
 async function reconcileOptions(activityId: string, formOptions: OptionInput[]): Promise<void> {
   const sb = getBrowserSupabase();
-  const { data: existing } = await sb.from('activity_options').select('id').eq('activity_id', activityId);
+  // Throw on a failed read: a transient null here (e.g. a token-refresh 401) would make every form
+  // option look new and duplicate the entire option set on save.
+  const { data: existing, error: readErr } = await sb
+    .from('activity_options')
+    .select('id')
+    .eq('activity_id', activityId);
+  if (readErr) throw readErr;
   const { toUpsert, removedIds } = planOptionReconcile((existing ?? []).map((o) => o.id), formOptions);
 
   for (const { option, position, isNew } of toUpsert) {
@@ -230,6 +253,19 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
   }
 }
 
+/**
+ * Roll the open-ended availability window forward for one activity. Idempotent and a no-op unless
+ * the activity is published with a daily capacity and at least one price — so calling it after every
+ * save means newly published / newly priced open-ended activities show bookable dates immediately,
+ * rather than nothing until the next maintenance cron tick (which is disabled by default).
+ */
+async function materializeActivity(activityId: string): Promise<void> {
+  const { error } = await getBrowserSupabase().rpc('materialize_availability', {
+    p: { activityId },
+  });
+  if (error) throw error;
+}
+
 /** Create a new activity (+ images/options/prices). Returns the new id. */
 export async function createActivity(v: ActivityFormValues): Promise<string> {
   const sb = getBrowserSupabase();
@@ -238,6 +274,7 @@ export async function createActivity(v: ActivityFormValues): Promise<string> {
   if (error) throw error;
   await replaceImages(data.id, v.images);
   await reconcileOptions(data.id, v.options);
+  await materializeActivity(data.id);
   return data.id;
 }
 
@@ -249,6 +286,8 @@ export async function updateActivity(id: string, v: ActivityFormValues): Promise
   if (error) throw error;
   await replaceImages(id, v.images);
   await reconcileOptions(id, v.options);
+  // Publishing or adding the first price makes the activity materializable — fill its window now.
+  await materializeActivity(id);
 }
 
 export async function deleteActivity(id: string): Promise<void> {

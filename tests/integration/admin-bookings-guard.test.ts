@@ -111,4 +111,27 @@ describe('admin booking write guards', () => {
     ).rejects.toThrow(/forbidden_direct_write/);
     await db.asOwner();
   });
+
+  it('F14: cancelling a PAID booking is routed to refund_pending, not a bare cancelled', async () => {
+    const { id } = await makeBooking(db, 'paid-cancel');
+    // Owner brings it to confirmed + paid (the webhook/ledger path).
+    await db.asOwner();
+    await db.pg.query(`update bookings set status = 'confirmed', payment_state = 'paid' where id = $1`, [id]);
+
+    // Staff "cancel" → the guard reroutes it so the refund owed is tracked.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await db.pg.query(`update bookings set status = 'cancelled' where id = $1`, [id]);
+    await db.asOwner();
+
+    expect(await status(db, id)).toBe('refund_pending');
+    expect(await paymentState(db, id)).toBe('paid'); // money still recorded as held until refunded
+  });
+
+  it('cancelling an UNPAID booking still cancels normally', async () => {
+    const { id } = await makeBooking(db, 'unpaid-cancel');
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await db.pg.query(`update bookings set status = 'cancelled' where id = $1`, [id]);
+    await db.asOwner();
+    expect(await status(db, id)).toBe('cancelled');
+  });
 });

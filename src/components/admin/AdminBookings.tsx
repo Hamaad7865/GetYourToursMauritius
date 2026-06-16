@@ -505,9 +505,14 @@ function BookingDrawer({
                   disabled={busy === 'cancel'}
                   onClick={() => {
                     // A confirmed booking's seats are freed immediately; an unpaid hold's seats
-                    // free themselves when the 15-minute hold expires, so don't promise otherwise.
-                    const msg =
-                      booking.status === 'confirmed'
+                    // free themselves when the hold expires. A PAID booking is routed to
+                    // refund_pending (the DB does this) so the refund owed is tracked — warn the
+                    // operator to actually issue it.
+                    const paid =
+                      booking.paymentState === 'paid' || booking.paymentState === 'partially_refunded';
+                    const msg = paid
+                      ? `Cancel booking ${booking.ref}? It's PAID — this frees the seats and marks it refund-pending. Remember to refund the customer in your payment provider.`
+                      : booking.status === 'confirmed'
                         ? `Cancel booking ${booking.ref}? This frees the seats.`
                         : `Cancel booking ${booking.ref}? Any held seats free up when the hold expires.`;
                     if (window.confirm(msg))
