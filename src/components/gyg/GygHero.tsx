@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { IconShield, IconBolt, IconCheck, IconUsers } from '@/components/ui/icons';
+import { HeroGallery, type HeroImage } from './HeroGallery';
 
 /**
  * Hero — "The east-coast lagoon, booked direct."
@@ -12,7 +13,14 @@ import { IconShield, IconBolt, IconCheck, IconUsers } from '@/components/ui/icon
  * coral are each rationed. The section is NOT clipped so the search dropdowns spill over the
  * white body below.
  */
-export function GygHero({ children }: { children?: ReactNode }) {
+export function GygHero({
+  children,
+  gallery = [],
+}: {
+  children?: ReactNode;
+  /** Framed photos for the decorative pile on the hero's open right side. */
+  gallery?: HeroImage[];
+}) {
   return (
     <section className="relative isolate flex min-h-[560px] flex-col justify-center overflow-visible lg:min-h-[620px]">
       {/* Image-free animated lagoon backdrop (server component, no JS). Every layer is -z-10,
@@ -24,7 +32,7 @@ export function GygHero({ children }: { children?: ReactNode }) {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background:
-            'linear-gradient(180deg,#072E34 0%,#0B5C63 30%,#0E8C92 60%,#13A0A6 84%,#1FB6B5 100%)',
+            'linear-gradient(180deg,#072E34 0%,#0B5C63 26%,#0E8C92 54%,#0C6E74 80%,#083C42 100%)',
         }}
       />
       {/* L1b — sun-side brightener, pushed to the open-lagoon right. */}
@@ -91,10 +99,10 @@ export function GygHero({ children }: { children?: ReactNode }) {
       {/* L3 — front waterline wave: two stretched copies in a 200% track loop seamlessly. */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 overflow-hidden">
         <div className="lagoon-wave flex h-full w-[200%]">
-          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(11,92,99,0.55)">
+          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(7,46,52,0.72)">
             <path d="M0,80 C180,55 380,108 600,82 C820,56 1030,106 1200,80 L1200,150 L0,150 Z" />
           </svg>
-          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(11,92,99,0.55)">
+          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(7,46,52,0.72)">
             <path d="M0,80 C180,55 380,108 600,82 C820,56 1030,106 1200,80 L1200,150 L0,150 Z" />
           </svg>
         </div>
@@ -113,7 +121,7 @@ export function GygHero({ children }: { children?: ReactNode }) {
         style={{ background: 'radial-gradient(130% 120% at 50% 120%, transparent 60%, rgba(10,46,54,0.35) 100%)' }}
       />
 
-      <div className="relative z-10 mx-auto w-full max-w-shell px-6 pb-12 pt-32">
+      <div className="relative z-10 mx-auto w-full max-w-shell px-6 pb-6 pt-32">
         <div className="lg:max-w-[58%]">
           <p className="animate-fade-up flex items-center gap-2.5 text-[13px] font-semibold uppercase tracking-[0.22em] text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)]">
             <span className="relative grid h-2 w-2 place-items-center">
@@ -161,6 +169,8 @@ export function GygHero({ children }: { children?: ReactNode }) {
           </ul>
         </div>
       </div>
+
+      <HeroGallery images={gallery} />
 
       {children && <div className="relative pb-8">{children}</div>}
     </section>

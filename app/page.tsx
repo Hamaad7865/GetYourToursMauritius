@@ -38,10 +38,24 @@ async function getActivities(): Promise<TourSummary[]> {
 export default async function HomePage() {
   const activities = await getActivities();
 
+  // A few real activity photos (up to two per activity, deduped) for the hero's decorative pile.
+  const gallery: { url: string; alt: string }[] = [];
+  const seen = new Set<string>();
+  for (const a of activities) {
+    const imgs = a.images.length ? a.images : a.heroImage ? [a.heroImage] : [];
+    for (const img of imgs.slice(0, 2)) {
+      if (img.url && !seen.has(img.url)) {
+        seen.add(img.url);
+        gallery.push({ url: img.url, alt: a.title });
+      }
+    }
+    if (gallery.length >= 5) break;
+  }
+
   return (
     <HomeShowcaseProvider>
       <GygHeader heroMode />
-      <GygHero />
+      <GygHero gallery={gallery.slice(0, 5)} />
       <main className="bg-white pb-14">
         <HomeShowcase activities={activities} />
       </main>

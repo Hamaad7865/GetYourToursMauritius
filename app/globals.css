@@ -95,6 +95,34 @@
     will-change: transform;
     animation: waveDrift 22s linear infinite;
   }
+
+  /* Hero photo pile: cards slide + fan in (staggered), then gently float. The entrance and the
+     float live on separate nested elements so their transforms don't conflict. */
+  @keyframes hgIn {
+    from {
+      opacity: 0;
+      transform: translateY(28px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes hgFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-7px);
+    }
+  }
+  .hg-in {
+    animation: hgIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .hg-float {
+    animation: hgFloat 6s ease-in-out infinite;
+  }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -105,9 +133,12 @@
   .animate-fade-up {
     animation: none;
   }
-  /* Freeze the lagoon backdrop to its composed still (!important beats the inline shorthand). */
+  /* Freeze the lagoon backdrop + the hero photo pile to their composed stills (!important beats
+     the inline-shorthand specificity on the blobs/wave). */
   .lagoon-blob,
-  .lagoon-wave {
+  .lagoon-wave,
+  .hg-in,
+  .hg-float {
     animation: none !important;
   }
 }
