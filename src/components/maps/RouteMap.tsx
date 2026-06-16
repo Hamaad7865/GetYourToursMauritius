@@ -13,6 +13,10 @@ async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral 
   return geocode(s.title);
 }
 
+/* Once the Directions API answers "not enabled / denied" for this key, stop calling it for the rest
+ * of the session — every retry just re-spams the console. The straight-line fallback takes over. */
+let directionsDenied = false;
+
 /**
  * Itinerary route map. Draws the real DRIVING route along the roads (Google Directions) with numbered
  * brand pins, and — when `animate` — a car marker that drives the route on a loop (rAF, reduced-motion
@@ -66,7 +70,8 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
 
       // The path the car drives: the real road route if Directions is available, else straight lines.
       let path: google.maps.LatLngLiteral[] = points;
-      if (points.length >= 2) {
+      let drewRoute = false;
+      if (points.length >= 2 && !directionsDenied) {
         try {
           const ds = new google.maps.DirectionsService();
           const res = await ds.route({
@@ -86,26 +91,31 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
               polylineOptions: { strokeColor: '#0E8C92', strokeWeight: 4, strokeOpacity: 0.9 },
             });
             path = route.overview_path.map((p) => ({ lat: p.lat(), lng: p.lng() }));
-          } else {
-            throw new Error('no route');
+            drewRoute = true;
           }
-        } catch {
-          // Directions unavailable → dashed straight-line fallback.
-          new google.maps.Polyline({
-            map,
-            path: points,
-            geodesic: true,
-            strokeOpacity: 0,
-            icons: [
-              {
-                icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, scale: 3, strokeColor: '#0E8C92' },
-                offset: '0',
-                repeat: '12px',
-              },
-            ],
-          });
-          path = points;
+        } catch (err: unknown) {
+          // "not enabled / denied" is permanent for this key → stop retrying it this session.
+          const code = (err as { code?: string })?.code ?? String(err);
+          if (/denied|not.*activated|not.*enabled/i.test(code)) directionsDenied = true;
         }
+      }
+      if (!drewRoute) {
+        if (cancelled) return;
+        // Directions unavailable → dashed straight-line fallback.
+        new google.maps.Polyline({
+          map,
+          path: points,
+          geodesic: true,
+          strokeOpacity: 0,
+          icons: [
+            {
+              icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, scale: 3, strokeColor: '#0E8C92' },
+              offset: '0',
+              repeat: '12px',
+            },
+          ],
+        });
+        path = points;
       }
 
       // The car: static at the start, or animated along the path on a loop.

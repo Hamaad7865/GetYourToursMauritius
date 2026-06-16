@@ -10,6 +10,7 @@ import { RecordView } from '@/components/gyg/RecordView';
 import { Gallery } from '@/components/gyg/detail/Gallery';
 import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
 import { VehicleOptionCard } from '@/components/gyg/detail/VehicleOptionCard';
+import { ItineraryBuilder } from '@/components/gyg/detail/ItineraryBuilder';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
 import { QuickFacts, Overview, Itinerary, Includes } from '@/components/gyg/detail/Sections';
@@ -102,6 +103,7 @@ export default async function ActivityDetailPage({
     .map((p) => p.trim())
     .filter(Boolean);
   const itinerary = activity.extra.itinerary ?? [];
+  const optionalStops = activity.extra.optionalStops ?? [];
   const importantInfo = activity.extra.importantInfo ?? [];
 
   return (
@@ -222,13 +224,24 @@ export default async function ActivityDetailPage({
                 </section>
               )}
 
-              {itinerary.length > 0 && (
+              {(itinerary.length > 0 || optionalStops.length > 0) && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
                   <SectionTitle>Itinerary</SectionTitle>
-                  <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
-                  <p className="mt-3 text-[12.5px] text-ink-muted">
-                    For reference only. Itineraries are subject to change.
-                  </p>
+                  {optionalStops.length > 0 ? (
+                    <ItineraryBuilder
+                      slug={activity.slug}
+                      defaultStops={itinerary}
+                      optionalStops={optionalStops}
+                      maxStops={activity.extra.maxStops}
+                    />
+                  ) : (
+                    <>
+                      <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
+                      <p className="mt-3 text-[12.5px] text-ink-muted">
+                        For reference only. Itineraries are subject to change.
+                      </p>
+                    </>
+                  )}
                 </section>
               )}
 
