@@ -11,6 +11,7 @@ const ALLOWED = new Set([
   'api_capture_lead',
   'claim_notifications',
   'mark_notification',
+  'run_booking_maintenance',
 ]);
 
 /**

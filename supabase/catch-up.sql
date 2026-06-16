@@ -418,4 +418,50 @@ revoke execute on function mark_notification(jsonb) from public;
 grant execute on function claim_notifications(jsonb) to service_role;
 grant execute on function mark_notification(jsonb) to service_role;
 
+-- ---- 20260616170000_maintenance --------------------------------------------
+-- Scheduled sweep: expire stale holds + abandoned (never-paid, past-grace) bookings. Safe — a
+-- late payment on an expired booking is routed to refund_pending by append_payment_event.
+create or replace function run_booking_maintenance(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_grace interval := make_interval(
+    mins => least(greatest(coalesce((p ->> 'graceMinutes')::int, 30), 1), 1440)
+  );
+  v_holds int;
+  v_bookings int;
+begin
+  v_holds := expire_holds();
+
+  with stale as (
+    update bookings b
+       set status = 'expired', updated_at = now()
+     where b.status in ('draft', 'held', 'payment_pending')
+       and b.payment_state = 'pending'
+       and b.created_at < now() - v_grace
+       and not exists (
+         select 1 from payments pay
+         where pay.booking_id = b.id
+           and pay.status in ('paid', 'partially_refunded', 'refunded')
+       )
+    returning b.id
+  )
+  select count(*) into v_bookings from stale;
+
+  update booking_holds h
+     set status = 'released'
+    from bookings b
+   where h.booking_id = b.id and b.status = 'expired' and h.status = 'active';
+
+  return jsonb_build_object('holdsExpired', v_holds, 'bookingsExpired', v_bookings);
+end;
+$$;
+
+revoke execute on function run_booking_maintenance(jsonb) from public;
+grant execute on function run_booking_maintenance(jsonb) to service_role;
+
 commit;
