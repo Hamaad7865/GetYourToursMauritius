@@ -6,7 +6,7 @@ import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import { geocode } from '@/lib/maps/geocode';
 import { mapsDirectionsUrl } from '@/lib/maps/urls';
 import { MapLinkCard } from './MapLinkCard';
-import { pinIcon, pinLabel } from './pin';
+import { carIcon, pinIcon, pinLabel } from './pin';
 
 async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral | null> {
   if (typeof s.lat === 'number' && typeof s.lng === 'number') return { lat: s.lat, lng: s.lng };
@@ -14,19 +14,21 @@ async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral 
 }
 
 /**
- * Itinerary route map: a numbered brand pin at every stop (coral first, ink for the rest)
- * joined by a dashed line, fit to the whole route — the GetYourGuide look, rendered with the
- * Maps JS API. Stops with stored coordinates are used directly; the rest are geocoded once.
- * Falls back to a keyless Google Maps directions link if the API isn't available.
+ * Itinerary route map. Draws the real DRIVING route along the roads (Google Directions) with numbered
+ * brand pins, and — when `animate` — a car marker that drives the route on a loop (rAF, reduced-motion
+ * aware). Falls back to a dashed straight-line route, then to a keyless Google Maps link, so it
+ * degrades but never breaks. Re-renders when `stops` change.
  */
-export function RouteMap({ stops }: { stops: ItineraryStop[] }) {
+export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; animate?: boolean }) {
   const status = useGoogleMaps();
   const elRef = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (status !== 'ready' || !elRef.current || stops.length === 0) return;
     let cancelled = false;
+
     (async () => {
       const points = (await Promise.all(stops.map(resolveStop))).filter(
         (p): p is google.maps.LatLngLiteral => p !== null,
@@ -44,21 +46,6 @@ export function RouteMap({ stops }: { stops: ItineraryStop[] }) {
         clickableIcons: false,
       });
 
-      new google.maps.Polyline({
-        map,
-        path: points,
-        geodesic: true,
-        strokeColor: '#0E8C92',
-        strokeOpacity: 0,
-        icons: [
-          {
-            icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, scale: 3, strokeColor: '#0E8C92' },
-            offset: '0',
-            repeat: '12px',
-          },
-        ],
-      });
-
       const bounds = new google.maps.LatLngBounds();
       points.forEach((pos, i) => {
         new google.maps.Marker({
@@ -70,18 +57,85 @@ export function RouteMap({ stops }: { stops: ItineraryStop[] }) {
         });
         bounds.extend(pos);
       });
-
       if (points.length === 1) {
         map.setCenter(points[0]!);
         map.setZoom(13);
       } else {
         map.fitBounds(bounds, 48);
       }
+
+      // The path the car drives: the real road route if Directions is available, else straight lines.
+      let path: google.maps.LatLngLiteral[] = points;
+      if (points.length >= 2) {
+        try {
+          const ds = new google.maps.DirectionsService();
+          const res = await ds.route({
+            origin: points[0]!,
+            destination: points[points.length - 1]!,
+            waypoints: points.slice(1, -1).map((location) => ({ location, stopover: true })),
+            travelMode: google.maps.TravelMode.DRIVING,
+          });
+          if (cancelled) return;
+          const route = res.routes[0];
+          if (route) {
+            new google.maps.DirectionsRenderer({
+              map,
+              directions: res,
+              suppressMarkers: true,
+              preserveViewport: true,
+              polylineOptions: { strokeColor: '#0E8C92', strokeWeight: 4, strokeOpacity: 0.9 },
+            });
+            path = route.overview_path.map((p) => ({ lat: p.lat(), lng: p.lng() }));
+          } else {
+            throw new Error('no route');
+          }
+        } catch {
+          // Directions unavailable → dashed straight-line fallback.
+          new google.maps.Polyline({
+            map,
+            path: points,
+            geodesic: true,
+            strokeOpacity: 0,
+            icons: [
+              {
+                icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, scale: 3, strokeColor: '#0E8C92' },
+                offset: '0',
+                repeat: '12px',
+              },
+            ],
+          });
+          path = points;
+        }
+      }
+
+      // The car: static at the start, or animated along the path on a loop.
+      const car = new google.maps.Marker({ map, position: path[0]!, icon: carIcon(), zIndex: 1000 });
+      const reduce =
+        typeof window !== 'undefined' &&
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      if (animate && !reduce && path.length > 1) {
+        const STEP_MS = 90; // advance one path point every ~90ms
+        let i = 0;
+        let last = 0;
+        const tick = (t: number) => {
+          if (cancelled) return;
+          if (t - last >= STEP_MS) {
+            i = (i + 1) % path.length;
+            car.setPosition(path[i]!);
+            last = t;
+          }
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      }
     })();
+
     return () => {
       cancelled = true;
+      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
     };
-  }, [status, stops]);
+  }, [status, stops, animate]);
 
   if (stops.length === 0) return null;
   if (status === 'error' || failed) {
