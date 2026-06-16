@@ -131,4 +131,23 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/health': {
+    get: {
+      operationId: 'health',
+      summary: 'Liveness/readiness probe (add ?deep=true to also ping the database)',
+      tags: ['Meta'],
+      responses: {
+        '200': okJson(
+          z.object({
+            status: z.string(),
+            live: z.boolean(),
+            checks: z.record(z.string(), z.boolean()),
+            time: z.string(),
+          }),
+          'Healthy',
+        ),
+        '503': errorResponse('One or more health checks failed'),
+      },
+    },
+  },
 };

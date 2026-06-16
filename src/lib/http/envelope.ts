@@ -48,6 +48,19 @@ export function errorToResponse(error: unknown, headers?: Record<string, string>
   if (isServiceError(error)) {
     return jsonError(error.status, error.code, error.message, error.details, headers);
   }
-  console.error('[api] unhandled error', error);
-  return jsonError(500, 'internal_error', 'Something went wrong', undefined, headers);
+  // Unhandled error: emit a single structured JSON line (parseable by Cloudflare Logpush / any log
+  // sink) with a correlation id, and return that id to the client so a report can be traced — but
+  // never the raw error text.
+  const errorId = crypto.randomUUID();
+  console.error(
+    JSON.stringify({
+      level: 'error',
+      event: 'unhandled_api_error',
+      errorId,
+      name: error instanceof Error ? error.name : typeof error,
+      message: error instanceof Error ? error.message : String(error),
+      time: new Date().toISOString(),
+    }),
+  );
+  return jsonError(500, 'internal_error', 'Something went wrong', { errorId }, headers);
 }

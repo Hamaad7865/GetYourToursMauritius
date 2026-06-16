@@ -21,6 +21,7 @@ const { GET: activityGet } = await import('../../app/api/v1/activities/[slug]/ro
 const { POST: bookingsPost } = await import('../../app/api/v1/bookings/route');
 const { GET: bookingGet } = await import('../../app/api/v1/bookings/[ref]/route');
 const { POST: leadsPost } = await import('../../app/api/v1/leads/route');
+const { GET: healthGet } = await import('../../app/api/v1/health/route');
 
 const catalogue = catalogueSchema.parse(
   JSON.parse(readFileSync(join(process.cwd(), 'seed', 'catalogue.json'), 'utf8')),
@@ -135,6 +136,14 @@ describe('/api/v1 routes', () => {
       { params: Promise.resolve({ ref: 'BMT-DOESNOTEXIST' }) },
     );
     expect(authed.status).toBe(404); // authenticated but no such booking
+  });
+
+  it('GET /health reports ok (shallow, non-live env)', async () => {
+    const res = await healthGet(new Request('http://localhost/api/v1/health'));
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.data.status).toBe('ok');
+    expect(body.data.checks.paymentsSafe).toBe(true);
   });
 
   it('POST /leads captures a lead (201)', async () => {
