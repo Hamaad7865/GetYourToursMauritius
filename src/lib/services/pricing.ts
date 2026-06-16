@@ -107,30 +107,50 @@ export function quoteTotal(tiers: PriceTierInput[], party: PartySelection): Quot
   };
 }
 
-export interface VehicleBracket {
-  label: string;
-  amountEur: number;
-  maxGuests: number;
+export interface SightseeingPricing {
+  /** €70 per block of `blockSize` people. */
+  perBlockEur: number;
+  /** Flat SUV upgrade price for parties of 1..blockSize. */
+  suvFlatEur: number;
+  blockSize: number;
+  maxParty: number;
+}
+
+/** Sensible defaults if the catalogue config hasn't loaded — mirrors the migration's seed row. */
+export const SIGHTSEEING_DEFAULT: SightseeingPricing = {
+  perBlockEur: 70,
+  suvFlatEur: 85,
+  blockSize: 4,
+  maxParty: 25,
+};
+
+/** Vehicle name by party size. NAME only — the price comes from the per-block rule. MUST mirror the
+ *  SQL `CASE` in create_booking (Sedan ≤4, Family car ≤6, Minibus ≤14, Coaster ≤25). */
+export const VEHICLE_BANDS: ReadonlyArray<{ max: number; name: string }> = [
+  { max: 4, name: 'Sedan' },
+  { max: 6, name: 'Family car' },
+  { max: 14, name: 'Minibus' },
+  { max: 25, name: 'Coaster' },
+];
+
+export interface SightseeingQuote {
+  vehicle: string;
+  totalEur: number;
 }
 
 /**
- * Vehicle pricing: the cheapest bracket whose capacity fits the whole party (a step function, NOT
- * per head). Brackets are price tiers where `maxGuests` is the vehicle's UPPER bound. Throws when
- * the party is larger than the biggest vehicle. The DB (`create_booking`) is authoritative; this
- * mirrors it for the widget + tests.
+ * Sightseeing price for a party: €70 × ceil(people / 4), or the flat SUV price for parties of 1..4
+ * when `suv` is set. The DB (`create_booking`) is authoritative; this mirrors it for the widget and
+ * unit tests. Throws outside 1..maxParty.
  */
-export function pickVehicleBracket(tiers: PriceTierInput[], people: number): VehicleBracket {
-  const fits = tiers
-    .filter((t): t is PriceTierInput & { maxGuests: number } => t.maxGuests != null && t.maxGuests >= people)
-    .sort((a, b) => a.maxGuests - b.maxGuests);
-  const bracket = fits[0];
-  if (!bracket) {
-    throw new ValidationError(`No vehicle fits ${people} ${people === 1 ? 'person' : 'people'}`);
+export function sightseeingQuote(people: number, suv: boolean, cfg: SightseeingPricing): SightseeingQuote {
+  if (!Number.isInteger(people) || people < 1 || people > cfg.maxParty) {
+    throw new ValidationError(`Party of ${people} is outside 1–${cfg.maxParty}`);
   }
-  return { label: bracket.label, amountEur: bracket.amountEur, maxGuests: bracket.maxGuests };
-}
-
-/** The largest party any configured vehicle can carry (0 if none). */
-export function maxVehicleCapacity(tiers: PriceTierInput[]): number {
-  return tiers.reduce((max, t) => (t.maxGuests != null && t.maxGuests > max ? t.maxGuests : max), 0);
+  if (people <= cfg.blockSize && suv) {
+    return { vehicle: 'SUV', totalEur: cfg.suvFlatEur };
+  }
+  const band = VEHICLE_BANDS.find((b) => people <= b.max) ?? VEHICLE_BANDS[VEHICLE_BANDS.length - 1]!;
+  const blocks = Math.ceil(people / cfg.blockSize);
+  return { vehicle: band.name, totalEur: cfg.perBlockEur * blocks };
 }

@@ -1,19 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  centsToEur,
-  eurToCents,
-  maxVehicleCapacity,
-  pickVehicleBracket,
-  quoteTotal,
-} from '@/lib/services/pricing';
+import { centsToEur, eurToCents, quoteTotal, sightseeingQuote } from '@/lib/services/pricing';
 import { ServiceError } from '@/lib/services/errors';
-
-const VEHICLE_BRACKETS = [
-  { label: 'Car', amountEur: 75, maxGuests: 4 },
-  { label: '6-seater', amountEur: 85, maxGuests: 6 },
-  { label: 'Van', amountEur: 125, maxGuests: 14 },
-  { label: 'Minibus', amountEur: 240, maxGuests: 22 },
-];
 
 const TIERS = [
   { label: 'Adult', amountEur: 75, maxGuests: null },
@@ -21,32 +8,42 @@ const TIERS = [
   { label: 'Private group', amountEur: 110, maxGuests: 6 },
 ];
 
-describe('pickVehicleBracket / maxVehicleCapacity', () => {
-  it('picks the cheapest vehicle that fits, rounding the party up to the next vehicle', () => {
+const SIGHTSEEING = { perBlockEur: 70, suvFlatEur: 85, blockSize: 4, maxParty: 25 };
+
+describe('sightseeingQuote', () => {
+  it('charges €70 per block of 4, named by party size', () => {
     const cases: Array<[number, string, number]> = [
-      [1, 'Car', 75],
-      [4, 'Car', 75],
-      [5, '6-seater', 85],
-      [6, '6-seater', 85],
-      [7, 'Van', 125],
-      [14, 'Van', 125],
-      [15, 'Minibus', 240],
-      [22, 'Minibus', 240],
+      [1, 'Sedan', 70],
+      [4, 'Sedan', 70],
+      [5, 'Family car', 140],
+      [6, 'Family car', 140],
+      [7, 'Minibus', 140],
+      [8, 'Minibus', 140],
+      [9, 'Minibus', 210],
+      [12, 'Minibus', 210],
+      [13, 'Minibus', 280],
+      [14, 'Minibus', 280],
+      [15, 'Coaster', 280],
+      [20, 'Coaster', 350],
+      [24, 'Coaster', 420],
+      [25, 'Coaster', 490],
     ];
-    for (const [people, label, amountEur] of cases) {
-      const bracket = pickVehicleBracket(VEHICLE_BRACKETS, people);
-      expect(bracket.label).toBe(label);
-      expect(bracket.amountEur).toBe(amountEur);
+    for (const [people, vehicle, total] of cases) {
+      const q = sightseeingQuote(people, false, SIGHTSEEING);
+      expect(q.vehicle).toBe(vehicle);
+      expect(q.totalEur).toBe(total);
     }
   });
 
-  it('throws when the party is bigger than the biggest vehicle', () => {
-    expect(() => pickVehicleBracket(VEHICLE_BRACKETS, 23)).toThrow(ServiceError);
+  it('applies the flat €85 SUV upgrade only for parties of 1–4', () => {
+    expect(sightseeingQuote(2, true, SIGHTSEEING)).toEqual({ vehicle: 'SUV', totalEur: 85 });
+    expect(sightseeingQuote(4, true, SIGHTSEEING)).toEqual({ vehicle: 'SUV', totalEur: 85 });
+    expect(sightseeingQuote(5, true, SIGHTSEEING)).toEqual({ vehicle: 'Family car', totalEur: 140 });
   });
 
-  it('reports the largest configured vehicle capacity', () => {
-    expect(maxVehicleCapacity(VEHICLE_BRACKETS)).toBe(22);
-    expect(maxVehicleCapacity([{ label: 'x', amountEur: 1, maxGuests: null }])).toBe(0);
+  it('throws above the cap and below 1', () => {
+    expect(() => sightseeingQuote(26, false, SIGHTSEEING)).toThrow(ServiceError);
+    expect(() => sightseeingQuote(0, false, SIGHTSEEING)).toThrow(ServiceError);
   });
 });
 

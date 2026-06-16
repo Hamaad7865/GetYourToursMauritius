@@ -23,6 +23,8 @@ export interface CartItem {
   /** Per-person, per-group, or (vehicle) the flat price of the chosen vehicle — in EUR. */
   unitEur: number;
   pricingMode: PricingMode;
+  /** Vehicle mode: the SUV upgrade was chosen (display only; price is already in unitEur). */
+  suv?: boolean;
   maxGuests: number | null;
   /** Seats left on the occurrence when added — the ceiling the guests stepper clamps to. */
   seatsLeft: number;

@@ -35,6 +35,8 @@ export function Checkout() {
   const when = params.get('when') ?? '';
   const guests = params.get('guests') ?? '';
   const unit = params.get('unit') ?? '';
+  // Sightseeing vehicle mode only: the SUV upgrade flag. The server re-resolves the price regardless.
+  const suv = params.get('suv') === '1';
 
   const [step, setStep] = useState(1);
   const [pickup, setPickup] = useState<'known' | 'unknown' | null>(null);
@@ -100,6 +102,7 @@ export function Checkout() {
             occurrenceId: occ,
             expectedSlug: slug,
             party: { [label]: qty },
+            suv,
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
               email: user?.email,
