@@ -2768,7 +2768,17 @@ $$;
 -- 1) Replace the group_pricing boolean with a pricing_mode enum (single source of truth).
 alter table activities add column if not exists pricing_mode text not null default 'per_person'
   check (pricing_mode in ('per_person', 'per_group', 'vehicle'));
-update activities set pricing_mode = 'per_group' where coalesce(group_pricing, false) = true;
+-- Backfill only if the legacy column is still present (guarded so a re-run, or a DB that never had
+-- the group_pricing column, doesn't error on a column that isn't there).
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'activities' and column_name = 'group_pricing'
+  ) then
+    update activities set pricing_mode = 'per_group' where coalesce(group_pricing, false) = true;
+  end if;
+end $$;
 
 -- 2) People-on-board for a vehicle booking (the line's quantity is the vehicle count = 1).
 alter table booking_items add column if not exists pax int;

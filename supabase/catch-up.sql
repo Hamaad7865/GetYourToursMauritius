@@ -552,7 +552,17 @@ $$;
 -- (vehicle branch), api_book (hold = 1 vehicle), booking_json (pax), and the catalogue DTOs.
 alter table activities add column if not exists pricing_mode text not null default 'per_person'
   check (pricing_mode in ('per_person', 'per_group', 'vehicle'));
-update activities set pricing_mode = 'per_group' where coalesce(group_pricing, false) = true;
+-- Backfill only if the legacy column is still present (a re-run, or a DB that never had 121900,
+-- will have dropped/never-had it). Guarded so the statement isn't planned when the column is gone.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'activities' and column_name = 'group_pricing'
+  ) then
+    update activities set pricing_mode = 'per_group' where coalesce(group_pricing, false) = true;
+  end if;
+end $$;
 alter table booking_items add column if not exists pax int;
 
 create or replace function create_booking(
