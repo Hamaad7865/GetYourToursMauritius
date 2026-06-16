@@ -5,6 +5,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { organizationJsonLd } from '@/lib/seo/jsonld';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { PreferencesProvider } from '@/components/site/PreferencesProvider';
+import { ToastProvider } from '@/components/site/ToastProvider';
 import './globals.css';
 
 const display = Fraunces({
@@ -43,7 +44,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         <JsonLd data={organizationJsonLd()} />
         <PreferencesProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <ToastProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ToastProvider>
         </PreferencesProvider>
       </body>
     </html>

@@ -133,6 +133,20 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
   );
 }
 
+/** Bookings navbar item — only appears once signed in, mirroring GetYourGuide. */
+function BookingsAction({ overHero }: { overHero: boolean }) {
+  const { user } = useAuth();
+  if (!user) return null;
+  return (
+    <HeaderAction
+      label="Bookings"
+      href="/account/bookings"
+      light={overHero}
+      icon={<IconBookings width={20} height={20} />}
+    />
+  );
+}
+
 /** Language + currency navbar item — opens the picker modal. */
 function PrefsButton({ overHero }: { overHero: boolean }) {
   const { language, openPrefs } = usePreferences();
@@ -226,6 +240,7 @@ export function GygHeader({
               className="hidden sm:flex"
               icon={<IconCart width={20} height={20} />}
             />
+            <BookingsAction overHero={overHero} />
             <PrefsButton overHero={overHero} />
             <ProfileMenu overHero={overHero} />
           </nav>

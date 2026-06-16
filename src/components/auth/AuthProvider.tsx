@@ -4,7 +4,18 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { useToast } from '@/components/site/ToastProvider';
 import { AuthDialog } from './AuthDialog';
+
+/** Best-effort display name from the auth user's metadata, for the welcome toast. */
+function displayName(user: User | null): string | null {
+  const meta = user?.user_metadata ?? {};
+  const name =
+    (typeof meta.full_name === 'string' && meta.full_name) ||
+    (typeof meta.name === 'string' && meta.name) ||
+    null;
+  return name ? name.split(' ')[0]! : null;
+}
 
 export interface Profile {
   id: string;
@@ -40,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [dialogMode, setDialogMode] = useState<AuthMode | null>(null);
+  const { showToast } = useToast();
 
   // Load (and create if missing) the caller's profile row under RLS.
   const loadProfile = useCallback(async (current: User): Promise<void> => {
@@ -103,6 +115,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Track which user we've already loaded a profile for, so the initial getSession and
     // the INITIAL_SESSION event (and token refreshes) don't each refetch the profile.
     let loadedFor: string | null = null;
+    // Whether a user was already present, so we only toast on a *fresh* interactive sign-in
+    // (not on a logged-in page refresh / token refresh).
+    let hadUser = false;
 
     const apply = (nextSession: Session | null) => {
       if (!active) return;
@@ -122,16 +137,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     sb.auth.getSession().then(({ data }) => {
       apply(data.session);
+      hadUser = !!data.session?.user;
       if (active) setLoading(false);
     });
 
-    const { data: sub } = sb.auth.onAuthStateChange((_event, nextSession) => apply(nextSession));
+    const { data: sub } = sb.auth.onAuthStateChange((event, nextSession) => {
+      const wasSignedIn = hadUser;
+      apply(nextSession);
+      hadUser = !!nextSession?.user;
+      if (active && event === 'SIGNED_IN' && !wasSignedIn) {
+        const name = displayName(nextSession?.user ?? null);
+        showToast({
+          title: "You're logged in",
+          description: name ? `Signed in as ${name}.` : 'Signed in to Belle Mare Tours.',
+        });
+      }
+    });
 
     return () => {
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [loadProfile, showToast]);
 
   const openAuth = useCallback((mode: AuthMode = 'signin') => setDialogMode(mode), []);
   const closeAuth = useCallback(() => setDialogMode(null), []);
