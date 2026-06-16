@@ -110,86 +110,53 @@ export async function deleteOccurrence(id: string): Promise<void> {
   if (error) throw error;
 }
 
-const OPEN_HORIZON_DAYS = 365;
-
-/**
- * Make an activity bookable every day with a daily `capacity` (e.g. "20 per day"), for the
- * next year — no per-date entry. Idempotent: re-running tops the rolling window back up AND
- * updates the capacity on existing upcoming days.
- */
-export async function openAvailability(activityId: string, opts: { capacity: number }): Promise<number> {
-  const sb = getBrowserSupabase();
-  const meta = await loadActivityOptions(activityId);
-  if (meta.options.length === 0) {
-    throw new Error('Add a booking option (with a price) to the activity first.');
-  }
-  const duration = meta.durationMinutes ?? 240;
-  const optionIds = meta.options.map((o) => o.id);
-
-  // Read existing upcoming slots so we can insert only the missing days + top up capacity on
-  // the rest. App-level idempotency means this never relies on a unique constraint /
-  // ON CONFLICT target (which an out-of-date database may be missing).
-  const { data: existing, error: readErr } = await sb
-    .from('session_occurrences')
-    .select('id, activity_option_id, starts_at')
-    .in('activity_option_id', optionIds)
-    .gte('starts_at', new Date().toISOString());
-  if (readErr) throw readErr;
-  // Key by option + instant (epoch ms) so timestamp string formats can't cause a false miss.
-  const haveKeys = new Set(
-    (existing ?? []).map((o) => `${o.activity_option_id}|${new Date(o.starts_at).getTime()}`),
-  );
-  const existingIds = (existing ?? []).map((o) => o.id);
-
-  const toInsert: Array<{
-    activity_option_id: string;
-    operator_id: string;
-    starts_at: string;
-    ends_at: string;
-    capacity: number;
-  }> = [];
-  for (const option of meta.options) {
-    for (let i = 1; i <= OPEN_HORIZON_DAYS; i += 1) {
-      const day = new Date();
-      day.setDate(day.getDate() + i);
-      // Anchor each slot at NOON UTC of the calendar day. The visitor's calendar reads the
-      // date from the local components of starts_at, and noon UTC stays on the same calendar
-      // day for every timezone within ±11h — so a date never shifts by one between admin and
-      // customer (the time itself isn't shown; customers choose a day, not a time).
-      const startMs = Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0, 0);
-      if (haveKeys.has(`${option.id}|${startMs}`)) continue;
-      toInsert.push({
-        activity_option_id: option.id,
-        operator_id: meta.operatorId,
-        starts_at: new Date(startMs).toISOString(),
-        ends_at: new Date(startMs + duration * 60_000).toISOString(),
-        capacity: opts.capacity,
-      });
-    }
-  }
-
-  if (toInsert.length > 0) {
-    const { error } = await sb.from('session_occurrences').insert(toInsert);
-    if (error) throw error;
-  }
-  // Re-running tops up the rolling window AND updates capacity on the days already open.
-  if (existingIds.length > 0) {
-    const { error } = await sb
-      .from('session_occurrences')
-      .update({ capacity: opts.capacity })
-      .in('id', existingIds);
-    if (error) throw error;
-  }
-  return toInsert.length + existingIds.length;
+/** Open-ended availability state: the activity's daily capacity (null = not bookable). */
+export async function loadAvailabilityState(activityId: string): Promise<{ capacity: number | null }> {
+  const { data, error } = await getBrowserSupabase()
+    .from('activities')
+    .select('daily_capacity')
+    .eq('id', activityId)
+    .maybeSingle();
+  if (error) throw error;
+  return { capacity: data?.daily_capacity ?? null };
 }
 
 /**
- * Stop availability: remove upcoming slots for the activity — but only ones with NO booked
- * items and NO active holds, so we never strand a customer's confirmed booking (FK restrict)
- * or silently cascade-delete a live hold. Days that already have bookings stay put.
+ * Make an activity bookable every day with a daily `capacity` (e.g. "10 per day"), open-ended:
+ * the customer calendar materialises the day slots it needs on demand, so there's no annual
+ * re-enable. A day is full once its bookings reach the capacity. Re-running just changes the
+ * number — and propagates it to any upcoming days already materialised.
+ */
+export async function setDailyCapacity(activityId: string, capacity: number): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { error } = await sb.from('activities').update({ daily_capacity: capacity }).eq('id', activityId);
+  if (error) throw error;
+
+  const { data: opts } = await sb.from('activity_options').select('id').eq('activity_id', activityId);
+  const optionIds = (opts ?? []).map((o) => o.id);
+  if (optionIds.length > 0) {
+    const { error: upErr } = await sb
+      .from('session_occurrences')
+      .update({ capacity })
+      .in('activity_option_id', optionIds)
+      .gte('starts_at', new Date().toISOString());
+    if (upErr) throw upErr;
+  }
+}
+
+/**
+ * Stop availability: clear the daily capacity (so no new days materialise) and remove upcoming
+ * slots — but only ones with NO booked items and NO active holds, so we never strand a
+ * customer's confirmed booking (FK restrict) or cascade-delete a live hold.
  */
 export async function stopAvailability(activityId: string): Promise<void> {
   const sb = getBrowserSupabase();
+  const { error: capErr } = await sb
+    .from('activities')
+    .update({ daily_capacity: null })
+    .eq('id', activityId);
+  if (capErr) throw capErr;
+
   const { data: opts } = await sb.from('activity_options').select('id').eq('activity_id', activityId);
   const optionIds = (opts ?? []).map((o) => o.id);
   if (optionIds.length === 0) return;

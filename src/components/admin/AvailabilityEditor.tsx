@@ -4,8 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   loadActivityOptions,
-  loadOccurrences,
-  openAvailability,
+  loadAvailabilityState,
+  setDailyCapacity,
   stopAvailability,
 } from '@/lib/admin/availability-write';
 
@@ -13,18 +13,16 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
   const [title, setTitle] = useState('');
   const [hasOptions, setHasOptions] = useState(true);
   const [open, setOpen] = useState(false);
-  const [upcoming, setUpcoming] = useState(0);
-  const [capacity, setCapacity] = useState(20);
+  const [capacity, setCapacity] = useState(10);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
-    const occ = await loadOccurrences(activityId);
-    setUpcoming(occ.length);
-    setOpen(occ.length > 0);
-    if (occ[0]) setCapacity(occ[0].capacity);
+    const { capacity: cap } = await loadAvailabilityState(activityId);
+    setOpen(cap != null);
+    if (cap != null) setCapacity(cap);
   }
 
   useEffect(() => {
@@ -110,7 +108,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
             <button
               type="button"
               disabled={busy}
-              onClick={() => run(() => openAvailability(activityId, { capacity }), open ? 'Capacity updated.' : 'Now bookable every day.')}
+              onClick={() => run(() => setDailyCapacity(activityId, capacity), open ? 'Capacity updated.' : 'Now bookable every day.')}
               className="rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-60"
             >
               {open ? 'Update capacity' : 'Make bookable'}
@@ -128,7 +126,9 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
           </div>
 
           {open && (
-            <p className="mt-4 text-[12px] text-ink-muted">{upcoming} upcoming days open for booking.</p>
+            <p className="mt-4 text-[12px] text-ink-muted">
+              Bookable on every future date — a day fills up once {capacity} guests have booked it.
+            </p>
           )}
           {notice && <p className="mt-3 text-[13px] font-medium text-teal-dark">{notice}</p>}
           {error && <p role="alert" className="mt-3 text-[13px] font-medium text-coral">{error}</p>}

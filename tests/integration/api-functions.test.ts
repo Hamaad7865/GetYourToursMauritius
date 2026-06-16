@@ -102,6 +102,41 @@ describe('api_* service functions', () => {
     expect(slots[0]!.seatsLeft).toBe(slots[0]!.capacity);
   });
 
+  it('api_list_availability materialises open-ended days from daily_capacity (idempotently)', async () => {
+    await db.asOwner();
+    const { rows: op } = await db.pg.query<{ id: string }>(`select id from operators limit 1`);
+    const { rows: a } = await db.pg.query<{ id: string }>(
+      `insert into activities (operator_id, slug, title, category, status, daily_capacity, duration_minutes)
+       values ($1, 'open-ended-tour', 'Open Ended', 'Island tours', 'published', 8, 120) returning id`,
+      [op[0]!.id],
+    );
+    const { rows: o } = await db.pg.query<{ id: string }>(
+      `insert into activity_options (activity_id, name, position) values ($1, 'Shared', 0) returning id`,
+      [a[0]!.id],
+    );
+    await db.pg.query(
+      `insert into activity_option_prices (activity_option_id, label, amount_minor) values ($1, 'Adult', 5000)`,
+      [o[0]!.id],
+    );
+    const from = new Date().toISOString().slice(0, 10);
+    const toDate = new Date();
+    toDate.setDate(toDate.getDate() + 10);
+    const to = toDate.toISOString().slice(0, 10);
+
+    // No occurrences exist yet — the read fills the window on demand.
+    const slots = await rpc<{ seatsLeft: number; capacity: number }[]>(db, 'api_list_availability', {
+      slug: 'open-ended-tour',
+      from,
+      to,
+    });
+    expect(slots.length).toBeGreaterThan(5); // ~10 days materialised
+    expect(slots.every((s) => s.capacity === 8 && s.seatsLeft === 8)).toBe(true);
+
+    // Idempotent: a second read returns the same window, no duplicates.
+    const again = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
+    expect(again.length).toBe(slots.length);
+  });
+
   it('api_book → api_create_payment → api_get_booking, with DB-sourced amounts', async () => {
     await db.as({ sub: USER, role: 'authenticated' });
     const booking = await rpc<{ ref: string; status: string }>(db, 'api_book', {
