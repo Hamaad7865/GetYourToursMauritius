@@ -241,6 +241,7 @@ export function GygHeader({
             />
             <HeaderAction
               label="Cart"
+              href="/cart"
               light={overHero}
               className="hidden sm:flex"
               icon={<IconCart width={20} height={20} />}
