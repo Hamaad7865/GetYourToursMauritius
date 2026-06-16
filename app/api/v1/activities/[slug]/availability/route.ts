@@ -17,7 +17,11 @@ export const GET = apiHandler<RouteCtx>(async (req, { params }) => {
   const query = parseQuery(req, availabilityQuerySchema);
   const ctx = buildServiceContext(req);
   const slots = await checkAvailability(ctx, { slug, from: query.from, to: query.to });
-  return jsonOk(slots);
+  // Short edge cache: availability shifts as people book, but this also keeps repeated calendar
+  // loads off the (lazy-filling) DB function.
+  return jsonOk(slots, {
+    headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=120' },
+  });
 });
 
 export function OPTIONS(req: Request): Response {

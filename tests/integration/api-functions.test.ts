@@ -135,6 +135,14 @@ describe('api_* service functions', () => {
     // Idempotent: a second read returns the same window, no duplicates.
     const again = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
     expect(again.length).toBe(slots.length);
+
+    // Same-day is bookable (today is materialised, not skipped).
+    const sameDay = await rpc<unknown[]>(db, 'api_list_availability', {
+      slug: 'open-ended-tour',
+      from,
+      to: from,
+    });
+    expect(sameDay.length).toBe(1);
   });
 
   it('api_book → api_create_payment → api_get_booking, with DB-sourced amounts', async () => {

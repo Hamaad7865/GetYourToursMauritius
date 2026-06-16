@@ -182,9 +182,21 @@ export async function stopAvailability(activityId: string): Promise<void> {
     ...(items ?? []).map((i) => i.session_occurrence_id),
     ...(holds ?? []).map((h) => h.session_occurrence_id),
   ]);
+  const busyIds = occIds.filter((id) => busy.has(id));
   const deletable = occIds.filter((id) => !busy.has(id));
-  if (deletable.length === 0) return;
 
-  const { error } = await sb.from('session_occurrences').delete().in('id', deletable);
-  if (error) throw error;
+  // Booked/held days: close them so no one else can book — but keep the row (and its existing
+  // booking/hold) intact. create_hold + availability both require status='open'.
+  if (busyIds.length > 0) {
+    const { error } = await sb
+      .from('session_occurrences')
+      .update({ status: 'closed' })
+      .in('id', busyIds);
+    if (error) throw error;
+  }
+  // Empty future days: remove entirely.
+  if (deletable.length > 0) {
+    const { error } = await sb.from('session_occurrences').delete().in('id', deletable);
+    if (error) throw error;
+  }
 }

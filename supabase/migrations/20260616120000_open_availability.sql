@@ -31,6 +31,7 @@ declare
   v_activity activities;
   v_from date := coalesce((p ->> 'from')::date, current_date);
   v_to date := coalesce((p ->> 'to')::date, current_date + 30);
+  v_fill_to date;
   v_result jsonb;
 begin
   select * into v_activity from activities where slug = p ->> 'slug';
@@ -39,11 +40,16 @@ begin
   end if;
 
   v_from := greatest(v_from, current_date);
-  -- Cap the fill horizon so a crafted `to` can't generate unbounded rows (the calendar only
-  -- ever asks for ~6 months; this leaves generous headroom while staying bounded).
   v_to := least(v_to, current_date + 400);
+  -- Bound the per-call write to ~6 months regardless of the read window, so an anonymous read
+  -- can never trigger a huge fill; the window still rolls forward as current_date advances.
+  v_fill_to := least(v_to, current_date + 185);
 
-  if coalesce(v_activity.daily_capacity, 0) > 0 and v_to >= current_date + 1 then
+  -- Open-ended activity: fill any day in [today, fill horizon] that has NO occurrence yet for
+  -- the option — compared on the UTC calendar day, so a legacy/seed slot at a different time of
+  -- day blocks a duplicate and each day ends up with exactly one bookable slot. Includes today,
+  -- so same-day booking works. One slot per option per day at noon UTC; capacity = daily_capacity.
+  if coalesce(v_activity.daily_capacity, 0) > 0 then
     insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
     select o.id,
            v_activity.operator_id,
@@ -53,16 +59,22 @@ begin
            v_activity.daily_capacity,
            'open'
     from activity_options o
-    cross join generate_series(greatest(v_from, current_date + 1), v_to, interval '1 day') d
+    cross join generate_series(greatest(v_from, current_date), v_fill_to, interval '1 day') d
     where o.activity_id = v_activity.id
       and exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id)
+      and not exists (
+        select 1 from session_occurrences x
+        where x.activity_option_id = o.id
+          and (x.starts_at at time zone 'UTC')::date = d::date
+      )
     on conflict (activity_option_id, starts_at) do nothing;
   end if;
 
   select coalesce(jsonb_agg(jsonb_build_object(
     'occurrenceId', so.id, 'activityOptionId', so.activity_option_id, 'optionName', o.name,
     'startsAt', so.starts_at, 'endsAt', so.ends_at, 'capacity', so.capacity,
-    'seatsLeft', so.capacity - used_capacity(so.id), 'status', so.status
+    -- Never report negative seats (e.g. if capacity was lowered below already-booked seats).
+    'seatsLeft', greatest(so.capacity - used_capacity(so.id), 0), 'status', so.status
   ) order by so.starts_at), '[]'::jsonb)
   into v_result
   from session_occurrences so
