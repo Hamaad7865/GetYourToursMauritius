@@ -1,6 +1,14 @@
 'use client';
 
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { IconCheck, IconInfo, IconX } from '@/components/ui/icons';
 
 type ToastVariant = 'success' | 'info' | 'error';
@@ -32,8 +40,14 @@ const ACCENT: Record<ToastVariant, string> = {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const idRef = useRef(0);
+  const timers = useRef(new Map<number, ReturnType<typeof setTimeout>>());
 
   const remove = useCallback((id: number) => {
+    const handle = timers.current.get(id);
+    if (handle) {
+      clearTimeout(handle);
+      timers.current.delete(id);
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
@@ -41,10 +55,19 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     ({ title, description, variant = 'success' }) => {
       const id = (idRef.current += 1);
       setToasts((prev) => [...prev, { id, title, description, variant }]);
-      setTimeout(() => remove(id), 4500);
+      timers.current.set(id, setTimeout(() => remove(id), 4500));
     },
     [remove],
   );
+
+  // Clear any pending dismiss timers if the provider unmounts.
+  useEffect(() => {
+    const pending = timers.current;
+    return () => {
+      pending.forEach(clearTimeout);
+      pending.clear();
+    };
+  }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
@@ -55,7 +78,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         className="pointer-events-none fixed inset-x-0 bottom-4 z-[100] flex flex-col items-center gap-2 px-4 sm:bottom-6"
       >
         {toasts.map((t) => {
-          const Icon = t.variant === 'success' ? IconCheck : IconInfo;
+          const Icon =
+            t.variant === 'success' ? IconCheck : t.variant === 'error' ? IconX : IconInfo;
           return (
             <div
               key={t.id}

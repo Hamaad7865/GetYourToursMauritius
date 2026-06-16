@@ -113,8 +113,13 @@ export function AccountBookings() {
         .order('created_at', { ascending: false })
         .returns<BookingRow[]>();
       if (!active) return;
-      if (error) setError(error.message);
-      else setBookings(data ?? []);
+      if (error) {
+        setError(error.message);
+        // Still render both sections (with empty states) rather than collapsing to a bare error.
+        setBookings([]);
+      } else {
+        setBookings(data ?? []);
+      }
     })();
     return () => {
       active = false;
@@ -130,8 +135,10 @@ export function AccountBookings() {
   const upcoming: BookingRow[] = [];
   const past: BookingRow[] = [];
   for (const b of bookings ?? []) {
-    const date = tripDate(b);
-    const isPast = date != null && date < startOfToday;
+    // Fall back to the booking date when the trip date is unknown (e.g. a since-unpublished
+    // activity whose occurrence is no longer readable), so old bookings still bucket as past.
+    const date = tripDate(b) ?? new Date(b.created_at);
+    const isPast = date < startOfToday;
     if (CANCELLED.has(b.status) || isPast) past.push(b);
     else upcoming.push(b);
   }

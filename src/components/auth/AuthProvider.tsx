@@ -115,15 +115,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Track which user we've already loaded a profile for, so the initial getSession and
     // the INITIAL_SESSION event (and token refreshes) don't each refetch the profile.
     let loadedFor: string | null = null;
-    // Whether a user was already present, so we only toast on a *fresh* interactive sign-in
-    // (not on a logged-in page refresh / token refresh).
-    let hadUser = false;
+
+    // Welcome-toast detection. Detecting via the SIGNED_IN event alone is unreliable: on the
+    // OAuth / email-confirmation callback the session is restored before SIGNED_IN is emitted,
+    // so we'd miss it. Instead we toast on a transition TO a user, primed by whether a session
+    // was already stored before this page's JS ran (a logged-in reload must NOT toast).
+    let hadStored = false;
+    try {
+      hadStored = typeof window !== 'undefined' && !!window.localStorage.getItem('gytm:auth');
+    } catch {
+      hadStored = false;
+    }
+    let prevUserId: string | null = null;
+    let sawSignedOut = false;
 
     const apply = (nextSession: Session | null) => {
       if (!active) return;
       setSession(nextSession);
       const u = nextSession?.user ?? null;
       setUser(u);
+      const nextId = u?.id ?? null;
+
+      // A genuine interactive sign-in: a transition to a (new) user that is either not the
+      // pre-existing stored session or follows a sign-out in this tab. Foreground-only, so a
+      // cross-tab auth broadcast doesn't pop a toast in a background tab.
+      const freshLogin =
+        nextId != null &&
+        nextId !== prevUserId &&
+        (!hadStored || sawSignedOut) &&
+        (typeof document === 'undefined' || document.visibilityState !== 'hidden');
+      if (freshLogin) {
+        const name = displayName(u);
+        showToast({
+          title: "You're logged in",
+          description: name ? `Signed in as ${name}.` : 'Signed in to Belle Mare Tours.',
+        });
+      }
+      if (nextId == null) sawSignedOut = true;
+      prevUserId = nextId;
+
       if (u) {
         if (u.id !== loadedFor) {
           loadedFor = u.id;
@@ -137,22 +167,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     sb.auth.getSession().then(({ data }) => {
       apply(data.session);
-      hadUser = !!data.session?.user;
       if (active) setLoading(false);
     });
 
-    const { data: sub } = sb.auth.onAuthStateChange((event, nextSession) => {
-      const wasSignedIn = hadUser;
-      apply(nextSession);
-      hadUser = !!nextSession?.user;
-      if (active && event === 'SIGNED_IN' && !wasSignedIn) {
-        const name = displayName(nextSession?.user ?? null);
-        showToast({
-          title: "You're logged in",
-          description: name ? `Signed in as ${name}.` : 'Signed in to Belle Mare Tours.',
-        });
-      }
-    });
+    const { data: sub } = sb.auth.onAuthStateChange((_event, nextSession) => apply(nextSession));
 
     return () => {
       active = false;
