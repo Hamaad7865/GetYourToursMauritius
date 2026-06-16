@@ -1,38 +1,117 @@
 import type { ReactNode } from 'react';
-import { SearchBar } from './SearchBar';
 import { IconShield, IconBolt, IconCheck, IconUsers } from '@/components/ui/icons';
-
-/* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
 /**
  * Hero — "The east-coast lagoon, booked direct."
  *
- * A full-bleed Mauritius lagoon photo with a DIRECTIONAL scrim: the dark mass sits under the
- * left-aligned type column while the turquoise lagoon stays vivid on the right (the view
- * you're booking), rather than a flat all-over wash. The headline is an oversized Fraunces
- * stack with the single word "lagoon," set in italic — the one place boldness is spent. The
- * search is docked flush-left as the column's baseline; teal and coral are each rationed to
- * two appearances. The section is NOT clipped so the search dropdowns can spill over the
+ * An IMAGE-FREE animated backdrop (pure CSS + inline SVG, no JS): a vertical teal depth
+ * gradient with heavily-blurred, screen-blended radial "light" blobs that drift via transform —
+ * sunlight wandering under turquoise water — plus one calm waterline wave. Under
+ * prefers-reduced-motion it freezes to a composed still. The headline is an oversized Fraunces
+ * stack with the single word "lagoon," in italic; the search is docked flush-left; teal and
+ * coral are each rationed. The section is NOT clipped so the search dropdowns spill over the
  * white body below.
  */
 export function GygHero({ children }: { children?: ReactNode }) {
   return (
-    <section className="relative flex min-h-[560px] flex-col justify-center overflow-visible lg:min-h-[620px]">
-      <img
-        src="/hero-mauritius.jpg"
-        alt="Aerial view of a turquoise Mauritius lagoon and white-sand beach"
-        className="absolute inset-0 h-full w-full object-cover object-[62%_center]"
-      />
-      {/* Directional scrim: dark under the left type column, open lagoon on the right.
-          On mobile (no right-side breathing room) it flips to a bottom-weighted gradient. */}
+    <section className="relative isolate flex min-h-[560px] flex-col justify-center overflow-visible lg:min-h-[620px]">
+      {/* Image-free animated lagoon backdrop (server component, no JS). Every layer is -z-10,
+          under the relative-z-10 content; `isolate` keeps the layers — and the blobs' screen
+          blend — inside this section instead of escaping behind the white page body. */}
+      {/* L1 — depth gradient: the water column (and the reduced-motion still). */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-gradient-to-r from-ink/75 via-ink/40 to-transparent max-lg:bg-gradient-to-b max-lg:from-ink/25 max-lg:via-ink/55 max-lg:to-ink/80"
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background:
+            'linear-gradient(180deg,#072E34 0%,#0B5C63 30%,#0E8C92 60%,#13A0A6 84%,#1FB6B5 100%)',
+        }}
       />
-      {/* Short top fade so the white logo + nav read — not a full dark band. */}
-      <div aria-hidden className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-ink/55 to-transparent" />
-      {/* Contrast pad under the search pill + chips. */}
-      <div aria-hidden className="absolute inset-x-0 bottom-0 h-44 bg-gradient-to-t from-ink/55 to-transparent" />
+      {/* L1b — sun-side brightener, pushed to the open-lagoon right. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{ background: 'radial-gradient(120% 90% at 74% 16%, rgba(19,160,166,0.55) 0%, transparent 55%)' }}
+      />
+      {/* L2 — drifting light mesh (the signature): blurred, screen-blended blobs, transform-only. */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <span
+          className="lagoon-blob"
+          style={{
+            width: '80vw',
+            height: '80vw',
+            right: '-12%',
+            top: '16%',
+            background: 'radial-gradient(circle, #13A0A6 0%, transparent 70%)',
+            opacity: 0.5,
+            filter: 'blur(82px)',
+            animation: 'drift 34s ease-in-out -3s infinite alternate',
+          }}
+        />
+        <span
+          className="lagoon-blob"
+          style={{
+            width: '62vw',
+            height: '62vw',
+            right: '4%',
+            top: '-10%',
+            background: 'radial-gradient(circle, #57D6DB 0%, transparent 70%)',
+            opacity: 0.42,
+            filter: 'blur(78px)',
+            animation: 'drift 40s ease-in-out -11s infinite alternate',
+          }}
+        />
+        <span
+          className="lagoon-blob"
+          style={{
+            width: '90vw',
+            height: '90vw',
+            left: '-20%',
+            bottom: '-30%',
+            background: 'radial-gradient(circle, #0E8C92 0%, transparent 70%)',
+            opacity: 0.34,
+            filter: 'blur(90px)',
+            animation: 'drift 30s ease-in-out -7s infinite alternate-reverse',
+          }}
+        />
+        <span
+          className="lagoon-blob"
+          style={{
+            width: '46vw',
+            height: '46vw',
+            right: '8%',
+            top: '-16%',
+            background: 'radial-gradient(circle, #F76C5E 0%, transparent 70%)',
+            opacity: 0.15,
+            filter: 'blur(80px)',
+            animation: 'drift 26s ease-in-out -5s infinite alternate',
+          }}
+        />
+      </div>
+      {/* L3 — front waterline wave: two stretched copies in a 200% track loop seamlessly. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 overflow-hidden">
+        <div className="lagoon-wave flex h-full w-[200%]">
+          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(11,92,99,0.55)">
+            <path d="M0,80 C180,55 380,108 600,82 C820,56 1030,106 1200,80 L1200,150 L0,150 Z" />
+          </svg>
+          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(11,92,99,0.55)">
+            <path d="M0,80 C180,55 380,108 600,82 C820,56 1030,106 1200,80 L1200,150 L0,150 Z" />
+          </svg>
+        </div>
+      </div>
+      {/* L4 — legibility scrims (no blend mode), so the white content's contrast is unchanged. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-ink/75 via-ink/40 to-transparent max-lg:bg-gradient-to-b max-lg:from-ink/25 max-lg:via-ink/55 max-lg:to-ink/80"
+      />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-28 bg-gradient-to-b from-ink/55 to-transparent" />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-ink/55 to-transparent" />
+      {/* L5 — edge vignette to seat the edges / kill banding on cheap panels. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{ background: 'radial-gradient(130% 120% at 50% 120%, transparent 60%, rgba(10,46,54,0.35) 100%)' }}
+      />
 
       <div className="relative z-10 mx-auto w-full max-w-shell px-6 pb-12 pt-32">
         <div className="lg:max-w-[58%]">
@@ -65,15 +144,8 @@ export function GygHero({ children }: { children?: ReactNode }) {
             , no markup.
           </p>
 
-          {/* Strip SearchBar's built-in centering so the pill aligns flush-left to the headline.
-              `relative z-30` keeps the search + its date/travellers dropdowns above the trust
-              chips below (every hero element animates a transform, so without this the later
-              chips' stacking context paints over the open calendar). */}
-          <div className="animate-fade-up relative z-30 mt-7 [animation-delay:240ms] [&>div]:!mx-0 [&>div]:!mt-0 [&>div]:!max-w-2xl">
-            <SearchBar variant="hero" />
-          </div>
-
-          <ul className="animate-fade-up relative z-0 mt-5 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)] [animation-delay:320ms]">
+          {/* The search now lives in the navbar; the hero carries just the message + proof. */}
+          <ul className="animate-fade-up mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)] [animation-delay:240ms]">
             <li className="flex items-center gap-1.5">
               <IconShield width={14} height={14} /> Booked direct with the local operator
             </li>

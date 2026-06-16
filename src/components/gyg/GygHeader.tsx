@@ -228,14 +228,10 @@ export function GygHeader({
 }) {
   // Non-hero pages render the solid bar immediately; hero starts transparent.
   const [solid, setSolid] = useState(!heroMode);
-  const [searchDocked, setSearchDocked] = useState(false);
 
   useEffect(() => {
     if (!heroMode) return;
-    const onScroll = () => {
-      setSolid(window.scrollY > 40);
-      setSearchDocked(window.scrollY > 280);
-    };
+    const onScroll = () => setSolid(window.scrollY > 40);
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -243,7 +239,8 @@ export function GygHeader({
 
   const overHero = heroMode && !solid;
   const showNav = !heroMode || !solid;
-  const searchShown = heroMode ? searchDocked : showSearch;
+  // The search lives in the navbar always (the hero body no longer carries it).
+  const searchShown = heroMode ? true : showSearch;
   const position = heroMode ? 'fixed inset-x-0 top-0' : sticky ? 'sticky top-0' : 'relative';
   const bg = overHero ? 'bg-transparent' : 'bg-white shadow-[0_1px_8px_-2px_rgba(10,46,54,0.12)]';
 

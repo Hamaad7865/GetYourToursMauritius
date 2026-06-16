@@ -63,6 +63,38 @@
   .animate-fade-up {
     animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
+
+  /* Animated lagoon hero backdrop. Heavily-blurred, screen-blended radial "light" blobs that
+     drift via transform only (GPU-composited) — sunlight wandering under turquoise water. The
+     one-time blur is what keeps it 60fps; never animate blur/opacity. */
+  @keyframes drift {
+    0% {
+      transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+    }
+    100% {
+      transform: translate3d(6%, -5%, 0) scale(1.16) rotate(8deg);
+    }
+  }
+  /* Front waterline wave: a 200%-wide track loops seamlessly back to an identical column. */
+  @keyframes waveDrift {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  .lagoon-blob {
+    position: absolute;
+    border-radius: 50%;
+    mix-blend-mode: screen;
+    will-change: transform;
+    pointer-events: none;
+  }
+  .lagoon-wave {
+    will-change: transform;
+    animation: waveDrift 22s linear infinite;
+  }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -72,5 +104,10 @@
   }
   .animate-fade-up {
     animation: none;
+  }
+  /* Freeze the lagoon backdrop to its composed still (!important beats the inline shorthand). */
+  .lagoon-blob,
+  .lagoon-wave {
+    animation: none !important;
   }
 }
