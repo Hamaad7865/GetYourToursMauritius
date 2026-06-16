@@ -75,24 +75,34 @@ export async function addOccurrences(input: {
   repeatDays: number;
 }): Promise<number> {
   const sb = getBrowserSupabase();
-  const rows = [];
+  const targets: Date[] = [];
   for (let i = 0; i < Math.max(1, input.repeatDays); i += 1) {
     const start = new Date(`${input.date}T${input.time}:00`);
     start.setDate(start.getDate() + i);
-    const end = new Date(start.getTime() + input.durationMinutes * 60_000);
-    rows.push({
+    targets.push(start);
+  }
+  // Skip slots that already exist for this option (app-level idempotency — no reliance on a
+  // unique constraint / ON CONFLICT target the database might be missing).
+  const minIso = new Date(Math.min(...targets.map((d) => d.getTime()))).toISOString();
+  const { data: existing } = await sb
+    .from('session_occurrences')
+    .select('starts_at')
+    .eq('activity_option_id', input.activityOptionId)
+    .gte('starts_at', minIso);
+  const have = new Set((existing ?? []).map((o) => new Date(o.starts_at).getTime()));
+  const rows = targets
+    .filter((start) => !have.has(start.getTime()))
+    .map((start) => ({
       activity_option_id: input.activityOptionId,
       operator_id: input.operatorId,
       starts_at: start.toISOString(),
-      ends_at: end.toISOString(),
+      ends_at: new Date(start.getTime() + input.durationMinutes * 60_000).toISOString(),
       capacity: input.capacity,
-    });
-  }
-  const { error, count } = await sb
-    .from('session_occurrences')
-    .upsert(rows, { onConflict: 'activity_option_id,starts_at', ignoreDuplicates: true, count: 'exact' });
+    }));
+  if (rows.length === 0) return 0;
+  const { error } = await sb.from('session_occurrences').insert(rows);
   if (error) throw error;
-  return count ?? rows.length;
+  return rows.length;
 }
 
 export async function deleteOccurrence(id: string): Promise<void> {
@@ -114,7 +124,24 @@ export async function openAvailability(activityId: string, opts: { capacity: num
     throw new Error('Add a booking option (with a price) to the activity first.');
   }
   const duration = meta.durationMinutes ?? 240;
-  const rows: Array<{
+  const optionIds = meta.options.map((o) => o.id);
+
+  // Read existing upcoming slots so we can insert only the missing days + top up capacity on
+  // the rest. App-level idempotency means this never relies on a unique constraint /
+  // ON CONFLICT target (which an out-of-date database may be missing).
+  const { data: existing, error: readErr } = await sb
+    .from('session_occurrences')
+    .select('id, activity_option_id, starts_at')
+    .in('activity_option_id', optionIds)
+    .gte('starts_at', new Date().toISOString());
+  if (readErr) throw readErr;
+  // Key by option + instant (epoch ms) so timestamp string formats can't cause a false miss.
+  const haveKeys = new Set(
+    (existing ?? []).map((o) => `${o.activity_option_id}|${new Date(o.starts_at).getTime()}`),
+  );
+  const existingIds = (existing ?? []).map((o) => o.id);
+
+  const toInsert: Array<{
     activity_option_id: string;
     operator_id: string;
     starts_at: string;
@@ -130,7 +157,8 @@ export async function openAvailability(activityId: string, opts: { capacity: num
       // day for every timezone within ±11h — so a date never shifts by one between admin and
       // customer (the time itself isn't shown; customers choose a day, not a time).
       const startMs = Date.UTC(day.getFullYear(), day.getMonth(), day.getDate(), 12, 0, 0);
-      rows.push({
+      if (haveKeys.has(`${option.id}|${startMs}`)) continue;
+      toInsert.push({
         activity_option_id: option.id,
         operator_id: meta.operatorId,
         starts_at: new Date(startMs).toISOString(),
@@ -139,12 +167,20 @@ export async function openAvailability(activityId: string, opts: { capacity: num
       });
     }
   }
-  // No ignoreDuplicates → re-running updates the capacity on days that already exist.
-  const { error, count } = await sb
-    .from('session_occurrences')
-    .upsert(rows, { onConflict: 'activity_option_id,starts_at', count: 'exact' });
-  if (error) throw error;
-  return count ?? rows.length;
+
+  if (toInsert.length > 0) {
+    const { error } = await sb.from('session_occurrences').insert(toInsert);
+    if (error) throw error;
+  }
+  // Re-running tops up the rolling window AND updates capacity on the days already open.
+  if (existingIds.length > 0) {
+    const { error } = await sb
+      .from('session_occurrences')
+      .update({ capacity: opts.capacity })
+      .in('id', existingIds);
+    if (error) throw error;
+  }
+  return toInsert.length + existingIds.length;
 }
 
 /**
