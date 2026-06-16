@@ -124,6 +124,20 @@ describe('service layer (via PGlite rpc)', () => {
     await db.as({ sub: USER, role: 'authenticated' });
   });
 
+  it('saves a custom itinerary through the service path', async () => {
+    await db.as({ sub: USER, role: 'authenticated' });
+    const booking = await createBooking(ctx, {
+      occurrenceId,
+      party: { 'Private group': 1 },
+      itinerary: [{ title: 'Port Louis' }, { title: 'Apravasi Ghat', area: 'Port Louis' }],
+      customer: { name: 'R', email: 'route-svc@example.com' },
+      idempotencyKey: 'svc-route-1',
+    });
+    const got = await getBookingStatus(ctx, booking.ref);
+    expect(got.customItinerary).toHaveLength(2);
+    expect(got.customItinerary![1]!.title).toBe('Apravasi Ghat');
+  });
+
   it('maps a DB exception to a ServiceError (unknown occurrence)', async () => {
     await expect(
       createBooking(ctx, {

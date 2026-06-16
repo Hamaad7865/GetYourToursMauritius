@@ -14,6 +14,19 @@ export const createBookingInputSchema = z.object({
   /** Sightseeing vehicle mode only: the customer chose the SUV upgrade (flat price, parties ≤4).
    *  Ignored by every other pricing mode and for parties over the SUV tier. */
   suv: z.boolean().optional(),
+  /** The customer's chosen route (sightseeing tours). Free + informational; bounded so a tampered
+   *  payload is a clean 400, not a DB blowup. */
+  itinerary: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(120),
+        area: z.string().max(120).nullish(),
+        lat: z.number().optional(),
+        lng: z.number().optional(),
+      }),
+    )
+    .max(30)
+    .optional(),
   customer: z.object({
     name: z.string().min(1).max(120),
     email: z.string().email(),
@@ -48,6 +61,17 @@ export const bookingSchema = z.object({
   source: bookingSourceSchema,
   createdAt: z.string(),
   items: z.array(bookingItemSchema),
+  /** The customer's saved route (sightseeing tours), or null/absent for the standard route. */
+  customItinerary: z
+    .array(
+      z.object({
+        title: z.string(),
+        area: z.string().nullish(),
+        lat: z.number().optional(),
+        lng: z.number().optional(),
+      }),
+    )
+    .nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 

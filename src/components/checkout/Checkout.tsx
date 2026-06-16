@@ -37,6 +37,17 @@ export function Checkout() {
   const unit = params.get('unit') ?? '';
   // Sightseeing vehicle mode only: the SUV upgrade flag. The server re-resolves the price regardless.
   const suv = params.get('suv') === '1';
+  // The route builder on the tour page stashes the chosen stops here (too big for the URL).
+  function readItinerary(): Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null {
+    if (typeof window === 'undefined' || !slug) return null;
+    try {
+      const raw = window.sessionStorage.getItem(`gytm:itinerary:${slug}`);
+      const arr = raw ? JSON.parse(raw) : null;
+      return Array.isArray(arr) && arr.length ? arr : null;
+    } catch {
+      return null;
+    }
+  }
 
   const [step, setStep] = useState(1);
   const [pickup, setPickup] = useState<'known' | 'unknown' | null>(null);
@@ -103,6 +114,7 @@ export function Checkout() {
             expectedSlug: slug,
             party: { [label]: qty },
             suv,
+            itinerary: readItinerary(),
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
               email: user?.email,
