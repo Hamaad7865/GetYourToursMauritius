@@ -13,6 +13,9 @@ export interface PriceInput {
   maxGuests: number | null;
 }
 export interface OptionInput {
+  /** Present for options loaded from an existing activity; absent for newly-added ones. Used to
+   *  reconcile options in place on edit so a booked option keeps its identity. */
+  id?: string;
   name: string;
   prices: PriceInput[];
 }
@@ -127,39 +130,103 @@ function activityRow(v: ActivityFormValues, opId: string) {
   };
 }
 
-async function writeChildren(activityId: string, v: ActivityFormValues): Promise<void> {
-  const sb = getBrowserSupabase();
+/** Plan how form options map onto the existing option rows. Pure, so it's unit-tested. An option
+ *  with an id matching an existing row is updated in place (keeps the identity bookings/occurrences
+ *  reference); one without is new; an existing row absent from the form is a removal candidate. */
+export function planOptionReconcile(
+  existingIds: string[],
+  formOptions: OptionInput[],
+): { toUpsert: Array<{ option: OptionInput; position: number; isNew: boolean }>; removedIds: string[] } {
+  const existing = new Set(existingIds);
+  const kept = new Set<string>();
+  const toUpsert = formOptions
+    .filter((o) => o.name.trim())
+    .map((option, position) => {
+      const isExisting = Boolean(option.id && existing.has(option.id));
+      if (isExisting) kept.add(option.id as string);
+      return { option, position, isNew: !isExisting };
+    });
+  const removedIds = existingIds.filter((id) => !kept.has(id));
+  return { toUpsert, removedIds };
+}
 
-  const images = v.images
+/** Images have no downstream FK (booking_items snapshots, never references them) — replace wholesale. */
+async function replaceImages(activityId: string, images: ImageInput[]): Promise<void> {
+  const sb = getBrowserSupabase();
+  await sb.from('activity_images').delete().eq('activity_id', activityId);
+  const rows = images
     .filter((i) => i.url.trim())
     .map((img, position) => ({ activity_id: activityId, url: img.url.trim(), alt: img.alt.trim() || null, position }));
-  if (images.length) {
-    const { error } = await sb.from('activity_images').insert(images);
+  if (rows.length) {
+    const { error } = await sb.from('activity_images').insert(rows);
     if (error) throw error;
   }
+}
 
-  for (let i = 0; i < v.options.length; i += 1) {
-    const option = v.options[i]!;
-    if (!option.name.trim()) continue;
-    const { data: opt, error } = await sb
-      .from('activity_options')
-      .insert({ activity_id: activityId, name: option.name.trim(), position: i })
-      .select('id')
-      .single();
+/** Prices aren't FK-referenced (booking_items snapshots label+amount), so a full replace is safe. */
+async function replacePrices(optionId: string, prices: PriceInput[]): Promise<void> {
+  const sb = getBrowserSupabase();
+  await sb.from('activity_option_prices').delete().eq('activity_option_id', optionId);
+  const rows = prices
+    .filter((p) => p.label.trim() && p.amountEur != null)
+    .map((p, position) => ({
+      activity_option_id: optionId,
+      label: p.label.trim(),
+      amount_minor: Math.round((p.amountEur ?? 0) * 100),
+      max_guests: p.maxGuests,
+      position,
+    }));
+  if (rows.length) {
+    const { error } = await sb.from('activity_option_prices').insert(rows);
     if (error) throw error;
-    const prices = option.prices
-      .filter((p) => p.label.trim() && p.amountEur != null)
-      .map((p, position) => ({
-        activity_option_id: opt.id,
-        label: p.label.trim(),
-        amount_minor: Math.round((p.amountEur ?? 0) * 100),
-        max_guests: p.maxGuests,
-        position,
-      }));
-    if (prices.length) {
-      const { error: priceErr } = await sb.from('activity_option_prices').insert(prices);
-      if (priceErr) throw priceErr;
+  }
+}
+
+/**
+ * Reconcile options IN PLACE rather than delete-and-recreate. Updating in place keeps each option's
+ * id, which session_occurrences and booking_items reference — so editing a booked activity no longer
+ * breaks it. A removed option is deleted only when nothing depends on it (no booking_items, no
+ * occurrences); a booked option that staff removed is left intact (you can't un-sell a seat).
+ */
+async function reconcileOptions(activityId: string, formOptions: OptionInput[]): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { data: existing } = await sb.from('activity_options').select('id').eq('activity_id', activityId);
+  const { toUpsert, removedIds } = planOptionReconcile((existing ?? []).map((o) => o.id), formOptions);
+
+  for (const { option, position, isNew } of toUpsert) {
+    let optionId = option.id;
+    if (isNew || !optionId) {
+      const { data: opt, error } = await sb
+        .from('activity_options')
+        .insert({ activity_id: activityId, name: option.name.trim(), position })
+        .select('id')
+        .single();
+      if (error) throw error;
+      optionId = opt.id;
+    } else {
+      const { error } = await sb
+        .from('activity_options')
+        .update({ name: option.name.trim(), position })
+        .eq('id', optionId);
+      if (error) throw error;
     }
+    await replacePrices(optionId, option.prices);
+  }
+
+  for (const optionId of removedIds) {
+    const { count: items } = await sb
+      .from('booking_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('activity_option_id', optionId);
+    const { count: occ } = await sb
+      .from('session_occurrences')
+      .select('id', { count: 'exact', head: true })
+      .eq('activity_option_id', optionId);
+    if ((items ?? 0) === 0 && (occ ?? 0) === 0) {
+      const { error } = await sb.from('activity_options').delete().eq('id', optionId);
+      if (error) throw error;
+    }
+    // else: keep it — an option with bookings/occurrences must not be deleted.
   }
 }
 
@@ -169,26 +236,19 @@ export async function createActivity(v: ActivityFormValues): Promise<string> {
   const opId = await operatorId();
   const { data, error } = await sb.from('activities').insert(activityRow(v, opId)).select('id').single();
   if (error) throw error;
-  await writeChildren(data.id, v);
+  await replaceImages(data.id, v.images);
+  await reconcileOptions(data.id, v.options);
   return data.id;
 }
 
-/** Update an activity, replacing its images/options/prices. */
+/** Update an activity, reconciling its images/options/prices in place (FK-safe for booked activities). */
 export async function updateActivity(id: string, v: ActivityFormValues): Promise<void> {
   const sb = getBrowserSupabase();
   const opId = await operatorId();
   const { error } = await sb.from('activities').update(activityRow(v, opId)).eq('id', id);
   if (error) throw error;
-  // Write the NEW children first, then remove the OLD ones — so a mid-write failure leaves
-  // the activity with (at worst) duplicate options, never an empty/unbookable one. (Options
-  // cascade-delete their prices.)
-  const { data: oldImages } = await sb.from('activity_images').select('id').eq('activity_id', id);
-  const { data: oldOptions } = await sb.from('activity_options').select('id').eq('activity_id', id);
-  await writeChildren(id, v);
-  const oldImageIds = (oldImages ?? []).map((o) => o.id);
-  const oldOptionIds = (oldOptions ?? []).map((o) => o.id);
-  if (oldImageIds.length) await sb.from('activity_images').delete().in('id', oldImageIds);
-  if (oldOptionIds.length) await sb.from('activity_options').delete().in('id', oldOptionIds);
+  await replaceImages(id, v.images);
+  await reconcileOptions(id, v.options);
 }
 
 export async function deleteActivity(id: string): Promise<void> {
@@ -258,6 +318,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     exclusions: act.exclusions,
     images: (images ?? []).map((i) => ({ url: i.url, alt: i.alt ?? '' })),
     options: (options ?? []).map((o) => ({
+      id: o.id,
       name: o.name,
       prices: (prices ?? [])
         .filter((p) => p.activity_option_id === o.id)
