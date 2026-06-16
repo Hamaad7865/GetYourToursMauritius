@@ -88,17 +88,6 @@ export function GygHero({ children }: { children?: ReactNode }) {
           }}
         />
       </div>
-      {/* L3 — front waterline wave: two stretched copies in a 200% track loop seamlessly. */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 overflow-hidden">
-        <div className="lagoon-wave flex h-full w-[200%]">
-          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(7,46,52,0.72)">
-            <path d="M0,80 C180,55 380,108 600,82 C820,56 1030,106 1200,80 L1200,150 L0,150 Z" />
-          </svg>
-          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(7,46,52,0.72)">
-            <path d="M0,80 C180,55 380,108 600,82 C820,56 1030,106 1200,80 L1200,150 L0,150 Z" />
-          </svg>
-        </div>
-      </div>
       {/* L4 — legibility scrims (no blend mode), so the white content's contrast is unchanged. */}
       <div
         aria-hidden
@@ -112,8 +101,15 @@ export function GygHero({ children }: { children?: ReactNode }) {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{ background: 'radial-gradient(130% 120% at 50% 120%, transparent 60%, rgba(10,46,54,0.35) 100%)' }}
       />
+      {/* L6 — white "shore" wave: dips the hero into the white page body so there is no hard seam.
+          Painted on top of the scrims (last backdrop layer) and overshoots 1px to kill a hairline. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-[-1px] -z-10 h-24">
+        <svg className="h-full w-full" viewBox="0 0 1200 120" preserveAspectRatio="none" fill="#ffffff">
+          <path d="M0,64 C220,22 430,96 640,66 C860,38 1020,90 1200,58 L1200,121 L0,121 Z" />
+        </svg>
+      </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-shell px-6 pb-6 pt-32">
+      <div className="relative z-10 mx-auto w-full max-w-shell px-6 pb-28 pt-32">
         <div className="lg:max-w-[58%]">
           <p className="animate-fade-up flex items-center gap-2.5 text-[13px] font-semibold uppercase tracking-[0.22em] text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)]">
             <span className="relative grid h-2 w-2 place-items-center">
