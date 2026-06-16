@@ -136,20 +136,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(u);
       const nextId = u?.id ?? null;
 
+      // Foreground-only, so a cross-tab auth broadcast doesn't pop a toast in a background tab.
+      const foreground = typeof document === 'undefined' || document.visibilityState !== 'hidden';
       // A genuine interactive sign-in: a transition to a (new) user that is either not the
-      // pre-existing stored session or follows a sign-out in this tab. Foreground-only, so a
-      // cross-tab auth broadcast doesn't pop a toast in a background tab.
+      // pre-existing stored session or follows a sign-out in this tab.
       const freshLogin =
-        nextId != null &&
-        nextId !== prevUserId &&
-        (!hadStored || sawSignedOut) &&
-        (typeof document === 'undefined' || document.visibilityState !== 'hidden');
+        nextId != null && nextId !== prevUserId && (!hadStored || sawSignedOut) && foreground;
+      // A sign-out: a transition from a real user back to no user (explicit log out, a
+      // cross-tab sign-out, or an expired session) — not the initial logged-out load.
+      const signedOut = nextId == null && prevUserId != null && foreground;
       if (freshLogin) {
         const name = displayName(u);
         showToast({
           title: "You're logged in",
           description: name ? `Signed in as ${name}.` : 'Signed in to Belle Mare Tours.',
         });
+      } else if (signedOut) {
+        showToast({ title: 'Signed out', description: 'See you next time.', variant: 'info' });
       }
       if (nextId == null) sawSignedOut = true;
       prevUserId = nextId;
