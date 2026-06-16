@@ -15,8 +15,14 @@ export * from './types';
  * exactly when it matters: a configured Supabase service-role key (the webhook needs it to run at
  * all), `NODE_ENV=production` (set by the build/runtime, not hand-managed), or an explicit
  * `PEACH_ENVIRONMENT=live`.
+ *
+ * EXCEPTION: `next dev` (NODE_ENV=development) legitimately runs with a live Supabase service-role
+ * key for local admin/webhook testing, yet is NOT a production deploy — the stub is correct there.
+ * So development is never treated as production-like (production sets NODE_ENV=production; the test
+ * runner runs as 'test', which still honours the service-role-key signal).
  */
 function isProductionLikeRuntime(env: ServerEnv): boolean {
+  if (process.env.NODE_ENV === 'development') return false;
   return (
     env.PEACH_ENVIRONMENT === 'live' ||
     process.env.NODE_ENV === 'production' ||
