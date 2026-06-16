@@ -115,6 +115,40 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(slots.find((s) => s.occurrenceId === occurrenceId)?.seatsLeft).toBe(18);
   });
 
+  it('saves and returns a custom itinerary on the booking', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const route = [
+      { title: 'Port Louis', area: 'Capital', lat: -20.16, lng: 57.5 },
+      { title: 'Fort Adelaide', area: 'Port Louis' },
+    ];
+    const booking = await call<{ ref: string }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 1 },
+      itinerary: route,
+      customerName: 'Route Tester',
+      customerEmail: 'route@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-route-12345678',
+    });
+    const got = await call<{ customItinerary: typeof route | null }>(db, 'api_get_booking', {
+      ref: booking.ref,
+    });
+    expect(got.customItinerary).toHaveLength(2);
+    expect(got.customItinerary![1]!.title).toBe('Fort Adelaide');
+
+    // A booking with no itinerary returns null.
+    const plain = await call<{ ref: string }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 1 },
+      customerName: 'No Route',
+      customerEmail: 'noroute@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-noroute-1234567',
+    });
+    const got2 = await call<{ customItinerary: unknown }>(db, 'api_get_booking', { ref: plain.ref });
+    expect(got2.customItinerary).toBeNull();
+  });
+
   it('rejects a booking beyond remaining capacity', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     await expect(
