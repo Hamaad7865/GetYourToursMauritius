@@ -9,6 +9,17 @@ import {
   stopAvailability,
 } from '@/lib/admin/availability-write';
 
+/** Surface the real message from an Error or a Supabase/PostgREST error object (which isn't an
+ *  Error instance), so failures aren't masked by a generic fallback. */
+function errMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object' && 'message' in err) {
+    const m = (err as { message?: unknown }).message;
+    if (typeof m === 'string' && m) return m;
+  }
+  return fallback;
+}
+
 export function AvailabilityEditor({ activityId }: { activityId: string }) {
   const [title, setTitle] = useState('');
   const [hasOptions, setHasOptions] = useState(true);
@@ -35,7 +46,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
         setHasOptions(meta.options.length > 0);
         await refresh();
       } catch (err) {
-        if (active) setError(err instanceof Error ? err.message : 'Could not load.');
+        if (active) setError(errMessage(err, 'Could not load.'));
       } finally {
         if (active) setLoading(false);
       }
@@ -55,7 +66,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
       await refresh();
       setNotice(ok);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setError(errMessage(err, 'Something went wrong.'));
     } finally {
       setBusy(false);
     }
