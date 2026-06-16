@@ -11,6 +11,9 @@ export const createBookingInputSchema = z.object({
   /** Quantity per price-tier label, e.g. { "Adult": 2, "Child": 1 }. Bounded so an absurd or
    *  overflowing quantity is a clean validation error rather than a DB int overflow. */
   party: z.record(z.string().min(1).max(80), z.number().int().min(0).max(1000)),
+  /** Sightseeing vehicle mode only: the customer chose the SUV upgrade (flat price, parties ≤4).
+   *  Ignored by every other pricing mode and for parties over the SUV tier. */
+  suv: z.boolean().optional(),
   customer: z.object({
     name: z.string().min(1).max(120),
     email: z.string().email(),

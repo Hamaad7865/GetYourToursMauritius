@@ -17,6 +17,7 @@ export async function createBooking(
     occurrenceId: input.occurrenceId,
     expectedSlug: input.expectedSlug ?? null,
     party: input.party,
+    suv: input.suv ?? false,
     customerName: input.customer.name,
     customerEmail: input.customer.email,
     customerPhone: input.customer.phone ?? null,
