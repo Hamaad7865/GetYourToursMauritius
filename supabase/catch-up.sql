@@ -1,0 +1,240 @@
+-- ============================================================================
+-- Belle Mare Tours — catch-up to latest (run once in the Supabase SQL editor)
+-- Your live DB has 121000/121200/121300?/121400/121700/121900 but is missing
+-- 121600 (booking guards) + 20260616120000 (open availability). All statements
+-- below are idempotent (create-or-replace / drop-if-exists / if-not-exists), so
+-- it is safe even if a part is already present.
+-- ============================================================================
+
+begin;
+
+-- ---- 20260615121300_payment_authz_fix --------------------------------------
+-- Security fix (Phase 2 review): api_create_payment must NOT treat a public booking
+-- ref as a bearer credential. Drop the `user_id is null` (guest) branch so only the
+-- booking's owner or staff can create a payment / read the customer email. Proper
+-- guest self-service checkout (a high-entropy emailed token) lands in Phase 4.
+create or replace function api_create_payment(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_booking bookings;
+  v_payment payments;
+begin
+  select * into v_booking from bookings where ref = p ->> 'bookingRef';
+  if not found then
+    raise exception 'booking_not_found';
+  end if;
+  -- NB: auth.uid() must be non-null, else `null = null` is NULL (not false) and the
+  -- guard would let an anonymous caller through on a guest (user_id NULL) booking.
+  if not (is_staff() or (auth.uid() is not null and v_booking.user_id = auth.uid())) then
+    raise exception 'forbidden';
+  end if;
+
+  select * into v_payment from payments where idempotency_key = p ->> 'idempotencyKey';
+  if not found then
+    insert into payments (booking_id, idempotency_key, amount_minor)
+    values (v_booking.id, p ->> 'idempotencyKey', v_booking.total_minor)
+    returning * into v_payment;
+    insert into payment_events (payment_id, type, amount_minor)
+    values (v_payment.id, 'intent', v_booking.total_minor);
+  end if;
+
+  return jsonb_build_object(
+    'paymentId', v_payment.id, 'amountMinor', v_payment.amount_minor,
+    'bookingRef', v_booking.ref, 'customerEmail', v_booking.customer_email
+  );
+end;
+$$;
+
+-- ---- 20260615121600_booking_admin_guards -----------------------------------
+-- Admin-booking write guards (from the admin Bookings adversarial review).
+--
+-- The admin panel lets staff manage bookings DIRECTLY via PostgREST (the browser
+-- client), gated only by the `*_staff` RLS policies. Those policies are column-agnostic
+-- `for all`, so without these guards a signed-in staff/admin could hand-craft a PATCH and
+-- (a) forge bookings.payment_state = 'paid' / status = 'confirmed', or (b) rewrite financial
+-- and identity columns (total_minor, payout, customer_email, ref, …), or (c) fabricate a
+-- paid `payments` row — all bypassing the invariant that payment confirmation comes ONLY
+-- from the verified webhook -> append_payment_event ledger path.
+--
+-- We enforce the invariant at the database (the UI is not a security boundary), mirroring
+-- the existing enforce_profile_role pattern: the SECURITY DEFINER RPCs (create_booking,
+-- append_payment_event, api_create_payment) run as the table owner and service_role runs as
+-- itself, so `current_user not in ('anon','authenticated')` lets the legitimate flow through
+-- untouched while a browser session is constrained.
+
+-- ---------------------------------------------------------------------------
+-- bookings: from a browser session, only `notes` and the operational status
+-- transitions (-> completed / -> cancelled) may change. Everything financial,
+-- identity- or payment-related is pinned to its previous value.
+-- ---------------------------------------------------------------------------
+create or replace function enforce_booking_admin_update()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new; -- service_role / owner / SECURITY DEFINER RPCs (webhook, create_booking)
+  end if;
+
+  -- Immutable from a browser session — owned by the booking/ledger RPCs.
+  new.payment_state           := old.payment_state;
+  new.total_minor             := old.total_minor;
+  new.agency_commission_minor := old.agency_commission_minor;
+  new.operator_payout_minor   := old.operator_payout_minor;
+  new.currency                := old.currency;
+  new.ref                     := old.ref;
+  new.idempotency_key         := old.idempotency_key;
+  new.user_id                 := old.user_id;
+  new.customer_name           := old.customer_name;
+  new.customer_email          := old.customer_email;
+  new.customer_phone          := old.customer_phone;
+  new.source                  := old.source;
+  new.created_at              := old.created_at;
+
+  -- Status may only move through the operational transitions staff are allowed to make.
+  if new.status is distinct from old.status then
+    if not (
+      (new.status = 'completed' and old.status = 'confirmed') or
+      (new.status = 'cancelled' and old.status in ('draft', 'held', 'payment_pending', 'confirmed'))
+    ) then
+      raise exception 'forbidden_booking_status_transition'
+        using detail = format('%s -> %s', old.status, new.status);
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists bookings_admin_update_guard on bookings;
+create trigger bookings_admin_update_guard
+  before update on bookings
+  for each row execute function enforce_booking_admin_update();
+
+-- ---------------------------------------------------------------------------
+-- payments + booking_items: never written directly from a browser session. All
+-- legitimate writes go through SECURITY DEFINER RPCs (owner) or service_role. We
+-- block INSERT/UPDATE only (not DELETE) so booking-delete FK cascades still work.
+-- ---------------------------------------------------------------------------
+create or replace function forbid_public_write()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user in ('anon', 'authenticated') then
+    raise exception 'forbidden_direct_write' using detail = tg_table_name;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists payments_no_public_write on payments;
+create trigger payments_no_public_write
+  before insert or update on payments
+  for each row execute function forbid_public_write();
+
+drop trigger if exists booking_items_no_public_write on booking_items;
+create trigger booking_items_no_public_write
+  before insert or update on booking_items
+  for each row execute function forbid_public_write();
+
+-- ---- 20260616120000_open_availability --------------------------------------
+-- Open-ended availability. An activity with activities.daily_capacity set is bookable on ANY
+-- future day — no pre-generated year, no annual re-enable. The calendar materializes the day
+-- slots it needs on demand (capped horizon, so the window simply rolls forward), and a day is
+-- full once its bookings + holds reach the capacity. Activities with daily_capacity = null keep
+-- the legacy explicit-occurrence model untouched.
+
+alter table activities add column if not exists daily_capacity int;
+
+-- Needed so day-materialization can de-dupe via ON CONFLICT (and a good integrity guard against
+-- duplicate slots). Idempotent — also repairs databases that drifted without it.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'session_occurrences_option_start_key') then
+    alter table session_occurrences
+      add constraint session_occurrences_option_start_key unique (activity_option_id, starts_at);
+  end if;
+end $$;
+
+-- Availability for an activity over a date range, with live seats_left. For open-ended
+-- activities it first fills in any missing daily slots within the (capped) window — so the
+-- customer calendar always shows future dates without anyone topping it up. SECURITY DEFINER so
+-- the lazy fill can write; gated to published activities, so it never leaks draft availability.
+create or replace function api_list_availability(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_activity activities;
+  v_from date := coalesce((p ->> 'from')::date, current_date);
+  v_to date := coalesce((p ->> 'to')::date, current_date + 30);
+  v_fill_to date;
+  v_result jsonb;
+begin
+  select * into v_activity from activities where slug = p ->> 'slug';
+  if not found or v_activity.status <> 'published' then
+    return '[]'::jsonb;
+  end if;
+
+  v_from := greatest(v_from, current_date);
+  v_to := least(v_to, current_date + 400);
+  -- Bound the per-call write to ~6 months regardless of the read window, so an anonymous read
+  -- can never trigger a huge fill; the window still rolls forward as current_date advances.
+  v_fill_to := least(v_to, current_date + 185);
+
+  -- Open-ended activity: fill any day in [today, fill horizon] that has NO occurrence yet for
+  -- the option — compared on the UTC calendar day, so a legacy/seed slot at a different time of
+  -- day blocks a duplicate and each day ends up with exactly one bookable slot. Includes today,
+  -- so same-day booking works. One slot per option per day at noon UTC; capacity = daily_capacity.
+  if coalesce(v_activity.daily_capacity, 0) > 0 then
+    insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
+    select o.id,
+           v_activity.operator_id,
+           (d::date + time '12:00') at time zone 'UTC',
+           ((d::date + time '12:00') at time zone 'UTC')
+             + make_interval(mins => coalesce(v_activity.duration_minutes, 240)),
+           v_activity.daily_capacity,
+           'open'
+    from activity_options o
+    cross join generate_series(greatest(v_from, current_date), v_fill_to, interval '1 day') d
+    where o.activity_id = v_activity.id
+      and exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id)
+      and not exists (
+        select 1 from session_occurrences x
+        where x.activity_option_id = o.id
+          and (x.starts_at at time zone 'UTC')::date = d::date
+      )
+    on conflict (activity_option_id, starts_at) do nothing;
+  end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'occurrenceId', so.id, 'activityOptionId', so.activity_option_id, 'optionName', o.name,
+    'startsAt', so.starts_at, 'endsAt', so.ends_at, 'capacity', so.capacity,
+    -- Never report negative seats (e.g. if capacity was lowered below already-booked seats).
+    'seatsLeft', greatest(so.capacity - used_capacity(so.id), 0), 'status', so.status
+  ) order by so.starts_at), '[]'::jsonb)
+  into v_result
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  where o.activity_id = v_activity.id
+    and so.status = 'open'
+    and so.starts_at >= v_from::timestamptz
+    and so.starts_at < (v_to + 1)::timestamptz;
+
+  return v_result;
+end;
+$$;
+
+commit;
