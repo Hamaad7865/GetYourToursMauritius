@@ -9,6 +9,7 @@ import { WishHeart } from '@/components/gyg/WishHeart';
 import { RecordView } from '@/components/gyg/RecordView';
 import { Gallery } from '@/components/gyg/detail/Gallery';
 import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
+import { VehicleOptionCard } from '@/components/gyg/detail/VehicleOptionCard';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
 import { QuickFacts, Overview, Itinerary, Includes } from '@/components/gyg/detail/Sections';
@@ -20,7 +21,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { publicServiceContext } from '@/lib/http/context';
 import { getActivity, searchActivities } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
-import { breadcrumbJsonLd, breadcrumbTrail, buildFaq, relatedActivities } from '@/lib/catalogue/detail';
+import { breadcrumbJsonLd, breadcrumbTrail, buildFaq, durationLabel, relatedActivities } from '@/lib/catalogue/detail';
 import { productJsonLd } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
@@ -170,7 +171,7 @@ export default async function ActivityDetailPage({
               )}
             </div>
 
-            <aside className="mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
+            <aside id="book" className="mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
               <BookingWidget
                 slug={activity.slug}
                 type={activity.type}
@@ -189,6 +190,18 @@ export default async function ActivityDetailPage({
                 <p className="m-0 mb-6 text-[15px] leading-relaxed text-ink/80">
                   {activity.summary}
                 </p>
+              )}
+
+              {activity.pricingMode === 'vehicle' && activity.vehiclePricing && (
+                <div className="mb-6">
+                  <VehicleOptionCard
+                    title={activity.title}
+                    cfg={activity.vehiclePricing}
+                    durationLabel={durationLabel(activity.durationMinutes)}
+                    pickupAvailable={activity.pickupAvailable}
+                    languages={activity.languages}
+                  />
+                </div>
               )}
 
               <QuickFacts
