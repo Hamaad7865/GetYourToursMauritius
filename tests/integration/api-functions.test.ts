@@ -153,6 +153,7 @@ describe('api_* service functions', () => {
       customerName: 'Marie',
       customerEmail: 'marie@example.com',
       idempotencyKey: 'api-book-1',
+      expectedSlug: 'private-south-tour-with-pickup', // matches the occurrence's activity
     });
     expect(booking.status).toBe('payment_pending');
 
@@ -171,6 +172,21 @@ describe('api_* service functions', () => {
     });
     expect(status.ref).toBe(booking.ref);
     expect(status.totalEur).toBe(110);
+    await db.asOwner();
+  });
+
+  it('api_book rejects an occurrence that does not belong to the asserted activity slug', async () => {
+    await db.as({ sub: USER, role: 'authenticated' });
+    await expect(
+      rpc(db, 'api_book', {
+        occurrenceId, // belongs to private-south-tour-with-pickup
+        party: { 'Private group': 1 },
+        customerName: 'Tamper',
+        customerEmail: 'tamper@example.com',
+        idempotencyKey: 'api-book-mismatch',
+        expectedSlug: 'some-other-activity',
+      }),
+    ).rejects.toThrow(/occurrence_activity_mismatch/);
     await db.asOwner();
   });
 

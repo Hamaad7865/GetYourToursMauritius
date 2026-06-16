@@ -4,6 +4,10 @@ import { bookingSourceSchema, bookingStatusSchema, paymentStateSchema } from './
 // --- Booking ----------------------------------------------------------------
 export const createBookingInputSchema = z.object({
   occurrenceId: z.string().uuid(),
+  /** Slug of the activity the client is booking. When set, the server verifies the occurrence
+   *  belongs to it and rejects a mismatch (stops a tampered occurrenceId booking another
+   *  activity's slot). Optional for backward compatibility. */
+  expectedSlug: z.string().min(1).max(120).optional(),
   /** Quantity per price-tier label, e.g. { "Adult": 2, "Child": 1 }. */
   party: z.record(z.string(), z.number().int().nonnegative()),
   customer: z.object({

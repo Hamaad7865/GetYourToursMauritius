@@ -15,6 +15,7 @@ export async function createBooking(
   const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
   const data = await callRpc(ctx, 'api_book', {
     occurrenceId: input.occurrenceId,
+    expectedSlug: input.expectedSlug ?? null,
     party: input.party,
     customerName: input.customer.name,
     customerEmail: input.customer.email,

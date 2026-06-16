@@ -972,6 +972,11 @@
                     "type": "string",
                     "format": "uuid"
                   },
+                  "expectedSlug": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
                   "party": {
                     "type": "object",
                     "additionalProperties": {

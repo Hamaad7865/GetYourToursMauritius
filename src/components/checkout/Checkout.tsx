@@ -98,6 +98,7 @@ export function Checkout() {
           headers,
           body: JSON.stringify({
             occurrenceId: occ,
+            expectedSlug: slug,
             party: { [label]: qty },
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
