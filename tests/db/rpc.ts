@@ -12,6 +12,7 @@ const ALLOWED = new Set([
   'claim_notifications',
   'mark_notification',
   'run_booking_maintenance',
+  'materialize_availability',
 ]);
 
 /**

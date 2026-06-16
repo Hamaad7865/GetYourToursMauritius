@@ -4,7 +4,7 @@ import { preflightResponse } from '@/lib/http/cors';
 import { getBearerToken } from '@/lib/http/auth';
 import { serviceRoleServiceContext } from '@/lib/http/context';
 import { getServerEnv } from '@/lib/config/env';
-import { runBookingMaintenance } from '@/lib/services/maintenance';
+import { runBookingMaintenance, materializeAvailability } from '@/lib/services/maintenance';
 
 export const runtime = 'edge';
 
@@ -21,7 +21,9 @@ export const POST = apiHandler(async (req) => {
 
   const ctx = serviceRoleServiceContext();
   const result = await runBookingMaintenance(ctx);
-  return jsonOk(result);
+  // Roll the open-ended availability window forward (now that the read path no longer fills it).
+  const slotsCreated = await materializeAvailability(ctx);
+  return jsonOk({ ...result, slotsCreated });
 });
 
 export function OPTIONS(req: Request): Response {

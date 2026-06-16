@@ -142,6 +142,11 @@ export async function setDailyCapacity(activityId: string, capacity: number): Pr
       .gte('starts_at', new Date().toISOString());
     if (upErr) throw upErr;
   }
+
+  // The availability read no longer materializes day-slots; fill the window now so dates appear
+  // immediately (the maintenance cron rolls it forward thereafter).
+  const { error: matErr } = await sb.rpc('materialize_availability', { p: { activityId } });
+  if (matErr) throw matErr;
 }
 
 /**

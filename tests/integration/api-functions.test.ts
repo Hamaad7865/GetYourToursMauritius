@@ -102,7 +102,7 @@ describe('api_* service functions', () => {
     expect(slots[0]!.seatsLeft).toBe(slots[0]!.capacity);
   });
 
-  it('api_list_availability materialises open-ended days from daily_capacity (idempotently)', async () => {
+  it('materialize_availability fills open-ended days; api_list_availability is a pure read', async () => {
     await db.asOwner();
     const { rows: op } = await db.pg.query<{ id: string }>(`select id from operators limit 1`);
     const { rows: a } = await db.pg.query<{ id: string }>(
@@ -123,26 +123,28 @@ describe('api_* service functions', () => {
     toDate.setDate(toDate.getDate() + 10);
     const to = toDate.toISOString().slice(0, 10);
 
-    // No occurrences exist yet — the read fills the window on demand.
+    // The read NO LONGER writes — before materialization there are no slots.
+    const empty = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
+    expect(empty.length).toBe(0);
+
+    // Materialize (as the cron / admin would), then read.
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: a[0]!.id })]);
     const slots = await rpc<{ seatsLeft: number; capacity: number }[]>(db, 'api_list_availability', {
       slug: 'open-ended-tour',
       from,
       to,
     });
-    expect(slots.length).toBeGreaterThan(5); // ~10 days materialised
+    expect(slots.length).toBeGreaterThan(5);
     expect(slots.every((s) => s.capacity === 8 && s.seatsLeft === 8)).toBe(true);
 
-    // Idempotent: a second read returns the same window, no duplicates.
+    // Today is materialised (same-day bookable, not skipped).
+    const sameDay = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to: from });
+    expect(sameDay.length).toBe(1);
+
+    // Materialization is idempotent — a second run creates no duplicates.
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: a[0]!.id })]);
     const again = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
     expect(again.length).toBe(slots.length);
-
-    // Same-day is bookable (today is materialised, not skipped).
-    const sameDay = await rpc<unknown[]>(db, 'api_list_availability', {
-      slug: 'open-ended-tour',
-      from,
-      to: from,
-    });
-    expect(sameDay.length).toBe(1);
   });
 
   it('api_book → api_create_payment → api_get_booking, with DB-sourced amounts', async () => {

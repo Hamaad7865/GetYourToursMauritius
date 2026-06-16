@@ -531,6 +531,7 @@ export interface Database {
         };
         Returns: PaymentsRow;
       };
+      materialize_availability: { Args: { p: Json }; Returns: number };
     };
     Enums: {
       user_role: 'customer' | 'staff' | 'admin';

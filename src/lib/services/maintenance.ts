@@ -19,3 +19,16 @@ export async function runBookingMaintenance(
   const data = await callRpc(ctx, 'run_booking_maintenance', { graceMinutes });
   return maintenanceResultSchema.parse(data);
 }
+
+/**
+ * Fill open-ended day-slots forward (all activities, or one). Run by the maintenance cron so the
+ * availability read stays pure, and immediately by the admin when an activity is made bookable.
+ * Returns the number of slots created.
+ */
+export async function materializeAvailability(
+  ctx: ServiceContext,
+  activityId?: string,
+): Promise<number> {
+  const data = await callRpc(ctx, 'materialize_availability', activityId ? { activityId } : {});
+  return z.number().int().parse(data);
+}
