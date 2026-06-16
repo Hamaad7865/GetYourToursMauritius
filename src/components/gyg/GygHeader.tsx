@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Logo } from '@/components/site/Logo';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { usePreferences } from '@/components/site/PreferencesProvider';
+import { useCart } from '@/lib/cart/useCart';
 import { SearchBar } from './SearchBar';
 import { MainNav } from './MainNav';
 import {
@@ -133,6 +134,25 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
   );
 }
 
+/** Cart navbar item with a live count badge when items are in the cart. */
+function CartAction({ overHero }: { overHero: boolean }) {
+  const { count } = useCart();
+  return (
+    <Link href="/cart" className={navItemClass(overHero, 'relative hidden sm:flex')}>
+      <span className="relative">
+        <IconCart width={20} height={20} />
+        {count > 0 && (
+          <span className="absolute -right-2 -top-1.5 grid h-4 min-w-[1rem] place-items-center rounded-full bg-coral px-1 text-[10px] font-extrabold leading-none text-white">
+            {count}
+          </span>
+        )}
+      </span>
+      <span className="hidden lg:block">Cart</span>
+      <Underline light={overHero} />
+    </Link>
+  );
+}
+
 /** Bookings navbar item — only appears once signed in, mirroring GetYourGuide. */
 function BookingsAction({ overHero }: { overHero: boolean }) {
   const { user } = useAuth();
@@ -239,13 +259,7 @@ export function GygHeader({
               light={overHero}
               icon={<IconHeart width={20} height={20} />}
             />
-            <HeaderAction
-              label="Cart"
-              href="/cart"
-              light={overHero}
-              className="hidden sm:flex"
-              icon={<IconCart width={20} height={20} />}
-            />
+            <CartAction overHero={overHero} />
             <BookingsAction overHero={overHero} />
             <PrefsButton overHero={overHero} />
             <ProfileMenu overHero={overHero} />

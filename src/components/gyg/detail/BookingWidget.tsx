@@ -4,9 +4,12 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { TourType } from '@/lib/validation/common';
 import type { TourOption } from '@/lib/validation/tours';
+import { useCart } from '@/lib/cart/useCart';
+import { useToast } from '@/components/site/ToastProvider';
 import {
   IconBolt,
   IconCalendar,
+  IconCart,
   IconCheck,
   IconChevron,
   IconChevronLeft,
@@ -66,6 +69,7 @@ export function BookingWidget({
   languages,
   title,
   groupPricing = false,
+  image = null,
 }: {
   slug: string;
   type: TourType;
@@ -75,8 +79,12 @@ export function BookingWidget({
   title: string;
   /** Island-tour style: bill per group (ceil(people / maxGuests) × price), no hard cap. */
   groupPricing?: boolean;
+  /** Hero image URL for the cart line item. */
+  image?: string | null;
 }) {
   const router = useRouter();
+  const { add: addToCart } = useCart();
+  const { showToast } = useToast();
   const [days, setDays] = useState<Map<string, DayInfo> | null>(null);
   const [date, setDate] = useState('');
   const [participants, setParticipants] = useState(2);
@@ -203,6 +211,29 @@ export function BookingWidget({
       unit: unitLabel,
     });
     router.push(`/checkout?${q.toString()}`);
+  }
+
+  function handleAddToCart() {
+    if (!selected || !cheapest) return setError('Please choose a date first.');
+    if (participants <= 0) return setError('Please add at least one guest.');
+    if (participants > seatsLeft) return setError('Not enough space left on that date.');
+    addToCart({
+      id: `${selected.occurrenceId}:${cheapest.label}`,
+      slug,
+      title,
+      image,
+      occurrenceId: selected.occurrenceId,
+      dateLabel: dateText,
+      lang,
+      priceLabel: cheapest.label,
+      guests: participants,
+      unitEur: cheapest.amountEur,
+      groupPricing: isGroup,
+      maxGuests: cheapest.maxGuests,
+      unit: unitLabel,
+    });
+    setError(null);
+    showToast({ title: 'Added to cart', description: `${title} — ${dateText}.` });
   }
 
   const canBack = view > new Date(today.getFullYear(), today.getMonth(), 1);
@@ -424,6 +455,14 @@ export function BookingWidget({
           className="mt-3.5 flex w-full items-center justify-center rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark disabled:opacity-50"
         >
           Book now
+        </button>
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={!date}
+          className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-teal px-4 py-3 text-[15px] font-bold text-teal-dark transition-colors hover:bg-teal/5 disabled:opacity-50"
+        >
+          <IconCart width={17} height={17} /> Add to cart
         </button>
         <p className="mt-2 text-center text-[11.5px] text-ink-muted">
           You won&apos;t be charged until you confirm on the next screen.
