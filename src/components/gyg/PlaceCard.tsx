@@ -32,7 +32,7 @@ export function PlaceCard({
   compact?: boolean;
   className?: string;
   /** Heading level for the card title, so it nests correctly under the surrounding heading. */
-  titleAs?: 'h3' | 'h4';
+  titleAs?: 'h2' | 'h3' | 'h4';
 }) {
   const image = activity.heroImage ?? activity.images[0] ?? null;
 

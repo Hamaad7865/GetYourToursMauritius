@@ -233,7 +233,12 @@ export function GygHeader({
             )}
           </div>
           <nav className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
-            <HeaderAction label="Wishlist" light={overHero} icon={<IconHeart width={20} height={20} />} />
+            <HeaderAction
+              label="Wishlist"
+              href="/wishlist"
+              light={overHero}
+              icon={<IconHeart width={20} height={20} />}
+            />
             <HeaderAction
               label="Cart"
               light={overHero}
