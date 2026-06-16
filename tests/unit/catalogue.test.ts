@@ -12,7 +12,23 @@ import {
 } from '@/lib/catalogue/detail';
 import { browseQueryString, parseBrowseParams } from '@/lib/catalogue/browse';
 import type { Review, TourDetail, TourSummary } from '@/lib/validation/tours';
+import { activityExtraSchema } from '@/lib/validation/tours';
 import { SITE } from '@/lib/seo/site';
+
+describe('activityExtraSchema — optional stops', () => {
+  it('parses optionalStops + maxStops and tolerates their absence', () => {
+    const full = activityExtraSchema.parse({
+      itinerary: [{ title: 'Port Louis' }],
+      optionalStops: [{ title: 'Fort Adelaide', area: 'Port Louis', lat: -20.16, lng: 57.5 }],
+      maxStops: 6,
+    });
+    expect(full.optionalStops).toHaveLength(1);
+    expect(full.maxStops).toBe(6);
+    const bare = activityExtraSchema.parse({ itinerary: [{ title: 'X' }] });
+    expect(bare.optionalStops).toBeUndefined();
+    expect(bare.maxStops).toBeUndefined();
+  });
+});
 
 function summary(overrides: Partial<TourSummary> = {}): TourSummary {
   return {

@@ -97,6 +97,10 @@ export const activityExtraSchema = z.object({
   availability: z.string().nullable().optional(),
   startWindow: z.string().nullable().optional(),
   returnWindow: z.string().nullable().optional(),
+  /** Customer-customizable itinerary: extra stops the visitor can add to the route (no price impact). */
+  optionalStops: z.array(itineraryStopSchema).optional(),
+  /** Cap on how many stops a customer's route may have (default 8 when absent). */
+  maxStops: z.number().int().positive().optional(),
 });
 export type ActivityExtra = z.infer<typeof activityExtraSchema>;
 
