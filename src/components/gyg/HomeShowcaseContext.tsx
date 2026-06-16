@@ -1,33 +1,24 @@
 'use client';
 
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 
-/* Lets the navbar "Activities" item drive the home showcase: clicking it on the homepage
- * swaps the section from Categories to Activities (and scrolls to it). Off the homepage the
- * provider isn't mounted, so `useHomeShowcase()` returns null and the nav item just links. */
+/* Marks that we're rendering the homepage, so the navbar "Activities" item can scroll to the
+ * catalogue sections instead of navigating away. Off the homepage the provider isn't mounted,
+ * so `useHomeShowcase()` returns null and the nav item just links to /activities. */
 
-export type ShowcaseView = 'categories' | 'activities';
-
-interface ShowcaseCtx {
-  view: ShowcaseView;
-  setView: (view: ShowcaseView) => void;
-}
-
-const Ctx = createContext<ShowcaseCtx | null>(null);
+const Ctx = createContext<boolean>(false);
 
 export function HomeShowcaseProvider({ children }: { children: ReactNode }) {
-  const [view, setView] = useState<ShowcaseView>('categories');
-  return <Ctx.Provider value={{ view, setView }}>{children}</Ctx.Provider>;
+  return <Ctx.Provider value={true}>{children}</Ctx.Provider>;
 }
 
-export function useHomeShowcase(): ShowcaseCtx | null {
-  return useContext(Ctx);
+export function useHomeShowcase(): boolean | null {
+  return useContext(Ctx) ? true : null;
 }
 
-/** Switch the showcase to a view and scroll it into focus. No-op off the homepage. */
-export function showActivitiesOnHome(ctx: ShowcaseCtx | null): boolean {
-  if (!ctx) return false;
-  ctx.setView('activities');
+/** Smooth-scroll to the catalogue sections. No-op (returns false) off the homepage. */
+export function showActivitiesOnHome(onHome: boolean | null): boolean {
+  if (!onHome) return false;
   document.getElementById('home-showcase')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   return true;
 }
