@@ -65,12 +65,15 @@ export function GygHero({ children }: { children?: ReactNode }) {
             , no markup.
           </p>
 
-          {/* Strip SearchBar's built-in centering so the pill aligns flush-left to the headline. */}
-          <div className="animate-fade-up mt-7 [animation-delay:240ms] [&>div]:!mx-0 [&>div]:!mt-0 [&>div]:!max-w-2xl">
+          {/* Strip SearchBar's built-in centering so the pill aligns flush-left to the headline.
+              `relative z-30` keeps the search + its date/travellers dropdowns above the trust
+              chips below (every hero element animates a transform, so without this the later
+              chips' stacking context paints over the open calendar). */}
+          <div className="animate-fade-up relative z-30 mt-7 [animation-delay:240ms] [&>div]:!mx-0 [&>div]:!mt-0 [&>div]:!max-w-2xl">
             <SearchBar variant="hero" />
           </div>
 
-          <ul className="animate-fade-up mt-5 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)] [animation-delay:320ms]">
+          <ul className="animate-fade-up relative z-0 mt-5 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)] [animation-delay:320ms]">
             <li className="flex items-center gap-1.5">
               <IconShield width={14} height={14} /> Booked direct with the local operator
             </li>
