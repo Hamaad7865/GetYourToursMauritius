@@ -179,6 +179,7 @@ export default async function ActivityDetailPage({
                 languages={activity.languages}
                 title={activity.title}
                 pricingMode={activity.pricingMode}
+                vehiclePricing={activity.vehiclePricing}
                 image={activity.heroImage?.url ?? activity.images[0]?.url ?? null}
               />
             </aside>

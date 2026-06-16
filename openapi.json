@@ -740,6 +740,36 @@
                               "createdAt"
                             ]
                           }
+                        },
+                        "vehiclePricing": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "perBlockEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "suvFlatEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "blockSize": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0
+                            },
+                            "maxParty": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0
+                            }
+                          },
+                          "required": [
+                            "perBlockEur",
+                            "suvFlatEur",
+                            "blockSize",
+                            "maxParty"
+                          ]
                         }
                       },
                       "required": [
@@ -1000,6 +1030,9 @@
                       "minimum": 0,
                       "maximum": 1000
                     }
+                  },
+                  "suv": {
+                    "type": "boolean"
                   },
                   "customer": {
                     "type": "object",
