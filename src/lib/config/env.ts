@@ -48,6 +48,13 @@ const ServerEnvSchema = z.object({
   PEACH_ACCESS_TOKEN: z.string().min(1).optional(),
   PEACH_WEBHOOK_SECRET: z.string().min(1).optional(),
   PEACH_ENVIRONMENT: z.enum(['test', 'live']).default('test'),
+
+  // Transactional email (Resend). Without both, notifications fall back to the no-op stub.
+  RESEND_API_KEY: z.string().min(1).optional(),
+  RESEND_FROM: z.string().min(1).optional(),
+  // Shared secret guarding the internal worker endpoints (notification drain, hold sweep). Use a
+  // long random value; the endpoints are 503 until it is set.
+  INTERNAL_TASK_SECRET: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;

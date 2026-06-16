@@ -1,6 +1,7 @@
 import type { ServiceContext } from '@/lib/services/context';
 import type { DbRpc } from '@/lib/db/rpc';
 import { createUserClient } from '@/lib/supabase/client';
+import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { supabaseRpc } from '@/lib/supabase/rpc';
 import { seedRpc } from '@/lib/dev/seed-rpc';
 import { getServerEnv } from '@/lib/config/env';
@@ -42,6 +43,20 @@ export function buildServiceContext(req: Request): ServiceContext {
 export function publicServiceContext(): ServiceContext {
   return {
     db: selectDb(null),
+    payments: getPaymentProvider(),
+    ai: getAiProvider(),
+    now: () => new Date(),
+  };
+}
+
+/**
+ * Service-role context for trusted internal workers (notification drain, hold sweep, payment
+ * reconciliation). Bypasses RLS, so it must only be reached behind a server-side secret — never
+ * from a user-facing route.
+ */
+export function serviceRoleServiceContext(): ServiceContext {
+  return {
+    db: supabaseRpc(createServiceRoleClient()),
     payments: getPaymentProvider(),
     ai: getAiProvider(),
     now: () => new Date(),

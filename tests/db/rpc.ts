@@ -9,6 +9,8 @@ const ALLOWED = new Set([
   'api_create_payment',
   'api_get_booking',
   'api_capture_lead',
+  'claim_notifications',
+  'mark_notification',
 ]);
 
 /**

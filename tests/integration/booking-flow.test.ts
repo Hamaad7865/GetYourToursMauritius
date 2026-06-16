@@ -1,5 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { pgliteRpc } from '../db/rpc';
+import type { ServiceContext } from '@/lib/services/context';
+import { StubPaymentProvider } from '@/lib/payments/stub';
+import { createStubAiProvider } from '@/lib/ai/stub';
+import { StubNotificationProvider } from '@/lib/notifications/stub';
+import { drainNotifications } from '@/lib/services/notifications';
 
 /**
  * End-to-end money path, exactly as the UI + webhook drive it:
@@ -148,5 +154,37 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       await db.pg.query<{ paid_minor: number }>(`select paid_minor from payments where id = $1`, [pr[0]!.id])
     ).rows[0]!;
     expect(after.paid_minor).toBe(before.paid_minor); // unchanged — not double-credited
+  });
+
+  it('confirming a booking enqueues a confirmation, and the drain marks it sent', async () => {
+    await db.asOwner();
+    // The first test confirmed the booking → the AFTER-UPDATE trigger enqueued exactly one row
+    // (the idempotent re-append did not re-fire, since the status did not change again).
+    const enqueued = (
+      await db.pg.query<{ status: string; recipient: string }>(
+        `select status, recipient from notification_outbox where template = 'booking_confirmation'`,
+      )
+    ).rows;
+    expect(enqueued).toHaveLength(1);
+    expect(enqueued[0]!.status).toBe('pending');
+    expect(enqueued[0]!.recipient).toBe('test@example.com');
+
+    // Drain with the no-op stub provider → the row is marked sent.
+    const ctx: ServiceContext = {
+      db: pgliteRpc(db.pg),
+      payments: new StubPaymentProvider(),
+      ai: createStubAiProvider(),
+      now: () => new Date(),
+    };
+    const result = await drainNotifications(ctx, new StubNotificationProvider());
+    expect(result).toEqual({ processed: 1, sent: 1, failed: 0 });
+
+    const sent = (
+      await db.pg.query<{ status: string; sent_at: string | null }>(
+        `select status, sent_at from notification_outbox where template = 'booking_confirmation'`,
+      )
+    ).rows[0]!;
+    expect(sent.status).toBe('sent');
+    expect(sent.sent_at).not.toBeNull();
   });
 });

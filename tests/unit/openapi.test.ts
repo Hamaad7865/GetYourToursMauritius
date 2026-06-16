@@ -42,7 +42,9 @@ describe('OpenAPI document', () => {
   it('registers every /api/v1 route in the spec (webhooks intentionally excluded)', () => {
     const documented = new Set(Object.keys(apiPaths));
     const missing = discoverRoutePaths()
-      .filter((path) => !path.startsWith('/webhooks'))
+      // webhooks (provider-called) and internal worker endpoints (secret-gated) are intentionally
+      // not part of the public contract.
+      .filter((path) => !path.startsWith('/webhooks') && !path.startsWith('/internal'))
       .filter((path) => !documented.has(path));
     expect(missing).toEqual([]);
   });

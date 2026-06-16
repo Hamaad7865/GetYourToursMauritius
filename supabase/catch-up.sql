@@ -320,4 +320,102 @@ begin
 end;
 $$;
 
+-- ---- 20260616160000_notifications ------------------------------------------
+-- Enqueue a booking-confirmation (and refund) notification on the booking status transition, and
+-- the claim/mark RPCs the drain worker uses. Makes the notification_outbox a live path.
+create or replace function enqueue_booking_notification()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'confirmed' and old.status is distinct from 'confirmed' then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'email', new.customer_email, 'booking_confirmation',
+      jsonb_build_object(
+        'ref', new.ref, 'customerName', new.customer_name,
+        'totalMinor', new.total_minor, 'currency', new.currency
+      ),
+      new.id, 'booking_confirmation:' || new.id
+    )
+    on conflict (idempotency_key) do nothing;
+  elsif new.status = 'refunded' and old.status is distinct from 'refunded' then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'email', new.customer_email, 'booking_refunded',
+      jsonb_build_object('ref', new.ref, 'customerName', new.customer_name),
+      new.id, 'booking_refunded:' || new.id
+    )
+    on conflict (idempotency_key) do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists bookings_enqueue_notification on bookings;
+create trigger bookings_enqueue_notification
+  after update of status on bookings
+  for each row execute function enqueue_booking_notification();
+
+create or replace function claim_notifications(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_limit int := least(greatest(coalesce((p ->> 'limit')::int, 20), 1), 100);
+  v_rows jsonb;
+begin
+  with batch as (
+    select id from notification_outbox
+    where status = 'pending' and attempts < 5
+    order by created_at
+    limit v_limit
+    for update skip locked
+  ), upd as (
+    update notification_outbox o
+       set attempts = attempts + 1
+      from batch
+     where o.id = batch.id
+    returning o.id, o.channel, o.recipient, o.template, o.payload
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', id, 'channel', channel, 'recipient', recipient, 'template', template, 'payload', payload
+  )), '[]'::jsonb)
+  into v_rows
+  from upd;
+  return v_rows;
+end;
+$$;
+
+create or replace function mark_notification(p jsonb)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid := (p ->> 'id')::uuid;
+begin
+  if p ->> 'result' = 'sent' then
+    update notification_outbox set status = 'sent', sent_at = now(), last_error = null where id = v_id;
+  else
+    update notification_outbox
+      set status = case when attempts >= 5 then 'failed' else 'pending' end,
+          last_error = left(coalesce(p ->> 'error', 'send failed'), 500)
+      where id = v_id;
+  end if;
+end;
+$$;
+
+revoke execute on function claim_notifications(jsonb) from public;
+revoke execute on function mark_notification(jsonb) from public;
+grant execute on function claim_notifications(jsonb) to service_role;
+grant execute on function mark_notification(jsonb) to service_role;
+
 commit;
