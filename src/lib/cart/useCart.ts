@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import type { PricingMode } from '@/lib/validation/tours';
 
 const KEY = 'gytm:cart';
 const EVENT = 'gytm:cart';
@@ -19,9 +20,9 @@ export interface CartItem {
   priceLabel: string;
   /** Number of people. */
   guests: number;
-  /** Per-person or (for group pricing) per-group amount, in EUR. */
+  /** Per-person, per-group, or (vehicle) the flat price of the chosen vehicle — in EUR. */
   unitEur: number;
-  groupPricing: boolean;
+  pricingMode: PricingMode;
   maxGuests: number | null;
   /** Seats left on the occurrence when added — the ceiling the guests stepper clamps to. */
   seatsLeft: number;
@@ -31,17 +32,21 @@ export interface CartItem {
   addedAt: number;
 }
 
-/** Price for one cart line: per group (ceil people / size) when group-priced, else per head. */
+/** Price for one cart line: a flat price for vehicle pricing, per group (ceil people / size) for
+ *  group pricing, else per head. */
 export function itemTotal(i: CartItem): number {
-  const groups = i.groupPricing && i.maxGuests ? Math.ceil(i.guests / i.maxGuests) : i.guests;
+  if (i.pricingMode === 'vehicle') return Math.round(i.unitEur * 100) / 100;
+  const groups = i.pricingMode === 'per_group' && i.maxGuests ? Math.ceil(i.guests / i.maxGuests) : i.guests;
   return Math.round(i.unitEur * groups * 100) / 100;
 }
 
-/** Largest party a line can hold: bounded by seats, and by the tier cap when not group-priced
- *  (a non-group tier's max_guests is a hard cap the server enforces). */
+/** Largest party a line can hold: bounded by seats, and by the tier cap for per-person pricing (a
+ *  per-person tier's max_guests is a hard cap). Vehicle parties are fixed at add-time (changing the
+ *  size changes the vehicle + price, which is done on the activity page), so they don't grow here. */
 export function lineCap(i: CartItem): number {
+  if (i.pricingMode === 'vehicle') return i.guests;
   const bySeats = i.seatsLeft && i.seatsLeft > 0 ? i.seatsLeft : Infinity;
-  const byTier = !i.groupPricing && i.maxGuests ? i.maxGuests : Infinity;
+  const byTier = i.pricingMode === 'per_person' && i.maxGuests ? i.maxGuests : Infinity;
   return Math.min(bySeats, byTier);
 }
 

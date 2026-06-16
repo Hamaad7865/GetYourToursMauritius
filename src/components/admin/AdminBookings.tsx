@@ -427,7 +427,7 @@ function BookingDrawer({
                     </p>
                     <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink/70">
                       <IconCalendar width={13} height={13} className="text-teal" /> {fmtDate(it.startsAt)}
-                      <IconUsers width={13} height={13} className="ml-2 text-teal" /> {it.quantity}
+                      <IconUsers width={13} height={13} className="ml-2 text-teal" /> {it.pax ?? it.quantity}
                     </p>
                   </li>
                 ))}

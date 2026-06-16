@@ -15,7 +15,23 @@ import {
   type ImageInput,
   type ItineraryStopInput,
   type OptionInput,
+  type PriceInput,
 } from '@/lib/admin/activity-write';
+
+/** The operator's standard vehicle brackets, used by the one-click prefill in vehicle mode. */
+const STANDARD_VEHICLE_BRACKETS: PriceInput[] = [
+  { label: 'Car', amountEur: 75, maxGuests: 4 },
+  { label: '6-seater', amountEur: 85, maxGuests: 6 },
+  { label: 'Van', amountEur: 125, maxGuests: 14 },
+  { label: 'Minibus', amountEur: 240, maxGuests: 22 },
+];
+
+/** Put the standard brackets on the (first) option, creating one if needed. */
+function withStandardVehicleBrackets(options: OptionInput[]): OptionInput[] {
+  const [first, ...rest] = options;
+  const base = first ?? { name: 'Private vehicle', prices: [] };
+  return [{ ...base, name: base.name || 'Private vehicle', prices: STANDARD_VEHICLE_BRACKETS }, ...rest];
+}
 
 export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }) {
   const router = useRouter();
@@ -185,21 +201,34 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             />
             Hotel pickup available
           </label>
-          <label className="flex items-start gap-2.5 text-sm font-medium text-ink">
-            <input
-              type="checkbox"
-              className="mt-0.5 h-4 w-4 accent-teal"
-              checked={v.groupPricing}
-              onChange={(e) => set('groupPricing', e.target.checked)}
-            />
-            <span>
-              Charge per group (sightseeing-tour pricing)
-              <span className="mt-0.5 block text-[12px] font-normal text-ink-muted">
-                Price buys one group of up to “group size” people; bigger parties pay for extra
-                groups — e.g. €70 for 4, €140 for 5–8, €210 for 9–12.
-              </span>
-            </span>
-          </label>
+          <Field label="Pricing">
+            <select
+              className={inputClass}
+              value={v.pricingMode}
+              onChange={(e) => set('pricingMode', e.target.value as ActivityFormValues['pricingMode'])}
+            >
+              <option value="per_person">Per person (price × people)</option>
+              <option value="per_group">Per group (one price per group of N)</option>
+              <option value="vehicle">By vehicle size (flat price for the vehicle that fits)</option>
+            </select>
+            <p className="mt-1.5 text-[12px] text-ink-muted">
+              {v.pricingMode === 'vehicle'
+                ? 'One flat price chosen by party size. Add a tier per vehicle below, where “fits up to” is the vehicle capacity (e.g. 4 → €75, 6 → €85, 14 → €125, 22 → €240). Each booking takes one vehicle slot of the daily limit.'
+                : v.pricingMode === 'per_group'
+                  ? 'The price buys one group of up to “fits up to” people; bigger parties pay for extra groups (ceil(people / size) × price).'
+                  : 'Each guest pays the tier price. “Fits up to” is an optional hard cap per tier.'}
+            </p>
+            {v.pricingMode === 'vehicle' &&
+              v.options.every((o) => o.prices.every((p) => p.amountEur == null)) && (
+                <button
+                  type="button"
+                  onClick={() => set('options', withStandardVehicleBrackets(v.options))}
+                  className="mt-2 rounded-lg border border-teal/40 px-3 py-1.5 text-[12px] font-bold text-teal hover:bg-teal/5"
+                >
+                  Use standard vehicle brackets (€75 / €85 / €125 / €240)
+                </button>
+              )}
+          </Field>
           <div className="grid gap-5 sm:grid-cols-2">
             <StringList label="Highlights" items={v.highlights} onChange={(x) => set('highlights', x)} />
             <StringList label="Languages" items={v.languages} onChange={(x) => set('languages', x)} />
@@ -215,7 +244,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
 
       <Section
         title="Options & pricing"
-        hint="Each option (e.g. Shared, Private) has price tiers: label, € price, and an optional group size. Set the group size (e.g. 4) for “per group up to 4” pricing; leave it blank for per-person."
+        hint="Each option (e.g. Shared, Private) has price tiers: a label, a € price, and a “fits up to” number. Its meaning follows the Pricing mode above — a per-tier cap (per person), the group size (per group), or the vehicle capacity (by vehicle size)."
       >
         <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
       </Section>

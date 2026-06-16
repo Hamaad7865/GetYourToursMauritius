@@ -8,6 +8,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 interface BookingItem {
   priceLabel: string;
   quantity: number;
+  pax?: number | null;
   subtotalEur: number;
 }
 interface Booking {
@@ -111,7 +112,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           {booking.items.map((it, i) => (
             <div key={i} className="flex justify-between">
               <dt className="text-ink-muted">
-                {it.quantity} × {it.priceLabel}
+                {it.pax != null
+                  ? `${it.priceLabel} · ${it.pax} ${it.pax === 1 ? 'passenger' : 'passengers'}`
+                  : `${it.quantity} × ${it.priceLabel}`}
               </dt>
               <dd className="font-medium text-ink">€{it.subtotalEur.toFixed(2)}</dd>
             </div>

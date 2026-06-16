@@ -37,13 +37,13 @@ export function PlaceCard({
   const image = activity.heroImage ?? activity.images[0] ?? null;
 
   const topRated = activity.ratingAvg != null && activity.ratingAvg >= 4.7;
-  // Price unit follows what staff set: a transfer is per vehicle; an activity that opts into
-  // group pricing (sightseeing tours) is "per group up to N"; otherwise it's per person.
+  // Price unit follows what staff set: a transfer or a vehicle-priced sightseeing tour reads "per
+  // vehicle"; per-group reads "per group up to N"; otherwise it's per person.
   const groupSize = activity.fromPriceMaxGuests;
   const unit =
-    activity.type === 'transport'
+    activity.type === 'transport' || activity.pricingMode === 'vehicle'
       ? 'per vehicle'
-      : activity.groupPricing && groupSize && groupSize > 1
+      : activity.pricingMode === 'per_group' && groupSize && groupSize > 1
         ? `per group up to ${groupSize}`
         : 'per person';
   const duration = durationLabel(activity.durationMinutes);

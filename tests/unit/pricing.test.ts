@@ -1,12 +1,54 @@
 import { describe, expect, it } from 'vitest';
-import { centsToEur, eurToCents, quoteTotal } from '@/lib/services/pricing';
+import {
+  centsToEur,
+  eurToCents,
+  maxVehicleCapacity,
+  pickVehicleBracket,
+  quoteTotal,
+} from '@/lib/services/pricing';
 import { ServiceError } from '@/lib/services/errors';
+
+const VEHICLE_BRACKETS = [
+  { label: 'Car', amountEur: 75, maxGuests: 4 },
+  { label: '6-seater', amountEur: 85, maxGuests: 6 },
+  { label: 'Van', amountEur: 125, maxGuests: 14 },
+  { label: 'Minibus', amountEur: 240, maxGuests: 22 },
+];
 
 const TIERS = [
   { label: 'Adult', amountEur: 75, maxGuests: null },
   { label: 'Child', amountEur: 45, maxGuests: null },
   { label: 'Private group', amountEur: 110, maxGuests: 6 },
 ];
+
+describe('pickVehicleBracket / maxVehicleCapacity', () => {
+  it('picks the cheapest vehicle that fits, rounding the party up to the next vehicle', () => {
+    const cases: Array<[number, string, number]> = [
+      [1, 'Car', 75],
+      [4, 'Car', 75],
+      [5, '6-seater', 85],
+      [6, '6-seater', 85],
+      [7, 'Van', 125],
+      [14, 'Van', 125],
+      [15, 'Minibus', 240],
+      [22, 'Minibus', 240],
+    ];
+    for (const [people, label, amountEur] of cases) {
+      const bracket = pickVehicleBracket(VEHICLE_BRACKETS, people);
+      expect(bracket.label).toBe(label);
+      expect(bracket.amountEur).toBe(amountEur);
+    }
+  });
+
+  it('throws when the party is bigger than the biggest vehicle', () => {
+    expect(() => pickVehicleBracket(VEHICLE_BRACKETS, 23)).toThrow(ServiceError);
+  });
+
+  it('reports the largest configured vehicle capacity', () => {
+    expect(maxVehicleCapacity(VEHICLE_BRACKETS)).toBe(22);
+    expect(maxVehicleCapacity([{ label: 'x', amountEur: 1, maxGuests: null }])).toBe(0);
+  });
+});
 
 describe('eurToCents / centsToEur', () => {
   it('round-trips whole and fractional amounts', () => {

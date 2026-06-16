@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { TourType } from '@/lib/validation/common';
-import type { TourOption } from '@/lib/validation/tours';
+import type { PricingMode, TourOption } from '@/lib/validation/tours';
+import { maxVehicleCapacity, pickVehicleBracket } from '@/lib/services/pricing';
 import { useCart } from '@/lib/cart/useCart';
 import { useToast } from '@/components/site/ToastProvider';
 import {
@@ -68,7 +70,7 @@ export function BookingWidget({
   options,
   languages,
   title,
-  groupPricing = false,
+  pricingMode = 'per_person',
   image = null,
 }: {
   slug: string;
@@ -77,8 +79,9 @@ export function BookingWidget({
   options: TourOption[];
   languages: string[];
   title: string;
-  /** Island-tour style: bill per group (ceil(people / maxGuests) × price), no hard cap. */
-  groupPricing?: boolean;
+  /** per_person (× people), per_group (× ceil(people/size)), or vehicle (flat price by the vehicle
+   *  that fits the party). */
+  pricingMode?: PricingMode;
   /** Hero image URL for the cart line item. */
   image?: string | null;
 }) {
@@ -110,13 +113,25 @@ export function BookingWidget({
     return best;
   }, [options]);
   const isTransport = type === 'transport';
-  // Per-group pricing only applies when the activity opts in (e.g. sightseeing tours).
-  const isGroup = groupPricing && cheapest?.maxGuests != null;
-  const unitLabel = isGroup
-    ? `per group up to ${cheapest!.maxGuests}`
-    : isTransport
-      ? 'per vehicle'
-      : 'per person';
+  const isVehicle = pricingMode === 'vehicle';
+  const isGroup = pricingMode === 'per_group' && cheapest?.maxGuests != null;
+
+  // Vehicle pricing: the cheapest option's price rows are the vehicle brackets (maxGuests = the
+  // vehicle's capacity, amount = the flat price). The party can be any size up to the biggest vehicle.
+  const vehicleOption = options.find((o) => o.id === cheapest?.optionId) ?? options[0];
+  const brackets = isVehicle ? (vehicleOption?.prices ?? []).filter((p) => p.maxGuests != null) : [];
+  const maxCap = isVehicle ? maxVehicleCapacity(brackets) : 0;
+  const selectedBracket =
+    isVehicle && brackets.length > 0 ? pickVehicleBracket(brackets, Math.min(participants, maxCap || 1)) : null;
+  const bookingLabel = (isVehicle ? selectedBracket?.label : cheapest?.label) ?? cheapest?.label ?? '';
+
+  const unitLabel = isVehicle
+    ? 'per vehicle'
+    : isGroup
+      ? `per group up to ${cheapest!.maxGuests}`
+      : isTransport
+        ? 'per vehicle'
+        : 'per person';
 
   const today = startOfDay(new Date());
   const tomorrow = new Date(today);
@@ -167,16 +182,21 @@ export function BookingWidget({
 
   const selected = date ? days?.get(date) : undefined;
   const seatsLeft = selected?.seatsLeft ?? 0;
-  // A non-group tier's max_guests is a hard cap the server enforces — don't let the stepper
-  // exceed it (group tiers scale freely up to the occurrence's seats).
-  const tierCap = !isGroup && cheapest?.maxGuests ? cheapest.maxGuests : Infinity;
-  const maxParticipants = Math.max(1, Math.min(16, tierCap, date ? seatsLeft : 16));
+  // For vehicle pricing the party is bounded by the biggest vehicle, NOT by seats (one booking =
+  // one vehicle slot regardless of headcount). For per-person, a tier cap + remaining seats bound it.
+  const tierCap = pricingMode === 'per_person' && cheapest?.maxGuests ? cheapest.maxGuests : Infinity;
+  const maxParticipants = isVehicle
+    ? Math.max(1, maxCap)
+    : Math.max(1, Math.min(16, tierCap, date ? seatsLeft : 16));
 
-  // Group tiers are billed per group: total = ceil(people / group size) x price.
-  const groups =
-    isGroup && cheapest?.maxGuests ? Math.ceil(participants / cheapest.maxGuests) : participants;
   const total =
-    cheapest == null ? null : isGroup ? cheapest.amountEur * groups : cheapest.amountEur * participants;
+    cheapest == null
+      ? null
+      : isVehicle
+        ? (selectedBracket?.amountEur ?? null)
+        : isGroup && cheapest.maxGuests
+          ? cheapest.amountEur * Math.ceil(participants / cheapest.maxGuests)
+          : cheapest.amountEur * participants;
   const dateText = date
     ? new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Select a date';
@@ -193,17 +213,27 @@ export function BookingWidget({
     setDate(key);
     setOpen(null);
     setError(null);
+    if (isVehicle) {
+      setParticipants((p) => Math.max(1, Math.min(p, Math.max(1, maxCap))));
+      return;
+    }
     const left = days?.get(key)?.seatsLeft ?? 0;
     setParticipants((p) => Math.max(1, Math.min(p, Math.max(1, Math.min(16, left)))));
+  }
+
+  // Vehicle bookings take one slot whatever the headcount, so the people-vs-seats check only
+  // applies to the per-person / per-group modes.
+  function overCapacity(): boolean {
+    return !isVehicle && participants > seatsLeft;
   }
 
   function goToCheckout() {
     if (!selected || !cheapest) return setError('Please choose a date.');
     if (participants <= 0) return setError('Please add at least one guest.');
-    if (participants > seatsLeft) return setError('Not enough space left on that date.');
+    if (overCapacity()) return setError('Not enough space left on that date.');
     const q = new URLSearchParams({
       occ: selected.occurrenceId,
-      label: cheapest.label,
+      label: bookingLabel,
       qty: String(participants),
       slug,
       title,
@@ -219,20 +249,20 @@ export function BookingWidget({
   function handleAddToCart() {
     if (!selected || !cheapest) return setError('Please choose a date first.');
     if (participants <= 0) return setError('Please add at least one guest.');
-    if (participants > seatsLeft) return setError('Not enough space left on that date.');
+    if (overCapacity()) return setError('Not enough space left on that date.');
     addToCart({
-      id: `${selected.occurrenceId}:${cheapest.label}`,
+      id: `${selected.occurrenceId}:${bookingLabel}`,
       slug,
       title,
       image,
       occurrenceId: selected.occurrenceId,
       dateLabel: dateText,
       lang,
-      priceLabel: cheapest.label,
+      priceLabel: bookingLabel,
       guests: participants,
-      unitEur: cheapest.amountEur,
-      groupPricing: isGroup,
-      maxGuests: cheapest.maxGuests,
+      unitEur: isVehicle ? (selectedBracket?.amountEur ?? 0) : cheapest.amountEur,
+      pricingMode,
+      maxGuests: isVehicle ? (selectedBracket?.maxGuests ?? null) : cheapest.maxGuests,
       seatsLeft,
       unit: unitLabel,
     });
@@ -291,7 +321,9 @@ export function BookingWidget({
             </button>
             {open === 'parts' && (
               <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 flex items-center justify-between rounded-xl border border-ink/12 bg-white px-4 py-3 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
-                <span className="text-sm font-semibold text-ink">{isGroup ? 'Group size' : 'Guests'}</span>
+                <span className="text-sm font-semibold text-ink">
+                  {isVehicle ? 'Passengers' : isGroup ? 'Group size' : 'Guests'}
+                </span>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
@@ -439,6 +471,13 @@ export function BookingWidget({
           )}
         </div>
 
+        {isVehicle && selectedBracket && (
+          <div className="mt-3.5 flex items-center gap-2 rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] font-semibold text-teal-dark">
+            <IconUsers width={15} height={15} className="text-teal" />
+            {selectedBracket.label} · for up to {selectedBracket.maxGuests} passengers
+          </div>
+        )}
+
         <div className="mt-4 flex items-center justify-between border-t border-ink/[0.08] pt-3.5">
           <span className="text-[13px] font-bold text-ink/80">Total</span>
           <span className="text-xl font-extrabold tracking-tight text-ink">
@@ -471,6 +510,14 @@ export function BookingWidget({
         <p className="mt-2 text-center text-[11.5px] text-ink-muted">
           You won&apos;t be charged until you confirm on the next screen.
         </p>
+        {isVehicle && maxCap > 0 && (
+          <p className="mt-2 text-center text-[11.5px] text-ink-muted">
+            Travelling with more than {maxCap}?{' '}
+            <Link href="/contact" className="font-bold text-teal hover:text-teal-dark">
+              Contact us for a quote
+            </Link>
+          </p>
+        )}
 
         <div className="mt-4 flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5 text-[13px] text-ink/80">

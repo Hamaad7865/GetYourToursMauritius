@@ -25,6 +25,9 @@ export type CreateBookingInput = z.infer<typeof createBookingInputSchema>;
 export const bookingItemSchema = z.object({
   priceLabel: z.string(),
   quantity: z.number().int(),
+  /** People on board for a vehicle booking (where quantity is the vehicle count = 1). Null for
+   *  per-person/per-group lines, where quantity is the headcount. */
+  pax: z.number().int().nullable().optional(),
   unitAmountEur: z.number().nonnegative(),
   subtotalEur: z.number().nonnegative(),
   occurrenceId: z.string(),

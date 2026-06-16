@@ -167,9 +167,14 @@
                             ],
                             "exclusiveMinimum": 0
                           },
-                          "groupPricing": {
-                            "type": "boolean",
-                            "default": false
+                          "pricingMode": {
+                            "type": "string",
+                            "enum": [
+                              "per_person",
+                              "per_group",
+                              "vehicle"
+                            ],
+                            "default": "per_person"
                           },
                           "ratingAvg": {
                             "type": [
@@ -250,7 +255,7 @@
                           "location",
                           "durationMinutes",
                           "fromPriceEur",
-                          "groupPricing",
+                          "pricingMode",
                           "ratingAvg",
                           "ratingCount",
                           "heroImage",
@@ -414,9 +419,14 @@
                           ],
                           "exclusiveMinimum": 0
                         },
-                        "groupPricing": {
-                          "type": "boolean",
-                          "default": false
+                        "pricingMode": {
+                          "type": "string",
+                          "enum": [
+                            "per_person",
+                            "per_group",
+                            "vehicle"
+                          ],
+                          "default": "per_person"
                         },
                         "ratingAvg": {
                           "type": [
@@ -742,7 +752,7 @@
                         "location",
                         "durationMinutes",
                         "fromPriceEur",
-                        "groupPricing",
+                        "pricingMode",
                         "ratingAvg",
                         "ratingCount",
                         "heroImage",
@@ -1120,6 +1130,12 @@
                               "quantity": {
                                 "type": "integer"
                               },
+                              "pax": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
                               "unitAmountEur": {
                                 "type": "number",
                                 "minimum": 0
@@ -1365,6 +1381,12 @@
                               },
                               "quantity": {
                                 "type": "integer"
+                              },
+                              "pax": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
                               },
                               "unitAmountEur": {
                                 "type": "number",

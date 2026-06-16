@@ -106,3 +106,31 @@ export function quoteTotal(tiers: PriceTierInput[], party: PartySelection): Quot
     totalGuests,
   };
 }
+
+export interface VehicleBracket {
+  label: string;
+  amountEur: number;
+  maxGuests: number;
+}
+
+/**
+ * Vehicle pricing: the cheapest bracket whose capacity fits the whole party (a step function, NOT
+ * per head). Brackets are price tiers where `maxGuests` is the vehicle's UPPER bound. Throws when
+ * the party is larger than the biggest vehicle. The DB (`create_booking`) is authoritative; this
+ * mirrors it for the widget + tests.
+ */
+export function pickVehicleBracket(tiers: PriceTierInput[], people: number): VehicleBracket {
+  const fits = tiers
+    .filter((t): t is PriceTierInput & { maxGuests: number } => t.maxGuests != null && t.maxGuests >= people)
+    .sort((a, b) => a.maxGuests - b.maxGuests);
+  const bracket = fits[0];
+  if (!bracket) {
+    throw new ValidationError(`No vehicle fits ${people} ${people === 1 ? 'person' : 'people'}`);
+  }
+  return { label: bracket.label, amountEur: bracket.amountEur, maxGuests: bracket.maxGuests };
+}
+
+/** The largest party any configured vehicle can carry (0 if none). */
+export function maxVehicleCapacity(tiers: PriceTierInput[]): number {
+  return tiers.reduce((max, t) => (t.maxGuests != null && t.maxGuests > max ? t.maxGuests : max), 0);
+}

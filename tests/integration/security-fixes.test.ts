@@ -128,7 +128,7 @@ describe('security & integrity fixes', () => {
       const { occurrenceId, optionId } = await seedOccurrence(db, 50);
       // Opt this activity into per-group pricing.
       await db.pg.query(
-        `update activities set group_pricing = true where id = (select activity_id from activity_options where id = $1)`,
+        `update activities set pricing_mode = 'per_group' where id = (select activity_id from activity_options where id = $1)`,
         [optionId],
       );
       await db.pg.query(
@@ -146,6 +146,83 @@ describe('security & integrity fixes', () => {
       );
       expect(Number(b[0]!.total_minor)).toBe(groups * 7000); // 4->70, 5->140, 8->140, 9->210
     }
+  });
+
+  async function seedVehicle(capacity: number): Promise<{ occurrenceId: string; optionId: string }> {
+    const { occurrenceId, optionId } = await seedOccurrence(db, capacity);
+    await db.pg.query(
+      `update activities set pricing_mode = 'vehicle' where id = (select activity_id from activity_options where id = $1)`,
+      [optionId],
+    );
+    await db.pg.query(
+      `insert into activity_option_prices (activity_option_id, label, amount_minor, max_guests, position) values
+        ($1, 'Car', 7500, 4, 0), ($1, '6-seater', 8500, 6, 1), ($1, 'Van', 12500, 14, 2), ($1, 'Minibus', 24000, 22, 3)`,
+      [optionId],
+    );
+    return { occurrenceId, optionId };
+  }
+
+  it('charges a flat price by vehicle bracket; one booking = one vehicle slot, pax recorded', async () => {
+    for (const [people, expectMinor] of [
+      [1, 7500],
+      [4, 7500],
+      [5, 8500],
+      [6, 8500],
+      [7, 12500],
+      [14, 12500],
+      [15, 24000],
+      [22, 24000],
+    ] as const) {
+      await db.asOwner();
+      const { occurrenceId } = await seedVehicle(10);
+      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
+        occurrenceId,
+        `veh-${people}`,
+      ]);
+      const { rows: b } = await db.pg.query<{ id: string; total_minor: number | string }>(
+        `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb)`,
+        [`veh-bk-${people}`, h[0]!.id, JSON.stringify([{ price_label: 'Car', quantity: people }])],
+      );
+      expect(Number(b[0]!.total_minor)).toBe(expectMinor);
+      const { rows: item } = await db.pg.query<{ quantity: number; pax: number; subtotal_minor: number | string }>(
+        `select quantity, pax, subtotal_minor from booking_items where booking_id = $1`,
+        [b[0]!.id],
+      );
+      expect(item[0]!.quantity).toBe(1); // one vehicle
+      expect(item[0]!.pax).toBe(people); // people on board
+      expect(Number(item[0]!.subtotal_minor)).toBe(expectMinor);
+    }
+  });
+
+  it('rejects a vehicle party larger than the biggest vehicle', async () => {
+    await db.asOwner();
+    const { occurrenceId } = await seedVehicle(10);
+    const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, 'veh-over')`, [
+      occurrenceId,
+    ]);
+    await expect(
+      db.pg.query(
+        `select * from create_booking('veh-over-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb)`,
+        [h[0]!.id, JSON.stringify([{ price_label: 'Minibus', quantity: 23 }])],
+      ),
+    ).rejects.toThrow(/exceeds_vehicle_capacity/);
+  });
+
+  it('counts vehicles, not people, against the day — two vehicles fill a capacity-2 day', async () => {
+    await db.asOwner();
+    const { occurrenceId } = await seedVehicle(2); // two vehicle slots
+    for (const n of [1, 2]) {
+      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
+        occurrenceId,
+        `cap-${n}`,
+      ]);
+      await db.pg.query(
+        `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb)`,
+        [`cap-bk-${n}`, h[0]!.id, JSON.stringify([{ price_label: 'Van', quantity: 10 }])],
+      );
+    }
+    // A third vehicle can't be held even though only "2" of the people-capacity is nominally used.
+    await expect(db.pg.query(`select * from create_hold($1, 1, 'cap-3')`, [occurrenceId])).rejects.toThrow();
   });
 
   it('does not project a refund that arrives before any payment', async () => {

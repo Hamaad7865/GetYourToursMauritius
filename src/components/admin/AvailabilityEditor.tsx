@@ -23,6 +23,7 @@ function errMessage(err: unknown, fallback: string): string {
 export function AvailabilityEditor({ activityId }: { activityId: string }) {
   const [title, setTitle] = useState('');
   const [hasOptions, setHasOptions] = useState(true);
+  const [pricingMode, setPricingMode] = useState('per_person');
   const [open, setOpen] = useState(false);
   const [capacity, setCapacity] = useState(10);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +45,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
         if (!active) return;
         setTitle(meta.title);
         setHasOptions(meta.options.length > 0);
+        setPricingMode(meta.pricingMode);
         await refresh();
       } catch (err) {
         if (active) setError(errMessage(err, 'Could not load.'));
@@ -100,12 +102,14 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
           </div>
           <p className="mt-1 text-[13px] text-ink-muted">
             {open
-              ? `Customers can book any day, up to ${capacity} guests per day.`
-              : 'Set how many guests can book per day, then turn it on. It stays open until you stop it.'}
+              ? `Customers can book any day, up to ${capacity} ${pricingMode === 'vehicle' ? 'bookings' : 'guests'} per day.`
+              : `Set how many ${pricingMode === 'vehicle' ? 'bookings' : 'guests'} can book per day, then turn it on. It stays open until you stop it.`}
           </p>
 
           <label className="mt-5 flex flex-col gap-1.5">
-            <span className="text-[13px] font-bold text-ink">Bookable per day (capacity)</span>
+            <span className="text-[13px] font-bold text-ink">
+              {pricingMode === 'vehicle' ? 'Bookings (vehicles) per day' : 'Bookable per day (capacity)'}
+            </span>
             <input
               type="number"
               min={1}
@@ -138,7 +142,8 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
 
           {open && (
             <p className="mt-4 text-[12px] text-ink-muted">
-              Bookable on every future date — a day fills up once {capacity} guests have booked it.
+              Bookable on every future date — a day fills up once {capacity}{' '}
+              {pricingMode === 'vehicle' ? 'bookings' : 'guests'} have booked it.
             </p>
           )}
           {notice && <p className="mt-3 text-[13px] font-medium text-teal-dark">{notice}</p>}

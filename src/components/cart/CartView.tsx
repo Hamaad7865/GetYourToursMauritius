@@ -160,12 +160,18 @@ export function CartView() {
                 </div>
                 <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
                   <div>
-                    <Stepper
-                      value={i.guests}
-                      max={lineCap(i)}
-                      noun={i.groupPricing ? 'people' : i.unit === 'per vehicle' ? 'passengers' : 'guests'}
-                      onChange={(n) => setGuests(i.id, n)}
-                    />
+                    {i.pricingMode === 'vehicle' ? (
+                      // The vehicle (and its flat price) is fixed at the size chosen on the activity
+                      // page — changing it would change the vehicle, so it's not editable here.
+                      <div className="text-sm font-bold text-ink">{i.guests} passengers</div>
+                    ) : (
+                      <Stepper
+                        value={i.guests}
+                        max={lineCap(i)}
+                        noun={i.pricingMode === 'per_group' ? 'people' : 'guests'}
+                        onChange={(n) => setGuests(i.id, n)}
+                      />
+                    )}
                     <div className="mt-1 text-[11px] text-ink-muted">{i.unit}</div>
                   </div>
                   <div className="text-right">

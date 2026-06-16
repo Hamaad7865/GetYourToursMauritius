@@ -3,6 +3,11 @@ import { categorySchema, paginationQuerySchema, tourTypeSchema } from './common'
 
 // Catalogue DTOs — these match the `api_*` Postgres function output exactly.
 
+/** How an activity is priced: per head, per group (ceil), or one flat price by the vehicle the
+ *  party needs (sightseeing tours). */
+export const pricingModeSchema = z.enum(['per_person', 'per_group', 'vehicle']);
+export type PricingMode = z.infer<typeof pricingModeSchema>;
+
 export const tourPriceSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -29,13 +34,12 @@ export const tourSummarySchema = z.object({
   location: z.string().nullable(),
   durationMinutes: z.number().int().nullable(),
   fromPriceEur: z.number().nonnegative().nullable(),
-  // Group size of the cheapest tier: when set, the price is "per group up to N" (e.g. a
-  // private tour for 4); null/absent means per-person pricing. Nullish so summaries from a
-  // DB that predates this field still parse.
+  // max_guests of the cheapest tier. For per_group it's the group size ("up to N"); for vehicle
+  // it's the smallest vehicle's capacity. Nullish so older summaries still parse.
   fromPriceMaxGuests: z.number().int().positive().nullish(),
-  // When true, fromPriceMaxGuests is a GROUP SIZE billed per group (ceil(people / size) ×
-  // price), e.g. sightseeing tours; otherwise the price is per person (or per vehicle for transport).
-  groupPricing: z.boolean().default(false),
+  // How fromPriceEur is billed: per_person (× people), per_group (× ceil(people / size)), or
+  // vehicle (one flat price for the vehicle that fits the party). Defaults so older DBs parse.
+  pricingMode: pricingModeSchema.default('per_person'),
   ratingAvg: z.number().nullable(),
   ratingCount: z.number().int(),
   heroImage: tourImageSchema.nullable(),
