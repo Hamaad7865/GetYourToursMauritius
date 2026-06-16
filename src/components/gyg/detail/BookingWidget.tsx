@@ -110,7 +110,7 @@ export function BookingWidget({
     return best;
   }, [options]);
   const isTransport = type === 'transport';
-  // Per-group pricing only applies when the activity opts in (e.g. island tours).
+  // Per-group pricing only applies when the activity opts in (e.g. sightseeing tours).
   const isGroup = groupPricing && cheapest?.maxGuests != null;
   const unitLabel = isGroup
     ? `per group up to ${cheapest!.maxGuests}`

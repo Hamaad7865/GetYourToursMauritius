@@ -38,7 +38,7 @@ export function PlaceCard({
 
   const topRated = activity.ratingAvg != null && activity.ratingAvg >= 4.7;
   // Price unit follows what staff set: a transfer is per vehicle; an activity that opts into
-  // group pricing (island tours) is "per group up to N"; otherwise it's per person.
+  // group pricing (sightseeing tours) is "per group up to N"; otherwise it's per person.
   const groupSize = activity.fromPriceMaxGuests;
   const unit =
     activity.type === 'transport'

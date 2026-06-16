@@ -542,7 +542,7 @@ export interface Database {
         | 'Dolphin swims'
         | 'Sea walks & diving'
         | 'Parasailing'
-        | 'Island tours'
+        | 'Sightseeing tours'
         | 'Airport transfers';
       content_locale: 'en' | 'fr';
       occurrence_status: 'open' | 'closed' | 'cancelled';

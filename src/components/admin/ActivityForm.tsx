@@ -193,7 +193,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               onChange={(e) => set('groupPricing', e.target.checked)}
             />
             <span>
-              Charge per group (island-tour pricing)
+              Charge per group (sightseeing-tour pricing)
               <span className="mt-0.5 block text-[12px] font-normal text-ink-muted">
                 Price buys one group of up to “group size” people; bigger parties pay for extra
                 groups — e.g. €70 for 4, €140 for 5–8, €210 for 9–12.

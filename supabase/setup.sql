@@ -174,7 +174,7 @@ create index session_occurrences_operator_idx on session_occurrences (operator_i
 
 create table bookings (
   id uuid primary key default gen_random_uuid(),
-  ref text not null unique default ('BMT-' || upper(substr(md5(gen_random_uuid()::text), 1, 16))),
+  ref text not null unique default ('BMT-' || upper(substr(md5(gen_random_uuid()::text), 1, 8))),
   -- Idempotency anchor for create_booking (client-supplied, server fallback).
   idempotency_key text unique,
   user_id uuid references auth.users (id) on delete set null,
@@ -1824,6 +1824,608 @@ as $$
   );
 $$;
 
+-- ==================== 20260615121600_booking_admin_guards.sql ====================
+-- Admin-booking write guards (from the admin Bookings adversarial review).
+--
+-- The admin panel lets staff manage bookings DIRECTLY via PostgREST (the browser
+-- client), gated only by the `*_staff` RLS policies. Those policies are column-agnostic
+-- `for all`, so without these guards a signed-in staff/admin could hand-craft a PATCH and
+-- (a) forge bookings.payment_state = 'paid' / status = 'confirmed', or (b) rewrite financial
+-- and identity columns (total_minor, payout, customer_email, ref, …), or (c) fabricate a
+-- paid `payments` row — all bypassing the invariant that payment confirmation comes ONLY
+-- from the verified webhook -> append_payment_event ledger path.
+--
+-- We enforce the invariant at the database (the UI is not a security boundary), mirroring
+-- the existing enforce_profile_role pattern: the SECURITY DEFINER RPCs (create_booking,
+-- append_payment_event, api_create_payment) run as the table owner and service_role runs as
+-- itself, so `current_user not in ('anon','authenticated')` lets the legitimate flow through
+-- untouched while a browser session is constrained.
+
+-- ---------------------------------------------------------------------------
+-- bookings: from a browser session, only `notes` and the operational status
+-- transitions (-> completed / -> cancelled) may change. Everything financial,
+-- identity- or payment-related is pinned to its previous value.
+-- ---------------------------------------------------------------------------
+create or replace function enforce_booking_admin_update()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new; -- service_role / owner / SECURITY DEFINER RPCs (webhook, create_booking)
+  end if;
+
+  -- Immutable from a browser session — owned by the booking/ledger RPCs.
+  new.payment_state           := old.payment_state;
+  new.total_minor             := old.total_minor;
+  new.agency_commission_minor := old.agency_commission_minor;
+  new.operator_payout_minor   := old.operator_payout_minor;
+  new.currency                := old.currency;
+  new.ref                     := old.ref;
+  new.idempotency_key         := old.idempotency_key;
+  new.user_id                 := old.user_id;
+  new.customer_name           := old.customer_name;
+  new.customer_email          := old.customer_email;
+  new.customer_phone          := old.customer_phone;
+  new.source                  := old.source;
+  new.created_at              := old.created_at;
+
+  -- Status may only move through the operational transitions staff are allowed to make.
+  if new.status is distinct from old.status then
+    if not (
+      (new.status = 'completed' and old.status = 'confirmed') or
+      (new.status = 'cancelled' and old.status in ('draft', 'held', 'payment_pending', 'confirmed'))
+    ) then
+      raise exception 'forbidden_booking_status_transition'
+        using detail = format('%s -> %s', old.status, new.status);
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists bookings_admin_update_guard on bookings;
+create trigger bookings_admin_update_guard
+  before update on bookings
+  for each row execute function enforce_booking_admin_update();
+
+-- ---------------------------------------------------------------------------
+-- payments + booking_items: never written directly from a browser session. All
+-- legitimate writes go through SECURITY DEFINER RPCs (owner) or service_role. We
+-- block INSERT/UPDATE only (not DELETE) so booking-delete FK cascades still work.
+-- ---------------------------------------------------------------------------
+create or replace function forbid_public_write()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user in ('anon', 'authenticated') then
+    raise exception 'forbidden_direct_write' using detail = tg_table_name;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists payments_no_public_write on payments;
+create trigger payments_no_public_write
+  before insert or update on payments
+  for each row execute function forbid_public_write();
+
+drop trigger if exists booking_items_no_public_write on booking_items;
+create trigger booking_items_no_public_write
+  before insert or update on booking_items
+  for each row execute function forbid_public_write();
+
+-- ==================== 20260615121700_categories.sql ====================
+-- Dynamic categories: a managed table that becomes the canonical category list, so staff can
+-- add/edit/remove categories from the admin with no code change. `activities.category` is
+-- freed from the fixed enum to plain text. Existing activities keep their category names, and
+-- the table is seeded with the original seven, so nothing changes until staff edit it.
+
+create table if not exists categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  slug text not null unique,
+  position int not null default 0,
+  image_url text,
+  status text not null default 'active' check (status in ('active', 'hidden')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists categories_position_idx on categories (position);
+
+insert into categories (name, slug, position) values
+  ('Catamaran cruises', 'catamaran-cruises', 0),
+  ('Île aux Cerfs', 'ile-aux-cerfs', 1),
+  ('Dolphin swims', 'dolphin-swims', 2),
+  ('Sea walks & diving', 'sea-walks-diving', 3),
+  ('Parasailing', 'parasailing', 4),
+  ('Island tours', 'island-tours', 5)
+on conflict (name) do nothing;
+
+-- Free activities.category from the enum so newly-created categories are assignable. The only
+-- SQL that reads it already casts `category::text`, and the index rebuilds automatically.
+alter table activities alter column category type text using category::text;
+
+-- RLS: anyone may read active categories (public nav/filters); staff manage them.
+alter table categories enable row level security;
+grant select on categories to anon, authenticated;
+grant insert, update, delete on categories to authenticated;
+
+drop policy if exists categories_public_read on categories;
+create policy categories_public_read on categories
+  for select using (status = 'active' or is_staff());
+drop policy if exists categories_staff_all on categories;
+create policy categories_staff_all on categories
+  for all using (is_staff()) with check (is_staff());
+
+-- ==================== 20260615121800_summary_images_group.sql ====================
+-- Catalogue cards need two things the search summary didn't return:
+--   1. the FULL image array (so a multi-photo activity shows the carousel arrows/dots, not
+--      just its hero image), and
+--   2. the from-price tier's group size (`max_guests`), so the card can label the price
+--      "per group up to N" vs "per person" — derived from what staff set in the admin.
+-- Only `api_search_activities` changes; everything else is identical to the prior version.
+create or replace function api_search_activities(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with filtered as (
+    select a.*
+    from activities a
+    where a.status = 'published'
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+  ),
+  paged as (
+    select * from filtered
+    order by rating_count desc, title
+    limit coalesce((p ->> 'pageSize')::int, 20)
+    offset (coalesce((p ->> 'page')::int, 1) - 1) * coalesce((p ->> 'pageSize')::int, 20)
+  )
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+        'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+        'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count,
+        'fromPriceEur', (
+          select min(pr.amount_minor)::float / 100
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+        ),
+        'fromPriceMaxGuests', (
+          select pr.max_guests
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+          order by pr.amount_minor asc nulls last
+          limit 1
+        ),
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = x.id order by img.position limit 1
+        ),
+        'images', coalesce((
+          select jsonb_agg(
+            jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+            order by img.position
+          )
+          from activity_images img where img.activity_id = x.id
+        ), '[]'::jsonb)
+      ))
+      from paged x
+    ), '[]'::jsonb),
+    'total', (select count(*)::int from filtered),
+    'page', coalesce((p ->> 'page')::int, 1),
+    'pageSize', coalesce((p ->> 'pageSize')::int, 20)
+  );
+$$;
+
+-- ==================== 20260615121900_per_group_pricing.sql ====================
+-- Per-group pricing — opt-in per activity (e.g. island tours), OFF by default.
+--
+-- When activities.group_pricing is TRUE, a price tier's `max_guests` is read as the GROUP
+-- SIZE and the tier is billed per group: total = ceil(people / size) * amount. So a €70 tier
+-- for a group of 4 charges 1-4 people = €70, 5-8 = €140, 9-12 = €210, and so on — with no
+-- hard cap (the occurrence capacity already bounds the party).
+--
+-- When FALSE (the default for every existing activity), pricing is unchanged: per head, with
+-- `max_guests` acting as an optional per-tier cap (exceeds_max_guests). The party size is sent
+-- as `quantity` (people) and the price is computed here from the DB, so a client can't underpay.
+
+alter table activities add column if not exists group_pricing boolean not null default false;
+
+create or replace function create_booking(
+  p_idempotency_key text,
+  p_hold_id uuid,
+  p_customer_name text,
+  p_customer_email text,
+  p_customer_phone text,
+  p_source booking_source,
+  p_items jsonb
+)
+returns bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing bookings;
+  v_hold booking_holds;
+  v_occ session_occurrences;
+  v_option_id uuid;
+  v_group_pricing boolean := false;
+  v_booking bookings;
+  v_item jsonb;
+  v_label text;
+  v_qty int;
+  v_unit bigint;
+  v_max int;
+  v_total bigint := 0;
+  v_qty_total int := 0;
+  v_agg jsonb := '{}'::jsonb;
+begin
+  select * into v_existing from bookings where idempotency_key = p_idempotency_key;
+  if found then
+    return v_existing;
+  end if;
+
+  select * into v_hold from booking_holds where id = p_hold_id for update;
+  if not found then
+    raise exception 'hold_not_found';
+  end if;
+  if v_hold.status <> 'active' or v_hold.expires_at <= now() then
+    raise exception 'hold_not_active';
+  end if;
+
+  select * into v_occ from session_occurrences where id = v_hold.session_occurrence_id for update;
+  if v_occ.status <> 'open' then
+    raise exception 'occurrence_not_bookable' using detail = v_occ.status::text;
+  end if;
+  v_option_id := v_occ.activity_option_id;
+
+  select a.group_pricing into v_group_pricing
+  from activity_options o
+  join activities a on a.id = o.activity_id
+  where o.id = v_option_id;
+  v_group_pricing := coalesce(v_group_pricing, false);
+
+  -- Aggregate quantity (people) per price_label, collapsing duplicate lines.
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    v_label := v_item ->> 'price_label';
+    v_qty := (v_item ->> 'quantity')::int;
+    if v_label is null or v_qty is null or v_qty <= 0 then
+      raise exception 'invalid_item';
+    end if;
+    v_agg := jsonb_set(v_agg, array[v_label], to_jsonb(coalesce((v_agg ->> v_label)::int, 0) + v_qty));
+  end loop;
+
+  -- Price each aggregated tier from the DB.
+  for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+    select amount_minor, max_guests into v_unit, v_max
+    from activity_option_prices
+    where activity_option_id = v_option_id and label = v_label;
+    if not found then
+      raise exception 'unknown_price_tier' using detail = v_label;
+    end if;
+    v_qty_total := v_qty_total + v_qty;
+    if v_group_pricing and v_max is not null then
+      v_total := v_total + (v_unit * ceil(v_qty::numeric / v_max)::int);
+    else
+      if v_max is not null and v_qty > v_max then
+        raise exception 'exceeds_max_guests' using detail = format('%s: %s > %s', v_label, v_qty, v_max);
+      end if;
+      v_total := v_total + (v_unit * v_qty);
+    end if;
+  end loop;
+
+  if v_qty_total <> v_hold.quantity then
+    raise exception 'items_quantity_mismatch'
+      using detail = format('items %s, hold %s', v_qty_total, v_hold.quantity);
+  end if;
+
+  insert into bookings (
+    idempotency_key, customer_name, customer_email, customer_phone, source,
+    status, total_minor, operator_payout_minor, agency_commission_minor
+  )
+  values (
+    p_idempotency_key, p_customer_name, p_customer_email, p_customer_phone,
+    coalesce(p_source, 'web'), 'payment_pending', v_total, v_total, 0
+  )
+  returning * into v_booking;
+
+  for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+    select amount_minor, max_guests into v_unit, v_max
+    from activity_option_prices
+    where activity_option_id = v_option_id and label = v_label;
+    insert into booking_items (
+      booking_id, session_occurrence_id, activity_option_id, price_label,
+      quantity, unit_amount_minor, subtotal_minor
+    )
+    values (
+      v_booking.id, v_hold.session_occurrence_id, v_option_id, v_label, v_qty, v_unit,
+      case
+        when v_group_pricing and v_max is not null then v_unit * ceil(v_qty::numeric / v_max)::int
+        else v_unit * v_qty
+      end
+    );
+  end loop;
+
+  update booking_holds set booking_id = v_booking.id where id = v_hold.id;
+  return v_booking;
+end;
+$$;
+
+-- Expose group_pricing on the activity-detail DTO so the booking widget prices + labels match.
+create or replace function api_get_activity(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'id', a.id, 'slug', a.slug, 'type', a.type, 'title', a.title, 'summary', a.summary,
+    'description', a.description, 'category', a.category, 'location', a.location,
+    'durationMinutes', a.duration_minutes, 'meetingPoint', a.meeting_point,
+    'pickupAvailable', a.pickup_available, 'groupPricing', a.group_pricing,
+    'languages', to_jsonb(a.languages),
+    'inclusions', to_jsonb(a.inclusions), 'exclusions', to_jsonb(a.exclusions),
+    'highlights', to_jsonb(a.highlights), 'cancellationPolicy', a.cancellation_policy,
+    'seoTitle', a.seo_title, 'seoDescription', a.seo_description,
+    'extra', a.extra,
+    'ratingAvg', a.rating_avg, 'ratingCount', a.rating_count,
+    'fromPriceEur', (
+      select min(pr.amount_minor)::float / 100
+      from activity_option_prices pr join activity_options o on o.id = pr.activity_option_id
+      where o.activity_id = a.id
+    ),
+    'heroImage', (
+      select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+      from activity_images img where img.activity_id = a.id order by img.position limit 1
+    ),
+    'images', coalesce((
+      select jsonb_agg(jsonb_build_object('id', i.id, 'url', i.url, 'alt', i.alt, 'position', i.position) order by i.position)
+      from activity_images i where i.activity_id = a.id
+    ), '[]'::jsonb),
+    'options', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', o.id, 'name', o.name, 'description', o.description,
+        'prices', coalesce((
+          select jsonb_agg(jsonb_build_object(
+            'id', pr.id, 'label', pr.label, 'amountEur', pr.amount_minor::float / 100, 'maxGuests', pr.max_guests
+          ) order by pr.position)
+          from activity_option_prices pr where pr.activity_option_id = o.id
+        ), '[]'::jsonb)
+      ) order by o.position)
+      from activity_options o where o.activity_id = a.id
+    ), '[]'::jsonb),
+    'translations', coalesce((
+      select jsonb_object_agg(t.locale, jsonb_build_object('title', t.title, 'summary', t.summary, 'description', t.description))
+      from activity_translations t where t.activity_id = a.id
+    ), '{}'::jsonb),
+    'reviews', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', rv.id, 'author', rv.author, 'rating', rv.rating, 'text', rv.text, 'createdAt', rv.created_at
+      ) order by rv.created_at desc)
+      from reviews rv where rv.activity_id = a.id
+    ), '[]'::jsonb)
+  )
+  from activities a
+  where a.slug = p ->> 'slug';
+$$;
+
+-- Expose group_pricing on the search summary so catalogue cards label the price correctly
+-- ("per group up to N" only for group-priced activities, otherwise per person / per vehicle).
+create or replace function api_search_activities(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with filtered as (
+    select a.*
+    from activities a
+    where a.status = 'published'
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+  ),
+  paged as (
+    select * from filtered
+    order by rating_count desc, title
+    limit coalesce((p ->> 'pageSize')::int, 20)
+    offset (coalesce((p ->> 'page')::int, 1) - 1) * coalesce((p ->> 'pageSize')::int, 20)
+  )
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+        'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+        'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count, 'groupPricing', x.group_pricing,
+        'fromPriceEur', (
+          select min(pr.amount_minor)::float / 100
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+        ),
+        'fromPriceMaxGuests', (
+          select pr.max_guests
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+          order by pr.amount_minor asc nulls last
+          limit 1
+        ),
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = x.id order by img.position limit 1
+        ),
+        'images', coalesce((
+          select jsonb_agg(
+            jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+            order by img.position
+          )
+          from activity_images img where img.activity_id = x.id
+        ), '[]'::jsonb)
+      ))
+      from paged x
+    ), '[]'::jsonb),
+    'total', (select count(*)::int from filtered),
+    'page', coalesce((p ->> 'page')::int, 1),
+    'pageSize', coalesce((p ->> 'pageSize')::int, 20)
+  );
+$$;
+
+-- ==================== 20260616120000_open_availability.sql ====================
+-- Open-ended availability. An activity with activities.daily_capacity set is bookable on ANY
+-- future day — no pre-generated year, no annual re-enable. The calendar materializes the day
+-- slots it needs on demand (capped horizon, so the window simply rolls forward), and a day is
+-- full once its bookings + holds reach the capacity. Activities with daily_capacity = null keep
+-- the legacy explicit-occurrence model untouched.
+
+alter table activities add column if not exists daily_capacity int;
+
+-- Needed so day-materialization can de-dupe via ON CONFLICT (and a good integrity guard against
+-- duplicate slots). Idempotent — also repairs databases that drifted without it.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'session_occurrences_option_start_key') then
+    alter table session_occurrences
+      add constraint session_occurrences_option_start_key unique (activity_option_id, starts_at);
+  end if;
+end $$;
+
+-- Availability for an activity over a date range, with live seats_left. For open-ended
+-- activities it first fills in any missing daily slots within the (capped) window — so the
+-- customer calendar always shows future dates without anyone topping it up. SECURITY DEFINER so
+-- the lazy fill can write; gated to published activities, so it never leaks draft availability.
+create or replace function api_list_availability(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_activity activities;
+  v_from date := coalesce((p ->> 'from')::date, current_date);
+  v_to date := coalesce((p ->> 'to')::date, current_date + 30);
+  v_fill_to date;
+  v_result jsonb;
+begin
+  select * into v_activity from activities where slug = p ->> 'slug';
+  if not found or v_activity.status <> 'published' then
+    return '[]'::jsonb;
+  end if;
+
+  v_from := greatest(v_from, current_date);
+  v_to := least(v_to, current_date + 400);
+  -- Bound the per-call write to ~6 months regardless of the read window, so an anonymous read
+  -- can never trigger a huge fill; the window still rolls forward as current_date advances.
+  v_fill_to := least(v_to, current_date + 185);
+
+  -- Open-ended activity: fill any day in [today, fill horizon] that has NO occurrence yet for
+  -- the option — compared on the UTC calendar day, so a legacy/seed slot at a different time of
+  -- day blocks a duplicate and each day ends up with exactly one bookable slot. Includes today,
+  -- so same-day booking works. One slot per option per day at noon UTC; capacity = daily_capacity.
+  if coalesce(v_activity.daily_capacity, 0) > 0 then
+    insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
+    select o.id,
+           v_activity.operator_id,
+           (d::date + time '12:00') at time zone 'UTC',
+           ((d::date + time '12:00') at time zone 'UTC')
+             + make_interval(mins => coalesce(v_activity.duration_minutes, 240)),
+           v_activity.daily_capacity,
+           'open'
+    from activity_options o
+    cross join generate_series(greatest(v_from, current_date), v_fill_to, interval '1 day') d
+    where o.activity_id = v_activity.id
+      and exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id)
+      and not exists (
+        select 1 from session_occurrences x
+        where x.activity_option_id = o.id
+          and (x.starts_at at time zone 'UTC')::date = d::date
+      )
+    on conflict (activity_option_id, starts_at) do nothing;
+  end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'occurrenceId', so.id, 'activityOptionId', so.activity_option_id, 'optionName', o.name,
+    'startsAt', so.starts_at, 'endsAt', so.ends_at, 'capacity', so.capacity,
+    -- Never report negative seats (e.g. if capacity was lowered below already-booked seats).
+    'seatsLeft', greatest(so.capacity - used_capacity(so.id), 0), 'status', so.status
+  ) order by so.starts_at), '[]'::jsonb)
+  into v_result
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  where o.activity_id = v_activity.id
+    and so.status = 'open'
+    and so.starts_at >= v_from::timestamptz
+    and so.starts_at < (v_to + 1)::timestamptz;
+
+  return v_result;
+end;
+$$;
+
+-- ==================== 20260616130000_widen_booking_ref.sql ====================
+-- Widen the booking reference from 8 to 16 hex chars (~32 -> ~64 bits of entropy). The ref is
+-- exposed in /bookings/{ref} URLs and, until edge rate limiting lands, is effectively the only
+-- entropy standing between an attacker and the payment-confirmation webhook (which looks a
+-- booking up by ref). 32 bits is brute-forceable; 64 is not. Existing refs stay valid (still
+-- unique) — only newly generated refs use the wider space.
+alter table bookings
+  alter column ref set default ('BMT-' || upper(substr(md5(gen_random_uuid()::text), 1, 16)));
+
+-- ==================== 20260616140000_rename_island_to_sightseeing.sql ====================
+-- Owner request: rename the "Island tours" category to "Sightseeing tours".
+-- Categories are modelled three ways after the dynamic-categories work: a managed `categories`
+-- table (the canonical list), a free-text `activities.category` column, and a now-vestigial
+-- `activity_category` enum (left from before the column was relaxed to text). Update all three so
+-- a fresh DB and the live DB agree. Every statement is idempotent / guarded, so re-running (and
+-- a DB that already has the new name) is a no-op.
+
+-- 1) Vestigial enum value — unused by the text column, kept consistent. Guarded: only rename if
+--    the old label still exists.
+do $$
+begin
+  if exists (
+    select 1 from pg_enum e
+    join pg_type t on t.oid = e.enumtypid
+    where t.typname = 'activity_category' and e.enumlabel = 'Island tours'
+  ) then
+    alter type activity_category rename value 'Island tours' to 'Sightseeing tours';
+  end if;
+end $$;
+
+-- 2) The managed category row (name + slug). The slug feeds /activities?category= nav links.
+update categories
+   set name = 'Sightseeing tours', slug = 'sightseeing-tours'
+ where name = 'Island tours' or slug = 'island-tours';
+
+-- 3) Any activities already filed under the old name.
+update activities set category = 'Sightseeing tours' where category = 'Island tours';
+
 -- ==================== seed.sql (catalogue) ====================
 -- GENERATED from seed/catalogue.json by `npm run seed:gen`. Do not edit by hand.
 -- Apply on a fresh database via `supabase db reset` (it runs migrations then this file).
@@ -1887,32 +2489,32 @@ insert into activities (operator_id, slug, type, title, summary, description, ca
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'parasailing'), 'en', 'Parasailing', 'Soar above the lagoon on a parasail for panoramic views of the east coast.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'parasailing'), 'fr', 'Parachute ascensionnel', 'Envolez-vous au-dessus du lagon en parachute ascensionnel pour une vue panoramique de la côte est.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'parasailing'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'north-tour', 'activity', 'North Tour – Port Louis, Pamplemousses & Cap Malheureux', 'Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.', null, 'Island tours', 'North', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Port Louis', 'Pamplemousses Botanical Garden', 'Cap Malheureux']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'north-tour', 'activity', 'North Tour – Port Louis, Pamplemousses & Cap Malheureux', 'Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.', null, 'Sightseeing tours', 'North', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Port Louis', 'Pamplemousses Botanical Garden', 'Cap Malheureux']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'north-tour'), 'en', 'North Tour – Port Louis, Pamplemousses & Cap Malheureux', 'Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'north-tour'), 'fr', 'Tour du Nord – Port-Louis, Pamplemousses & Cap Malheureux', 'Excursion guidée d''une journée dans le nord : la capitale Port-Louis, le jardin botanique de Pamplemousses et Cap Malheureux.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'north-tour'), 'Shared tour');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'private-south-tour-with-pickup', 'activity', 'Private South Tour with Pickup', 'Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.', null, 'Island tours', 'South', null, 'Hotel pickup', true, array['en', 'fr']::text[], array['Private vehicle', 'Driver-guide', 'Hotel pickup']::text[], '{}'::text[], array['Trou aux Cerfs', 'Grand Bassin', 'Chamarel coloured earth']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'private-south-tour-with-pickup', 'activity', 'Private South Tour with Pickup', 'Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.', null, 'Sightseeing tours', 'South', null, 'Hotel pickup', true, array['en', 'fr']::text[], array['Private vehicle', 'Driver-guide', 'Hotel pickup']::text[], '{}'::text[], array['Trou aux Cerfs', 'Grand Bassin', 'Chamarel coloured earth']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'private-south-tour-with-pickup'), 'en', 'Private South Tour with Pickup', 'Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'private-south-tour-with-pickup'), 'fr', 'Tour privé du Sud avec prise en charge', 'Excursion privée guidée d''une journée dans le sud de Maurice avec prise en charge à l''hôtel — Trou aux Cerfs, Grand Bassin et Chamarel.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'private-south-tour-with-pickup'), 'Private group');
 insert into activity_option_prices (activity_option_id, label, amount_minor, currency, max_guests) values ((select id from activity_options where activity_id = (select id from activities where slug = 'private-south-tour-with-pickup') and name = 'Private group' order by created_at limit 1), 'Private group', 11000, 'EUR', 6);
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'south-east-tour-bois-cheri', 'activity', 'South-East Tour – Bois Chéri Tea Route', 'Day tour of the south-east taking in one of the island''s main tea factories at Bois Chéri.', null, 'Island tours', 'South-East', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Bois Chéri tea factory', 'Tea tasting']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'south-east-tour-bois-cheri', 'activity', 'South-East Tour – Bois Chéri Tea Route', 'Day tour of the south-east taking in one of the island''s main tea factories at Bois Chéri.', null, 'Sightseeing tours', 'South-East', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Bois Chéri tea factory', 'Tea tasting']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'south-east-tour-bois-cheri'), 'en', 'South-East Tour – Bois Chéri Tea Route', 'Day tour of the south-east taking in one of the island''s main tea factories at Bois Chéri.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'south-east-tour-bois-cheri'), 'fr', 'Tour du Sud-Est – Route du thé de Bois Chéri', 'Excursion d''une journée dans le sud-est incluant l''une des principales usines de thé de l''île à Bois Chéri.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'south-east-tour-bois-cheri'), 'Shared tour');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'la-vallee-des-couleurs', 'activity', 'La Vallée des Couleurs Nature Park', 'Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.', null, 'Island tours', 'South', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['23-colour earth', 'Waterfalls', 'Nature park']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'la-vallee-des-couleurs', 'activity', 'La Vallée des Couleurs Nature Park', 'Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.', null, 'Sightseeing tours', 'South', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['23-colour earth', 'Waterfalls', 'Nature park']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'la-vallee-des-couleurs'), 'en', 'La Vallée des Couleurs Nature Park', 'Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'la-vallee-des-couleurs'), 'fr', 'Parc naturel de la Vallée des Couleurs', 'Visitez le parc naturel célèbre pour sa terre de 23 couleurs, ses cascades et ses points de vue.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'la-vallee-des-couleurs'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'black-river-gorges-hike', 'activity', 'Black River Gorges Hike', 'Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.', null, 'Island tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['National park', 'Native forest', 'Viewpoints']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'black-river-gorges-hike', 'activity', 'Black River Gorges Hike', 'Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.', null, 'Sightseeing tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['National park', 'Native forest', 'Viewpoints']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'black-river-gorges-hike'), 'en', 'Black River Gorges Hike', 'Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'black-river-gorges-hike'), 'fr', 'Randonnée des Gorges de Rivière Noire', 'Randonnée guidée dans le parc national des Gorges de Rivière Noire, la plus grande forêt protégée de Maurice.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'black-river-gorges-hike'), 'Guided hike');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'le-morne-brabant-hike', 'activity', 'Le Morne Brabant Hike', 'Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.', null, 'Island tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['UNESCO World Heritage', 'Summit views', 'Le Morne Brabant']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'le-morne-brabant-hike', 'activity', 'Le Morne Brabant Hike', 'Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.', null, 'Sightseeing tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['UNESCO World Heritage', 'Summit views', 'Le Morne Brabant']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'le-morne-brabant-hike'), 'en', 'Le Morne Brabant Hike', 'Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'le-morne-brabant-hike'), 'fr', 'Randonnée du Morne Brabant', 'Ascension guidée de la montagne du Morne Brabant, classée à l''UNESCO, de la base au sommet.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'le-morne-brabant-hike'), 'Guided hike');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'helicopter-tour', 'activity', 'Helicopter Tour', 'Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.', null, 'Island tours', 'Island-wide', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Aerial views', 'Lagoons', 'Islets']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'helicopter-tour', 'activity', 'Helicopter Tour', 'Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.', null, 'Sightseeing tours', 'Island-wide', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Aerial views', 'Lagoons', 'Islets']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'helicopter-tour'), 'en', 'Helicopter Tour', 'Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'helicopter-tour'), 'fr', 'Tour en hélicoptère', 'Vol panoramique en hélicoptère au-dessus des lagons, îlots et paysages de Maurice.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'helicopter-tour'), 'Standard');

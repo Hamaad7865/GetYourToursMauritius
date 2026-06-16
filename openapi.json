@@ -43,7 +43,9 @@
       "get": {
         "operationId": "searchActivities",
         "summary": "Search the published tour & transport catalogue",
-        "tags": ["Catalogue"],
+        "tags": [
+          "Catalogue"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -78,15 +80,8 @@
             "name": "category",
             "schema": {
               "type": "string",
-              "enum": [
-                "Catamaran cruises",
-                "Île aux Cerfs",
-                "Dolphin swims",
-                "Sea walks & diving",
-                "Parasailing",
-                "Island tours",
-                "Airport transfers"
-              ]
+              "minLength": 1,
+              "maxLength": 80
             }
           },
           {
@@ -94,7 +89,10 @@
             "name": "type",
             "schema": {
               "type": "string",
-              "enum": ["activity", "transport"]
+              "enum": [
+                "activity",
+                "transport"
+              ]
             }
           }
         ],
@@ -123,44 +121,69 @@
                           },
                           "type": {
                             "type": "string",
-                            "enum": ["activity", "transport"]
+                            "enum": [
+                              "activity",
+                              "transport"
+                            ]
                           },
                           "title": {
                             "type": "string"
                           },
                           "summary": {
-                            "type": ["string", "null"]
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           },
                           "category": {
                             "type": "string",
-                            "enum": [
-                              "Catamaran cruises",
-                              "Île aux Cerfs",
-                              "Dolphin swims",
-                              "Sea walks & diving",
-                              "Parasailing",
-                              "Island tours",
-                              "Airport transfers"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 80
                           },
                           "location": {
-                            "type": ["string", "null"]
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           },
                           "durationMinutes": {
-                            "type": ["integer", "null"]
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
                           },
                           "fromPriceEur": {
-                            "type": ["number", "null"],
+                            "type": [
+                              "number",
+                              "null"
+                            ],
                             "minimum": 0
                           },
+                          "fromPriceMaxGuests": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "exclusiveMinimum": 0
+                          },
+                          "groupPricing": {
+                            "type": "boolean",
+                            "default": false
+                          },
                           "ratingAvg": {
-                            "type": ["number", "null"]
+                            "type": [
+                              "number",
+                              "null"
+                            ]
                           },
                           "ratingCount": {
                             "type": "integer"
                           },
                           "heroImage": {
-                            "type": ["object", "null"],
+                            "type": [
+                              "object",
+                              "null"
+                            ],
                             "properties": {
                               "id": {
                                 "type": "string"
@@ -169,13 +192,51 @@
                                 "type": "string"
                               },
                               "alt": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "position": {
                                 "type": "integer"
                               }
                             },
-                            "required": ["id", "url", "alt", "position"]
+                            "required": [
+                              "id",
+                              "url",
+                              "alt",
+                              "position"
+                            ]
+                          },
+                          "images": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "type": "string"
+                                },
+                                "alt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "position": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "url",
+                                "alt",
+                                "position"
+                              ]
+                            },
+                            "default": []
                           }
                         },
                         "required": [
@@ -188,9 +249,11 @@
                           "location",
                           "durationMinutes",
                           "fromPriceEur",
+                          "groupPricing",
                           "ratingAvg",
                           "ratingCount",
-                          "heroImage"
+                          "heroImage",
+                          "images"
                         ]
                       }
                     },
@@ -210,10 +273,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -240,10 +311,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -255,7 +332,9 @@
       "get": {
         "operationId": "getActivity",
         "summary": "Get full activity detail by slug",
-        "tags": ["Catalogue"],
+        "tags": [
+          "Catalogue"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -289,44 +368,69 @@
                         },
                         "type": {
                           "type": "string",
-                          "enum": ["activity", "transport"]
+                          "enum": [
+                            "activity",
+                            "transport"
+                          ]
                         },
                         "title": {
                           "type": "string"
                         },
                         "summary": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "category": {
                           "type": "string",
-                          "enum": [
-                            "Catamaran cruises",
-                            "Île aux Cerfs",
-                            "Dolphin swims",
-                            "Sea walks & diving",
-                            "Parasailing",
-                            "Island tours",
-                            "Airport transfers"
-                          ]
+                          "minLength": 1,
+                          "maxLength": 80
                         },
                         "location": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "durationMinutes": {
-                          "type": ["integer", "null"]
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
                         },
                         "fromPriceEur": {
-                          "type": ["number", "null"],
+                          "type": [
+                            "number",
+                            "null"
+                          ],
                           "minimum": 0
                         },
+                        "fromPriceMaxGuests": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "exclusiveMinimum": 0
+                        },
+                        "groupPricing": {
+                          "type": "boolean",
+                          "default": false
+                        },
                         "ratingAvg": {
-                          "type": ["number", "null"]
+                          "type": [
+                            "number",
+                            "null"
+                          ]
                         },
                         "ratingCount": {
                           "type": "integer"
                         },
                         "heroImage": {
-                          "type": ["object", "null"],
+                          "type": [
+                            "object",
+                            "null"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
@@ -335,19 +439,62 @@
                               "type": "string"
                             },
                             "alt": {
-                              "type": ["string", "null"]
+                              "type": [
+                                "string",
+                                "null"
+                              ]
                             },
                             "position": {
                               "type": "integer"
                             }
                           },
-                          "required": ["id", "url", "alt", "position"]
+                          "required": [
+                            "id",
+                            "url",
+                            "alt",
+                            "position"
+                          ]
+                        },
+                        "images": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "alt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "position": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "url",
+                              "alt",
+                              "position"
+                            ]
+                          }
                         },
                         "description": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "meetingPoint": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "pickupAvailable": {
                           "type": "boolean"
@@ -377,34 +524,90 @@
                           }
                         },
                         "cancellationPolicy": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "seoTitle": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "seoDescription": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
-                        "images": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "url": {
-                                "type": "string"
-                              },
-                              "alt": {
-                                "type": ["string", "null"]
-                              },
-                              "position": {
-                                "type": "integer"
+                        "extra": {
+                          "type": "object",
+                          "properties": {
+                            "itinerary": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "area": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "description": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "tags": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "lat": {
+                                    "type": "number"
+                                  },
+                                  "lng": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "title"
+                                ]
                               }
                             },
-                            "required": ["id", "url", "alt", "position"]
-                          }
+                            "importantInfo": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "availability": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "startWindow": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "returnWindow": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "default": {}
                         },
                         "options": {
                           "type": "array",
@@ -418,7 +621,10 @@
                                 "type": "string"
                               },
                               "description": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "prices": {
                                 "type": "array",
@@ -436,15 +642,28 @@
                                       "minimum": 0
                                     },
                                     "maxGuests": {
-                                      "type": ["integer", "null"],
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ],
                                       "exclusiveMinimum": 0
                                     }
                                   },
-                                  "required": ["id", "label", "amountEur", "maxGuests"]
+                                  "required": [
+                                    "id",
+                                    "label",
+                                    "amountEur",
+                                    "maxGuests"
+                                  ]
                                 }
                               }
                             },
-                            "required": ["id", "name", "description", "prices"]
+                            "required": [
+                              "id",
+                              "name",
+                              "description",
+                              "prices"
+                            ]
                           }
                         },
                         "translations": {
@@ -453,16 +672,29 @@
                             "type": "object",
                             "properties": {
                               "title": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "summary": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "description": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               }
                             },
-                            "required": ["title", "summary", "description"]
+                            "required": [
+                              "title",
+                              "summary",
+                              "description"
+                            ]
                           }
                         },
                         "reviews": {
@@ -480,13 +712,22 @@
                                 "type": "integer"
                               },
                               "text": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "createdAt": {
                                 "type": "string"
                               }
                             },
-                            "required": ["id", "author", "rating", "text", "createdAt"]
+                            "required": [
+                              "id",
+                              "author",
+                              "rating",
+                              "text",
+                              "createdAt"
+                            ]
                           }
                         }
                       },
@@ -500,9 +741,11 @@
                         "location",
                         "durationMinutes",
                         "fromPriceEur",
+                        "groupPricing",
                         "ratingAvg",
                         "ratingCount",
                         "heroImage",
+                        "images",
                         "description",
                         "meetingPoint",
                         "pickupAvailable",
@@ -513,7 +756,7 @@
                         "cancellationPolicy",
                         "seoTitle",
                         "seoDescription",
-                        "images",
+                        "extra",
                         "options",
                         "translations",
                         "reviews"
@@ -535,10 +778,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -565,10 +816,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -580,7 +837,9 @@
       "get": {
         "operationId": "listAvailability",
         "summary": "List bookable occurrences with live seats_left",
-        "tags": ["Catalogue"],
+        "tags": [
+          "Catalogue"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -677,10 +936,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -692,7 +959,9 @@
       "post": {
         "operationId": "createBooking",
         "summary": "Create a payment_pending booking (prices come from the DB)",
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -723,15 +992,25 @@
                         "format": "email"
                       },
                       "phone": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "maxLength": 40
                       }
                     },
-                    "required": ["name", "email"]
+                    "required": [
+                      "name",
+                      "email"
+                    ]
                   },
                   "source": {
                     "type": "string",
-                    "enum": ["web", "ai_chat", "whatsapp"]
+                    "enum": [
+                      "web",
+                      "ai_chat",
+                      "whatsapp"
+                    ]
                   },
                   "idempotencyKey": {
                     "type": "string",
@@ -739,7 +1018,11 @@
                     "maxLength": 200
                   }
                 },
-                "required": ["occurrenceId", "party", "customer"]
+                "required": [
+                  "occurrenceId",
+                  "party",
+                  "customer"
+                ]
               }
             }
           }
@@ -782,7 +1065,13 @@
                         },
                         "paymentState": {
                           "type": "string",
-                          "enum": ["pending", "paid", "partially_refunded", "refunded", "failed"]
+                          "enum": [
+                            "pending",
+                            "paid",
+                            "partially_refunded",
+                            "refunded",
+                            "failed"
+                          ]
                         },
                         "customerName": {
                           "type": "string"
@@ -799,7 +1088,11 @@
                         },
                         "source": {
                           "type": "string",
-                          "enum": ["web", "ai_chat", "whatsapp"]
+                          "enum": [
+                            "web",
+                            "ai_chat",
+                            "whatsapp"
+                          ]
                         },
                         "createdAt": {
                           "type": "string"
@@ -867,10 +1160,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -897,10 +1198,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -927,10 +1234,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -942,7 +1255,9 @@
       "get": {
         "operationId": "getBooking",
         "summary": "Get booking status by reference",
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -996,7 +1311,13 @@
                         },
                         "paymentState": {
                           "type": "string",
-                          "enum": ["pending", "paid", "partially_refunded", "refunded", "failed"]
+                          "enum": [
+                            "pending",
+                            "paid",
+                            "partially_refunded",
+                            "refunded",
+                            "failed"
+                          ]
                         },
                         "customerName": {
                           "type": "string"
@@ -1013,7 +1334,11 @@
                         },
                         "source": {
                           "type": "string",
-                          "enum": ["web", "ai_chat", "whatsapp"]
+                          "enum": [
+                            "web",
+                            "ai_chat",
+                            "whatsapp"
+                          ]
                         },
                         "createdAt": {
                           "type": "string"
@@ -1081,10 +1406,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -1111,10 +1444,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -1141,10 +1480,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -1156,7 +1501,9 @@
       "post": {
         "operationId": "createPayment",
         "summary": "Create a payment + hosted-checkout link for a booking",
-        "tags": ["Payments"],
+        "tags": [
+          "Payments"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1174,7 +1521,9 @@
                     "maxLength": 200
                   }
                 },
-                "required": ["bookingRef"]
+                "required": [
+                  "bookingRef"
+                ]
               }
             }
           }
@@ -1204,7 +1553,11 @@
                           "type": "string"
                         }
                       },
-                      "required": ["sessionId", "redirectUrl", "provider"]
+                      "required": [
+                        "sessionId",
+                        "redirectUrl",
+                        "provider"
+                      ]
                     },
                     "meta": {
                       "type": "object",
@@ -1222,10 +1575,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -1252,10 +1613,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -1267,7 +1634,9 @@
       "post": {
         "operationId": "captureLead",
         "summary": "Capture a sales lead",
-        "tags": ["Leads"],
+        "tags": [
+          "Leads"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1293,7 +1662,10 @@
                     "maxLength": 40
                   }
                 },
-                "required": ["name", "contact"]
+                "required": [
+                  "name",
+                  "contact"
+                ]
               }
             }
           }
@@ -1323,11 +1695,18 @@
                           "type": "string"
                         },
                         "interestActivityId": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "status": {
                           "type": "string",
-                          "enum": ["new", "contacted", "converted"]
+                          "enum": [
+                            "new",
+                            "contacted",
+                            "converted"
+                          ]
                         },
                         "source": {
                           "type": "string"
@@ -1362,10 +1741,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -1392,10 +1779,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -1407,7 +1800,9 @@
       "get": {
         "operationId": "getOpenApiSpec",
         "summary": "The OpenAPI 3.1 specification for this API",
-        "tags": ["Meta"],
+        "tags": [
+          "Meta"
+        ],
         "responses": {
           "200": {
             "description": "OpenAPI document",

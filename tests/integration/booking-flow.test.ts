@@ -34,7 +34,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     const actId = (
       await db.pg.query<{ id: string }>(
         `insert into activities (operator_id, slug, type, title, category, status)
-         values ($1, 'flow-tour', 'activity', 'Flow Tour', 'Island tours', 'published') returning id`,
+         values ($1, 'flow-tour', 'activity', 'Flow Tour', 'Sightseeing tours', 'published') returning id`,
         [operatorId],
       )
     ).rows[0]!.id;

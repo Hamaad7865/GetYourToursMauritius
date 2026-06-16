@@ -9,7 +9,7 @@ export const TOUR_CATEGORIES = [
   'Dolphin swims',
   'Sea walks & diving',
   'Parasailing',
-  'Island tours',
+  'Sightseeing tours',
 ] as const;
 
 export const categorySchema = z.string().min(1).max(80);

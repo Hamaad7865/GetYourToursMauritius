@@ -2,8 +2,9 @@
 -- Belle Mare Tours — catch-up to latest (run once in the Supabase SQL editor)
 -- Your live DB has 121000/121200/121300?/121400/121700/121900 but is missing
 -- 121600 (booking guards) + 20260616120000 (open availability) + 20260616130000
--- (wider booking ref). All statements below are idempotent (create-or-replace /
--- drop-if-exists / if-not-exists / alter ... set default), so it is safe even if
+-- (wider booking ref) + 20260616140000 (rename Island tours -> Sightseeing tours).
+-- All statements below are idempotent (create-or-replace / drop-if-exists /
+-- if-not-exists / alter ... set default / guarded rename), so it is safe even if
 -- a part is already present.
 -- ============================================================================
 
@@ -244,5 +245,23 @@ $$;
 -- stay valid; only new bookings get the wider space.
 alter table bookings
   alter column ref set default ('BMT-' || upper(substr(md5(gen_random_uuid()::text), 1, 16)));
+
+-- ---- 20260616140000_rename_island_to_sightseeing ---------------------------
+-- Rename the "Island tours" category to "Sightseeing tours" across the enum, the managed
+-- categories row (name + slug) and any activities filed under the old name. Guarded/idempotent.
+do $$
+begin
+  if exists (
+    select 1 from pg_enum e
+    join pg_type t on t.oid = e.enumtypid
+    where t.typname = 'activity_category' and e.enumlabel = 'Island tours'
+  ) then
+    alter type activity_category rename value 'Island tours' to 'Sightseeing tours';
+  end if;
+end $$;
+update categories
+   set name = 'Sightseeing tours', slug = 'sightseeing-tours'
+ where name = 'Island tours' or slug = 'island-tours';
+update activities set category = 'Sightseeing tours' where category = 'Island tours';
 
 commit;

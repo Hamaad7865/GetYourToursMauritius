@@ -31,7 +31,7 @@ describe('api_* service functions', () => {
     const { rows: op } = await db.pg.query<{ id: string }>(`select id from operators limit 1`);
     await db.pg.query(
       `insert into activities (operator_id, slug, title, category, status)
-       values ($1, 'hidden-draft', 'Hidden Draft', 'Island tours', 'draft')`,
+       values ($1, 'hidden-draft', 'Hidden Draft', 'Sightseeing tours', 'draft')`,
       [op[0]!.id],
     );
     const { rows: occ } = await db.pg.query<{ id: string }>(
@@ -107,7 +107,7 @@ describe('api_* service functions', () => {
     const { rows: op } = await db.pg.query<{ id: string }>(`select id from operators limit 1`);
     const { rows: a } = await db.pg.query<{ id: string }>(
       `insert into activities (operator_id, slug, title, category, status, daily_capacity, duration_minutes)
-       values ($1, 'open-ended-tour', 'Open Ended', 'Island tours', 'published', 8, 120) returning id`,
+       values ($1, 'open-ended-tour', 'Open Ended', 'Sightseeing tours', 'published', 8, 120) returning id`,
       [op[0]!.id],
     );
     const { rows: o } = await db.pg.query<{ id: string }>(

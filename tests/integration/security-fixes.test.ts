@@ -117,7 +117,7 @@ describe('security & integrity fixes', () => {
     ).rejects.toThrow(/exceeds_max_guests/);
   });
 
-  it('charges per group when the activity opts into group pricing — the island-tour model', async () => {
+  it('charges per group when the activity opts into group pricing — the sightseeing-tour model', async () => {
     for (const [people, groups] of [
       [4, 1],
       [5, 2],

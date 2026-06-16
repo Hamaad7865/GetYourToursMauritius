@@ -51,7 +51,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   slug: '',
   type: 'activity',
   title: '',
-  category: 'Island tours',
+  category: 'Sightseeing tours',
   location: '',
   durationMinutes: null,
   summary: '',
