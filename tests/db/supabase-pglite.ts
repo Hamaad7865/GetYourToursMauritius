@@ -160,9 +160,32 @@ class QueryBuilder implements PromiseLike<Result> {
 
 export interface SupabaseShim {
   from(table: string): QueryBuilder;
+  rpc(fn: string, args?: Record<string, unknown>): Promise<Result>;
 }
 
 /** Build a Supabase-browser-shaped client over a PGlite instance for tests. */
 export function makeSupabaseShim(pg: PGlite): SupabaseShim {
-  return { from: (table: string) => new QueryBuilder(pg, table) };
+  return {
+    from: (table: string) => new QueryBuilder(pg, table),
+    // `sb.rpc(fn, args)` calls a Postgres function with named args; jsonb params arrive as plain
+    // objects and must be passed as JSON text. Run the REAL function on PGlite so the behaviour
+    // (e.g. materialize_availability filling slots) is genuine, resolving to `{ data, error }`.
+    async rpc(fn: string, args: Record<string, unknown> = {}): Promise<Result> {
+      const params: unknown[] = [];
+      const named = Object.keys(args).map((key) => {
+        const val = args[key];
+        params.push(val !== null && typeof val === 'object' ? JSON.stringify(val) : val);
+        return `${key} := $${params.length}`;
+      });
+      try {
+        const { rows } = await pg.query<{ result: unknown }>(
+          `select ${fn}(${named.join(', ')}) as result`,
+          params,
+        );
+        return { data: rows[0] ? rows[0].result : null, error: null };
+      } catch (error) {
+        return { data: null, error };
+      }
+    },
+  };
 }

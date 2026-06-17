@@ -14,8 +14,6 @@ export interface PriceInput {
   maxGuests: number | null;
 }
 export interface OptionInput {
-  /** Stable id of an existing option (absent for newly-added ones). Lets updateActivity diff
-   *  options in place instead of recreating them — preserving materialised slots and holds. */
   /** Present for options loaded from an existing activity; absent for newly-added ones. Used to
    *  reconcile options in place on edit so a booked option keeps its identity. */
   id?: string;
@@ -142,101 +140,6 @@ function activityRow(v: ActivityFormValues, opId: string) {
   };
 }
 
-type Sb = ReturnType<typeof getBrowserSupabase>;
-
-function imageRows(activityId: string, v: ActivityFormValues) {
-  return v.images
-    .filter((i) => i.url.trim())
-    .map((img, position) => ({ activity_id: activityId, url: img.url.trim(), alt: img.alt.trim() || null, position }));
-}
-
-function priceRows(optionId: string, prices: PriceInput[]) {
-  return prices
-    .filter((p) => p.label.trim() && p.amountEur != null)
-    .map((p, position) => ({
-      activity_option_id: optionId,
-      label: p.label.trim(),
-      amount_minor: Math.round((p.amountEur ?? 0) * 100),
-      max_guests: p.maxGuests,
-      position,
-    }));
-}
-
-async function insertPrices(sb: Sb, optionId: string, prices: PriceInput[]): Promise<void> {
-  const rows = priceRows(optionId, prices);
-  if (!rows.length) return;
-  const { error } = await sb.from('activity_option_prices').insert(rows);
-  if (error) throw error;
-}
-
-/** Insert a brand-new option (+ its price tiers) and return its generated id. */
-async function insertOption(
-  sb: Sb,
-  activityId: string,
-  name: string,
-  position: number,
-  prices: PriceInput[],
-): Promise<string> {
-  const { data: opt, error } = await sb
-    .from('activity_options')
-    .insert({ activity_id: activityId, name, position })
-    .select('id')
-    .single();
-  if (error) throw error;
-  await insertPrices(sb, opt.id, prices);
-  return opt.id;
-}
-
-async function writeChildren(activityId: string, v: ActivityFormValues): Promise<void> {
-  const sb = getBrowserSupabase();
-  const images = imageRows(activityId, v);
-  if (images.length) {
-    const { error } = await sb.from('activity_images').insert(images);
-    if (error) throw error;
-  }
-  for (let i = 0; i < v.options.length; i += 1) {
-    const option = v.options[i]!;
-    if (!option.name.trim()) continue;
-    await insertOption(sb, activityId, option.name.trim(), i, option.prices);
-  }
-}
-
-/**
- * Reconcile an activity's options against the submitted form BY STABLE ID — never recreate.
- * Matched options are updated in place (same activity_option_id), so their materialised
- * availability slots, active holds and bookings all survive the edit; their price tiers are
- * replaced (activity_option_prices is the only ON DELETE CASCADE reference, so that's safe).
- * Genuinely-new options are inserted. Surplus options are deleted ONLY when no booking_items
- * reference them — booking_items.activity_option_id is ON DELETE RESTRICT, so deleting a booked
- * option would throw — mirroring the busy-check in stopAvailability.
- */
-async function reconcileOptions(activityId: string, v: ActivityFormValues): Promise<void> {
-  const sb = getBrowserSupabase();
-  const { data: existing, error: exErr } = await sb
-    .from('activity_options')
-    .select('id')
-    .eq('activity_id', activityId);
-  if (exErr) throw exErr;
-  const existingIds = new Set((existing ?? []).map((o) => o.id));
-  const matched = new Set<string>();
-
-  for (let i = 0; i < v.options.length; i += 1) {
-    const opt = v.options[i]!;
-    if (!opt.name.trim()) continue;
-    const matchId = opt.id && existingIds.has(opt.id) ? opt.id : null;
-    if (matchId) {
-      matched.add(matchId);
-      const { error } = await sb
-        .from('activity_options')
-        .update({ name: opt.name.trim(), position: i })
-        .eq('id', matchId);
-      if (error) throw error;
-      // Reconcile price tiers (CASCADE-only reference): drop and re-insert.
-      const { error: delErr } = await sb.from('activity_option_prices').delete().eq('activity_option_id', matchId);
-      if (delErr) throw delErr;
-      await insertPrices(sb, matchId, opt.prices);
-    } else {
-      await insertOption(sb, activityId, opt.name.trim(), i, opt.prices);
 /** Plan how form options map onto the existing option rows. Pure, so it's unit-tested. An option
  *  with an id matching an existing row is updated in place (keeps the identity bookings/occurrences
  *  reference); one without is new; an existing row absent from the form is a removal candidate. */
@@ -343,20 +246,6 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
     await replacePrices(optionId, option.prices);
   }
 
-  const surplus = [...existingIds].filter((id) => !matched.has(id));
-  if (surplus.length === 0) return;
-  // Keep any surplus option still referenced by a booking (FK restrict); delete the rest.
-  const { data: booked, error: bErr } = await sb
-    .from('booking_items')
-    .select('activity_option_id')
-    .in('activity_option_id', surplus);
-  if (bErr) throw bErr;
-  const busy = new Set((booked ?? []).map((b) => b.activity_option_id));
-  const deletable = surplus.filter((id) => !busy.has(id));
-  if (deletable.length) {
-    const { error } = await sb.from('activity_options').delete().in('id', deletable);
-    if (error) throw error;
-  }
   for (const optionId of removedIds) {
     const { count: items } = await sb
       .from('booking_items')
@@ -399,30 +288,12 @@ export async function createActivity(v: ActivityFormValues): Promise<string> {
   return data.id;
 }
 
-/** Update an activity, reconciling its images and options in place. */
 /** Update an activity, reconciling its images/options/prices in place (FK-safe for booked activities). */
 export async function updateActivity(id: string, v: ActivityFormValues): Promise<void> {
   const sb = getBrowserSupabase();
   const opId = await operatorId();
   const { error } = await sb.from('activities').update(activityRow(v, opId)).eq('id', id);
   if (error) throw error;
-
-  // Images carry no downstream references — replace them, inserting the new set BEFORE dropping
-  // the old so a mid-write failure never leaves the activity with no photos.
-  const { data: oldImages } = await sb.from('activity_images').select('id').eq('activity_id', id);
-  const images = imageRows(id, v);
-  if (images.length) {
-    const { error: imgErr } = await sb.from('activity_images').insert(images);
-    if (imgErr) throw imgErr;
-  }
-  const oldImageIds = (oldImages ?? []).map((o) => o.id);
-  if (oldImageIds.length) {
-    const { error: delErr } = await sb.from('activity_images').delete().in('id', oldImageIds);
-    if (delErr) throw delErr;
-  }
-
-  // Options are diffed by stable id (never recreated) so materialised slots + active holds survive.
-  await reconcileOptions(id, v);
   await replaceImages(id, v.images);
   await reconcileOptions(id, v.options);
   // Publishing or adding the first price makes the activity materializable — fill its window now.
