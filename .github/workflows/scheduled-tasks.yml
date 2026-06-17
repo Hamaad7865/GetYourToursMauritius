@@ -23,7 +23,9 @@ jobs:
       SECRET: ${{ secrets.INTERNAL_TASK_SECRET }}
     steps:
       - name: Drain notifications
-        run: curl -fsS -X POST "$SITE_URL/api/v1/internal/notifications/drain" -H "x-internal-secret: $SECRET"
+        run: |
+          curl -fsS -X POST "$SITE_URL/api/v1/internal/notifications/drain" -H "x-internal-secret: $SECRET"
 
       - name: Booking maintenance
-        run: curl -fsS -X POST "$SITE_URL/api/v1/internal/maintenance" -H "x-internal-secret: $SECRET"
+        run: |
+          curl -fsS -X POST "$SITE_URL/api/v1/internal/maintenance" -H "x-internal-secret: $SECRET"
