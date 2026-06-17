@@ -37,6 +37,13 @@ if (existsSync(seedPath)) {
   parts.push('\n-- (seed.sql not found — run `npm run seed:gen` first to include catalogue data)');
 }
 
+// Planner data (the bookable Custom Road Trip activity) — applied after the catalogue so the operator exists.
+const seedPlannerPath = join(root, 'supabase', 'seed-planner.sql');
+if (existsSync(seedPlannerPath)) {
+  parts.push('\n-- ==================== seed-planner.sql (Custom Road Trip) ====================');
+  parts.push(readFileSync(seedPlannerPath, 'utf8').trimEnd());
+}
+
 parts.push('\ncommit;');
 
 writeFileSync(outPath, parts.join('\n') + '\n', 'utf8');
