@@ -360,6 +360,7 @@
     {
       "slug": "private-south-tour-with-pickup",
       "type": "activity",
+      "pricing_mode": "per_group",
       "category": "Sightseeing tours",
       "title": "Private South Tour with Pickup",
       "summary": "Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.",
@@ -497,6 +498,7 @@
     {
       "slug": "airport-transfer",
       "type": "transport",
+      "pricing_mode": "per_group",
       "category": "Airport transfers",
       "title": "Airport Transfer",
       "summary": "Private meet-and-greet transfer between SSR International Airport and your accommodation, 24/7.",
@@ -540,6 +542,7 @@
     {
       "slug": "car-and-scooter-rental",
       "type": "transport",
+      "pricing_mode": "per_group",
       "category": "Airport transfers",
       "title": "Car & Scooter Rental",
       "summary": "Self-drive car and scooter rental in Mauritius, delivered to your hotel.",

@@ -102,4 +102,32 @@ describe('catalogue seed', () => {
     );
     expect(hold[0]!.quantity).toBe(2);
   });
+
+  it('prices flat-fare tours per group, not per head (the €440-vs-€110 overcharge)', async () => {
+    // private tour, airport transfer and car/scooter rental carry one flat per-booking fare; they must
+    // be 'per_group' so create_booking charges the tier price once (× ceil(party / max_guests)) instead
+    // of multiplying it by headcount.
+    const { rows } = await db.pg.query<{ pricing_mode: string }>(
+      `select pricing_mode from activities
+       where slug in ('private-south-tour-with-pickup', 'airport-transfer', 'car-and-scooter-rental')
+       order by slug`,
+    );
+    expect(rows.map((r) => r.pricing_mode)).toEqual(['per_group', 'per_group', 'per_group']);
+
+    // A 4-person Private South booking is the flat €110, NOT €110 × 4.
+    const { rows: occ } = await db.pg.query<{ id: string }>(
+      `select so.id from session_occurrences so
+       join activity_options o on o.id = so.activity_option_id
+       join activities a on a.id = o.activity_id
+       where a.slug = 'private-south-tour-with-pickup' limit 1`,
+    );
+    const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 4, 'seed-flatfare')`, [
+      occ[0]!.id,
+    ]);
+    const { rows: b } = await db.pg.query<{ total_minor: number | string }>(
+      `select * from create_booking('seed-flatfare-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb)`,
+      [h[0]!.id, JSON.stringify([{ price_label: 'Private group', quantity: 4 }])],
+    );
+    expect(Number(b[0]!.total_minor)).toBe(11000); // flat €110, not €440
+  });
 });

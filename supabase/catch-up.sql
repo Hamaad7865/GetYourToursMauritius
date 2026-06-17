@@ -2132,4 +2132,14 @@ as $$
   from bookings b where b.id = p_booking_id;
 $$;
 
+-- ---- migration 20260617190000_flatfare_pricing_mode -----------------------------------------
+-- Flat-fare tours (private tour, airport transfer, car/scooter rental) were on the default
+-- pricing_mode 'per_person', so the flat per-booking fare was multiplied by headcount (a 4-person
+-- private-south tour billed €440 instead of €110). They are per-group fares. Guarded so it only
+-- corrects rows still on the wrong default.
+update activities
+set pricing_mode = 'per_group'
+where slug in ('private-south-tour-with-pickup', 'airport-transfer', 'car-and-scooter-rental')
+  and pricing_mode = 'per_person';
+
 commit;
