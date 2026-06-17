@@ -114,7 +114,9 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
         <div ref={dialogRef} className="fixed inset-0 z-[70] sm:hidden" role="dialog" aria-modal="true" aria-label="Menu">
           {/* Non-focusable scrim — click to dismiss; the X button + Escape handle keyboard. */}
           <div aria-hidden onClick={close} className="absolute inset-0 bg-ink/40" />
-          <div className="absolute inset-y-0 right-0 flex w-full max-w-sm animate-slide-in flex-col bg-white shadow-2xl">
+          {/* Full-width so it fully covers the page header — otherwise the header's logo shows
+              behind the scrim next to this panel's logo (a duplicate). */}
+          <div className="absolute inset-y-0 right-0 flex w-full animate-slide-in flex-col bg-white shadow-2xl">
             <div className="flex items-center justify-between bg-ink px-5 py-3.5">
               <Logo tone="dark" />
               <button
