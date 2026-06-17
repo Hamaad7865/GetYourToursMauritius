@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import type { PricingMode } from '@/lib/validation/tours';
+import type { AltStop, PricingMode } from '@/lib/validation/tours';
 import { childSeatsCost } from '@/lib/services/pricing';
 
 const KEY = 'gytm:cart';
@@ -33,6 +33,9 @@ export interface CartItem {
   seatsLeft: number;
   /** Display unit, e.g. "per person" / "per group up to 4" / "per vehicle". */
   unit: string;
+  /** The customised route the traveller chose on the tour page (present only when it diverges from
+   *  the default), so Add-to-cart carries it to checkout exactly like the Continue button does. */
+  itinerary?: AltStop[];
   /** ms epoch when added, for the 30-minute expiry. */
   addedAt: number;
 }

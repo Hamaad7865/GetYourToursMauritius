@@ -24,6 +24,9 @@ function checkoutHref(i: CartItem): string {
     // held and must not inherit another visit's route.)
     ...(i.suv ? { suv: '1' } : {}),
     ...(i.childSeats ? { childSeats: String(i.childSeats) } : {}),
+    // Signal checkout to read this line's captured route (staged to sessionStorage by occurrence).
+    // NOT `from=widget` — that path also reuses a hold the cart never created.
+    ...(i.itinerary && i.itinerary.length ? { from: 'cart' } : {}),
   });
   return `/checkout?${q.toString()}`;
 }
@@ -126,6 +129,23 @@ export function CartView() {
   const { items, remove, setGuests, subtotal } = useCart();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Stage each line's customised route by occurrence so its checkout link can post it (the array is
+  // too big for the URL). Keyed by occ — slug-scoped would collide across lines / stale widget visits.
+  useEffect(() => {
+    for (const i of items) {
+      const key = `gytm:itinerary:occ:${i.occurrenceId}`;
+      try {
+        if (i.itinerary && i.itinerary.length) {
+          window.sessionStorage.setItem(key, JSON.stringify(i.itinerary));
+        } else {
+          window.sessionStorage.removeItem(key);
+        }
+      } catch {
+        /* sessionStorage unavailable — the route falls back to default at checkout */
+      }
+    }
+  }, [items]);
 
   if (!mounted) return <div className="min-h-[55vh]" />;
   if (items.length === 0) return <EmptyCart />;
