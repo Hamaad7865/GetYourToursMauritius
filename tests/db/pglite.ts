@@ -6,7 +6,8 @@ const ROOT = process.cwd();
 const MIGRATIONS_DIR = join(ROOT, 'supabase', 'migrations');
 const AUTH_SHIM = join(ROOT, 'tests', 'db', 'auth-shim.sql');
 
-export type JwtClaims = { sub: string; role?: string; email?: string } & Record<string, unknown>;
+// `sub` is optional: a service_role token carries no user id (auth.uid() resolves to null).
+export type JwtClaims = { sub?: string; role?: string; email?: string } & Record<string, unknown>;
 
 export interface TestDb {
   pg: PGlite;

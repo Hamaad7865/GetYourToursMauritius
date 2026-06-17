@@ -127,8 +127,10 @@ describe('api_* service functions', () => {
     const empty = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
     expect(empty.length).toBe(0);
 
-    // Materialize (as the cron / admin would), then read.
+    // Materialize as the service-role cron would (now restricted to staff / service_role), then read.
+    await db.as({ role: 'service_role' });
     await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: a[0]!.id })]);
+    await db.asOwner();
     const slots = await rpc<{ seatsLeft: number; capacity: number }[]>(db, 'api_list_availability', {
       slug: 'open-ended-tour',
       from,
@@ -145,7 +147,9 @@ describe('api_* service functions', () => {
     expect(sameDay.length).toBe(Date.now() < noonUtcToday.getTime() ? 1 : 0);
 
     // Materialization is idempotent — a second run creates no duplicates.
+    await db.as({ role: 'service_role' });
     await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: a[0]!.id })]);
+    await db.asOwner();
     const again = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
     expect(again.length).toBe(slots.length);
   });

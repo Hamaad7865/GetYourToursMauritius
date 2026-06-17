@@ -2277,6 +2277,12 @@ declare
   v_days int := least(greatest(coalesce((p ->> 'days')::int, 185), 1), 400);
   v_count int;
 begin
+  -- Staff (admin browser) or the service-role maintenance worker only (sweep medium: was open to any
+  -- signed-in customer, who could loop a full-catalogue 400-day write).
+  if not (is_staff() or auth.role() = 'service_role') then
+    raise exception 'forbidden';
+  end if;
+
   update session_occurrences so
      set status = 'open'
     from activity_options o
