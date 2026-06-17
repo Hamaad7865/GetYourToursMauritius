@@ -3,6 +3,11 @@ import { categorySchema, paginationQuerySchema, tourTypeSchema } from './common'
 
 // Catalogue DTOs — these match the `api_*` Postgres function output exactly.
 
+/** How an activity is priced: per head, per group (ceil), or one flat price by the vehicle the
+ *  party needs (sightseeing tours). */
+export const pricingModeSchema = z.enum(['per_person', 'per_group', 'vehicle']);
+export type PricingMode = z.infer<typeof pricingModeSchema>;
+
 export const tourPriceSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -10,6 +15,18 @@ export const tourPriceSchema = z.object({
   maxGuests: z.number().int().positive().nullable(),
 });
 export type TourPrice = z.infer<typeof tourPriceSchema>;
+
+/** Global sightseeing vehicle-pricing config, returned for vehicle-mode tours so the booking widget
+ *  mirrors the server's exact numbers (price is still recomputed server-side at booking time). */
+export const vehiclePricingSchema = z.object({
+  sedanEur: z.number().nonnegative(),
+  suvEur: z.number().nonnegative(),
+  familyEur: z.number().nonnegative(),
+  vanEur: z.number().nonnegative(),
+  coasterEur: z.number().nonnegative(),
+  maxParty: z.number().int().positive(),
+});
+export type VehiclePricing = z.infer<typeof vehiclePricingSchema>;
 
 export const tourImageSchema = z.object({
   id: z.string(),
@@ -29,13 +46,12 @@ export const tourSummarySchema = z.object({
   location: z.string().nullable(),
   durationMinutes: z.number().int().nullable(),
   fromPriceEur: z.number().nonnegative().nullable(),
-  // Group size of the cheapest tier: when set, the price is "per group up to N" (e.g. a
-  // private tour for 4); null/absent means per-person pricing. Nullish so summaries from a
-  // DB that predates this field still parse.
+  // max_guests of the cheapest tier. For per_group it's the group size ("up to N"); for vehicle
+  // it's the smallest vehicle's capacity. Nullish so older summaries still parse.
   fromPriceMaxGuests: z.number().int().positive().nullish(),
-  // When true, fromPriceMaxGuests is a GROUP SIZE billed per group (ceil(people / size) ×
-  // price), e.g. island tours; otherwise the price is per person (or per vehicle for transport).
-  groupPricing: z.boolean().default(false),
+  // How fromPriceEur is billed: per_person (× people), per_group (× ceil(people / size)), or
+  // vehicle (one flat price for the vehicle that fits the party). Defaults so older DBs parse.
+  pricingMode: pricingModeSchema.default('per_person'),
   ratingAvg: z.number().nullable(),
   ratingCount: z.number().int(),
   heroImage: tourImageSchema.nullable(),
@@ -66,6 +82,15 @@ export const reviewSchema = z.object({
 });
 export type Review = z.infer<typeof reviewSchema>;
 
+/** A swappable alternative place for a stop (no nested options — one level deep). */
+export const altStopSchema = z.object({
+  title: z.string(),
+  area: z.string().nullable().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+});
+export type AltStop = z.infer<typeof altStopSchema>;
+
 export const itineraryStopSchema = z.object({
   title: z.string(),
   area: z.string().nullable().optional(),
@@ -73,6 +98,8 @@ export const itineraryStopSchema = z.object({
   tags: z.array(z.string()).optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  /** Alternatives the customer can pick INSTEAD of this stop's primary place. */
+  options: z.array(altStopSchema).optional(),
 });
 export type ItineraryStop = z.infer<typeof itineraryStopSchema>;
 
@@ -102,6 +129,10 @@ export const tourDetailSchema = tourSummarySchema.extend({
   options: z.array(tourOptionSchema),
   translations: z.record(z.string(), tourTranslationSchema),
   reviews: z.array(reviewSchema),
+  /** Present only for vehicle-mode (sightseeing) tours — the flat per-vehicle prices. `.catch` so an
+   *  old-shaped config (before the flat-pricing catch-up runs on live) degrades to the defaults
+   *  instead of crashing the page. */
+  vehiclePricing: vehiclePricingSchema.nullish().catch(undefined),
 });
 export type TourDetail = z.infer<typeof tourDetailSchema>;
 

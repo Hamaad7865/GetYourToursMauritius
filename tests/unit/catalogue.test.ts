@@ -12,7 +12,37 @@ import {
 } from '@/lib/catalogue/detail';
 import { browseQueryString, parseBrowseParams } from '@/lib/catalogue/browse';
 import type { Review, TourDetail, TourSummary } from '@/lib/validation/tours';
+import { activityExtraSchema } from '@/lib/validation/tours';
 import { SITE } from '@/lib/seo/site';
+
+describe('activityExtraSchema — per-stop options', () => {
+  it('parses a stop with alternatives and tolerates stops without them', () => {
+    const extra = activityExtraSchema.parse({
+      itinerary: [
+        { title: 'Port Louis', area: 'Capital' },
+        {
+          title: 'Pamplemousses Botanical Garden',
+          area: 'North',
+          options: [
+            { title: 'Fort Adelaide', area: 'Port Louis' },
+            { title: 'Apravasi Ghat', area: 'Port Louis', lat: -20.16, lng: 57.5 },
+          ],
+        },
+      ],
+    });
+    expect(extra.itinerary?.[0]?.options).toBeUndefined();
+    expect(extra.itinerary?.[1]?.options).toHaveLength(2);
+    expect(extra.itinerary?.[1]?.options?.[0]?.title).toBe('Fort Adelaide');
+    // The dropped flat-pool keys are no longer part of the schema output.
+    const stripped = activityExtraSchema.parse({
+      itinerary: [{ title: 'X' }],
+      optionalStops: [{ title: 'Y' }],
+      maxStops: 6,
+    } as never);
+    expect((stripped as Record<string, unknown>).optionalStops).toBeUndefined();
+    expect((stripped as Record<string, unknown>).maxStops).toBeUndefined();
+  });
+});
 
 function summary(overrides: Partial<TourSummary> = {}): TourSummary {
   return {
@@ -25,7 +55,7 @@ function summary(overrides: Partial<TourSummary> = {}): TourSummary {
     location: 'Belle Mare',
     durationMinutes: 480,
     fromPriceEur: 75,
-    groupPricing: false,
+    pricingMode: 'per_person',
     ratingAvg: 4.8,
     ratingCount: 1158,
     heroImage: null,

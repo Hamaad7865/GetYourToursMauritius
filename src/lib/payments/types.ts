@@ -35,6 +35,13 @@ export interface PaymentEvent {
   outcome: PaymentOutcome;
   bookingRef: string | null;
   providerReference: string | null;
+  /**
+   * Settled/refunded amount in minor units as reported by the provider, when it can be parsed from
+   * the verified payload. `null`/absent means "amount not provided" — the webhook then falls back
+   * to the full booking total. A real provider that supports partial captures/refunds MUST set
+   * this so the ledger records the true amount (the SQL reducer already handles partials).
+   */
+  amountMinor?: number | null;
   raw: unknown;
 }
 

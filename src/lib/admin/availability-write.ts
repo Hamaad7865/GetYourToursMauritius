@@ -16,13 +16,17 @@ export interface OccurrenceRow {
   status: string;
 }
 
-export async function loadActivityOptions(
-  activityId: string,
-): Promise<{ operatorId: string; durationMinutes: number | null; title: string; options: OptionRow[] }> {
+export async function loadActivityOptions(activityId: string): Promise<{
+  operatorId: string;
+  durationMinutes: number | null;
+  title: string;
+  pricingMode: string;
+  options: OptionRow[];
+}> {
   const sb = getBrowserSupabase();
   const { data: act, error } = await sb
     .from('activities')
-    .select('operator_id, duration_minutes, title')
+    .select('operator_id, duration_minutes, title, pricing_mode')
     .eq('id', activityId)
     .maybeSingle();
   if (error) throw error;
@@ -36,6 +40,7 @@ export async function loadActivityOptions(
     operatorId: act.operator_id,
     durationMinutes: act.duration_minutes,
     title: act.title,
+    pricingMode: act.pricing_mode ?? 'per_person',
     options: opts ?? [],
   };
 }
@@ -142,6 +147,11 @@ export async function setDailyCapacity(activityId: string, capacity: number): Pr
       .gte('starts_at', new Date().toISOString());
     if (upErr) throw upErr;
   }
+
+  // The availability read no longer materializes day-slots; fill the window now so dates appear
+  // immediately (the maintenance cron rolls it forward thereafter).
+  const { error: matErr } = await sb.rpc('materialize_availability', { p: { activityId } });
+  if (matErr) throw matErr;
 }
 
 /**

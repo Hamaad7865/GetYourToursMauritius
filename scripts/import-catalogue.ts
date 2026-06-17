@@ -33,7 +33,7 @@ const PAGES: { category: string; en: string; fr: string }[] = [
     fr: 'https://www.visitemaurice.com/activites-en-mer/',
   },
   {
-    category: 'Island tours',
+    category: 'Sightseeing tours',
     en: 'https://www.visitemaurice.com/en/sightseeing/',
     fr: 'https://www.visitemaurice.com/visites-guidees/',
   },

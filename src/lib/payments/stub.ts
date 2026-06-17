@@ -40,8 +40,12 @@ export class StubPaymentProvider implements PaymentProvider {
       typeof parsed?.providerReference === 'string'
         ? parsed.providerReference
         : `stub_ref_${bookingRef ?? 'unknown'}`;
+    const amountMinor =
+      typeof parsed?.amountMinor === 'number' && Number.isFinite(parsed.amountMinor)
+        ? parsed.amountMinor
+        : null;
 
-    return { outcome, bookingRef, providerReference, raw: parsed };
+    return { outcome, bookingRef, providerReference, amountMinor, raw: parsed };
   }
 }
 

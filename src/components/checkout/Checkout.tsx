@@ -35,16 +35,52 @@ export function Checkout() {
   const when = params.get('when') ?? '';
   const guests = params.get('guests') ?? '';
   const unit = params.get('unit') ?? '';
+  // Sightseeing vehicle mode only: the SUV upgrade flag. The server re-resolves the price regardless.
+  const suv = params.get('suv') === '1';
+  // Only a "Book now" from the tour-page widget (from=widget) carries a custom route. Cart checkouts
+  // don't set it, so they never inherit the slug-scoped sessionStorage route of an unrelated visit.
+  const fromWidget = params.get('from') === 'widget';
+  // The hold reserved on Continue (reused at pay so the spot isn't double-held) + its real expiry +
+  // the shared idempotency key — handed over via sessionStorage (NOT the URL, which would leak them).
+  function readHold(): { holdId: string; expiresAt: string; idem: string } {
+    if (typeof window === 'undefined' || !occ) return { holdId: '', expiresAt: '', idem: '' };
+    try {
+      const raw = window.sessionStorage.getItem(`gytm:hold:${occ}`);
+      const h = raw ? JSON.parse(raw) : null;
+      return { holdId: h?.holdId || '', expiresAt: h?.expiresAt || '', idem: h?.idem || '' };
+    } catch {
+      return { holdId: '', expiresAt: '', idem: '' };
+    }
+  }
+  const { holdId, expiresAt, idem: idemParam } = readHold();
+  // The route builder on the tour page stashes the chosen stops here (too big for the URL).
+  function readItinerary(): Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null {
+    if (typeof window === 'undefined' || !slug || !fromWidget) return null;
+    try {
+      const raw = window.sessionStorage.getItem(`gytm:itinerary:${slug}`);
+      const arr = raw ? JSON.parse(raw) : null;
+      return Array.isArray(arr) && arr.length ? arr : null;
+    } catch {
+      return null;
+    }
+  }
 
   const [step, setStep] = useState(1);
   const [pickup, setPickup] = useState<'known' | 'unknown' | null>(null);
   const [pickupLoc, setPickupLoc] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [secs, setSecs] = useState(30 * 60);
-  // Stable idempotency key + booking ref so a retry reuses the same booking/payment
-  // instead of creating an orphaned, seat-holding duplicate.
-  const [idemKey] = useState(() => crypto.randomUUID());
+  const [secs, setSecs] = useState(() => {
+    if (expiresAt) {
+      const s = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000);
+      return s > 0 ? s : 0;
+    }
+    return 30 * 60;
+  });
+  // Stable idempotency key + booking ref so a retry reuses the same booking/payment instead of
+  // creating an orphaned, seat-holding duplicate. Reuse the key from Continue so the hold → booking
+  // chain shares one key.
+  const [idemKey] = useState(() => idemParam || crypto.randomUUID());
   const [bookingRef, setBookingRef] = useState<string | null>(null);
   // Authoritative price from the created booking — what the customer is actually charged.
   const [serverTotal, setServerTotal] = useState<number | null>(null);
@@ -98,7 +134,11 @@ export function Checkout() {
           headers,
           body: JSON.stringify({
             occurrenceId: occ,
+            expectedSlug: slug,
             party: { [label]: qty },
+            suv,
+            holdId: holdId || undefined,
+            itinerary: readItinerary(),
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
               email: user?.email,
@@ -111,6 +151,14 @@ export function Checkout() {
         if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
         ref = bookingRes.data.ref as string;
         setBookingRef(ref);
+        // The route is now persisted on the booking — clear the stash so it can't attach to a later one.
+        if (slug) {
+          try {
+            window.sessionStorage.removeItem(`gytm:itinerary:${slug}`);
+          } catch {
+            /* sessionStorage unavailable — nothing to clear */
+          }
+        }
         // Reconcile the price the server actually computed against what we showed. If it moved
         // (a tier was edited since add-to-cart), surface the real amount and require a second
         // confirm before sending the customer to the hosted payment page.

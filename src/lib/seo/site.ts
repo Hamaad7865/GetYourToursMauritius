@@ -22,7 +22,7 @@ export const CATEGORIES = [
   'Dolphin swims',
   'Sea walks & diving',
   'Parasailing',
-  'Island tours',
+  'Sightseeing tours',
 ] as const;
 
 /** wa.me deep link with a pre-filled message (digits-only number derived from SITE.phone). */

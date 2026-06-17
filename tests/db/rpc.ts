@@ -5,10 +5,15 @@ const ALLOWED = new Set([
   'api_search_activities',
   'api_get_activity',
   'api_list_availability',
+  'api_create_hold',
   'api_book',
   'api_create_payment',
   'api_get_booking',
   'api_capture_lead',
+  'claim_notifications',
+  'mark_notification',
+  'run_booking_maintenance',
+  'materialize_availability',
 ]);
 
 /**

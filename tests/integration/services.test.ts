@@ -94,6 +94,50 @@ describe('service layer (via PGlite rpc)', () => {
     expect(status.items).toHaveLength(1);
   });
 
+  it('books a vehicle tour at the SUV flat price when suv is set (service path)', async () => {
+    // Flip the seeded south tour into a vehicle-priced sightseeing tour just for this case, then
+    // restore its original mode so later tests are unaffected.
+    await db.asOwner();
+    const orig = (
+      await db.pg.query<{ pricing_mode: string }>(
+        `select pricing_mode from activities where slug = 'private-south-tour-with-pickup'`,
+      )
+    ).rows[0]!.pricing_mode;
+    await db.pg.query(`update activities set pricing_mode = 'vehicle' where slug = 'private-south-tour-with-pickup'`);
+    await db.as({ sub: USER, role: 'authenticated' });
+
+    const booking = await createBooking(ctx, {
+      occurrenceId,
+      expectedSlug: 'private-south-tour-with-pickup',
+      party: { Vehicle: 3 },
+      suv: true,
+      customer: { name: 'A', email: 'suv@example.com' },
+      idempotencyKey: 'svc-suv-1',
+    });
+    expect(booking.totalEur).toBe(85); // flat SUV price, not 3 × anything
+    expect(booking.items[0]!.priceLabel).toBe('SUV');
+    expect(booking.items[0]!.pax).toBe(3);
+    expect(booking.items[0]!.quantity).toBe(1); // one vehicle slot
+
+    await db.asOwner();
+    await db.pg.query(`update activities set pricing_mode = $1 where slug = 'private-south-tour-with-pickup'`, [orig]);
+    await db.as({ sub: USER, role: 'authenticated' });
+  });
+
+  it('saves a custom itinerary through the service path', async () => {
+    await db.as({ sub: USER, role: 'authenticated' });
+    const booking = await createBooking(ctx, {
+      occurrenceId,
+      party: { 'Private group': 1 },
+      itinerary: [{ title: 'Port Louis' }, { title: 'Apravasi Ghat', area: 'Port Louis' }],
+      customer: { name: 'R', email: 'route-svc@example.com' },
+      idempotencyKey: 'svc-route-1',
+    });
+    const got = await getBookingStatus(ctx, booking.ref);
+    expect(got.customItinerary).toHaveLength(2);
+    expect(got.customItinerary![1]!.title).toBe('Apravasi Ghat');
+  });
+
   it('maps a DB exception to a ServiceError (unknown occurrence)', async () => {
     await expect(
       createBooking(ctx, {

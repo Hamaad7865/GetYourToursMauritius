@@ -1824,6 +1824,2820 @@ as $$
   );
 $$;
 
+-- ==================== 20260615121600_booking_admin_guards.sql ====================
+-- Admin-booking write guards (from the admin Bookings adversarial review).
+--
+-- The admin panel lets staff manage bookings DIRECTLY via PostgREST (the browser
+-- client), gated only by the `*_staff` RLS policies. Those policies are column-agnostic
+-- `for all`, so without these guards a signed-in staff/admin could hand-craft a PATCH and
+-- (a) forge bookings.payment_state = 'paid' / status = 'confirmed', or (b) rewrite financial
+-- and identity columns (total_minor, payout, customer_email, ref, …), or (c) fabricate a
+-- paid `payments` row — all bypassing the invariant that payment confirmation comes ONLY
+-- from the verified webhook -> append_payment_event ledger path.
+--
+-- We enforce the invariant at the database (the UI is not a security boundary), mirroring
+-- the existing enforce_profile_role pattern: the SECURITY DEFINER RPCs (create_booking,
+-- append_payment_event, api_create_payment) run as the table owner and service_role runs as
+-- itself, so `current_user not in ('anon','authenticated')` lets the legitimate flow through
+-- untouched while a browser session is constrained.
+
+-- ---------------------------------------------------------------------------
+-- bookings: from a browser session, only `notes` and the operational status
+-- transitions (-> completed / -> cancelled) may change. Everything financial,
+-- identity- or payment-related is pinned to its previous value.
+-- ---------------------------------------------------------------------------
+create or replace function enforce_booking_admin_update()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new; -- service_role / owner / SECURITY DEFINER RPCs (webhook, create_booking)
+  end if;
+
+  -- Immutable from a browser session — owned by the booking/ledger RPCs.
+  new.payment_state           := old.payment_state;
+  new.total_minor             := old.total_minor;
+  new.agency_commission_minor := old.agency_commission_minor;
+  new.operator_payout_minor   := old.operator_payout_minor;
+  new.currency                := old.currency;
+  new.ref                     := old.ref;
+  new.idempotency_key         := old.idempotency_key;
+  new.user_id                 := old.user_id;
+  new.customer_name           := old.customer_name;
+  new.customer_email          := old.customer_email;
+  new.customer_phone          := old.customer_phone;
+  new.source                  := old.source;
+  new.created_at              := old.created_at;
+
+  -- Status may only move through the operational transitions staff are allowed to make.
+  if new.status is distinct from old.status then
+    if not (
+      (new.status = 'completed' and old.status = 'confirmed') or
+      (new.status = 'cancelled' and old.status in ('draft', 'held', 'payment_pending', 'confirmed'))
+    ) then
+      raise exception 'forbidden_booking_status_transition'
+        using detail = format('%s -> %s', old.status, new.status);
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists bookings_admin_update_guard on bookings;
+create trigger bookings_admin_update_guard
+  before update on bookings
+  for each row execute function enforce_booking_admin_update();
+
+-- ---------------------------------------------------------------------------
+-- payments + booking_items: never written directly from a browser session. All
+-- legitimate writes go through SECURITY DEFINER RPCs (owner) or service_role. We
+-- block INSERT/UPDATE only (not DELETE) so booking-delete FK cascades still work.
+-- ---------------------------------------------------------------------------
+create or replace function forbid_public_write()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user in ('anon', 'authenticated') then
+    raise exception 'forbidden_direct_write' using detail = tg_table_name;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists payments_no_public_write on payments;
+create trigger payments_no_public_write
+  before insert or update on payments
+  for each row execute function forbid_public_write();
+
+drop trigger if exists booking_items_no_public_write on booking_items;
+create trigger booking_items_no_public_write
+  before insert or update on booking_items
+  for each row execute function forbid_public_write();
+
+-- ==================== 20260615121700_categories.sql ====================
+-- Dynamic categories: a managed table that becomes the canonical category list, so staff can
+-- add/edit/remove categories from the admin with no code change. `activities.category` is
+-- freed from the fixed enum to plain text. Existing activities keep their category names, and
+-- the table is seeded with the original seven, so nothing changes until staff edit it.
+
+create table if not exists categories (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  slug text not null unique,
+  position int not null default 0,
+  image_url text,
+  status text not null default 'active' check (status in ('active', 'hidden')),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists categories_position_idx on categories (position);
+
+insert into categories (name, slug, position) values
+  ('Catamaran cruises', 'catamaran-cruises', 0),
+  ('Île aux Cerfs', 'ile-aux-cerfs', 1),
+  ('Dolphin swims', 'dolphin-swims', 2),
+  ('Sea walks & diving', 'sea-walks-diving', 3),
+  ('Parasailing', 'parasailing', 4),
+  ('Island tours', 'island-tours', 5)
+on conflict (name) do nothing;
+
+-- Free activities.category from the enum so newly-created categories are assignable. The only
+-- SQL that reads it already casts `category::text`, and the index rebuilds automatically.
+alter table activities alter column category type text using category::text;
+
+-- RLS: anyone may read active categories (public nav/filters); staff manage them.
+alter table categories enable row level security;
+grant select on categories to anon, authenticated;
+grant insert, update, delete on categories to authenticated;
+
+drop policy if exists categories_public_read on categories;
+create policy categories_public_read on categories
+  for select using (status = 'active' or is_staff());
+drop policy if exists categories_staff_all on categories;
+create policy categories_staff_all on categories
+  for all using (is_staff()) with check (is_staff());
+
+-- ==================== 20260615121800_summary_images_group.sql ====================
+-- Catalogue cards need two things the search summary didn't return:
+--   1. the FULL image array (so a multi-photo activity shows the carousel arrows/dots, not
+--      just its hero image), and
+--   2. the from-price tier's group size (`max_guests`), so the card can label the price
+--      "per group up to N" vs "per person" — derived from what staff set in the admin.
+-- Only `api_search_activities` changes; everything else is identical to the prior version.
+create or replace function api_search_activities(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with filtered as (
+    select a.*
+    from activities a
+    where a.status = 'published'
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+  ),
+  paged as (
+    select * from filtered
+    order by rating_count desc, title
+    limit coalesce((p ->> 'pageSize')::int, 20)
+    offset (coalesce((p ->> 'page')::int, 1) - 1) * coalesce((p ->> 'pageSize')::int, 20)
+  )
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+        'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+        'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count,
+        'fromPriceEur', (
+          select min(pr.amount_minor)::float / 100
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+        ),
+        'fromPriceMaxGuests', (
+          select pr.max_guests
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+          order by pr.amount_minor asc nulls last
+          limit 1
+        ),
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = x.id order by img.position limit 1
+        ),
+        'images', coalesce((
+          select jsonb_agg(
+            jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+            order by img.position
+          )
+          from activity_images img where img.activity_id = x.id
+        ), '[]'::jsonb)
+      ))
+      from paged x
+    ), '[]'::jsonb),
+    'total', (select count(*)::int from filtered),
+    'page', coalesce((p ->> 'page')::int, 1),
+    'pageSize', coalesce((p ->> 'pageSize')::int, 20)
+  );
+$$;
+
+-- ==================== 20260615121900_per_group_pricing.sql ====================
+-- Per-group pricing — opt-in per activity (e.g. island tours), OFF by default.
+--
+-- When activities.group_pricing is TRUE, a price tier's `max_guests` is read as the GROUP
+-- SIZE and the tier is billed per group: total = ceil(people / size) * amount. So a €70 tier
+-- for a group of 4 charges 1-4 people = €70, 5-8 = €140, 9-12 = €210, and so on — with no
+-- hard cap (the occurrence capacity already bounds the party).
+--
+-- When FALSE (the default for every existing activity), pricing is unchanged: per head, with
+-- `max_guests` acting as an optional per-tier cap (exceeds_max_guests). The party size is sent
+-- as `quantity` (people) and the price is computed here from the DB, so a client can't underpay.
+
+alter table activities add column if not exists group_pricing boolean not null default false;
+
+create or replace function create_booking(
+  p_idempotency_key text,
+  p_hold_id uuid,
+  p_customer_name text,
+  p_customer_email text,
+  p_customer_phone text,
+  p_source booking_source,
+  p_items jsonb
+)
+returns bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing bookings;
+  v_hold booking_holds;
+  v_occ session_occurrences;
+  v_option_id uuid;
+  v_group_pricing boolean := false;
+  v_booking bookings;
+  v_item jsonb;
+  v_label text;
+  v_qty int;
+  v_unit bigint;
+  v_max int;
+  v_total bigint := 0;
+  v_qty_total int := 0;
+  v_agg jsonb := '{}'::jsonb;
+begin
+  select * into v_existing from bookings where idempotency_key = p_idempotency_key;
+  if found then
+    return v_existing;
+  end if;
+
+  select * into v_hold from booking_holds where id = p_hold_id for update;
+  if not found then
+    raise exception 'hold_not_found';
+  end if;
+  if v_hold.status <> 'active' or v_hold.expires_at <= now() then
+    raise exception 'hold_not_active';
+  end if;
+
+  select * into v_occ from session_occurrences where id = v_hold.session_occurrence_id for update;
+  if v_occ.status <> 'open' then
+    raise exception 'occurrence_not_bookable' using detail = v_occ.status::text;
+  end if;
+  v_option_id := v_occ.activity_option_id;
+
+  select a.group_pricing into v_group_pricing
+  from activity_options o
+  join activities a on a.id = o.activity_id
+  where o.id = v_option_id;
+  v_group_pricing := coalesce(v_group_pricing, false);
+
+  -- Aggregate quantity (people) per price_label, collapsing duplicate lines.
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    v_label := v_item ->> 'price_label';
+    v_qty := (v_item ->> 'quantity')::int;
+    if v_label is null or v_qty is null or v_qty <= 0 then
+      raise exception 'invalid_item';
+    end if;
+    v_agg := jsonb_set(v_agg, array[v_label], to_jsonb(coalesce((v_agg ->> v_label)::int, 0) + v_qty));
+  end loop;
+
+  -- Price each aggregated tier from the DB.
+  for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+    select amount_minor, max_guests into v_unit, v_max
+    from activity_option_prices
+    where activity_option_id = v_option_id and label = v_label;
+    if not found then
+      raise exception 'unknown_price_tier' using detail = v_label;
+    end if;
+    v_qty_total := v_qty_total + v_qty;
+    if v_group_pricing and v_max is not null then
+      v_total := v_total + (v_unit * ceil(v_qty::numeric / v_max)::int);
+    else
+      if v_max is not null and v_qty > v_max then
+        raise exception 'exceeds_max_guests' using detail = format('%s: %s > %s', v_label, v_qty, v_max);
+      end if;
+      v_total := v_total + (v_unit * v_qty);
+    end if;
+  end loop;
+
+  if v_qty_total <> v_hold.quantity then
+    raise exception 'items_quantity_mismatch'
+      using detail = format('items %s, hold %s', v_qty_total, v_hold.quantity);
+  end if;
+
+  insert into bookings (
+    idempotency_key, customer_name, customer_email, customer_phone, source,
+    status, total_minor, operator_payout_minor, agency_commission_minor
+  )
+  values (
+    p_idempotency_key, p_customer_name, p_customer_email, p_customer_phone,
+    coalesce(p_source, 'web'), 'payment_pending', v_total, v_total, 0
+  )
+  returning * into v_booking;
+
+  for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+    select amount_minor, max_guests into v_unit, v_max
+    from activity_option_prices
+    where activity_option_id = v_option_id and label = v_label;
+    insert into booking_items (
+      booking_id, session_occurrence_id, activity_option_id, price_label,
+      quantity, unit_amount_minor, subtotal_minor
+    )
+    values (
+      v_booking.id, v_hold.session_occurrence_id, v_option_id, v_label, v_qty, v_unit,
+      case
+        when v_group_pricing and v_max is not null then v_unit * ceil(v_qty::numeric / v_max)::int
+        else v_unit * v_qty
+      end
+    );
+  end loop;
+
+  update booking_holds set booking_id = v_booking.id where id = v_hold.id;
+  return v_booking;
+end;
+$$;
+
+-- Expose group_pricing on the activity-detail DTO so the booking widget prices + labels match.
+create or replace function api_get_activity(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'id', a.id, 'slug', a.slug, 'type', a.type, 'title', a.title, 'summary', a.summary,
+    'description', a.description, 'category', a.category, 'location', a.location,
+    'durationMinutes', a.duration_minutes, 'meetingPoint', a.meeting_point,
+    'pickupAvailable', a.pickup_available, 'groupPricing', a.group_pricing,
+    'languages', to_jsonb(a.languages),
+    'inclusions', to_jsonb(a.inclusions), 'exclusions', to_jsonb(a.exclusions),
+    'highlights', to_jsonb(a.highlights), 'cancellationPolicy', a.cancellation_policy,
+    'seoTitle', a.seo_title, 'seoDescription', a.seo_description,
+    'extra', a.extra,
+    'ratingAvg', a.rating_avg, 'ratingCount', a.rating_count,
+    'fromPriceEur', (
+      select min(pr.amount_minor)::float / 100
+      from activity_option_prices pr join activity_options o on o.id = pr.activity_option_id
+      where o.activity_id = a.id
+    ),
+    'heroImage', (
+      select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+      from activity_images img where img.activity_id = a.id order by img.position limit 1
+    ),
+    'images', coalesce((
+      select jsonb_agg(jsonb_build_object('id', i.id, 'url', i.url, 'alt', i.alt, 'position', i.position) order by i.position)
+      from activity_images i where i.activity_id = a.id
+    ), '[]'::jsonb),
+    'options', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', o.id, 'name', o.name, 'description', o.description,
+        'prices', coalesce((
+          select jsonb_agg(jsonb_build_object(
+            'id', pr.id, 'label', pr.label, 'amountEur', pr.amount_minor::float / 100, 'maxGuests', pr.max_guests
+          ) order by pr.position)
+          from activity_option_prices pr where pr.activity_option_id = o.id
+        ), '[]'::jsonb)
+      ) order by o.position)
+      from activity_options o where o.activity_id = a.id
+    ), '[]'::jsonb),
+    'translations', coalesce((
+      select jsonb_object_agg(t.locale, jsonb_build_object('title', t.title, 'summary', t.summary, 'description', t.description))
+      from activity_translations t where t.activity_id = a.id
+    ), '{}'::jsonb),
+    'reviews', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', rv.id, 'author', rv.author, 'rating', rv.rating, 'text', rv.text, 'createdAt', rv.created_at
+      ) order by rv.created_at desc)
+      from reviews rv where rv.activity_id = a.id
+    ), '[]'::jsonb)
+  )
+  from activities a
+  where a.slug = p ->> 'slug';
+$$;
+
+-- Expose group_pricing on the search summary so catalogue cards label the price correctly
+-- ("per group up to N" only for group-priced activities, otherwise per person / per vehicle).
+create or replace function api_search_activities(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with filtered as (
+    select a.*
+    from activities a
+    where a.status = 'published'
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+  ),
+  paged as (
+    select * from filtered
+    order by rating_count desc, title
+    limit coalesce((p ->> 'pageSize')::int, 20)
+    offset (coalesce((p ->> 'page')::int, 1) - 1) * coalesce((p ->> 'pageSize')::int, 20)
+  )
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+        'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+        'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count, 'groupPricing', x.group_pricing,
+        'fromPriceEur', (
+          select min(pr.amount_minor)::float / 100
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+        ),
+        'fromPriceMaxGuests', (
+          select pr.max_guests
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+          order by pr.amount_minor asc nulls last
+          limit 1
+        ),
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = x.id order by img.position limit 1
+        ),
+        'images', coalesce((
+          select jsonb_agg(
+            jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+            order by img.position
+          )
+          from activity_images img where img.activity_id = x.id
+        ), '[]'::jsonb)
+      ))
+      from paged x
+    ), '[]'::jsonb),
+    'total', (select count(*)::int from filtered),
+    'page', coalesce((p ->> 'page')::int, 1),
+    'pageSize', coalesce((p ->> 'pageSize')::int, 20)
+  );
+$$;
+
+-- ==================== 20260616120000_open_availability.sql ====================
+-- Open-ended availability. An activity with activities.daily_capacity set is bookable on ANY
+-- future day — no pre-generated year, no annual re-enable. The calendar materializes the day
+-- slots it needs on demand (capped horizon, so the window simply rolls forward), and a day is
+-- full once its bookings + holds reach the capacity. Activities with daily_capacity = null keep
+-- the legacy explicit-occurrence model untouched.
+
+alter table activities add column if not exists daily_capacity int;
+
+-- Needed so day-materialization can de-dupe via ON CONFLICT (and a good integrity guard against
+-- duplicate slots). Idempotent — also repairs databases that drifted without it.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'session_occurrences_option_start_key') then
+    alter table session_occurrences
+      add constraint session_occurrences_option_start_key unique (activity_option_id, starts_at);
+  end if;
+end $$;
+
+-- Availability for an activity over a date range, with live seats_left. For open-ended
+-- activities it first fills in any missing daily slots within the (capped) window — so the
+-- customer calendar always shows future dates without anyone topping it up. SECURITY DEFINER so
+-- the lazy fill can write; gated to published activities, so it never leaks draft availability.
+create or replace function api_list_availability(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_activity activities;
+  v_from date := coalesce((p ->> 'from')::date, current_date);
+  v_to date := coalesce((p ->> 'to')::date, current_date + 30);
+  v_fill_to date;
+  v_result jsonb;
+begin
+  select * into v_activity from activities where slug = p ->> 'slug';
+  if not found or v_activity.status <> 'published' then
+    return '[]'::jsonb;
+  end if;
+
+  v_from := greatest(v_from, current_date);
+  v_to := least(v_to, current_date + 400);
+  -- Bound the per-call write to ~6 months regardless of the read window, so an anonymous read
+  -- can never trigger a huge fill; the window still rolls forward as current_date advances.
+  v_fill_to := least(v_to, current_date + 185);
+
+  -- Open-ended activity: fill any day in [today, fill horizon] that has NO occurrence yet for
+  -- the option — compared on the UTC calendar day, so a legacy/seed slot at a different time of
+  -- day blocks a duplicate and each day ends up with exactly one bookable slot. Includes today,
+  -- so same-day booking works. One slot per option per day at noon UTC; capacity = daily_capacity.
+  if coalesce(v_activity.daily_capacity, 0) > 0 then
+    insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
+    select o.id,
+           v_activity.operator_id,
+           (d::date + time '12:00') at time zone 'UTC',
+           ((d::date + time '12:00') at time zone 'UTC')
+             + make_interval(mins => coalesce(v_activity.duration_minutes, 240)),
+           v_activity.daily_capacity,
+           'open'
+    from activity_options o
+    cross join generate_series(greatest(v_from, current_date), v_fill_to, interval '1 day') d
+    where o.activity_id = v_activity.id
+      and exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id)
+      and not exists (
+        select 1 from session_occurrences x
+        where x.activity_option_id = o.id
+          and (x.starts_at at time zone 'UTC')::date = d::date
+      )
+    on conflict (activity_option_id, starts_at) do nothing;
+  end if;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'occurrenceId', so.id, 'activityOptionId', so.activity_option_id, 'optionName', o.name,
+    'startsAt', so.starts_at, 'endsAt', so.ends_at, 'capacity', so.capacity,
+    -- Never report negative seats (e.g. if capacity was lowered below already-booked seats).
+    'seatsLeft', greatest(so.capacity - used_capacity(so.id), 0), 'status', so.status
+  ) order by so.starts_at), '[]'::jsonb)
+  into v_result
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  where o.activity_id = v_activity.id
+    and so.status = 'open'
+    and so.starts_at >= v_from::timestamptz
+    and so.starts_at < (v_to + 1)::timestamptz;
+
+  return v_result;
+end;
+$$;
+
+-- ==================== 20260616130000_widen_booking_ref.sql ====================
+-- Widen the booking reference from 8 to 16 hex chars (~32 -> ~64 bits of entropy). The ref is
+-- exposed in /bookings/{ref} URLs and, until edge rate limiting lands, is effectively the only
+-- entropy standing between an attacker and the payment-confirmation webhook (which looks a
+-- booking up by ref). 32 bits is brute-forceable; 64 is not. Existing refs stay valid (still
+-- unique) — only newly generated refs use the wider space.
+alter table bookings
+  alter column ref set default ('BMT-' || upper(substr(md5(gen_random_uuid()::text), 1, 16)));
+
+-- ==================== 20260616140000_rename_island_to_sightseeing.sql ====================
+-- Owner request: rename the "Island tours" category to "Sightseeing tours".
+-- Categories are modelled three ways after the dynamic-categories work: a managed `categories`
+-- table (the canonical list), a free-text `activities.category` column, and a now-vestigial
+-- `activity_category` enum (left from before the column was relaxed to text). Update all three so
+-- a fresh DB and the live DB agree. Every statement is idempotent / guarded, so re-running (and
+-- a DB that already has the new name) is a no-op.
+
+-- 1) Vestigial enum value — unused by the text column, kept consistent. Guarded: only rename if
+--    the old label still exists.
+do $$
+begin
+  if exists (
+    select 1 from pg_enum e
+    join pg_type t on t.oid = e.enumtypid
+    where t.typname = 'activity_category' and e.enumlabel = 'Island tours'
+  ) then
+    alter type activity_category rename value 'Island tours' to 'Sightseeing tours';
+  end if;
+end $$;
+
+-- 2) The managed category row (name + slug). The slug feeds /activities?category= nav links.
+update categories
+   set name = 'Sightseeing tours', slug = 'sightseeing-tours'
+ where name = 'Island tours' or slug = 'island-tours';
+
+-- 3) Any activities already filed under the old name.
+update activities set category = 'Sightseeing tours' where category = 'Island tours';
+
+-- ==================== 20260616150000_api_book_slug_guard.sql ====================
+-- Integrity guard for api_book: optionally assert which activity is being booked.
+--
+-- api_book takes a bare occurrenceId. Prices are always recomputed server-side from that
+-- occurrence (so this is not an underpayment hole), but nothing checked that the occurrence
+-- belonged to the activity the customer was actually looking at — a hand-edited /checkout?occ=
+-- could book a different activity's slot than the title on screen (a support/fraud-dispute
+-- vector). When the caller passes `expectedSlug` (the slug of the page it rendered), we verify
+-- the occurrence really belongs to that activity and reject the mismatch. The param is OPTIONAL,
+-- so existing callers (and the booking API contract) are unchanged.
+create or replace function api_book(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_occ uuid := (p ->> 'occurrenceId')::uuid;
+  v_key text := p ->> 'idempotencyKey';
+  v_expected_slug text := nullif(p ->> 'expectedSlug', '');
+  v_total_qty int := 0;
+  v_items jsonb := '[]'::jsonb;
+  v_hold booking_holds;
+  v_booking bookings;
+  r record;
+begin
+  if v_occ is null or v_key is null then
+    raise exception 'invalid_request';
+  end if;
+
+  -- Bind the occurrence to the activity the caller claims to be booking.
+  if v_expected_slug is not null and not exists (
+    select 1
+    from session_occurrences so
+    join activity_options o on o.id = so.activity_option_id
+    join activities a on a.id = o.activity_id
+    where so.id = v_occ and a.slug = v_expected_slug
+  ) then
+    raise exception 'occurrence_activity_mismatch';
+  end if;
+
+  for r in select key, (value::text)::int as q from jsonb_each(p -> 'party') loop
+    if r.q < 0 then raise exception 'invalid_party'; end if;
+    if r.q > 0 then
+      v_total_qty := v_total_qty + r.q;
+      v_items := v_items || jsonb_build_object('price_label', r.key, 'quantity', r.q);
+    end if;
+  end loop;
+  if v_total_qty <= 0 then raise exception 'invalid_party'; end if;
+
+  v_hold := create_hold(v_occ, v_total_qty, v_key || ':hold');
+  v_booking := create_booking(
+    v_key, v_hold.id, p ->> 'customerName', p ->> 'customerEmail', p ->> 'customerPhone',
+    coalesce((p ->> 'source')::booking_source, 'web'), v_items
+  );
+
+  if auth.uid() is not null then
+    update bookings set user_id = auth.uid() where id = v_booking.id and user_id is null;
+  end if;
+
+  return booking_json(v_booking.id);
+end;
+$$;
+
+-- ==================== 20260616160000_notifications.sql ====================
+-- Notification outbox: enqueue + drain plumbing.
+--
+-- Until now the notification_outbox table was dead infrastructure — nothing wrote to it and
+-- nothing drained it, so a paid customer received no confirmation. This wires both ends:
+--   * an AFTER-UPDATE trigger on bookings enqueues a row when a booking becomes confirmed (or
+--     refunded), idempotently, from ANY path (webhook, admin, future reconciliation);
+--   * claim/mark RPCs let an out-of-band worker (the /internal/notifications/drain route, called
+--     by a scheduler) pull a batch, send via the NotificationProvider, and record the result.
+-- The enqueue is the must-have; actual sending swaps from the stub to Resend once keys exist.
+
+-- ---------------------------------------------------------------------------
+-- Enqueue on the booking lifecycle. Idempotency key = template:booking_id, so a status that is
+-- re-applied (or append_payment_event running twice) never double-sends.
+-- ---------------------------------------------------------------------------
+create or replace function enqueue_booking_notification()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'confirmed' and old.status is distinct from 'confirmed' then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'email', new.customer_email, 'booking_confirmation',
+      jsonb_build_object(
+        'ref', new.ref, 'customerName', new.customer_name,
+        'totalMinor', new.total_minor, 'currency', new.currency
+      ),
+      new.id, 'booking_confirmation:' || new.id
+    )
+    on conflict (idempotency_key) do nothing;
+  elsif new.status = 'refunded' and old.status is distinct from 'refunded' then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'email', new.customer_email, 'booking_refunded',
+      jsonb_build_object('ref', new.ref, 'customerName', new.customer_name),
+      new.id, 'booking_refunded:' || new.id
+    )
+    on conflict (idempotency_key) do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists bookings_enqueue_notification on bookings;
+create trigger bookings_enqueue_notification
+  after update of status on bookings
+  for each row execute function enqueue_booking_notification();
+
+-- ---------------------------------------------------------------------------
+-- Claim a batch of pending notifications for sending. Atomically increments attempts and skips
+-- rows another worker is already holding (FOR UPDATE SKIP LOCKED), so concurrent drains are safe.
+-- Returns a jsonb array the worker sends one by one. service_role only.
+-- ---------------------------------------------------------------------------
+create or replace function claim_notifications(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_limit int := least(greatest(coalesce((p ->> 'limit')::int, 20), 1), 100);
+  v_rows jsonb;
+begin
+  with batch as (
+    select id from notification_outbox
+    where status = 'pending' and attempts < 5
+    order by created_at
+    limit v_limit
+    for update skip locked
+  ), upd as (
+    update notification_outbox o
+       set attempts = attempts + 1
+      from batch
+     where o.id = batch.id
+    returning o.id, o.channel, o.recipient, o.template, o.payload
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', id, 'channel', channel, 'recipient', recipient, 'template', template, 'payload', payload
+  )), '[]'::jsonb)
+  into v_rows
+  from upd;
+  return v_rows;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Record the outcome of a send. result='sent' marks it done; anything else leaves it pending for
+-- retry until attempts run out, then 'failed'. service_role only.
+-- ---------------------------------------------------------------------------
+create or replace function mark_notification(p jsonb)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid := (p ->> 'id')::uuid;
+begin
+  if p ->> 'result' = 'sent' then
+    update notification_outbox set status = 'sent', sent_at = now(), last_error = null where id = v_id;
+  else
+    update notification_outbox
+      set status = case when attempts >= 5 then 'failed' else 'pending' end,
+          last_error = left(coalesce(p ->> 'error', 'send failed'), 500)
+      where id = v_id;
+  end if;
+end;
+$$;
+
+revoke execute on function claim_notifications(jsonb) from public;
+revoke execute on function mark_notification(jsonb) from public;
+grant execute on function claim_notifications(jsonb) to service_role;
+grant execute on function mark_notification(jsonb) to service_role;
+
+-- ==================== 20260616170000_maintenance.sql ====================
+-- Scheduled booking maintenance (called by the /internal/maintenance worker on a cron).
+--
+-- Two jobs, neither of which had a caller before:
+--   1) expire_holds() — flip stale active holds to 'expired' (status hygiene; the availability
+--      formula already ignores expired holds, but un-swept rows accumulate forever).
+--   2) Expire abandoned bookings — a booking left in payment_pending past a grace window with no
+--      successful payment is dead weight. Mark it 'expired' and release its holds so the seats are
+--      cleanly freed. SAFE against a delayed real payment: if money lands later, append_payment_event
+--      routes an expired/cancelled booking to refund_pending rather than confirming it.
+--
+-- NOTE: this does NOT cover the missed-webhook case (payment succeeded but the webhook was lost) —
+-- that needs polling the provider and lands with the real Peach integration.
+create or replace function run_booking_maintenance(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_grace interval := make_interval(
+    mins => least(greatest(coalesce((p ->> 'graceMinutes')::int, 30), 1), 1440)
+  );
+  v_holds int;
+  v_bookings int;
+begin
+  v_holds := expire_holds();
+
+  with stale as (
+    update bookings b
+       set status = 'expired', updated_at = now()
+     where b.status in ('draft', 'held', 'payment_pending')
+       and b.payment_state = 'pending'
+       and b.created_at < now() - v_grace
+       and not exists (
+         select 1 from payments pay
+         where pay.booking_id = b.id
+           and pay.status in ('paid', 'partially_refunded', 'refunded')
+       )
+    returning b.id
+  )
+  select count(*) into v_bookings from stale;
+
+  -- Release any active holds still attached to the just-expired bookings.
+  update booking_holds h
+     set status = 'released'
+    from bookings b
+   where h.booking_id = b.id and b.status = 'expired' and h.status = 'active';
+
+  return jsonb_build_object('holdsExpired', v_holds, 'bookingsExpired', v_bookings);
+end;
+$$;
+
+revoke execute on function run_booking_maintenance(jsonb) from public;
+grant execute on function run_booking_maintenance(jsonb) to service_role;
+
+-- ==================== 20260616180000_availability_read_only.sql ====================
+-- Move open-ended day-slot materialization OFF the read path.
+--
+-- Previously api_list_availability was VOLATILE + SECURITY DEFINER and ran an INSERT...SELECT on
+-- EVERY read (even anonymous), so a crawler or traffic spike turned cacheable GETs into serialized
+-- DB writes — the binding availability bottleneck. Now:
+--   * api_list_availability is a pure STABLE read (no write amplification, cacheable);
+--   * materialize_availability() does the fill, run by the maintenance cron (rolling the window
+--     forward as today advances) and immediately by the admin when an activity is made bookable.
+-- Capped horizon, idempotent, deduped on the UTC calendar day.
+
+create or replace function materialize_availability(p jsonb)
+returns int
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_activity_id uuid := nullif(p ->> 'activityId', '')::uuid;
+  v_days int := least(greatest(coalesce((p ->> 'days')::int, 185), 1), 400);
+  v_count int;
+begin
+  insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
+  select o.id,
+         a.operator_id,
+         (d::date + time '12:00') at time zone 'UTC',
+         ((d::date + time '12:00') at time zone 'UTC') + make_interval(mins => coalesce(a.duration_minutes, 240)),
+         a.daily_capacity,
+         'open'
+  from activities a
+  join activity_options o on o.activity_id = a.id
+  cross join generate_series(current_date, current_date + v_days, interval '1 day') d
+  where a.status = 'published'
+    and coalesce(a.daily_capacity, 0) > 0
+    and (v_activity_id is null or a.id = v_activity_id)
+    and exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id)
+    and not exists (
+      select 1 from session_occurrences x
+      where x.activity_option_id = o.id
+        and (x.starts_at at time zone 'UTC')::date = d::date
+    )
+  on conflict (activity_option_id, starts_at) do nothing;
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+revoke execute on function materialize_availability(jsonb) from public;
+grant execute on function materialize_availability(jsonb) to authenticated, service_role;
+
+-- Pure read (was VOLATILE + lazy INSERT). create-or-replace preserves the existing anon grant.
+create or replace function api_list_availability(p jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_activity activities;
+  v_from date := coalesce((p ->> 'from')::date, current_date);
+  v_to date := coalesce((p ->> 'to')::date, current_date + 30);
+  v_result jsonb;
+begin
+  select * into v_activity from activities where slug = p ->> 'slug';
+  if not found or v_activity.status <> 'published' then
+    return '[]'::jsonb;
+  end if;
+
+  v_from := greatest(v_from, current_date);
+  v_to := least(v_to, current_date + 400);
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'occurrenceId', so.id, 'activityOptionId', so.activity_option_id, 'optionName', o.name,
+    'startsAt', so.starts_at, 'endsAt', so.ends_at, 'capacity', so.capacity,
+    'seatsLeft', greatest(so.capacity - used_capacity(so.id), 0), 'status', so.status
+  ) order by so.starts_at), '[]'::jsonb)
+  into v_result
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  where o.activity_id = v_activity.id
+    and so.status = 'open'
+    and so.starts_at >= v_from::timestamptz
+    and so.starts_at < (v_to + 1)::timestamptz;
+
+  return v_result;
+end;
+$$;
+
+-- ==================== 20260616190000_vehicle_pricing.sql ====================
+-- Vehicle-bracket pricing — a third pricing mode for sightseeing tours.
+--
+-- The whole group pays ONE flat price for the smallest vehicle that fits them (e.g. 1-4 = €75 car,
+-- 5-6 = €85 six-seater, 7-14 = €125 van, 15-22 = €240 minibus, nothing over 22). Brackets are
+-- ordinary activity_option_prices rows where max_guests = the bracket's UPPER bound and amount_minor
+-- = the flat price. Each booking reserves ONE vehicle slot of the day's capacity (so daily_capacity
+-- counts vehicles, not people); the people on board are recorded in booking_items.pax.
+
+-- 1) Replace the group_pricing boolean with a pricing_mode enum (single source of truth).
+alter table activities add column if not exists pricing_mode text not null default 'per_person'
+  check (pricing_mode in ('per_person', 'per_group', 'vehicle'));
+-- Backfill only if the legacy column is still present (guarded so a re-run, or a DB that never had
+-- the group_pricing column, doesn't error on a column that isn't there).
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'activities' and column_name = 'group_pricing'
+  ) then
+    update activities set pricing_mode = 'per_group' where coalesce(group_pricing, false) = true;
+  end if;
+end $$;
+
+-- 2) People-on-board for a vehicle booking (the line's quantity is the vehicle count = 1).
+alter table booking_items add column if not exists pax int;
+
+-- 3) create_booking: branch on the activity's pricing_mode.
+create or replace function create_booking(
+  p_idempotency_key text,
+  p_hold_id uuid,
+  p_customer_name text,
+  p_customer_email text,
+  p_customer_phone text,
+  p_source booking_source,
+  p_items jsonb
+)
+returns bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing bookings;
+  v_hold booking_holds;
+  v_occ session_occurrences;
+  v_option_id uuid;
+  v_mode text := 'per_person';
+  v_booking bookings;
+  v_item jsonb;
+  v_label text;
+  v_qty int;
+  v_unit bigint;
+  v_max int;
+  v_total bigint := 0;
+  v_qty_total int := 0;
+  v_agg jsonb := '{}'::jsonb;
+  v_bracket_label text;
+begin
+  select * into v_existing from bookings where idempotency_key = p_idempotency_key;
+  if found then
+    return v_existing;
+  end if;
+
+  select * into v_hold from booking_holds where id = p_hold_id for update;
+  if not found then
+    raise exception 'hold_not_found';
+  end if;
+  if v_hold.status <> 'active' or v_hold.expires_at <= now() then
+    raise exception 'hold_not_active';
+  end if;
+
+  select * into v_occ from session_occurrences where id = v_hold.session_occurrence_id for update;
+  if v_occ.status <> 'open' then
+    raise exception 'occurrence_not_bookable' using detail = v_occ.status::text;
+  end if;
+  v_option_id := v_occ.activity_option_id;
+
+  select a.pricing_mode into v_mode
+  from activity_options o
+  join activities a on a.id = o.activity_id
+  where o.id = v_option_id;
+  v_mode := coalesce(v_mode, 'per_person');
+
+  -- Aggregate quantity (people) per price_label, collapsing duplicate lines.
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    v_label := v_item ->> 'price_label';
+    v_qty := (v_item ->> 'quantity')::int;
+    if v_label is null or v_qty is null or v_qty <= 0 then
+      raise exception 'invalid_item';
+    end if;
+    v_qty_total := v_qty_total + v_qty;
+    v_agg := jsonb_set(v_agg, array[v_label], to_jsonb(coalesce((v_agg ->> v_label)::int, 0) + v_qty));
+  end loop;
+  if v_qty_total <= 0 then
+    raise exception 'invalid_item';
+  end if;
+
+  if v_mode = 'vehicle' then
+    -- One flat price for the smallest vehicle whose capacity fits the whole party.
+    select amount_minor, label into v_unit, v_bracket_label
+    from activity_option_prices
+    where activity_option_id = v_option_id and max_guests >= v_qty_total
+    order by max_guests asc
+    limit 1;
+    if not found then
+      raise exception 'exceeds_vehicle_capacity' using detail = v_qty_total::text;
+    end if;
+    v_total := v_unit;
+    -- The hold reserves ONE vehicle, not P seats.
+    if v_hold.quantity <> 1 then
+      raise exception 'items_quantity_mismatch' using detail = format('vehicle hold %s', v_hold.quantity);
+    end if;
+  else
+    -- Per-person / per-group: price each aggregated tier from the DB.
+    for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+      select amount_minor, max_guests into v_unit, v_max
+      from activity_option_prices
+      where activity_option_id = v_option_id and label = v_label;
+      if not found then
+        raise exception 'unknown_price_tier' using detail = v_label;
+      end if;
+      if v_mode = 'per_group' and v_max is not null then
+        v_total := v_total + (v_unit * ceil(v_qty::numeric / v_max)::int);
+      else
+        if v_max is not null and v_qty > v_max then
+          raise exception 'exceeds_max_guests' using detail = format('%s: %s > %s', v_label, v_qty, v_max);
+        end if;
+        v_total := v_total + (v_unit * v_qty);
+      end if;
+    end loop;
+    if v_qty_total <> v_hold.quantity then
+      raise exception 'items_quantity_mismatch'
+        using detail = format('items %s, hold %s', v_qty_total, v_hold.quantity);
+    end if;
+  end if;
+
+  insert into bookings (
+    idempotency_key, customer_name, customer_email, customer_phone, source,
+    status, total_minor, operator_payout_minor, agency_commission_minor
+  )
+  values (
+    p_idempotency_key, p_customer_name, p_customer_email, p_customer_phone,
+    coalesce(p_source, 'web'), 'payment_pending', v_total, v_total, 0
+  )
+  returning * into v_booking;
+
+  if v_mode = 'vehicle' then
+    -- ONE line: the vehicle. quantity = 1 (so capacity counts vehicles); pax = people on board.
+    insert into booking_items (
+      booking_id, session_occurrence_id, activity_option_id, price_label,
+      quantity, unit_amount_minor, subtotal_minor, pax
+    )
+    values (
+      v_booking.id, v_hold.session_occurrence_id, v_option_id, v_bracket_label,
+      1, v_unit, v_unit, v_qty_total
+    );
+  else
+    for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+      select amount_minor, max_guests into v_unit, v_max
+      from activity_option_prices
+      where activity_option_id = v_option_id and label = v_label;
+      insert into booking_items (
+        booking_id, session_occurrence_id, activity_option_id, price_label,
+        quantity, unit_amount_minor, subtotal_minor
+      )
+      values (
+        v_booking.id, v_hold.session_occurrence_id, v_option_id, v_label, v_qty, v_unit,
+        case
+          when v_mode = 'per_group' and v_max is not null then v_unit * ceil(v_qty::numeric / v_max)::int
+          else v_unit * v_qty
+        end
+      );
+    end loop;
+  end if;
+
+  update booking_holds set booking_id = v_booking.id where id = v_hold.id;
+  return v_booking;
+end;
+$$;
+
+-- 4) api_book: reserve ONE vehicle for vehicle-mode activities, else P seats as before.
+create or replace function api_book(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_occ uuid := (p ->> 'occurrenceId')::uuid;
+  v_key text := p ->> 'idempotencyKey';
+  v_expected_slug text := nullif(p ->> 'expectedSlug', '');
+  v_total_qty int := 0;
+  v_items jsonb := '[]'::jsonb;
+  v_mode text := 'per_person';
+  v_hold booking_holds;
+  v_booking bookings;
+  r record;
+begin
+  if v_occ is null or v_key is null then
+    raise exception 'invalid_request';
+  end if;
+
+  if v_expected_slug is not null and not exists (
+    select 1
+    from session_occurrences so
+    join activity_options o on o.id = so.activity_option_id
+    join activities a on a.id = o.activity_id
+    where so.id = v_occ and a.slug = v_expected_slug
+  ) then
+    raise exception 'occurrence_activity_mismatch';
+  end if;
+
+  for r in select key, (value::text)::int as q from jsonb_each(p -> 'party') loop
+    if r.q < 0 then raise exception 'invalid_party'; end if;
+    if r.q > 0 then
+      v_total_qty := v_total_qty + r.q;
+      v_items := v_items || jsonb_build_object('price_label', r.key, 'quantity', r.q);
+    end if;
+  end loop;
+  if v_total_qty <= 0 then raise exception 'invalid_party'; end if;
+
+  select a.pricing_mode into v_mode
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  join activities a on a.id = o.activity_id
+  where so.id = v_occ;
+  v_mode := coalesce(v_mode, 'per_person');
+
+  -- Vehicle bookings take ONE slot of the day's capacity regardless of party size.
+  if v_mode = 'vehicle' then
+    v_hold := create_hold(v_occ, 1, v_key || ':hold');
+  else
+    v_hold := create_hold(v_occ, v_total_qty, v_key || ':hold');
+  end if;
+
+  v_booking := create_booking(
+    v_key, v_hold.id, p ->> 'customerName', p ->> 'customerEmail', p ->> 'customerPhone',
+    coalesce((p ->> 'source')::booking_source, 'web'), v_items
+  );
+
+  if auth.uid() is not null then
+    update bookings set user_id = auth.uid() where id = v_booking.id and user_id is null;
+  end if;
+
+  return booking_json(v_booking.id);
+end;
+$$;
+
+-- 5) booking_json: expose pax (people on board) alongside quantity (vehicle count for vehicle mode).
+create or replace function booking_json(p_booking_id uuid)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'id', b.id, 'ref', b.ref, 'status', b.status, 'paymentState', b.payment_state,
+    'customerName', b.customer_name, 'customerEmail', b.customer_email,
+    'totalEur', b.total_minor::float / 100, 'currency', b.currency, 'source', b.source,
+    'createdAt', b.created_at,
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'priceLabel', bi.price_label, 'quantity', bi.quantity, 'pax', bi.pax,
+        'unitAmountEur', bi.unit_amount_minor::float / 100, 'subtotalEur', bi.subtotal_minor::float / 100,
+        'occurrenceId', bi.session_occurrence_id
+      ))
+      from booking_items bi where bi.booking_id = b.id
+    ), '[]'::jsonb)
+  )
+  from bookings b where b.id = p_booking_id;
+$$;
+
+-- 6) Expose pricingMode (instead of the dropped groupPricing flag) on the catalogue DTOs.
+create or replace function api_get_activity(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'id', a.id, 'slug', a.slug, 'type', a.type, 'title', a.title, 'summary', a.summary,
+    'description', a.description, 'category', a.category, 'location', a.location,
+    'durationMinutes', a.duration_minutes, 'meetingPoint', a.meeting_point,
+    'pickupAvailable', a.pickup_available, 'pricingMode', a.pricing_mode,
+    'languages', to_jsonb(a.languages),
+    'inclusions', to_jsonb(a.inclusions), 'exclusions', to_jsonb(a.exclusions),
+    'highlights', to_jsonb(a.highlights), 'cancellationPolicy', a.cancellation_policy,
+    'seoTitle', a.seo_title, 'seoDescription', a.seo_description,
+    'extra', a.extra,
+    'ratingAvg', a.rating_avg, 'ratingCount', a.rating_count,
+    'fromPriceEur', (
+      select min(pr.amount_minor)::float / 100
+      from activity_option_prices pr join activity_options o on o.id = pr.activity_option_id
+      where o.activity_id = a.id
+    ),
+    'heroImage', (
+      select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+      from activity_images img where img.activity_id = a.id order by img.position limit 1
+    ),
+    'images', coalesce((
+      select jsonb_agg(jsonb_build_object('id', i.id, 'url', i.url, 'alt', i.alt, 'position', i.position) order by i.position)
+      from activity_images i where i.activity_id = a.id
+    ), '[]'::jsonb),
+    'options', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', o.id, 'name', o.name, 'description', o.description,
+        'prices', coalesce((
+          select jsonb_agg(jsonb_build_object(
+            'id', pr.id, 'label', pr.label, 'amountEur', pr.amount_minor::float / 100, 'maxGuests', pr.max_guests
+          ) order by pr.position)
+          from activity_option_prices pr where pr.activity_option_id = o.id
+        ), '[]'::jsonb)
+      ) order by o.position)
+      from activity_options o where o.activity_id = a.id
+    ), '[]'::jsonb),
+    'translations', coalesce((
+      select jsonb_object_agg(t.locale, jsonb_build_object('title', t.title, 'summary', t.summary, 'description', t.description))
+      from activity_translations t where t.activity_id = a.id
+    ), '{}'::jsonb),
+    'reviews', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', rv.id, 'author', rv.author, 'rating', rv.rating, 'text', rv.text, 'createdAt', rv.created_at
+      ) order by rv.created_at desc)
+      from reviews rv where rv.activity_id = a.id
+    ), '[]'::jsonb)
+  )
+  from activities a
+  where a.slug = p ->> 'slug';
+$$;
+
+create or replace function api_search_activities(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with filtered as (
+    select a.*
+    from activities a
+    where a.status = 'published'
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+  ),
+  paged as (
+    select * from filtered
+    order by rating_count desc, title
+    limit coalesce((p ->> 'pageSize')::int, 20)
+    offset (coalesce((p ->> 'page')::int, 1) - 1) * coalesce((p ->> 'pageSize')::int, 20)
+  )
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+        'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+        'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count, 'pricingMode', x.pricing_mode,
+        'fromPriceEur', (
+          select min(pr.amount_minor)::float / 100
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+        ),
+        'fromPriceMaxGuests', (
+          select pr.max_guests
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+          order by pr.amount_minor asc nulls last
+          limit 1
+        ),
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = x.id order by img.position limit 1
+        ),
+        'images', coalesce((
+          select jsonb_agg(
+            jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+            order by img.position
+          )
+          from activity_images img where img.activity_id = x.id
+        ), '[]'::jsonb)
+      ))
+      from paged x
+    ), '[]'::jsonb),
+    'total', (select count(*)::int from filtered),
+    'page', coalesce((p ->> 'page')::int, 1),
+    'pageSize', coalesce((p ->> 'pageSize')::int, 20)
+  );
+$$;
+
+-- 7) Now that no function references it, drop the legacy boolean.
+alter table activities drop column if exists group_pricing;
+
+-- ==================== 20260617120000_payment_integrity.sql ====================
+-- F3: bind a settlement to a single, unambiguous payment row per booking.
+--
+-- The webhook resolves "the payment for this booking" as the most-recently-created payments row
+-- (order by created_at desc limit 1). If a booking ever had more than one payment row, a provider
+-- settlement (paid/refunded) could credit the WRONG one, mis-routing later refund/chargeback events
+-- and corrupting per-transaction ledger binding. The previous api_create_payment inserted a brand
+-- new row whenever the (client-supplied or service-generated) idempotency key differed, so a raw
+-- re-POST to /api/v1/payments produced two rows for one booking.
+--
+-- Fix: reuse the existing LIVE payment for the booking (at most one open/settled payment per
+-- booking) instead of inserting a duplicate. A previously FAILED attempt is left behind and a fresh
+-- intent is created, so retries after a failure still work. With at most one non-failed row,
+-- "most recent" is always the right row.
+create or replace function api_create_payment(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_booking bookings;
+  v_payment payments;
+begin
+  select * into v_booking from bookings where ref = p ->> 'bookingRef';
+  if not found then
+    raise exception 'booking_not_found';
+  end if;
+  -- Preserve the Phase-2 authz fix: a public booking ref is NOT a bearer credential, so only the
+  -- booking's owner or staff may create a payment. (auth.uid() must be non-null, else `null = null`
+  -- is NULL — not false — and an anonymous caller would slip through on a guest booking.)
+  if not (is_staff() or (auth.uid() is not null and v_booking.user_id = auth.uid())) then
+    raise exception 'forbidden';
+  end if;
+
+  -- Reuse the existing non-failed payment for this booking, so there is never more than one live
+  -- payment row a settlement could bind to.
+  select * into v_payment from payments
+  where booking_id = v_booking.id and status <> 'failed'
+  order by created_at desc
+  limit 1;
+
+  if not found then
+    -- Idempotent retry on the same key returns the same row.
+    select * into v_payment from payments where idempotency_key = p ->> 'idempotencyKey';
+  end if;
+
+  if not found then
+    insert into payments (booking_id, idempotency_key, amount_minor)
+    values (v_booking.id, p ->> 'idempotencyKey', v_booking.total_minor)
+    returning * into v_payment;
+    -- write-ahead intent event
+    insert into payment_events (payment_id, type, amount_minor)
+    values (v_payment.id, 'intent', v_booking.total_minor);
+  end if;
+
+  return jsonb_build_object(
+    'paymentId', v_payment.id, 'amountMinor', v_payment.amount_minor,
+    'bookingRef', v_booking.ref, 'customerEmail', v_booking.customer_email
+  );
+end;
+$$;
+
+-- ==================== 20260617120100_booking_authz_integrity.sql ====================
+-- Authorization & integrity hardening (Phase-3 adversarial review).
+
+-- ---------------------------------------------------------------------------
+-- F2: bookings may NOT be inserted directly from a browser session.
+--
+-- enforce_booking_admin_update guards UPDATEs, but there was no INSERT guard and forbid_public_write
+-- was wired only to payments/booking_items. The bookings_staff (`for all ... with check(is_staff())`)
+-- policy therefore let a signed-in staff/compromised-staff token hand-craft `POST /rest/v1/bookings`
+-- with status='confirmed', payment_state='paid' and arbitrary money columns — a fabricated paid
+-- booking with no backing payment ledger. All legitimate booking creation goes through the
+-- SECURITY DEFINER create_booking/api_book RPCs (which run as the table owner), so blocking
+-- anon/authenticated INSERTs closes the forgery without affecting the real flow. INSERT only — the
+-- existing UPDATE guard and DELETE cascades are untouched.
+-- ---------------------------------------------------------------------------
+drop trigger if exists bookings_no_public_insert on bookings;
+create trigger bookings_no_public_insert
+  before insert on bookings
+  for each row execute function forbid_public_write();
+
+-- ---------------------------------------------------------------------------
+-- F12: reviews must not be forgeable by any logged-in user.
+--
+-- reviews_insert was `with check (auth.uid() is not null)` and the table has no ownership column,
+-- so any free signup could POST /rest/v1/reviews for any activity with an attacker-chosen author,
+-- rating and text — review/ratings manipulation on the public activity page. There is no customer
+-- review-submission feature yet, so drop the public insert path entirely; staff retain full manage
+-- via reviews_staff. A genuine "verified purchaser" review path (a SECURITY DEFINER RPC that checks
+-- a completed booking) can be added later when the feature ships.
+-- ---------------------------------------------------------------------------
+drop policy if exists reviews_insert on reviews;
+
+-- ---------------------------------------------------------------------------
+-- api_book: F23 (idempotency replay must not disclose another account's booking) + F25 (bound the
+-- party quantity so an absurd value is a clean 400, not an int4-overflow 502). Preserves the
+-- expectedSlug occurrence-binding guard.
+-- ---------------------------------------------------------------------------
+create or replace function api_book(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_occ uuid := (p ->> 'occurrenceId')::uuid;
+  v_key text := p ->> 'idempotencyKey';
+  v_expected_slug text := nullif(p ->> 'expectedSlug', '');
+  v_total_qty bigint := 0;
+  v_items jsonb := '[]'::jsonb;
+  v_hold booking_holds;
+  v_booking bookings;
+  r record;
+begin
+  if v_occ is null or v_key is null then
+    raise exception 'invalid_request';
+  end if;
+
+  -- Bind the occurrence to the activity the caller claims to be booking.
+  if v_expected_slug is not null and not exists (
+    select 1
+    from session_occurrences so
+    join activity_options o on o.id = so.activity_option_id
+    join activities a on a.id = o.activity_id
+    where so.id = v_occ and a.slug = v_expected_slug
+  ) then
+    raise exception 'occurrence_activity_mismatch';
+  end if;
+
+  -- Cast each quantity as bigint and bound its magnitude, so a tampered/huge value raises a clean
+  -- 'invalid_party' (400) instead of overflowing int4 inside create_booking and surfacing as a 502.
+  for r in select key, (value::text)::bigint as q from jsonb_each(p -> 'party') loop
+    if r.q < 0 or r.q > 1000000 then raise exception 'invalid_party'; end if;
+    if r.q > 0 then
+      v_total_qty := v_total_qty + r.q;
+      v_items := v_items || jsonb_build_object('price_label', r.key, 'quantity', r.q);
+    end if;
+  end loop;
+  if v_total_qty <= 0 or v_total_qty > 1000000 then raise exception 'invalid_party'; end if;
+
+  v_hold := create_hold(v_occ, v_total_qty::int, v_key || ':hold');
+  v_booking := create_booking(
+    v_key, v_hold.id, p ->> 'customerName', p ->> 'customerEmail', p ->> 'customerPhone',
+    coalesce((p ->> 'source')::booking_source, 'web'), v_items
+  );
+
+  -- F23: create_booking returns the existing row on an idempotency-key replay. Because api_book runs
+  -- in a SECURITY DEFINER frame (RLS does not filter the returned DTO), a replay with someone else's
+  -- key would otherwise echo back THEIR booking (name, email, ref, items). A fresh booking still has
+  -- user_id NULL here (it is claimed just below), so this only fires on a replay of an already-owned
+  -- booking by a different caller.
+  if v_booking.user_id is not null and v_booking.user_id is distinct from auth.uid() then
+    raise exception 'forbidden';
+  end if;
+
+  if auth.uid() is not null then
+    update bookings set user_id = auth.uid() where id = v_booking.id and user_id is null;
+  end if;
+
+  return booking_json(v_booking.id);
+end;
+$$;
+
+-- ==================== 20260617120200_notification_lease.sql ====================
+-- F4: stop the notification drain from double-sending.
+--
+-- claim_notifications only bumped `attempts` and left the row 'pending'; its FOR UPDATE SKIP LOCKED
+-- lock was released at claim-commit — BEFORE the slow network send. A second overlapping drain
+-- (manual run vs the */5 cron, or two crons) re-claimed the same still-'pending' row and re-sent it
+-- (Resend carries no idempotency key), so a customer could receive duplicate confirmation emails.
+--
+-- Add a visibility-timeout lease: a claimed row gets `locked_until = now() + lease` and is invisible
+-- to other claimers until it passes; a crashed worker's row becomes reclaimable automatically once
+-- the lease expires. mark_notification clears the lease on completion (success or terminal failure).
+
+alter table notification_outbox add column if not exists locked_until timestamptz;
+
+create or replace function claim_notifications(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_limit int := least(greatest(coalesce((p ->> 'limit')::int, 20), 1), 100);
+  v_lease interval := make_interval(
+    secs => least(greatest(coalesce((p ->> 'leaseSeconds')::int, 300), 30), 3600)
+  );
+  v_rows jsonb;
+begin
+  with batch as (
+    select id from notification_outbox
+    where status = 'pending'
+      and attempts < 5
+      and (locked_until is null or locked_until <= now())
+    order by created_at
+    limit v_limit
+    for update skip locked
+  ), upd as (
+    update notification_outbox o
+       set attempts = attempts + 1,
+           locked_until = now() + v_lease
+      from batch
+     where o.id = batch.id
+    returning o.id, o.channel, o.recipient, o.template, o.payload
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', id, 'channel', channel, 'recipient', recipient, 'template', template, 'payload', payload
+  )), '[]'::jsonb)
+  into v_rows
+  from upd;
+  return v_rows;
+end;
+$$;
+
+create or replace function mark_notification(p jsonb)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid := (p ->> 'id')::uuid;
+begin
+  if p ->> 'result' = 'sent' then
+    update notification_outbox
+      set status = 'sent', sent_at = now(), last_error = null, locked_until = null
+      where id = v_id;
+  else
+    -- Cast the CASE result explicitly: a CASE over text literals resolves to `text`, and text→enum
+    -- is not an implicit assignment cast (the original failure branch would have errored in prod).
+    update notification_outbox
+      set status = (case when attempts >= 5 then 'failed' else 'pending' end)::notification_status,
+          last_error = left(coalesce(p ->> 'error', 'send failed'), 500),
+          locked_until = null
+      where id = v_id;
+  end if;
+end;
+$$;
+
+revoke execute on function claim_notifications(jsonb) from public;
+revoke execute on function mark_notification(jsonb) from public;
+grant execute on function claim_notifications(jsonb) to service_role;
+grant execute on function mark_notification(jsonb) to service_role;
+
+-- ==================== 20260617120300_availability_fixes.sql ====================
+-- Availability consistency & lifecycle fixes (Phase-3 review).
+
+-- ---------------------------------------------------------------------------
+-- F19: align the hold lifetime with the abandonment grace + the checkout countdown.
+--
+-- Holds expired after 15 min, but run_booking_maintenance only expires the abandoned booking after
+-- 30 min and the checkout UI promises a 30-min hold. In the 15→30 gap the seat was genuinely free
+-- while the customer was still on the payment page, so another customer could take it and the
+-- first-payer would be bumped to refund_pending. Hold the seat for the full 30-minute window.
+-- ---------------------------------------------------------------------------
+alter table booking_holds alter column expires_at set default (now() + interval '30 minutes');
+
+-- ---------------------------------------------------------------------------
+-- F5: re-enabling availability must restore days that were closed while booked.
+--
+-- stopAvailability() closes (and keeps) any day with a booking/active hold. On re-enable,
+-- materialize_availability could not replace it: the unique (activity_option_id, starts_at)
+-- constraint blocks inserting a fresh 'open' slot at the same noon-UTC time, and nothing ever
+-- flipped the 'closed' row back, so the date was lost for resale forever. Reopen closed FUTURE
+-- slots for activities that are bookable again (published + daily_capacity > 0) before filling.
+-- ---------------------------------------------------------------------------
+create or replace function materialize_availability(p jsonb)
+returns int
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_activity_id uuid := nullif(p ->> 'activityId', '')::uuid;
+  v_days int := least(greatest(coalesce((p ->> 'days')::int, 185), 1), 400);
+  v_count int;
+begin
+  -- Reopen previously-closed, still-future day-slots for activities that are bookable again.
+  update session_occurrences so
+     set status = 'open'
+    from activity_options o
+    join activities a on a.id = o.activity_id
+   where so.activity_option_id = o.id
+     and so.status = 'closed'
+     and so.starts_at > now()
+     and a.status = 'published'
+     and coalesce(a.daily_capacity, 0) > 0
+     and (v_activity_id is null or a.id = v_activity_id);
+
+  insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
+  select o.id,
+         a.operator_id,
+         (d::date + time '12:00') at time zone 'UTC',
+         ((d::date + time '12:00') at time zone 'UTC') + make_interval(mins => coalesce(a.duration_minutes, 240)),
+         a.daily_capacity,
+         'open'
+  from activities a
+  join activity_options o on o.activity_id = a.id
+  cross join generate_series(current_date, current_date + v_days, interval '1 day') d
+  where a.status = 'published'
+    and coalesce(a.daily_capacity, 0) > 0
+    and (v_activity_id is null or a.id = v_activity_id)
+    and exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id)
+    and not exists (
+      select 1 from session_occurrences x
+      where x.activity_option_id = o.id
+        and (x.starts_at at time zone 'UTC')::date = d::date
+    )
+  on conflict (activity_option_id, starts_at) do nothing;
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- F16: the availability read must not advertise a slot that booking will reject.
+--
+-- Open-ended day-slots are materialized at noon UTC. The read returned today's slot for the whole
+-- UTC calendar day, but create_hold rejects any occurrence with starts_at <= now()
+-- (occurrence_in_past). After noon UTC the API therefore showed today as bookable (seatsLeft > 0)
+-- while every hold/book attempt hard-failed. Filter the read on starts_at > now() to mirror
+-- create_hold exactly.
+-- ---------------------------------------------------------------------------
+create or replace function api_list_availability(p jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_activity activities;
+  v_from date := coalesce((p ->> 'from')::date, current_date);
+  v_to date := coalesce((p ->> 'to')::date, current_date + 30);
+  v_result jsonb;
+begin
+  select * into v_activity from activities where slug = p ->> 'slug';
+  if not found or v_activity.status <> 'published' then
+    return '[]'::jsonb;
+  end if;
+
+  v_from := greatest(v_from, current_date);
+  v_to := least(v_to, current_date + 400);
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'occurrenceId', so.id, 'activityOptionId', so.activity_option_id, 'optionName', o.name,
+    'startsAt', so.starts_at, 'endsAt', so.ends_at, 'capacity', so.capacity,
+    'seatsLeft', greatest(so.capacity - used_capacity(so.id), 0), 'status', so.status
+  ) order by so.starts_at), '[]'::jsonb)
+  into v_result
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  where o.activity_id = v_activity.id
+    and so.status = 'open'
+    and so.starts_at > now() -- mirror create_hold: never advertise a slot booking would reject
+    and so.starts_at >= v_from::timestamptz
+    and so.starts_at < (v_to + 1)::timestamptz;
+
+  return v_result;
+end;
+$$;
+
+-- ==================== 20260617120400_booking_cancel_refund.sql ====================
+-- F14: cancelling a PAID booking must record the refund obligation, not silently keep the money.
+--
+-- setBookingStatus(id,'cancelled') was permitted for a confirmed booking and only changed status;
+-- the guard pins payment_state, so a paid booking became status='cancelled', payment_state='paid'
+-- with no refund/refund_pending state and no notification — the seat is freed for resale but the
+-- system records nothing owed back to the customer (chargeback / accounting-drift risk).
+--
+-- Route a browser-session cancel of a paid (or partially-refunded) booking to 'refund_pending'
+-- instead, so the retained-funds obligation is explicit. The actual refund still flows through the
+-- verified webhook → append_payment_event ledger, which sets payment_state='refunded'. An UNPAID
+-- booking cancels exactly as before.
+create or replace function enforce_booking_admin_update()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new; -- service_role / owner / SECURITY DEFINER RPCs (webhook, create_booking)
+  end if;
+
+  -- Immutable from a browser session — owned by the booking/ledger RPCs.
+  new.payment_state           := old.payment_state;
+  new.total_minor             := old.total_minor;
+  new.agency_commission_minor := old.agency_commission_minor;
+  new.operator_payout_minor   := old.operator_payout_minor;
+  new.currency                := old.currency;
+  new.ref                     := old.ref;
+  new.idempotency_key         := old.idempotency_key;
+  new.user_id                 := old.user_id;
+  new.customer_name           := old.customer_name;
+  new.customer_email          := old.customer_email;
+  new.customer_phone          := old.customer_phone;
+  new.source                  := old.source;
+  new.created_at              := old.created_at;
+
+  -- A cancel on a paid booking becomes a refund_pending (money is owed back).
+  if new.status = 'cancelled' and old.payment_state in ('paid', 'partially_refunded') then
+    new.status := 'refund_pending';
+  end if;
+
+  -- Status may only move through the operational transitions staff are allowed to make.
+  if new.status is distinct from old.status then
+    if not (
+      (new.status = 'completed' and old.status = 'confirmed') or
+      (new.status = 'cancelled' and old.status in ('draft', 'held', 'payment_pending', 'confirmed')) or
+      (new.status = 'refund_pending' and old.status = 'confirmed')
+    ) then
+      raise exception 'forbidden_booking_status_transition'
+        using detail = format('%s -> %s', old.status, new.status);
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+-- ==================== 20260617120500_leads_rate_limit.sql ====================
+-- F7: throttle the public, unauthenticated lead-capture endpoint.
+--
+-- api_capture_lead is anon-granted and inserted a row on every call with no rate limit, so anyone
+-- could script unlimited writes — flooding the admin inbox and the leads table. Add a per-IP hourly
+-- cap as defence in depth (the primary control should be a Cloudflare Rate Limiting rule / Turnstile
+-- at the edge; the route also drops obvious bots via a honeypot field before this runs).
+
+alter table leads add column if not exists ip text;
+create index if not exists leads_ip_created_idx on leads (ip, created_at);
+
+create or replace function api_capture_lead(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_lead leads;
+  v_ip text := nullif(p ->> 'ip', '');
+  v_recent int;
+  v_max_per_hour constant int := 8;
+begin
+  if v_ip is not null then
+    select count(*) into v_recent
+    from leads
+    where ip = v_ip and created_at > now() - interval '1 hour';
+    if v_recent >= v_max_per_hour then
+      raise exception 'rate_limited' using detail = format('ip %s', v_ip);
+    end if;
+  end if;
+
+  insert into leads (name, contact, interest_activity_id, source, ip)
+  values (
+    p ->> 'name', p ->> 'contact',
+    nullif(p ->> 'interestActivityId', '')::uuid,
+    coalesce(p ->> 'source', 'web'),
+    v_ip
+  )
+  returning * into v_lead;
+  return jsonb_build_object(
+    'id', v_lead.id, 'name', v_lead.name, 'contact', v_lead.contact,
+    'interestActivityId', v_lead.interest_activity_id, 'status', v_lead.status,
+    'source', v_lead.source, 'createdAt', v_lead.created_at
+  );
+end;
+$$;
+
+-- ==================== 20260617130000_sightseeing_vehicle_pricing.sql ====================
+-- Sightseeing vehicle pricing — ONE global rule for every sightseeing tour.
+--
+-- Price = €70 per block of 4 people (per_block_minor * ceil(P / 4)), with a flat €85 SUV upgrade for
+-- parties of 1-4. Party is capped at 25. The vehicle name is a function of P (Sedan/Family car/
+-- Minibus/Coaster; SUV when upgraded). The two prices live in a single-row config table so the owner
+-- changes them once for all tours. Each booking still reserves ONE vehicle slot of the day's capacity
+-- (quantity = 1) and records people in booking_items.pax. Replaces the old flat-bracket vehicle mode.
+
+-- 1) Global config: one row, two tunable prices. The prices are public (shown on the site), and the
+--    SECURITY INVOKER catalogue RPCs read it as the caller's role, so RLS allows public SELECT but no
+--    write policy → only the owner / service_role (SQL editor) can change the prices.
+create table if not exists sightseeing_pricing (
+  id              boolean primary key default true check (id),
+  per_block_minor int not null default 7000,  -- €70 per block of 4
+  suv_flat_minor  int not null default 8500,  -- €85 SUV, flat, parties of 1-4
+  updated_at      timestamptz not null default now()
+);
+insert into sightseeing_pricing (id) values (true) on conflict (id) do nothing;
+alter table sightseeing_pricing enable row level security;
+drop policy if exists sightseeing_pricing_read on sightseeing_pricing;
+create policy sightseeing_pricing_read on sightseeing_pricing for select using (true);
+grant select on sightseeing_pricing to anon, authenticated, service_role;
+
+-- 2) create_booking gains p_suv (8th arg). Drop the old 7-arg first so this REPLACES it rather than
+--    creating an overload (7-arg positional callers then bind here via the default).
+drop function if exists create_booking(text, uuid, text, text, text, booking_source, jsonb);
+
+create or replace function create_booking(
+  p_idempotency_key text,
+  p_hold_id uuid,
+  p_customer_name text,
+  p_customer_email text,
+  p_customer_phone text,
+  p_source booking_source,
+  p_items jsonb,
+  p_suv boolean default false
+)
+returns bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing bookings;
+  v_hold booking_holds;
+  v_occ session_occurrences;
+  v_option_id uuid;
+  v_mode text := 'per_person';
+  v_booking bookings;
+  v_item jsonb;
+  v_label text;
+  v_qty int;
+  v_unit bigint;
+  v_max int;
+  v_total bigint := 0;
+  v_qty_total int := 0;
+  v_agg jsonb := '{}'::jsonb;
+  v_vehicle text;
+  v_per_block bigint;
+  v_suv_flat bigint;
+begin
+  select * into v_existing from bookings where idempotency_key = p_idempotency_key;
+  if found then
+    return v_existing;
+  end if;
+
+  select * into v_hold from booking_holds where id = p_hold_id for update;
+  if not found then
+    raise exception 'hold_not_found';
+  end if;
+  if v_hold.status <> 'active' or v_hold.expires_at <= now() then
+    raise exception 'hold_not_active';
+  end if;
+
+  select * into v_occ from session_occurrences where id = v_hold.session_occurrence_id for update;
+  if v_occ.status <> 'open' then
+    raise exception 'occurrence_not_bookable' using detail = v_occ.status::text;
+  end if;
+  v_option_id := v_occ.activity_option_id;
+
+  select a.pricing_mode into v_mode
+  from activity_options o
+  join activities a on a.id = o.activity_id
+  where o.id = v_option_id;
+  v_mode := coalesce(v_mode, 'per_person');
+
+  -- Aggregate quantity (people) per price_label, collapsing duplicate lines.
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    v_label := v_item ->> 'price_label';
+    v_qty := (v_item ->> 'quantity')::int;
+    if v_label is null or v_qty is null or v_qty <= 0 then
+      raise exception 'invalid_item';
+    end if;
+    v_qty_total := v_qty_total + v_qty;
+    v_agg := jsonb_set(v_agg, array[v_label], to_jsonb(coalesce((v_agg ->> v_label)::int, 0) + v_qty));
+  end loop;
+  if v_qty_total <= 0 then
+    raise exception 'invalid_item';
+  end if;
+
+  if v_mode = 'vehicle' then
+    -- Global sightseeing rule. P = v_qty_total (people on board).
+    if v_qty_total < 1 or v_qty_total > 25 then
+      raise exception 'exceeds_vehicle_capacity' using detail = v_qty_total::text;
+    end if;
+    select per_block_minor, suv_flat_minor into v_per_block, v_suv_flat from sightseeing_pricing limit 1;
+    if v_per_block is null then
+      raise exception 'sightseeing_pricing_unset';
+    end if;
+    if v_qty_total <= 4 and p_suv then
+      v_total := v_suv_flat;
+      v_vehicle := 'SUV';
+    else
+      v_total := v_per_block * ceil(v_qty_total::numeric / 4)::int;
+      v_vehicle := case
+        when v_qty_total <= 4 then 'Sedan'
+        when v_qty_total <= 6 then 'Family car'
+        when v_qty_total <= 14 then 'Minibus'
+        else 'Coaster'
+      end;
+    end if;
+    -- The hold reserves ONE vehicle, not P seats.
+    if v_hold.quantity <> 1 then
+      raise exception 'items_quantity_mismatch' using detail = format('vehicle hold %s', v_hold.quantity);
+    end if;
+  else
+    -- Per-person / per-group: price each aggregated tier from the DB.
+    for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+      select amount_minor, max_guests into v_unit, v_max
+      from activity_option_prices
+      where activity_option_id = v_option_id and label = v_label;
+      if not found then
+        raise exception 'unknown_price_tier' using detail = v_label;
+      end if;
+      if v_mode = 'per_group' and v_max is not null then
+        v_total := v_total + (v_unit * ceil(v_qty::numeric / v_max)::int);
+      else
+        if v_max is not null and v_qty > v_max then
+          raise exception 'exceeds_max_guests' using detail = format('%s: %s > %s', v_label, v_qty, v_max);
+        end if;
+        v_total := v_total + (v_unit * v_qty);
+      end if;
+    end loop;
+    if v_qty_total <> v_hold.quantity then
+      raise exception 'items_quantity_mismatch'
+        using detail = format('items %s, hold %s', v_qty_total, v_hold.quantity);
+    end if;
+  end if;
+
+  insert into bookings (
+    idempotency_key, customer_name, customer_email, customer_phone, source,
+    status, total_minor, operator_payout_minor, agency_commission_minor
+  )
+  values (
+    p_idempotency_key, p_customer_name, p_customer_email, p_customer_phone,
+    coalesce(p_source, 'web'), 'payment_pending', v_total, v_total, 0
+  )
+  returning * into v_booking;
+
+  if v_mode = 'vehicle' then
+    insert into booking_items (
+      booking_id, session_occurrence_id, activity_option_id, price_label,
+      quantity, unit_amount_minor, subtotal_minor, pax
+    )
+    values (
+      v_booking.id, v_hold.session_occurrence_id, v_option_id, v_vehicle,
+      1, v_total, v_total, v_qty_total
+    );
+  else
+    for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+      select amount_minor, max_guests into v_unit, v_max
+      from activity_option_prices
+      where activity_option_id = v_option_id and label = v_label;
+      insert into booking_items (
+        booking_id, session_occurrence_id, activity_option_id, price_label,
+        quantity, unit_amount_minor, subtotal_minor
+      )
+      values (
+        v_booking.id, v_hold.session_occurrence_id, v_option_id, v_label, v_qty, v_unit,
+        case
+          when v_mode = 'per_group' and v_max is not null then v_unit * ceil(v_qty::numeric / v_max)::int
+          else v_unit * v_qty
+        end
+      );
+    end loop;
+  end if;
+
+  update booking_holds set booking_id = v_booking.id where id = v_hold.id;
+  return v_booking;
+end;
+$$;
+
+grant execute on function create_booking(text, uuid, text, text, text, booking_source, jsonb, boolean)
+  to anon, authenticated, service_role;
+
+-- 3) api_book: keep F23 (replay-disclosure guard) + F25 (party bound), restore the vehicle branch
+--    (hold ONE vehicle), and thread the suv flag to create_booking.
+create or replace function api_book(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_occ uuid := (p ->> 'occurrenceId')::uuid;
+  v_key text := p ->> 'idempotencyKey';
+  v_expected_slug text := nullif(p ->> 'expectedSlug', '');
+  v_total_qty bigint := 0;
+  v_items jsonb := '[]'::jsonb;
+  v_mode text := 'per_person';
+  v_suv boolean := coalesce((p ->> 'suv')::boolean, false);
+  v_hold booking_holds;
+  v_booking bookings;
+  r record;
+begin
+  if v_occ is null or v_key is null then
+    raise exception 'invalid_request';
+  end if;
+
+  if v_expected_slug is not null and not exists (
+    select 1
+    from session_occurrences so
+    join activity_options o on o.id = so.activity_option_id
+    join activities a on a.id = o.activity_id
+    where so.id = v_occ and a.slug = v_expected_slug
+  ) then
+    raise exception 'occurrence_activity_mismatch';
+  end if;
+
+  for r in select key, (value::text)::bigint as q from jsonb_each(p -> 'party') loop
+    if r.q < 0 or r.q > 1000000 then raise exception 'invalid_party'; end if;
+    if r.q > 0 then
+      v_total_qty := v_total_qty + r.q;
+      v_items := v_items || jsonb_build_object('price_label', r.key, 'quantity', r.q);
+    end if;
+  end loop;
+  if v_total_qty <= 0 or v_total_qty > 1000000 then raise exception 'invalid_party'; end if;
+
+  select a.pricing_mode into v_mode
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  join activities a on a.id = o.activity_id
+  where so.id = v_occ;
+  v_mode := coalesce(v_mode, 'per_person');
+
+  -- Vehicle bookings take ONE slot of the day's capacity regardless of party size.
+  if v_mode = 'vehicle' then
+    v_hold := create_hold(v_occ, 1, v_key || ':hold');
+  else
+    v_hold := create_hold(v_occ, v_total_qty::int, v_key || ':hold');
+  end if;
+
+  v_booking := create_booking(
+    v_key, v_hold.id, p ->> 'customerName', p ->> 'customerEmail', p ->> 'customerPhone',
+    coalesce((p ->> 'source')::booking_source, 'web'), v_items, v_suv
+  );
+
+  -- F23: a replay with someone else's key must not echo back their booking.
+  if v_booking.user_id is not null and v_booking.user_id is distinct from auth.uid() then
+    raise exception 'forbidden';
+  end if;
+
+  if auth.uid() is not null then
+    update bookings set user_id = auth.uid() where id = v_booking.id and user_id is null;
+  end if;
+
+  return booking_json(v_booking.id);
+end;
+$$;
+
+-- 4) Catalogue: for vehicle mode, fromPriceEur = the €70 base and expose the config block so the
+--    booking widget mirrors the exact numbers. Non-vehicle modes unchanged.
+create or replace function api_get_activity(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'id', a.id, 'slug', a.slug, 'type', a.type, 'title', a.title, 'summary', a.summary,
+    'description', a.description, 'category', a.category, 'location', a.location,
+    'durationMinutes', a.duration_minutes, 'meetingPoint', a.meeting_point,
+    'pickupAvailable', a.pickup_available, 'pricingMode', a.pricing_mode,
+    'languages', to_jsonb(a.languages),
+    'inclusions', to_jsonb(a.inclusions), 'exclusions', to_jsonb(a.exclusions),
+    'highlights', to_jsonb(a.highlights), 'cancellationPolicy', a.cancellation_policy,
+    'seoTitle', a.seo_title, 'seoDescription', a.seo_description,
+    'extra', a.extra,
+    'ratingAvg', a.rating_avg, 'ratingCount', a.rating_count,
+    'fromPriceEur', case
+      when a.pricing_mode = 'vehicle'
+        then (select per_block_minor from sightseeing_pricing limit 1)::float / 100
+      else (
+        select min(pr.amount_minor)::float / 100
+        from activity_option_prices pr join activity_options o on o.id = pr.activity_option_id
+        where o.activity_id = a.id
+      )
+    end,
+    'vehiclePricing', case when a.pricing_mode = 'vehicle' then (
+      select jsonb_build_object(
+        'perBlockEur', per_block_minor::float / 100,
+        'suvFlatEur', suv_flat_minor::float / 100,
+        'blockSize', 4,
+        'maxParty', 25
+      ) from sightseeing_pricing limit 1
+    ) else null end,
+    'heroImage', (
+      select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+      from activity_images img where img.activity_id = a.id order by img.position limit 1
+    ),
+    'images', coalesce((
+      select jsonb_agg(jsonb_build_object('id', i.id, 'url', i.url, 'alt', i.alt, 'position', i.position) order by i.position)
+      from activity_images i where i.activity_id = a.id
+    ), '[]'::jsonb),
+    'options', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', o.id, 'name', o.name, 'description', o.description,
+        'prices', coalesce((
+          select jsonb_agg(jsonb_build_object(
+            'id', pr.id, 'label', pr.label, 'amountEur', pr.amount_minor::float / 100, 'maxGuests', pr.max_guests
+          ) order by pr.position)
+          from activity_option_prices pr where pr.activity_option_id = o.id
+        ), '[]'::jsonb)
+      ) order by o.position)
+      from activity_options o where o.activity_id = a.id
+    ), '[]'::jsonb),
+    'translations', coalesce((
+      select jsonb_object_agg(t.locale, jsonb_build_object('title', t.title, 'summary', t.summary, 'description', t.description))
+      from activity_translations t where t.activity_id = a.id
+    ), '{}'::jsonb),
+    'reviews', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', rv.id, 'author', rv.author, 'rating', rv.rating, 'text', rv.text, 'createdAt', rv.created_at
+      ) order by rv.created_at desc)
+      from reviews rv where rv.activity_id = a.id
+    ), '[]'::jsonb)
+  )
+  from activities a
+  where a.slug = p ->> 'slug';
+$$;
+
+create or replace function api_search_activities(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with filtered as (
+    select a.*
+    from activities a
+    where a.status = 'published'
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+  ),
+  paged as (
+    select * from filtered
+    order by rating_count desc, title
+    limit coalesce((p ->> 'pageSize')::int, 20)
+    offset (coalesce((p ->> 'page')::int, 1) - 1) * coalesce((p ->> 'pageSize')::int, 20)
+  )
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+        'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+        'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count, 'pricingMode', x.pricing_mode,
+        'fromPriceEur', case
+          when x.pricing_mode = 'vehicle'
+            then (select per_block_minor from sightseeing_pricing limit 1)::float / 100
+          else (
+            select min(pr.amount_minor)::float / 100
+            from activity_option_prices pr
+            join activity_options o on o.id = pr.activity_option_id
+            where o.activity_id = x.id
+          )
+        end,
+        'fromPriceMaxGuests', case when x.pricing_mode = 'vehicle' then null else (
+          select pr.max_guests
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+          order by pr.amount_minor asc nulls last
+          limit 1
+        ) end,
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = x.id order by img.position limit 1
+        ),
+        'images', coalesce((
+          select jsonb_agg(
+            jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+            order by img.position
+          )
+          from activity_images img where img.activity_id = x.id
+        ), '[]'::jsonb)
+      ))
+      from paged x
+    ), '[]'::jsonb),
+    'total', (select count(*)::int from filtered),
+    'page', coalesce((p ->> 'page')::int, 1),
+    'pageSize', coalesce((p ->> 'pageSize')::int, 20)
+  );
+$$;
+
+-- ==================== 20260617140000_booking_custom_itinerary.sql ====================
+-- Customer-customizable itinerary: the chosen route is saved on the booking so the driver follows it.
+-- It carries no price (informational), so api_book stores it with a post-create UPDATE — create_booking
+-- and the pricing path are untouched.
+
+alter table bookings add column if not exists custom_itinerary jsonb;
+
+create or replace function api_book(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_occ uuid := (p ->> 'occurrenceId')::uuid;
+  v_key text := p ->> 'idempotencyKey';
+  v_expected_slug text := nullif(p ->> 'expectedSlug', '');
+  v_total_qty bigint := 0;
+  v_items jsonb := '[]'::jsonb;
+  v_mode text := 'per_person';
+  v_suv boolean := coalesce((p ->> 'suv')::boolean, false);
+  v_hold booking_holds;
+  v_booking bookings;
+  r record;
+begin
+  if v_occ is null or v_key is null then
+    raise exception 'invalid_request';
+  end if;
+
+  if v_expected_slug is not null and not exists (
+    select 1
+    from session_occurrences so
+    join activity_options o on o.id = so.activity_option_id
+    join activities a on a.id = o.activity_id
+    where so.id = v_occ and a.slug = v_expected_slug
+  ) then
+    raise exception 'occurrence_activity_mismatch';
+  end if;
+
+  for r in select key, (value::text)::bigint as q from jsonb_each(p -> 'party') loop
+    if r.q < 0 or r.q > 1000000 then raise exception 'invalid_party'; end if;
+    if r.q > 0 then
+      v_total_qty := v_total_qty + r.q;
+      v_items := v_items || jsonb_build_object('price_label', r.key, 'quantity', r.q);
+    end if;
+  end loop;
+  if v_total_qty <= 0 or v_total_qty > 1000000 then raise exception 'invalid_party'; end if;
+
+  select a.pricing_mode into v_mode
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  join activities a on a.id = o.activity_id
+  where so.id = v_occ;
+  v_mode := coalesce(v_mode, 'per_person');
+
+  if v_mode = 'vehicle' then
+    v_hold := create_hold(v_occ, 1, v_key || ':hold');
+  else
+    v_hold := create_hold(v_occ, v_total_qty::int, v_key || ':hold');
+  end if;
+
+  v_booking := create_booking(
+    v_key, v_hold.id, p ->> 'customerName', p ->> 'customerEmail', p ->> 'customerPhone',
+    coalesce((p ->> 'source')::booking_source, 'web'), v_items, v_suv
+  );
+
+  if v_booking.user_id is not null and v_booking.user_id is distinct from auth.uid() then
+    raise exception 'forbidden';
+  end if;
+
+  if auth.uid() is not null then
+    update bookings set user_id = auth.uid() where id = v_booking.id and user_id is null;
+  end if;
+
+  -- Save the customer's chosen route (informational; no price impact). Only on a fresh booking
+  -- (an idempotency replay keeps the original route).
+  if p ? 'itinerary'
+     and jsonb_typeof(p -> 'itinerary') = 'array'
+     and jsonb_array_length(p -> 'itinerary') > 0
+     and jsonb_array_length(p -> 'itinerary') <= 30
+  then
+    update bookings set custom_itinerary = p -> 'itinerary'
+    where id = v_booking.id and custom_itinerary is null;
+  end if;
+
+  return booking_json(v_booking.id);
+end;
+$$;
+
+create or replace function booking_json(p_booking_id uuid)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'id', b.id, 'ref', b.ref, 'status', b.status, 'paymentState', b.payment_state,
+    'customerName', b.customer_name, 'customerEmail', b.customer_email,
+    'totalEur', b.total_minor::float / 100, 'currency', b.currency, 'source', b.source,
+    'createdAt', b.created_at,
+    'customItinerary', b.custom_itinerary,
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'priceLabel', bi.price_label, 'quantity', bi.quantity, 'pax', bi.pax,
+        'unitAmountEur', bi.unit_amount_minor::float / 100, 'subtotalEur', bi.subtotal_minor::float / 100,
+        'occurrenceId', bi.session_occurrence_id
+      ))
+      from booking_items bi where bi.booking_id = b.id
+    ), '[]'::jsonb)
+  )
+  from bookings b where b.id = p_booking_id;
+$$;
+
+-- ==================== 20260617150000_hold_reuse.sql ====================
+-- Hold-on-Continue: a dedicated anonymous hold RPC + api_book reuse of an existing hold (so the spot
+-- is reserved when the customer clicks Continue, and the same hold is settled at pay — no double-hold).
+
+-- 1) api_create_hold: reserve the spot for a date. qty is authoritative from the pricing mode
+--    (vehicle → 1 vehicle; else the people count). Anonymous-friendly (no email needed).
+create or replace function api_create_hold(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_occ uuid := (p ->> 'occurrenceId')::uuid;
+  v_key text := p ->> 'idempotencyKey';
+  v_expected_slug text := nullif(p ->> 'expectedSlug', '');
+  v_people bigint := coalesce((p ->> 'people')::bigint, 0);
+  v_mode text := 'per_person';
+  v_qty int;
+  v_hold booking_holds;
+begin
+  if v_occ is null or v_key is null then
+    raise exception 'invalid_request';
+  end if;
+  if v_people <= 0 or v_people > 1000000 then
+    raise exception 'invalid_party';
+  end if;
+  if v_expected_slug is not null and not exists (
+    select 1 from session_occurrences so
+    join activity_options o on o.id = so.activity_option_id
+    join activities a on a.id = o.activity_id
+    where so.id = v_occ and a.slug = v_expected_slug
+  ) then
+    raise exception 'occurrence_activity_mismatch';
+  end if;
+
+  select a.pricing_mode into v_mode
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  join activities a on a.id = o.activity_id
+  where so.id = v_occ;
+  v_qty := case when coalesce(v_mode, 'per_person') = 'vehicle' then 1 else v_people::int end;
+
+  v_hold := create_hold(v_occ, v_qty, v_key);
+  return jsonb_build_object('holdId', v_hold.id, 'quantity', v_hold.quantity, 'expiresAt', v_hold.expires_at);
+end;
+$$;
+
+grant execute on function api_create_hold(jsonb) to anon, authenticated, service_role;
+
+-- 2) api_book: reuse a hold passed by Continue (holdId) instead of creating a fresh one. Falls back
+--    to creating one if holdId is absent/expired/mismatched, so a stale hold never blocks booking.
+create or replace function api_book(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_occ uuid := (p ->> 'occurrenceId')::uuid;
+  v_key text := p ->> 'idempotencyKey';
+  v_expected_slug text := nullif(p ->> 'expectedSlug', '');
+  v_total_qty bigint := 0;
+  v_items jsonb := '[]'::jsonb;
+  v_mode text := 'per_person';
+  v_suv boolean := coalesce((p ->> 'suv')::boolean, false);
+  v_hold_id uuid := nullif(p ->> 'holdId', '')::uuid;
+  v_want_qty int;
+  v_reused boolean := false;
+  v_hold booking_holds;
+  v_booking bookings;
+  r record;
+begin
+  if v_occ is null or v_key is null then
+    raise exception 'invalid_request';
+  end if;
+
+  if v_expected_slug is not null and not exists (
+    select 1 from session_occurrences so
+    join activity_options o on o.id = so.activity_option_id
+    join activities a on a.id = o.activity_id
+    where so.id = v_occ and a.slug = v_expected_slug
+  ) then
+    raise exception 'occurrence_activity_mismatch';
+  end if;
+
+  for r in select key, (value::text)::bigint as q from jsonb_each(p -> 'party') loop
+    if r.q < 0 or r.q > 1000000 then raise exception 'invalid_party'; end if;
+    if r.q > 0 then
+      v_total_qty := v_total_qty + r.q;
+      v_items := v_items || jsonb_build_object('price_label', r.key, 'quantity', r.q);
+    end if;
+  end loop;
+  if v_total_qty <= 0 or v_total_qty > 1000000 then raise exception 'invalid_party'; end if;
+
+  select a.pricing_mode into v_mode
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  join activities a on a.id = o.activity_id
+  where so.id = v_occ;
+  v_mode := coalesce(v_mode, 'per_person');
+  v_want_qty := case when v_mode = 'vehicle' then 1 else v_total_qty::int end;
+
+  -- Reuse the Continue hold when it's still valid for this exact occurrence + qty and not yet linked
+  -- to a booking (so a leaked/already-consumed hold can't be re-attached).
+  if v_hold_id is not null then
+    select * into v_hold from booking_holds
+    where id = v_hold_id and status = 'active' and expires_at > now() and booking_id is null
+      and session_occurrence_id = v_occ and quantity = v_want_qty;
+    if found then v_reused := true; end if;
+  end if;
+  -- Fall back to a FRESH hold on any reuse miss. The key must differ from the Continue hold's
+  -- '<key>:hold' (api_create_hold) — otherwise create_hold's idempotency short-circuit would hand back
+  -- the very hold that just failed the guard (e.g. expired), hard-locking the booking.
+  if not v_reused then
+    v_hold := create_hold(v_occ, v_want_qty, v_key || ':book');
+  end if;
+
+  v_booking := create_booking(
+    v_key, v_hold.id, p ->> 'customerName', p ->> 'customerEmail', p ->> 'customerPhone',
+    coalesce((p ->> 'source')::booking_source, 'web'), v_items, v_suv
+  );
+
+  if v_booking.user_id is not null and v_booking.user_id is distinct from auth.uid() then
+    raise exception 'forbidden';
+  end if;
+  if auth.uid() is not null then
+    update bookings set user_id = auth.uid() where id = v_booking.id and user_id is null;
+  end if;
+
+  if p ? 'itinerary'
+     and jsonb_typeof(p -> 'itinerary') = 'array'
+     and jsonb_array_length(p -> 'itinerary') > 0
+     and jsonb_array_length(p -> 'itinerary') <= 30
+  then
+    update bookings set custom_itinerary = p -> 'itinerary'
+    where id = v_booking.id and custom_itinerary is null;
+  end if;
+
+  return booking_json(v_booking.id);
+end;
+$$;
+
+-- ==================== 20260617160000_flat_vehicle_pricing.sql ====================
+-- Flat per-vehicle sightseeing pricing (owner-confirmed). Replaces the "€70 per block of 4" rule with
+-- ONE flat price per bracket: Sedan €70 (SUV €85) for 1-4, Family car €85 for 5-6, Van €125 for 7-14,
+-- Coaster €225 for 15-25, capped at 25. create_booking + the catalogue functions only (api_book and
+-- booking_json keep their later hold-reuse / custom-itinerary definitions).
+
+-- 1) Config: the five bracket prices (one global row). add-if-not-exists so a live DB picks up the
+--    new columns with the confirmed defaults; the legacy per_block_minor/suv_flat_minor are left
+--    unused.
+alter table sightseeing_pricing add column if not exists sedan_minor   int not null default 7000;  -- €70
+alter table sightseeing_pricing add column if not exists suv_minor     int not null default 8500;  -- €85
+alter table sightseeing_pricing add column if not exists family_minor  int not null default 8500;  -- €85
+alter table sightseeing_pricing add column if not exists van_minor     int not null default 12500; -- €125
+alter table sightseeing_pricing add column if not exists coaster_minor int not null default 22500; -- €225
+
+-- 2) create_booking: flat-bracket vehicle pricing.
+create or replace function create_booking(
+  p_idempotency_key text,
+  p_hold_id uuid,
+  p_customer_name text,
+  p_customer_email text,
+  p_customer_phone text,
+  p_source booking_source,
+  p_items jsonb,
+  p_suv boolean default false
+)
+returns bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing bookings;
+  v_hold booking_holds;
+  v_occ session_occurrences;
+  v_option_id uuid;
+  v_mode text := 'per_person';
+  v_booking bookings;
+  v_item jsonb;
+  v_label text;
+  v_qty int;
+  v_unit bigint;
+  v_max int;
+  v_total bigint := 0;
+  v_qty_total int := 0;
+  v_agg jsonb := '{}'::jsonb;
+  v_vehicle text;
+  v_sedan bigint;
+  v_suv_price bigint;
+  v_family bigint;
+  v_van bigint;
+  v_coaster bigint;
+begin
+  select * into v_existing from bookings where idempotency_key = p_idempotency_key;
+  if found then
+    return v_existing;
+  end if;
+
+  select * into v_hold from booking_holds where id = p_hold_id for update;
+  if not found then
+    raise exception 'hold_not_found';
+  end if;
+  if v_hold.status <> 'active' or v_hold.expires_at <= now() then
+    raise exception 'hold_not_active';
+  end if;
+
+  select * into v_occ from session_occurrences where id = v_hold.session_occurrence_id for update;
+  if v_occ.status <> 'open' then
+    raise exception 'occurrence_not_bookable' using detail = v_occ.status::text;
+  end if;
+  v_option_id := v_occ.activity_option_id;
+
+  select a.pricing_mode into v_mode
+  from activity_options o
+  join activities a on a.id = o.activity_id
+  where o.id = v_option_id;
+  v_mode := coalesce(v_mode, 'per_person');
+
+  -- Aggregate quantity (people) per price_label, collapsing duplicate lines.
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    v_label := v_item ->> 'price_label';
+    v_qty := (v_item ->> 'quantity')::int;
+    if v_label is null or v_qty is null or v_qty <= 0 then
+      raise exception 'invalid_item';
+    end if;
+    v_qty_total := v_qty_total + v_qty;
+    v_agg := jsonb_set(v_agg, array[v_label], to_jsonb(coalesce((v_agg ->> v_label)::int, 0) + v_qty));
+  end loop;
+  if v_qty_total <= 0 then
+    raise exception 'invalid_item';
+  end if;
+
+  if v_mode = 'vehicle' then
+    -- One flat price for the bracket that fits P = v_qty_total (people on board).
+    if v_qty_total < 1 or v_qty_total > 25 then
+      raise exception 'exceeds_vehicle_capacity' using detail = v_qty_total::text;
+    end if;
+    select sedan_minor, suv_minor, family_minor, van_minor, coaster_minor
+      into v_sedan, v_suv_price, v_family, v_van, v_coaster
+      from sightseeing_pricing limit 1;
+    if v_sedan is null then
+      raise exception 'sightseeing_pricing_unset';
+    end if;
+    if v_qty_total <= 4 then
+      if p_suv then
+        v_total := v_suv_price;
+        v_vehicle := 'SUV';
+      else
+        v_total := v_sedan;
+        v_vehicle := 'Sedan';
+      end if;
+    elsif v_qty_total <= 6 then
+      v_total := v_family;
+      v_vehicle := 'Family car';
+    elsif v_qty_total <= 14 then
+      v_total := v_van;
+      v_vehicle := 'Van';
+    else
+      v_total := v_coaster;
+      v_vehicle := 'Coaster';
+    end if;
+    -- The hold reserves ONE vehicle, not P seats.
+    if v_hold.quantity <> 1 then
+      raise exception 'items_quantity_mismatch' using detail = format('vehicle hold %s', v_hold.quantity);
+    end if;
+  else
+    -- Per-person / per-group: price each aggregated tier from the DB.
+    for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+      select amount_minor, max_guests into v_unit, v_max
+      from activity_option_prices
+      where activity_option_id = v_option_id and label = v_label;
+      if not found then
+        raise exception 'unknown_price_tier' using detail = v_label;
+      end if;
+      if v_mode = 'per_group' and v_max is not null then
+        v_total := v_total + (v_unit * ceil(v_qty::numeric / v_max)::int);
+      else
+        if v_max is not null and v_qty > v_max then
+          raise exception 'exceeds_max_guests' using detail = format('%s: %s > %s', v_label, v_qty, v_max);
+        end if;
+        v_total := v_total + (v_unit * v_qty);
+      end if;
+    end loop;
+    if v_qty_total <> v_hold.quantity then
+      raise exception 'items_quantity_mismatch'
+        using detail = format('items %s, hold %s', v_qty_total, v_hold.quantity);
+    end if;
+  end if;
+
+  insert into bookings (
+    idempotency_key, customer_name, customer_email, customer_phone, source,
+    status, total_minor, operator_payout_minor, agency_commission_minor
+  )
+  values (
+    p_idempotency_key, p_customer_name, p_customer_email, p_customer_phone,
+    coalesce(p_source, 'web'), 'payment_pending', v_total, v_total, 0
+  )
+  returning * into v_booking;
+
+  if v_mode = 'vehicle' then
+    insert into booking_items (
+      booking_id, session_occurrence_id, activity_option_id, price_label,
+      quantity, unit_amount_minor, subtotal_minor, pax
+    )
+    values (
+      v_booking.id, v_hold.session_occurrence_id, v_option_id, v_vehicle,
+      1, v_total, v_total, v_qty_total
+    );
+  else
+    for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+      select amount_minor, max_guests into v_unit, v_max
+      from activity_option_prices
+      where activity_option_id = v_option_id and label = v_label;
+      insert into booking_items (
+        booking_id, session_occurrence_id, activity_option_id, price_label,
+        quantity, unit_amount_minor, subtotal_minor
+      )
+      values (
+        v_booking.id, v_hold.session_occurrence_id, v_option_id, v_label, v_qty, v_unit,
+        case
+          when v_mode = 'per_group' and v_max is not null then v_unit * ceil(v_qty::numeric / v_max)::int
+          else v_unit * v_qty
+        end
+      );
+    end loop;
+  end if;
+
+  update booking_holds set booking_id = v_booking.id where id = v_hold.id;
+  return v_booking;
+end;
+$$;
+
+grant execute on function create_booking(text, uuid, text, text, text, booking_source, jsonb, boolean)
+  to anon, authenticated, service_role;
+
+-- 3) Catalogue: vehicle mode → fromPriceEur = the Sedan price, and the five-bracket config block.
+create or replace function api_get_activity(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'id', a.id, 'slug', a.slug, 'type', a.type, 'title', a.title, 'summary', a.summary,
+    'description', a.description, 'category', a.category, 'location', a.location,
+    'durationMinutes', a.duration_minutes, 'meetingPoint', a.meeting_point,
+    'pickupAvailable', a.pickup_available, 'pricingMode', a.pricing_mode,
+    'languages', to_jsonb(a.languages),
+    'inclusions', to_jsonb(a.inclusions), 'exclusions', to_jsonb(a.exclusions),
+    'highlights', to_jsonb(a.highlights), 'cancellationPolicy', a.cancellation_policy,
+    'seoTitle', a.seo_title, 'seoDescription', a.seo_description,
+    'extra', a.extra,
+    'ratingAvg', a.rating_avg, 'ratingCount', a.rating_count,
+    'fromPriceEur', case
+      when a.pricing_mode = 'vehicle'
+        then (select sedan_minor from sightseeing_pricing limit 1)::float / 100
+      else (
+        select min(pr.amount_minor)::float / 100
+        from activity_option_prices pr join activity_options o on o.id = pr.activity_option_id
+        where o.activity_id = a.id
+      )
+    end,
+    'vehiclePricing', case when a.pricing_mode = 'vehicle' then (
+      select jsonb_build_object(
+        'sedanEur', sedan_minor::float / 100,
+        'suvEur', suv_minor::float / 100,
+        'familyEur', family_minor::float / 100,
+        'vanEur', van_minor::float / 100,
+        'coasterEur', coaster_minor::float / 100,
+        'maxParty', 25
+      ) from sightseeing_pricing limit 1
+    ) else null end,
+    'heroImage', (
+      select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+      from activity_images img where img.activity_id = a.id order by img.position limit 1
+    ),
+    'images', coalesce((
+      select jsonb_agg(jsonb_build_object('id', i.id, 'url', i.url, 'alt', i.alt, 'position', i.position) order by i.position)
+      from activity_images i where i.activity_id = a.id
+    ), '[]'::jsonb),
+    'options', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', o.id, 'name', o.name, 'description', o.description,
+        'prices', coalesce((
+          select jsonb_agg(jsonb_build_object(
+            'id', pr.id, 'label', pr.label, 'amountEur', pr.amount_minor::float / 100, 'maxGuests', pr.max_guests
+          ) order by pr.position)
+          from activity_option_prices pr where pr.activity_option_id = o.id
+        ), '[]'::jsonb)
+      ) order by o.position)
+      from activity_options o where o.activity_id = a.id
+    ), '[]'::jsonb),
+    'translations', coalesce((
+      select jsonb_object_agg(t.locale, jsonb_build_object('title', t.title, 'summary', t.summary, 'description', t.description))
+      from activity_translations t where t.activity_id = a.id
+    ), '{}'::jsonb),
+    'reviews', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', rv.id, 'author', rv.author, 'rating', rv.rating, 'text', rv.text, 'createdAt', rv.created_at
+      ) order by rv.created_at desc)
+      from reviews rv where rv.activity_id = a.id
+    ), '[]'::jsonb)
+  )
+  from activities a
+  where a.slug = p ->> 'slug';
+$$;
+
+create or replace function api_search_activities(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with filtered as (
+    select a.*
+    from activities a
+    where a.status = 'published'
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+  ),
+  paged as (
+    select * from filtered
+    order by rating_count desc, title
+    limit coalesce((p ->> 'pageSize')::int, 20)
+    offset (coalesce((p ->> 'page')::int, 1) - 1) * coalesce((p ->> 'pageSize')::int, 20)
+  )
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+        'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+        'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count, 'pricingMode', x.pricing_mode,
+        'fromPriceEur', case
+          when x.pricing_mode = 'vehicle'
+            then (select sedan_minor from sightseeing_pricing limit 1)::float / 100
+          else (
+            select min(pr.amount_minor)::float / 100
+            from activity_option_prices pr
+            join activity_options o on o.id = pr.activity_option_id
+            where o.activity_id = x.id
+          )
+        end,
+        'fromPriceMaxGuests', case when x.pricing_mode = 'vehicle' then null else (
+          select pr.max_guests
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+          order by pr.amount_minor asc nulls last
+          limit 1
+        ) end,
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = x.id order by img.position limit 1
+        ),
+        'images', coalesce((
+          select jsonb_agg(
+            jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+            order by img.position
+          )
+          from activity_images img where img.activity_id = x.id
+        ), '[]'::jsonb)
+      ))
+      from paged x
+    ), '[]'::jsonb),
+    'total', (select count(*)::int from filtered),
+    'page', coalesce((p ->> 'page')::int, 1),
+    'pageSize', coalesce((p ->> 'pageSize')::int, 20)
+  );
+$$;
+
 -- ==================== seed.sql (catalogue) ====================
 -- GENERATED from seed/catalogue.json by `npm run seed:gen`. Do not edit by hand.
 -- Apply on a fresh database via `supabase db reset` (it runs migrations then this file).
@@ -1887,32 +4701,32 @@ insert into activities (operator_id, slug, type, title, summary, description, ca
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'parasailing'), 'en', 'Parasailing', 'Soar above the lagoon on a parasail for panoramic views of the east coast.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'parasailing'), 'fr', 'Parachute ascensionnel', 'Envolez-vous au-dessus du lagon en parachute ascensionnel pour une vue panoramique de la côte est.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'parasailing'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'north-tour', 'activity', 'North Tour – Port Louis, Pamplemousses & Cap Malheureux', 'Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.', null, 'Island tours', 'North', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Port Louis', 'Pamplemousses Botanical Garden', 'Cap Malheureux']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'north-tour', 'activity', 'North Tour – Port Louis, Pamplemousses & Cap Malheureux', 'Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.', null, 'Sightseeing tours', 'North', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Port Louis', 'Pamplemousses Botanical Garden', 'Cap Malheureux']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'north-tour'), 'en', 'North Tour – Port Louis, Pamplemousses & Cap Malheureux', 'Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'north-tour'), 'fr', 'Tour du Nord – Port-Louis, Pamplemousses & Cap Malheureux', 'Excursion guidée d''une journée dans le nord : la capitale Port-Louis, le jardin botanique de Pamplemousses et Cap Malheureux.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'north-tour'), 'Shared tour');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'private-south-tour-with-pickup', 'activity', 'Private South Tour with Pickup', 'Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.', null, 'Island tours', 'South', null, 'Hotel pickup', true, array['en', 'fr']::text[], array['Private vehicle', 'Driver-guide', 'Hotel pickup']::text[], '{}'::text[], array['Trou aux Cerfs', 'Grand Bassin', 'Chamarel coloured earth']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'private-south-tour-with-pickup', 'activity', 'Private South Tour with Pickup', 'Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.', null, 'Sightseeing tours', 'South', null, 'Hotel pickup', true, array['en', 'fr']::text[], array['Private vehicle', 'Driver-guide', 'Hotel pickup']::text[], '{}'::text[], array['Trou aux Cerfs', 'Grand Bassin', 'Chamarel coloured earth']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'private-south-tour-with-pickup'), 'en', 'Private South Tour with Pickup', 'Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'private-south-tour-with-pickup'), 'fr', 'Tour privé du Sud avec prise en charge', 'Excursion privée guidée d''une journée dans le sud de Maurice avec prise en charge à l''hôtel — Trou aux Cerfs, Grand Bassin et Chamarel.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'private-south-tour-with-pickup'), 'Private group');
 insert into activity_option_prices (activity_option_id, label, amount_minor, currency, max_guests) values ((select id from activity_options where activity_id = (select id from activities where slug = 'private-south-tour-with-pickup') and name = 'Private group' order by created_at limit 1), 'Private group', 11000, 'EUR', 6);
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'south-east-tour-bois-cheri', 'activity', 'South-East Tour – Bois Chéri Tea Route', 'Day tour of the south-east taking in one of the island''s main tea factories at Bois Chéri.', null, 'Island tours', 'South-East', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Bois Chéri tea factory', 'Tea tasting']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'south-east-tour-bois-cheri', 'activity', 'South-East Tour – Bois Chéri Tea Route', 'Day tour of the south-east taking in one of the island''s main tea factories at Bois Chéri.', null, 'Sightseeing tours', 'South-East', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Bois Chéri tea factory', 'Tea tasting']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'south-east-tour-bois-cheri'), 'en', 'South-East Tour – Bois Chéri Tea Route', 'Day tour of the south-east taking in one of the island''s main tea factories at Bois Chéri.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'south-east-tour-bois-cheri'), 'fr', 'Tour du Sud-Est – Route du thé de Bois Chéri', 'Excursion d''une journée dans le sud-est incluant l''une des principales usines de thé de l''île à Bois Chéri.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'south-east-tour-bois-cheri'), 'Shared tour');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'la-vallee-des-couleurs', 'activity', 'La Vallée des Couleurs Nature Park', 'Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.', null, 'Island tours', 'South', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['23-colour earth', 'Waterfalls', 'Nature park']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'la-vallee-des-couleurs', 'activity', 'La Vallée des Couleurs Nature Park', 'Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.', null, 'Sightseeing tours', 'South', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['23-colour earth', 'Waterfalls', 'Nature park']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'la-vallee-des-couleurs'), 'en', 'La Vallée des Couleurs Nature Park', 'Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'la-vallee-des-couleurs'), 'fr', 'Parc naturel de la Vallée des Couleurs', 'Visitez le parc naturel célèbre pour sa terre de 23 couleurs, ses cascades et ses points de vue.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'la-vallee-des-couleurs'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'black-river-gorges-hike', 'activity', 'Black River Gorges Hike', 'Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.', null, 'Island tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['National park', 'Native forest', 'Viewpoints']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'black-river-gorges-hike', 'activity', 'Black River Gorges Hike', 'Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.', null, 'Sightseeing tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['National park', 'Native forest', 'Viewpoints']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'black-river-gorges-hike'), 'en', 'Black River Gorges Hike', 'Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'black-river-gorges-hike'), 'fr', 'Randonnée des Gorges de Rivière Noire', 'Randonnée guidée dans le parc national des Gorges de Rivière Noire, la plus grande forêt protégée de Maurice.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'black-river-gorges-hike'), 'Guided hike');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'le-morne-brabant-hike', 'activity', 'Le Morne Brabant Hike', 'Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.', null, 'Island tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['UNESCO World Heritage', 'Summit views', 'Le Morne Brabant']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'le-morne-brabant-hike', 'activity', 'Le Morne Brabant Hike', 'Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.', null, 'Sightseeing tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['UNESCO World Heritage', 'Summit views', 'Le Morne Brabant']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'le-morne-brabant-hike'), 'en', 'Le Morne Brabant Hike', 'Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'le-morne-brabant-hike'), 'fr', 'Randonnée du Morne Brabant', 'Ascension guidée de la montagne du Morne Brabant, classée à l''UNESCO, de la base au sommet.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'le-morne-brabant-hike'), 'Guided hike');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'helicopter-tour', 'activity', 'Helicopter Tour', 'Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.', null, 'Island tours', 'Island-wide', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Aerial views', 'Lagoons', 'Islets']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'helicopter-tour', 'activity', 'Helicopter Tour', 'Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.', null, 'Sightseeing tours', 'Island-wide', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Aerial views', 'Lagoons', 'Islets']::text[], 'published') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'helicopter-tour'), 'en', 'Helicopter Tour', 'Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'helicopter-tour'), 'fr', 'Tour en hélicoptère', 'Vol panoramique en hélicoptère au-dessus des lagons, îlots et paysages de Maurice.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'helicopter-tour'), 'Standard');

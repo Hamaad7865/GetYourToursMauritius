@@ -1,0 +1,44 @@
+# Continuous integration — runs the full green gate on every push to main and every PR, plus the
+# Cloudflare edge bundle (`pages:build`) which is broken on the Windows dev machine and so was never
+# verified anywhere until now. Make this a required status check on main in the repo settings.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
+
+      - name: Build
+        run: npm run build
+
+      # The actual deployable artifact. If this fails, the edge bundle is broken even though
+      # `next build` passed — exactly the gap this CI closes.
+      - name: Edge bundle (Cloudflare Pages)
+        run: npm run pages:build

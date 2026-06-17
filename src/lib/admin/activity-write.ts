@@ -1,4 +1,5 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import type { PricingMode } from '@/lib/validation/tours';
 
 /* Client-side admin writes. RLS already grants staff/admin full read+write on activities and
  * their images/options/prices, so an authenticated admin performs these directly — no RPC. */
@@ -15,6 +16,8 @@ export interface PriceInput {
 export interface OptionInput {
   /** Stable id of an existing option (absent for newly-added ones). Lets updateActivity diff
    *  options in place instead of recreating them — preserving materialised slots and holds. */
+  /** Present for options loaded from an existing activity; absent for newly-added ones. Used to
+   *  reconcile options in place on edit so a booked option keeps its identity. */
   id?: string;
   name: string;
   prices: PriceInput[];
@@ -24,6 +27,8 @@ export interface ItineraryStopInput {
   area: string;
   description: string;
   tags: string[];
+  /** Alternatives the customer can pick instead of this stop. */
+  options: { title: string; area: string }[];
 }
 
 export interface ActivityFormValues {
@@ -37,8 +42,9 @@ export interface ActivityFormValues {
   description: string;
   meetingPoint: string;
   pickupAvailable: boolean;
-  /** Island-tour pricing: charge per group (ceil(people / group size) × price) instead of per head. */
-  groupPricing: boolean;
+  /** per_person (× people), per_group (× ceil(people/size)), or vehicle (one flat price for the
+   *  vehicle that fits the party — a tier's max_guests is the vehicle's capacity). */
+  pricingMode: PricingMode;
   cancellationPolicy: string;
   status: 'draft' | 'published';
   languages: string[];
@@ -54,14 +60,14 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   slug: '',
   type: 'activity',
   title: '',
-  category: 'Island tours',
+  category: 'Sightseeing tours',
   location: '',
   durationMinutes: null,
   summary: '',
   description: '',
   meetingPoint: '',
   pickupAvailable: false,
-  groupPricing: false,
+  pricingMode: 'per_person',
   cancellationPolicy: 'Free cancellation up to 24 hours before your activity for a full refund.',
   status: 'published',
   languages: ['English'],
@@ -97,12 +103,18 @@ async function operatorId(): Promise<string> {
 function buildExtra(v: ActivityFormValues) {
   const itinerary = v.itinerary
     .filter((s) => s.title.trim())
-    .map((s) => ({
-      title: s.title.trim(),
-      area: s.area.trim() || null,
-      description: s.description.trim() || null,
-      tags: s.tags.filter((t) => t.trim()),
-    }));
+    .map((s) => {
+      const base = {
+        title: s.title.trim(),
+        area: s.area.trim() || null,
+        description: s.description.trim() || null,
+        tags: s.tags.filter((t) => t.trim()),
+      };
+      const options = s.options
+        .filter((o) => o.title.trim())
+        .map((o) => ({ title: o.title.trim(), area: o.area.trim() || null }));
+      return options.length ? { ...base, options } : base;
+    });
   return itinerary.length ? { itinerary } : {};
 }
 
@@ -119,7 +131,7 @@ function activityRow(v: ActivityFormValues, opId: string) {
     duration_minutes: v.durationMinutes,
     meeting_point: v.meetingPoint.trim() || null,
     pickup_available: v.pickupAvailable,
-    group_pricing: v.groupPricing,
+    pricing_mode: v.pricingMode,
     languages: v.languages.filter((l) => l.trim()),
     inclusions: v.inclusions.filter((l) => l.trim()),
     exclusions: v.exclusions.filter((l) => l.trim()),
@@ -225,7 +237,110 @@ async function reconcileOptions(activityId: string, v: ActivityFormValues): Prom
       await insertPrices(sb, matchId, opt.prices);
     } else {
       await insertOption(sb, activityId, opt.name.trim(), i, opt.prices);
+/** Plan how form options map onto the existing option rows. Pure, so it's unit-tested. An option
+ *  with an id matching an existing row is updated in place (keeps the identity bookings/occurrences
+ *  reference); one without is new; an existing row absent from the form is a removal candidate. */
+export function planOptionReconcile(
+  existingIds: string[],
+  formOptions: OptionInput[],
+): { toUpsert: Array<{ option: OptionInput; position: number; isNew: boolean }>; removedIds: string[] } {
+  const existing = new Set(existingIds);
+  const kept = new Set<string>();
+  const toUpsert = formOptions
+    .filter((o) => o.name.trim())
+    .map((option, position) => {
+      const isExisting = Boolean(option.id && existing.has(option.id));
+      if (isExisting) kept.add(option.id as string);
+      return { option, position, isNew: !isExisting };
+    });
+  const removedIds = existingIds.filter((id) => !kept.has(id));
+  return { toUpsert, removedIds };
+}
+
+/** Images have no downstream FK (booking_items snapshots, never references them) — replace wholesale. */
+async function replaceImages(activityId: string, images: ImageInput[]): Promise<void> {
+  const sb = getBrowserSupabase();
+  await sb.from('activity_images').delete().eq('activity_id', activityId);
+  const rows = images
+    .filter((i) => i.url.trim())
+    .map((img, position) => ({ activity_id: activityId, url: img.url.trim(), alt: img.alt.trim() || null, position }));
+  if (rows.length) {
+    const { error } = await sb.from('activity_images').insert(rows);
+    if (error) throw error;
+  }
+}
+
+/**
+ * Prices aren't FK-referenced (booking_items snapshots label+amount), so a full replace is safe.
+ * INSERT the new tiers BEFORE deleting the old ones: the browser client can't wrap this in a
+ * transaction, so a delete-then-insert whose insert fails (constraint / transient error / the user
+ * navigating away) would strand the option with ZERO price tiers — and create_booking then raises
+ * unknown_price_tier for every customer who picks it. Insert-first means a failure leaves the
+ * existing tiers intact.
+ */
+async function replacePrices(optionId: string, prices: PriceInput[]): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { data: old, error: readErr } = await sb
+    .from('activity_option_prices')
+    .select('id')
+    .eq('activity_option_id', optionId);
+  if (readErr) throw readErr;
+
+  const rows = prices
+    .filter((p) => p.label.trim() && p.amountEur != null)
+    .map((p, position) => ({
+      activity_option_id: optionId,
+      label: p.label.trim(),
+      amount_minor: Math.round((p.amountEur ?? 0) * 100),
+      max_guests: p.maxGuests,
+      position,
+    }));
+  if (rows.length) {
+    const { error } = await sb.from('activity_option_prices').insert(rows);
+    if (error) throw error;
+  }
+  const oldIds = (old ?? []).map((o) => o.id);
+  if (oldIds.length) {
+    const { error } = await sb.from('activity_option_prices').delete().in('id', oldIds);
+    if (error) throw error;
+  }
+}
+
+/**
+ * Reconcile options IN PLACE rather than delete-and-recreate. Updating in place keeps each option's
+ * id, which session_occurrences and booking_items reference — so editing a booked activity no longer
+ * breaks it. A removed option is deleted only when nothing depends on it (no booking_items, no
+ * occurrences); a booked option that staff removed is left intact (you can't un-sell a seat).
+ */
+async function reconcileOptions(activityId: string, formOptions: OptionInput[]): Promise<void> {
+  const sb = getBrowserSupabase();
+  // Throw on a failed read: a transient null here (e.g. a token-refresh 401) would make every form
+  // option look new and duplicate the entire option set on save.
+  const { data: existing, error: readErr } = await sb
+    .from('activity_options')
+    .select('id')
+    .eq('activity_id', activityId);
+  if (readErr) throw readErr;
+  const { toUpsert, removedIds } = planOptionReconcile((existing ?? []).map((o) => o.id), formOptions);
+
+  for (const { option, position, isNew } of toUpsert) {
+    let optionId = option.id;
+    if (isNew || !optionId) {
+      const { data: opt, error } = await sb
+        .from('activity_options')
+        .insert({ activity_id: activityId, name: option.name.trim(), position })
+        .select('id')
+        .single();
+      if (error) throw error;
+      optionId = opt.id;
+    } else {
+      const { error } = await sb
+        .from('activity_options')
+        .update({ name: option.name.trim(), position })
+        .eq('id', optionId);
+      if (error) throw error;
     }
+    await replacePrices(optionId, option.prices);
   }
 
   const surplus = [...existingIds].filter((id) => !matched.has(id));
@@ -242,6 +357,34 @@ async function reconcileOptions(activityId: string, v: ActivityFormValues): Prom
     const { error } = await sb.from('activity_options').delete().in('id', deletable);
     if (error) throw error;
   }
+  for (const optionId of removedIds) {
+    const { count: items } = await sb
+      .from('booking_items')
+      .select('id', { count: 'exact', head: true })
+      .eq('activity_option_id', optionId);
+    const { count: occ } = await sb
+      .from('session_occurrences')
+      .select('id', { count: 'exact', head: true })
+      .eq('activity_option_id', optionId);
+    if ((items ?? 0) === 0 && (occ ?? 0) === 0) {
+      const { error } = await sb.from('activity_options').delete().eq('id', optionId);
+      if (error) throw error;
+    }
+    // else: keep it — an option with bookings/occurrences must not be deleted.
+  }
+}
+
+/**
+ * Roll the open-ended availability window forward for one activity. Idempotent and a no-op unless
+ * the activity is published with a daily capacity and at least one price — so calling it after every
+ * save means newly published / newly priced open-ended activities show bookable dates immediately,
+ * rather than nothing until the next maintenance cron tick (which is disabled by default).
+ */
+async function materializeActivity(activityId: string): Promise<void> {
+  const { error } = await getBrowserSupabase().rpc('materialize_availability', {
+    p: { activityId },
+  });
+  if (error) throw error;
 }
 
 /** Create a new activity (+ images/options/prices). Returns the new id. */
@@ -250,11 +393,14 @@ export async function createActivity(v: ActivityFormValues): Promise<string> {
   const opId = await operatorId();
   const { data, error } = await sb.from('activities').insert(activityRow(v, opId)).select('id').single();
   if (error) throw error;
-  await writeChildren(data.id, v);
+  await replaceImages(data.id, v.images);
+  await reconcileOptions(data.id, v.options);
+  await materializeActivity(data.id);
   return data.id;
 }
 
 /** Update an activity, reconciling its images and options in place. */
+/** Update an activity, reconciling its images/options/prices in place (FK-safe for booked activities). */
 export async function updateActivity(id: string, v: ActivityFormValues): Promise<void> {
   const sb = getBrowserSupabase();
   const opId = await operatorId();
@@ -277,6 +423,10 @@ export async function updateActivity(id: string, v: ActivityFormValues): Promise
 
   // Options are diffed by stable id (never recreated) so materialised slots + active holds survive.
   await reconcileOptions(id, v);
+  await replaceImages(id, v.images);
+  await reconcileOptions(id, v.options);
+  // Publishing or adding the first price makes the activity materializable — fill its window now.
+  await materializeActivity(id);
 }
 
 export async function deleteActivity(id: string): Promise<void> {
@@ -295,7 +445,13 @@ export async function uploadActivityImage(file: File, slug: string): Promise<str
 }
 
 interface ExtraShape {
-  itinerary?: Array<{ title?: string; area?: string | null; description?: string | null; tags?: string[] }>;
+  itinerary?: Array<{
+    title?: string;
+    area?: string | null;
+    description?: string | null;
+    tags?: string[];
+    options?: Array<{ title?: string; area?: string | null }>;
+  }>;
 }
 
 /** Load an existing activity into the editable form shape. */
@@ -337,7 +493,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     description: act.description ?? '',
     meetingPoint: act.meeting_point ?? '',
     pickupAvailable: act.pickup_available,
-    groupPricing: act.group_pricing ?? false,
+    pricingMode: (act.pricing_mode ?? 'per_person') as PricingMode,
     cancellationPolicy: act.cancellation_policy ?? '',
     status: act.status,
     languages: act.languages.length ? act.languages : ['English'],
@@ -357,6 +513,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       area: s.area ?? '',
       description: s.description ?? '',
       tags: s.tags ?? [],
+      options: (s.options ?? []).map((o) => ({ title: o.title ?? '', area: o.area ?? '' })),
     })),
   };
 }

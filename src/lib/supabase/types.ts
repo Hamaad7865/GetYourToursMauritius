@@ -57,7 +57,7 @@ type ActivitiesRow = {
   duration_minutes: number | null;
   meeting_point: string | null;
   pickup_available: boolean;
-  group_pricing: boolean;
+  pricing_mode: 'per_person' | 'per_group' | 'vehicle';
   daily_capacity: number | null;
   languages: string[];
   inclusions: string[];
@@ -85,7 +85,7 @@ type ActivitiesInsert = {
   duration_minutes?: number | null;
   meeting_point?: string | null;
   pickup_available?: boolean;
-  group_pricing?: boolean;
+  pricing_mode?: 'per_person' | 'per_group' | 'vehicle';
   daily_capacity?: number | null;
   languages?: string[];
   inclusions?: string[];
@@ -273,6 +273,7 @@ type BookingItemsRow = {
   quantity: number;
   unit_amount_minor: number;
   subtotal_minor: number;
+  pax: number | null;
   created_at: string;
 };
 type BookingItemsInsert = {
@@ -284,6 +285,7 @@ type BookingItemsInsert = {
   quantity: number;
   unit_amount_minor: number;
   subtotal_minor: number;
+  pax?: number | null;
   created_at?: string;
 };
 
@@ -531,6 +533,7 @@ export interface Database {
         };
         Returns: PaymentsRow;
       };
+      materialize_availability: { Args: { p: Json }; Returns: number };
     };
     Enums: {
       user_role: 'customer' | 'staff' | 'admin';
@@ -542,7 +545,7 @@ export interface Database {
         | 'Dolphin swims'
         | 'Sea walks & diving'
         | 'Parasailing'
-        | 'Island tours'
+        | 'Sightseeing tours'
         | 'Airport transfers';
       content_locale: 'en' | 'fr';
       occurrence_status: 'open' | 'closed' | 'cancelled';

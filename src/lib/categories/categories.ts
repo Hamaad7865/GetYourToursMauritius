@@ -15,5 +15,5 @@ export const FALLBACK_CATEGORIES: CategoryItem[] = [
   { name: 'Dolphin swims', slug: 'dolphin-swims' },
   { name: 'Sea walks & diving', slug: 'sea-walks-diving' },
   { name: 'Parasailing', slug: 'parasailing' },
-  { name: 'Island tours', slug: 'island-tours' },
+  { name: 'Sightseeing tours', slug: 'sightseeing-tours' },
 ];

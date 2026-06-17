@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { centsToEur, eurToCents, quoteTotal } from '@/lib/services/pricing';
+import { centsToEur, eurToCents, quoteTotal, sightseeingQuote } from '@/lib/services/pricing';
 import { ServiceError } from '@/lib/services/errors';
 
 const TIERS = [
@@ -7,6 +7,39 @@ const TIERS = [
   { label: 'Child', amountEur: 45, maxGuests: null },
   { label: 'Private group', amountEur: 110, maxGuests: 6 },
 ];
+
+const SIGHTSEEING = { sedanEur: 70, suvEur: 85, familyEur: 85, vanEur: 125, coasterEur: 225, maxParty: 25 };
+
+describe('sightseeingQuote', () => {
+  it('charges a flat price per vehicle bracket', () => {
+    const cases: Array<[number, string, number]> = [
+      [1, 'Sedan', 70],
+      [4, 'Sedan', 70],
+      [5, 'Family car', 85],
+      [6, 'Family car', 85],
+      [7, 'Van', 125],
+      [14, 'Van', 125],
+      [15, 'Coaster', 225],
+      [25, 'Coaster', 225],
+    ];
+    for (const [people, vehicle, total] of cases) {
+      const q = sightseeingQuote(people, false, SIGHTSEEING);
+      expect(q.vehicle).toBe(vehicle);
+      expect(q.totalEur).toBe(total);
+    }
+  });
+
+  it('applies the €85 SUV upgrade only for parties of 1–4', () => {
+    expect(sightseeingQuote(2, true, SIGHTSEEING)).toEqual({ vehicle: 'SUV', totalEur: 85 });
+    expect(sightseeingQuote(4, true, SIGHTSEEING)).toEqual({ vehicle: 'SUV', totalEur: 85 });
+    expect(sightseeingQuote(5, true, SIGHTSEEING)).toEqual({ vehicle: 'Family car', totalEur: 85 });
+  });
+
+  it('throws above the cap and below 1', () => {
+    expect(() => sightseeingQuote(26, false, SIGHTSEEING)).toThrow(ServiceError);
+    expect(() => sightseeingQuote(0, false, SIGHTSEEING)).toThrow(ServiceError);
+  });
+});
 
 describe('eurToCents / centsToEur', () => {
   it('round-trips whole and fractional amounts', () => {

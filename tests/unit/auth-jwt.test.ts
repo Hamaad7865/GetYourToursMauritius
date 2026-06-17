@@ -60,3 +60,39 @@ describe('verifyAccessToken — asymmetric (JWKS) path', () => {
     await expect(verifyAccessToken('not-a-jwt')).rejects.toThrow();
   });
 });
+
+/**
+ * The legacy HS256 (symmetric) path is the forgery risk from a leaked shared secret, so it is
+ * disabled unless ACCEPT_LEGACY_HS256 is explicitly on.
+ */
+describe('verifyAccessToken — legacy HS256 gate', () => {
+  const SECRET =
+    process.env.SUPABASE_JWT_SECRET ?? 'test-jwt-secret-must-be-long-enough-1234567890';
+
+  function hsToken() {
+    return new SignJWT({ role: 'authenticated' })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setSubject('hs-user')
+      .setIssuedAt()
+      .setExpirationTime('1h')
+      .sign(new TextEncoder().encode(SECRET));
+  }
+
+  afterEach(() => {
+    process.env.ACCEPT_LEGACY_HS256 = 'true'; // restore the suite default
+    resetServerEnvCache();
+  });
+
+  it('rejects an HS256 token when the legacy path is off', async () => {
+    process.env.ACCEPT_LEGACY_HS256 = 'false';
+    resetServerEnvCache();
+    await expect(verifyAccessToken(await hsToken())).rejects.toThrow();
+  });
+
+  it('accepts a valid HS256 token when ACCEPT_LEGACY_HS256=true', async () => {
+    process.env.ACCEPT_LEGACY_HS256 = 'true';
+    resetServerEnvCache();
+    const user = await verifyAccessToken(await hsToken());
+    expect(user.id).toBe('hs-user');
+  });
+});

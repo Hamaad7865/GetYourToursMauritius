@@ -185,21 +185,24 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             />
             Hotel pickup available
           </label>
-          <label className="flex items-start gap-2.5 text-sm font-medium text-ink">
-            <input
-              type="checkbox"
-              className="mt-0.5 h-4 w-4 accent-teal"
-              checked={v.groupPricing}
-              onChange={(e) => set('groupPricing', e.target.checked)}
-            />
-            <span>
-              Charge per group (island-tour pricing)
-              <span className="mt-0.5 block text-[12px] font-normal text-ink-muted">
-                Price buys one group of up to “group size” people; bigger parties pay for extra
-                groups — e.g. €70 for 4, €140 for 5–8, €210 for 9–12.
-              </span>
-            </span>
-          </label>
+          <Field label="Pricing">
+            <select
+              className={inputClass}
+              value={v.pricingMode}
+              onChange={(e) => set('pricingMode', e.target.value as ActivityFormValues['pricingMode'])}
+            >
+              <option value="per_person">Per person (price × people)</option>
+              <option value="per_group">Per group (one price per group of N)</option>
+              <option value="vehicle">Sightseeing vehicle (flat per-vehicle price)</option>
+            </select>
+            <p className="mt-1.5 text-[12px] text-ink-muted">
+              {v.pricingMode === 'vehicle'
+                ? 'Sightseeing vehicle pricing is global, one flat price per vehicle: Sedan €70 / SUV €85 (1–4), Family car €85 (5–6), Van €125 (7–14), Coaster €225 (15–25), capped at 25. Applies to every vehicle-priced tour — no per-tour tiers. Change it in the sightseeing_pricing table.'
+                : v.pricingMode === 'per_group'
+                  ? 'The price buys one group of up to “fits up to” people; bigger parties pay for extra groups (ceil(people / size) × price).'
+                  : 'Each guest pays the tier price. “Fits up to” is an optional hard cap per tier.'}
+            </p>
+          </Field>
           <div className="grid gap-5 sm:grid-cols-2">
             <StringList label="Highlights" items={v.highlights} onChange={(x) => set('highlights', x)} />
             <StringList label="Languages" items={v.languages} onChange={(x) => set('languages', x)} />
@@ -215,12 +218,23 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
 
       <Section
         title="Options & pricing"
-        hint="Each option (e.g. Shared, Private) has price tiers: label, € price, and an optional group size. Set the group size (e.g. 4) for “per group up to 4” pricing; leave it blank for per-person."
+        hint="Each option (e.g. Shared, Private) has price tiers: a label, a € price, and a “fits up to” number. Its meaning follows the Pricing mode above — a per-tier cap (per person) or the group size (per group)."
       >
-        <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
+        {v.pricingMode === 'vehicle' ? (
+          <p className="rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
+            Vehicle-priced tours use the global flat prices (Sedan €70 / SUV €85 / Family €85 / Van
+            €125 / Coaster €225 · max 25). Add a single option (e.g. “Sightseeing”) so dates can be
+            scheduled — no price tiers required.
+          </p>
+        ) : (
+          <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
+        )}
       </Section>
 
-      <Section title="Itinerary" hint="The stops shown on the map and timeline.">
+      <Section
+        title="Itinerary"
+        hint="The stops shown on the map and timeline. Add alternatives under a stop to let the customer pick a different place there."
+      >
         <ItineraryEditor stops={v.itinerary} onChange={(x) => set('itinerary', x)} />
       </Section>
 
@@ -585,11 +599,59 @@ function ItineraryEditor({
           <div className="mt-2">
             <StringList label="Tags" items={stop.tags} onChange={(t) => update(i, { tags: t })} />
           </div>
+          <div className="mt-3 rounded-lg bg-ink/[0.03] p-3">
+            <div className="text-[12px] font-bold text-ink">
+              Alternatives (the customer picks one instead)
+            </div>
+            <p className="mb-2 text-[11.5px] text-ink-muted">
+              Leave empty to keep this stop fixed. Add e.g. Fort Adelaide so the customer can swap it
+              for {stop.title.trim() || 'this stop'}.
+            </p>
+            {stop.options.map((opt, oi) => (
+              <div key={oi} className="mb-2 flex items-center gap-2">
+                <input
+                  className={inputClass}
+                  value={opt.title}
+                  onChange={(e) =>
+                    update(i, {
+                      options: stop.options.map((o, idx) => (idx === oi ? { ...o, title: e.target.value } : o)),
+                    })
+                  }
+                  placeholder="Alternative place (e.g. Fort Adelaide)"
+                />
+                <input
+                  className={inputClass}
+                  value={opt.area}
+                  onChange={(e) =>
+                    update(i, {
+                      options: stop.options.map((o, idx) => (idx === oi ? { ...o, area: e.target.value } : o)),
+                    })
+                  }
+                  placeholder="Area"
+                />
+                <button
+                  type="button"
+                  aria-label="Remove alternative"
+                  onClick={() => update(i, { options: stop.options.filter((_, idx) => idx !== oi) })}
+                  className="shrink-0 text-ink-muted hover:text-coral"
+                >
+                  <IconX width={16} height={16} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => update(i, { options: [...stop.options, { title: '', area: '' }] })}
+              className="rounded-full border border-ink/15 px-3 py-1 text-[12px] font-bold text-ink hover:border-teal hover:text-teal"
+            >
+              + Add alternative
+            </button>
+          </div>
         </div>
       ))}
       <button
         type="button"
-        onClick={() => onChange([...stops, { title: '', area: '', description: '', tags: [] }])}
+        onClick={() => onChange([...stops, { title: '', area: '', description: '', tags: [], options: [] }])}
         className="self-start rounded-full border border-ink/15 px-4 py-2 text-sm font-bold text-ink hover:border-teal hover:text-teal"
       >
         Add stop

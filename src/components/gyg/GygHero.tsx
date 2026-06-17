@@ -1,26 +1,18 @@
 import type { ReactNode } from 'react';
 import { IconShield, IconBolt, IconCheck, IconUsers } from '@/components/ui/icons';
-import { HeroGallery, type HeroImage } from './HeroGallery';
+import { HeroGallery } from './HeroGallery';
 
 /**
- * Hero — "The east-coast lagoon, booked direct."
+ * Hero — "Explore Mauritius your way."
  *
- * An IMAGE-FREE animated backdrop (pure CSS + inline SVG, no JS): a vertical teal depth
- * gradient with heavily-blurred, screen-blended radial "light" blobs that drift via transform —
- * sunlight wandering under turquoise water — plus one calm waterline wave. Under
- * prefers-reduced-motion it freezes to a composed still. The headline is an oversized Fraunces
- * stack with the single word "lagoon," in italic; the search is docked flush-left; teal and
- * coral are each rationed. The section is NOT clipped so the search dropdowns spill over the
- * white body below.
+ * An animated backdrop (pure CSS + inline SVG, no JS): a vertical teal depth gradient with
+ * heavily-blurred, screen-blended radial "light" blobs that drift via transform — sunlight
+ * wandering under turquoise water — plus one calm waterline wave. Under prefers-reduced-motion it
+ * freezes to a composed still. The headline is an oversized Fraunces stack with "your way." in
+ * italic; the open right side carries a sliding wall of real Belle Mare trip photos (HeroGallery).
+ * The section is NOT clipped so the navbar search dropdowns spill over the white body below.
  */
-export function GygHero({
-  children,
-  gallery = [],
-}: {
-  children?: ReactNode;
-  /** Framed photos for the decorative pile on the hero's open right side. */
-  gallery?: HeroImage[];
-}) {
+export function GygHero({ children }: { children?: ReactNode }) {
   return (
     <section className="relative isolate flex min-h-[560px] flex-col justify-center overflow-visible lg:min-h-[620px]">
       {/* Image-free animated lagoon backdrop (server component, no JS). Every layer is -z-10,
@@ -96,17 +88,6 @@ export function GygHero({
           }}
         />
       </div>
-      {/* L3 — front waterline wave: two stretched copies in a 200% track loop seamlessly. */}
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-40 overflow-hidden">
-        <div className="lagoon-wave flex h-full w-[200%]">
-          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(7,46,52,0.72)">
-            <path d="M0,80 C180,55 380,108 600,82 C820,56 1030,106 1200,80 L1200,150 L0,150 Z" />
-          </svg>
-          <svg className="h-full w-1/2" viewBox="0 0 1200 150" preserveAspectRatio="none" fill="rgba(7,46,52,0.72)">
-            <path d="M0,80 C180,55 380,108 600,82 C820,56 1030,106 1200,80 L1200,150 L0,150 Z" />
-          </svg>
-        </div>
-      </div>
       {/* L4 — legibility scrims (no blend mode), so the white content's contrast is unchanged. */}
       <div
         aria-hidden
@@ -120,36 +101,42 @@ export function GygHero({
         className="pointer-events-none absolute inset-0 -z-10"
         style={{ background: 'radial-gradient(130% 120% at 50% 120%, transparent 60%, rgba(10,46,54,0.35) 100%)' }}
       />
+      {/* L6 — white "shore" wave: dips the hero into the white page body so there is no hard seam.
+          Painted on top of the scrims (last backdrop layer) and overshoots 1px to kill a hairline. */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-[-1px] -z-10 h-24">
+        <svg className="h-full w-full" viewBox="0 0 1200 120" preserveAspectRatio="none" fill="#ffffff">
+          <path d="M0,64 C220,22 430,96 640,66 C860,38 1020,90 1200,58 L1200,121 L0,121 Z" />
+        </svg>
+      </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-shell px-6 pb-6 pt-32">
+      <div className="relative z-10 mx-auto w-full max-w-shell px-6 pb-28 pt-32">
         <div className="lg:max-w-[58%]">
           <p className="animate-fade-up flex items-center gap-2.5 text-[13px] font-semibold uppercase tracking-[0.22em] text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)]">
             <span className="relative grid h-2 w-2 place-items-center">
               <span aria-hidden className="absolute h-2 w-2 rounded-full bg-teal-bright motion-safe:animate-ping" />
               <span aria-hidden className="relative h-2 w-2 rounded-full bg-teal-bright" />
             </span>
-            Belle Mare · Mauritius East Coast
+            Belle Mare Tours · Mauritius
           </p>
 
           <h1 className="animate-fade-up mt-5 font-display text-5xl font-medium leading-[0.92] tracking-[-0.02em] text-white drop-shadow-[0_2px_16px_rgba(10,46,54,0.45)] [animation-delay:80ms] sm:text-6xl lg:text-7xl xl:text-[5.25rem]">
-            The east-coast
+            Explore
             <br />
-            <span className="font-semibold italic">lagoon,</span>
+            Mauritius
             <br />
-            booked direct.
+            <span className="font-semibold italic">your way.</span>
           </h1>
 
           <p className="animate-fade-up mt-6 max-w-md text-[16px] font-medium leading-relaxed text-white [text-shadow:0_1px_10px_rgba(10,46,54,0.65)] [animation-delay:160ms]">
-            Catamaran days to Île aux Cerfs, dolphin swims, sea-walks and parasailing — reserved
-            straight with the local crew who run the boats.{' '}
+            Book private tours, island activities and{' '}
             <span className="relative whitespace-nowrap">
-              No reseller
+              custom trips
               <span
                 aria-hidden
                 className="absolute -bottom-0.5 left-0 h-[3px] w-full rounded bg-coral/90"
               />
-            </span>
-            , no markup.
+            </span>{' '}
+            — with ease.
           </p>
 
           {/* The search now lives in the navbar; the hero carries just the message + proof. */}
@@ -170,7 +157,7 @@ export function GygHero({
         </div>
       </div>
 
-      <HeroGallery images={gallery} />
+      <HeroGallery />
 
       {children && <div className="relative pb-8">{children}</div>}
     </section>

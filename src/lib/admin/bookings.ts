@@ -23,6 +23,8 @@ export type PaymentState = 'pending' | 'paid' | 'partially_refunded' | 'refunded
 export interface BookingItemRow {
   priceLabel: string;
   quantity: number;
+  /** People on board for a vehicle line (null otherwise); use `pax ?? quantity` for headcount. */
+  pax: number | null;
   unitAmountEur: number;
   subtotalEur: number;
   activityTitle: string;
@@ -50,6 +52,8 @@ export interface BookingRow {
   guests: number;
   /** Net cash retained = Σ(paid − refunded) across this booking's payments, in EUR. */
   netPaidEur: number;
+  /** The customer's chosen route (sightseeing tours), or null for the standard route. */
+  customItinerary: Array<{ title: string; area?: string | null }> | null;
 }
 
 export interface PaymentEventRow {
@@ -83,6 +87,7 @@ function one<T>(value: T | T[] | null | undefined): T | null {
 interface RawItem {
   price_label: string;
   quantity: number;
+  pax: number | null;
   unit_amount_minor: number;
   subtotal_minor: number;
   session_occurrences: { starts_at: string } | { starts_at: string }[] | null;
@@ -109,6 +114,7 @@ interface RawBooking {
   currency: string;
   total_minor: number;
   notes: string | null;
+  custom_itinerary: Array<{ title: string; area?: string | null }> | null;
   created_at: string;
   booking_items: RawItem[] | null;
   payments: RawPaymentLite[] | null;
@@ -116,9 +122,9 @@ interface RawBooking {
 
 const BOOKING_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
-  source, currency, total_minor, notes, created_at,
+  source, currency, total_minor, notes, custom_itinerary, created_at,
   booking_items (
-    price_label, quantity, unit_amount_minor, subtotal_minor,
+    price_label, quantity, pax, unit_amount_minor, subtotal_minor,
     session_occurrences ( starts_at ),
     activity_options ( name, activities ( title ) )
   )
@@ -130,7 +136,8 @@ function mapItem(raw: RawItem): BookingItemRow {
   const activity = option ? one(option.activities) : null;
   return {
     priceLabel: raw.price_label,
-    quantity: raw.quantity,
+    quantity: raw.quantity, // line quantity (vehicle count = 1 for vehicle bookings)
+    pax: raw.pax, // people on board (null for per-person/per-group lines)
     unitAmountEur: raw.unit_amount_minor / 100,
     subtotalEur: raw.subtotal_minor / 100,
     activityTitle: activity?.title ?? 'Activity',
@@ -141,7 +148,8 @@ function mapItem(raw: RawItem): BookingItemRow {
 
 function mapBooking(raw: RawBooking): BookingRow {
   const items = (raw.booking_items ?? []).map(mapItem);
-  const guests = items.reduce((sum, it) => sum + it.quantity, 0);
+  // Headcount: people-on-board for a vehicle line (where quantity is the vehicle count), else the quantity.
+  const guests = items.reduce((sum, it) => sum + (it.pax ?? it.quantity), 0);
   const netPaidMinor = (raw.payments ?? []).reduce(
     (sum, p) => sum + (p.paid_minor - p.refunded_minor),
     0,
@@ -164,6 +172,7 @@ function mapBooking(raw: RawBooking): BookingRow {
     startsAt: items[0]?.startsAt ?? null,
     guests,
     netPaidEur: netPaidMinor / 100,
+    customItinerary: raw.custom_itinerary,
   };
 }
 

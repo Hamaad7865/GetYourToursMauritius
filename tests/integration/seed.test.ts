@@ -15,7 +15,7 @@ const CATEGORIES = [
   'Dolphin swims',
   'Sea walks & diving',
   'Parasailing',
-  'Island tours',
+  'Sightseeing tours',
   'Airport transfers',
 ];
 

@@ -11,6 +11,7 @@ export type ServiceErrorCode =
   | 'forbidden'
   | 'not_found'
   | 'conflict'
+  | 'rate_limited'
   | 'config_error'
   | 'provider_error'
   | 'not_implemented'
@@ -57,6 +58,12 @@ export class NotFoundError extends ServiceError {
 export class ConflictError extends ServiceError {
   constructor(message = 'Conflict', details?: unknown) {
     super('conflict', message, 409, details);
+  }
+}
+
+export class RateLimitError extends ServiceError {
+  constructor(message = 'Too many requests — please try again later') {
+    super('rate_limited', message, 429);
   }
 }
 

@@ -31,7 +31,7 @@ describe('api_* service functions', () => {
     const { rows: op } = await db.pg.query<{ id: string }>(`select id from operators limit 1`);
     await db.pg.query(
       `insert into activities (operator_id, slug, title, category, status)
-       values ($1, 'hidden-draft', 'Hidden Draft', 'Island tours', 'draft')`,
+       values ($1, 'hidden-draft', 'Hidden Draft', 'Sightseeing tours', 'draft')`,
       [op[0]!.id],
     );
     const { rows: occ } = await db.pg.query<{ id: string }>(
@@ -102,12 +102,12 @@ describe('api_* service functions', () => {
     expect(slots[0]!.seatsLeft).toBe(slots[0]!.capacity);
   });
 
-  it('api_list_availability materialises open-ended days from daily_capacity (idempotently)', async () => {
+  it('materialize_availability fills open-ended days; api_list_availability is a pure read', async () => {
     await db.asOwner();
     const { rows: op } = await db.pg.query<{ id: string }>(`select id from operators limit 1`);
     const { rows: a } = await db.pg.query<{ id: string }>(
       `insert into activities (operator_id, slug, title, category, status, daily_capacity, duration_minutes)
-       values ($1, 'open-ended-tour', 'Open Ended', 'Island tours', 'published', 8, 120) returning id`,
+       values ($1, 'open-ended-tour', 'Open Ended', 'Sightseeing tours', 'published', 8, 120) returning id`,
       [op[0]!.id],
     );
     const { rows: o } = await db.pg.query<{ id: string }>(
@@ -123,26 +123,31 @@ describe('api_* service functions', () => {
     toDate.setDate(toDate.getDate() + 10);
     const to = toDate.toISOString().slice(0, 10);
 
-    // No occurrences exist yet — the read fills the window on demand.
+    // The read NO LONGER writes — before materialization there are no slots.
+    const empty = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
+    expect(empty.length).toBe(0);
+
+    // Materialize (as the cron / admin would), then read.
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: a[0]!.id })]);
     const slots = await rpc<{ seatsLeft: number; capacity: number }[]>(db, 'api_list_availability', {
       slug: 'open-ended-tour',
       from,
       to,
     });
-    expect(slots.length).toBeGreaterThan(5); // ~10 days materialised
+    expect(slots.length).toBeGreaterThan(5);
     expect(slots.every((s) => s.capacity === 8 && s.seatsLeft === 8)).toBe(true);
 
-    // Idempotent: a second read returns the same window, no duplicates.
+    // Today's open-ended slot is at noon UTC; the read now mirrors create_hold (F16), so it is
+    // offered only while still in the future — shown before noon UTC, correctly hidden after.
+    const noonUtcToday = new Date();
+    noonUtcToday.setUTCHours(12, 0, 0, 0);
+    const sameDay = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to: from });
+    expect(sameDay.length).toBe(Date.now() < noonUtcToday.getTime() ? 1 : 0);
+
+    // Materialization is idempotent — a second run creates no duplicates.
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: a[0]!.id })]);
     const again = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
     expect(again.length).toBe(slots.length);
-
-    // Same-day is bookable (today is materialised, not skipped).
-    const sameDay = await rpc<unknown[]>(db, 'api_list_availability', {
-      slug: 'open-ended-tour',
-      from,
-      to: from,
-    });
-    expect(sameDay.length).toBe(1);
   });
 
   it('api_book → api_create_payment → api_get_booking, with DB-sourced amounts', async () => {
@@ -153,6 +158,7 @@ describe('api_* service functions', () => {
       customerName: 'Marie',
       customerEmail: 'marie@example.com',
       idempotencyKey: 'api-book-1',
+      expectedSlug: 'private-south-tour-with-pickup', // matches the occurrence's activity
     });
     expect(booking.status).toBe('payment_pending');
 
@@ -171,6 +177,21 @@ describe('api_* service functions', () => {
     });
     expect(status.ref).toBe(booking.ref);
     expect(status.totalEur).toBe(110);
+    await db.asOwner();
+  });
+
+  it('api_book rejects an occurrence that does not belong to the asserted activity slug', async () => {
+    await db.as({ sub: USER, role: 'authenticated' });
+    await expect(
+      rpc(db, 'api_book', {
+        occurrenceId, // belongs to private-south-tour-with-pickup
+        party: { 'Private group': 1 },
+        customerName: 'Tamper',
+        customerEmail: 'tamper@example.com',
+        idempotencyKey: 'api-book-mismatch',
+        expectedSlug: 'some-other-activity',
+      }),
+    ).rejects.toThrow(/occurrence_activity_mismatch/);
     await db.asOwner();
   });
 

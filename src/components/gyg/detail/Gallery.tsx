@@ -121,28 +121,32 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
               <IconX width={20} height={20} />
             </button>
           </div>
-          <div className="relative flex flex-1 items-center justify-center">
-            <button
-              type="button"
-              onClick={() => go(-1)}
-              aria-label="Previous photo"
-              className="absolute left-0 grid h-12 w-12 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25"
-            >
-              <IconChevronLeft width={24} height={24} />
-            </button>
+          <div className="relative flex flex-1 items-center justify-center overflow-hidden">
+            {images.length > 1 && (
+              <button
+                type="button"
+                onClick={() => go(-1)}
+                aria-label="Previous photo"
+                className="absolute left-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-ink/65 text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-ink/85 sm:left-4"
+              >
+                <IconChevronLeft width={26} height={26} />
+              </button>
+            )}
             <img
               src={images[index]!.url}
               alt={images[index]!.alt ?? title}
-              className="max-h-full max-w-full rounded-xl object-contain"
+              className="max-h-full max-w-full select-none rounded-xl object-contain"
             />
-            <button
-              type="button"
-              onClick={() => go(1)}
-              aria-label="Next photo"
-              className="absolute right-0 grid h-12 w-12 place-items-center rounded-full bg-white/15 text-white hover:bg-white/25"
-            >
-              <IconChevronRight width={24} height={24} />
-            </button>
+            {images.length > 1 && (
+              <button
+                type="button"
+                onClick={() => go(1)}
+                aria-label="Next photo"
+                className="absolute right-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-ink/65 text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-ink/85 sm:right-4"
+              >
+                <IconChevronRight width={26} height={26} />
+              </button>
+            )}
           </div>
         </div>
       )}

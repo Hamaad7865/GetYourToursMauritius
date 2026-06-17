@@ -12,7 +12,9 @@ import {
   bookingSchema,
   captureLeadInputSchema,
   createBookingInputSchema,
+  createHoldInputSchema,
   createPaymentInputSchema,
+  holdResultSchema,
   leadSchema,
   paymentLinkSchema,
 } from '@/lib/validation/booking';
@@ -65,6 +67,19 @@ export const apiPaths: ZodOpenApiPathsObject = {
       tags: ['Catalogue'],
       requestParams: { path: slugParam, query: availabilityQuerySchema },
       responses: { '200': okJson(z.array(availabilitySlotSchema)) },
+    },
+  },
+  '/holds': {
+    post: {
+      operationId: 'createHold',
+      summary: 'Reserve the spot for a date (anonymous-friendly); reused at pay so no double-hold',
+      tags: ['Bookings'],
+      requestBody: jsonBody(createHoldInputSchema),
+      responses: {
+        '201': okJson(holdResultSchema, 'Hold created'),
+        '400': errorResponse('Invalid request'),
+        '409': errorResponse('Insufficient capacity'),
+      },
     },
   },
   '/bookings': {
@@ -128,6 +143,25 @@ export const apiPaths: ZodOpenApiPathsObject = {
           description: 'OpenAPI document',
           content: { 'application/json': { schema: z.object({}).passthrough() } },
         },
+      },
+    },
+  },
+  '/health': {
+    get: {
+      operationId: 'health',
+      summary: 'Liveness/readiness probe (add ?deep=true to also ping the database)',
+      tags: ['Meta'],
+      responses: {
+        '200': okJson(
+          z.object({
+            status: z.string(),
+            live: z.boolean(),
+            checks: z.record(z.string(), z.boolean()),
+            time: z.string(),
+          }),
+          'Healthy',
+        ),
+        '503': errorResponse('One or more health checks failed'),
       },
     },
   },

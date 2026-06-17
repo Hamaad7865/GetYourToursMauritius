@@ -43,7 +43,9 @@
       "get": {
         "operationId": "searchActivities",
         "summary": "Search the published tour & transport catalogue",
-        "tags": ["Catalogue"],
+        "tags": [
+          "Catalogue"
+        ],
         "parameters": [
           {
             "in": "query",
@@ -51,6 +53,7 @@
             "schema": {
               "type": "integer",
               "minimum": 1,
+              "maximum": 100000,
               "default": 1
             }
           },
@@ -78,15 +81,8 @@
             "name": "category",
             "schema": {
               "type": "string",
-              "enum": [
-                "Catamaran cruises",
-                "Île aux Cerfs",
-                "Dolphin swims",
-                "Sea walks & diving",
-                "Parasailing",
-                "Island tours",
-                "Airport transfers"
-              ]
+              "minLength": 1,
+              "maxLength": 80
             }
           },
           {
@@ -94,7 +90,10 @@
             "name": "type",
             "schema": {
               "type": "string",
-              "enum": ["activity", "transport"]
+              "enum": [
+                "activity",
+                "transport"
+              ]
             }
           }
         ],
@@ -123,44 +122,74 @@
                           },
                           "type": {
                             "type": "string",
-                            "enum": ["activity", "transport"]
+                            "enum": [
+                              "activity",
+                              "transport"
+                            ]
                           },
                           "title": {
                             "type": "string"
                           },
                           "summary": {
-                            "type": ["string", "null"]
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           },
                           "category": {
                             "type": "string",
-                            "enum": [
-                              "Catamaran cruises",
-                              "Île aux Cerfs",
-                              "Dolphin swims",
-                              "Sea walks & diving",
-                              "Parasailing",
-                              "Island tours",
-                              "Airport transfers"
-                            ]
+                            "minLength": 1,
+                            "maxLength": 80
                           },
                           "location": {
-                            "type": ["string", "null"]
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           },
                           "durationMinutes": {
-                            "type": ["integer", "null"]
+                            "type": [
+                              "integer",
+                              "null"
+                            ]
                           },
                           "fromPriceEur": {
-                            "type": ["number", "null"],
+                            "type": [
+                              "number",
+                              "null"
+                            ],
                             "minimum": 0
                           },
+                          "fromPriceMaxGuests": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "exclusiveMinimum": 0
+                          },
+                          "pricingMode": {
+                            "type": "string",
+                            "enum": [
+                              "per_person",
+                              "per_group",
+                              "vehicle"
+                            ],
+                            "default": "per_person"
+                          },
                           "ratingAvg": {
-                            "type": ["number", "null"]
+                            "type": [
+                              "number",
+                              "null"
+                            ]
                           },
                           "ratingCount": {
                             "type": "integer"
                           },
                           "heroImage": {
-                            "type": ["object", "null"],
+                            "type": [
+                              "object",
+                              "null"
+                            ],
                             "properties": {
                               "id": {
                                 "type": "string"
@@ -169,13 +198,51 @@
                                 "type": "string"
                               },
                               "alt": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "position": {
                                 "type": "integer"
                               }
                             },
-                            "required": ["id", "url", "alt", "position"]
+                            "required": [
+                              "id",
+                              "url",
+                              "alt",
+                              "position"
+                            ]
+                          },
+                          "images": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {
+                                  "type": "string"
+                                },
+                                "url": {
+                                  "type": "string"
+                                },
+                                "alt": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "position": {
+                                  "type": "integer"
+                                }
+                              },
+                              "required": [
+                                "id",
+                                "url",
+                                "alt",
+                                "position"
+                              ]
+                            },
+                            "default": []
                           }
                         },
                         "required": [
@@ -188,9 +255,11 @@
                           "location",
                           "durationMinutes",
                           "fromPriceEur",
+                          "pricingMode",
                           "ratingAvg",
                           "ratingCount",
-                          "heroImage"
+                          "heroImage",
+                          "images"
                         ]
                       }
                     },
@@ -210,10 +279,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -240,10 +317,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -255,7 +338,9 @@
       "get": {
         "operationId": "getActivity",
         "summary": "Get full activity detail by slug",
-        "tags": ["Catalogue"],
+        "tags": [
+          "Catalogue"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -289,44 +374,74 @@
                         },
                         "type": {
                           "type": "string",
-                          "enum": ["activity", "transport"]
+                          "enum": [
+                            "activity",
+                            "transport"
+                          ]
                         },
                         "title": {
                           "type": "string"
                         },
                         "summary": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "category": {
                           "type": "string",
-                          "enum": [
-                            "Catamaran cruises",
-                            "Île aux Cerfs",
-                            "Dolphin swims",
-                            "Sea walks & diving",
-                            "Parasailing",
-                            "Island tours",
-                            "Airport transfers"
-                          ]
+                          "minLength": 1,
+                          "maxLength": 80
                         },
                         "location": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "durationMinutes": {
-                          "type": ["integer", "null"]
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
                         },
                         "fromPriceEur": {
-                          "type": ["number", "null"],
+                          "type": [
+                            "number",
+                            "null"
+                          ],
                           "minimum": 0
                         },
+                        "fromPriceMaxGuests": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "exclusiveMinimum": 0
+                        },
+                        "pricingMode": {
+                          "type": "string",
+                          "enum": [
+                            "per_person",
+                            "per_group",
+                            "vehicle"
+                          ],
+                          "default": "per_person"
+                        },
                         "ratingAvg": {
-                          "type": ["number", "null"]
+                          "type": [
+                            "number",
+                            "null"
+                          ]
                         },
                         "ratingCount": {
                           "type": "integer"
                         },
                         "heroImage": {
-                          "type": ["object", "null"],
+                          "type": [
+                            "object",
+                            "null"
+                          ],
                           "properties": {
                             "id": {
                               "type": "string"
@@ -335,19 +450,62 @@
                               "type": "string"
                             },
                             "alt": {
-                              "type": ["string", "null"]
+                              "type": [
+                                "string",
+                                "null"
+                              ]
                             },
                             "position": {
                               "type": "integer"
                             }
                           },
-                          "required": ["id", "url", "alt", "position"]
+                          "required": [
+                            "id",
+                            "url",
+                            "alt",
+                            "position"
+                          ]
+                        },
+                        "images": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "url": {
+                                "type": "string"
+                              },
+                              "alt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "position": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "url",
+                              "alt",
+                              "position"
+                            ]
+                          }
                         },
                         "description": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "meetingPoint": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "pickupAvailable": {
                           "type": "boolean"
@@ -377,34 +535,116 @@
                           }
                         },
                         "cancellationPolicy": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "seoTitle": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "seoDescription": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
-                        "images": {
-                          "type": "array",
-                          "items": {
-                            "type": "object",
-                            "properties": {
-                              "id": {
-                                "type": "string"
-                              },
-                              "url": {
-                                "type": "string"
-                              },
-                              "alt": {
-                                "type": ["string", "null"]
-                              },
-                              "position": {
-                                "type": "integer"
+                        "extra": {
+                          "type": "object",
+                          "properties": {
+                            "itinerary": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "area": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "description": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "tags": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "lat": {
+                                    "type": "number"
+                                  },
+                                  "lng": {
+                                    "type": "number"
+                                  },
+                                  "options": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "title": {
+                                          "type": "string"
+                                        },
+                                        "area": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "lat": {
+                                          "type": "number"
+                                        },
+                                        "lng": {
+                                          "type": "number"
+                                        }
+                                      },
+                                      "required": [
+                                        "title"
+                                      ]
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "title"
+                                ]
                               }
                             },
-                            "required": ["id", "url", "alt", "position"]
-                          }
+                            "importantInfo": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
+                            "availability": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "startWindow": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "returnWindow": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "default": {}
                         },
                         "options": {
                           "type": "array",
@@ -418,7 +658,10 @@
                                 "type": "string"
                               },
                               "description": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "prices": {
                                 "type": "array",
@@ -436,15 +679,28 @@
                                       "minimum": 0
                                     },
                                     "maxGuests": {
-                                      "type": ["integer", "null"],
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ],
                                       "exclusiveMinimum": 0
                                     }
                                   },
-                                  "required": ["id", "label", "amountEur", "maxGuests"]
+                                  "required": [
+                                    "id",
+                                    "label",
+                                    "amountEur",
+                                    "maxGuests"
+                                  ]
                                 }
                               }
                             },
-                            "required": ["id", "name", "description", "prices"]
+                            "required": [
+                              "id",
+                              "name",
+                              "description",
+                              "prices"
+                            ]
                           }
                         },
                         "translations": {
@@ -453,16 +709,29 @@
                             "type": "object",
                             "properties": {
                               "title": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "summary": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "description": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               }
                             },
-                            "required": ["title", "summary", "description"]
+                            "required": [
+                              "title",
+                              "summary",
+                              "description"
+                            ]
                           }
                         },
                         "reviews": {
@@ -480,14 +749,63 @@
                                 "type": "integer"
                               },
                               "text": {
-                                "type": ["string", "null"]
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
                               },
                               "createdAt": {
                                 "type": "string"
                               }
                             },
-                            "required": ["id", "author", "rating", "text", "createdAt"]
+                            "required": [
+                              "id",
+                              "author",
+                              "rating",
+                              "text",
+                              "createdAt"
+                            ]
                           }
+                        },
+                        "vehiclePricing": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "sedanEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "suvEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "familyEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "vanEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "coasterEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "maxParty": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0
+                            }
+                          },
+                          "required": [
+                            "sedanEur",
+                            "suvEur",
+                            "familyEur",
+                            "vanEur",
+                            "coasterEur",
+                            "maxParty"
+                          ]
                         }
                       },
                       "required": [
@@ -500,9 +818,11 @@
                         "location",
                         "durationMinutes",
                         "fromPriceEur",
+                        "pricingMode",
                         "ratingAvg",
                         "ratingCount",
                         "heroImage",
+                        "images",
                         "description",
                         "meetingPoint",
                         "pickupAvailable",
@@ -513,7 +833,7 @@
                         "cancellationPolicy",
                         "seoTitle",
                         "seoDescription",
-                        "images",
+                        "extra",
                         "options",
                         "translations",
                         "reviews"
@@ -535,10 +855,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -565,10 +893,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -580,7 +914,9 @@
       "get": {
         "operationId": "listAvailability",
         "summary": "List bookable occurrences with live seats_left",
-        "tags": ["Catalogue"],
+        "tags": [
+          "Catalogue"
+        ],
         "parameters": [
           {
             "in": "path",
@@ -677,10 +1013,197 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/holds": {
+      "post": {
+        "operationId": "createHold",
+        "summary": "Reserve the spot for a date (anonymous-friendly); reused at pay so no double-hold",
+        "tags": [
+          "Bookings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "occurrenceId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "expectedSlug": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "people": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "occurrenceId",
+                  "people"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Hold created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "holdId": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "holdId",
+                        "quantity",
+                        "expiresAt"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Insufficient capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -692,7 +1215,9 @@
       "post": {
         "operationId": "createBooking",
         "summary": "Create a payment_pending booking (prices come from the DB)",
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -703,12 +1228,60 @@
                     "type": "string",
                     "format": "uuid"
                   },
+                  "expectedSlug": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
                   "party": {
                     "type": "object",
+                    "propertyNames": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 80
+                    },
                     "additionalProperties": {
                       "type": "integer",
-                      "minimum": 0
+                      "minimum": 0,
+                      "maximum": 1000
                     }
+                  },
+                  "suv": {
+                    "type": "boolean"
+                  },
+                  "holdId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "itinerary": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "area": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 120
+                        },
+                        "lat": {
+                          "type": "number"
+                        },
+                        "lng": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ]
+                    },
+                    "maxItems": 30
                   },
                   "customer": {
                     "type": "object",
@@ -723,15 +1296,25 @@
                         "format": "email"
                       },
                       "phone": {
-                        "type": ["string", "null"],
+                        "type": [
+                          "string",
+                          "null"
+                        ],
                         "maxLength": 40
                       }
                     },
-                    "required": ["name", "email"]
+                    "required": [
+                      "name",
+                      "email"
+                    ]
                   },
                   "source": {
                     "type": "string",
-                    "enum": ["web", "ai_chat", "whatsapp"]
+                    "enum": [
+                      "web",
+                      "ai_chat",
+                      "whatsapp"
+                    ]
                   },
                   "idempotencyKey": {
                     "type": "string",
@@ -739,7 +1322,11 @@
                     "maxLength": 200
                   }
                 },
-                "required": ["occurrenceId", "party", "customer"]
+                "required": [
+                  "occurrenceId",
+                  "party",
+                  "customer"
+                ]
               }
             }
           }
@@ -782,7 +1369,13 @@
                         },
                         "paymentState": {
                           "type": "string",
-                          "enum": ["pending", "paid", "partially_refunded", "refunded", "failed"]
+                          "enum": [
+                            "pending",
+                            "paid",
+                            "partially_refunded",
+                            "refunded",
+                            "failed"
+                          ]
                         },
                         "customerName": {
                           "type": "string"
@@ -799,7 +1392,11 @@
                         },
                         "source": {
                           "type": "string",
-                          "enum": ["web", "ai_chat", "whatsapp"]
+                          "enum": [
+                            "web",
+                            "ai_chat",
+                            "whatsapp"
+                          ]
                         },
                         "createdAt": {
                           "type": "string"
@@ -814,6 +1411,12 @@
                               },
                               "quantity": {
                                 "type": "integer"
+                              },
+                              "pax": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
                               },
                               "unitAmountEur": {
                                 "type": "number",
@@ -833,6 +1436,35 @@
                               "unitAmountEur",
                               "subtotalEur",
                               "occurrenceId"
+                            ]
+                          }
+                        },
+                        "customItinerary": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "area": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "lat": {
+                                "type": "number"
+                              },
+                              "lng": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "title"
                             ]
                           }
                         }
@@ -867,10 +1499,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -897,10 +1537,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -927,10 +1573,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -942,7 +1594,9 @@
       "get": {
         "operationId": "getBooking",
         "summary": "Get booking status by reference",
-        "tags": ["Bookings"],
+        "tags": [
+          "Bookings"
+        ],
         "security": [
           {
             "bearerAuth": []
@@ -996,7 +1650,13 @@
                         },
                         "paymentState": {
                           "type": "string",
-                          "enum": ["pending", "paid", "partially_refunded", "refunded", "failed"]
+                          "enum": [
+                            "pending",
+                            "paid",
+                            "partially_refunded",
+                            "refunded",
+                            "failed"
+                          ]
                         },
                         "customerName": {
                           "type": "string"
@@ -1013,7 +1673,11 @@
                         },
                         "source": {
                           "type": "string",
-                          "enum": ["web", "ai_chat", "whatsapp"]
+                          "enum": [
+                            "web",
+                            "ai_chat",
+                            "whatsapp"
+                          ]
                         },
                         "createdAt": {
                           "type": "string"
@@ -1028,6 +1692,12 @@
                               },
                               "quantity": {
                                 "type": "integer"
+                              },
+                              "pax": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
                               },
                               "unitAmountEur": {
                                 "type": "number",
@@ -1047,6 +1717,35 @@
                               "unitAmountEur",
                               "subtotalEur",
                               "occurrenceId"
+                            ]
+                          }
+                        },
+                        "customItinerary": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "area": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "lat": {
+                                "type": "number"
+                              },
+                              "lng": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "title"
                             ]
                           }
                         }
@@ -1081,10 +1780,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -1111,10 +1818,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -1141,10 +1854,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -1156,7 +1875,9 @@
       "post": {
         "operationId": "createPayment",
         "summary": "Create a payment + hosted-checkout link for a booking",
-        "tags": ["Payments"],
+        "tags": [
+          "Payments"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1174,7 +1895,9 @@
                     "maxLength": 200
                   }
                 },
-                "required": ["bookingRef"]
+                "required": [
+                  "bookingRef"
+                ]
               }
             }
           }
@@ -1204,7 +1927,11 @@
                           "type": "string"
                         }
                       },
-                      "required": ["sessionId", "redirectUrl", "provider"]
+                      "required": [
+                        "sessionId",
+                        "redirectUrl",
+                        "provider"
+                      ]
                     },
                     "meta": {
                       "type": "object",
@@ -1222,10 +1949,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -1252,10 +1987,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -1267,7 +2008,9 @@
       "post": {
         "operationId": "captureLead",
         "summary": "Capture a sales lead",
-        "tags": ["Leads"],
+        "tags": [
+          "Leads"
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1291,9 +2034,16 @@
                   "source": {
                     "type": "string",
                     "maxLength": 40
+                  },
+                  "company": {
+                    "type": "string",
+                    "maxLength": 200
                   }
                 },
-                "required": ["name", "contact"]
+                "required": [
+                  "name",
+                  "contact"
+                ]
               }
             }
           }
@@ -1323,11 +2073,18 @@
                           "type": "string"
                         },
                         "interestActivityId": {
-                          "type": ["string", "null"]
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "status": {
                           "type": "string",
-                          "enum": ["new", "contacted", "converted"]
+                          "enum": [
+                            "new",
+                            "contacted",
+                            "converted"
+                          ]
                         },
                         "source": {
                           "type": "string"
@@ -1362,10 +2119,18 @@
                           "type": "integer"
                         }
                       },
-                      "required": ["page", "pageSize", "total", "totalPages"]
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
                     }
                   },
-                  "required": ["ok", "data"]
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
                 }
               }
             }
@@ -1392,10 +2157,16 @@
                         },
                         "details": {}
                       },
-                      "required": ["code", "message"]
+                      "required": [
+                        "code",
+                        "message"
+                      ]
                     }
                   },
-                  "required": ["ok", "error"]
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }
@@ -1407,7 +2178,9 @@
       "get": {
         "operationId": "getOpenApiSpec",
         "summary": "The OpenAPI 3.1 specification for this API",
-        "tags": ["Meta"],
+        "tags": [
+          "Meta"
+        ],
         "responses": {
           "200": {
             "description": "OpenAPI document",
@@ -1416,6 +2189,122 @@
                 "schema": {
                   "type": "object",
                   "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "operationId": "health",
+        "summary": "Liveness/readiness probe (add ?deep=true to also ping the database)",
+        "tags": [
+          "Meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "type": "string"
+                        },
+                        "live": {
+                          "type": "boolean"
+                        },
+                        "checks": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "boolean"
+                          }
+                        },
+                        "time": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "status",
+                        "live",
+                        "checks",
+                        "time"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "One or more health checks failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
                 }
               }
             }

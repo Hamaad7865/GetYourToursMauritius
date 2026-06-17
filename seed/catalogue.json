@@ -338,7 +338,7 @@
     {
       "slug": "north-tour",
       "type": "activity",
-      "category": "Island tours",
+      "category": "Sightseeing tours",
       "title": "North Tour – Port Louis, Pamplemousses & Cap Malheureux",
       "summary": "Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.",
       "description": null,
@@ -360,7 +360,7 @@
     {
       "slug": "private-south-tour-with-pickup",
       "type": "activity",
-      "category": "Island tours",
+      "category": "Sightseeing tours",
       "title": "Private South Tour with Pickup",
       "summary": "Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.",
       "description": null,
@@ -387,7 +387,7 @@
     {
       "slug": "south-east-tour-bois-cheri",
       "type": "activity",
-      "category": "Island tours",
+      "category": "Sightseeing tours",
       "title": "South-East Tour – Bois Chéri Tea Route",
       "summary": "Day tour of the south-east taking in one of the island's main tea factories at Bois Chéri.",
       "description": null,
@@ -409,7 +409,7 @@
     {
       "slug": "la-vallee-des-couleurs",
       "type": "activity",
-      "category": "Island tours",
+      "category": "Sightseeing tours",
       "title": "La Vallée des Couleurs Nature Park",
       "summary": "Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.",
       "description": null,
@@ -431,7 +431,7 @@
     {
       "slug": "black-river-gorges-hike",
       "type": "activity",
-      "category": "Island tours",
+      "category": "Sightseeing tours",
       "title": "Black River Gorges Hike",
       "summary": "Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.",
       "description": null,
@@ -453,7 +453,7 @@
     {
       "slug": "le-morne-brabant-hike",
       "type": "activity",
-      "category": "Island tours",
+      "category": "Sightseeing tours",
       "title": "Le Morne Brabant Hike",
       "summary": "Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.",
       "description": null,
@@ -475,7 +475,7 @@
     {
       "slug": "helicopter-tour",
       "type": "activity",
-      "category": "Island tours",
+      "category": "Sightseeing tours",
       "title": "Helicopter Tour",
       "summary": "Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.",
       "description": null,

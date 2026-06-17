@@ -11,7 +11,7 @@ const COLUMNS = [
       'Île aux Cerfs',
       'Dolphin swims',
       'Sea walks & diving',
-      'Island tours',
+      'Sightseeing tours',
     ].map((c) => ({ label: c, href: `/activities?category=${encodeURIComponent(c)}` })),
   },
   {

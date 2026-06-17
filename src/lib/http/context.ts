@@ -1,12 +1,33 @@
 import type { ServiceContext } from '@/lib/services/context';
 import type { DbRpc } from '@/lib/db/rpc';
+import type { PaymentProvider } from '@/lib/payments/types';
 import { createUserClient } from '@/lib/supabase/client';
+import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { supabaseRpc } from '@/lib/supabase/rpc';
 import { seedRpc } from '@/lib/dev/seed-rpc';
 import { getServerEnv } from '@/lib/config/env';
 import { getPaymentProvider } from '@/lib/payments';
 import { getAiProvider } from '@/lib/ai';
 import { getBearerToken } from './auth';
+
+/**
+ * Builds a ServiceContext with a LAZY payment provider: it is constructed on first access and
+ * memoised. The public catalogue never takes a payment, so it must not construct the provider —
+ * otherwise the fail-closed payment gate (refuses the stub on a real backend) would 500 an
+ * unrelated read. Payment routes access `ctx.payments` and get the gate as intended.
+ */
+function makeContext(db: DbRpc): ServiceContext {
+  let payments: PaymentProvider | null = null;
+  return {
+    db,
+    get payments(): PaymentProvider {
+      payments ??= getPaymentProvider();
+      return payments;
+    },
+    ai: getAiProvider(),
+    now: () => new Date(),
+  };
+}
 
 /**
  * Chooses the db transport. With Supabase configured it's the real client; otherwise,
@@ -29,21 +50,19 @@ function selectDb(token: string | null): DbRpc {
  * this runs.
  */
 export function buildServiceContext(req: Request): ServiceContext {
-  const token = getBearerToken(req);
-  return {
-    db: selectDb(token),
-    payments: getPaymentProvider(),
-    ai: getAiProvider(),
-    now: () => new Date(),
-  };
+  return makeContext(selectDb(getBearerToken(req)));
 }
 
 /** Anonymous context for public server components (RLS shows published only). */
 export function publicServiceContext(): ServiceContext {
-  return {
-    db: selectDb(null),
-    payments: getPaymentProvider(),
-    ai: getAiProvider(),
-    now: () => new Date(),
-  };
+  return makeContext(selectDb(null));
+}
+
+/**
+ * Service-role context for trusted internal workers (notification drain, hold sweep, payment
+ * reconciliation). Bypasses RLS, so it must only be reached behind a server-side secret — never
+ * from a user-facing route.
+ */
+export function serviceRoleServiceContext(): ServiceContext {
+  return makeContext(supabaseRpc(createServiceRoleClient()));
 }

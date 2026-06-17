@@ -12,6 +12,7 @@ export function ContactForm() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [message, setMessage] = useState('');
+  const [company, setCompany] = useState(''); // honeypot — must stay empty for real users
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -27,7 +28,7 @@ export function ContactForm() {
       const res = await fetch('/api/v1/leads', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() || 'Website enquiry', contact, source: 'web' }),
+        body: JSON.stringify({ name: name.trim() || 'Website enquiry', contact, source: 'web', company }),
       }).then((r) => r.json());
       if (!res.ok) throw new Error(res.error?.message ?? 'Could not send your message.');
       setState('sent');
@@ -53,6 +54,19 @@ export function ContactForm() {
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
+      {/* Honeypot: off-screen, not for humans. Bots that auto-fill every field trip it. */}
+      <div aria-hidden="true" className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden">
+        <label>
+          Company (leave this empty)
+          <input
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={company}
+            onChange={(e) => setCompany(e.target.value)}
+          />
+        </label>
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1 block text-[13px] font-bold text-ink">Name</span>

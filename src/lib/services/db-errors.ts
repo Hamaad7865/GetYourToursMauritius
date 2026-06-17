@@ -3,6 +3,7 @@ import {
   ForbiddenError,
   NotFoundError,
   ProviderError,
+  RateLimitError,
   ValidationError,
 } from './errors';
 
@@ -33,6 +34,9 @@ export function mapDbError(error: unknown): never {
   }
   if (/null value in column|violates (check|not-null|foreign key) constraint/i.test(message)) {
     throw new ValidationError('Invalid request');
+  }
+  if (/\brate_limited\b/.test(message)) {
+    throw new RateLimitError();
   }
   if (/\bforbidden\b/.test(message)) {
     throw new ForbiddenError();

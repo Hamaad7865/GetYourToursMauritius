@@ -60,7 +60,7 @@ describe('admin add-activity → website read', () => {
           meeting_point, pickup_available, languages, inclusions, exclusions, highlights,
           cancellation_policy, status, extra)
        values ($1, $2, 'activity', 'Admin North Demo', 'A day in the north', 'A full guided day.',
-          'Island tours', 'North', 300, 'Hotel lobby', true,
+          'Sightseeing tours', 'North', 300, 'Hotel lobby', true,
           '{English,French}', '{Lunch,Guide}', '{Tips}', '{Scenic stops}',
           'Free cancellation up to 24 hours before.', $3, $4::jsonb)
        returning id`,
@@ -107,7 +107,7 @@ describe('admin add-activity → website read', () => {
     const card = search.items.find((i) => i.slug === 'admin-north-demo');
     expect(card, 'admin activity should appear on the home/browse cards').toBeTruthy();
     expect(card!.title).toBe('Admin North Demo');
-    expect(card!.category).toBe('Island tours');
+    expect(card!.category).toBe('Sightseeing tours');
     expect(card!.fromPriceEur).toBe(70);
     expect(card!.heroImage?.url).toBe('https://img/cover.jpg');
     expect(card!.images).toHaveLength(2);

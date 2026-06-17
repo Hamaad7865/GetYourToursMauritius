@@ -9,7 +9,7 @@ export const TOUR_CATEGORIES = [
   'Dolphin swims',
   'Sea walks & diving',
   'Parasailing',
-  'Island tours',
+  'Sightseeing tours',
 ] as const;
 
 export const categorySchema = z.string().min(1).max(80);
@@ -51,7 +51,9 @@ export const localeSchema = z.enum(['en', 'fr']);
 export type Locale = z.infer<typeof localeSchema>;
 
 export const paginationQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
+  // Upper-bounded so a huge `?page=` can't overflow the int4 OFFSET arithmetic in the api_* SQL
+  // (which surfaced as a 502 instead of a clean validation error).
+  page: z.coerce.number().int().min(1).max(100_000).default(1),
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 export type PaginationQuery = z.infer<typeof paginationQuerySchema>;

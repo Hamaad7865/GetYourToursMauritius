@@ -9,6 +9,9 @@ import { WishHeart } from '@/components/gyg/WishHeart';
 import { RecordView } from '@/components/gyg/RecordView';
 import { Gallery } from '@/components/gyg/detail/Gallery';
 import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
+import { BookingProvider } from '@/components/gyg/detail/BookingProvider';
+import { BookingOptionCard } from '@/components/gyg/detail/BookingOptionCard';
+import { ItineraryBuilder } from '@/components/gyg/detail/ItineraryBuilder';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
 import { QuickFacts, Overview, Itinerary, Includes } from '@/components/gyg/detail/Sections';
@@ -163,6 +166,21 @@ export default async function ActivityDetailPage({
           </div>
 
           {/* GYG layout: gallery (left, top) + sticky booking (right), content below gallery */}
+          <BookingProvider
+            activity={{
+              slug: activity.slug,
+              type: activity.type,
+              title: activity.title,
+              fromPriceEur: activity.fromPriceEur,
+              options: activity.options,
+              languages: activity.languages,
+              pricingMode: activity.pricingMode,
+              vehiclePricing: activity.vehiclePricing ?? null,
+              durationMinutes: activity.durationMinutes,
+              pickupAvailable: activity.pickupAvailable,
+              image: activity.heroImage?.url ?? activity.images[0]?.url ?? null,
+            }}
+          >
           <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">
             <div className="lg:col-start-1 lg:row-start-1">
               {activity.images.length > 0 && (
@@ -170,17 +188,8 @@ export default async function ActivityDetailPage({
               )}
             </div>
 
-            <aside className="mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
-              <BookingWidget
-                slug={activity.slug}
-                type={activity.type}
-                fromPriceEur={activity.fromPriceEur}
-                options={activity.options}
-                languages={activity.languages}
-                title={activity.title}
-                groupPricing={activity.groupPricing}
-                image={activity.heroImage?.url ?? activity.images[0]?.url ?? null}
-              />
+            <aside id="book" className="mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
+              <BookingWidget />
             </aside>
 
             <div className="min-w-0 lg:col-start-1 lg:row-start-2">
@@ -189,6 +198,8 @@ export default async function ActivityDetailPage({
                   {activity.summary}
                 </p>
               )}
+
+              <BookingOptionCard />
 
               <QuickFacts
                 durationMinutes={activity.durationMinutes}
@@ -211,10 +222,16 @@ export default async function ActivityDetailPage({
               {itinerary.length > 0 && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
                   <SectionTitle>Itinerary</SectionTitle>
-                  <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
-                  <p className="mt-3 text-[12.5px] text-ink-muted">
-                    For reference only. Itineraries are subject to change.
-                  </p>
+                  {itinerary.some((s) => (s.options?.length ?? 0) > 0) ? (
+                    <ItineraryBuilder slug={activity.slug} stops={itinerary} />
+                  ) : (
+                    <>
+                      <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
+                      <p className="mt-3 text-[12.5px] text-ink-muted">
+                        For reference only. Itineraries are subject to change.
+                      </p>
+                    </>
+                  )}
                 </section>
               )}
 
@@ -301,6 +318,7 @@ export default async function ActivityDetailPage({
               </section>
             </div>
           </div>
+          </BookingProvider>
 
           {related.length > 0 && (
             <section className="mt-12 border-t border-ink/10 pt-8">

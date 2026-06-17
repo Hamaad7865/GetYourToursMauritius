@@ -33,7 +33,7 @@ describe('row level security', () => {
     publishedActivityId = seeded.activityId;
     const { rows: draft } = await db.pg.query<{ id: string }>(
       `insert into activities (operator_id, slug, title, category, status)
-       values ($1, 'draft-secret', 'Draft Secret', 'Island tours', 'draft') returning id`,
+       values ($1, 'draft-secret', 'Draft Secret', 'Sightseeing tours', 'draft') returning id`,
       [seeded.operatorId],
     );
     draftActivityId = draft[0]!.id;

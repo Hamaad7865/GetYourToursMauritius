@@ -117,7 +117,7 @@ describe('security & integrity fixes', () => {
     ).rejects.toThrow(/exceeds_max_guests/);
   });
 
-  it('charges per group when the activity opts into group pricing — the island-tour model', async () => {
+  it('charges per group when the activity opts into group pricing — the sightseeing-tour model', async () => {
     for (const [people, groups] of [
       [4, 1],
       [5, 2],
@@ -128,7 +128,7 @@ describe('security & integrity fixes', () => {
       const { occurrenceId, optionId } = await seedOccurrence(db, 50);
       // Opt this activity into per-group pricing.
       await db.pg.query(
-        `update activities set group_pricing = true where id = (select activity_id from activity_options where id = $1)`,
+        `update activities set pricing_mode = 'per_group' where id = (select activity_id from activity_options where id = $1)`,
         [optionId],
       );
       await db.pg.query(
@@ -146,6 +146,105 @@ describe('security & integrity fixes', () => {
       );
       expect(Number(b[0]!.total_minor)).toBe(groups * 7000); // 4->70, 5->140, 8->140, 9->210
     }
+  });
+
+  async function seedVehicle(capacity: number): Promise<{ occurrenceId: string; optionId: string }> {
+    const { occurrenceId, optionId } = await seedOccurrence(db, capacity);
+    await db.pg.query(
+      `update activities set pricing_mode = 'vehicle' where id = (select activity_id from activity_options where id = $1)`,
+      [optionId],
+    );
+    return { occurrenceId, optionId };
+  }
+
+  it('charges a flat price per vehicle bracket; SUV is the €85 upgrade ≤4', async () => {
+    for (const [people, suv, expectMinor, vehicle] of [
+      [1, false, 7000, 'Sedan'],
+      [4, false, 7000, 'Sedan'],
+      [4, true, 8500, 'SUV'],
+      [5, false, 8500, 'Family car'],
+      [6, false, 8500, 'Family car'],
+      [7, false, 12500, 'Van'],
+      [12, false, 12500, 'Van'],
+      [14, false, 12500, 'Van'],
+      [15, false, 22500, 'Coaster'],
+      [25, false, 22500, 'Coaster'],
+    ] as const) {
+      await db.asOwner();
+      const { occurrenceId } = await seedVehicle(10);
+      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
+        occurrenceId,
+        `veh-${people}-${suv}`,
+      ]);
+      const { rows: b } = await db.pg.query<{ id: string; total_minor: number | string }>(
+        `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb, $4)`,
+        [`veh-bk-${people}-${suv}`, h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: people }]), suv],
+      );
+      expect(Number(b[0]!.total_minor)).toBe(expectMinor);
+      const { rows: item } = await db.pg.query<{
+        quantity: number;
+        pax: number;
+        subtotal_minor: number | string;
+        price_label: string;
+      }>(`select quantity, pax, subtotal_minor, price_label from booking_items where booking_id = $1`, [b[0]!.id]);
+      expect(item[0]!.quantity).toBe(1); // one vehicle slot
+      expect(item[0]!.pax).toBe(people); // people on board
+      expect(item[0]!.price_label).toBe(vehicle);
+      expect(Number(item[0]!.subtotal_minor)).toBe(expectMinor);
+    }
+  });
+
+  it('rejects a sightseeing party larger than 25', async () => {
+    await db.asOwner();
+    const { occurrenceId } = await seedVehicle(50);
+    const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, 'veh-over')`, [
+      occurrenceId,
+    ]);
+    await expect(
+      db.pg.query(
+        `select * from create_booking('veh-over-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb, false)`,
+        [h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: 26 }])],
+      ),
+    ).rejects.toThrow(/exceeds_vehicle_capacity/);
+  });
+
+  it('counts vehicles, not people, against the day — two vehicles fill a capacity-2 day', async () => {
+    await db.asOwner();
+    const { occurrenceId } = await seedVehicle(2); // two vehicle slots
+    for (const n of [1, 2]) {
+      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
+        occurrenceId,
+        `cap-${n}`,
+      ]);
+      await db.pg.query(
+        `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb, false)`,
+        [`cap-bk-${n}`, h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: 10 }])],
+      );
+    }
+    // A third vehicle can't be held even though only "2" of the people-capacity is nominally used.
+    await expect(db.pg.query(`select * from create_hold($1, 1, 'cap-3')`, [occurrenceId])).rejects.toThrow();
+  });
+
+  it('catalogue exposes the global vehicle pricing config (from €70) for vehicle mode', async () => {
+    await db.asOwner();
+    const { optionId } = await seedVehicle(10);
+    const { rows: a } = await db.pg.query<{ slug: string }>(
+      `select slug from activities where id = (select activity_id from activity_options where id = $1)`,
+      [optionId],
+    );
+    const { rows } = await db.pg.query<{
+      data: { pricingMode: string; fromPriceEur: number; vehiclePricing: unknown };
+    }>(`select api_get_activity($1::jsonb) as data`, [JSON.stringify({ slug: a[0]!.slug })]);
+    expect(rows[0]!.data.pricingMode).toBe('vehicle');
+    expect(rows[0]!.data.fromPriceEur).toBe(70);
+    expect(rows[0]!.data.vehiclePricing).toMatchObject({
+      sedanEur: 70,
+      suvEur: 85,
+      familyEur: 85,
+      vanEur: 125,
+      coasterEur: 225,
+      maxParty: 25,
+    });
   });
 
   it('does not project a refund that arrives before any payment', async () => {

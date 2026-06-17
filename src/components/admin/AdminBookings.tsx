@@ -427,7 +427,7 @@ function BookingDrawer({
                     </p>
                     <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink/70">
                       <IconCalendar width={13} height={13} className="text-teal" /> {fmtDate(it.startsAt)}
-                      <IconUsers width={13} height={13} className="ml-2 text-teal" /> {it.quantity}
+                      <IconUsers width={13} height={13} className="ml-2 text-teal" /> {it.pax ?? it.quantity}
                     </p>
                   </li>
                 ))}
@@ -437,6 +437,20 @@ function BookingDrawer({
                 <span className="text-lg font-extrabold text-ink">{eur(booking.totalEur)}</span>
               </div>
             </section>
+
+            {/* Customer-customized route (sightseeing tours) */}
+            {booking.customItinerary && booking.customItinerary.length > 0 && (
+              <section className="rounded-xl border border-ink/10 p-4">
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                  Customer route
+                </h3>
+                <ol className="mt-2 list-decimal pl-5 text-[13px] text-ink/80">
+                  {booking.customItinerary.map((s, i) => (
+                    <li key={i}>{s.area ? `${s.title} — ${s.area}` : s.title}</li>
+                  ))}
+                </ol>
+              </section>
+            )}
 
             {/* Payment ledger */}
             <section className="rounded-xl border border-ink/10 p-4">
@@ -505,9 +519,14 @@ function BookingDrawer({
                   disabled={busy === 'cancel'}
                   onClick={() => {
                     // A confirmed booking's seats are freed immediately; an unpaid hold's seats
-                    // free themselves when the 15-minute hold expires, so don't promise otherwise.
-                    const msg =
-                      booking.status === 'confirmed'
+                    // free themselves when the hold expires. A PAID booking is routed to
+                    // refund_pending (the DB does this) so the refund owed is tracked — warn the
+                    // operator to actually issue it.
+                    const paid =
+                      booking.paymentState === 'paid' || booking.paymentState === 'partially_refunded';
+                    const msg = paid
+                      ? `Cancel booking ${booking.ref}? It's PAID — this frees the seats and marks it refund-pending. Remember to refund the customer in your payment provider.`
+                      : booking.status === 'confirmed'
                         ? `Cancel booking ${booking.ref}? This frees the seats.`
                         : `Cancel booking ${booking.ref}? Any held seats free up when the hold expires.`;
                     if (window.confirm(msg))
