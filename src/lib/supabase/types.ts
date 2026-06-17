@@ -499,6 +499,35 @@ type PlannerPricingRow = {
 };
 type PlannerPricingInsert = Partial<PlannerPricingRow>;
 
+type PlannerPlacesRow = {
+  id: string;
+  name: string;
+  category: string;
+  region: string;
+  lat: number;
+  lng: number;
+  duration_min: number;
+  closes_at: string | null;
+  blurb: string | null;
+  image_url: string | null;
+  position: number;
+  created_at: string;
+};
+type PlannerPlacesInsert = {
+  id: string;
+  name: string;
+  category: string;
+  region: string;
+  lat: number;
+  lng: number;
+  duration_min: number;
+  closes_at?: string | null;
+  blurb?: string | null;
+  image_url?: string | null;
+  position?: number;
+  created_at?: string;
+};
+
 type TableDef<Row, Insert> = { Row: Row; Insert: Insert; Update: Partial<Insert>; Relationships: [] };
 
 export interface Database {
@@ -526,6 +555,7 @@ export interface Database {
       chat_messages: TableDef<ChatMessagesRow, ChatMessagesInsert>;
       sightseeing_pricing: TableDef<SightseeingPricingRow, SightseeingPricingInsert>;
       planner_pricing: TableDef<PlannerPricingRow, PlannerPricingInsert>;
+      planner_places: TableDef<PlannerPlacesRow, PlannerPlacesInsert>;
     };
     Views: { [_ in never]: never };
     Functions: {
