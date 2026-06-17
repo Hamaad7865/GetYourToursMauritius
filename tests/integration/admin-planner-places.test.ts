@@ -23,7 +23,7 @@ const { loadPlannerPlaces, createPlannerPlace, updatePlannerPlace, deletePlanner
 );
 
 const NEW = {
-  name: 'Flic en Flac Beach',
+  name: 'QA Test Cove',
   category: 'Beach',
   region: 'West',
   lat: -20.274,
@@ -52,18 +52,18 @@ describe('admin planner places', () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     await createPlannerPlace(NEW);
     let rows = await loadPlannerPlaces();
-    const created = rows.find((r) => r.id === 'flic-en-flac-beach');
+    const created = rows.find((r) => r.id === 'qa-test-cove');
     expect(created).toBeTruthy();
     expect(created!.region).toBe('West');
     expect(created!.lat).toBeCloseTo(-20.274, 3);
 
-    await updatePlannerPlace('flic-en-flac-beach', { ...NEW, durationMin: 120 });
+    await updatePlannerPlace('qa-test-cove', { ...NEW, durationMin: 120 });
     rows = await loadPlannerPlaces();
-    expect(rows.find((r) => r.id === 'flic-en-flac-beach')!.durationMin).toBe(120);
+    expect(rows.find((r) => r.id === 'qa-test-cove')!.durationMin).toBe(120);
 
-    await deletePlannerPlace('flic-en-flac-beach');
+    await deletePlannerPlace('qa-test-cove');
     rows = await loadPlannerPlaces();
-    expect(rows.find((r) => r.id === 'flic-en-flac-beach')).toBeUndefined();
+    expect(rows.find((r) => r.id === 'qa-test-cove')).toBeUndefined();
   });
 
   it('denies a non-staff create (RLS rejects the insert)', async () => {

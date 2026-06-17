@@ -36,7 +36,7 @@ describe('planner_places data layer', () => {
 
   it('seeds curated places readable by the public, with coords inside Mauritius', async () => {
     const places = await rpc<PlaceDto[]>(db, 'api_planner_places', {});
-    expect(places.length).toBeGreaterThanOrEqual(12);
+    expect(places.length).toBeGreaterThanOrEqual(30);
     for (const p of places) {
       expect(p.lat).toBeGreaterThan(-20.7);
       expect(p.lat).toBeLessThan(-19.8);
@@ -48,8 +48,8 @@ describe('planner_places data layer', () => {
 
   it('exposes closing times as HH:MM and leaves open-access places null', async () => {
     const places = await rpc<PlaceDto[]>(db, 'api_planner_places', {});
-    const cham = places.find((p) => p.id === 'chamarel-waterfall');
-    expect(cham?.closesAt).toBe('17:00');
+    const garden = places.find((p) => p.id === 'pamplemousses-botanical-garden');
+    expect(garden?.closesAt).toBe('17:30');
     const leMorne = places.find((p) => p.id === 'le-morne-beach');
     expect(leMorne?.closesAt).toBeNull();
   });

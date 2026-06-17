@@ -26,10 +26,12 @@ describe('planner service', () => {
 
   it('listPlannerPlaces returns the curated, validated places', async () => {
     const places = await listPlannerPlaces(ctx);
-    expect(places.length).toBeGreaterThanOrEqual(12);
+    expect(places.length).toBeGreaterThanOrEqual(30);
     const cham = places.find((p) => p.id === 'chamarel-waterfall');
-    expect(cham?.closesAt).toBe('17:00');
     expect(typeof cham?.lat).toBe('number');
     expect(cham?.region).toBe('South');
+    // A place with set opening hours surfaces closesAt as HH:MM.
+    const garden = places.find((p) => p.id === 'pamplemousses-botanical-garden');
+    expect(garden?.closesAt).toBe('17:30');
   });
 });
