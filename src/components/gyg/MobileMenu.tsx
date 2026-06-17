@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/site/Logo';
+import { useDialog } from '@/lib/a11y/useDialog';
 import { useAuth } from '@/components/auth/AuthProvider';
 import {
   usePreferences,
@@ -92,19 +93,9 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
   const { user, profile, openAuth, signOut } = useAuth();
   const { language, currency, openPrefs } = usePreferences();
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    window.addEventListener('keydown', onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
   const close = () => setOpen(false);
+  // Scroll-lock, Escape, focus move-in/return, and a Tab focus trap (APG modal dialog).
+  const dialogRef = useDialog(open, close);
 
   return (
     <>
@@ -113,28 +104,24 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
         onClick={() => setOpen(true)}
         aria-label="Open menu"
         aria-expanded={open}
-        className={`grid h-10 w-10 place-items-center rounded-xl sm:hidden ${light ? 'text-white' : 'text-ink'}`}
+        className={`grid h-11 w-11 place-items-center rounded-xl sm:hidden ${light ? 'text-white' : 'text-ink'}`}
       >
         <IconMenu width={24} height={24} />
       </button>
 
       {/* Overlay + panel. Mounted only while open; the panel slides from the right. */}
       {open && (
-        <div className="fixed inset-0 z-[70] sm:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <button
-            type="button"
-            aria-label="Close menu"
-            onClick={close}
-            className="absolute inset-0 bg-ink/40"
-          />
+        <div ref={dialogRef} className="fixed inset-0 z-[70] sm:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          {/* Non-focusable scrim — click to dismiss; the X button + Escape handle keyboard. */}
+          <div aria-hidden onClick={close} className="absolute inset-0 bg-ink/40" />
           <div className="absolute inset-y-0 right-0 flex w-full max-w-sm animate-slide-in flex-col bg-white shadow-2xl">
-            <div className="flex items-center justify-between bg-ink px-5 py-4">
+            <div className="flex items-center justify-between bg-ink px-5 py-3.5">
               <Logo tone="dark" />
               <button
                 type="button"
                 onClick={close}
                 aria-label="Close menu"
-                className="grid h-9 w-9 place-items-center rounded-full text-white/90 hover:bg-white/10"
+                className="grid h-11 w-11 place-items-center rounded-full text-white/90 hover:bg-white/10"
               >
                 <IconX width={22} height={22} />
               </button>

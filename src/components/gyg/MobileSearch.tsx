@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDialog } from '@/lib/a11y/useDialog';
 import { useCategories } from '@/lib/categories/useCategories';
 import { addRecentSearch, getRecentSearches } from '@/lib/search/recent';
 import {
@@ -35,15 +36,6 @@ const MAX_PER_GROUP = 16;
 export function MobileSearch() {
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
   return (
     <>
       <button
@@ -69,14 +61,12 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
   const [panel, setPanel] = useState<'date' | 'travellers' | null>(null);
   const [recents, setRecents] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Scroll-lock, Escape, focus the query on open + trap Tab + return focus to the trigger on close.
+  const sheetRef = useDialog(true, onClose, () => inputRef.current);
 
   useEffect(() => {
     setRecents(getRecentSearches());
-    inputRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, []);
 
   function go(url: string, recordQuery?: string) {
     if (recordQuery && recordQuery.trim()) addRecentSearch(recordQuery.trim());
@@ -91,15 +81,21 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
   const dateLabel = date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Anytime';
 
   return (
-    <div className="fixed inset-0 z-[70] flex flex-col bg-cream sm:hidden" role="dialog" aria-modal="true" aria-label="Search">
+    <div
+      ref={sheetRef}
+      className="fixed inset-0 z-[70] flex animate-slide-up flex-col bg-cream sm:hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Search"
+    >
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-ink/10 bg-white px-4 py-3.5">
+      <div className="flex items-center gap-3 border-b border-ink/10 bg-white px-4 py-2.5">
         <h2 className="flex-1 font-display text-[20px] font-semibold tracking-tight text-ink">Where to?</h2>
         <button
           type="button"
           onClick={onClose}
           aria-label="Close search"
-          className="grid h-9 w-9 place-items-center rounded-full bg-ink/[0.06] text-ink hover:bg-ink/10"
+          className="grid h-11 w-11 place-items-center rounded-full bg-ink/[0.06] text-ink hover:bg-ink/10"
         >
           <IconX width={20} height={20} />
         </button>
@@ -261,7 +257,7 @@ function DateInline({ selected, onPick }: { selected: Date | null; onPick: (d: D
           aria-label="Previous month"
           disabled={!canBack}
           onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
-          className="grid h-8 w-8 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
+          className="grid h-10 w-10 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
         >
           <IconChevronLeft width={16} height={16} />
         </button>
@@ -272,7 +268,7 @@ function DateInline({ selected, onPick }: { selected: Date | null; onPick: (d: D
           type="button"
           aria-label="Next month"
           onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
-          className="grid h-8 w-8 place-items-center rounded-full text-ink hover:bg-cream"
+          className="grid h-10 w-10 place-items-center rounded-full text-ink hover:bg-cream"
         >
           <IconChevronRight width={16} height={16} />
         </button>
@@ -293,7 +289,7 @@ function DateInline({ selected, onPick }: { selected: Date | null; onPick: (d: D
               type="button"
               disabled={past}
               onClick={() => onPick(cell)}
-              className={`mx-auto grid h-9 w-9 place-items-center rounded-full text-[13px] font-medium ${
+              className={`mx-auto grid h-10 w-10 place-items-center rounded-full text-[13px] font-medium ${
                 isSel ? 'bg-teal text-white' : past ? 'cursor-default text-ink/25' : 'text-ink hover:bg-teal/10'
               }`}
             >
@@ -331,7 +327,7 @@ function Stepper({
           aria-label={`Remove ${label.toLowerCase()}`}
           disabled={value <= min}
           onClick={() => onChange(Math.max(min, value - 1))}
-          className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
+          className="grid h-10 w-10 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
         >
           <IconMinus width={15} height={15} />
         </button>
@@ -343,7 +339,7 @@ function Stepper({
           aria-label={`Add ${label.toLowerCase()}`}
           disabled={value >= MAX_PER_GROUP}
           onClick={() => onChange(Math.min(MAX_PER_GROUP, value + 1))}
-          className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
+          className="grid h-10 w-10 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
         >
           <IconPlus width={15} height={15} />
         </button>
