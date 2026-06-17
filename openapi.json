@@ -616,6 +616,48 @@
                                 "string",
                                 "null"
                               ]
+                            },
+                            "optionalStops": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "title": {
+                                    "type": "string"
+                                  },
+                                  "area": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "description": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "tags": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "string"
+                                    }
+                                  },
+                                  "lat": {
+                                    "type": "number"
+                                  },
+                                  "lng": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "title"
+                                ]
+                              }
+                            },
+                            "maxStops": {
+                              "type": "integer",
+                              "exclusiveMinimum": 0
                             }
                           },
                           "default": {}
@@ -1034,6 +1076,36 @@
                   "suv": {
                     "type": "boolean"
                   },
+                  "itinerary": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "area": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 120
+                        },
+                        "lat": {
+                          "type": "number"
+                        },
+                        "lng": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ]
+                    },
+                    "maxItems": 30
+                  },
                   "customer": {
                     "type": "object",
                     "properties": {
@@ -1187,6 +1259,35 @@
                               "unitAmountEur",
                               "subtotalEur",
                               "occurrenceId"
+                            ]
+                          }
+                        },
+                        "customItinerary": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "area": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "lat": {
+                                "type": "number"
+                              },
+                              "lng": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "title"
                             ]
                           }
                         }
@@ -1439,6 +1540,35 @@
                               "unitAmountEur",
                               "subtotalEur",
                               "occurrenceId"
+                            ]
+                          }
+                        },
+                        "customItinerary": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "area": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "lat": {
+                                "type": "number"
+                              },
+                              "lng": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "title"
                             ]
                           }
                         }
