@@ -57,7 +57,8 @@ export function BookingWidget() {
     days,
     maxParticipants,
     unitLabel,
-    setChecked,
+    checkAvailability,
+    touch,
   } = b;
   const isTransport = activity.type === 'transport';
   const isVehicle = activity.pricingMode === 'vehicle';
@@ -103,7 +104,7 @@ export function BookingWidget() {
   function pickDate(cell: Date) {
     setDate(dateKey(cell));
     setOpen(null);
-    setChecked(false); // changing the date re-hides the option card until re-checked
+    touch(); // keep the option card open + show it updating to the new date
     setParticipants(Math.max(1, Math.min(participants, maxParticipants)));
   }
 
@@ -164,7 +165,7 @@ export function BookingWidget() {
                     aria-label="Remove participant"
                     onClick={() => {
                       setParticipants(Math.max(1, participants - 1));
-                      setChecked(false);
+                      touch();
                     }}
                     disabled={participants <= 1}
                     className="grid h-8 w-8 place-items-center rounded-lg border border-ink/15 text-ink hover:border-teal hover:text-teal disabled:opacity-40"
@@ -177,7 +178,7 @@ export function BookingWidget() {
                     aria-label="Add participant"
                     onClick={() => {
                       setParticipants(Math.min(maxParticipants, participants + 1));
-                      setChecked(false);
+                      touch();
                     }}
                     disabled={participants >= maxParticipants}
                     className="grid h-8 w-8 place-items-center rounded-lg border border-ink/15 text-ink hover:border-teal hover:text-teal disabled:opacity-40"
@@ -314,7 +315,7 @@ export function BookingWidget() {
         <button
           type="button"
           disabled={!date || seatsForDate <= 0 || (!isVehicle && seatsForDate < participants)}
-          onClick={() => setChecked(true)}
+          onClick={checkAvailability}
           className="mt-4 flex w-full items-center justify-center rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark disabled:opacity-50"
         >
           Check availability

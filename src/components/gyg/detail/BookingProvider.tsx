@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { TourType } from '@/lib/validation/common';
 import type { PricingMode, TourOption, VehiclePricing } from '@/lib/validation/tours';
@@ -38,6 +38,11 @@ interface BookingState {
   days: Map<string, DayInfo> | null;
   checked: boolean;
   setChecked: (b: boolean) => void;
+  /** Reveal the option card AND request it be scrolled into view (bumps on every press, so pressing
+   *  "Check availability" again from anywhere on the page re-centres the already-open card). */
+  checkAvailability: () => void;
+  /** Increments each time the card is asked to scroll into view; the card watches this. */
+  scrollTick: number;
   /** The booking option id used for availability + checkout. */
   bookingOptionId: string | null;
   vehicleCfg: VehiclePricing;
@@ -53,6 +58,10 @@ interface BookingState {
   total: number | null;
   vehicleName: string | null;
   busy: boolean;
+  /** Brief "recomputing" flag for the option card while the selection changes. */
+  updating: boolean;
+  /** Flag the option card as updating (called when participants/date change). */
+  touch: () => void;
   /** Continue: reserve the spot, then route to checkout. */
   continueToCheckout: () => Promise<void>;
 }
@@ -84,8 +93,26 @@ export function BookingProvider({
   const [lang, setLang] = useState(activity.languages[0] ?? 'English');
   const [suv, setSuv] = useState(false);
   const [checked, setChecked] = useState(false);
+  const [scrollTick, setScrollTick] = useState(0);
+  // Reveal the card and (re)request a scroll-into-view. Bumping the tick on every press means a
+  // second press from further down the page re-centres the card even though `checked` is unchanged.
+  const checkAvailability = useCallback(() => {
+    setChecked(true);
+    setScrollTick((t) => t + 1);
+  }, []);
   const [days, setDays] = useState<Map<string, DayInfo> | null>(null);
   const [busy, setBusy] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const updTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Briefly flag the option card as "updating" when the selection changes, instead of closing it.
+  const touch = useCallback(() => {
+    setUpdating(true);
+    if (updTimer.current) clearTimeout(updTimer.current);
+    updTimer.current = setTimeout(() => setUpdating(false), 350);
+  }, []);
+  useEffect(() => () => {
+    if (updTimer.current) clearTimeout(updTimer.current);
+  }, []);
 
   const isVehicle = activity.pricingMode === 'vehicle';
   const vehicleCfg = activity.vehiclePricing ?? SIGHTSEEING_DEFAULT;
@@ -246,6 +273,8 @@ export function BookingProvider({
     days,
     checked,
     setChecked,
+    checkAvailability,
+    scrollTick,
     bookingOptionId,
     vehicleCfg,
     groupSize,
@@ -255,6 +284,8 @@ export function BookingProvider({
     total,
     vehicleName,
     busy,
+    updating,
+    touch,
     continueToCheckout,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
