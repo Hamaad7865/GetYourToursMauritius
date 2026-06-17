@@ -561,6 +561,9 @@ export interface Database {
         Returns: PaymentsRow;
       };
       materialize_availability: { Args: { p: Json }; Returns: number };
+      api_swap_category_positions: { Args: { p_id_a: string; p_id_b: string }; Returns: undefined };
+      set_daily_capacity_atomic: { Args: { p: Json }; Returns: undefined };
+      stop_availability_atomic: { Args: { p: Json }; Returns: undefined };
     };
     Enums: {
       user_role: 'customer' | 'staff' | 'admin';

@@ -133,25 +133,13 @@ export async function loadAvailabilityState(activityId: string): Promise<{ capac
  * number — and propagates it to any upcoming days already materialised.
  */
 export async function setDailyCapacity(activityId: string, capacity: number): Promise<void> {
-  const sb = getBrowserSupabase();
-  const { error } = await sb.from('activities').update({ daily_capacity: capacity }).eq('id', activityId);
+  // One atomic RPC: update the activity, propagate the capacity to upcoming slots, and materialize
+  // the window. Doing this in a single transaction avoids the partial state the old three-call
+  // sequence could leave (capacity set but slots un-propagated, or no days materialized).
+  const { error } = await getBrowserSupabase().rpc('set_daily_capacity_atomic', {
+    p: { activityId, capacity },
+  });
   if (error) throw error;
-
-  const { data: opts } = await sb.from('activity_options').select('id').eq('activity_id', activityId);
-  const optionIds = (opts ?? []).map((o) => o.id);
-  if (optionIds.length > 0) {
-    const { error: upErr } = await sb
-      .from('session_occurrences')
-      .update({ capacity })
-      .in('activity_option_id', optionIds)
-      .gte('starts_at', new Date().toISOString());
-    if (upErr) throw upErr;
-  }
-
-  // The availability read no longer materializes day-slots; fill the window now so dates appear
-  // immediately (the maintenance cron rolls it forward thereafter).
-  const { error: matErr } = await sb.rpc('materialize_availability', { p: { activityId } });
-  if (matErr) throw matErr;
 }
 
 /**
@@ -160,53 +148,11 @@ export async function setDailyCapacity(activityId: string, capacity: number): Pr
  * customer's confirmed booking (FK restrict) or cascade-delete a live hold.
  */
 export async function stopAvailability(activityId: string): Promise<void> {
-  const sb = getBrowserSupabase();
-  const { error: capErr } = await sb
-    .from('activities')
-    .update({ daily_capacity: null })
-    .eq('id', activityId);
-  if (capErr) throw capErr;
-
-  const { data: opts } = await sb.from('activity_options').select('id').eq('activity_id', activityId);
-  const optionIds = (opts ?? []).map((o) => o.id);
-  if (optionIds.length === 0) return;
-
-  const { data: occ } = await sb
-    .from('session_occurrences')
-    .select('id')
-    .in('activity_option_id', optionIds)
-    .gte('starts_at', new Date().toISOString());
-  const occIds = (occ ?? []).map((o) => o.id);
-  if (occIds.length === 0) return;
-
-  const { data: items } = await sb
-    .from('booking_items')
-    .select('session_occurrence_id')
-    .in('session_occurrence_id', occIds);
-  const { data: holds } = await sb
-    .from('booking_holds')
-    .select('session_occurrence_id')
-    .in('session_occurrence_id', occIds)
-    .eq('status', 'active');
-  const busy = new Set<string>([
-    ...(items ?? []).map((i) => i.session_occurrence_id),
-    ...(holds ?? []).map((h) => h.session_occurrence_id),
-  ]);
-  const busyIds = occIds.filter((id) => busy.has(id));
-  const deletable = occIds.filter((id) => !busy.has(id));
-
-  // Booked/held days: close them so no one else can book — but keep the row (and its existing
-  // booking/hold) intact. create_hold + availability both require status='open'.
-  if (busyIds.length > 0) {
-    const { error } = await sb
-      .from('session_occurrences')
-      .update({ status: 'closed' })
-      .in('id', busyIds);
-    if (error) throw error;
-  }
-  // Empty future days: remove entirely.
-  if (deletable.length > 0) {
-    const { error } = await sb.from('session_occurrences').delete().in('id', deletable);
-    if (error) throw error;
-  }
+  // One atomic RPC: clear the capacity, CLOSE upcoming slots that have a booking or active hold
+  // (keeping the row + booking intact), and DELETE the empty ones. Running it as a single
+  // transaction means a mid-sequence failure can't leave slots still bookable after "stop".
+  const { error } = await getBrowserSupabase().rpc('stop_availability_atomic', {
+    p: { activityId },
+  });
+  if (error) throw error;
 }
