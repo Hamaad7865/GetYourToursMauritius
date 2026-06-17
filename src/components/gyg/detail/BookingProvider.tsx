@@ -10,6 +10,7 @@ import {
   SIGHTSEEING_DEFAULT,
   SIGHTSEEING_SUV_MAX,
 } from '@/lib/services/pricing';
+import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
 
 export interface BookingActivity {
   slug: string;
@@ -91,13 +92,6 @@ export const useBooking = (): BookingState => {
   return v;
 };
 
-function pad(n: number): string {
-  return String(n).padStart(2, '0');
-}
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 export function BookingProvider({
   activity,
   children,
@@ -163,7 +157,7 @@ export function BookingProvider({
     let active = true;
     const horizon = new Date(today);
     horizon.setDate(horizon.getDate() + 180);
-    fetch(`/api/v1/activities/${activity.slug}/availability?from=${dateKey(today)}&to=${dateKey(horizon)}`)
+    fetch(`/api/v1/activities/${activity.slug}/availability?from=${nominalDayKey(today)}&to=${nominalDayKey(horizon)}`)
       .then((r) => r.json())
       .then((body) => {
         if (!active) return;
@@ -176,7 +170,7 @@ export function BookingProvider({
             seatsLeft: number;
           }>) {
             if (s.activityOptionId !== bookingOptionId) continue;
-            map.set(dateKey(new Date(s.startsAt)), { occurrenceId: s.occurrenceId, seatsLeft: s.seatsLeft });
+            map.set(utcDayKey(s.startsAt), { occurrenceId: s.occurrenceId, seatsLeft: s.seatsLeft });
           }
         }
         setDays(map);
