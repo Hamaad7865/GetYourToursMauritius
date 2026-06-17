@@ -30,14 +30,18 @@ function makeContext(db: DbRpc): ServiceContext {
 }
 
 /**
- * Chooses the db transport. With Supabase configured it's the real client; otherwise,
- * in dev/preview only, it falls back to the in-memory seed fixture so the public
- * catalogue renders without a project. Production with no Supabase still fails loudly.
+ * Chooses the db transport. With Supabase configured it's the real client; otherwise it falls back to
+ * the in-memory seed fixture so the public catalogue renders without a project — in dev, OR in a preview
+ * build that opts in with ENABLE_PREVIEW_FALLBACK=true. (Hosted preview builds run NODE_ENV=production,
+ * so the NODE_ENV check alone never reached them, contradicting the "preview" promise.) A real
+ * production deploy with no Supabase still fails loudly (neither flag set).
  */
 function selectDb(token: string | null): DbRpc {
   const env = getServerEnv();
   const configured = Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  if (!configured && process.env.NODE_ENV !== 'production') {
+  const previewFallback =
+    process.env.NODE_ENV !== 'production' || process.env.ENABLE_PREVIEW_FALLBACK === 'true';
+  if (!configured && previewFallback) {
     return seedRpc();
   }
   return supabaseRpc(createUserClient(token));

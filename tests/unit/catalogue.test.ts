@@ -218,6 +218,17 @@ describe('breadcrumbJsonLd', () => {
   });
 });
 
+describe('parseBrowseParams — page clamp', () => {
+  it('clamps an out-of-range page to 1 so ?page=huge cannot drive a giant OFFSET / blank the catalogue', () => {
+    expect(parseBrowseParams({ page: '100001' }).page).toBe(1);
+    expect(parseBrowseParams({ page: '999999999' }).page).toBe(1);
+    expect(parseBrowseParams({ page: '100000' }).page).toBe(100_000); // boundary accepted
+    expect(parseBrowseParams({ page: '2' }).page).toBe(2);
+    expect(parseBrowseParams({ page: '-5' }).page).toBe(1);
+    expect(parseBrowseParams({ page: 'abc' }).page).toBe(1);
+  });
+});
+
 describe('parseBrowseParams', () => {
   it('keeps valid filters and drops unknown ones', () => {
     const parsed = parseBrowseParams({
