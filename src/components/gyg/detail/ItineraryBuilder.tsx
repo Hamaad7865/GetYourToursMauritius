@@ -33,13 +33,17 @@ export function ItineraryBuilder({
 
   const available = pool.filter((p) => !selected.some((s) => s.id === p.id));
 
-  // Stash the chosen stops for checkout (slug-keyed; cleared if empty).
+  // Stash the chosen stops for checkout — ONLY when the route actually diverges from the default, so
+  // an untouched tour saves no customItinerary (null = standard route) and nothing stale is left for
+  // an unrelated booking. Slug-keyed; cleared when back to the default or empty.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const key = `gytm:itinerary:${slug}`;
-    if (selected.length) window.sessionStorage.setItem(key, JSON.stringify(toStops(selected)));
+    const route = toStops(selected);
+    const isDefault = JSON.stringify(route) === JSON.stringify(defaultStops);
+    if (route.length && !isDefault) window.sessionStorage.setItem(key, JSON.stringify(route));
     else window.sessionStorage.removeItem(key);
-  }, [slug, selected]);
+  }, [slug, selected, defaultStops]);
 
   // The map route: pickup (if entered) as place 1, then the chosen stops.
   const mapStops: ItineraryStop[] = useMemo(

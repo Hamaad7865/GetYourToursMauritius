@@ -37,9 +37,12 @@ export function Checkout() {
   const unit = params.get('unit') ?? '';
   // Sightseeing vehicle mode only: the SUV upgrade flag. The server re-resolves the price regardless.
   const suv = params.get('suv') === '1';
+  // Only a "Book now" from the tour-page widget (from=widget) carries a custom route. Cart checkouts
+  // don't set it, so they never inherit the slug-scoped sessionStorage route of an unrelated visit.
+  const fromWidget = params.get('from') === 'widget';
   // The route builder on the tour page stashes the chosen stops here (too big for the URL).
   function readItinerary(): Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null {
-    if (typeof window === 'undefined' || !slug) return null;
+    if (typeof window === 'undefined' || !slug || !fromWidget) return null;
     try {
       const raw = window.sessionStorage.getItem(`gytm:itinerary:${slug}`);
       const arr = raw ? JSON.parse(raw) : null;
@@ -127,6 +130,14 @@ export function Checkout() {
         if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
         ref = bookingRes.data.ref as string;
         setBookingRef(ref);
+        // The route is now persisted on the booking — clear the stash so it can't attach to a later one.
+        if (slug) {
+          try {
+            window.sessionStorage.removeItem(`gytm:itinerary:${slug}`);
+          } catch {
+            /* sessionStorage unavailable — nothing to clear */
+          }
+        }
         // Reconcile the price the server actually computed against what we showed. If it moved
         // (a tier was edited since add-to-cart), surface the real amount and require a second
         // confirm before sending the customer to the hosted payment page.

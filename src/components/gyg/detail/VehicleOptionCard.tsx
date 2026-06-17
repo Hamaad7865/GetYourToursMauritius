@@ -28,11 +28,15 @@ export function VehicleOptionCard({
   const rows = [
     { name: 'Sedan', price: cfg.perBlockEur, cap: 4 },
     { name: 'SUV', price: cfg.suvFlatEur, cap: 4 },
-    ...VEHICLE_BANDS.slice(1).map((b, i) => ({
-      name: b.name,
-      price: cfg.perBlockEur * Math.ceil(bandMin(i + 1) / cfg.blockSize),
-      cap: b.max,
-    })),
+    // Family car (5–6) shares the €140 price of the minibus band, so it's collapsed in this ladder —
+    // showing both reads as a duplicate. It stays a real pricing band server-side (VEHICLE_BANDS).
+    ...VEHICLE_BANDS.slice(1)
+      .map((b, i) => ({
+        name: b.name,
+        price: cfg.perBlockEur * Math.ceil(bandMin(i + 1) / cfg.blockSize),
+        cap: b.max,
+      }))
+      .filter((r) => r.name !== 'Family car'),
   ];
 
   return (

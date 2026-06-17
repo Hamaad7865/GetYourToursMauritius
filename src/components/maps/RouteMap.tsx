@@ -17,48 +17,71 @@ async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral 
  * of the session — every retry just re-spams the console. The straight-line fallback takes over. */
 let directionsDenied = false;
 
+/** Anything with `setMap` — markers, polylines, the directions renderer. */
+type MapOverlay = { setMap: (map: google.maps.Map | null) => void };
+
 /**
  * Itinerary route map. Draws the real DRIVING route along the roads (Google Directions) with numbered
  * brand pins, and — when `animate` — a car marker that drives the route on a loop (rAF, reduced-motion
  * aware). Falls back to a dashed straight-line route, then to a keyless Google Maps link, so it
- * degrades but never breaks. Re-renders when `stops` change.
+ * degrades but never breaks. The map is created ONCE and only its overlays are redrawn when `stops`
+ * change, so editing a route in the builder doesn't leak a fresh Map per edit.
  */
 export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; animate?: boolean }) {
   const status = useGoogleMaps();
   const elRef = useRef<HTMLDivElement>(null);
-  const [failed, setFailed] = useState(false);
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const overlaysRef = useRef<MapOverlay[]>([]);
   const rafRef = useRef<number | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     if (status !== 'ready' || !elRef.current || stops.length === 0) return;
     let cancelled = false;
 
+    // Create the map once; reuse it across stops edits (so we don't orphan a Map + listeners per edit).
+    const map =
+      mapRef.current ??
+      (mapRef.current = new google.maps.Map(elRef.current, {
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+        clickableIcons: false,
+      }));
+
+    // Tear down the previous render's overlays + animation before redrawing.
+    overlaysRef.current.forEach((o) => o.setMap(null));
+    overlaysRef.current = [];
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    const track = <T extends MapOverlay>(o: T): T => {
+      overlaysRef.current.push(o);
+      return o;
+    };
+
     (async () => {
       const points = (await Promise.all(stops.map(resolveStop))).filter(
         (p): p is google.maps.LatLngLiteral => p !== null,
       );
-      if (cancelled || !elRef.current) return;
+      if (cancelled || !mapRef.current) return;
       if (points.length === 0) {
         setFailed(true);
         return;
       }
 
-      const map = new google.maps.Map(elRef.current, {
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-        clickableIcons: false,
-      });
-
       const bounds = new google.maps.LatLngBounds();
       points.forEach((pos, i) => {
-        new google.maps.Marker({
-          map,
-          position: pos,
-          icon: pinIcon(i === 0 ? '#F76C5E' : '#0A2E36'),
-          label: pinLabel(i + 1),
-          title: stops[i]?.title,
-        });
+        track(
+          new google.maps.Marker({
+            map,
+            position: pos,
+            icon: pinIcon(i === 0 ? '#F76C5E' : '#0A2E36'),
+            label: pinLabel(i + 1),
+            title: stops[i]?.title,
+          }),
+        );
         bounds.extend(pos);
       });
       if (points.length === 1) {
@@ -83,13 +106,15 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
           if (cancelled) return;
           const route = res.routes[0];
           if (route) {
-            new google.maps.DirectionsRenderer({
-              map,
-              directions: res,
-              suppressMarkers: true,
-              preserveViewport: true,
-              polylineOptions: { strokeColor: '#0E8C92', strokeWeight: 4, strokeOpacity: 0.9 },
-            });
+            track(
+              new google.maps.DirectionsRenderer({
+                map,
+                directions: res,
+                suppressMarkers: true,
+                preserveViewport: true,
+                polylineOptions: { strokeColor: '#0E8C92', strokeWeight: 4, strokeOpacity: 0.9 },
+              }),
+            );
             path = route.overview_path.map((p) => ({ lat: p.lat(), lng: p.lng() }));
             drewRoute = true;
           }
@@ -102,24 +127,26 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
       if (!drewRoute) {
         if (cancelled) return;
         // Directions unavailable → dashed straight-line fallback.
-        new google.maps.Polyline({
-          map,
-          path: points,
-          geodesic: true,
-          strokeOpacity: 0,
-          icons: [
-            {
-              icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, scale: 3, strokeColor: '#0E8C92' },
-              offset: '0',
-              repeat: '12px',
-            },
-          ],
-        });
+        track(
+          new google.maps.Polyline({
+            map,
+            path: points,
+            geodesic: true,
+            strokeOpacity: 0,
+            icons: [
+              {
+                icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, scale: 3, strokeColor: '#0E8C92' },
+                offset: '0',
+                repeat: '12px',
+              },
+            ],
+          }),
+        );
         path = points;
       }
 
       // The car: static at the start, or animated along the path on a loop.
-      const car = new google.maps.Marker({ map, position: path[0]!, icon: carIcon(), zIndex: 1000 });
+      const car = track(new google.maps.Marker({ map, position: path[0]!, icon: carIcon(), zIndex: 1000 }));
       const reduce =
         typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -142,10 +169,23 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
 
     return () => {
       cancelled = true;
-      if (rafRef.current != null) cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
     };
   }, [status, stops, animate]);
+
+  // Final teardown on unmount: drop every overlay and release the map.
+  useEffect(() => {
+    const overlays = overlaysRef;
+    const mapHolder = mapRef;
+    return () => {
+      overlays.current.forEach((o) => o.setMap(null));
+      overlays.current = [];
+      mapHolder.current = null;
+    };
+  }, []);
 
   if (stops.length === 0) return null;
   if (status === 'error' || failed) {

@@ -249,6 +249,7 @@ export function BookingWidget({
       guests: String(participants),
       unit: unitLabel,
       suv: suvActive ? '1' : '0',
+      from: 'widget',
     });
     router.push(`/checkout?${q.toString()}`);
   }
