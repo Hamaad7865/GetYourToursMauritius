@@ -139,6 +139,9 @@ export function Checkout() {
             suv,
             holdId: holdId || undefined,
             itinerary: readItinerary(),
+            // The pickup address the customer entered on the transport step (null when they chose
+            // "I don't know yet"). Persisted on the booking so the provider actually receives it.
+            pickupLocation: pickup === 'known' && pickupLoc.trim() ? pickupLoc.trim() : null,
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
               email: user?.email,

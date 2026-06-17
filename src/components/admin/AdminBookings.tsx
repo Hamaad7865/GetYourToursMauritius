@@ -438,6 +438,16 @@ function BookingDrawer({
               </div>
             </section>
 
+            {/* Customer pickup location (entered at checkout) */}
+            {booking.pickupLocation && (
+              <section className="rounded-xl border border-ink/10 p-4">
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                  Pickup location
+                </h3>
+                <p className="mt-2 text-[13px] text-ink/80">{booking.pickupLocation}</p>
+              </section>
+            )}
+
             {/* Customer-customized route (sightseeing tours) */}
             {booking.customItinerary && booking.customItinerary.length > 0 && (
               <section className="rounded-xl border border-ink/10 p-4">

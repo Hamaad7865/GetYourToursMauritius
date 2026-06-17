@@ -20,6 +20,7 @@ export async function createBooking(
     suv: input.suv ?? false,
     holdId: input.holdId ?? null,
     itinerary: input.itinerary ?? null,
+    pickupLocation: input.pickupLocation ?? null,
     customerName: input.customer.name,
     customerEmail: input.customer.email,
     customerPhone: input.customer.phone ?? null,

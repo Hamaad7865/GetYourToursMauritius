@@ -1283,6 +1283,13 @@
                     },
                     "maxItems": 30
                   },
+                  "pickupLocation": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 200
+                  },
                   "customer": {
                     "type": "object",
                     "properties": {
@@ -1467,6 +1474,12 @@
                               "title"
                             ]
                           }
+                        },
+                        "pickupLocation": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         }
                       },
                       "required": [
@@ -1748,6 +1761,12 @@
                               "title"
                             ]
                           }
+                        },
+                        "pickupLocation": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         }
                       },
                       "required": [

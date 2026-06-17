@@ -54,6 +54,8 @@ export interface BookingRow {
   netPaidEur: number;
   /** The customer's chosen route (sightseeing tours), or null for the standard route. */
   customItinerary: Array<{ title: string; area?: string | null }> | null;
+  /** The customer's pickup location entered at checkout, or null if none. */
+  pickupLocation: string | null;
 }
 
 export interface PaymentEventRow {
@@ -115,6 +117,7 @@ interface RawBooking {
   total_minor: number;
   notes: string | null;
   custom_itinerary: Array<{ title: string; area?: string | null }> | null;
+  pickup_location: string | null;
   created_at: string;
   booking_items: RawItem[] | null;
   payments: RawPaymentLite[] | null;
@@ -122,7 +125,7 @@ interface RawBooking {
 
 const BOOKING_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
-  source, currency, total_minor, notes, custom_itinerary, created_at,
+  source, currency, total_minor, notes, custom_itinerary, pickup_location, created_at,
   booking_items (
     price_label, quantity, pax, unit_amount_minor, subtotal_minor,
     session_occurrences ( starts_at ),
@@ -173,6 +176,7 @@ function mapBooking(raw: RawBooking): BookingRow {
     guests,
     netPaidEur: netPaidMinor / 100,
     customItinerary: raw.custom_itinerary,
+    pickupLocation: raw.pickup_location,
   };
 }
 

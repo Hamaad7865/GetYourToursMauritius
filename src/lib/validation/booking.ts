@@ -29,6 +29,9 @@ export const createBookingInputSchema = z.object({
     )
     .max(30)
     .optional(),
+  /** The customer's pickup location entered at checkout (pickup/sightseeing tours). Informational;
+   *  bounded so a tampered payload is a clean 400, not a DB blowup. */
+  pickupLocation: z.string().trim().max(200).nullish(),
   customer: z.object({
     name: z.string().min(1).max(120),
     email: z.string().email(),
@@ -74,6 +77,8 @@ export const bookingSchema = z.object({
       }),
     )
     .nullish(),
+  /** The customer's pickup location, or null/absent if none was provided. */
+  pickupLocation: z.string().nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 

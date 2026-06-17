@@ -149,6 +149,33 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(got2.customItinerary).toBeNull();
   });
 
+  it('saves and returns the pickup location on the booking (trimmed; null when absent)', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const booking = await call<{ ref: string }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 1 },
+      pickupLocation: '  Flic en Flac, Le Cardinal Villa  ',
+      customerName: 'Pickup Tester',
+      customerEmail: 'pickup@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-pickup-12345678',
+    });
+    const got = await call<{ pickupLocation: string | null }>(db, 'api_get_booking', { ref: booking.ref });
+    expect(got.pickupLocation).toBe('Flic en Flac, Le Cardinal Villa');
+
+    // A booking with no pickup location returns null.
+    const plain = await call<{ ref: string }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 1 },
+      customerName: 'No Pickup',
+      customerEmail: 'nopickup@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-nopickup-1234567',
+    });
+    const got2 = await call<{ pickupLocation: unknown }>(db, 'api_get_booking', { ref: plain.ref });
+    expect(got2.pickupLocation).toBeNull();
+  });
+
   it('api_create_hold reserves N seats by mode, and api_book reuses the hold', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     const hold = await call<{ holdId: string; quantity: number; expiresAt: string }>(db, 'api_create_hold', {
