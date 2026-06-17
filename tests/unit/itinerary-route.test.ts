@@ -1,30 +1,42 @@
 import { describe, expect, it } from 'vitest';
-import { withIds, addStop, removeStop, moveStop, type BuilderStop } from '@/lib/itinerary/route';
+import { placeForStop, chosenRoute, divergesFromDefault } from '@/lib/itinerary/route';
+import type { ItineraryStop } from '@/lib/validation/tours';
 
-const A: BuilderStop = { id: 'def-0', title: 'Port Louis' };
-const B: BuilderStop = { id: 'def-1', title: 'Pamplemousses' };
-const C: BuilderStop = { id: 'opt-0', title: 'Fort Adelaide' };
+const STOPS: ItineraryStop[] = [
+  { title: 'Port Louis', area: 'Capital' },
+  {
+    title: 'Pamplemousses',
+    area: 'North',
+    options: [{ title: 'Fort Adelaide', area: 'Port Louis' }],
+  },
+];
 
-describe('itinerary route reducer', () => {
-  it('assigns stable prefixed ids', () => {
-    const ids = withIds([{ title: 'X' }, { title: 'Y' }], 'def').map((s) => s.id);
-    expect(ids).toEqual(['def-0', 'def-1']);
+describe('per-stop selection', () => {
+  it('placeForStop returns the primary for 0 / out-of-range, the alternative otherwise', () => {
+    expect(placeForStop(STOPS[1]!, 0)).toEqual({
+      title: 'Pamplemousses',
+      area: 'North',
+      lat: undefined,
+      lng: undefined,
+    });
+    expect(placeForStop(STOPS[1]!, 1)).toEqual({
+      title: 'Fort Adelaide',
+      area: 'Port Louis',
+      lat: undefined,
+      lng: undefined,
+    });
+    expect(placeForStop(STOPS[1]!, 9).title).toBe('Pamplemousses'); // out of range → primary
+    expect(placeForStop(STOPS[0]!, 1).title).toBe('Port Louis'); // no options → primary
   });
 
-  it('adds a stop at the end, ignoring duplicates and respecting the cap', () => {
-    expect(addStop([A], C, 8)).toEqual([A, C]);
-    expect(addStop([A, C], C, 8)).toEqual([A, C]); // already present → no-op
-    expect(addStop([A, B], C, 2)).toEqual([A, B]); // at cap → no-op
+  it('chosenRoute maps each stop to its selected place, defaulting to primary', () => {
+    expect(chosenRoute(STOPS, { 1: 1 }).map((p) => p.title)).toEqual(['Port Louis', 'Fort Adelaide']);
+    expect(chosenRoute(STOPS, {}).map((p) => p.title)).toEqual(['Port Louis', 'Pamplemousses']);
   });
 
-  it('removes by id', () => {
-    expect(removeStop([A, B, C], 'def-1')).toEqual([A, C]);
-  });
-
-  it('moves a stop up/down within bounds', () => {
-    expect(moveStop([A, B, C], 'def-1', -1)).toEqual([B, A, C]);
-    expect(moveStop([A, B, C], 'def-1', 1)).toEqual([A, C, B]);
-    expect(moveStop([A, B, C], 'def-0', -1)).toEqual([A, B, C]); // first up → no-op
-    expect(moveStop([A, B, C], 'opt-0', 1)).toEqual([A, B, C]); // last down → no-op
+  it('divergesFromDefault is true only when some stop picks an alternative', () => {
+    expect(divergesFromDefault({})).toBe(false);
+    expect(divergesFromDefault({ 0: 0, 1: 0 })).toBe(false);
+    expect(divergesFromDefault({ 1: 1 })).toBe(true);
   });
 });

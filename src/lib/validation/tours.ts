@@ -80,6 +80,15 @@ export const reviewSchema = z.object({
 });
 export type Review = z.infer<typeof reviewSchema>;
 
+/** A swappable alternative place for a stop (no nested options — one level deep). */
+export const altStopSchema = z.object({
+  title: z.string(),
+  area: z.string().nullable().optional(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
+});
+export type AltStop = z.infer<typeof altStopSchema>;
+
 export const itineraryStopSchema = z.object({
   title: z.string(),
   area: z.string().nullable().optional(),
@@ -87,6 +96,8 @@ export const itineraryStopSchema = z.object({
   tags: z.array(z.string()).optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  /** Alternatives the customer can pick INSTEAD of this stop's primary place. */
+  options: z.array(altStopSchema).optional(),
 });
 export type ItineraryStop = z.infer<typeof itineraryStopSchema>;
 
@@ -97,10 +108,6 @@ export const activityExtraSchema = z.object({
   availability: z.string().nullable().optional(),
   startWindow: z.string().nullable().optional(),
   returnWindow: z.string().nullable().optional(),
-  /** Customer-customizable itinerary: extra stops the visitor can add to the route (no price impact). */
-  optionalStops: z.array(itineraryStopSchema).optional(),
-  /** Cap on how many stops a customer's route may have (default 8 when absent). */
-  maxStops: z.number().int().positive().optional(),
 });
 export type ActivityExtra = z.infer<typeof activityExtraSchema>;
 

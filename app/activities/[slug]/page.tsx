@@ -103,7 +103,6 @@ export default async function ActivityDetailPage({
     .map((p) => p.trim())
     .filter(Boolean);
   const itinerary = activity.extra.itinerary ?? [];
-  const optionalStops = activity.extra.optionalStops ?? [];
   const importantInfo = activity.extra.importantInfo ?? [];
 
   return (
@@ -224,16 +223,11 @@ export default async function ActivityDetailPage({
                 </section>
               )}
 
-              {(itinerary.length > 0 || optionalStops.length > 0) && (
+              {itinerary.length > 0 && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
                   <SectionTitle>Itinerary</SectionTitle>
-                  {optionalStops.length > 0 ? (
-                    <ItineraryBuilder
-                      slug={activity.slug}
-                      defaultStops={itinerary}
-                      optionalStops={optionalStops}
-                      maxStops={activity.extra.maxStops}
-                    />
+                  {itinerary.some((s) => (s.options?.length ?? 0) > 0) ? (
+                    <ItineraryBuilder slug={activity.slug} stops={itinerary} />
                   ) : (
                     <>
                       <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />

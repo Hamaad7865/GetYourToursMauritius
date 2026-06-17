@@ -1,37 +1,20 @@
-import type { ItineraryStop } from '@/lib/validation/tours';
+import type { AltStop, ItineraryStop } from '@/lib/validation/tours';
 
-/** An itinerary stop carrying a stable client id (for React keys + add/remove/move). */
-export type BuilderStop = ItineraryStop & { id: string };
-
-/** Assign stable ids to a list of stops (`def-0`, `opt-1`, …). */
-export function withIds(stops: ItineraryStop[], prefix: string): BuilderStop[] {
-  return stops.map((s, i) => ({ ...s, id: `${prefix}-${i}` }));
+/** The place chosen for a stop: 0 = the stop's primary place; 1.. = options[index-1]. */
+export function placeForStop(stop: ItineraryStop, sel: number): AltStop {
+  if (sel <= 0 || !stop.options || sel > stop.options.length) {
+    return { title: stop.title, area: stop.area ?? null, lat: stop.lat, lng: stop.lng };
+  }
+  const o = stop.options[sel - 1]!;
+  return { title: o.title, area: o.area ?? null, lat: o.lat, lng: o.lng };
 }
 
-/** Append `stop` if it isn't already selected and the route is under `max`. Pure. */
-export function addStop(selected: BuilderStop[], stop: BuilderStop, max: number): BuilderStop[] {
-  if (selected.some((s) => s.id === stop.id)) return selected;
-  if (selected.length >= max) return selected;
-  return [...selected, stop];
+/** The chosen route = the selected place for each stop, in order. */
+export function chosenRoute(stops: ItineraryStop[], selectedByStop: Record<number, number>): AltStop[] {
+  return stops.map((s, i) => placeForStop(s, selectedByStop[i] ?? 0));
 }
 
-/** Remove the stop with `id`. */
-export function removeStop(selected: BuilderStop[], id: string): BuilderStop[] {
-  return selected.filter((s) => s.id !== id);
-}
-
-/** Move the stop with `id` one position in `dir` (-1 up, 1 down); no-op at the ends. */
-export function moveStop(selected: BuilderStop[], id: string, dir: -1 | 1): BuilderStop[] {
-  const i = selected.findIndex((s) => s.id === id);
-  if (i < 0) return selected;
-  const j = i + dir;
-  if (j < 0 || j >= selected.length) return selected;
-  const next = [...selected];
-  [next[i], next[j]] = [next[j]!, next[i]!];
-  return next;
-}
-
-/** Strip client ids for persistence (what gets saved on the booking + sent to the map). */
-export function toStops(selected: BuilderStop[]): ItineraryStop[] {
-  return selected.map(({ id: _id, ...stop }) => stop);
+/** True when any stop picks an alternative (index > 0) — i.e. a real customisation. */
+export function divergesFromDefault(selectedByStop: Record<number, number>): boolean {
+  return Object.values(selectedByStop).some((v) => v > 0);
 }

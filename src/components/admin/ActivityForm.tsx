@@ -230,26 +230,11 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         )}
       </Section>
 
-      <Section title="Itinerary" hint="The default stops shown on the map and timeline.">
-        <ItineraryEditor stops={v.itinerary} onChange={(x) => set('itinerary', x)} />
-      </Section>
-
       <Section
-        title="Optional stops (customer-customizable)"
-        hint="Places a customer can add to their own route on the tour page (e.g. Fort Adelaide, Apravasi Ghat). Leave empty to keep the itinerary fixed."
+        title="Itinerary"
+        hint="The stops shown on the map and timeline. Add alternatives under a stop to let the customer pick a different place there."
       >
-        <ItineraryEditor stops={v.optionalStops} onChange={(x) => set('optionalStops', x)} />
-        <label className="mt-4 block max-w-[220px] text-[13px] font-semibold text-ink">
-          Max stops a customer can pick
-          <input
-            type="number"
-            min={1}
-            className={`${inputClass} mt-1`}
-            value={v.maxStops ?? ''}
-            onChange={(e) => set('maxStops', e.target.value ? Number(e.target.value) : null)}
-            placeholder="8"
-          />
-        </label>
+        <ItineraryEditor stops={v.itinerary} onChange={(x) => set('itinerary', x)} />
       </Section>
 
       {error && (
@@ -613,11 +598,59 @@ function ItineraryEditor({
           <div className="mt-2">
             <StringList label="Tags" items={stop.tags} onChange={(t) => update(i, { tags: t })} />
           </div>
+          <div className="mt-3 rounded-lg bg-ink/[0.03] p-3">
+            <div className="text-[12px] font-bold text-ink">
+              Alternatives (the customer picks one instead)
+            </div>
+            <p className="mb-2 text-[11.5px] text-ink-muted">
+              Leave empty to keep this stop fixed. Add e.g. Fort Adelaide so the customer can swap it
+              for {stop.title.trim() || 'this stop'}.
+            </p>
+            {stop.options.map((opt, oi) => (
+              <div key={oi} className="mb-2 flex items-center gap-2">
+                <input
+                  className={inputClass}
+                  value={opt.title}
+                  onChange={(e) =>
+                    update(i, {
+                      options: stop.options.map((o, idx) => (idx === oi ? { ...o, title: e.target.value } : o)),
+                    })
+                  }
+                  placeholder="Alternative place (e.g. Fort Adelaide)"
+                />
+                <input
+                  className={inputClass}
+                  value={opt.area}
+                  onChange={(e) =>
+                    update(i, {
+                      options: stop.options.map((o, idx) => (idx === oi ? { ...o, area: e.target.value } : o)),
+                    })
+                  }
+                  placeholder="Area"
+                />
+                <button
+                  type="button"
+                  aria-label="Remove alternative"
+                  onClick={() => update(i, { options: stop.options.filter((_, idx) => idx !== oi) })}
+                  className="shrink-0 text-ink-muted hover:text-coral"
+                >
+                  <IconX width={16} height={16} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => update(i, { options: [...stop.options, { title: '', area: '' }] })}
+              className="rounded-full border border-ink/15 px-3 py-1 text-[12px] font-bold text-ink hover:border-teal hover:text-teal"
+            >
+              + Add alternative
+            </button>
+          </div>
         </div>
       ))}
       <button
         type="button"
-        onClick={() => onChange([...stops, { title: '', area: '', description: '', tags: [] }])}
+        onClick={() => onChange([...stops, { title: '', area: '', description: '', tags: [], options: [] }])}
         className="self-start rounded-full border border-ink/15 px-4 py-2 text-sm font-bold text-ink hover:border-teal hover:text-teal"
       >
         Add stop

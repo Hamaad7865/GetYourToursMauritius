@@ -15,18 +15,32 @@ import type { Review, TourDetail, TourSummary } from '@/lib/validation/tours';
 import { activityExtraSchema } from '@/lib/validation/tours';
 import { SITE } from '@/lib/seo/site';
 
-describe('activityExtraSchema — optional stops', () => {
-  it('parses optionalStops + maxStops and tolerates their absence', () => {
-    const full = activityExtraSchema.parse({
-      itinerary: [{ title: 'Port Louis' }],
-      optionalStops: [{ title: 'Fort Adelaide', area: 'Port Louis', lat: -20.16, lng: 57.5 }],
-      maxStops: 6,
+describe('activityExtraSchema — per-stop options', () => {
+  it('parses a stop with alternatives and tolerates stops without them', () => {
+    const extra = activityExtraSchema.parse({
+      itinerary: [
+        { title: 'Port Louis', area: 'Capital' },
+        {
+          title: 'Pamplemousses Botanical Garden',
+          area: 'North',
+          options: [
+            { title: 'Fort Adelaide', area: 'Port Louis' },
+            { title: 'Apravasi Ghat', area: 'Port Louis', lat: -20.16, lng: 57.5 },
+          ],
+        },
+      ],
     });
-    expect(full.optionalStops).toHaveLength(1);
-    expect(full.maxStops).toBe(6);
-    const bare = activityExtraSchema.parse({ itinerary: [{ title: 'X' }] });
-    expect(bare.optionalStops).toBeUndefined();
-    expect(bare.maxStops).toBeUndefined();
+    expect(extra.itinerary?.[0]?.options).toBeUndefined();
+    expect(extra.itinerary?.[1]?.options).toHaveLength(2);
+    expect(extra.itinerary?.[1]?.options?.[0]?.title).toBe('Fort Adelaide');
+    // The dropped flat-pool keys are no longer part of the schema output.
+    const stripped = activityExtraSchema.parse({
+      itinerary: [{ title: 'X' }],
+      optionalStops: [{ title: 'Y' }],
+      maxStops: 6,
+    } as never);
+    expect((stripped as Record<string, unknown>).optionalStops).toBeUndefined();
+    expect((stripped as Record<string, unknown>).maxStops).toBeUndefined();
   });
 });
 

@@ -25,6 +25,8 @@ export interface ItineraryStopInput {
   area: string;
   description: string;
   tags: string[];
+  /** Alternatives the customer can pick instead of this stop. */
+  options: { title: string; area: string }[];
 }
 
 export interface ActivityFormValues {
@@ -50,10 +52,6 @@ export interface ActivityFormValues {
   images: ImageInput[];
   options: OptionInput[];
   itinerary: ItineraryStopInput[];
-  /** Customer-customizable: places a visitor can add to their own route on the tour page. */
-  optionalStops: ItineraryStopInput[];
-  /** Max stops a customer's route may have (null = default of 8). */
-  maxStops: number | null;
 }
 
 export const EMPTY_ACTIVITY: ActivityFormValues = {
@@ -77,8 +75,6 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   images: [],
   options: [],
   itinerary: [],
-  optionalStops: [],
-  maxStops: null,
 };
 
 export function slugify(input: string): string {
@@ -103,22 +99,21 @@ async function operatorId(): Promise<string> {
 }
 
 function buildExtra(v: ActivityFormValues) {
-  const map = (list: ItineraryStopInput[]) =>
-    list
-      .filter((s) => s.title.trim())
-      .map((s) => ({
+  const itinerary = v.itinerary
+    .filter((s) => s.title.trim())
+    .map((s) => {
+      const base = {
         title: s.title.trim(),
         area: s.area.trim() || null,
         description: s.description.trim() || null,
         tags: s.tags.filter((t) => t.trim()),
-      }));
-  const itinerary = map(v.itinerary);
-  const optionalStops = map(v.optionalStops);
-  const extra: Record<string, unknown> = {};
-  if (itinerary.length) extra.itinerary = itinerary;
-  if (optionalStops.length) extra.optionalStops = optionalStops;
-  if (v.maxStops && v.maxStops > 0) extra.maxStops = v.maxStops;
-  return extra;
+      };
+      const options = s.options
+        .filter((o) => o.title.trim())
+        .map((o) => ({ title: o.title.trim(), area: o.area.trim() || null }));
+      return options.length ? { ...base, options } : base;
+    });
+  return itinerary.length ? { itinerary } : {};
 }
 
 function activityRow(v: ActivityFormValues, opId: string) {
@@ -321,9 +316,13 @@ export async function uploadActivityImage(file: File, slug: string): Promise<str
 }
 
 interface ExtraShape {
-  itinerary?: Array<{ title?: string; area?: string | null; description?: string | null; tags?: string[] }>;
-  optionalStops?: Array<{ title?: string; area?: string | null; description?: string | null; tags?: string[] }>;
-  maxStops?: number;
+  itinerary?: Array<{
+    title?: string;
+    area?: string | null;
+    description?: string | null;
+    tags?: string[];
+    options?: Array<{ title?: string; area?: string | null }>;
+  }>;
 }
 
 /** Load an existing activity into the editable form shape. */
@@ -385,13 +384,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       area: s.area ?? '',
       description: s.description ?? '',
       tags: s.tags ?? [],
+      options: (s.options ?? []).map((o) => ({ title: o.title ?? '', area: o.area ?? '' })),
     })),
-    optionalStops: (extra.optionalStops ?? []).map((s) => ({
-      title: s.title ?? '',
-      area: s.area ?? '',
-      description: s.description ?? '',
-      tags: s.tags ?? [],
-    })),
-    maxStops: extra.maxStops ?? null,
   };
 }
