@@ -2,140 +2,145 @@
 
 import { useMemo, useState } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
+import { PLACE_CATEGORIES, PLACE_REGIONS, ratingFor } from './planner-constants';
+import { Thumb } from './Thumb';
 
-const REGIONS = ['All', 'North', 'South', 'East', 'West', 'Central'];
-
-/**
- * A slide-over to browse the curated places and add them to the day. Filter by region + free text;
- * each card toggles in/out of the itinerary. Backed by the same curated set the co-pilot plans from,
- * so a hand-built day and an AI-built day draw on exactly the same places.
- */
+/** Slide-in "Add places" panel — search + category/region filters over the curated set. Overlays the
+ *  middle pane (desktop) or the single pane (mobile); the design renders it absolutely within its host. */
 export function PlacesDrawer({
   open,
   onClose,
   places,
   selectedIds,
   onAdd,
-  onRemove,
 }: {
   open: boolean;
   onClose: () => void;
   places: PlannerPlace[];
   selectedIds: string[];
   onAdd: (id: string) => void;
-  onRemove: (id: string) => void;
 }) {
+  const [search, setSearch] = useState('');
+  const [cat, setCat] = useState('All');
   const [region, setRegion] = useState('All');
-  const [q, setQ] = useState('');
   const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
 
   const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return places.filter((p) => {
-      if (region !== 'All' && p.region !== region) return false;
-      if (!needle) return true;
-      return (
-        p.name.toLowerCase().includes(needle) ||
-        p.category.toLowerCase().includes(needle) ||
-        (p.blurb ?? '').toLowerCase().includes(needle)
-      );
-    });
-  }, [places, region, q]);
+    const needle = search.trim().toLowerCase();
+    return places.filter(
+      (p) =>
+        (cat === 'All' || p.category === cat) &&
+        (region === 'All' || p.region === region) &&
+        (!needle || `${p.name}${p.blurb ?? ''}${p.category}`.toLowerCase().includes(needle)),
+    );
+  }, [places, search, cat, region]);
+
+  if (!open) return null;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        onClick={onClose}
-        className={`fixed inset-0 z-40 bg-ink/40 transition-opacity ${
-          open ? 'opacity-100' : 'pointer-events-none opacity-0'
-        }`}
-        aria-hidden
-      />
-      {/* Panel */}
-      <aside
-        className={`fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col bg-cream shadow-xl transition-transform ${
-          open ? 'translate-x-0' : 'translate-x-full'
-        }`}
-        aria-label="Browse places"
-        aria-hidden={!open}
-      >
-        <header className="flex items-center justify-between border-b border-ink/10 bg-white px-4 py-3">
-          <div>
-            <p className="font-display text-lg text-ink">Browse places</p>
-            <p className="text-xs text-ink-muted">{filtered.length} curated spots</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full border border-ink/15 px-3 py-1 text-sm text-ink hover:bg-ink/5"
-          >
-            Done
-          </button>
-        </header>
-
-        <div className="space-y-2 border-b border-ink/10 bg-white px-4 py-3">
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search beaches, waterfalls, markets…"
-            className="w-full rounded-full border border-ink/15 px-4 py-2 text-sm text-ink outline-none focus:border-teal"
-          />
-          <div className="flex flex-wrap gap-1.5">
-            {REGIONS.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRegion(r)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                  region === r
-                    ? 'bg-teal text-white'
-                    : 'border border-ink/15 text-ink-muted hover:bg-ink/5'
-                }`}
-              >
-                {r}
-              </button>
-            ))}
-          </div>
+    <div className="absolute inset-0 z-30 flex animate-float-in flex-col bg-white">
+      <div className="flex items-center gap-2.5 border-b border-[#EEF4F3] px-[15px] py-[13px]">
+        <div>
+          <div className="font-display text-[17px] font-semibold text-ink">Add places</div>
+          <div className="text-xs text-ink-muted">{filtered.length} spots · grounded data</div>
         </div>
+        <button type="button" onClick={onClose} aria-label="Close" className="ml-auto grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-[10px] border border-[#EEF4F3] bg-white">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" stroke="#51666B" strokeWidth={2} strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
 
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-3">
-          {filtered.length === 0 && (
-            <p className="px-1 py-6 text-center text-sm text-ink-muted">No places match that search.</p>
-          )}
-          {filtered.map((p) => {
-            const isIn = selected.has(p.id);
+      <div className="px-[15px] pt-3">
+        <div className="mb-2.5 flex items-center gap-2.5 rounded-xl border border-[#E6EFEE] bg-[#F4F8F7] px-3 py-[9px]">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <circle cx={11} cy={11} r={7} stroke="#51666B" strokeWidth={1.8} />
+            <path d="M16.5 16.5 21 21" stroke="#51666B" strokeWidth={1.8} strokeLinecap="round" />
+          </svg>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search beaches, waterfalls, viewpoints…"
+            aria-label="Search places"
+            className="min-w-0 flex-1 border-none bg-transparent text-sm text-ink outline-none"
+          />
+        </div>
+        <div className="no-bar mb-0.5 flex gap-[7px] overflow-x-auto pb-[9px]">
+          {PLACE_CATEGORIES.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => setCat(c)}
+              className={`shrink-0 cursor-pointer rounded-full border px-[13px] py-[7px] text-[12.5px] font-bold ${
+                cat === c ? 'border-teal bg-teal text-white' : 'border-[#E3EEEC] bg-white text-teal-dark'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+        <div className="no-bar flex gap-[7px] overflow-x-auto pb-2.5">
+          {PLACE_REGIONS.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRegion(r)}
+              className={`shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold ${
+                region === r ? 'border-[#E3CFA0] bg-[#FFF8EC] text-[#7A5A12]' : 'border-[#EEF1F0] bg-white text-ink-muted'
+              }`}
+            >
+              {r}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid min-h-0 flex-1 gap-2.5 overflow-y-auto px-[15px] pb-4 pt-1">
+        {filtered.length === 0 ? (
+          <div className="py-[30px] text-center text-[13.5px] text-ink-muted">No places match — try clearing a filter.</div>
+        ) : (
+          filtered.map((p) => {
+            const added = selected.has(p.id);
             return (
-              <div
-                key={p.id}
-                className="flex items-start gap-3 rounded-card border border-ink/10 bg-white p-3"
-              >
+              <div key={p.id} className="flex gap-3 rounded-[14px] border border-[#EAF2F1] bg-white p-2.5 shadow-[0_3px_10px_rgba(10,46,54,.04)]">
+                <Thumb place={p} size={64} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate font-semibold text-ink">{p.name}</p>
+                  <div className="flex flex-wrap items-center gap-[7px]">
+                    <strong className="text-[14.5px] text-ink">{p.name}</strong>
+                    <span className="inline-flex items-center gap-[3px] text-[11.5px] font-bold text-gold">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="#F5A623" aria-hidden>
+                        <path d="M12 2l2.6 6.3L21 9l-5 4.3L17.5 21 12 17.2 6.5 21 8 13.3 3 9l6.4-.7L12 2Z" />
+                      </svg>
+                      {ratingFor(p)}
+                    </span>
                   </div>
-                  <p className="mt-0.5 text-xs text-ink-muted">
-                    {p.category} · {p.region} · ~{Math.round(p.durationMin / 30) / 2}h
-                    {p.closesAt ? ` · closes ${p.closesAt}` : ''}
-                  </p>
-                  {p.blurb && <p className="mt-1 line-clamp-2 text-xs text-ink-muted">{p.blurb}</p>}
+                  {p.blurb && <p className="m-0 mb-[7px] mt-1 text-[12.5px] leading-[1.4] text-ink-muted">{p.blurb}</p>}
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex items-center gap-1 rounded-[7px] bg-teal-tint px-[7px] py-[3px] text-[11px] font-bold text-teal">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
+                        <path d="M5 13l4 4L19 7" stroke="#0E8C92" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      Real place · open today
+                    </span>
+                    <span className="text-[11.5px] font-semibold text-ink-muted">{p.region}</span>
+                  </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => (isIn ? onRemove(p.id) : onAdd(p.id))}
-                  className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                    isIn
-                      ? 'bg-teal/10 text-teal-dark'
-                      : 'bg-coral text-white hover:brightness-105'
+                  onClick={() => onAdd(p.id)}
+                  disabled={added}
+                  aria-label={`Add ${p.name}`}
+                  className={`shrink-0 self-center rounded-[10px] px-3.5 py-[9px] text-[13px] font-bold ${
+                    added ? 'cursor-default bg-[#EAF2F1] text-ink-muted' : 'cursor-pointer bg-coral text-white'
                   }`}
                 >
-                  {isIn ? '✓ Added' : '+ Add'}
+                  {added ? '✓ Added' : '+ Add'}
                 </button>
               </div>
             );
-          })}
-        </div>
-      </aside>
-    </>
+          })
+        )}
+      </div>
+    </div>
   );
 }
