@@ -66,6 +66,9 @@ interface BookingState {
   unitLabel: string;
   /** Live total for the current selection, or null if not computable. */
   total: number | null;
+  /** The per-UNIT price (per vehicle / per group / per head), excluding the child-seat add-on — what
+   *  the cart stores so it isn't double-multiplied by the party. */
+  unitPriceEur: number;
   vehicleName: string | null;
   busy: boolean;
   /** Brief "recomputing" flag for the option card while the selection changes. */
@@ -220,6 +223,9 @@ export function BookingProvider({
         : cheapest.amountEur * participants;
   const childSeatsExtra = childSeatsCost(childSeats);
   const total = baseTotal == null ? null : baseTotal + childSeatsExtra;
+  // Per-unit price for the cart: a vehicle is one flat unit (its whole price); per-group / per-person
+  // is the tier's unit price (the cart multiplies it by the party). Never includes the child add-on.
+  const unitPriceEur = isVehicle ? (baseTotal ?? 0) : (cheapest?.amountEur ?? 0);
   const vehicleName = vehicleQuote?.vehicle ?? null;
 
   async function continueToCheckout() {
@@ -303,6 +309,7 @@ export function BookingProvider({
     maxParticipants,
     unitLabel,
     total,
+    unitPriceEur,
     vehicleName,
     busy,
     updating,

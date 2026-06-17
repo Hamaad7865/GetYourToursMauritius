@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Logo } from '@/components/site/Logo';
 import { PickupMap } from '@/components/maps/PickupMap';
+import { childSeatsCost } from '@/lib/services/pricing';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
 const STEPS = ['Transport', 'Contact', 'Payment'];
@@ -309,6 +310,15 @@ export function Checkout() {
             <div className="flex items-center gap-2">
               <IconGlobe width={15} height={15} className="text-teal" /> {lang}
             </div>
+            {childSeats > 0 && (
+              <div className="flex items-center gap-2">
+                <IconCheck width={15} height={15} className="text-teal" />
+                {childSeats} baby/child {childSeats === 1 ? 'seat' : 'seats'}
+                {childSeatsCost(childSeats) > 0
+                  ? ` · first free, €${childSeatsCost(childSeats)} extra`
+                  : ' · free'}
+              </div>
+            )}
           </dl>
           <div className="mt-4 flex items-center justify-between border-t border-ink/10 pt-3">
             <span className="font-bold text-ink">Total</span>

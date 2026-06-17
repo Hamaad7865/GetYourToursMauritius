@@ -59,10 +59,12 @@ export function BookingOptionCard() {
       lang: b.lang,
       priceLabel: isVehicle ? (b.vehicleName ?? 'Vehicle') : 'Adult',
       guests: b.participants,
-      unitEur: b.total ?? 0,
+      // Per-unit price (the cart multiplies it by the party for per-head/per-group); the child-seat
+      // add-on is carried separately so it isn't multiplied.
+      unitEur: b.unitPriceEur,
       pricingMode: b.activity.pricingMode,
       suv: showSuv && b.suv,
-      maxGuests: null,
+      maxGuests: b.groupSize,
       seatsLeft: b.seatsLeft,
       unit: b.unitLabel,
       childSeats: b.childSeats,
