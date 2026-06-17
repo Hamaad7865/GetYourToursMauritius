@@ -15,3 +15,15 @@ export const plannerPlaceSchema = z.object({
 });
 
 export type PlannerPlace = z.infer<typeof plannerPlaceSchema>;
+
+/** One turn in the planner chat. Tool/system turns are server-managed, so the client only sends these. */
+export const plannerChatMessageSchema = z.object({
+  role: z.enum(['user', 'assistant']),
+  content: z.string().min(1).max(4000),
+});
+
+/** Request body for POST /api/ai/trip-planner — the running conversation. */
+export const plannerChatInputSchema = z.object({
+  messages: z.array(plannerChatMessageSchema).min(1).max(40),
+});
+export type PlannerChatInput = z.infer<typeof plannerChatInputSchema>;
