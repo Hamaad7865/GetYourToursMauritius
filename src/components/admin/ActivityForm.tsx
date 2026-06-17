@@ -230,8 +230,26 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         )}
       </Section>
 
-      <Section title="Itinerary" hint="The stops shown on the map and timeline.">
+      <Section title="Itinerary" hint="The default stops shown on the map and timeline.">
         <ItineraryEditor stops={v.itinerary} onChange={(x) => set('itinerary', x)} />
+      </Section>
+
+      <Section
+        title="Optional stops (customer-customizable)"
+        hint="Places a customer can add to their own route on the tour page (e.g. Fort Adelaide, Apravasi Ghat). Leave empty to keep the itinerary fixed."
+      >
+        <ItineraryEditor stops={v.optionalStops} onChange={(x) => set('optionalStops', x)} />
+        <label className="mt-4 block max-w-[220px] text-[13px] font-semibold text-ink">
+          Max stops a customer can pick
+          <input
+            type="number"
+            min={1}
+            className={`${inputClass} mt-1`}
+            value={v.maxStops ?? ''}
+            onChange={(e) => set('maxStops', e.target.value ? Number(e.target.value) : null)}
+            placeholder="8"
+          />
+        </label>
       </Section>
 
       {error && (
