@@ -8,25 +8,19 @@ const TIERS = [
   { label: 'Private group', amountEur: 110, maxGuests: 6 },
 ];
 
-const SIGHTSEEING = { perBlockEur: 70, suvFlatEur: 85, blockSize: 4, maxParty: 25 };
+const SIGHTSEEING = { sedanEur: 70, suvEur: 85, familyEur: 85, vanEur: 125, coasterEur: 225, maxParty: 25 };
 
 describe('sightseeingQuote', () => {
-  it('charges €70 per block of 4, named by party size', () => {
+  it('charges a flat price per vehicle bracket', () => {
     const cases: Array<[number, string, number]> = [
       [1, 'Sedan', 70],
       [4, 'Sedan', 70],
-      [5, 'Family car', 140],
-      [6, 'Family car', 140],
-      [7, 'Minibus', 140],
-      [8, 'Minibus', 140],
-      [9, 'Minibus', 210],
-      [12, 'Minibus', 210],
-      [13, 'Minibus', 280],
-      [14, 'Minibus', 280],
-      [15, 'Coaster', 280],
-      [20, 'Coaster', 350],
-      [24, 'Coaster', 420],
-      [25, 'Coaster', 490],
+      [5, 'Family car', 85],
+      [6, 'Family car', 85],
+      [7, 'Van', 125],
+      [14, 'Van', 125],
+      [15, 'Coaster', 225],
+      [25, 'Coaster', 225],
     ];
     for (const [people, vehicle, total] of cases) {
       const q = sightseeingQuote(people, false, SIGHTSEEING);
@@ -35,10 +29,10 @@ describe('sightseeingQuote', () => {
     }
   });
 
-  it('applies the flat €85 SUV upgrade only for parties of 1–4', () => {
+  it('applies the €85 SUV upgrade only for parties of 1–4', () => {
     expect(sightseeingQuote(2, true, SIGHTSEEING)).toEqual({ vehicle: 'SUV', totalEur: 85 });
     expect(sightseeingQuote(4, true, SIGHTSEEING)).toEqual({ vehicle: 'SUV', totalEur: 85 });
-    expect(sightseeingQuote(5, true, SIGHTSEEING)).toEqual({ vehicle: 'Family car', totalEur: 140 });
+    expect(sightseeingQuote(5, true, SIGHTSEEING)).toEqual({ vehicle: 'Family car', totalEur: 85 });
   });
 
   it('throws above the cap and below 1', () => {

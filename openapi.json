@@ -773,17 +773,25 @@
                             "null"
                           ],
                           "properties": {
-                            "perBlockEur": {
+                            "sedanEur": {
                               "type": "number",
                               "minimum": 0
                             },
-                            "suvFlatEur": {
+                            "suvEur": {
                               "type": "number",
                               "minimum": 0
                             },
-                            "blockSize": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0
+                            "familyEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "vanEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "coasterEur": {
+                              "type": "number",
+                              "minimum": 0
                             },
                             "maxParty": {
                               "type": "integer",
@@ -791,9 +799,11 @@
                             }
                           },
                           "required": [
-                            "perBlockEur",
-                            "suvFlatEur",
-                            "blockSize",
+                            "sedanEur",
+                            "suvEur",
+                            "familyEur",
+                            "vanEur",
+                            "coasterEur",
                             "maxParty"
                           ]
                         }

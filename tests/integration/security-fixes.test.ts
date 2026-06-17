@@ -157,18 +157,18 @@ describe('security & integrity fixes', () => {
     return { occurrenceId, optionId };
   }
 
-  it('charges €70 per block of 4 by party size; SUV is a flat €85 upgrade ≤4', async () => {
+  it('charges a flat price per vehicle bracket; SUV is the €85 upgrade ≤4', async () => {
     for (const [people, suv, expectMinor, vehicle] of [
       [1, false, 7000, 'Sedan'],
       [4, false, 7000, 'Sedan'],
       [4, true, 8500, 'SUV'],
-      [5, false, 14000, 'Family car'],
-      [6, false, 14000, 'Family car'],
-      [7, false, 14000, 'Minibus'],
-      [12, false, 21000, 'Minibus'],
-      [14, false, 28000, 'Minibus'],
-      [15, false, 28000, 'Coaster'],
-      [25, false, 49000, 'Coaster'],
+      [5, false, 8500, 'Family car'],
+      [6, false, 8500, 'Family car'],
+      [7, false, 12500, 'Van'],
+      [12, false, 12500, 'Van'],
+      [14, false, 12500, 'Van'],
+      [15, false, 22500, 'Coaster'],
+      [25, false, 22500, 'Coaster'],
     ] as const) {
       await db.asOwner();
       const { occurrenceId } = await seedVehicle(10);
@@ -238,9 +238,11 @@ describe('security & integrity fixes', () => {
     expect(rows[0]!.data.pricingMode).toBe('vehicle');
     expect(rows[0]!.data.fromPriceEur).toBe(70);
     expect(rows[0]!.data.vehiclePricing).toMatchObject({
-      perBlockEur: 70,
-      suvFlatEur: 85,
-      blockSize: 4,
+      sedanEur: 70,
+      suvEur: 85,
+      familyEur: 85,
+      vanEur: 125,
+      coasterEur: 225,
       maxParty: 25,
     });
   });

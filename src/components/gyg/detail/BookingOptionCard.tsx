@@ -3,6 +3,7 @@
 import { useBooking } from './BookingProvider';
 import { useCart } from '@/lib/cart/useCart';
 import { useToast } from '@/components/site/ToastProvider';
+import { SIGHTSEEING_SUV_MAX } from '@/lib/services/pricing';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { IconCheck, IconClock, IconGlobe, IconPin, IconUsers } from '@/components/ui/icons';
 
@@ -11,7 +12,7 @@ function eur(n: number): string {
 }
 
 /** GetYourGuide "option available" card. Revealed after Check availability; shows the selection
- *  summary, the price, the Sedan/SUV choice (vehicle, ≤ blockSize), and Continue / Add to cart. */
+ *  summary, the price, the Sedan/SUV choice (vehicle, ≤4 pax), and Continue / Add to cart. */
 export function BookingOptionCard() {
   const b = useBooking();
   const { add: addToCart } = useCart();
@@ -19,7 +20,7 @@ export function BookingOptionCard() {
   if (!b.checked) return null;
 
   const isVehicle = b.activity.pricingMode === 'vehicle';
-  const showSuv = isVehicle && b.participants <= b.vehicleCfg.blockSize;
+  const showSuv = isVehicle && b.participants <= SIGHTSEEING_SUV_MAX;
   const dur = durationLabel(b.activity.durationMinutes);
   const whenText = b.date
     ? new Date(`${b.date}T00:00:00`).toLocaleDateString('en-GB', {
@@ -87,7 +88,7 @@ export function BookingOptionCard() {
               !b.suv ? 'border-teal bg-teal/5 text-teal-dark' : 'border-ink/15 text-ink-muted'
             }`}
           >
-            Sedan · {eur(b.vehicleCfg.perBlockEur)}
+            Sedan · {eur(b.vehicleCfg.sedanEur)}
           </button>
           <button
             type="button"
@@ -96,7 +97,7 @@ export function BookingOptionCard() {
               b.suv ? 'border-teal bg-teal/5 text-teal-dark' : 'border-ink/15 text-ink-muted'
             }`}
           >
-            SUV · {eur(b.vehicleCfg.suvFlatEur)}
+            SUV · {eur(b.vehicleCfg.suvEur)}
           </button>
         </div>
       )}

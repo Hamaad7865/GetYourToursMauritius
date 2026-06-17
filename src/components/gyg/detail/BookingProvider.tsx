@@ -4,7 +4,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { TourType } from '@/lib/validation/common';
 import type { PricingMode, TourOption, VehiclePricing } from '@/lib/validation/tours';
-import { sightseeingQuote, SIGHTSEEING_DEFAULT } from '@/lib/services/pricing';
+import { sightseeingQuote, SIGHTSEEING_DEFAULT, SIGHTSEEING_SUV_MAX } from '@/lib/services/pricing';
 
 export interface BookingActivity {
   slug: string;
@@ -154,18 +154,18 @@ export function BookingProvider({
       : activity.type === 'transport'
         ? 'per vehicle'
         : 'per person';
-  const suvActive = isVehicle && suv && participants <= vehicleCfg.blockSize;
+  const suvActive = isVehicle && suv && participants <= SIGHTSEEING_SUV_MAX;
 
   // Clamp the party down when the cap drops (e.g. switching to a date with fewer seats), so an
   // over-capacity selection never reaches Check availability / checkout.
   useEffect(() => {
     if (participants > maxParticipants) setParticipants(maxParticipants);
   }, [participants, maxParticipants]);
-  // Reset the SUV upgrade once the party grows past the entry tier, so dropping back to ≤ blockSize
-  // starts from Sedan instead of silently snapping the price back to the SUV rate.
+  // Reset the SUV upgrade once the party grows past the entry tier, so dropping back to ≤ 4 starts
+  // from Sedan instead of silently snapping the price back to the SUV rate.
   useEffect(() => {
-    if (isVehicle && suv && participants > vehicleCfg.blockSize) setSuv(false);
-  }, [isVehicle, suv, participants, vehicleCfg.blockSize]);
+    if (isVehicle && suv && participants > SIGHTSEEING_SUV_MAX) setSuv(false);
+  }, [isVehicle, suv, participants]);
   const vehicleQuote = isVehicle
     ? sightseeingQuote(Math.min(Math.max(participants, 1), vehicleCfg.maxParty), suvActive, vehicleCfg)
     : null;

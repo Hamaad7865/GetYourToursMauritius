@@ -19,9 +19,11 @@ export type TourPrice = z.infer<typeof tourPriceSchema>;
 /** Global sightseeing vehicle-pricing config, returned for vehicle-mode tours so the booking widget
  *  mirrors the server's exact numbers (price is still recomputed server-side at booking time). */
 export const vehiclePricingSchema = z.object({
-  perBlockEur: z.number().nonnegative(),
-  suvFlatEur: z.number().nonnegative(),
-  blockSize: z.number().int().positive(),
+  sedanEur: z.number().nonnegative(),
+  suvEur: z.number().nonnegative(),
+  familyEur: z.number().nonnegative(),
+  vanEur: z.number().nonnegative(),
+  coasterEur: z.number().nonnegative(),
   maxParty: z.number().int().positive(),
 });
 export type VehiclePricing = z.infer<typeof vehiclePricingSchema>;
@@ -127,8 +129,10 @@ export const tourDetailSchema = tourSummarySchema.extend({
   options: z.array(tourOptionSchema),
   translations: z.record(z.string(), tourTranslationSchema),
   reviews: z.array(reviewSchema),
-  /** Present only for vehicle-mode (sightseeing) tours — the global pricing rule's numbers. */
-  vehiclePricing: vehiclePricingSchema.nullish(),
+  /** Present only for vehicle-mode (sightseeing) tours — the flat per-vehicle prices. `.catch` so an
+   *  old-shaped config (before the flat-pricing catch-up runs on live) degrades to the defaults
+   *  instead of crashing the page. */
+  vehiclePricing: vehiclePricingSchema.nullish().catch(undefined),
 });
 export type TourDetail = z.infer<typeof tourDetailSchema>;
 

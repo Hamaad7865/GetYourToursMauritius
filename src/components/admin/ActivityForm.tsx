@@ -193,11 +193,11 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             >
               <option value="per_person">Per person (price × people)</option>
               <option value="per_group">Per group (one price per group of N)</option>
-              <option value="vehicle">Sightseeing vehicle (global €70 per 4 + SUV)</option>
+              <option value="vehicle">Sightseeing vehicle (flat per-vehicle price)</option>
             </select>
             <p className="mt-1.5 text-[12px] text-ink-muted">
               {v.pricingMode === 'vehicle'
-                ? 'Sightseeing vehicle pricing is global: €70 per 4 people, with a flat €85 SUV upgrade for parties of 1–4, capped at 25. It applies to every vehicle-priced tour — no per-tour price tiers needed. Change it once in the sightseeing_pricing table.'
+                ? 'Sightseeing vehicle pricing is global, one flat price per vehicle: Sedan €70 / SUV €85 (1–4), Family car €85 (5–6), Van €125 (7–14), Coaster €225 (15–25), capped at 25. Applies to every vehicle-priced tour — no per-tour tiers. Change it in the sightseeing_pricing table.'
                 : v.pricingMode === 'per_group'
                   ? 'The price buys one group of up to “fits up to” people; bigger parties pay for extra groups (ceil(people / size) × price).'
                   : 'Each guest pays the tier price. “Fits up to” is an optional hard cap per tier.'}
@@ -222,8 +222,9 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
       >
         {v.pricingMode === 'vehicle' ? (
           <p className="rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-            Vehicle-priced tours use the global sightseeing rule (€70 per 4 · €85 SUV · max 25). Add a
-            single option (e.g. “Sightseeing”) so dates can be scheduled — no price tiers required.
+            Vehicle-priced tours use the global flat prices (Sedan €70 / SUV €85 / Family €85 / Van
+            €125 / Coaster €225 · max 25). Add a single option (e.g. “Sightseeing”) so dates can be
+            scheduled — no price tiers required.
           </p>
         ) : (
           <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
