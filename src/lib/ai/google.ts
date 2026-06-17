@@ -13,5 +13,5 @@ export function createGoogleProvider(): AiProvider {
   });
   // Reserved for the Phase 5 agent loop (kept referenced so wiring is verified).
   void client;
-  return { name: 'google', model: 'gemini-1.5-flash' };
+  return { name: 'google', model: env.GOOGLE_GENERATIVE_AI_MODEL ?? 'gemini-2.0-flash' };
 }

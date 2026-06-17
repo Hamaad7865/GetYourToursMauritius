@@ -44,6 +44,9 @@ const ServerEnvSchema = z.object({
 
   AI_PROVIDER: z.enum(['google', 'workersai', 'anthropic', 'openai']).default('google'),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
+  // Gemini model id for the AI Road Trip Planner co-pilot. Override when Google retires a model
+  // (e.g. gemini-1.5-flash was removed); defaults to a current Flash model.
+  GOOGLE_GENERATIVE_AI_MODEL: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
   ANTHROPIC_API_KEY: z.string().min(1).optional(),
   CLOUDFLARE_ACCOUNT_ID: z.string().min(1).optional(),
