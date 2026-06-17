@@ -37,6 +37,11 @@ const ServerEnvSchema = z.object({
     .optional()
     .transform((v) => v === 'true' || v === '1'),
 
+  // Server-only Google Maps key for the Distance Matrix API (real drive times in the AI Road Trip
+  // Planner). Falls back to NEXT_PUBLIC_GOOGLE_MAPS_API_KEY when unset; without either, the planner
+  // uses the haversine estimate so it never breaks.
+  GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
+
   AI_PROVIDER: z.enum(['google', 'workersai', 'anthropic', 'openai']).default('google'),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
   OPENAI_API_KEY: z.string().min(1).optional(),
