@@ -96,6 +96,31 @@
     animation: waveDrift 22s linear infinite;
   }
 
+  /* Mobile menu slide-over: in from the right. */
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  .animate-slide-in {
+    animation: slideIn 0.22s ease-out both;
+  }
+  /* Mobile search bottom sheet: up from the bottom. */
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  .animate-slide-up {
+    animation: slideUp 0.26s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -103,7 +128,9 @@
   html {
     scroll-behavior: auto;
   }
-  .animate-fade-up {
+  .animate-fade-up,
+  .animate-slide-in,
+  .animate-slide-up {
     animation: none;
   }
   /* Freeze the lagoon backdrop to its composed still (!important beats the inline-shorthand

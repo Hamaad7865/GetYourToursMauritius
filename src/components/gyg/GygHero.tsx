@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
-import { IconShield, IconBolt, IconCheck, IconUsers, IconSearch } from '@/components/ui/icons';
+import { IconShield, IconBolt, IconCheck, IconUsers } from '@/components/ui/icons';
 import { HeroGallery } from './HeroGallery';
 
 /**
@@ -140,20 +139,9 @@ export function GygHero({ children }: { children?: ReactNode }) {
             — with ease.
           </p>
 
-          {/* On desktop the search lives in the navbar; on mobile (where there's no room for it
-              there) we surface a prominent search pill in the hero — GetYourGuide's search-first
-              move, floating on our lagoon. */}
-          <Link
-            href="/activities"
-            aria-label="Search tours and activities"
-            className="animate-fade-up mt-7 flex items-center gap-3 rounded-full bg-white px-5 py-3.5 shadow-[0_14px_34px_-12px_rgba(10,46,54,0.6)] [animation-delay:200ms] active:scale-[0.99] lg:hidden"
-          >
-            <IconSearch width={20} height={20} className="text-teal" />
-            <span className="text-[15px] font-semibold text-ink-muted">Search tours &amp; activities</span>
-          </Link>
-
-          {/* The search now lives in the navbar; the hero carries just the message + proof. */}
-          <ul className="animate-fade-up mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)] [animation-delay:240ms]">
+          {/* The search lives in the sticky header (desktop navbar / mobile search bar); the hero
+              carries just the message + proof. */}
+          <ul className="animate-fade-up mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)] [animation-delay:240ms]">
             <li className="flex items-center gap-1.5">
               <IconShield width={14} height={14} /> Booked direct with the local operator
             </li>
