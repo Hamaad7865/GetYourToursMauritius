@@ -2446,6 +2446,8 @@ $$;
 update activities
 set pricing_mode = 'per_group'
 where slug in ('private-south-tour-with-pickup', 'airport-transfer', 'car-and-scooter-rental')
-  and pricing_mode = 'per_person';
+  -- Self-heal: a drifted live DB may have these rows on NULL (column added without the default by an
+  -- older script) — `= 'per_person'` skipped those. Cover NULL/per_person; preserve a deliberate 'vehicle'.
+  and coalesce(pricing_mode, '') <> 'vehicle';
 
 commit;

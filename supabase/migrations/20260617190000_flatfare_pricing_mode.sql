@@ -10,4 +10,6 @@
 update activities
 set pricing_mode = 'per_group'
 where slug in ('private-south-tour-with-pickup', 'airport-transfer', 'car-and-scooter-rental')
-  and pricing_mode = 'per_person';
+  -- Self-heal: cover NULL (a drifted DB whose column was added without the default) and per_person;
+  -- preserve a deliberate 'vehicle' so a later admin change isn't clobbered.
+  and coalesce(pricing_mode, '') <> 'vehicle';
