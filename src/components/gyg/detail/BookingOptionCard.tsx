@@ -6,6 +6,7 @@ import { useCart } from '@/lib/cart/useCart';
 import { useToast } from '@/components/site/ToastProvider';
 import { SIGHTSEEING_SUV_MAX, CHILD_SEAT_EUR } from '@/lib/services/pricing';
 import { durationLabel } from '@/lib/catalogue/detail';
+import type { AltStop } from '@/lib/validation/tours';
 import {
   IconCheck,
   IconClock,
@@ -49,6 +50,16 @@ export function BookingOptionCard() {
 
   function handleAddToCart() {
     if (!occId) return;
+    // Capture the customised route (the tour page stashes it only when it diverges from the default),
+    // so the cart line carries it to checkout — otherwise Add-to-cart silently books the default route.
+    let itinerary: AltStop[] | undefined;
+    try {
+      const raw = window.sessionStorage.getItem(`gytm:itinerary:${b.activity.slug}`);
+      const arr = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(arr) && arr.length) itinerary = arr as AltStop[];
+    } catch {
+      /* sessionStorage unavailable — book the default route */
+    }
     addToCart({
       id: `${occId}:${b.vehicleName ?? 'tour'}`,
       slug: b.activity.slug,
@@ -70,6 +81,7 @@ export function BookingOptionCard() {
       seatsLeft: b.seatsLeft,
       unit: b.unitLabel,
       childSeats: b.childSeats,
+      itinerary,
     });
     showToast({ title: 'Added to cart', description: `${b.activity.title} — ${whenText}.` });
   }

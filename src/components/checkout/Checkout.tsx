@@ -40,9 +40,10 @@ export function Checkout() {
   const suv = params.get('suv') === '1';
   // Child seats chosen (first free, €6 each extra). The server recomputes the charge from this count.
   const childSeats = Math.max(0, Math.min(25, parseInt(params.get('childSeats') ?? '0', 10) || 0));
-  // Only a "Book now" from the tour-page widget (from=widget) carries a custom route. Cart checkouts
-  // don't set it, so they never inherit the slug-scoped sessionStorage route of an unrelated visit.
+  // Continue ("Book now", from=widget) carries a custom route stashed by slug; a cart line carries its
+  // OWN route, staged by occurrence (from=cart). Either may be present; neither inherits the other's.
   const fromWidget = params.get('from') === 'widget';
+  const fromCart = params.get('from') === 'cart';
   // The hold reserved on Continue (reused at pay so the spot isn't double-held) + its real expiry +
   // the shared idempotency key — handed over via sessionStorage (NOT the URL, which would leak them).
   function readHold(): { holdId: string; expiresAt: string; idem: string } {
@@ -56,11 +57,19 @@ export function Checkout() {
     }
   }
   const { holdId, expiresAt, idem: idemParam } = readHold();
-  // The route builder on the tour page stashes the chosen stops here (too big for the URL).
+  // The chosen route is stashed in sessionStorage (too big for the URL): by slug from Continue, by
+  // occurrence from a cart line. Read whichever applies to this checkout — never the other's key.
   function readItinerary(): Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null {
-    if (typeof window === 'undefined' || !slug || !fromWidget) return null;
+    if (typeof window === 'undefined') return null;
+    const key =
+      fromWidget && slug
+        ? `gytm:itinerary:${slug}`
+        : fromCart && occ
+          ? `gytm:itinerary:occ:${occ}`
+          : null;
+    if (!key) return null;
     try {
-      const raw = window.sessionStorage.getItem(`gytm:itinerary:${slug}`);
+      const raw = window.sessionStorage.getItem(key);
       const arr = raw ? JSON.parse(raw) : null;
       return Array.isArray(arr) && arr.length ? arr : null;
     } catch {
@@ -158,13 +167,13 @@ export function Checkout() {
         if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
         ref = bookingRes.data.ref as string;
         setBookingRef(ref);
-        // The route is now persisted on the booking — clear the stash so it can't attach to a later one.
-        if (slug) {
-          try {
-            window.sessionStorage.removeItem(`gytm:itinerary:${slug}`);
-          } catch {
-            /* sessionStorage unavailable — nothing to clear */
-          }
+        // The route is now persisted on the booking — clear both stashes (slug from Continue, occ from
+        // a cart line) so neither attaches to a later booking.
+        try {
+          if (slug) window.sessionStorage.removeItem(`gytm:itinerary:${slug}`);
+          if (occ) window.sessionStorage.removeItem(`gytm:itinerary:occ:${occ}`);
+        } catch {
+          /* sessionStorage unavailable — nothing to clear */
         }
         // Reconcile the price the server actually computed against what we showed. If it moved
         // (a tier was edited since add-to-cart), surface the real amount and require a second
