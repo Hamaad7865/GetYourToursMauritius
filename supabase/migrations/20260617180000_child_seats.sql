@@ -73,7 +73,18 @@ begin
     coalesce((p ->> 'source')::booking_source, 'web'), v_items, v_suv
   );
 
-  if v_booking.user_id is not null and v_booking.user_id is distinct from auth.uid() then
+  -- F23 (replay-disclosure guard): create_booking returns the existing row on an idempotency-key
+  -- replay, and api_book runs SECURITY DEFINER, so RLS does not filter the returned DTO. Refuse to
+  -- echo a booking the caller can't prove they own:
+  --   * an authenticated user replaying someone else's OWNED booking -> forbidden (original F23);
+  --   * an anonymous caller whose supplied email doesn't match the booking on file -> forbidden. This
+  --     closes guest replays (user_id NULL): a stolen/guessed key alone would otherwise hand back the
+  --     original customer's name/email/ref/items. A legitimate guest retry resends the same email and
+  --     passes; a fresh create trivially passes (the row was just inserted with this caller's email).
+  if (v_booking.user_id is not null and v_booking.user_id is distinct from auth.uid())
+     or (auth.uid() is null
+         and lower(coalesce(v_booking.customer_email, '')) <> lower(coalesce(p ->> 'customerEmail', '')))
+  then
     raise exception 'forbidden';
   end if;
   if auth.uid() is not null then
