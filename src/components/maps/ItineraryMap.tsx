@@ -16,7 +16,7 @@ function hasOther(kinds: StopKind[] | undefined): boolean {
 export function ItineraryMap({ stops, kinds }: { stops: ItineraryStop[]; kinds?: StopKind[] }) {
   return (
     <div>
-      <RouteMap stops={stops} kinds={kinds} />
+      <RouteMap stops={stops} kinds={kinds} animate />
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-muted">
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded-full bg-teal" /> Main stop
@@ -24,6 +24,11 @@ export function ItineraryMap({ stops, kinds }: { stops: ItineraryStop[]; kinds?:
         {hasOther(kinds) && (
           <span className="flex items-center gap-1.5">
             <span className="h-3 w-3 rounded-full border-2 border-teal bg-white" /> Other stop
+          </span>
+        )}
+        {stops.length > 1 && (
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block w-5 border-t-2 border-dashed border-coral" /> Return route
           </span>
         )}
       </div>

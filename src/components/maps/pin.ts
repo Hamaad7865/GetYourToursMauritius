@@ -19,9 +19,10 @@ export function pinIcon(color: string, opts?: { hollow?: boolean }): google.maps
   };
 }
 
-/** Numbered label styling for a route-stop marker. */
-export function pinLabel(n: number): google.maps.MarkerLabel {
-  return { text: String(n), color: '#ffffff', fontSize: '12px', fontWeight: '700' };
+/** Numbered label styling for a route-stop marker. `color` is the digit colour — white on a solid
+ *  pin, brand teal on a hollow (white) pin so the number stays legible. */
+export function pinLabel(n: number, color = '#ffffff'): google.maps.MarkerLabel {
+  return { text: String(n), color, fontSize: '12px', fontWeight: '700' };
 }
 
 /** A small car marker (data-URI SVG) for animating along the route. */

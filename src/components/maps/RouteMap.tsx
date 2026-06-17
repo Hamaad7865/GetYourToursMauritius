@@ -6,7 +6,7 @@ import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import { geocode } from '@/lib/maps/geocode';
 import { mapsDirectionsUrl } from '@/lib/maps/urls';
 import { MapLinkCard } from './MapLinkCard';
-import { carIcon, pinIcon } from './pin';
+import { carIcon, pinIcon, pinLabel } from './pin';
 
 /** Marker role per stop: the start/pickup (coral), a fixed main stop (solid teal), or a swappable
  *  "other" stop (hollow teal). */
@@ -15,6 +15,21 @@ export type StopKind = 'start' | 'main' | 'other';
 async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral | null> {
   if (typeof s.lat === 'number' && typeof s.lng === 'number') return { lat: s.lat, lng: s.lng };
   return geocode(s.title);
+}
+
+/** Evenly-spaced points from `a` (exclusive) to `b` (inclusive) — used to drive the car back along
+ *  the straight return leg. */
+function samplePath(
+  a: google.maps.LatLngLiteral,
+  b: google.maps.LatLngLiteral,
+  n: number,
+): google.maps.LatLngLiteral[] {
+  const out: google.maps.LatLngLiteral[] = [];
+  for (let k = 1; k <= n; k += 1) {
+    const t = k / n;
+    out.push({ lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t });
+  }
+  return out;
 }
 
 /* Once the Directions API answers "not enabled / denied" for this key, stop calling it for the rest
@@ -95,14 +110,18 @@ export function RouteMap({
       const points = resolved.map((r) => r.pos);
 
       const bounds = new google.maps.LatLngBounds();
-      resolved.forEach(({ pos, kind, title }) => {
-        const icon =
-          kind === 'start'
-            ? pinIcon('#F76C5E')
-            : kind === 'other'
-              ? pinIcon('#0E8C92', { hollow: true })
-              : pinIcon('#0E8C92');
-        track(new google.maps.Marker({ map, position: pos, icon, title }));
+      resolved.forEach(({ pos, kind, title }, i) => {
+        const hollow = kind === 'other';
+        const color = kind === 'start' ? '#F76C5E' : '#0E8C92';
+        track(
+          new google.maps.Marker({
+            map,
+            position: pos,
+            icon: pinIcon(color, { hollow }),
+            label: pinLabel(i + 1, hollow ? '#0E8C92' : '#ffffff'),
+            title,
+          }),
+        );
         bounds.extend(pos);
       });
       if (points.length === 1) {
@@ -166,21 +185,46 @@ export function RouteMap({
         path = points;
       }
 
-      // The car: static at the start, or animated along the path on a loop.
-      const car = track(new google.maps.Marker({ map, position: path[0]!, icon: carIcon(), zIndex: 1000 }));
+      // Return leg: a dashed coral line straight from the last stop back to the first (a tour returns
+      // to where it started), and the car drives it on the way back so the loop is continuous.
+      let drivePath = path;
+      if (points.length > 1) {
+        const lastPt = points[points.length - 1]!;
+        const firstPt = points[0]!;
+        track(
+          new google.maps.Polyline({
+            map,
+            path: [lastPt, firstPt],
+            geodesic: true,
+            strokeOpacity: 0,
+            icons: [
+              {
+                icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, scale: 3, strokeColor: '#F76C5E' },
+                offset: '0',
+                repeat: '12px',
+              },
+            ],
+          }),
+        );
+        drivePath = [...path, ...samplePath(lastPt, firstPt, 24)];
+      }
+
+      // The car: static at the start, or driving the loop — out along the route, back along the
+      // return leg — when animated and motion is allowed.
+      const car = track(new google.maps.Marker({ map, position: drivePath[0]!, icon: carIcon(), zIndex: 1000 }));
       const reduce =
         typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      if (animate && !reduce && path.length > 1) {
+      if (animate && !reduce && drivePath.length > 1) {
         const STEP_MS = 90; // advance one path point every ~90ms
         let i = 0;
-        let last = 0;
+        let lastT = 0;
         const tick = (t: number) => {
           if (cancelled) return;
-          if (t - last >= STEP_MS) {
-            i = (i + 1) % path.length;
-            car.setPosition(path[i]!);
-            last = t;
+          if (t - lastT >= STEP_MS) {
+            i = (i + 1) % drivePath.length;
+            car.setPosition(drivePath[i]!);
+            lastT = t;
           }
           rafRef.current = requestAnimationFrame(tick);
         };
