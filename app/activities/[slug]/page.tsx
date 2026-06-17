@@ -9,7 +9,8 @@ import { WishHeart } from '@/components/gyg/WishHeart';
 import { RecordView } from '@/components/gyg/RecordView';
 import { Gallery } from '@/components/gyg/detail/Gallery';
 import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
-import { VehicleOptionCard } from '@/components/gyg/detail/VehicleOptionCard';
+import { BookingProvider } from '@/components/gyg/detail/BookingProvider';
+import { BookingOptionCard } from '@/components/gyg/detail/BookingOptionCard';
 import { ItineraryBuilder } from '@/components/gyg/detail/ItineraryBuilder';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
@@ -22,7 +23,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { publicServiceContext } from '@/lib/http/context';
 import { getActivity, searchActivities } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
-import { breadcrumbJsonLd, breadcrumbTrail, buildFaq, durationLabel, relatedActivities } from '@/lib/catalogue/detail';
+import { breadcrumbJsonLd, breadcrumbTrail, buildFaq, relatedActivities } from '@/lib/catalogue/detail';
 import { productJsonLd } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
@@ -165,6 +166,21 @@ export default async function ActivityDetailPage({
           </div>
 
           {/* GYG layout: gallery (left, top) + sticky booking (right), content below gallery */}
+          <BookingProvider
+            activity={{
+              slug: activity.slug,
+              type: activity.type,
+              title: activity.title,
+              fromPriceEur: activity.fromPriceEur,
+              options: activity.options,
+              languages: activity.languages,
+              pricingMode: activity.pricingMode,
+              vehiclePricing: activity.vehiclePricing ?? null,
+              durationMinutes: activity.durationMinutes,
+              pickupAvailable: activity.pickupAvailable,
+              image: activity.heroImage?.url ?? activity.images[0]?.url ?? null,
+            }}
+          >
           <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">
             <div className="lg:col-start-1 lg:row-start-1">
               {activity.images.length > 0 && (
@@ -173,17 +189,7 @@ export default async function ActivityDetailPage({
             </div>
 
             <aside id="book" className="mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
-              <BookingWidget
-                slug={activity.slug}
-                type={activity.type}
-                fromPriceEur={activity.fromPriceEur}
-                options={activity.options}
-                languages={activity.languages}
-                title={activity.title}
-                pricingMode={activity.pricingMode}
-                vehiclePricing={activity.vehiclePricing}
-                image={activity.heroImage?.url ?? activity.images[0]?.url ?? null}
-              />
+              <BookingWidget />
             </aside>
 
             <div className="min-w-0 lg:col-start-1 lg:row-start-2">
@@ -193,17 +199,7 @@ export default async function ActivityDetailPage({
                 </p>
               )}
 
-              {activity.pricingMode === 'vehicle' && activity.vehiclePricing && (
-                <div className="mb-6">
-                  <VehicleOptionCard
-                    title={activity.title}
-                    cfg={activity.vehiclePricing}
-                    durationLabel={durationLabel(activity.durationMinutes)}
-                    pickupAvailable={activity.pickupAvailable}
-                    languages={activity.languages}
-                  />
-                </div>
-              )}
+              <BookingOptionCard />
 
               <QuickFacts
                 durationMinutes={activity.durationMinutes}
@@ -322,6 +318,7 @@ export default async function ActivityDetailPage({
               </section>
             </div>
           </div>
+          </BookingProvider>
 
           {related.length > 0 && (
             <section className="mt-12 border-t border-ink/10 pt-8">

@@ -40,6 +40,10 @@ export function Checkout() {
   // Only a "Book now" from the tour-page widget (from=widget) carries a custom route. Cart checkouts
   // don't set it, so they never inherit the slug-scoped sessionStorage route of an unrelated visit.
   const fromWidget = params.get('from') === 'widget';
+  // The hold reserved on Continue (reused at pay so the spot isn't double-held) + its real expiry.
+  const holdId = params.get('holdId') || '';
+  const expiresAt = params.get('expiresAt') || '';
+  const idemParam = params.get('idem') || '';
   // The route builder on the tour page stashes the chosen stops here (too big for the URL).
   function readItinerary(): Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null {
     if (typeof window === 'undefined' || !slug || !fromWidget) return null;
@@ -57,10 +61,17 @@ export function Checkout() {
   const [pickupLoc, setPickupLoc] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [secs, setSecs] = useState(30 * 60);
-  // Stable idempotency key + booking ref so a retry reuses the same booking/payment
-  // instead of creating an orphaned, seat-holding duplicate.
-  const [idemKey] = useState(() => crypto.randomUUID());
+  const [secs, setSecs] = useState(() => {
+    if (expiresAt) {
+      const s = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000);
+      return s > 0 ? s : 0;
+    }
+    return 30 * 60;
+  });
+  // Stable idempotency key + booking ref so a retry reuses the same booking/payment instead of
+  // creating an orphaned, seat-holding duplicate. Reuse the key from Continue so the hold → booking
+  // chain shares one key.
+  const [idemKey] = useState(() => idemParam || crypto.randomUUID());
   const [bookingRef, setBookingRef] = useState<string | null>(null);
   // Authoritative price from the created booking — what the customer is actually charged.
   const [serverTotal, setServerTotal] = useState<number | null>(null);
@@ -117,6 +128,7 @@ export function Checkout() {
             expectedSlug: slug,
             party: { [label]: qty },
             suv,
+            holdId: holdId || undefined,
             itinerary: readItinerary(),
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
