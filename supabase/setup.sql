@@ -4911,99 +4911,656 @@ as $$
   from bookings b where b.id = p_booking_id;
 $$;
 
+-- ==================== 20260617190000_flatfare_pricing_mode.sql ====================
+-- Flat-fare tours were charged per head. private-south-tour-with-pickup ('Private group' €110 up to 6),
+-- airport-transfer ('Per transfer' per vehicle) and car-and-scooter-rental ('Per day' per vehicle) were
+-- left at the default pricing_mode 'per_person', so their single flat per-booking fare was multiplied by
+-- the party size — a 4-person private-south tour billed €440 instead of €110. They are per-group fares:
+-- the tier price covers the whole party up to the tier's max_guests (extra vehicles billed via ceil),
+-- which create_booking already implements for pricing_mode='per_group'.
+--
+-- Guard on the current value so this never clobbers a later deliberate change (e.g. an admin moving one
+-- to 'vehicle'); it only corrects rows still sitting on the wrong default.
+update activities
+set pricing_mode = 'per_group'
+where slug in ('private-south-tour-with-pickup', 'airport-transfer', 'car-and-scooter-rental')
+  -- Self-heal: cover NULL (a drifted DB whose column was added without the default) and per_person;
+  -- preserve a deliberate 'vehicle' so a later admin change isn't clobbered.
+  and coalesce(pricing_mode, '') <> 'vehicle';
+
+-- ==================== 20260617200000_materialize_availability_guard.sql ====================
+-- Sweep (medium, resource-abuse): materialize_availability is SECURITY DEFINER and was granted to
+-- `authenticated` with NO internal authorization check. Any signed-in customer could call it in a
+-- loop and trigger a full-catalogue, up-to-400-day write across every published activity (write
+-- amplification / cost), and could undo a closed-availability decision. Its only legitimate callers
+-- are the admin browser (a staff user) and the service-role maintenance cron, so gate the body to
+-- is_staff() OR the service_role JWT. The materialization logic itself is unchanged.
+create or replace function materialize_availability(p jsonb)
+returns int
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_activity_id uuid := nullif(p ->> 'activityId', '')::uuid;
+  v_days int := least(greatest(coalesce((p ->> 'days')::int, 185), 1), 400);
+  v_count int;
+begin
+  -- Staff (admin browser) or the service-role maintenance worker only.
+  if not (is_staff() or auth.role() = 'service_role') then
+    raise exception 'forbidden';
+  end if;
+
+  -- Reopen previously-closed, still-future day-slots for activities that are bookable again.
+  update session_occurrences so
+     set status = 'open'
+    from activity_options o
+    join activities a on a.id = o.activity_id
+   where so.activity_option_id = o.id
+     and so.status = 'closed'
+     and so.starts_at > now()
+     and a.status = 'published'
+     and coalesce(a.daily_capacity, 0) > 0
+     and (v_activity_id is null or a.id = v_activity_id);
+
+  insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
+  select o.id,
+         a.operator_id,
+         (d::date + time '12:00') at time zone 'UTC',
+         ((d::date + time '12:00') at time zone 'UTC') + make_interval(mins => coalesce(a.duration_minutes, 240)),
+         a.daily_capacity,
+         'open'
+  from activities a
+  join activity_options o on o.activity_id = a.id
+  cross join generate_series(current_date, current_date + v_days, interval '1 day') d
+  where a.status = 'published'
+    and coalesce(a.daily_capacity, 0) > 0
+    and (v_activity_id is null or a.id = v_activity_id)
+    and exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id)
+    and not exists (
+      select 1 from session_occurrences x
+      where x.activity_option_id = o.id
+        and (x.starts_at at time zone 'UTC')::date = d::date
+    )
+  on conflict (activity_option_id, starts_at) do nothing;
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+-- ==================== 20260617210000_planner_vehicle_pricing.sql ====================
+-- Planner vehicle pricing — a PARALLEL flat-bracket path for the AI Road Trip Planner, separate from
+-- the sightseeing 'vehicle' mode. A new pricing_mode 'vehicle_custom' reads its OWN config table
+-- (planner_pricing: Standard €95 / SUV €100 (1-4) · 6-seater €110 (5-6) · Van €150 (7-14) ·
+-- Coach €250 (15-22), cap 22). The existing 'vehicle' path (sightseeing_pricing) is left untouched.
+-- Both config tables become staff-editable (admin pricing screen). create_booking gains a parallel
+-- branch; api_create_hold / api_book treat vehicle_custom like vehicle (reserve ONE vehicle).
+
+-- 1) Planner config: one row, five bracket prices + cap. Public read (shown in the planner), staff edit.
+create table if not exists planner_pricing (
+  id             boolean primary key default true check (id),
+  standard_minor int not null default 9500,   -- €95  (1-4)
+  suv_minor      int not null default 10000,  -- €100 (1-4 upgrade)
+  six_minor      int not null default 11000,  -- €110 (5-6)
+  van_minor      int not null default 15000,  -- €150 (7-14)
+  coach_minor    int not null default 25000,  -- €250 (15-22)
+  max_party      int not null default 22,
+  updated_at     timestamptz not null default now()
+);
+insert into planner_pricing (id) values (true) on conflict (id) do nothing;
+alter table planner_pricing enable row level security;
+grant select on planner_pricing to anon, authenticated, service_role;
+grant update on planner_pricing to authenticated;
+drop policy if exists planner_pricing_read on planner_pricing;
+create policy planner_pricing_read on planner_pricing for select using (true);
+drop policy if exists planner_pricing_staff on planner_pricing;
+create policy planner_pricing_staff on planner_pricing for all using (is_staff()) with check (is_staff());
+
+-- 2) Make the sightseeing config staff-editable too (it was read-only / SQL-only before).
+grant update on sightseeing_pricing to authenticated;
+drop policy if exists sightseeing_pricing_staff on sightseeing_pricing;
+create policy sightseeing_pricing_staff on sightseeing_pricing for all using (is_staff()) with check (is_staff());
+
+-- 3) Activities: flag the planner activity (hidden from the public catalogue) + allow the new mode.
+alter table activities add column if not exists is_custom_planner boolean not null default false;
+do $$
+begin
+  alter table activities drop constraint if exists activities_pricing_mode_check;
+  alter table activities add constraint activities_pricing_mode_check
+    check (pricing_mode in ('per_person', 'per_group', 'vehicle', 'vehicle_custom'));
+exception when duplicate_object then null;
+end $$;
+
+-- 4) create_booking: add a 'vehicle_custom' branch (planner_pricing). The 'vehicle' and per-person/
+--    per-group branches are byte-for-byte the shipped (flat_vehicle_pricing) versions.
+create or replace function create_booking(
+  p_idempotency_key text,
+  p_hold_id uuid,
+  p_customer_name text,
+  p_customer_email text,
+  p_customer_phone text,
+  p_source booking_source,
+  p_items jsonb,
+  p_suv boolean default false
+)
+returns bookings
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing bookings;
+  v_hold booking_holds;
+  v_occ session_occurrences;
+  v_option_id uuid;
+  v_mode text := 'per_person';
+  v_booking bookings;
+  v_item jsonb;
+  v_label text;
+  v_qty int;
+  v_unit bigint;
+  v_max int;
+  v_total bigint := 0;
+  v_qty_total int := 0;
+  v_agg jsonb := '{}'::jsonb;
+  v_vehicle text;
+  v_sedan bigint;
+  v_suv_price bigint;
+  v_family bigint;
+  v_van bigint;
+  v_coaster bigint;
+  v_pl_standard bigint;
+  v_pl_suv bigint;
+  v_pl_six bigint;
+  v_pl_van bigint;
+  v_pl_coach bigint;
+  v_pl_max int;
+begin
+  select * into v_existing from bookings where idempotency_key = p_idempotency_key;
+  if found then
+    return v_existing;
+  end if;
+
+  select * into v_hold from booking_holds where id = p_hold_id for update;
+  if not found then
+    raise exception 'hold_not_found';
+  end if;
+  if v_hold.status <> 'active' or v_hold.expires_at <= now() then
+    raise exception 'hold_not_active';
+  end if;
+
+  select * into v_occ from session_occurrences where id = v_hold.session_occurrence_id for update;
+  if v_occ.status <> 'open' then
+    raise exception 'occurrence_not_bookable' using detail = v_occ.status::text;
+  end if;
+  v_option_id := v_occ.activity_option_id;
+
+  select a.pricing_mode into v_mode
+  from activity_options o
+  join activities a on a.id = o.activity_id
+  where o.id = v_option_id;
+  v_mode := coalesce(v_mode, 'per_person');
+
+  for v_item in select * from jsonb_array_elements(p_items) loop
+    v_label := v_item ->> 'price_label';
+    v_qty := (v_item ->> 'quantity')::int;
+    if v_label is null or v_qty is null or v_qty <= 0 then
+      raise exception 'invalid_item';
+    end if;
+    v_qty_total := v_qty_total + v_qty;
+    v_agg := jsonb_set(v_agg, array[v_label], to_jsonb(coalesce((v_agg ->> v_label)::int, 0) + v_qty));
+  end loop;
+  if v_qty_total <= 0 then
+    raise exception 'invalid_item';
+  end if;
+
+  if v_mode = 'vehicle' then
+    -- One flat price for the bracket that fits P = v_qty_total (people on board). (Unchanged.)
+    if v_qty_total < 1 or v_qty_total > 25 then
+      raise exception 'exceeds_vehicle_capacity' using detail = v_qty_total::text;
+    end if;
+    select sedan_minor, suv_minor, family_minor, van_minor, coaster_minor
+      into v_sedan, v_suv_price, v_family, v_van, v_coaster
+      from sightseeing_pricing limit 1;
+    if v_sedan is null then
+      raise exception 'sightseeing_pricing_unset';
+    end if;
+    if v_qty_total <= 4 then
+      if p_suv then
+        v_total := v_suv_price;
+        v_vehicle := 'SUV';
+      else
+        v_total := v_sedan;
+        v_vehicle := 'Sedan';
+      end if;
+    elsif v_qty_total <= 6 then
+      v_total := v_family;
+      v_vehicle := 'Family car';
+    elsif v_qty_total <= 14 then
+      v_total := v_van;
+      v_vehicle := 'Van';
+    else
+      v_total := v_coaster;
+      v_vehicle := 'Coaster';
+    end if;
+    if v_hold.quantity <> 1 then
+      raise exception 'items_quantity_mismatch' using detail = format('vehicle hold %s', v_hold.quantity);
+    end if;
+  elsif v_mode = 'vehicle_custom' then
+    -- Parallel planner path: same bracket shape, the planner's own prices/names + cap.
+    select standard_minor, suv_minor, six_minor, van_minor, coach_minor, max_party
+      into v_pl_standard, v_pl_suv, v_pl_six, v_pl_van, v_pl_coach, v_pl_max
+      from planner_pricing limit 1;
+    if v_pl_standard is null then
+      raise exception 'planner_pricing_unset';
+    end if;
+    if v_qty_total < 1 or v_qty_total > v_pl_max then
+      raise exception 'exceeds_vehicle_capacity' using detail = v_qty_total::text;
+    end if;
+    if v_qty_total <= 4 then
+      if p_suv then
+        v_total := v_pl_suv;
+        v_vehicle := 'SUV';
+      else
+        v_total := v_pl_standard;
+        v_vehicle := 'Standard car';
+      end if;
+    elsif v_qty_total <= 6 then
+      v_total := v_pl_six;
+      v_vehicle := '6-seater';
+    elsif v_qty_total <= 14 then
+      v_total := v_pl_van;
+      v_vehicle := 'Van';
+    else
+      v_total := v_pl_coach;
+      v_vehicle := 'Coach';
+    end if;
+    if v_hold.quantity <> 1 then
+      raise exception 'items_quantity_mismatch' using detail = format('vehicle hold %s', v_hold.quantity);
+    end if;
+  else
+    -- Per-person / per-group: price each aggregated tier from the DB. (Unchanged.)
+    for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+      select amount_minor, max_guests into v_unit, v_max
+      from activity_option_prices
+      where activity_option_id = v_option_id and label = v_label;
+      if not found then
+        raise exception 'unknown_price_tier' using detail = v_label;
+      end if;
+      if v_mode = 'per_group' and v_max is not null then
+        v_total := v_total + (v_unit * ceil(v_qty::numeric / v_max)::int);
+      else
+        if v_max is not null and v_qty > v_max then
+          raise exception 'exceeds_max_guests' using detail = format('%s: %s > %s', v_label, v_qty, v_max);
+        end if;
+        v_total := v_total + (v_unit * v_qty);
+      end if;
+    end loop;
+    if v_qty_total <> v_hold.quantity then
+      raise exception 'items_quantity_mismatch'
+        using detail = format('items %s, hold %s', v_qty_total, v_hold.quantity);
+    end if;
+  end if;
+
+  insert into bookings (
+    idempotency_key, customer_name, customer_email, customer_phone, source,
+    status, total_minor, operator_payout_minor, agency_commission_minor
+  )
+  values (
+    p_idempotency_key, p_customer_name, p_customer_email, p_customer_phone,
+    coalesce(p_source, 'web'), 'payment_pending', v_total, v_total, 0
+  )
+  returning * into v_booking;
+
+  if v_mode in ('vehicle', 'vehicle_custom') then
+    insert into booking_items (
+      booking_id, session_occurrence_id, activity_option_id, price_label,
+      quantity, unit_amount_minor, subtotal_minor, pax
+    )
+    values (
+      v_booking.id, v_hold.session_occurrence_id, v_option_id, v_vehicle,
+      1, v_total, v_total, v_qty_total
+    );
+  else
+    for v_label, v_qty in select key, (value::text)::int from jsonb_each(v_agg) loop
+      select amount_minor, max_guests into v_unit, v_max
+      from activity_option_prices
+      where activity_option_id = v_option_id and label = v_label;
+      insert into booking_items (
+        booking_id, session_occurrence_id, activity_option_id, price_label,
+        quantity, unit_amount_minor, subtotal_minor
+      )
+      values (
+        v_booking.id, v_hold.session_occurrence_id, v_option_id, v_label, v_qty, v_unit,
+        case
+          when v_mode = 'per_group' and v_max is not null then v_unit * ceil(v_qty::numeric / v_max)::int
+          else v_unit * v_qty
+        end
+      );
+    end loop;
+  end if;
+
+  update booking_holds set booking_id = v_booking.id where id = v_hold.id;
+  return v_booking;
+end;
+$$;
+
+grant execute on function create_booking(text, uuid, text, text, text, booking_source, jsonb, boolean)
+  to anon, authenticated, service_role;
+
+-- 5) api_create_hold: vehicle_custom reserves ONE vehicle, like vehicle. (Else unchanged from hold_reuse.)
+create or replace function api_create_hold(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_occ uuid := (p ->> 'occurrenceId')::uuid;
+  v_key text := p ->> 'idempotencyKey';
+  v_expected_slug text := nullif(p ->> 'expectedSlug', '');
+  v_people bigint := coalesce((p ->> 'people')::bigint, 0);
+  v_mode text := 'per_person';
+  v_qty int;
+  v_hold booking_holds;
+begin
+  if v_occ is null or v_key is null then
+    raise exception 'invalid_request';
+  end if;
+  if v_people <= 0 or v_people > 1000000 then
+    raise exception 'invalid_party';
+  end if;
+  if v_expected_slug is not null and not exists (
+    select 1 from session_occurrences so
+    join activity_options o on o.id = so.activity_option_id
+    join activities a on a.id = o.activity_id
+    where so.id = v_occ and a.slug = v_expected_slug
+  ) then
+    raise exception 'occurrence_activity_mismatch';
+  end if;
+
+  select a.pricing_mode into v_mode
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  join activities a on a.id = o.activity_id
+  where so.id = v_occ;
+  v_qty := case when coalesce(v_mode, 'per_person') in ('vehicle', 'vehicle_custom') then 1 else v_people::int end;
+
+  v_hold := create_hold(v_occ, v_qty, v_key);
+  return jsonb_build_object('holdId', v_hold.id, 'quantity', v_hold.quantity, 'expiresAt', v_hold.expires_at);
+end;
+$$;
+grant execute on function api_create_hold(jsonb) to anon, authenticated, service_role;
+
+-- 6) api_book: vehicle_custom reserves ONE vehicle. (Else byte-for-byte the child_seats version.)
+create or replace function api_book(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_occ uuid := (p ->> 'occurrenceId')::uuid;
+  v_key text := p ->> 'idempotencyKey';
+  v_expected_slug text := nullif(p ->> 'expectedSlug', '');
+  v_total_qty bigint := 0;
+  v_items jsonb := '[]'::jsonb;
+  v_mode text := 'per_person';
+  v_suv boolean := coalesce((p ->> 'suv')::boolean, false);
+  v_hold_id uuid := nullif(p ->> 'holdId', '')::uuid;
+  v_want_qty int;
+  v_reused boolean := false;
+  v_child int;
+  v_child_extra bigint;
+  v_hold booking_holds;
+  v_booking bookings;
+  r record;
+begin
+  if v_occ is null or v_key is null then
+    raise exception 'invalid_request';
+  end if;
+
+  if v_expected_slug is not null and not exists (
+    select 1 from session_occurrences so
+    join activity_options o on o.id = so.activity_option_id
+    join activities a on a.id = o.activity_id
+    where so.id = v_occ and a.slug = v_expected_slug
+  ) then
+    raise exception 'occurrence_activity_mismatch';
+  end if;
+
+  for r in select key, (value::text)::bigint as q from jsonb_each(p -> 'party') loop
+    if r.q < 0 or r.q > 1000000 then raise exception 'invalid_party'; end if;
+    if r.q > 0 then
+      v_total_qty := v_total_qty + r.q;
+      v_items := v_items || jsonb_build_object('price_label', r.key, 'quantity', r.q);
+    end if;
+  end loop;
+  if v_total_qty <= 0 or v_total_qty > 1000000 then raise exception 'invalid_party'; end if;
+
+  select a.pricing_mode into v_mode
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  join activities a on a.id = o.activity_id
+  where so.id = v_occ;
+  v_mode := coalesce(v_mode, 'per_person');
+  v_want_qty := case when v_mode in ('vehicle', 'vehicle_custom') then 1 else v_total_qty::int end;
+
+  if v_hold_id is not null then
+    select * into v_hold from booking_holds
+    where id = v_hold_id and status = 'active' and expires_at > now() and booking_id is null
+      and session_occurrence_id = v_occ and quantity = v_want_qty;
+    if found then v_reused := true; end if;
+  end if;
+  if not v_reused then
+    v_hold := create_hold(v_occ, v_want_qty, v_key || ':book');
+  end if;
+
+  v_booking := create_booking(
+    v_key, v_hold.id, p ->> 'customerName', p ->> 'customerEmail', p ->> 'customerPhone',
+    coalesce((p ->> 'source')::booking_source, 'web'), v_items, v_suv
+  );
+
+  if v_booking.user_id is not null and v_booking.user_id is distinct from auth.uid() then
+    raise exception 'forbidden';
+  end if;
+  if auth.uid() is not null then
+    update bookings set user_id = auth.uid() where id = v_booking.id and user_id is null;
+  end if;
+
+  if p ? 'itinerary'
+     and jsonb_typeof(p -> 'itinerary') = 'array'
+     and jsonb_array_length(p -> 'itinerary') > 0
+     and jsonb_array_length(p -> 'itinerary') <= 30
+  then
+    update bookings set custom_itinerary = p -> 'itinerary'
+    where id = v_booking.id and custom_itinerary is null;
+  end if;
+
+  if nullif(btrim(p ->> 'pickupLocation'), '') is not null then
+    update bookings set pickup_location = left(btrim(p ->> 'pickupLocation'), 200)
+    where id = v_booking.id and pickup_location is null;
+  end if;
+
+  v_child := least(greatest(coalesce(nullif(p ->> 'childSeats', '')::int, 0), 0), v_total_qty::int);
+  if v_child > 0 then
+    v_child_extra := greatest(0, v_child - 1) * 600;
+    update bookings
+    set child_seats = v_child,
+        total_minor = total_minor + v_child_extra,
+        operator_payout_minor = operator_payout_minor + v_child_extra
+    where id = v_booking.id and child_seats = 0;
+  end if;
+
+  return booking_json(v_booking.id);
+end;
+$$;
+
+-- 7) Hide the planner activity from the public catalogue search. (Else byte-for-byte flat_vehicle_pricing.)
+create or replace function api_search_activities(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with filtered as (
+    select a.*
+    from activities a
+    where a.status = 'published'
+      and coalesce(a.is_custom_planner, false) = false
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+  ),
+  paged as (
+    select * from filtered
+    order by rating_count desc, title
+    limit coalesce((p ->> 'pageSize')::int, 20)
+    offset (coalesce((p ->> 'page')::int, 1) - 1) * coalesce((p ->> 'pageSize')::int, 20)
+  )
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+        'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+        'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count, 'pricingMode', x.pricing_mode,
+        'fromPriceEur', case
+          when x.pricing_mode = 'vehicle'
+            then (select sedan_minor from sightseeing_pricing limit 1)::float / 100
+          else (
+            select min(pr.amount_minor)::float / 100
+            from activity_option_prices pr
+            join activity_options o on o.id = pr.activity_option_id
+            where o.activity_id = x.id
+          )
+        end,
+        'fromPriceMaxGuests', case when x.pricing_mode = 'vehicle' then null else (
+          select pr.max_guests
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+          order by pr.amount_minor asc nulls last
+          limit 1
+        ) end,
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = x.id order by img.position limit 1
+        ),
+        'images', coalesce((
+          select jsonb_agg(
+            jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+            order by img.position
+          )
+          from activity_images img where img.activity_id = x.id
+        ), '[]'::jsonb)
+      ))
+      from paged x
+    ), '[]'::jsonb),
+    'total', (select count(*)::int from filtered),
+    'page', coalesce((p ->> 'page')::int, 1),
+    'pageSize', coalesce((p ->> 'pageSize')::int, 20)
+  );
+$$;
+
 -- ==================== seed.sql (catalogue) ====================
 -- GENERATED from seed/catalogue.json by `npm run seed:gen`. Do not edit by hand.
 -- Apply on a fresh database via `supabase db reset` (it runs migrations then this file).
 
 insert into operators (name, slug, contact_email, phone) values ('Belle Mare Tours', 'belle-mare-tours', null, '+230 5772 9919') on conflict (slug) do nothing;
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'ile-aux-cerfs-catamaran-cruise-bbq', 'activity', 'Île aux Cerfs Catamaran Cruise with BBQ & Snorkeling', 'Full-day catamaran cruise to Île aux Cerfs with a stop at the GRSE waterfall, snorkeling and a barbecue lunch.', null, 'Catamaran cruises', 'East coast', null, null, false, array['en', 'fr']::text[], array['Barbecue lunch', 'Snorkeling equipment']::text[], '{}'::text[], array['Île aux Cerfs', 'GRSE Waterfall', 'Snorkeling', 'Barbecue lunch']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'ile-aux-cerfs-catamaran-cruise-bbq', 'activity', 'Île aux Cerfs Catamaran Cruise with BBQ & Snorkeling', 'Full-day catamaran cruise to Île aux Cerfs with a stop at the GRSE waterfall, snorkeling and a barbecue lunch.', null, 'Catamaran cruises', 'East coast', null, null, false, array['en', 'fr']::text[], array['Barbecue lunch', 'Snorkeling equipment']::text[], '{}'::text[], array['Île aux Cerfs', 'GRSE Waterfall', 'Snorkeling', 'Barbecue lunch']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'ile-aux-cerfs-catamaran-cruise-bbq'), 'en', 'Île aux Cerfs Catamaran Cruise with BBQ & Snorkeling', 'Full-day catamaran cruise to Île aux Cerfs with a stop at the GRSE waterfall, snorkeling and a barbecue lunch.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'ile-aux-cerfs-catamaran-cruise-bbq'), 'fr', 'Croisière en catamaran à l''Île aux Cerfs avec barbecue et snorkeling', 'Croisière d''une journée en catamaran vers l''Île aux Cerfs avec arrêt à la cascade de la GRSE, snorkeling et déjeuner barbecue.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'ile-aux-cerfs-catamaran-cruise-bbq'), 'Shared cruise');
 insert into activity_option_prices (activity_option_id, label, amount_minor, currency, max_guests) values ((select id from activity_options where activity_id = (select id from activities where slug = 'ile-aux-cerfs-catamaran-cruise-bbq') and name = 'Shared cruise' order by created_at limit 1), 'Adult', 7500, 'EUR', null);
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'catamaran-3-northern-islands-all-inclusive', 'activity', 'Catamaran Cruise – 3 Northern Islands (All-Inclusive)', 'All-inclusive catamaran adventure from Grand Baie crossing to Flat Island and the northern islets.', null, 'Catamaran cruises', 'North', null, 'Grand Baie', false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Flat Island', 'Northern islets', 'All-inclusive']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'catamaran-3-northern-islands-all-inclusive', 'activity', 'Catamaran Cruise – 3 Northern Islands (All-Inclusive)', 'All-inclusive catamaran adventure from Grand Baie crossing to Flat Island and the northern islets.', null, 'Catamaran cruises', 'North', null, 'Grand Baie', false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Flat Island', 'Northern islets', 'All-inclusive']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'catamaran-3-northern-islands-all-inclusive'), 'en', 'Catamaran Cruise – 3 Northern Islands (All-Inclusive)', 'All-inclusive catamaran adventure from Grand Baie crossing to Flat Island and the northern islets.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'catamaran-3-northern-islands-all-inclusive'), 'fr', 'Croisière catamaran – 3 Îles du Nord (Tout inclus)', 'Aventure tout inclus en catamaran au départ de Grand Baie vers l''île Plate et les îlots du Nord.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'catamaran-3-northern-islands-all-inclusive'), 'All-inclusive');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'west-coast-catamaran-cruise', 'activity', 'West Coast Catamaran Cruise', 'Catamaran cruise towards Tamarin Bay to look for dolphins, with snorkeling and lunch.', null, 'Catamaran cruises', 'West', null, 'Tamarin Bay', false, array['en', 'fr']::text[], array['Lunch']::text[], '{}'::text[], array['Tamarin Bay', 'Dolphins', 'Snorkeling', 'Lunch']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'west-coast-catamaran-cruise', 'activity', 'West Coast Catamaran Cruise', 'Catamaran cruise towards Tamarin Bay to look for dolphins, with snorkeling and lunch.', null, 'Catamaran cruises', 'West', null, 'Tamarin Bay', false, array['en', 'fr']::text[], array['Lunch']::text[], '{}'::text[], array['Tamarin Bay', 'Dolphins', 'Snorkeling', 'Lunch']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'west-coast-catamaran-cruise'), 'en', 'West Coast Catamaran Cruise', 'Catamaran cruise towards Tamarin Bay to look for dolphins, with snorkeling and lunch.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'west-coast-catamaran-cruise'), 'fr', 'Croisière de l''Ouest en catamaran', 'Croisière en catamaran vers la Baie de Tamarin à la recherche des dauphins, avec snorkeling et déjeuner.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'west-coast-catamaran-cruise'), 'Shared cruise');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'catamaran-sunset-cruise', 'activity', 'Catamaran Sunset Cruise', 'Evening catamaran cruise into the sunset over Grand Baie.', null, 'Catamaran cruises', 'North', null, 'Grand Baie', false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Sunset', 'Grand Baie']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'catamaran-sunset-cruise', 'activity', 'Catamaran Sunset Cruise', 'Evening catamaran cruise into the sunset over Grand Baie.', null, 'Catamaran cruises', 'North', null, 'Grand Baie', false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Sunset', 'Grand Baie']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'catamaran-sunset-cruise'), 'en', 'Catamaran Sunset Cruise', 'Evening catamaran cruise into the sunset over Grand Baie.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'catamaran-sunset-cruise'), 'fr', 'Croisière catamaran au coucher du soleil', 'Croisière en catamaran en soirée vers le coucher de soleil sur Grand Baie.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'catamaran-sunset-cruise'), 'Sunset cruise');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'turquoise-crossing-5-islands', 'activity', 'Turquoise Crossing to Île aux Cerfs (5 Islands)', 'Blue cruise visiting five islands including Île aux Aigrettes, Île aux Prisons and the lighthouse island.', null, 'Île aux Cerfs', 'South-East', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Île aux Aigrettes', 'Île aux Prisons', 'Lighthouse Island', '5 islands']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'turquoise-crossing-5-islands', 'activity', 'Turquoise Crossing to Île aux Cerfs (5 Islands)', 'Blue cruise visiting five islands including Île aux Aigrettes, Île aux Prisons and the lighthouse island.', null, 'Île aux Cerfs', 'South-East', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Île aux Aigrettes', 'Île aux Prisons', 'Lighthouse Island', '5 islands']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'turquoise-crossing-5-islands'), 'en', 'Turquoise Crossing to Île aux Cerfs (5 Islands)', 'Blue cruise visiting five islands including Île aux Aigrettes, Île aux Prisons and the lighthouse island.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'turquoise-crossing-5-islands'), 'fr', 'La Croisière Bleue vers l''Île aux Cerfs (5 îles)', 'Croisière bleue visitant cinq îles dont l''Île aux Aigrettes, l''Île aux Prisons et l''île au phare.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'turquoise-crossing-5-islands'), 'Shared cruise');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'speedboat-ile-aux-cerfs', 'activity', 'Speedboat to Île aux Cerfs', 'Fast speedboat trip to Île aux Cerfs and Îlot Mangénie with a BBQ lunch and the GRSE waterfall.', null, 'Île aux Cerfs', 'South-East', null, null, false, array['en', 'fr']::text[], array['Barbecue lunch']::text[], '{}'::text[], array['Île aux Cerfs', 'Îlot Mangénie', 'GRSE Waterfall', 'BBQ lunch']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'speedboat-ile-aux-cerfs', 'activity', 'Speedboat to Île aux Cerfs', 'Fast speedboat trip to Île aux Cerfs and Îlot Mangénie with a BBQ lunch and the GRSE waterfall.', null, 'Île aux Cerfs', 'South-East', null, null, false, array['en', 'fr']::text[], array['Barbecue lunch']::text[], '{}'::text[], array['Île aux Cerfs', 'Îlot Mangénie', 'GRSE Waterfall', 'BBQ lunch']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'speedboat-ile-aux-cerfs'), 'en', 'Speedboat to Île aux Cerfs', 'Fast speedboat trip to Île aux Cerfs and Îlot Mangénie with a BBQ lunch and the GRSE waterfall.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'speedboat-ile-aux-cerfs'), 'fr', 'Speedboat vers l''Île aux Cerfs', 'Sortie rapide en speedboat vers l''Île aux Cerfs et l''Îlot Mangénie avec déjeuner barbecue et cascade de la GRSE.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'speedboat-ile-aux-cerfs'), 'Speedboat');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'swim-with-dolphins', 'activity', 'Swim with Dolphins', 'Early-morning speedboat departure to swim with wild dolphins off the west coast.', null, 'Dolphin swims', 'West', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Wild dolphins', 'West coast', 'Morning departure']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'swim-with-dolphins', 'activity', 'Swim with Dolphins', 'Early-morning speedboat departure to swim with wild dolphins off the west coast.', null, 'Dolphin swims', 'West', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Wild dolphins', 'West coast', 'Morning departure']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'swim-with-dolphins'), 'en', 'Swim with Dolphins', 'Early-morning speedboat departure to swim with wild dolphins off the west coast.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'swim-with-dolphins'), 'fr', 'Nager avec les dauphins', 'Départ matinal en speedboat pour nager avec les dauphins sauvages au large de la côte ouest.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'swim-with-dolphins'), 'Speedboat');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'dolphins-benitier-island-all-inclusive', 'activity', 'Swim with Dolphins & Benitier Island (All-Inclusive)', 'All-inclusive speedboat tour combining swimming with dolphins and a visit to Benitier Island.', null, 'Dolphin swims', 'West', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Dolphins', 'Benitier Island', 'All-inclusive']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'dolphins-benitier-island-all-inclusive', 'activity', 'Swim with Dolphins & Benitier Island (All-Inclusive)', 'All-inclusive speedboat tour combining swimming with dolphins and a visit to Benitier Island.', null, 'Dolphin swims', 'West', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Dolphins', 'Benitier Island', 'All-inclusive']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'dolphins-benitier-island-all-inclusive'), 'en', 'Swim with Dolphins & Benitier Island (All-Inclusive)', 'All-inclusive speedboat tour combining swimming with dolphins and a visit to Benitier Island.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'dolphins-benitier-island-all-inclusive'), 'fr', 'Nager avec les dauphins & Île aux Bénitiers (Tout inclus)', 'Excursion tout inclus en speedboat combinant la nage avec les dauphins et la visite de l''Île aux Bénitiers.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'dolphins-benitier-island-all-inclusive'), 'All-inclusive');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'dolphins-and-colours-of-the-south', 'activity', 'Swim with Dolphins & Colours of the South (All-Inclusive)', 'All-inclusive package combining dolphin swimming in the calm west lagoon with a tour of the colourful south.', null, 'Dolphin swims', 'South / West', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Dolphins', 'Chamarel / Colours of the South', 'All-inclusive']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'dolphins-and-colours-of-the-south', 'activity', 'Swim with Dolphins & Colours of the South (All-Inclusive)', 'All-inclusive package combining dolphin swimming in the calm west lagoon with a tour of the colourful south.', null, 'Dolphin swims', 'South / West', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Dolphins', 'Chamarel / Colours of the South', 'All-inclusive']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'dolphins-and-colours-of-the-south'), 'en', 'Swim with Dolphins & Colours of the South (All-Inclusive)', 'All-inclusive package combining dolphin swimming in the calm west lagoon with a tour of the colourful south.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'dolphins-and-colours-of-the-south'), 'fr', 'Dauphins & Couleurs du Sud (Tout inclus)', 'Forfait tout inclus combinant la nage avec les dauphins dans le lagon ouest et la découverte du sud coloré.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'dolphins-and-colours-of-the-south'), 'All-inclusive');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'undersea-walk-parasailing-tube', 'activity', 'Undersea Walk, Parasailing & Tube Ride', 'Combo water-sports outing with an undersea walk, parasailing and a tube ride.', null, 'Sea walks & diving', 'North / East', null, null, false, array['en', 'fr']::text[], array['Undersea walk equipment', 'Instructor']::text[], '{}'::text[], array['Undersea walk', 'Parasailing', 'Tube ride']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'undersea-walk-parasailing-tube', 'activity', 'Undersea Walk, Parasailing & Tube Ride', 'Combo water-sports outing with an undersea walk, parasailing and a tube ride.', null, 'Sea walks & diving', 'North / East', null, null, false, array['en', 'fr']::text[], array['Undersea walk equipment', 'Instructor']::text[], '{}'::text[], array['Undersea walk', 'Parasailing', 'Tube ride']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'undersea-walk-parasailing-tube'), 'en', 'Undersea Walk, Parasailing & Tube Ride', 'Combo water-sports outing with an undersea walk, parasailing and a tube ride.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'undersea-walk-parasailing-tube'), 'fr', 'Marche sous-marine, parachute ascensionnel & bouée tractée', 'Sortie sports nautiques combinée avec marche sous-marine, parachute ascensionnel et bouée tractée.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'undersea-walk-parasailing-tube'), 'Combo');
 insert into activity_option_prices (activity_option_id, label, amount_minor, currency, max_guests) values ((select id from activity_options where activity_id = (select id from activities where slug = 'undersea-walk-parasailing-tube') and name = 'Combo' order by created_at limit 1), 'Adult', 6700, 'EUR', null);
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'sea-walking', 'activity', 'Sea Walking', 'Walk on the seabed at shallow depth in a diving helmet with a trained instructor — no swimming required.', null, 'Sea walks & diving', 'North / East', null, null, false, array['en', 'fr']::text[], array['Diving helmet', 'Instructor']::text[], '{}'::text[], array['Underwater walk', 'No swimming needed', 'Instructor-led']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'sea-walking', 'activity', 'Sea Walking', 'Walk on the seabed at shallow depth in a diving helmet with a trained instructor — no swimming required.', null, 'Sea walks & diving', 'North / East', null, null, false, array['en', 'fr']::text[], array['Diving helmet', 'Instructor']::text[], '{}'::text[], array['Underwater walk', 'No swimming needed', 'Instructor-led']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'sea-walking'), 'en', 'Sea Walking', 'Walk on the seabed at shallow depth in a diving helmet with a trained instructor — no swimming required.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'sea-walking'), 'fr', 'Marche sous-marine', 'Marchez sur les fonds marins à faible profondeur avec un casque de plongée et un instructeur — sans savoir nager.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'sea-walking'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'scuba-diving', 'activity', 'Scuba Diving', 'Bottle dive to admire the coral reefs and marine life of Mauritius, for beginners and certified divers.', null, 'Sea walks & diving', 'East coast', null, null, false, array['en', 'fr']::text[], array['Diving equipment', 'Instructor']::text[], '{}'::text[], array['Coral reefs', 'Marine life', 'Beginner-friendly']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'scuba-diving', 'activity', 'Scuba Diving', 'Bottle dive to admire the coral reefs and marine life of Mauritius, for beginners and certified divers.', null, 'Sea walks & diving', 'East coast', null, null, false, array['en', 'fr']::text[], array['Diving equipment', 'Instructor']::text[], '{}'::text[], array['Coral reefs', 'Marine life', 'Beginner-friendly']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'scuba-diving'), 'en', 'Scuba Diving', 'Bottle dive to admire the coral reefs and marine life of Mauritius, for beginners and certified divers.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'scuba-diving'), 'fr', 'Plongée sous-marine', 'Plongée bouteille pour admirer les récifs coralliens et la vie marine de Maurice, pour débutants et plongeurs certifiés.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'scuba-diving'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'deep-sea-fishing', 'activity', 'Deep Sea Fishing', 'Big-game fishing trip for blue marlin, dorado and more, for beginners and experts.', null, 'Sea walks & diving', 'West', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Blue marlin', 'Dorado', 'Big-game fishing']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'deep-sea-fishing', 'activity', 'Deep Sea Fishing', 'Big-game fishing trip for blue marlin, dorado and more, for beginners and experts.', null, 'Sea walks & diving', 'West', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Blue marlin', 'Dorado', 'Big-game fishing']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'deep-sea-fishing'), 'en', 'Deep Sea Fishing', 'Big-game fishing trip for blue marlin, dorado and more, for beginners and experts.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'deep-sea-fishing'), 'fr', 'Pêche au gros', 'Sortie de pêche au gros pour le marlin bleu, la dorade et d''autres espèces, pour débutants et experts.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'deep-sea-fishing'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'parasailing', 'activity', 'Parasailing', 'Soar above the lagoon on a parasail for panoramic views of the east coast.', null, 'Parasailing', 'East coast', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Aerial views', 'Lagoon']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'parasailing', 'activity', 'Parasailing', 'Soar above the lagoon on a parasail for panoramic views of the east coast.', null, 'Parasailing', 'East coast', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Aerial views', 'Lagoon']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'parasailing'), 'en', 'Parasailing', 'Soar above the lagoon on a parasail for panoramic views of the east coast.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'parasailing'), 'fr', 'Parachute ascensionnel', 'Envolez-vous au-dessus du lagon en parachute ascensionnel pour une vue panoramique de la côte est.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'parasailing'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'north-tour', 'activity', 'North Tour – Port Louis, Pamplemousses & Cap Malheureux', 'Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.', null, 'Sightseeing tours', 'North', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Port Louis', 'Pamplemousses Botanical Garden', 'Cap Malheureux']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'north-tour', 'activity', 'North Tour – Port Louis, Pamplemousses & Cap Malheureux', 'Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.', null, 'Sightseeing tours', 'North', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Port Louis', 'Pamplemousses Botanical Garden', 'Cap Malheureux']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'north-tour'), 'en', 'North Tour – Port Louis, Pamplemousses & Cap Malheureux', 'Guided day tour of the north: the capital Port Louis, the Pamplemousses botanical garden and Cap Malheureux.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'north-tour'), 'fr', 'Tour du Nord – Port-Louis, Pamplemousses & Cap Malheureux', 'Excursion guidée d''une journée dans le nord : la capitale Port-Louis, le jardin botanique de Pamplemousses et Cap Malheureux.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'north-tour'), 'Shared tour');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'private-south-tour-with-pickup', 'activity', 'Private South Tour with Pickup', 'Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.', null, 'Sightseeing tours', 'South', null, 'Hotel pickup', true, array['en', 'fr']::text[], array['Private vehicle', 'Driver-guide', 'Hotel pickup']::text[], '{}'::text[], array['Trou aux Cerfs', 'Grand Bassin', 'Chamarel coloured earth']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'private-south-tour-with-pickup', 'activity', 'Private South Tour with Pickup', 'Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.', null, 'Sightseeing tours', 'South', null, 'Hotel pickup', true, array['en', 'fr']::text[], array['Private vehicle', 'Driver-guide', 'Hotel pickup']::text[], '{}'::text[], array['Trou aux Cerfs', 'Grand Bassin', 'Chamarel coloured earth']::text[], 'published', 'per_group') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'private-south-tour-with-pickup'), 'en', 'Private South Tour with Pickup', 'Private guided day tour of southern Mauritius with hotel pickup — Trou aux Cerfs, Grand Bassin and Chamarel.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'private-south-tour-with-pickup'), 'fr', 'Tour privé du Sud avec prise en charge', 'Excursion privée guidée d''une journée dans le sud de Maurice avec prise en charge à l''hôtel — Trou aux Cerfs, Grand Bassin et Chamarel.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'private-south-tour-with-pickup'), 'Private group');
 insert into activity_option_prices (activity_option_id, label, amount_minor, currency, max_guests) values ((select id from activity_options where activity_id = (select id from activities where slug = 'private-south-tour-with-pickup') and name = 'Private group' order by created_at limit 1), 'Private group', 11000, 'EUR', 6);
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'south-east-tour-bois-cheri', 'activity', 'South-East Tour – Bois Chéri Tea Route', 'Day tour of the south-east taking in one of the island''s main tea factories at Bois Chéri.', null, 'Sightseeing tours', 'South-East', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Bois Chéri tea factory', 'Tea tasting']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'south-east-tour-bois-cheri', 'activity', 'South-East Tour – Bois Chéri Tea Route', 'Day tour of the south-east taking in one of the island''s main tea factories at Bois Chéri.', null, 'Sightseeing tours', 'South-East', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Bois Chéri tea factory', 'Tea tasting']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'south-east-tour-bois-cheri'), 'en', 'South-East Tour – Bois Chéri Tea Route', 'Day tour of the south-east taking in one of the island''s main tea factories at Bois Chéri.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'south-east-tour-bois-cheri'), 'fr', 'Tour du Sud-Est – Route du thé de Bois Chéri', 'Excursion d''une journée dans le sud-est incluant l''une des principales usines de thé de l''île à Bois Chéri.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'south-east-tour-bois-cheri'), 'Shared tour');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'la-vallee-des-couleurs', 'activity', 'La Vallée des Couleurs Nature Park', 'Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.', null, 'Sightseeing tours', 'South', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['23-colour earth', 'Waterfalls', 'Nature park']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'la-vallee-des-couleurs', 'activity', 'La Vallée des Couleurs Nature Park', 'Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.', null, 'Sightseeing tours', 'South', null, null, true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['23-colour earth', 'Waterfalls', 'Nature park']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'la-vallee-des-couleurs'), 'en', 'La Vallée des Couleurs Nature Park', 'Visit the nature park famous for its 23-colour earth, waterfalls and viewpoints.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'la-vallee-des-couleurs'), 'fr', 'Parc naturel de la Vallée des Couleurs', 'Visitez le parc naturel célèbre pour sa terre de 23 couleurs, ses cascades et ses points de vue.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'la-vallee-des-couleurs'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'black-river-gorges-hike', 'activity', 'Black River Gorges Hike', 'Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.', null, 'Sightseeing tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['National park', 'Native forest', 'Viewpoints']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'black-river-gorges-hike', 'activity', 'Black River Gorges Hike', 'Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.', null, 'Sightseeing tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['National park', 'Native forest', 'Viewpoints']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'black-river-gorges-hike'), 'en', 'Black River Gorges Hike', 'Guided hike through the Black River Gorges National Park, the largest protected forest in Mauritius.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'black-river-gorges-hike'), 'fr', 'Randonnée des Gorges de Rivière Noire', 'Randonnée guidée dans le parc national des Gorges de Rivière Noire, la plus grande forêt protégée de Maurice.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'black-river-gorges-hike'), 'Guided hike');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'le-morne-brabant-hike', 'activity', 'Le Morne Brabant Hike', 'Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.', null, 'Sightseeing tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['UNESCO World Heritage', 'Summit views', 'Le Morne Brabant']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'le-morne-brabant-hike', 'activity', 'Le Morne Brabant Hike', 'Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.', null, 'Sightseeing tours', 'South-West', null, null, false, array['en', 'fr']::text[], array['Guide']::text[], '{}'::text[], array['UNESCO World Heritage', 'Summit views', 'Le Morne Brabant']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'le-morne-brabant-hike'), 'en', 'Le Morne Brabant Hike', 'Guided climb of the UNESCO-listed Le Morne Brabant mountain from base to summit.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'le-morne-brabant-hike'), 'fr', 'Randonnée du Morne Brabant', 'Ascension guidée de la montagne du Morne Brabant, classée à l''UNESCO, de la base au sommet.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'le-morne-brabant-hike'), 'Guided hike');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'helicopter-tour', 'activity', 'Helicopter Tour', 'Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.', null, 'Sightseeing tours', 'Island-wide', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Aerial views', 'Lagoons', 'Islets']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'helicopter-tour', 'activity', 'Helicopter Tour', 'Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.', null, 'Sightseeing tours', 'Island-wide', null, null, false, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Aerial views', 'Lagoons', 'Islets']::text[], 'published', 'per_person') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'helicopter-tour'), 'en', 'Helicopter Tour', 'Scenic helicopter flight over the lagoons, islets and landscapes of Mauritius.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'helicopter-tour'), 'fr', 'Tour en hélicoptère', 'Vol panoramique en hélicoptère au-dessus des lagons, îlots et paysages de Maurice.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'helicopter-tour'), 'Standard');
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'airport-transfer', 'transport', 'Airport Transfer', 'Private meet-and-greet transfer between SSR International Airport and your accommodation, 24/7.', null, 'Airport transfers', 'Island-wide', null, 'SSR International Airport (arrivals)', true, array['en', 'fr']::text[], array['Driver', 'Luggage assistance']::text[], '{}'::text[], array['Meet & greet', '24/7', 'Door to door']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'airport-transfer', 'transport', 'Airport Transfer', 'Private meet-and-greet transfer between SSR International Airport and your accommodation, 24/7.', null, 'Airport transfers', 'Island-wide', null, 'SSR International Airport (arrivals)', true, array['en', 'fr']::text[], array['Driver', 'Luggage assistance']::text[], '{}'::text[], array['Meet & greet', '24/7', 'Door to door']::text[], 'published', 'per_group') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'airport-transfer'), 'en', 'Airport Transfer', 'Private meet-and-greet transfer between SSR International Airport and your accommodation, 24/7.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'airport-transfer'), 'fr', 'Transfert aéroport', 'Transfert privé avec accueil personnalisé entre l''aéroport international SSR et votre hébergement, 24h/24.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'airport-transfer'), 'Standard car (4 seats, 2 suitcases)');
@@ -5016,7 +5573,7 @@ insert into activity_options (activity_id, name) values ((select id from activit
 insert into activity_option_prices (activity_option_id, label, amount_minor, currency, max_guests) values ((select id from activity_options where activity_id = (select id from activities where slug = 'airport-transfer') and name = 'Minibus (14 seats)' order by created_at limit 1), 'Per transfer', 9000, 'EUR', 14);
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'airport-transfer'), 'Coaster (22 seats)');
 insert into activity_option_prices (activity_option_id, label, amount_minor, currency, max_guests) values ((select id from activity_options where activity_id = (select id from activities where slug = 'airport-transfer') and name = 'Coaster (22 seats)' order by created_at limit 1), 'Per transfer', 13000, 'EUR', 22);
-insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values ((select id from operators where slug = 'belle-mare-tours'), 'car-and-scooter-rental', 'transport', 'Car & Scooter Rental', 'Self-drive car and scooter rental in Mauritius, delivered to your hotel.', null, 'Airport transfers', 'Island-wide', null, 'Hotel delivery', true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Self-drive', 'Hotel delivery', 'Economical']::text[], 'published') on conflict (slug) do nothing;
+insert into activities (operator_id, slug, type, title, summary, description, category, location, duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode) values ((select id from operators where slug = 'belle-mare-tours'), 'car-and-scooter-rental', 'transport', 'Car & Scooter Rental', 'Self-drive car and scooter rental in Mauritius, delivered to your hotel.', null, 'Airport transfers', 'Island-wide', null, 'Hotel delivery', true, array['en', 'fr']::text[], '{}'::text[], '{}'::text[], array['Self-drive', 'Hotel delivery', 'Economical']::text[], 'published', 'per_group') on conflict (slug) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'car-and-scooter-rental'), 'en', 'Car & Scooter Rental', 'Self-drive car and scooter rental in Mauritius, delivered to your hotel.') on conflict (activity_id, locale) do nothing;
 insert into activity_translations (activity_id, locale, title, summary) values ((select id from activities where slug = 'car-and-scooter-rental'), 'fr', 'Location de voiture & scooter', 'Location de voiture et de scooter en auto-tour à Maurice, livrée à votre hôtel.') on conflict (activity_id, locale) do nothing;
 insert into activity_options (activity_id, name) values ((select id from activities where slug = 'car-and-scooter-rental'), 'Standard car (4 seats)');
