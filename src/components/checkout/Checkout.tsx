@@ -38,8 +38,9 @@ export function Checkout() {
   const unit = params.get('unit') ?? '';
   // Sightseeing vehicle mode only: the SUV upgrade flag. The server re-resolves the price regardless.
   const suv = params.get('suv') === '1';
-  // Child seats chosen (first free, €6 each extra). The server recomputes the charge from this count.
-  const childSeats = Math.max(0, Math.min(25, parseInt(params.get('childSeats') ?? '0', 10) || 0));
+  // Child seats chosen (first free, €6 each extra). Clamp to [0,25] AND to the party (qty): the server
+  // caps child_seats at the booked party, so a stale/hand-edited URL must not show or charge more.
+  const childSeats = Math.max(0, Math.min(25, qty, parseInt(params.get('childSeats') ?? '0', 10) || 0));
   // Continue ("Book now", from=widget) carries a custom route stashed by slug; a cart line carries its
   // OWN route, staged by occurrence (from=cart). Either may be present; neither inherits the other's.
   const fromWidget = params.get('from') === 'widget';
@@ -122,6 +123,9 @@ export function Checkout() {
 
   const mm = String(Math.floor(secs / 60)).padStart(2, '0');
   const ss = String(secs % 60).padStart(2, '0');
+  // A real hold has a server expiry only when expiresAt was stashed on Continue; the 30-min fallback is
+  // cosmetic. Lock Pay only when a REAL hold ran out — cart checkouts (no hold) are never blocked.
+  const expired = Boolean(expiresAt) && secs === 0;
 
   function continueFromTransport() {
     setBusy(true);
@@ -133,6 +137,10 @@ export function Checkout() {
   }
 
   async function pay() {
+    if (expired) {
+      setError('Your hold expired — please pick your date again.');
+      return;
+    }
     if (!session) return openAuth('signin');
     setBusy(true);
     setError(null);
@@ -293,7 +301,7 @@ export function Checkout() {
               <button
                 type="button"
                 onClick={pay}
-                disabled={busy}
+                disabled={busy || expired}
                 className="mt-5 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
                 {busy ? <Spinner /> : displayTotal ? `Pay €${displayTotal}` : 'Continue to payment'}
@@ -364,7 +372,7 @@ export function Checkout() {
           <button
             type="button"
             onClick={pay}
-            disabled={busy}
+            disabled={busy || expired}
             className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
           >
             {busy ? <Spinner /> : displayTotal ? `Pay €${displayTotal}` : 'Continue to payment'}

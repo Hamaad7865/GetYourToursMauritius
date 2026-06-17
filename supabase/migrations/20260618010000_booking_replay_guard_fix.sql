@@ -1,9 +1,17 @@
--- Baby/child seats add-on (every tour): the first seat is free, each additional seat is €6. The
--- charge is computed SERVER-SIDE in api_book and folded into the booking total (operator payout too),
--- so the client price is never trusted. Like pickup/itinerary, it's a guarded post-create UPDATE —
--- create_booking and its pricing are untouched.
-
-alter table bookings add column if not exists child_seats int not null default 0;
+-- Restore the guest half of the F23 idempotency-replay guard in api_book.
+--
+-- Regression: api_book runs SECURITY DEFINER (RLS does not filter its returned DTO), so create_booking's
+-- idempotency replay — which returns the EXISTING booking for a repeated key — can echo another person's
+-- name/email/ref/items to whoever replays the key. 20260617180000_child_seats.sql closed this for BOTH
+-- cases: an authenticated user replaying someone else's OWNED booking, AND an anonymous guest (user_id
+-- NULL) whose supplied email doesn't match the booking on file. But 20260617210000_planner_vehicle_pricing
+-- forked before that fix and did `create or replace function api_book` with the pre-fix guard, which only
+-- covered the authenticated case. Being later in filename order, it silently reverted the guest branch —
+-- a stolen/guessed key alone again hands back the original customer's PII (test F23 "guest-booking
+-- idempotency replay with a mismatched email is refused").
+--
+-- This re-applies the winning planner_vehicle_pricing body of api_book VERBATIM except for the guard,
+-- which is restored to the full child_seats version. No other behaviour changes.
 
 create or replace function api_book(p jsonb)
 returns jsonb
@@ -56,7 +64,7 @@ begin
   join activities a on a.id = o.activity_id
   where so.id = v_occ;
   v_mode := coalesce(v_mode, 'per_person');
-  v_want_qty := case when v_mode = 'vehicle' then 1 else v_total_qty::int end;
+  v_want_qty := case when v_mode in ('vehicle', 'vehicle_custom') then 1 else v_total_qty::int end;
 
   if v_hold_id is not null then
     select * into v_hold from booking_holds
@@ -105,8 +113,6 @@ begin
     where id = v_booking.id and pickup_location is null;
   end if;
 
-  -- Child seats: first free, €6 (600 minor) each additional. Bounded to the party size; folded into
-  -- the total + operator payout. Guard child_seats=0 so an idempotency replay can't charge twice.
   v_child := least(greatest(coalesce(nullif(p ->> 'childSeats', '')::int, 0), 0), v_total_qty::int);
   if v_child > 0 then
     v_child_extra := greatest(0, v_child - 1) * 600;
@@ -119,31 +125,4 @@ begin
 
   return booking_json(v_booking.id);
 end;
-$$;
-
-create or replace function booking_json(p_booking_id uuid)
-returns jsonb
-language sql
-stable
-security invoker
-set search_path = public
-as $$
-  select jsonb_build_object(
-    'id', b.id, 'ref', b.ref, 'status', b.status, 'paymentState', b.payment_state,
-    'customerName', b.customer_name, 'customerEmail', b.customer_email,
-    'totalEur', b.total_minor::float / 100, 'currency', b.currency, 'source', b.source,
-    'createdAt', b.created_at,
-    'customItinerary', b.custom_itinerary,
-    'pickupLocation', b.pickup_location,
-    'childSeats', b.child_seats,
-    'items', coalesce((
-      select jsonb_agg(jsonb_build_object(
-        'priceLabel', bi.price_label, 'quantity', bi.quantity, 'pax', bi.pax,
-        'unitAmountEur', bi.unit_amount_minor::float / 100, 'subtotalEur', bi.subtotal_minor::float / 100,
-        'occurrenceId', bi.session_occurrence_id
-      ))
-      from booking_items bi where bi.booking_id = b.id
-    ), '[]'::jsonb)
-  )
-  from bookings b where b.id = p_booking_id;
 $$;

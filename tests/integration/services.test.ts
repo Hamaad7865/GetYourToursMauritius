@@ -149,6 +149,43 @@ describe('service layer (via PGlite rpc)', () => {
     ).rejects.toBeInstanceOf(ServiceError);
   });
 
+  it('maps a >25 vehicle party to a 400 (validation), not a 502', async () => {
+    // exceeds_vehicle_capacity is a client input error, not an upstream fault — it must be a clean 4xx.
+    await db.asOwner();
+    const orig = (
+      await db.pg.query<{ pricing_mode: string }>(
+        `select pricing_mode from activities where slug = 'private-south-tour-with-pickup'`,
+      )
+    ).rows[0]!.pricing_mode;
+    await db.pg.query(`update activities set pricing_mode = 'vehicle' where slug = 'private-south-tour-with-pickup'`);
+    await db.as({ sub: USER, role: 'authenticated' });
+
+    const err = await createBooking(ctx, {
+      occurrenceId,
+      party: { Vehicle: 26 }, // > 25 on board -> exceeds_vehicle_capacity
+      customer: { name: 'X', email: 'over25@example.com' },
+      idempotencyKey: 'svc-over25-1',
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(ServiceError);
+    expect((err as ServiceError).status).toBe(400); // 400 validation, NOT 502 provider
+
+    await db.asOwner();
+    await db.pg.query(`update activities set pricing_mode = $1 where slug = 'private-south-tour-with-pickup'`, [orig]);
+    await db.as({ sub: USER, role: 'authenticated' });
+  });
+
+  it('maps a slug/occurrence mismatch to a 400 (validation), not a 502', async () => {
+    const err = await createBooking(ctx, {
+      occurrenceId,
+      expectedSlug: 'not-the-right-slug', // tampered slug -> occurrence_activity_mismatch
+      party: { 'Private group': 1 },
+      customer: { name: 'X', email: 'mismatch@example.com' },
+      idempotencyKey: 'svc-mismatch-1',
+    }).catch((e) => e);
+    expect(err).toBeInstanceOf(ServiceError);
+    expect((err as ServiceError).status).toBe(400);
+  });
+
   it('captureLead records a lead', async () => {
     const lead = await captureLead(ctx, { name: 'Walk-in', contact: 'walkin@example.com' });
     expect(lead.status).toBe('new');

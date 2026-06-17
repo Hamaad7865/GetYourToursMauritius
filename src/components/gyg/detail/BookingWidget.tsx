@@ -15,6 +15,7 @@ import {
   IconShield,
   IconUsers,
 } from '@/components/ui/icons';
+import { nominalDayKey } from '@/lib/services/day-key';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /** Hard cap on the party picker — above this the customer is sent to "contact us for a quote". */
@@ -22,12 +23,6 @@ const MAX_PARTY = 25;
 
 function eur(n: number): string {
   return Number.isInteger(n) ? `€${n}` : `€${n.toFixed(2)}`;
-}
-function pad(n: number): string {
-  return String(n).padStart(2, '0');
-}
-function dateKey(d: Date): string {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 function startOfDay(d: Date): Date {
   const x = new Date(d);
@@ -68,7 +63,7 @@ function MonthGrid({
         if (!cell) return <span key={`e${i}`} />;
         const past = cell < tomorrow;
         const ok = available(cell);
-        const isSel = selectedKey === dateKey(cell);
+        const isSel = selectedKey === nominalDayKey(cell);
         return (
           <button
             key={cell.toISOString()}
@@ -150,11 +145,11 @@ export function BookingWidget() {
 
   function isDisabled(cell: Date): boolean {
     if (cell < tomorrow) return true;
-    const info = days?.get(dateKey(cell));
+    const info = days?.get(nominalDayKey(cell));
     return !info || info.seatsLeft <= 0;
   }
   function pickDate(cell: Date) {
-    setDate(dateKey(cell));
+    setDate(nominalDayKey(cell));
     setOpen(null);
     touch(); // keep the option card open + show it updating to the new date
     setParticipants(Math.max(1, Math.min(participants, maxParticipants)));
