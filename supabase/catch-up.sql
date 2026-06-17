@@ -2132,6 +2132,312 @@ as $$
   from bookings b where b.id = p_booking_id;
 $$;
 
+-- ============================================================================================
+-- APPENDED 2026-06-17 — folds the 20260617120000–120500 fix series the earlier catch-up build
+-- skipped (it jumped 20260616190000 → 20260617130000). These are the FINAL definitions; placed
+-- here so create-or-replace supersedes the older copies above. NOTE: migration 120100 also
+-- redefined api_book, but its FINAL version is in 180000_child_seats (already applied above), so
+-- only 120100's INSERT-guard trigger + reviews policy drop are folded — NOT its stale api_book.
+-- ============================================================================================
+
+-- ---- migration 20260617120000_payment_integrity (F3: one live payment row per booking) ------
+create or replace function api_create_payment(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_booking bookings;
+  v_payment payments;
+begin
+  select * into v_booking from bookings where ref = p ->> 'bookingRef';
+  if not found then
+    raise exception 'booking_not_found';
+  end if;
+  if not (is_staff() or (auth.uid() is not null and v_booking.user_id = auth.uid())) then
+    raise exception 'forbidden';
+  end if;
+
+  select * into v_payment from payments
+  where booking_id = v_booking.id and status <> 'failed'
+  order by created_at desc
+  limit 1;
+
+  if not found then
+    select * into v_payment from payments where idempotency_key = p ->> 'idempotencyKey';
+  end if;
+
+  if not found then
+    insert into payments (booking_id, idempotency_key, amount_minor)
+    values (v_booking.id, p ->> 'idempotencyKey', v_booking.total_minor)
+    returning * into v_payment;
+    insert into payment_events (payment_id, type, amount_minor)
+    values (v_payment.id, 'intent', v_booking.total_minor);
+  end if;
+
+  return jsonb_build_object(
+    'paymentId', v_payment.id, 'amountMinor', v_payment.amount_minor,
+    'bookingRef', v_booking.ref, 'customerEmail', v_booking.customer_email
+  );
+end;
+$$;
+
+-- ---- migration 20260617120100_booking_authz_integrity (F2 forged-booking guard + F12) --------
+drop trigger if exists bookings_no_public_insert on bookings;
+create trigger bookings_no_public_insert
+  before insert on bookings
+  for each row execute function forbid_public_write();
+
+drop policy if exists reviews_insert on reviews;
+
+-- ---- migration 20260617120200_notification_lease (F4: lease so the drain can't double-send) --
+alter table notification_outbox add column if not exists locked_until timestamptz;
+
+create or replace function claim_notifications(p jsonb)
+returns jsonb
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_limit int := least(greatest(coalesce((p ->> 'limit')::int, 20), 1), 100);
+  v_lease interval := make_interval(
+    secs => least(greatest(coalesce((p ->> 'leaseSeconds')::int, 300), 30), 3600)
+  );
+  v_rows jsonb;
+begin
+  with batch as (
+    select id from notification_outbox
+    where status = 'pending'
+      and attempts < 5
+      and (locked_until is null or locked_until <= now())
+    order by created_at
+    limit v_limit
+    for update skip locked
+  ), upd as (
+    update notification_outbox o
+       set attempts = attempts + 1,
+           locked_until = now() + v_lease
+      from batch
+     where o.id = batch.id
+    returning o.id, o.channel, o.recipient, o.template, o.payload
+  )
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'id', id, 'channel', channel, 'recipient', recipient, 'template', template, 'payload', payload
+  )), '[]'::jsonb)
+  into v_rows
+  from upd;
+  return v_rows;
+end;
+$$;
+
+create or replace function mark_notification(p jsonb)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_id uuid := (p ->> 'id')::uuid;
+begin
+  if p ->> 'result' = 'sent' then
+    update notification_outbox
+      set status = 'sent', sent_at = now(), last_error = null, locked_until = null
+      where id = v_id;
+  else
+    update notification_outbox
+      set status = (case when attempts >= 5 then 'failed' else 'pending' end)::notification_status,
+          last_error = left(coalesce(p ->> 'error', 'send failed'), 500),
+          locked_until = null
+      where id = v_id;
+  end if;
+end;
+$$;
+
+revoke execute on function claim_notifications(jsonb) from public;
+revoke execute on function mark_notification(jsonb) from public;
+grant execute on function claim_notifications(jsonb) to service_role;
+grant execute on function mark_notification(jsonb) to service_role;
+
+-- ---- migration 20260617120300_availability_fixes (F19 30-min hold / F5 reopen / F16 filter) --
+alter table booking_holds alter column expires_at set default (now() + interval '30 minutes');
+
+create or replace function materialize_availability(p jsonb)
+returns int
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_activity_id uuid := nullif(p ->> 'activityId', '')::uuid;
+  v_days int := least(greatest(coalesce((p ->> 'days')::int, 185), 1), 400);
+  v_count int;
+begin
+  update session_occurrences so
+     set status = 'open'
+    from activity_options o
+    join activities a on a.id = o.activity_id
+   where so.activity_option_id = o.id
+     and so.status = 'closed'
+     and so.starts_at > now()
+     and a.status = 'published'
+     and coalesce(a.daily_capacity, 0) > 0
+     and (v_activity_id is null or a.id = v_activity_id);
+
+  insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
+  select o.id,
+         a.operator_id,
+         (d::date + time '12:00') at time zone 'UTC',
+         ((d::date + time '12:00') at time zone 'UTC') + make_interval(mins => coalesce(a.duration_minutes, 240)),
+         a.daily_capacity,
+         'open'
+  from activities a
+  join activity_options o on o.activity_id = a.id
+  cross join generate_series(current_date, current_date + v_days, interval '1 day') d
+  where a.status = 'published'
+    and coalesce(a.daily_capacity, 0) > 0
+    and (v_activity_id is null or a.id = v_activity_id)
+    and exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id)
+    and not exists (
+      select 1 from session_occurrences x
+      where x.activity_option_id = o.id
+        and (x.starts_at at time zone 'UTC')::date = d::date
+    )
+  on conflict (activity_option_id, starts_at) do nothing;
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
+create or replace function api_list_availability(p jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_activity activities;
+  v_from date := coalesce((p ->> 'from')::date, current_date);
+  v_to date := coalesce((p ->> 'to')::date, current_date + 30);
+  v_result jsonb;
+begin
+  select * into v_activity from activities where slug = p ->> 'slug';
+  if not found or v_activity.status <> 'published' then
+    return '[]'::jsonb;
+  end if;
+
+  v_from := greatest(v_from, current_date);
+  v_to := least(v_to, current_date + 400);
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'occurrenceId', so.id, 'activityOptionId', so.activity_option_id, 'optionName', o.name,
+    'startsAt', so.starts_at, 'endsAt', so.ends_at, 'capacity', so.capacity,
+    'seatsLeft', greatest(so.capacity - used_capacity(so.id), 0), 'status', so.status
+  ) order by so.starts_at), '[]'::jsonb)
+  into v_result
+  from session_occurrences so
+  join activity_options o on o.id = so.activity_option_id
+  where o.activity_id = v_activity.id
+    and so.status = 'open'
+    and so.starts_at > now()
+    and so.starts_at >= v_from::timestamptz
+    and so.starts_at < (v_to + 1)::timestamptz;
+
+  return v_result;
+end;
+$$;
+
+-- ---- migration 20260617120400_booking_cancel_refund (F14: paid cancel -> refund_pending) -----
+create or replace function enforce_booking_admin_update()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new;
+  end if;
+
+  new.payment_state           := old.payment_state;
+  new.total_minor             := old.total_minor;
+  new.agency_commission_minor := old.agency_commission_minor;
+  new.operator_payout_minor   := old.operator_payout_minor;
+  new.currency                := old.currency;
+  new.ref                     := old.ref;
+  new.idempotency_key         := old.idempotency_key;
+  new.user_id                 := old.user_id;
+  new.customer_name           := old.customer_name;
+  new.customer_email          := old.customer_email;
+  new.customer_phone          := old.customer_phone;
+  new.source                  := old.source;
+  new.created_at              := old.created_at;
+
+  if new.status = 'cancelled' and old.payment_state in ('paid', 'partially_refunded') then
+    new.status := 'refund_pending';
+  end if;
+
+  if new.status is distinct from old.status then
+    if not (
+      (new.status = 'completed' and old.status = 'confirmed') or
+      (new.status = 'cancelled' and old.status in ('draft', 'held', 'payment_pending', 'confirmed')) or
+      (new.status = 'refund_pending' and old.status = 'confirmed')
+    ) then
+      raise exception 'forbidden_booking_status_transition'
+        using detail = format('%s -> %s', old.status, new.status);
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+-- ---- migration 20260617120500_leads_rate_limit (F7: per-IP hourly cap on lead capture) -------
+alter table leads add column if not exists ip text;
+create index if not exists leads_ip_created_idx on leads (ip, created_at);
+
+create or replace function api_capture_lead(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_lead leads;
+  v_ip text := nullif(p ->> 'ip', '');
+  v_recent int;
+  v_max_per_hour constant int := 8;
+begin
+  if v_ip is not null then
+    select count(*) into v_recent
+    from leads
+    where ip = v_ip and created_at > now() - interval '1 hour';
+    if v_recent >= v_max_per_hour then
+      raise exception 'rate_limited' using detail = format('ip %s', v_ip);
+    end if;
+  end if;
+
+  insert into leads (name, contact, interest_activity_id, source, ip)
+  values (
+    p ->> 'name', p ->> 'contact',
+    nullif(p ->> 'interestActivityId', '')::uuid,
+    coalesce(p ->> 'source', 'web'),
+    v_ip
+  )
+  returning * into v_lead;
+  return jsonb_build_object(
+    'id', v_lead.id, 'name', v_lead.name, 'contact', v_lead.contact,
+    'interestActivityId', v_lead.interest_activity_id, 'status', v_lead.status,
+    'source', v_lead.source, 'createdAt', v_lead.created_at
+  );
+end;
+$$;
+
 -- ---- migration 20260617190000_flatfare_pricing_mode -----------------------------------------
 -- Flat-fare tours (private tour, airport transfer, car/scooter rental) were on the default
 -- pricing_mode 'per_person', so the flat per-booking fare was multiplied by headcount (a 4-person
