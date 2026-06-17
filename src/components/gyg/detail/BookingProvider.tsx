@@ -70,6 +70,11 @@ interface BookingState {
    *  the cart stores so it isn't double-multiplied by the party. */
   unitPriceEur: number;
   vehicleName: string | null;
+  /** The price-tier label the cart + checkout must post to the server: the cheapest tier's REAL
+   *  label (per-person / per-group) or the vehicle name. Add-to-cart and Continue share this single
+   *  source so they can't diverge — a hardcoded 'Adult' here broke checkout for any tour whose tier
+   *  isn't literally 'Adult' (e.g. 'Private group', 'Per transfer', 'Per day'). */
+  priceLabel: string;
   busy: boolean;
   /** Brief "recomputing" flag for the option card while the selection changes. */
   updating: boolean;
@@ -227,6 +232,10 @@ export function BookingProvider({
   // is the tier's unit price (the cart multiplies it by the party). Never includes the child add-on.
   const unitPriceEur = isVehicle ? (baseTotal ?? 0) : (cheapest?.amountEur ?? 0);
   const vehicleName = vehicleQuote?.vehicle ?? null;
+  // Single source of the price-tier label for BOTH Continue and Add-to-cart. They used to diverge:
+  // Add-to-cart hardcoded 'Adult', which the server rejects (unknown_price_tier) for any tour whose
+  // cheapest tier isn't labelled 'Adult'.
+  const priceLabel = isVehicle ? (vehicleName ?? 'Vehicle') : (cheapest?.label ?? '');
 
   async function continueToCheckout() {
     const occ = date ? days?.get(date)?.occurrenceId : undefined;
@@ -260,7 +269,6 @@ export function BookingProvider({
     } catch {
       /* sessionStorage unavailable — checkout will create the hold at pay */
     }
-    const label = isVehicle ? (vehicleQuote?.vehicle ?? 'Vehicle') : (cheapest?.label ?? '');
     const dateText = new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
@@ -268,7 +276,7 @@ export function BookingProvider({
     });
     const q = new URLSearchParams({
       occ,
-      label,
+      label: priceLabel,
       qty: String(participants),
       slug: activity.slug,
       title: activity.title,
@@ -311,6 +319,7 @@ export function BookingProvider({
     total,
     unitPriceEur,
     vehicleName,
+    priceLabel,
     busy,
     updating,
     touch,

@@ -148,6 +148,47 @@ describe('security & integrity fixes', () => {
     }
   });
 
+  it('books a non-"Adult" tour by its real tier label and rejects a hardcoded "Adult" party (Add-to-cart regression)', async () => {
+    await db.asOwner();
+    const { occurrenceId, optionId } = await seedOccurrence(db, 50);
+    // A per-group tour whose only tier is labelled 'Private group' — like seed.sql's private-south-tour.
+    // (Other live examples: 'Per transfer' on airport-transfer, 'Per day' on car-and-scooter-rental.)
+    await db.pg.query(
+      `update activities set pricing_mode = 'per_group' where id = (select activity_id from activity_options where id = $1)`,
+      [optionId],
+    );
+    await db.pg.query(
+      `insert into activity_option_prices (activity_option_id, label, amount_minor, max_guests) values ($1, 'Private group', 11000, 6)`,
+      [optionId],
+    );
+    // Drop the default 'Adult' tier seedOccurrence adds, so 'Private group' is the ONLY (cheapest) tier.
+    await db.pg.query(`delete from activity_option_prices where activity_option_id = $1 and label = 'Adult'`, [
+      optionId,
+    ]);
+
+    // The fix: Add-to-cart sends the tour's REAL cheapest-tier label -> booking succeeds (flat group price).
+    const { rows: hGood } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 4, 'lbl-good')`, [
+      occurrenceId,
+    ]);
+    const { rows: b } = await db.pg.query<{ total_minor: number | string }>(
+      `select * from create_booking('lbl-good-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb)`,
+      [hGood[0]!.id, JSON.stringify([{ price_label: 'Private group', quantity: 4 }])],
+    );
+    expect(Number(b[0]!.total_minor)).toBe(11000); // one group of up to 6, flat price
+
+    // The old bug: Add-to-cart hardcoded { 'Adult': N }. The tour has no 'Adult' tier, so the server
+    // rejects the booking at the payment step. (Asserted LAST so the rolled-back call can't affect the rest.)
+    const { rows: hBad } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 4, 'lbl-bad')`, [
+      occurrenceId,
+    ]);
+    await expect(
+      db.pg.query(
+        `select * from create_booking('lbl-bad-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb)`,
+        [hBad[0]!.id, JSON.stringify([{ price_label: 'Adult', quantity: 4 }])],
+      ),
+    ).rejects.toThrow(/unknown_price_tier/);
+  });
+
   async function seedVehicle(capacity: number): Promise<{ occurrenceId: string; optionId: string }> {
     const { occurrenceId, optionId } = await seedOccurrence(db, capacity);
     await db.pg.query(
