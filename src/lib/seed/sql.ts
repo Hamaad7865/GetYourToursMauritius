@@ -43,11 +43,12 @@ export function catalogueToSeedSql(catalogue: Catalogue): string {
 
     lines.push(
       `insert into activities (operator_id, slug, type, title, summary, description, category, location, ` +
-        `duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status) values (` +
+        `duration_minutes, meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, ` +
+        `pricing_mode) values (` +
         `${opRef}, ${sqlStr(a.slug)}, ${sqlStr(a.type)}, ${sqlStr(a.title)}, ${sqlStr(a.summary)}, ${sqlStr(a.description)}, ` +
         `${sqlStr(a.category)}, ${sqlStr(a.location)}, ${sqlNum(a.duration_minutes)}, ${sqlStr(a.meeting_point)}, ` +
         `${sqlBool(a.pickup_available)}, ${sqlTextArray(['en', 'fr'])}, ${sqlTextArray(a.inclusions)}, ` +
-        `${sqlTextArray(a.exclusions)}, ${sqlTextArray(a.highlights)}, ${sqlStr(a.status)}` +
+        `${sqlTextArray(a.exclusions)}, ${sqlTextArray(a.highlights)}, ${sqlStr(a.status)}, ${sqlStr(a.pricing_mode)}` +
         `) on conflict (slug) do nothing;`,
     );
 

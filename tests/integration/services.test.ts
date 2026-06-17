@@ -79,7 +79,7 @@ describe('service layer (via PGlite rpc)', () => {
       idempotencyKey: 'svc-book-1',
     });
     expect(booking.status).toBe('payment_pending');
-    expect(booking.totalEur).toBe(220); // 2 × €110, from the DB
+    expect(booking.totalEur).toBe(110); // flat per-group fare (up to 6), NOT 2 × €110 — see flatfare_pricing_mode
 
     const link = await createPaymentLink(ctx, {
       bookingRef: booking.ref,

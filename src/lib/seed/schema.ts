@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { categorySchema, tourStatusSchema, tourTypeSchema } from '@/lib/validation/common';
+import { pricingModeSchema } from '@/lib/validation/tours';
 
 /** Shape of seed/catalogue.json — validated before it is turned into SQL. */
 export const seedPriceSchema = z.object({
@@ -36,6 +37,10 @@ export const seedActivitySchema = z.object({
   meeting_point: z.string().nullable(),
   duration_minutes: z.number().int().positive().nullable(),
   pickup_available: z.boolean(),
+  // How the flat tier price is charged. Default 'per_person' (price × headcount). Flat per-booking
+  // fares — private tours, transfers, rentals — must be 'per_group' so the tier price covers the
+  // whole party up to its max_guests (extra vehicles billed via ceil), not multiplied per head.
+  pricing_mode: pricingModeSchema.optional().default('per_person'),
   highlights: z.array(z.string()),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
