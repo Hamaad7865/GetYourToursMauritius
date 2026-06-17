@@ -10,11 +10,18 @@ import { RecordView } from '@/components/gyg/RecordView';
 import { Gallery } from '@/components/gyg/detail/Gallery';
 import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
 import { BookingProvider } from '@/components/gyg/detail/BookingProvider';
+import { MobileBookBar } from '@/components/gyg/detail/MobileBookBar';
 import { BookingOptionCard } from '@/components/gyg/detail/BookingOptionCard';
 import { ItineraryBuilder } from '@/components/gyg/detail/ItineraryBuilder';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
-import { QuickFacts, Overview, Itinerary, Includes } from '@/components/gyg/detail/Sections';
+import {
+  QuickFacts,
+  SightseeingHighlights,
+  Overview,
+  Itinerary,
+  Includes,
+} from '@/components/gyg/detail/Sections';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { ReviewList } from '@/components/catalogue/ReviewList';
 import { Faq } from '@/components/catalogue/Faq';
@@ -114,7 +121,7 @@ export default async function ActivityDetailPage({
       <GygHeader sticky={false} />
 
       <main className="bg-white">
-        <div className="mx-auto max-w-shell px-6 pb-16 pt-3">
+        <div className="mx-auto max-w-shell px-6 pb-24 pt-3 lg:pb-16">
           {/* Breadcrumb */}
           <nav
             aria-label="Breadcrumb"
@@ -199,6 +206,10 @@ export default async function ActivityDetailPage({
                 </p>
               )}
 
+              {activity.pricingMode === 'vehicle' && (
+                <SightseeingHighlights durationMinutes={activity.durationMinutes} />
+              )}
+
               <BookingOptionCard />
 
               <QuickFacts
@@ -223,7 +234,11 @@ export default async function ActivityDetailPage({
                 <section className="mt-8 border-t border-ink/10 pt-7">
                   <SectionTitle>Itinerary</SectionTitle>
                   {itinerary.some((s) => (s.options?.length ?? 0) > 0) ? (
-                    <ItineraryBuilder slug={activity.slug} stops={itinerary} />
+                    <ItineraryBuilder
+                      slug={activity.slug}
+                      stops={itinerary}
+                      meetingPoint={activity.meetingPoint}
+                    />
                   ) : (
                     <>
                       <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
@@ -318,6 +333,7 @@ export default async function ActivityDetailPage({
               </section>
             </div>
           </div>
+          <MobileBookBar />
           </BookingProvider>
 
           {related.length > 0 && (

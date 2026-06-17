@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Logo } from '@/components/site/Logo';
 import { PickupMap } from '@/components/maps/PickupMap';
+import { childSeatsCost } from '@/lib/services/pricing';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
 const STEPS = ['Transport', 'Contact', 'Payment'];
@@ -37,6 +38,8 @@ export function Checkout() {
   const unit = params.get('unit') ?? '';
   // Sightseeing vehicle mode only: the SUV upgrade flag. The server re-resolves the price regardless.
   const suv = params.get('suv') === '1';
+  // Child seats chosen (first free, €6 each extra). The server recomputes the charge from this count.
+  const childSeats = Math.max(0, Math.min(25, parseInt(params.get('childSeats') ?? '0', 10) || 0));
   // Only a "Book now" from the tour-page widget (from=widget) carries a custom route. Cart checkouts
   // don't set it, so they never inherit the slug-scoped sessionStorage route of an unrelated visit.
   const fromWidget = params.get('from') === 'widget';
@@ -137,8 +140,12 @@ export function Checkout() {
             expectedSlug: slug,
             party: { [label]: qty },
             suv,
+            childSeats,
             holdId: holdId || undefined,
             itinerary: readItinerary(),
+            // The pickup address the customer entered on the transport step (null when they chose
+            // "I don't know yet"). Persisted on the booking so the provider actually receives it.
+            pickupLocation: pickup === 'known' && pickupLoc.trim() ? pickupLoc.trim() : null,
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
               email: user?.email,
@@ -212,7 +219,7 @@ export function Checkout() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-5xl gap-8 px-6 py-8 lg:grid-cols-[1fr_340px]">
+      <main className="mx-auto grid max-w-5xl gap-8 px-6 pb-28 pt-8 lg:grid-cols-[1fr_340px] lg:pb-8">
         <div>
           <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-semibold text-coral">
             <IconClock width={15} height={15} /> We&apos;ll hold your spot for {mm}:{ss} minutes.
@@ -240,7 +247,7 @@ export function Checkout() {
                 type="button"
                 onClick={continueFromTransport}
                 disabled={busy}
-                className="mt-6 flex items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+                className="mt-6 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
                 {busy ? <Spinner /> : 'Next: Personal details'}
               </button>
@@ -258,7 +265,7 @@ export function Checkout() {
               <button
                 type="button"
                 onClick={() => openAuth('signin')}
-                className="mt-5 rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark"
+                className="mt-5 hidden rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark lg:inline-flex"
               >
                 Sign in / Create account
               </button>
@@ -278,7 +285,7 @@ export function Checkout() {
                 type="button"
                 onClick={pay}
                 disabled={busy}
-                className="mt-5 flex items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+                className="mt-5 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
                 {busy ? <Spinner /> : displayTotal ? `Pay €${displayTotal}` : 'Continue to payment'}
               </button>
@@ -303,6 +310,15 @@ export function Checkout() {
             <div className="flex items-center gap-2">
               <IconGlobe width={15} height={15} className="text-teal" /> {lang}
             </div>
+            {childSeats > 0 && (
+              <div className="flex items-center gap-2">
+                <IconCheck width={15} height={15} className="text-teal" />
+                {childSeats} baby/child {childSeats === 1 ? 'seat' : 'seats'}
+                {childSeatsCost(childSeats) > 0
+                  ? ` · first free, €${childSeatsCost(childSeats)} extra`
+                  : ' · free'}
+              </div>
+            )}
           </dl>
           <div className="mt-4 flex items-center justify-between border-t border-ink/10 pt-3">
             <span className="font-bold text-ink">Total</span>
@@ -313,6 +329,39 @@ export function Checkout() {
           </div>
         </aside>
       </main>
+
+      {/* Mobile sticky primary action — mirrors the current step's CTA. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">
+        {step === 1 && (
+          <button
+            type="button"
+            onClick={continueFromTransport}
+            disabled={busy}
+            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+          >
+            {busy ? <Spinner /> : 'Next: Personal details'}
+          </button>
+        )}
+        {step === 2 && (
+          <button
+            type="button"
+            onClick={() => openAuth('signin')}
+            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark"
+          >
+            Sign in / Create account
+          </button>
+        )}
+        {step === 3 && (
+          <button
+            type="button"
+            onClick={pay}
+            disabled={busy}
+            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+          >
+            {busy ? <Spinner /> : displayTotal ? `Pay €${displayTotal}` : 'Continue to payment'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

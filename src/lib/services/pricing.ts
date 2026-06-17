@@ -161,3 +161,12 @@ export function sightseeingQuote(people: number, suv: boolean, cfg: SightseeingP
   if (people <= 14) return { vehicle: 'Van', totalEur: cfg.vanEur };
   return { vehicle: 'Coaster', totalEur: cfg.coasterEur };
 }
+
+/** Price per extra child seat (the first seat is free). */
+export const CHILD_SEAT_EUR = 6;
+
+/** Cost of `seats` child seats: the first is free, each additional is €6. Mirrors api_book; the DB is
+ *  authoritative. */
+export function childSeatsCost(seats: number): number {
+  return Math.max(0, Math.floor(seats) - 1) * CHILD_SEAT_EUR;
+}

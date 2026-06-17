@@ -8,6 +8,8 @@ import { usePreferences } from '@/components/site/PreferencesProvider';
 import { useCart } from '@/lib/cart/useCart';
 import { SearchBar } from './SearchBar';
 import { MainNav } from './MainNav';
+import { MobileMenu } from './MobileMenu';
+import { MobileSearch } from './MobileSearch';
 import {
   IconArrowRight,
   IconBookings,
@@ -141,7 +143,7 @@ function CartAction({ overHero }: { overHero: boolean }) {
     <Link
       href="/cart"
       aria-label={count > 0 ? `Cart, ${count} item${count === 1 ? '' : 's'}` : 'Cart'}
-      className={navItemClass(overHero, 'relative hidden sm:flex')}
+      className={navItemClass(overHero, 'relative flex')}
     >
       <span className="relative">
         <IconCart width={20} height={20} />
@@ -264,11 +266,22 @@ export function GygHeader({
               icon={<IconHeart width={20} height={20} />}
             />
             <CartAction overHero={overHero} />
-            <BookingsAction overHero={overHero} />
-            <PrefsButton overHero={overHero} />
-            <ProfileMenu overHero={overHero} />
+            {/* Bookings/currency/profile have no room on a phone — they live in the hamburger menu. */}
+            <div className="hidden items-center gap-1 sm:flex">
+              <BookingsAction overHero={overHero} />
+              <PrefsButton overHero={overHero} />
+              <ProfileMenu overHero={overHero} />
+            </div>
+            <MobileMenu light={overHero} />
           </nav>
         </div>
+
+        {/* Phones: a sticky search bar pinned under the logo row (opens the full-screen search sheet). */}
+        {searchShown && (
+          <div className="mx-auto max-w-shell px-6 pb-3 sm:hidden">
+            <MobileSearch />
+          </div>
+        )}
       </div>
 
       {showNav && (

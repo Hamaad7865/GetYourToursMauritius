@@ -80,9 +80,13 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
               </span>
             </Link>
           </div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Mobile: an edge-to-edge horizontal snap rail (cards peek the next), GetYourGuide style.
+              sm+: the original responsive grid. */}
+          <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
             {cat.items.slice(0, 4).map((activity) => (
-              <PlaceCard key={activity.id} activity={activity} titleAs="h4" />
+              <div key={activity.id} className="w-[80%] shrink-0 snap-start sm:w-auto sm:shrink">
+                <PlaceCard activity={activity} titleAs="h4" />
+              </div>
             ))}
           </div>
         </section>

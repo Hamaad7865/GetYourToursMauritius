@@ -1,10 +1,15 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { TourType } from '@/lib/validation/common';
 import type { PricingMode, TourOption, VehiclePricing } from '@/lib/validation/tours';
-import { sightseeingQuote, SIGHTSEEING_DEFAULT, SIGHTSEEING_SUV_MAX } from '@/lib/services/pricing';
+import {
+  sightseeingQuote,
+  childSeatsCost,
+  SIGHTSEEING_DEFAULT,
+  SIGHTSEEING_SUV_MAX,
+} from '@/lib/services/pricing';
 
 export interface BookingActivity {
   slug: string;
@@ -35,9 +40,19 @@ interface BookingState {
   setLang: (l: string) => void;
   suv: boolean;
   setSuv: (b: boolean) => void;
+  /** Child seats requested (first free, €6 each extra). Bounded to the party size. */
+  childSeats: number;
+  setChildSeats: (n: number) => void;
+  /** The child-seat add-on cost in EUR (already included in `total`). */
+  childSeatsExtra: number;
   days: Map<string, DayInfo> | null;
   checked: boolean;
   setChecked: (b: boolean) => void;
+  /** Reveal the option card AND request it be scrolled into view (bumps on every press, so pressing
+   *  "Check availability" again from anywhere on the page re-centres the already-open card). */
+  checkAvailability: () => void;
+  /** Increments each time the card is asked to scroll into view; the card watches this. */
+  scrollTick: number;
   /** The booking option id used for availability + checkout. */
   bookingOptionId: string | null;
   vehicleCfg: VehiclePricing;
@@ -51,8 +66,15 @@ interface BookingState {
   unitLabel: string;
   /** Live total for the current selection, or null if not computable. */
   total: number | null;
+  /** The per-UNIT price (per vehicle / per group / per head), excluding the child-seat add-on — what
+   *  the cart stores so it isn't double-multiplied by the party. */
+  unitPriceEur: number;
   vehicleName: string | null;
   busy: boolean;
+  /** Brief "recomputing" flag for the option card while the selection changes. */
+  updating: boolean;
+  /** Flag the option card as updating (called when participants/date change). */
+  touch: () => void;
   /** Continue: reserve the spot, then route to checkout. */
   continueToCheckout: () => Promise<void>;
 }
@@ -83,9 +105,28 @@ export function BookingProvider({
   const [date, setDate] = useState('');
   const [lang, setLang] = useState(activity.languages[0] ?? 'English');
   const [suv, setSuv] = useState(false);
+  const [childSeats, setChildSeats] = useState(0);
   const [checked, setChecked] = useState(false);
+  const [scrollTick, setScrollTick] = useState(0);
+  // Reveal the card and (re)request a scroll-into-view. Bumping the tick on every press means a
+  // second press from further down the page re-centres the card even though `checked` is unchanged.
+  const checkAvailability = useCallback(() => {
+    setChecked(true);
+    setScrollTick((t) => t + 1);
+  }, []);
   const [days, setDays] = useState<Map<string, DayInfo> | null>(null);
   const [busy, setBusy] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const updTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Briefly flag the option card as "updating" when the selection changes, instead of closing it.
+  const touch = useCallback(() => {
+    setUpdating(true);
+    if (updTimer.current) clearTimeout(updTimer.current);
+    updTimer.current = setTimeout(() => setUpdating(false), 350);
+  }, []);
+  useEffect(() => () => {
+    if (updTimer.current) clearTimeout(updTimer.current);
+  }, []);
 
   const isVehicle = activity.pricingMode === 'vehicle';
   const vehicleCfg = activity.vehiclePricing ?? SIGHTSEEING_DEFAULT;
@@ -166,16 +207,25 @@ export function BookingProvider({
   useEffect(() => {
     if (isVehicle && suv && participants > SIGHTSEEING_SUV_MAX) setSuv(false);
   }, [isVehicle, suv, participants]);
+  // Can't request more child seats than passengers.
+  useEffect(() => {
+    if (childSeats > participants) setChildSeats(participants);
+  }, [childSeats, participants]);
   const vehicleQuote = isVehicle
     ? sightseeingQuote(Math.min(Math.max(participants, 1), vehicleCfg.maxParty), suvActive, vehicleCfg)
     : null;
-  const total = isVehicle
+  const baseTotal = isVehicle
     ? (vehicleQuote?.totalEur ?? null)
     : cheapest == null
       ? null
       : groupSize
         ? cheapest.amountEur * Math.ceil(participants / groupSize)
         : cheapest.amountEur * participants;
+  const childSeatsExtra = childSeatsCost(childSeats);
+  const total = baseTotal == null ? null : baseTotal + childSeatsExtra;
+  // Per-unit price for the cart: a vehicle is one flat unit (its whole price); per-group / per-person
+  // is the tier's unit price (the cart multiplies it by the party). Never includes the child add-on.
+  const unitPriceEur = isVehicle ? (baseTotal ?? 0) : (cheapest?.amountEur ?? 0);
   const vehicleName = vehicleQuote?.vehicle ?? null;
 
   async function continueToCheckout() {
@@ -228,6 +278,7 @@ export function BookingProvider({
       guests: String(participants),
       unit: unitLabel,
       suv: suvActive ? '1' : '0',
+      childSeats: String(childSeats),
       from: 'widget',
     });
     router.push(`/checkout?${q.toString()}`);
@@ -243,9 +294,14 @@ export function BookingProvider({
     setLang,
     suv,
     setSuv,
+    childSeats,
+    setChildSeats,
+    childSeatsExtra,
     days,
     checked,
     setChecked,
+    checkAvailability,
+    scrollTick,
     bookingOptionId,
     vehicleCfg,
     groupSize,
@@ -253,8 +309,11 @@ export function BookingProvider({
     maxParticipants,
     unitLabel,
     total,
+    unitPriceEur,
     vehicleName,
     busy,
+    updating,
+    touch,
     continueToCheckout,
   };
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

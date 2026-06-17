@@ -23,6 +23,7 @@ function checkoutHref(i: CartItem): string {
     // price at checkout. (holdId/idem/from=widget are intentionally absent — a cart line was never
     // held and must not inherit another visit's route.)
     ...(i.suv ? { suv: '1' } : {}),
+    ...(i.childSeats ? { childSeats: String(i.childSeats) } : {}),
   });
   return `/checkout?${q.toString()}`;
 }
@@ -130,7 +131,7 @@ export function CartView() {
   if (items.length === 0) return <EmptyCart />;
 
   return (
-    <div className="py-10">
+    <div className="pb-28 pt-10 lg:pb-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-[26px] font-semibold text-ink">Your cart</h1>
         <HoldTimer items={items} />
@@ -194,7 +195,12 @@ export function CartView() {
           ))}
         </ul>
 
-        <aside className="h-fit rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.45)]">
+        <aside
+          id="cart-summary"
+          className={`h-fit rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.45)] ${
+            items.length === 1 ? 'hidden lg:block' : ''
+          }`}
+        >
           <h2 className="font-display text-lg font-semibold text-ink">Order summary</h2>
           <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-3">
             <span className="font-bold text-ink">{items.length > 1 ? 'Estimated total' : 'Total'}</span>
@@ -231,6 +237,35 @@ export function CartView() {
             Free cancellation up to 24 hours before most activities.
           </p>
         </aside>
+      </div>
+
+      {/* Mobile sticky checkout bar. Single item → straight to checkout; multiple → jump to the
+          per-item list (each books separately). */}
+      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">
+        <div className="min-w-0">
+          <div className="text-[11px] font-medium text-ink-muted">
+            {items.length > 1 ? 'Estimated total' : 'Total'}
+          </div>
+          <div className="text-[19px] font-extrabold tracking-tight text-ink">€{subtotal.toFixed(2)}</div>
+        </div>
+        {items.length === 1 ? (
+          <Link
+            href={checkoutHref(items[0]!)}
+            className="shrink-0 rounded-full bg-teal px-6 py-3 text-sm font-bold text-white hover:bg-teal-dark"
+          >
+            Proceed to checkout
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById('cart-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }
+            className="shrink-0 rounded-full bg-teal px-6 py-3 text-sm font-bold text-white hover:bg-teal-dark"
+          >
+            Check out ({items.length})
+          </button>
+        )}
       </div>
     </div>
   );

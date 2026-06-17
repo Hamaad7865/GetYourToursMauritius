@@ -8,9 +8,49 @@ import { mapsDirectionsUrl } from '@/lib/maps/urls';
 import { MapLinkCard } from './MapLinkCard';
 import { carIcon, pinIcon, pinLabel } from './pin';
 
+/** Marker role per stop: the start/pickup (coral), a fixed main stop (solid teal), or a swappable
+ *  "other" stop (hollow teal). */
+export type StopKind = 'start' | 'main' | 'other';
+
 async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral | null> {
   if (typeof s.lat === 'number' && typeof s.lng === 'number') return { lat: s.lat, lng: s.lng };
   return geocode(s.title);
+}
+
+/** Evenly-spaced points from `a` (exclusive) to `b` (inclusive). */
+function samplePath(
+  a: google.maps.LatLngLiteral,
+  b: google.maps.LatLngLiteral,
+  n: number,
+): google.maps.LatLngLiteral[] {
+  const out: google.maps.LatLngLiteral[] = [];
+  for (let k = 1; k <= n; k += 1) {
+    const t = k / n;
+    out.push({ lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t });
+  }
+  return out;
+}
+
+/** Resample a polyline into ~`targetPoints` evenly-spaced points, so the car glides at a constant,
+ *  gentle speed and a full loop takes roughly the same time regardless of how long the route is. */
+function buildDrivePath(
+  poly: google.maps.LatLngLiteral[],
+  targetPoints: number,
+): google.maps.LatLngLiteral[] {
+  if (poly.length < 2) return poly;
+  let total = 0;
+  for (let i = 0; i < poly.length - 1; i += 1) {
+    total += Math.hypot(poly[i + 1]!.lat - poly[i]!.lat, poly[i + 1]!.lng - poly[i]!.lng);
+  }
+  const step = total > 0 ? total / targetPoints : 0;
+  const out: google.maps.LatLngLiteral[] = [poly[0]!];
+  for (let i = 0; i < poly.length - 1; i += 1) {
+    const a = poly[i]!;
+    const b = poly[i + 1]!;
+    const d = Math.hypot(b.lat - a.lat, b.lng - a.lng);
+    out.push(...samplePath(a, b, step > 0 ? Math.max(1, Math.round(d / step)) : 1));
+  }
+  return out;
 }
 
 /* Once the Directions API answers "not enabled / denied" for this key, stop calling it for the rest
@@ -27,7 +67,16 @@ type MapOverlay = { setMap: (map: google.maps.Map | null) => void };
  * degrades but never breaks. The map is created ONCE and only its overlays are redrawn when `stops`
  * change, so editing a route in the builder doesn't leak a fresh Map per edit.
  */
-export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; animate?: boolean }) {
+export function RouteMap({
+  stops,
+  kinds,
+  animate = false,
+}: {
+  stops: ItineraryStop[];
+  /** Marker role per stop (aligned to `stops`). Defaults to start (index 0) + main (rest). */
+  kinds?: StopKind[];
+  animate?: boolean;
+}) {
   const status = useGoogleMaps();
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -62,24 +111,36 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
     };
 
     (async () => {
-      const points = (await Promise.all(stops.map(resolveStop))).filter(
-        (p): p is google.maps.LatLngLiteral => p !== null,
-      );
+      // Resolve point + kind + title together and drop unresolved stops as a unit, so a stop that
+      // fails to geocode can't shift the kind/title of the remaining markers.
+      const resolved = (
+        await Promise.all(
+          stops.map(async (s, idx) => {
+            const pos = await resolveStop(s);
+            if (!pos) return null;
+            const kind: StopKind = kinds?.[idx] ?? (idx === 0 ? 'start' : 'main');
+            return { pos, kind, title: s.title };
+          }),
+        )
+      ).filter((r): r is { pos: google.maps.LatLngLiteral; kind: StopKind; title: string } => r !== null);
       if (cancelled || !mapRef.current) return;
-      if (points.length === 0) {
+      if (resolved.length === 0) {
         setFailed(true);
         return;
       }
+      const points = resolved.map((r) => r.pos);
 
       const bounds = new google.maps.LatLngBounds();
-      points.forEach((pos, i) => {
+      resolved.forEach(({ pos, kind, title }, i) => {
+        const hollow = kind === 'other';
+        const color = kind === 'start' ? '#F76C5E' : '#0E8C92';
         track(
           new google.maps.Marker({
             map,
             position: pos,
-            icon: pinIcon(i === 0 ? '#F76C5E' : '#0A2E36'),
-            label: pinLabel(i + 1),
-            title: stops[i]?.title,
+            icon: pinIcon(color, { hollow }),
+            label: pinLabel(i + 1, hollow ? '#0E8C92' : '#ffffff'),
+            title,
           }),
         );
         bounds.extend(pos);
@@ -145,21 +206,48 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
         path = points;
       }
 
-      // The car: static at the start, or animated along the path on a loop.
-      const car = track(new google.maps.Marker({ map, position: path[0]!, icon: carIcon(), zIndex: 1000 }));
+      // Return leg: a dashed coral line straight from the last stop back to the first (a tour returns
+      // to where it started), and the car drives it on the way back so the loop is continuous.
+      let drivePath = path;
+      if (points.length > 1) {
+        const lastPt = points[points.length - 1]!;
+        const firstPt = points[0]!;
+        track(
+          new google.maps.Polyline({
+            map,
+            path: [lastPt, firstPt],
+            geodesic: true,
+            strokeOpacity: 0,
+            icons: [
+              {
+                icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, scale: 3, strokeColor: '#F76C5E' },
+                offset: '0',
+                repeat: '12px',
+              },
+            ],
+          }),
+        );
+        // Car loop = the route out (roads or straight) + a straight return to the start, resampled
+        // to a constant gentle speed (so it doesn't jump quickly between far-apart stops).
+        drivePath = buildDrivePath([...path, firstPt], 180);
+      }
+
+      // The car: static at the start, or driving the loop — out along the route, back along the
+      // return leg — when animated and motion is allowed.
+      const car = track(new google.maps.Marker({ map, position: drivePath[0]!, icon: carIcon(), zIndex: 1000 }));
       const reduce =
         typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      if (animate && !reduce && path.length > 1) {
-        const STEP_MS = 90; // advance one path point every ~90ms
+      if (animate && !reduce && drivePath.length > 1) {
+        const STEP_MS = 65; // advance one (closely-spaced) point every ~65ms → ~12s per loop
         let i = 0;
-        let last = 0;
+        let lastT = 0;
         const tick = (t: number) => {
           if (cancelled) return;
-          if (t - last >= STEP_MS) {
-            i = (i + 1) % path.length;
-            car.setPosition(path[i]!);
-            last = t;
+          if (t - lastT >= STEP_MS) {
+            i = (i + 1) % drivePath.length;
+            car.setPosition(drivePath[i]!);
+            lastT = t;
           }
           rafRef.current = requestAnimationFrame(tick);
         };
@@ -174,7 +262,7 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
         rafRef.current = null;
       }
     };
-  }, [status, stops, animate]);
+  }, [status, stops, kinds, animate]);
 
   // Final teardown on unmount: drop every overlay and release the map.
   useEffect(() => {

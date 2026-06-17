@@ -11,25 +11,26 @@ export function SearchFilterBar({ params }: { params: BrowseParams }) {
     <form
       method="get"
       action="/activities"
-      className="flex flex-col gap-2.5 sm:flex-row sm:items-center"
+      className="flex items-center gap-2 sm:gap-2.5"
     >
       {params.category && <input type="hidden" name="category" value={params.category} />}
-      <div className="flex flex-1 items-center gap-2.5 rounded-xl border border-ink/12 bg-white px-3.5 py-2.5">
-        <IconSearch width={18} height={18} className="text-teal" />
+      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-ink/12 bg-white px-3 py-3">
+        <IconSearch width={18} height={18} className="shrink-0 text-teal" />
         <input
           type="search"
           name="q"
           defaultValue={params.q ?? ''}
-          placeholder="Search activities, locations…"
+          placeholder="Search activities…"
           aria-label="Search activities"
-          className="flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+          className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
         />
       </div>
-      <label className="flex items-center gap-2 rounded-xl border border-ink/12 bg-white px-3.5 py-2.5 text-sm">
-        <span className="font-semibold text-ink-muted">Type</span>
+      <label className="flex shrink-0 items-center gap-1.5 rounded-xl border border-ink/12 bg-white px-2.5 py-3 text-sm">
+        <span className="hidden font-semibold text-ink-muted sm:inline">Type</span>
         <select
           name="type"
           defaultValue={params.type ?? ''}
+          aria-label="Activity type"
           className="cursor-pointer bg-transparent font-semibold text-ink outline-none"
         >
           <option value="">All</option>
@@ -39,7 +40,7 @@ export function SearchFilterBar({ params }: { params: BrowseParams }) {
       </label>
       <button
         type="submit"
-        className="rounded-xl bg-coral px-5 py-2.5 text-sm font-bold text-white hover:opacity-90"
+        className="shrink-0 rounded-xl bg-coral px-4 py-3 text-sm font-bold text-white hover:opacity-90 sm:px-5"
       >
         Search
       </button>

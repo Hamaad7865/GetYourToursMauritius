@@ -139,7 +139,8 @@ export function GygHero({ children }: { children?: ReactNode }) {
             — with ease.
           </p>
 
-          {/* The search now lives in the navbar; the hero carries just the message + proof. */}
+          {/* The search lives in the sticky header (desktop navbar / mobile search bar); the hero
+              carries just the message + proof. */}
           <ul className="animate-fade-up mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)] [animation-delay:240ms]">
             <li className="flex items-center gap-1.5">
               <IconShield width={14} height={14} /> Booked direct with the local operator

@@ -1283,6 +1283,18 @@
                     },
                     "maxItems": 30
                   },
+                  "pickupLocation": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 200
+                  },
+                  "childSeats": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 25
+                  },
                   "customer": {
                     "type": "object",
                     "properties": {
@@ -1467,6 +1479,19 @@
                               "title"
                             ]
                           }
+                        },
+                        "pickupLocation": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "childSeats": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
                         }
                       },
                       "required": [
@@ -1748,6 +1773,19 @@
                               "title"
                             ]
                           }
+                        },
+                        "pickupLocation": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "childSeats": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
                         }
                       },
                       "required": [

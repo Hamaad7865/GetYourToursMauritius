@@ -1,6 +1,7 @@
 import type { ActivityExtra, ItineraryStop } from '@/lib/validation/tours';
-import { ItineraryTimeline } from './ItineraryTimeline';
-import { RouteMap } from '@/components/maps/RouteMap';
+import { ItineraryTimeline, type TimelineNode } from './ItineraryTimeline';
+import { ItineraryMap } from '@/components/maps/ItineraryMap';
+import type { StopKind } from '@/components/maps/RouteMap';
 import { durationLabel } from '@/lib/catalogue/detail';
 import {
   IconBolt,
@@ -9,6 +10,7 @@ import {
   IconClock,
   IconGlobe,
   IconPin,
+  IconShield,
   IconTrophy,
   IconUsers,
   IconWallet,
@@ -120,6 +122,52 @@ export function QuickFacts({
   );
 }
 
+/**
+ * The four standard promises that apply to every private sightseeing (vehicle) tour: duration,
+ * private vehicle, free child seat, flexible start. Rendered for vehicle-mode tours only. The
+ * duration is the tour's own; the rest are fixed operator policy.
+ */
+export function SightseeingHighlights({ durationMinutes }: { durationMinutes: number | null }) {
+  const duration = durationLabel(durationMinutes);
+  const items: Array<{ icon: React.ReactNode; title: string; sub: string }> = [
+    {
+      icon: <IconClock width={22} height={22} />,
+      title: 'Duration & availability',
+      sub: duration ? `Approx ${duration} · available daily` : 'Available daily',
+    },
+    {
+      icon: <IconUsers width={22} height={22} />,
+      title: 'Private tour',
+      sub: 'A vehicle with driver, exclusively for you and your family.',
+    },
+    {
+      icon: <IconShield width={22} height={22} />,
+      title: 'Free child seat',
+      sub: 'Your first child seat is free of charge.',
+    },
+    {
+      icon: <IconCalendar width={22} height={22} />,
+      title: 'Flexible start time',
+      sub: 'Start any time between 7:30 and 9:30 in the morning.',
+    },
+  ];
+  return (
+    <div className="mt-6 grid grid-cols-1 gap-x-5 gap-y-4 rounded-2xl border border-teal/20 bg-teal/[0.04] p-4 sm:grid-cols-2 sm:p-5">
+      {items.map((f) => (
+        <div key={f.title} className="flex items-start gap-3.5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-teal shadow-[0_6px_16px_-10px_rgba(10,46,54,0.5)]">
+            {f.icon}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[14.5px] font-bold leading-tight text-ink">{f.title}</span>
+            <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">{f.sub}</span>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** "Overview" box: availability, duration and start/return windows. */
 export function Overview({
   durationMinutes,
@@ -162,27 +210,22 @@ export function Itinerary({
   meetingPoint?: string | null;
 }) {
   if (stops.length === 0) return null;
-  const nodes = [
+  const nodes: TimelineNode[] = [
     ...(meetingPoint
-      ? [{ title: 'Pickup location', area: meetingPoint, pickup: true } as const]
+      ? [{ title: 'Pickup location', area: meetingPoint, variant: 'pickup' as const }]
       : []),
-    ...stops.map((s) => ({ ...s, pickup: false as const })),
+    ...stops.map((s) => ({ title: s.title, area: s.area, tags: s.tags, variant: 'main' as const })),
   ];
+  // Map: the meeting point as the coral start pin (when set) + the stops as solid "main" pins.
+  const mapStops: ItineraryStop[] = meetingPoint
+    ? [{ title: meetingPoint } as ItineraryStop, ...stops]
+    : stops;
+  const mapKinds: StopKind[] = mapStops.map((_, i) => (meetingPoint && i === 0 ? 'start' : 'main'));
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
       <ItineraryTimeline nodes={nodes} collapseAt={meetingPoint ? 4 : 3} />
-      <div>
-        <RouteMap stops={stops} />
-        <div className="mt-2 flex items-center gap-4 text-[12px] text-ink-muted">
-          <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-coral" /> Start / main stop
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-ink" /> Tour stop
-          </span>
-        </div>
-      </div>
+      <ItineraryMap stops={mapStops} kinds={mapKinds} />
     </div>
   );
 }

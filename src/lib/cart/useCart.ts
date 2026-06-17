@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { PricingMode } from '@/lib/validation/tours';
+import { childSeatsCost } from '@/lib/services/pricing';
 
 const KEY = 'gytm:cart';
 const EVENT = 'gytm:cart';
@@ -25,6 +26,8 @@ export interface CartItem {
   pricingMode: PricingMode;
   /** Vehicle mode: the SUV upgrade was chosen (display only; price is already in unitEur). */
   suv?: boolean;
+  /** Child seats chosen (first free, €6 each extra; the charge is already in unitEur). */
+  childSeats?: number;
   maxGuests: number | null;
   /** Seats left on the occurrence when added — the ceiling the guests stepper clamps to. */
   seatsLeft: number;
@@ -35,11 +38,14 @@ export interface CartItem {
 }
 
 /** Price for one cart line: a flat price for vehicle pricing, per group (ceil people / size) for
- *  group pricing, else per head. */
+ *  group pricing, else per head — plus the child-seat add-on (first free, €6 each extra), added ONCE
+ *  on top (it is not multiplied by the party). `unitEur` is the PER-UNIT price (per vehicle / per
+ *  group / per head), never the already-multiplied total. */
 export function itemTotal(i: CartItem): number {
-  if (i.pricingMode === 'vehicle') return Math.round(i.unitEur * 100) / 100;
+  const childExtra = childSeatsCost(i.childSeats ?? 0);
+  if (i.pricingMode === 'vehicle') return Math.round((i.unitEur + childExtra) * 100) / 100;
   const groups = i.pricingMode === 'per_group' && i.maxGuests ? Math.ceil(i.guests / i.maxGuests) : i.guests;
-  return Math.round(i.unitEur * groups * 100) / 100;
+  return Math.round((i.unitEur * groups + childExtra) * 100) / 100;
 }
 
 /** Largest party a line can hold: bounded by seats, and by the tier cap for per-person pricing (a
