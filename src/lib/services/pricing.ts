@@ -107,29 +107,35 @@ export function quoteTotal(tiers: PriceTierInput[], party: PartySelection): Quot
   };
 }
 
+/** Flat price per vehicle bracket (sightseeing tours). All amounts in EUR. */
 export interface SightseeingPricing {
-  /** €70 per block of `blockSize` people. */
-  perBlockEur: number;
-  /** Flat SUV upgrade price for parties of 1..blockSize. */
-  suvFlatEur: number;
-  blockSize: number;
+  sedanEur: number; // 1–4
+  suvEur: number; // 1–4 upgrade
+  familyEur: number; // 5–6
+  vanEur: number; // 7–14
+  coasterEur: number; // 15–25
   maxParty: number;
 }
 
 /** Sensible defaults if the catalogue config hasn't loaded — mirrors the migration's seed row. */
 export const SIGHTSEEING_DEFAULT: SightseeingPricing = {
-  perBlockEur: 70,
-  suvFlatEur: 85,
-  blockSize: 4,
+  sedanEur: 70,
+  suvEur: 85,
+  familyEur: 85,
+  vanEur: 125,
+  coasterEur: 225,
   maxParty: 25,
 };
 
-/** Vehicle name by party size. NAME only — the price comes from the per-block rule. MUST mirror the
- *  SQL `CASE` in create_booking (Sedan ≤4, Family car ≤6, Minibus ≤14, Coaster ≤25). */
+/** The SUV upgrade is offered only at the entry (Sedan) tier. */
+export const SIGHTSEEING_SUV_MAX = 4;
+
+/** Vehicle name by party size. NAME only — the price comes from the flat bracket. MUST mirror the
+ *  SQL `CASE` in create_booking (Sedan ≤4, Family car ≤6, Van ≤14, Coaster ≤25). */
 export const VEHICLE_BANDS: ReadonlyArray<{ max: number; name: string }> = [
   { max: 4, name: 'Sedan' },
   { max: 6, name: 'Family car' },
-  { max: 14, name: 'Minibus' },
+  { max: 14, name: 'Van' },
   { max: 25, name: 'Coaster' },
 ];
 
@@ -139,18 +145,19 @@ export interface SightseeingQuote {
 }
 
 /**
- * Sightseeing price for a party: €70 × ceil(people / 4), or the flat SUV price for parties of 1..4
- * when `suv` is set. The DB (`create_booking`) is authoritative; this mirrors it for the widget and
- * unit tests. Throws outside 1..maxParty.
+ * Sightseeing price for a party: ONE flat price for the vehicle bracket that fits — Sedan €70 (SUV €85)
+ * for 1–4, Family car €85 for 5–6, Van €125 for 7–14, Coaster €225 for 15–25. The DB
+ * (`create_booking`) is authoritative; this mirrors it for the widget and unit tests. Throws outside
+ * 1..maxParty.
  */
 export function sightseeingQuote(people: number, suv: boolean, cfg: SightseeingPricing): SightseeingQuote {
   if (!Number.isInteger(people) || people < 1 || people > cfg.maxParty) {
     throw new ValidationError(`Party of ${people} is outside 1–${cfg.maxParty}`);
   }
-  if (people <= cfg.blockSize && suv) {
-    return { vehicle: 'SUV', totalEur: cfg.suvFlatEur };
+  if (people <= 4) {
+    return suv ? { vehicle: 'SUV', totalEur: cfg.suvEur } : { vehicle: 'Sedan', totalEur: cfg.sedanEur };
   }
-  const band = VEHICLE_BANDS.find((b) => people <= b.max) ?? VEHICLE_BANDS[VEHICLE_BANDS.length - 1]!;
-  const blocks = Math.ceil(people / cfg.blockSize);
-  return { vehicle: band.name, totalEur: cfg.perBlockEur * blocks };
+  if (people <= 6) return { vehicle: 'Family car', totalEur: cfg.familyEur };
+  if (people <= 14) return { vehicle: 'Van', totalEur: cfg.vanEur };
+  return { vehicle: 'Coaster', totalEur: cfg.coasterEur };
 }

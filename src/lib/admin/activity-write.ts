@@ -25,6 +25,8 @@ export interface ItineraryStopInput {
   area: string;
   description: string;
   tags: string[];
+  /** Alternatives the customer can pick instead of this stop. */
+  options: { title: string; area: string }[];
 }
 
 export interface ActivityFormValues {
@@ -99,12 +101,18 @@ async function operatorId(): Promise<string> {
 function buildExtra(v: ActivityFormValues) {
   const itinerary = v.itinerary
     .filter((s) => s.title.trim())
-    .map((s) => ({
-      title: s.title.trim(),
-      area: s.area.trim() || null,
-      description: s.description.trim() || null,
-      tags: s.tags.filter((t) => t.trim()),
-    }));
+    .map((s) => {
+      const base = {
+        title: s.title.trim(),
+        area: s.area.trim() || null,
+        description: s.description.trim() || null,
+        tags: s.tags.filter((t) => t.trim()),
+      };
+      const options = s.options
+        .filter((o) => o.title.trim())
+        .map((o) => ({ title: o.title.trim(), area: o.area.trim() || null }));
+      return options.length ? { ...base, options } : base;
+    });
   return itinerary.length ? { itinerary } : {};
 }
 
@@ -308,7 +316,13 @@ export async function uploadActivityImage(file: File, slug: string): Promise<str
 }
 
 interface ExtraShape {
-  itinerary?: Array<{ title?: string; area?: string | null; description?: string | null; tags?: string[] }>;
+  itinerary?: Array<{
+    title?: string;
+    area?: string | null;
+    description?: string | null;
+    tags?: string[];
+    options?: Array<{ title?: string; area?: string | null }>;
+  }>;
 }
 
 /** Load an existing activity into the editable form shape. */
@@ -370,6 +384,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       area: s.area ?? '',
       description: s.description ?? '',
       tags: s.tags ?? [],
+      options: (s.options ?? []).map((o) => ({ title: o.title ?? '', area: o.area ?? '' })),
     })),
   };
 }

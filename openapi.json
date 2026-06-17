@@ -586,6 +586,32 @@
                                   },
                                   "lng": {
                                     "type": "number"
+                                  },
+                                  "options": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "title": {
+                                          "type": "string"
+                                        },
+                                        "area": {
+                                          "type": [
+                                            "string",
+                                            "null"
+                                          ]
+                                        },
+                                        "lat": {
+                                          "type": "number"
+                                        },
+                                        "lng": {
+                                          "type": "number"
+                                        }
+                                      },
+                                      "required": [
+                                        "title"
+                                      ]
+                                    }
                                   }
                                 },
                                 "required": [
@@ -747,17 +773,25 @@
                             "null"
                           ],
                           "properties": {
-                            "perBlockEur": {
+                            "sedanEur": {
                               "type": "number",
                               "minimum": 0
                             },
-                            "suvFlatEur": {
+                            "suvEur": {
                               "type": "number",
                               "minimum": 0
                             },
-                            "blockSize": {
-                              "type": "integer",
-                              "exclusiveMinimum": 0
+                            "familyEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "vanEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "coasterEur": {
+                              "type": "number",
+                              "minimum": 0
                             },
                             "maxParty": {
                               "type": "integer",
@@ -765,9 +799,11 @@
                             }
                           },
                           "required": [
-                            "perBlockEur",
-                            "suvFlatEur",
-                            "blockSize",
+                            "sedanEur",
+                            "suvEur",
+                            "familyEur",
+                            "vanEur",
+                            "coasterEur",
                             "maxParty"
                           ]
                         }
@@ -996,6 +1032,185 @@
         }
       }
     },
+    "/holds": {
+      "post": {
+        "operationId": "createHold",
+        "summary": "Reserve the spot for a date (anonymous-friendly); reused at pay so no double-hold",
+        "tags": [
+          "Bookings"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "occurrenceId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "expectedSlug": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "people": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "idempotencyKey": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "occurrenceId",
+                  "people"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Hold created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "holdId": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": "integer"
+                        },
+                        "expiresAt": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "holdId",
+                        "quantity",
+                        "expiresAt"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Insufficient capacity",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bookings": {
       "post": {
         "operationId": "createBooking",
@@ -1033,6 +1248,40 @@
                   },
                   "suv": {
                     "type": "boolean"
+                  },
+                  "holdId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "itinerary": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "area": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 120
+                        },
+                        "lat": {
+                          "type": "number"
+                        },
+                        "lng": {
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ]
+                    },
+                    "maxItems": 30
                   },
                   "customer": {
                     "type": "object",
@@ -1187,6 +1436,35 @@
                               "unitAmountEur",
                               "subtotalEur",
                               "occurrenceId"
+                            ]
+                          }
+                        },
+                        "customItinerary": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "area": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "lat": {
+                                "type": "number"
+                              },
+                              "lng": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "title"
                             ]
                           }
                         }
@@ -1439,6 +1717,35 @@
                               "unitAmountEur",
                               "subtotalEur",
                               "occurrenceId"
+                            ]
+                          }
+                        },
+                        "customItinerary": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "title": {
+                                "type": "string"
+                              },
+                              "area": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "lat": {
+                                "type": "number"
+                              },
+                              "lng": {
+                                "type": "number"
+                              }
+                            },
+                            "required": [
+                              "title"
                             ]
                           }
                         }

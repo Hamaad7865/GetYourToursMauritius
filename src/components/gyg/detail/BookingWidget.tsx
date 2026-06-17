@@ -1,18 +1,10 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import type { TourType } from '@/lib/validation/common';
-import type { PricingMode, TourOption, VehiclePricing } from '@/lib/validation/tours';
-import { sightseeingQuote, SIGHTSEEING_DEFAULT } from '@/lib/services/pricing';
-import { useCart } from '@/lib/cart/useCart';
-import { useToast } from '@/components/site/ToastProvider';
+import { useEffect, useRef, useState } from 'react';
+import { useBooking } from './BookingProvider';
 import {
   IconBolt,
   IconCalendar,
-  IconCart,
-  IconCheck,
   IconChevron,
   IconChevronLeft,
   IconChevronRight,
@@ -22,17 +14,6 @@ import {
   IconShield,
   IconUsers,
 } from '@/components/ui/icons';
-
-interface Slot {
-  occurrenceId: string;
-  activityOptionId: string;
-  startsAt: string;
-  seatsLeft: number;
-}
-interface DayInfo {
-  occurrenceId: string;
-  seatsLeft: number;
-}
 
 const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
@@ -59,119 +40,41 @@ function monthCells(year: number, month: number): Array<Date | null> {
 }
 
 /**
- * GetYourGuide-style booking widget: Participants · Date · Language. Availability is a
- * daily capacity, so the visitor picks a date from a calendar that greys out past/today
- * and fully-booked days, sets the party size, then books → pays. Uses the signed-in account.
+ * GetYourGuide booking widget (step 1): Participants · Date · Language + a single "Check availability"
+ * button. All selection state lives in BookingProvider; pressing the button reveals the option card
+ * (BookingOptionCard) in the page body. The vehicle (Sedan/SUV) + price + Continue live in that card.
  */
-export function BookingWidget({
-  slug,
-  type,
-  fromPriceEur,
-  options,
-  languages,
-  title,
-  pricingMode = 'per_person',
-  vehiclePricing = null,
-  image = null,
-}: {
-  slug: string;
-  type: TourType;
-  fromPriceEur: number | null;
-  options: TourOption[];
-  languages: string[];
-  title: string;
-  /** per_person (× people), per_group (× ceil(people/size)), or vehicle (the global sightseeing
-   *  rule: €70 per 4 + €85 SUV). */
-  pricingMode?: PricingMode;
-  /** Global sightseeing config (vehicle mode only). Falls back to SIGHTSEEING_DEFAULT. */
-  vehiclePricing?: VehiclePricing | null;
-  /** Hero image URL for the cart line item. */
-  image?: string | null;
-}) {
-  const router = useRouter();
-  const { add: addToCart } = useCart();
-  const { showToast } = useToast();
-  const [days, setDays] = useState<Map<string, DayInfo> | null>(null);
-  const [date, setDate] = useState('');
-  const [participants, setParticipants] = useState(2);
-  const [suv, setSuv] = useState(false);
-  const [lang, setLang] = useState(languages[0] ?? 'English');
+export function BookingWidget() {
+  const b = useBooking();
+  const {
+    activity,
+    participants,
+    setParticipants,
+    date,
+    setDate,
+    lang,
+    setLang,
+    days,
+    maxParticipants,
+    unitLabel,
+    setChecked,
+  } = b;
+  const isTransport = activity.type === 'transport';
+  const isVehicle = activity.pricingMode === 'vehicle';
+  const isGroup = b.groupSize != null;
+
   const [open, setOpen] = useState<'parts' | 'date' | 'lang' | null>(null);
   const [view, setView] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
-  const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
-
-  // Cheapest price tier drives the headline price + the bookable option.
-  const cheapest = useMemo(() => {
-    let best: { optionId: string; label: string; amountEur: number; maxGuests: number | null } | null = null;
-    for (const o of options) {
-      for (const p of o.prices) {
-        if (!best || p.amountEur < best.amountEur) {
-          best = { optionId: o.id, label: p.label, amountEur: p.amountEur, maxGuests: p.maxGuests };
-        }
-      }
-    }
-    return best;
-  }, [options]);
-  const isTransport = type === 'transport';
-  const isVehicle = pricingMode === 'vehicle';
-  const isGroup = pricingMode === 'per_group' && cheapest?.maxGuests != null;
-
-  // Vehicle (sightseeing) pricing comes from the GLOBAL config (no per-tour price rows): €70 per 4
-  // people + a flat €85 SUV upgrade for parties of 1..blockSize. The bookable option is just the
-  // activity's option; availability is fetched against it.
-  const vcfg = vehiclePricing ?? SIGHTSEEING_DEFAULT;
-  const maxCap = isVehicle ? vcfg.maxParty : 0;
-  const bookingOptionId = isVehicle ? (options[0]?.id ?? null) : (cheapest?.optionId ?? null);
-  const suvActive = isVehicle && suv && participants <= vcfg.blockSize;
-  const vehicleQuote = isVehicle
-    ? sightseeingQuote(Math.min(Math.max(participants, 1), vcfg.maxParty), suvActive, vcfg)
-    : null;
-  const bookingLabel = (isVehicle ? vehicleQuote?.vehicle : cheapest?.label) ?? cheapest?.label ?? 'Vehicle';
-
-  const unitLabel = isVehicle
-    ? 'per vehicle'
-    : isGroup
-      ? `per group up to ${cheapest!.maxGuests}`
-      : isTransport
-        ? 'per vehicle'
-        : 'per person';
 
   const today = startOfDay(new Date());
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
   const horizon = new Date(today);
   horizon.setDate(horizon.getDate() + 180);
-
-  useEffect(() => {
-    if (!bookingOptionId) {
-      setDays(new Map());
-      return;
-    }
-    let active = true;
-    fetch(`/api/v1/activities/${slug}/availability?from=${dateKey(today)}&to=${dateKey(horizon)}`)
-      .then((r) => r.json())
-      .then((body) => {
-        if (!active) return;
-        const map = new Map<string, DayInfo>();
-        if (body.ok) {
-          for (const s of body.data as Slot[]) {
-            if (s.activityOptionId !== bookingOptionId) continue;
-            map.set(dateKey(new Date(s.startsAt)), { occurrenceId: s.occurrenceId, seatsLeft: s.seatsLeft });
-          }
-        }
-        setDays(map);
-      })
-      .catch(() => active && setDays(new Map()));
-    return () => {
-      active = false;
-    };
-    // today/horizon derive from "now"; slug + the bookable option are the real inputs.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, bookingOptionId]);
 
   useEffect(() => {
     if (!open) return;
@@ -187,101 +90,28 @@ export function BookingWidget({
     };
   }, [open]);
 
-  const selected = date ? days?.get(date) : undefined;
-  const seatsLeft = selected?.seatsLeft ?? 0;
-  // For vehicle pricing the party is bounded by the biggest vehicle, NOT by seats (one booking =
-  // one vehicle slot regardless of headcount). For per-person, a tier cap + remaining seats bound it.
-  const tierCap = pricingMode === 'per_person' && cheapest?.maxGuests ? cheapest.maxGuests : Infinity;
-  const maxParticipants = isVehicle
-    ? Math.max(1, maxCap)
-    : Math.max(1, Math.min(16, tierCap, date ? seatsLeft : 16));
-
-  const total = isVehicle
-    ? (vehicleQuote?.totalEur ?? null)
-    : cheapest == null
-      ? null
-      : isGroup && cheapest.maxGuests
-        ? cheapest.amountEur * Math.ceil(participants / cheapest.maxGuests)
-        : cheapest.amountEur * participants;
   const dateText = date
     ? new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Select a date';
   const noAvailability = days !== null && days.size === 0;
 
   function isDisabled(cell: Date): boolean {
-    if (cell < tomorrow) return true; // past + today greyed
+    if (cell < tomorrow) return true;
     const info = days?.get(dateKey(cell));
-    return !info || info.seatsLeft <= 0; // no day, or full (capacity reached)
+    return !info || info.seatsLeft <= 0;
   }
-
   function pickDate(cell: Date) {
-    const key = dateKey(cell);
-    setDate(key);
+    setDate(dateKey(cell));
     setOpen(null);
-    setError(null);
-    if (isVehicle) {
-      setParticipants((p) => Math.max(1, Math.min(p, Math.max(1, maxCap))));
-      return;
-    }
-    const left = days?.get(key)?.seatsLeft ?? 0;
-    setParticipants((p) => Math.max(1, Math.min(p, Math.max(1, Math.min(16, left)))));
-  }
-
-  // Vehicle bookings take one slot whatever the headcount, so the people-vs-seats check only
-  // applies to the per-person / per-group modes.
-  function overCapacity(): boolean {
-    return !isVehicle && participants > seatsLeft;
-  }
-
-  function goToCheckout() {
-    if (!selected || !bookingOptionId) return setError('Please choose a date.');
-    if (participants <= 0) return setError('Please add at least one guest.');
-    if (overCapacity()) return setError('Not enough space left on that date.');
-    const q = new URLSearchParams({
-      occ: selected.occurrenceId,
-      label: bookingLabel,
-      qty: String(participants),
-      slug,
-      title,
-      lang,
-      total: total != null ? String(total) : '',
-      when: dateText,
-      guests: String(participants),
-      unit: unitLabel,
-      suv: suvActive ? '1' : '0',
-    });
-    router.push(`/checkout?${q.toString()}`);
-  }
-
-  function handleAddToCart() {
-    if (!selected || !bookingOptionId) return setError('Please choose a date first.');
-    if (participants <= 0) return setError('Please add at least one guest.');
-    if (overCapacity()) return setError('Not enough space left on that date.');
-    addToCart({
-      id: `${selected.occurrenceId}:${bookingLabel}`,
-      slug,
-      title,
-      image,
-      occurrenceId: selected.occurrenceId,
-      dateLabel: dateText,
-      lang,
-      priceLabel: bookingLabel,
-      guests: participants,
-      unitEur: isVehicle ? (vehicleQuote?.totalEur ?? 0) : (cheapest?.amountEur ?? 0),
-      pricingMode,
-      suv: suvActive,
-      maxGuests: isVehicle ? maxCap : (cheapest?.maxGuests ?? null),
-      seatsLeft,
-      unit: unitLabel,
-    });
-    setError(null);
-    showToast({ title: 'Added to cart', description: `${title} — ${dateText}.` });
+    setChecked(false); // changing the date re-hides the option card until re-checked
+    setParticipants(Math.max(1, Math.min(participants, maxParticipants)));
   }
 
   const canBack = view > new Date(today.getFullYear(), today.getMonth(), 1);
   const canFwd = view < new Date(horizon.getFullYear(), horizon.getMonth(), 1);
   const rowClass =
     'flex w-full items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-3 text-left hover:border-teal';
+  const seatsForDate = date ? (days?.get(date)?.seatsLeft ?? 0) : 0;
 
   return (
     <div
@@ -308,7 +138,7 @@ export function BookingWidget({
         <div className="flex items-baseline gap-2">
           <span className="text-[13px] text-ink-muted">From</span>
           <span className="text-[30px] font-extrabold tracking-tight text-ink">
-            {fromPriceEur != null ? eur(fromPriceEur) : 'On request'}
+            {activity.fromPriceEur != null ? eur(activity.fromPriceEur) : 'On request'}
           </span>
         </div>
         <div className="text-[13px] text-ink-muted">{unitLabel}</div>
@@ -316,11 +146,7 @@ export function BookingWidget({
         <div className="mt-4 flex flex-col gap-2.5">
           {/* Participants */}
           <div className="relative">
-            <button
-              type="button"
-              onClick={() => setOpen((o) => (o === 'parts' ? null : 'parts'))}
-              className={rowClass}
-            >
+            <button type="button" onClick={() => setOpen((o) => (o === 'parts' ? null : 'parts'))} className={rowClass}>
               <IconUsers width={18} height={18} className="text-teal" />
               <span className="flex-1 text-[14px] font-semibold text-ink">
                 Participants <span className="text-ink-muted">× {participants}</span>
@@ -330,13 +156,16 @@ export function BookingWidget({
             {open === 'parts' && (
               <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 flex items-center justify-between rounded-xl border border-ink/12 bg-white px-4 py-3 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
                 <span className="text-sm font-semibold text-ink">
-                  {isVehicle ? 'Passengers' : isGroup ? 'Group size' : 'Guests'}
+                  {activity.pricingMode === 'vehicle' ? 'Passengers' : isGroup ? 'Group size' : 'Guests'}
                 </span>
                 <div className="flex items-center gap-3">
                   <button
                     type="button"
                     aria-label="Remove participant"
-                    onClick={() => setParticipants((n) => Math.max(1, n - 1))}
+                    onClick={() => {
+                      setParticipants(Math.max(1, participants - 1));
+                      setChecked(false);
+                    }}
                     disabled={participants <= 1}
                     className="grid h-8 w-8 place-items-center rounded-lg border border-ink/15 text-ink hover:border-teal hover:text-teal disabled:opacity-40"
                   >
@@ -346,7 +175,10 @@ export function BookingWidget({
                   <button
                     type="button"
                     aria-label="Add participant"
-                    onClick={() => setParticipants((n) => Math.min(maxParticipants, n + 1))}
+                    onClick={() => {
+                      setParticipants(Math.min(maxParticipants, participants + 1));
+                      setChecked(false);
+                    }}
                     disabled={participants >= maxParticipants}
                     className="grid h-8 w-8 place-items-center rounded-lg border border-ink/15 text-ink hover:border-teal hover:text-teal disabled:opacity-40"
                   >
@@ -430,7 +262,7 @@ export function BookingWidget({
           </div>
 
           {/* Language */}
-          {languages.length > 0 && (
+          {activity.languages.length > 0 && (
             <div className="relative">
               <button
                 type="button"
@@ -450,7 +282,7 @@ export function BookingWidget({
               </button>
               {open === 'lang' && (
                 <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/12 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
-                  {languages.map((l) => {
+                  {activity.languages.map((l) => {
                     const active = l === lang;
                     return (
                       <button
@@ -479,87 +311,22 @@ export function BookingWidget({
           )}
         </div>
 
-        {isVehicle && vehicleQuote && (
-          <div className="mt-3.5 space-y-2.5">
-            {participants <= vcfg.blockSize && (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSuv(false)}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-[12.5px] font-bold ${
-                    !suv ? 'border-teal bg-teal/5 text-teal-dark' : 'border-ink/15 text-ink-muted'
-                  }`}
-                >
-                  Sedan · {eur(vcfg.perBlockEur)}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSuv(true)}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-[12.5px] font-bold ${
-                    suv ? 'border-teal bg-teal/5 text-teal-dark' : 'border-ink/15 text-ink-muted'
-                  }`}
-                >
-                  SUV · {eur(vcfg.suvFlatEur)}
-                </button>
-              </div>
-            )}
-            <div className="flex items-center gap-2 rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] font-semibold text-teal-dark">
-              <IconUsers width={15} height={15} className="text-teal" />
-              {vehicleQuote.vehicle} · for {participants} {participants === 1 ? 'passenger' : 'passengers'}
-            </div>
-          </div>
-        )}
-
-        <div className="mt-4 flex items-center justify-between border-t border-ink/[0.08] pt-3.5">
-          <span className="text-[13px] font-bold text-ink/80">Total</span>
-          <span className="text-xl font-extrabold tracking-tight text-ink">
-            {date && total != null ? eur(total) : '—'}
-          </span>
-        </div>
-
-        {error && (
-          <p role="alert" className="mt-3 text-[13px] font-medium text-coral">
-            {error}
+        <button
+          type="button"
+          disabled={!date || seatsForDate <= 0 || (!isVehicle && seatsForDate < participants)}
+          onClick={() => setChecked(true)}
+          className="mt-4 flex w-full items-center justify-center rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark disabled:opacity-50"
+        >
+          Check availability
+        </button>
+        {date && !isVehicle && seatsForDate > 0 && seatsForDate < participants && (
+          <p className="mt-2 text-center text-[12px] font-medium text-coral">
+            Only {seatsForDate} {seatsForDate === 1 ? 'spot' : 'spots'} left on this date.
           </p>
         )}
-
-        <button
-          type="button"
-          onClick={goToCheckout}
-          disabled={!date}
-          className="mt-3.5 flex w-full items-center justify-center rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark disabled:opacity-50"
-        >
-          Book now
-        </button>
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          disabled={!date}
-          className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-teal px-4 py-3 text-[15px] font-bold text-teal-dark transition-colors hover:bg-teal/5 disabled:opacity-50"
-        >
-          <IconCart width={17} height={17} /> Add to cart
-        </button>
         <p className="mt-2 text-center text-[11.5px] text-ink-muted">
-          You won&apos;t be charged until you confirm on the next screen.
+          You won&apos;t be charged until you confirm.
         </p>
-        {isVehicle && maxCap > 0 && (
-          <p className="mt-2 text-center text-[11.5px] text-ink-muted">
-            Travelling with more than {maxCap}?{' '}
-            <Link href="/contact" className="font-bold text-teal hover:text-teal-dark">
-              Contact us for a quote
-            </Link>
-          </p>
-        )}
-
-        <div className="mt-4 flex flex-col gap-2.5">
-          <div className="flex items-center gap-2.5 text-[13px] text-ink/80">
-            <IconCheck width={16} height={16} className="text-teal" /> Free cancellation up to 24 hours
-            before
-          </div>
-          <div className="flex items-center gap-2.5 text-[13px] text-ink/80">
-            <IconCheck width={16} height={16} className="text-teal" /> Reserve now &amp; pay later
-          </div>
-        </div>
       </div>
 
       <div className="flex items-center justify-between gap-2.5 border-t border-ink/[0.08] bg-cream px-5 py-3">

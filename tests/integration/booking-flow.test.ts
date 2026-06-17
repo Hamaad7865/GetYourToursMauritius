@@ -115,6 +115,104 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(slots.find((s) => s.occurrenceId === occurrenceId)?.seatsLeft).toBe(18);
   });
 
+  it('saves and returns a custom itinerary on the booking', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const route = [
+      { title: 'Port Louis', area: 'Capital', lat: -20.16, lng: 57.5 },
+      { title: 'Fort Adelaide', area: 'Port Louis' },
+    ];
+    const booking = await call<{ ref: string }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 1 },
+      itinerary: route,
+      customerName: 'Route Tester',
+      customerEmail: 'route@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-route-12345678',
+    });
+    const got = await call<{ customItinerary: typeof route | null }>(db, 'api_get_booking', {
+      ref: booking.ref,
+    });
+    expect(got.customItinerary).toHaveLength(2);
+    expect(got.customItinerary![1]!.title).toBe('Fort Adelaide');
+
+    // A booking with no itinerary returns null.
+    const plain = await call<{ ref: string }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 1 },
+      customerName: 'No Route',
+      customerEmail: 'noroute@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-noroute-1234567',
+    });
+    const got2 = await call<{ customItinerary: unknown }>(db, 'api_get_booking', { ref: plain.ref });
+    expect(got2.customItinerary).toBeNull();
+  });
+
+  it('api_create_hold reserves N seats by mode, and api_book reuses the hold', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const hold = await call<{ holdId: string; quantity: number; expiresAt: string }>(db, 'api_create_hold', {
+      occurrenceId,
+      people: 3,
+      idempotencyKey: 'hold-pp-1',
+    });
+    expect(hold.quantity).toBe(3);
+    expect(hold.holdId).toBeTruthy();
+
+    const before = (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from booking_holds where session_occurrence_id = $1`,
+        [occurrenceId],
+      )
+    ).rows[0]!.n;
+
+    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 3 },
+      holdId: hold.holdId,
+      customerName: 'Reuse',
+      customerEmail: 'reuse@example.com',
+      source: 'web',
+      idempotencyKey: 'hold-pp-book',
+    });
+    expect(booking.totalEur).toBe(210); // 3 × €70
+
+    const after = (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from booking_holds where session_occurrence_id = $1`,
+        [occurrenceId],
+      )
+    ).rows[0]!.n;
+    expect(after).toBe(before); // api_book REUSED the hold — it did not create a second one
+  });
+
+  it('an EXPIRED Continue hold does not hard-lock the booking (fallback uses a distinct key)', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    // Mirror the real key flow: the Continue hold's key is `<K>:hold`; the booking key is `<K>`.
+    const hold = await call<{ holdId: string }>(db, 'api_create_hold', {
+      occurrenceId,
+      people: 2,
+      idempotencyKey: 'collide-key-1:hold',
+    });
+    // The customer lingered past the hold TTL — expire the Continue hold.
+    await db.asOwner();
+    await db.pg.query(`update booking_holds set expires_at = now() - interval '1 minute' where id = $1`, [
+      hold.holdId,
+    ]);
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    // api_book must NOT reuse the expired hold and must NOT collide with its key → it books fine.
+    const booking = await call<{ totalEur: number }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 2 },
+      holdId: hold.holdId,
+      customerName: 'Lingerer',
+      customerEmail: 'linger@example.com',
+      source: 'web',
+      idempotencyKey: 'collide-key-1',
+    });
+    expect(booking.totalEur).toBe(140); // booked at the fresh hold, not hard-locked
+  });
+
   it('rejects a booking beyond remaining capacity', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     await expect(

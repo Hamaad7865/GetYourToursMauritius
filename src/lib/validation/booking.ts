@@ -14,6 +14,21 @@ export const createBookingInputSchema = z.object({
   /** Sightseeing vehicle mode only: the customer chose the SUV upgrade (flat price, parties ≤4).
    *  Ignored by every other pricing mode and for parties over the SUV tier. */
   suv: z.boolean().optional(),
+  /** A hold reserved earlier (Continue) to reuse at pay, so the spot isn't double-held. */
+  holdId: z.string().uuid().optional(),
+  /** The customer's chosen route (sightseeing tours). Free + informational; bounded so a tampered
+   *  payload is a clean 400, not a DB blowup. */
+  itinerary: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(120),
+        area: z.string().max(120).nullish(),
+        lat: z.number().optional(),
+        lng: z.number().optional(),
+      }),
+    )
+    .max(30)
+    .optional(),
   customer: z.object({
     name: z.string().min(1).max(120),
     email: z.string().email(),
@@ -48,8 +63,35 @@ export const bookingSchema = z.object({
   source: bookingSourceSchema,
   createdAt: z.string(),
   items: z.array(bookingItemSchema),
+  /** The customer's saved route (sightseeing tours), or null/absent for the standard route. */
+  customItinerary: z
+    .array(
+      z.object({
+        title: z.string(),
+        area: z.string().nullish(),
+        lat: z.number().optional(),
+        lng: z.number().optional(),
+      }),
+    )
+    .nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
+
+// --- Hold (reserve the spot on Continue) ------------------------------------
+export const createHoldInputSchema = z.object({
+  occurrenceId: z.string().uuid(),
+  expectedSlug: z.string().min(1).max(120).optional(),
+  people: z.number().int().min(1).max(1000),
+  idempotencyKey: z.string().min(8).max(200).optional(),
+});
+export type CreateHoldInput = z.infer<typeof createHoldInputSchema>;
+
+export const holdResultSchema = z.object({
+  holdId: z.string(),
+  quantity: z.number().int(),
+  expiresAt: z.string(),
+});
+export type HoldResult = z.infer<typeof holdResultSchema>;
 
 // --- Payment ----------------------------------------------------------------
 export const createPaymentInputSchema = z.object({
