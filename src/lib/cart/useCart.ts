@@ -45,8 +45,12 @@ export interface CartItem {
  *  on top (it is not multiplied by the party). `unitEur` is the PER-UNIT price (per vehicle / per
  *  group / per head), never the already-multiplied total. */
 export function itemTotal(i: CartItem): number {
-  const childExtra = childSeatsCost(i.childSeats ?? 0);
-  if (i.pricingMode === 'vehicle') return Math.round((i.unitEur + childExtra) * 100) / 100;
+  if (i.pricingMode === 'vehicle') {
+    return Math.round((i.unitEur + childSeatsCost(i.childSeats ?? 0)) * 100) / 100;
+  }
+  // A child seat only makes sense per traveller, so the add-on can never exceed the party size —
+  // important when guests are lowered on a cart line without re-touching the seat count.
+  const childExtra = childSeatsCost(Math.min(i.childSeats ?? 0, i.guests));
   const groups = i.pricingMode === 'per_group' && i.maxGuests ? Math.ceil(i.guests / i.maxGuests) : i.guests;
   return Math.round((i.unitEur * groups + childExtra) * 100) / 100;
 }
@@ -111,7 +115,12 @@ export function useCart() {
 
   const setGuests = useCallback((id: string, guests: number) => {
     write(
-      read().map((i) => (i.id === id ? { ...i, guests: Math.max(1, Math.min(lineCap(i), guests)) } : i)),
+      read().map((i) => {
+        if (i.id !== id) return i;
+        const next = Math.max(1, Math.min(lineCap(i), guests));
+        // Pull child seats down with the party — a seat per traveller can't exceed the new count.
+        return { ...i, guests: next, childSeats: Math.min(i.childSeats ?? 0, next) };
+      }),
     );
   }, []);
 
