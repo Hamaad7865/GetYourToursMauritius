@@ -165,7 +165,7 @@ export function ChatCopilot({
           <div className="text-[11.5px] font-semibold text-teal">{typing ? 'planning…' : 'Local expert · online'}</div>
         </div>
         {stops.length > 0 && (
-          <button type="button" onClick={onClear} className="ml-auto cursor-pointer rounded-[9px] border border-[#EEF4F3] bg-white px-[11px] py-1.5 text-xs font-semibold text-ink-muted">
+          <button type="button" onClick={onClear} aria-label="Start over" className="ml-auto cursor-pointer rounded-[9px] border border-[#EEF4F3] bg-white px-[11px] py-1.5 text-xs font-semibold text-ink-muted">
             Reset
           </button>
         )}
@@ -268,6 +268,12 @@ export function ChatCopilot({
             aria-label="Message the AI co-pilot"
             className="min-w-0 flex-1 border-none bg-transparent text-sm text-ink outline-none"
           />
+          <button type="button" aria-label="Voice input" className="grid cursor-pointer place-items-center p-1.5">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z" stroke="#51666B" strokeWidth={1.8} />
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#51666B" strokeWidth={1.8} strokeLinecap="round" />
+            </svg>
+          </button>
           <button
             type="submit"
             aria-label="Send message"

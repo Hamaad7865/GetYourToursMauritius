@@ -26,7 +26,7 @@ export function FaqSection() {
       </h2>
       <div className="flex flex-col gap-2.5">
         {FAQS.map(([q, a]) => (
-          <details key={q} className="group rounded-[14px] border border-[#EEF4F3] bg-white px-[18px] shadow-[0_4px_14px_rgba(10,46,54,.04)]">
+          <details key={q} className="group rounded-[14px] border border-[#EEF4F3] bg-white px-[18px] py-0.5 shadow-[0_4px_14px_rgba(10,46,54,.04)]">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-[15px] text-[15.5px] font-bold text-ink [&::-webkit-details-marker]:hidden">
               {q}
               <span className="text-xl font-normal text-teal transition-transform group-open:rotate-45" aria-hidden>

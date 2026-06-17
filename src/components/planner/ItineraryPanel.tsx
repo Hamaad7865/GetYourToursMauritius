@@ -187,12 +187,12 @@ export function ItineraryPanel({
             ].map(([k, v]) => (
               <div key={k} className="flex-1 text-center">
                 <div className="text-[10px] font-bold uppercase tracking-[0.03em] text-ink-muted">{k}</div>
-                <div className="text-[14.5px] font-extrabold text-ink">{v}</div>
+                <div className="text-[14.5px] font-extrabold text-ink transition-all duration-300">{v}</div>
               </div>
             ))}
             <div className="flex-[1.2] border-l border-[#E7EFEE] text-center">
               <div className="text-[10px] font-bold uppercase tracking-[0.03em] text-gold">Est. price</div>
-              <div className="font-display text-[19px] font-extrabold text-gold tabular-nums">{quote ? `€${quote.totalEur}` : '—'}</div>
+              <div className="font-display text-[19px] font-extrabold text-gold tabular-nums transition-all duration-300">{quote ? `€${quote.totalEur}` : '—'}</div>
             </div>
           </div>
           <button

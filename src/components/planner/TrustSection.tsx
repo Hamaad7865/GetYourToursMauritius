@@ -53,7 +53,7 @@ export function TrustSection() {
             </div>
             <div className="text-[13.5px] opacity-70">from 2,300+ planned trips</div>
           </div>
-          <div className="inline-flex items-center gap-2.5 rounded-full border border-white/15 bg-white/[0.08] px-3.5 py-2 text-[13px] font-semibold">
+          <div className="inline-flex items-center gap-[9px] rounded-full border border-white/[0.14] bg-white/[0.08] px-3.5 py-2 text-[13px] font-semibold">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M12 2l7 3v6c0 4.5-3 8.4-7 9-4-.6-7-4.5-7-9V5l7-3Z" stroke="#13A0A6" strokeWidth={2} strokeLinejoin="round" />
               <path d="M9 12l2 2 4-4" stroke="#13A0A6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />

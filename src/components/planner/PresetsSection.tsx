@@ -26,7 +26,7 @@ export function PresetsSection({ items, onOpen }: { items: PresetCard[]; onOpen:
         </p>
       </div>
 
-      <div className="mt-[26px] grid grid-cols-1 gap-[18px] sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-[26px] grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[18px]">
         {items.map((p) => (
           <button
             key={p.id}
@@ -36,7 +36,7 @@ export function PresetsSection({ items, onOpen }: { items: PresetCard[]; onOpen:
           >
             <div className="relative flex h-[120px] items-end p-3.5" style={{ background: p.grad }}>
               <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(70% 90% at 80% 0%, rgba(255,255,255,.25), transparent)' }} />
-              <div className="relative flex gap-1.5">
+              <div className="relative flex gap-[5px]">
                 {Array.from({ length: Math.min(4, p.stopCount) }).map((_, j) => (
                   <span key={j} className="h-2 w-2 rounded-full bg-white/85" />
                 ))}

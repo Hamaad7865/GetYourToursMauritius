@@ -24,6 +24,11 @@ export function PlacesDrawer({
   const [cat, setCat] = useState('All');
   const [region, setRegion] = useState('All');
   const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
+  // Show only categories that actually have places (keeps the design's order, drops empty chips).
+  const cats = useMemo(() => {
+    const present = new Set(places.map((p) => p.category));
+    return PLACE_CATEGORIES.filter((c) => c === 'All' || present.has(c));
+  }, [places]);
 
   const filtered = useMemo(() => {
     const needle = search.trim().toLowerCase();
@@ -38,7 +43,7 @@ export function PlacesDrawer({
   if (!open) return null;
 
   return (
-    <div className="absolute inset-0 z-30 flex animate-float-in flex-col bg-white">
+    <div className="absolute inset-0 z-30 flex animate-drawer-up flex-col bg-white">
       <div className="flex items-center gap-2.5 border-b border-[#EEF4F3] px-[15px] py-[13px]">
         <div>
           <div className="font-display text-[17px] font-semibold text-ink">Add places</div>
@@ -66,7 +71,7 @@ export function PlacesDrawer({
           />
         </div>
         <div className="no-bar mb-0.5 flex gap-[7px] overflow-x-auto pb-[9px]">
-          {PLACE_CATEGORIES.map((c) => (
+          {cats.map((c) => (
             <button
               key={c}
               type="button"

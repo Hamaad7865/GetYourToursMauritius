@@ -148,9 +148,14 @@
     70% { transform: scale(1.06); }
     100% { transform: scale(1); opacity: 1; }
   }
+  @keyframes drawerUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
   .animate-float-in { animation: floatIn 0.32s ease both; }
   .animate-pop { animation: pop 0.4s ease both; }
   .animate-drop-pin { animation: dropPin 0.5s cubic-bezier(0.2, 1.3, 0.4, 1) both; }
+  .animate-drawer-up { animation: drawerUp 0.25s ease both; }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -163,7 +168,8 @@
   .animate-slide-up,
   .animate-float-in,
   .animate-pop,
-  .animate-drop-pin {
+  .animate-drop-pin,
+  .animate-drawer-up {
     animation: none;
   }
   /* Freeze the lagoon backdrop to its composed still (!important beats the inline-shorthand
