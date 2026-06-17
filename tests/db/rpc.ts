@@ -5,6 +5,7 @@ const ALLOWED = new Set([
   'api_search_activities',
   'api_get_activity',
   'api_list_availability',
+  'api_create_hold',
   'api_book',
   'api_create_payment',
   'api_get_booking',

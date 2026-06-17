@@ -149,6 +149,43 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(got2.customItinerary).toBeNull();
   });
 
+  it('api_create_hold reserves N seats by mode, and api_book reuses the hold', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const hold = await call<{ holdId: string; quantity: number; expiresAt: string }>(db, 'api_create_hold', {
+      occurrenceId,
+      people: 3,
+      idempotencyKey: 'hold-pp-1',
+    });
+    expect(hold.quantity).toBe(3);
+    expect(hold.holdId).toBeTruthy();
+
+    const before = (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from booking_holds where session_occurrence_id = $1`,
+        [occurrenceId],
+      )
+    ).rows[0]!.n;
+
+    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 3 },
+      holdId: hold.holdId,
+      customerName: 'Reuse',
+      customerEmail: 'reuse@example.com',
+      source: 'web',
+      idempotencyKey: 'hold-pp-book',
+    });
+    expect(booking.totalEur).toBe(210); // 3 × €70
+
+    const after = (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from booking_holds where session_occurrence_id = $1`,
+        [occurrenceId],
+      )
+    ).rows[0]!.n;
+    expect(after).toBe(before); // api_book REUSED the hold — it did not create a second one
+  });
+
   it('rejects a booking beyond remaining capacity', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     await expect(
