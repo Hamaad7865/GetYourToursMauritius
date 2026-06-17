@@ -50,6 +50,9 @@ export function getBearerToken(req: Request): string | null {
   const header = req.headers.get('authorization');
   if (!header) return null;
   const parts = header.split(' ');
+  // Reject malformed credentials: it must be exactly "Bearer <token>", no extra parts — "Bearer token
+  // junk" used to be accepted as the token "token" because the trailing segments were ignored.
+  if (parts.length !== 2) return null;
   const scheme = parts[0];
   const token = parts[1];
   if (!scheme || !token || scheme.toLowerCase() !== 'bearer') return null;

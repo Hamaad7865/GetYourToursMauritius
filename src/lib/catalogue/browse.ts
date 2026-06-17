@@ -30,7 +30,9 @@ export function parseBrowseParams(searchParams: RawParams): BrowseParams {
     q: qRaw ? qRaw.slice(0, 120) : undefined,
     category: category.success ? category.data : undefined,
     type: type.success ? type.data : undefined,
-    page: Number.isFinite(pageNum) && pageNum >= 1 ? pageNum : 1,
+    // Clamp to the same upper bound as the API pagination schema (100_000) — an unbounded ?page=huge
+    // drives a giant SQL OFFSET that errors, and the catalogue page then renders empty.
+    page: Number.isFinite(pageNum) && pageNum >= 1 && pageNum <= 100_000 ? pageNum : 1,
   };
 }
 

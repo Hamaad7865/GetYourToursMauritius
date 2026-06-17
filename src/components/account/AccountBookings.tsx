@@ -9,6 +9,8 @@ import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
 interface BookingItem {
   price_label: string;
   quantity: number;
+  /** People on board for a vehicle booking (there quantity is the vehicle count = 1); null otherwise. */
+  pax: number | null;
   session_occurrences: {
     starts_at: string | null;
     activity_options: { activities: { title: string | null; slug: string | null } | null } | null;
@@ -66,7 +68,9 @@ function tripTitle(b: BookingRow): string | null {
 }
 
 function BookingCard({ b }: { b: BookingRow }) {
-  const guests = b.booking_items.reduce((sum, i) => sum + i.quantity, 0);
+  // Vehicle bookings store the headcount in pax (quantity is the vehicle count = 1); fall back to
+  // quantity for per-person/per-group lines — same as the admin manifest's coalesce(pax, quantity).
+  const guests = b.booking_items.reduce((sum, i) => sum + (i.pax ?? i.quantity), 0);
   const date = tripDate(b);
   const when = date ? formatDate(date.toISOString()) : formatDate(b.created_at);
   const title = tripTitle(b);
@@ -108,7 +112,7 @@ export function AccountBookings() {
       const { data, error } = await getBrowserSupabase()
         .from('bookings')
         .select(
-          'ref, status, payment_state, total_minor, currency, created_at, booking_items(price_label, quantity, session_occurrences(starts_at, activity_options(activities(title, slug))))',
+          'ref, status, payment_state, total_minor, currency, created_at, booking_items(price_label, quantity, pax, session_occurrences(starts_at, activity_options(activities(title, slug))))',
         )
         .order('created_at', { ascending: false })
         .returns<BookingRow[]>();
