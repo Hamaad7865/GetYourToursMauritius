@@ -14,6 +14,7 @@ const ALLOWED = new Set([
   'mark_notification',
   'run_booking_maintenance',
   'materialize_availability',
+  'api_planner_places',
 ]);
 
 /**
