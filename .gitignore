@@ -52,3 +52,6 @@ Thumbs.db
 
 # Local source-asset staging (curated copies live in public/)
 Activity Pictures/
+
+# Codex / MCP tool config (local, not project code)
+.codex/

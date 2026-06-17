@@ -1,0 +1,52 @@
+import { describe, expect, it } from 'vitest';
+import { itemTotal, lineCap, type CartItem } from '@/lib/cart/useCart';
+
+// itemTotal is a pure export; importing useCart.ts is safe in the node env (React core imports fine,
+// the hooks are never invoked). The localStorage-backed setGuests hook itself is not node-testable, so
+// its child-seat clamp is covered below via the same pure arithmetic it now uses.
+
+const base: CartItem = {
+  id: 'occ#Adult',
+  slug: 's',
+  title: 'T',
+  image: null,
+  occurrenceId: 'occ',
+  dateLabel: 'Mon',
+  lang: 'English',
+  priceLabel: 'Adult',
+  guests: 3,
+  unitEur: 50,
+  pricingMode: 'per_person',
+  maxGuests: null,
+  seatsLeft: 10,
+  unit: 'per person',
+  childSeats: 3,
+  addedAt: 0,
+};
+
+describe('itemTotal — child-seat add-on never exceeds the party', () => {
+  it('charges per the party when childSeats <= guests (first free, €6 each extra)', () => {
+    expect(itemTotal({ ...base, guests: 3, childSeats: 3 })).toBe(162); // 3×€50 + childSeatsCost(3)=€12
+  });
+  it('caps the child-seat fee to a lowered party size (no stale inflation)', () => {
+    expect(itemTotal({ ...base, guests: 1, childSeats: 3 })).toBe(50); // seats capped to 1 → €0 extra
+  });
+  it('per_group: caps child seats to guests, not the group count', () => {
+    expect(
+      itemTotal({ ...base, pricingMode: 'per_group', unitEur: 110, maxGuests: 4, guests: 1, childSeats: 4 }),
+    ).toBe(110); // 1 group flat, child capped to 1 → €0 extra
+  });
+});
+
+describe("setGuests clamp logic (pure mirror — the localStorage-backed hook isn't node-testable)", () => {
+  const clamp = (i: CartItem, guests: number) => {
+    const next = Math.max(1, Math.min(lineCap(i), guests));
+    return { guests: next, childSeats: Math.min(i.childSeats ?? 0, next) };
+  };
+  it('lowering guests pulls childSeats down with it', () => {
+    expect(clamp({ ...base, guests: 3, childSeats: 3 }, 1)).toEqual({ guests: 1, childSeats: 1 });
+  });
+  it('raising guests leaves the smaller childSeats untouched', () => {
+    expect(clamp({ ...base, guests: 1, childSeats: 1 }, 4)).toEqual({ guests: 4, childSeats: 1 });
+  });
+});

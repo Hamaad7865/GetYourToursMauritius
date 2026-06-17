@@ -80,6 +80,43 @@ describe('authz & integrity hardening', () => {
     await db.asOwner();
   });
 
+  it('F23: a guest-booking idempotency replay with a mismatched email is refused (no PII echo)', async () => {
+    // Anonymous guest creates a booking (user_id stays NULL).
+    await db.as(null);
+    const { rows } = await apiBook({
+      occurrenceId,
+      party: { Adult: 1 },
+      customerName: 'Guest Grace',
+      customerEmail: 'grace@x.com',
+      idempotencyKey: 'guest-replay-key-abc12345',
+    });
+    expect(rows[0]!.data.status).toBe('payment_pending');
+    const originalRef = rows[0]!.data.ref;
+
+    // An attacker who only stole/guessed the key (not Grace's email) replays it. Before the fix this
+    // echoed back Grace's name/email/ref/items; now it must be refused.
+    await expect(
+      apiBook({
+        occurrenceId,
+        party: { Adult: 1 },
+        customerName: 'Eve',
+        customerEmail: 'eve@evil.com',
+        idempotencyKey: 'guest-replay-key-abc12345',
+      }),
+    ).rejects.toThrow(/forbidden/);
+
+    // The legitimate same-caller retry resends Grace's email and still gets her booking back.
+    const { rows: retry } = await apiBook({
+      occurrenceId,
+      party: { Adult: 1 },
+      customerName: 'Guest Grace',
+      customerEmail: 'GRACE@x.com', // case-insensitive match
+      idempotencyKey: 'guest-replay-key-abc12345',
+    });
+    expect(retry[0]!.data.ref).toBe(originalRef);
+    await db.asOwner();
+  });
+
   it('F25: an overflowing party quantity is a clean invalid_party, not a 502 overflow', async () => {
     await db.as({ sub: USER_A, role: 'authenticated' });
     await expect(

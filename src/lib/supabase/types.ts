@@ -474,6 +474,31 @@ type CategoriesInsert = {
   created_at?: string;
 };
 
+type SightseeingPricingRow = {
+  id: boolean;
+  per_block_minor: number;
+  suv_flat_minor: number;
+  sedan_minor: number;
+  suv_minor: number;
+  family_minor: number;
+  van_minor: number;
+  coaster_minor: number;
+  updated_at: string;
+};
+type SightseeingPricingInsert = Partial<SightseeingPricingRow>;
+
+type PlannerPricingRow = {
+  id: boolean;
+  standard_minor: number;
+  suv_minor: number;
+  six_minor: number;
+  van_minor: number;
+  coach_minor: number;
+  max_party: number;
+  updated_at: string;
+};
+type PlannerPricingInsert = Partial<PlannerPricingRow>;
+
 type TableDef<Row, Insert> = { Row: Row; Insert: Insert; Update: Partial<Insert>; Relationships: [] };
 
 export interface Database {
@@ -499,6 +524,8 @@ export interface Database {
       reviews: TableDef<ReviewsRow, ReviewsInsert>;
       chat_sessions: TableDef<ChatSessionsRow, ChatSessionsInsert>;
       chat_messages: TableDef<ChatMessagesRow, ChatMessagesInsert>;
+      sightseeing_pricing: TableDef<SightseeingPricingRow, SightseeingPricingInsert>;
+      planner_pricing: TableDef<PlannerPricingRow, PlannerPricingInsert>;
     };
     Views: { [_ in never]: never };
     Functions: {
