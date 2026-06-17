@@ -80,13 +80,66 @@ Then restart `npm run dev` so Next picks up the new env.
 - **Authentication → Providers → Email**: enabled by default. For local testing,
   **Authentication → Settings**, you may turn **"Confirm email"** off so sign-ups
   log in immediately.
-- **Google** (optional, can be added later): create an OAuth client in Google Cloud
-  Console, then **Authentication → Providers → Google** → paste Client ID/Secret and
-  add the callback `https://YOUR-PROJECT.supabase.co/auth/v1/callback`.
 - **Redirect URLs**: **Authentication → URL Configuration** → add
   `http://localhost:3000/**` (and your production origin later).
 
-## 6. (optional) Regenerate DB types
+The sign-in dialog shows **Google**, **Apple** and **Facebook** buttons. Each only works
+once its provider is enabled in Supabase; an un-configured button returns a
+`provider is not enabled` error. They all share the same callback:
+**`https://YOUR-PROJECT.supabase.co/auth/v1/callback`** (copy the exact URL from
+**Authentication → Providers → <provider>** — Supabase shows it there).
+
+**Google** — create an OAuth client in [Google Cloud Console](https://console.cloud.google.com)
+(APIs & Services → Credentials → OAuth client ID → Web application), add the Supabase callback
+under "Authorized redirect URIs", then **Authentication → Providers → Google** → paste the
+Client ID + Client Secret and enable.
+
+**Apple** (needs a paid Apple Developer account):
+
+1. [developer.apple.com](https://developer.apple.com) → Certificates, Identifiers & Profiles.
+2. **Identifiers → App ID** (or use an existing one) and enable the **Sign In with Apple** capability.
+3. **Identifiers → Services ID** → create one (e.g. `com.bellemaretours.web`). This identifier
+   is your **Client ID**. Configure it: enable Sign In with Apple, set the domain to your
+   Supabase project domain, and the **Return URL** to the callback above.
+4. **Keys → +** → enable **Sign In with Apple** → download the `.p8` key. Note the **Key ID**
+   and your 10-character **Team ID** (top-right of the developer portal).
+5. **Authentication → Providers → Apple** in Supabase → enter the **Services ID** as the Client ID,
+   then generate the Client Secret from **Team ID + Key ID + the `.p8` key** (Supabase's panel
+   has fields for these / a "generate secret" helper) → enable.
+
+**Facebook**:
+
+1. [developers.facebook.com](https://developers.facebook.com) → **My Apps → Create App** →
+   choose the **Consumer** type.
+2. Add the **Facebook Login** product (Web).
+3. **Facebook Login → Settings** → add the Supabase callback under
+   **Valid OAuth Redirect URIs**.
+4. **Settings → Basic** → copy the **App ID** and **App Secret**.
+5. **Authentication → Providers → Facebook** in Supabase → paste App ID (Client ID) +
+   App Secret → enable.
+6. Toggle the Facebook app from **Development** to **Live** (top bar) so non-developer accounts
+   can sign in. `email` + `public_profile` are granted by default — no App Review needed for basic login.
+
+## 6. Admin access + image uploads (`admin-setup.sql`)
+
+`supabase/setup.sql` builds the schema and the demo catalogue but deliberately does **not**
+grant you admin rights or create the Storage bucket — those are one-time, account-specific, and
+partly destructive, so they live in a separate file: **`supabase/admin-setup.sql`**. Run it once
+against the live DB (SQL Editor, or `npx tsx scripts/db-exec.ts supabase/admin-setup.sql`). It has
+three independent, clearly-commented steps — **read them first** and delete any you don't want:
+
+1. **Catalogue reset** — deletes every activity except `north-tour`. **Permanent.** Skip this
+   block if you want to keep the demo catalogue.
+2. **Make yourself an admin** — sets your profile `role = 'admin'`. You must have **signed up in
+   the app first** (so your profile row exists); the email in the file is already yours.
+3. **Image uploads (Storage)** — creates the public **`activity-images`** bucket and its RLS
+   policies (public read; staff insert/update/delete). **Admin photo uploads silently fail until
+   this runs.** This block is safe and idempotent — if you only want uploads, run just step 3.
+
+> Re-running `npm run db:setup` will not undo `admin-setup.sql`, **but** it re-seeds the demo
+> catalogue — don't run it again after step 1 unless you want the demo activities back.
+
+## 7. (optional) Regenerate DB types
 
 Once the schema is live you can replace the hand-authored types:
 
