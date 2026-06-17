@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useBooking } from './BookingProvider';
 import {
   IconBolt,
@@ -15,7 +16,9 @@ import {
   IconUsers,
 } from '@/components/ui/icons';
 
-const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+/** Hard cap on the party picker — above this the customer is sent to "contact us for a quote". */
+const MAX_PARTY = 25;
 
 function eur(n: number): string {
   return Number.isInteger(n) ? `€${n}` : `€${n.toFixed(2)}`;
@@ -37,6 +40,55 @@ function monthCells(year: number, month: number): Array<Date | null> {
   const cells: Array<Date | null> = Array.from({ length: firstWeekday }, () => null);
   for (let d = 1; d <= days; d += 1) cells.push(new Date(year, month, d));
   return cells;
+}
+
+/** One month's grid: weekday row + day cells. Past days are struck through; days with no availability
+ *  are muted and disabled. Used twice (this month + next) in the two-month date picker. */
+function MonthGrid({
+  month,
+  selectedKey,
+  tomorrow,
+  available,
+  onPick,
+}: {
+  month: Date;
+  selectedKey: string;
+  tomorrow: Date;
+  available: (cell: Date) => boolean;
+  onPick: (cell: Date) => void;
+}) {
+  return (
+    <div className="grid grid-cols-7 gap-0.5 text-center">
+      {WEEKDAYS.map((w) => (
+        <span key={w} className="py-1 text-[11px] font-semibold text-ink-muted">
+          {w}
+        </span>
+      ))}
+      {monthCells(month.getFullYear(), month.getMonth()).map((cell, i) => {
+        if (!cell) return <span key={`e${i}`} />;
+        const past = cell < tomorrow;
+        const ok = available(cell);
+        const isSel = selectedKey === dateKey(cell);
+        return (
+          <button
+            key={cell.toISOString()}
+            type="button"
+            disabled={!ok}
+            onClick={() => onPick(cell)}
+            className={`mx-auto grid h-9 w-9 place-items-center rounded-full text-[13px] font-medium ${
+              isSel
+                ? 'bg-teal text-white'
+                : ok
+                  ? 'text-ink hover:bg-teal/10'
+                  : `cursor-default text-ink/30 ${past ? 'line-through' : ''}`
+            }`}
+          >
+            {cell.getDate()}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 /**
@@ -110,6 +162,9 @@ export function BookingWidget() {
 
   const canBack = view > new Date(today.getFullYear(), today.getMonth(), 1);
   const canFwd = view < new Date(horizon.getFullYear(), horizon.getMonth(), 1);
+  const nextMonth = new Date(view.getFullYear(), view.getMonth() + 1, 1);
+  // The party picker stops at 25; above that we point the customer to a custom quote.
+  const partyCap = Math.min(maxParticipants, MAX_PARTY);
   const rowClass =
     'flex w-full items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-3 text-left hover:border-teal';
   const seatsForDate = date ? (days?.get(date)?.seatsLeft ?? 0) : 0;
@@ -155,37 +210,71 @@ export function BookingWidget() {
               <IconChevron width={16} height={16} className="text-ink-muted" />
             </button>
             {open === 'parts' && (
-              <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 flex items-center justify-between rounded-xl border border-ink/12 bg-white px-4 py-3 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
-                <span className="text-sm font-semibold text-ink">
-                  {activity.pricingMode === 'vehicle' ? 'Passengers' : isGroup ? 'Group size' : 'Guests'}
-                </span>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    aria-label="Remove participant"
-                    onClick={() => {
-                      setParticipants(Math.max(1, participants - 1));
-                      touch();
-                    }}
-                    disabled={participants <= 1}
-                    className="grid h-8 w-8 place-items-center rounded-lg border border-ink/15 text-ink hover:border-teal hover:text-teal disabled:opacity-40"
-                  >
-                    <IconMinus width={15} height={15} />
-                  </button>
-                  <span className="w-5 text-center font-bold tabular-nums text-ink">{participants}</span>
-                  <button
-                    type="button"
-                    aria-label="Add participant"
-                    onClick={() => {
-                      setParticipants(Math.min(maxParticipants, participants + 1));
-                      touch();
-                    }}
-                    disabled={participants >= maxParticipants}
-                    className="grid h-8 w-8 place-items-center rounded-lg border border-ink/15 text-ink hover:border-teal hover:text-teal disabled:opacity-40"
-                  >
-                    <IconPlus width={15} height={15} />
-                  </button>
+              <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-ink">
+                      {activity.pricingMode === 'vehicle' ? 'Passengers' : isGroup ? 'Group size' : 'Participants'}
+                    </p>
+                    <p className="text-[12px] text-ink-muted">All ages welcome</p>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      aria-label="Remove participant"
+                      onClick={() => {
+                        setParticipants(Math.max(1, participants - 1));
+                        touch();
+                      }}
+                      disabled={participants <= 1}
+                      className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+                    >
+                      <IconMinus width={15} height={15} />
+                    </button>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      max={partyCap}
+                      value={participants}
+                      aria-label="Number of participants"
+                      onChange={(e) => {
+                        const n = parseInt(e.target.value, 10);
+                        if (!Number.isNaN(n)) setParticipants(Math.max(1, Math.min(partyCap, n)));
+                        touch();
+                      }}
+                      className="h-9 w-14 rounded-lg border border-ink/15 text-center text-[15px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                    />
+                    <button
+                      type="button"
+                      aria-label="Add participant"
+                      onClick={() => {
+                        setParticipants(Math.min(partyCap, participants + 1));
+                        touch();
+                      }}
+                      disabled={participants >= partyCap}
+                      className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+                    >
+                      <IconPlus width={15} height={15} />
+                    </button>
+                  </div>
                 </div>
+                {participants >= MAX_PARTY && (
+                  <p className="mt-3 text-[12.5px] text-ink-muted">
+                    Travelling with more than {MAX_PARTY}?{' '}
+                    <Link href="/contact" className="font-bold text-teal underline underline-offset-2">
+                      Contact us
+                    </Link>{' '}
+                    for a quote.
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setOpen(null)}
+                  className="mt-4 w-full rounded-full bg-teal px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
+                >
+                  Continue
+                </button>
               </div>
             )}
           </div>
@@ -205,58 +294,55 @@ export function BookingWidget() {
               <IconChevron width={16} height={16} className="text-ink-muted" />
             </button>
             {open === 'date' && (
-              <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
-                <div className="mb-2 flex items-center justify-between">
-                  <button
-                    type="button"
-                    aria-label="Previous month"
-                    disabled={!canBack}
-                    onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
-                    className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
-                  >
-                    <IconChevronLeft width={16} height={16} />
-                  </button>
-                  <span className="text-[14px] font-bold text-ink">
-                    {view.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label="Next month"
-                    disabled={!canFwd}
-                    onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
-                    className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
-                  >
-                    <IconChevronRight width={16} height={16} />
-                  </button>
-                </div>
-                <div className="grid grid-cols-7 gap-0.5 text-center">
-                  {WEEKDAYS.map((w) => (
-                    <span key={w} className="py-1 text-[11px] font-semibold text-ink-muted">
-                      {w}
-                    </span>
-                  ))}
-                  {monthCells(view.getFullYear(), view.getMonth()).map((cell, i) => {
-                    if (!cell) return <span key={`e${i}`} />;
-                    const disabled = isDisabled(cell);
-                    const isSel = date === dateKey(cell);
-                    return (
+              <div className="absolute right-0 top-[calc(100%+6px)] z-20 w-[min(92vw,40rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] sm:p-5">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                  {/* This month — its forward arrow only shows on mobile (single-month view). */}
+                  <div>
+                    <div className="mb-2 flex items-center justify-between">
                       <button
-                        key={cell.toISOString()}
                         type="button"
-                        disabled={disabled}
-                        onClick={() => pickDate(cell)}
-                        className={`mx-auto grid h-9 w-9 place-items-center rounded-full text-[13px] font-medium ${
-                          isSel
-                            ? 'bg-teal text-white'
-                            : disabled
-                              ? 'cursor-default text-ink/25'
-                              : 'text-ink hover:bg-teal/10'
-                        }`}
+                        aria-label="Previous month"
+                        disabled={!canBack}
+                        onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
+                        className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
                       >
-                        {cell.getDate()}
+                        <IconChevronLeft width={16} height={16} />
                       </button>
-                    );
-                  })}
+                      <span className="text-[14px] font-bold text-ink">
+                        {view.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Next month"
+                        disabled={!canFwd}
+                        onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
+                        className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30 sm:invisible"
+                      >
+                        <IconChevronRight width={16} height={16} />
+                      </button>
+                    </div>
+                    <MonthGrid month={view} selectedKey={date} tomorrow={tomorrow} available={(c) => !isDisabled(c)} onPick={pickDate} />
+                  </div>
+
+                  {/* Next month — desktop only. */}
+                  <div className="hidden sm:block">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="h-7 w-7" />
+                      <span className="text-[14px] font-bold text-ink">
+                        {nextMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+                      </span>
+                      <button
+                        type="button"
+                        aria-label="Next month"
+                        disabled={!canFwd}
+                        onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
+                        className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
+                      >
+                        <IconChevronRight width={16} height={16} />
+                      </button>
+                    </div>
+                    <MonthGrid month={nextMonth} selectedKey={date} tomorrow={tomorrow} available={(c) => !isDisabled(c)} onPick={pickDate} />
+                  </div>
                 </div>
               </div>
             )}
