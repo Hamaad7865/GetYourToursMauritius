@@ -69,18 +69,22 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
   if (error) throw error;
 }
 
-/** Move a category up/down by swapping its position with its neighbour. */
+/**
+ * Move a category up/down by swapping its position with its neighbour. The swap runs as a single
+ * atomic RPC so an interrupted move can't leave two categories sharing one position (or one with a
+ * gap) — both UPDATEs commit together or not at all.
+ */
 export async function moveCategory(rows: CategoryRow[], id: string, dir: -1 | 1): Promise<void> {
   const idx = rows.findIndex((r) => r.id === id);
   const swapIdx = idx + dir;
   if (idx < 0 || swapIdx < 0 || swapIdx >= rows.length) return;
   const a = rows[idx]!;
   const b = rows[swapIdx]!;
-  const sb = getBrowserSupabase();
-  const { error: e1 } = await sb.from('categories').update({ position: b.position }).eq('id', a.id);
-  if (e1) throw e1;
-  const { error: e2 } = await sb.from('categories').update({ position: a.position }).eq('id', b.id);
-  if (e2) throw e2;
+  const { error } = await getBrowserSupabase().rpc('api_swap_category_positions', {
+    p_id_a: a.id,
+    p_id_b: b.id,
+  });
+  if (error) throw error;
 }
 
 export async function deleteCategory(id: string): Promise<void> {
