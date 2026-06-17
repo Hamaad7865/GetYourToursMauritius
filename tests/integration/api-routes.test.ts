@@ -96,7 +96,7 @@ describe('/api/v1 routes', () => {
     expect(missing.status).toBe(404);
   });
 
-  it('POST /bookings creates a booking (201) and validates input (400)', async () => {
+  it('POST /bookings creates a booking (201), accepting a null itinerary/pickup; validates input (400)', async () => {
     const ok = await bookingsPost(
       new Request('http://localhost/api/v1/bookings', {
         method: 'POST',
@@ -104,6 +104,10 @@ describe('/api/v1 routes', () => {
         body: JSON.stringify({
           occurrenceId,
           party: { 'Private group': 1 },
+          // The checkout always sends these as null when there's no custom route / pickup. The schema
+          // must accept null (nullish), not just omitted — `.optional()` alone 400s on an explicit null.
+          itinerary: null,
+          pickupLocation: null,
           customer: { name: 'Route Test', email: 'route@example.com' },
           idempotencyKey: 'route-book-1',
         }),

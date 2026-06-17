@@ -17,7 +17,8 @@ export const createBookingInputSchema = z.object({
   /** A hold reserved earlier (Continue) to reuse at pay, so the spot isn't double-held. */
   holdId: z.string().uuid().optional(),
   /** The customer's chosen route (sightseeing tours). Free + informational; bounded so a tampered
-   *  payload is a clean 400, not a DB blowup. */
+   *  payload is a clean 400, not a DB blowup. nullish (not optional): the checkout always sends
+   *  `itinerary: null` when there's no custom route, and `.optional()` rejects an explicit null. */
   itinerary: z
     .array(
       z.object({
@@ -28,7 +29,7 @@ export const createBookingInputSchema = z.object({
       }),
     )
     .max(30)
-    .optional(),
+    .nullish(),
   /** The customer's pickup location entered at checkout (pickup/sightseeing tours). Informational;
    *  bounded so a tampered payload is a clean 400, not a DB blowup. */
   pickupLocation: z.string().trim().max(200).nullish(),
