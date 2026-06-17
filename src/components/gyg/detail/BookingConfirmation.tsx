@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { childSeatsCost } from '@/lib/services/pricing';
 
 interface BookingItem {
   priceLabel: string;
@@ -21,6 +22,7 @@ interface Booking {
   items: BookingItem[];
   customItinerary?: Array<{ title: string; area?: string | null }> | null;
   pickupLocation?: string | null;
+  childSeats?: number | null;
 }
 
 const STATUS_COPY: Record<string, { title: string; tone: string }> = {
@@ -131,6 +133,18 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           <div className="mt-5 border-t border-ink/10 pt-4">
             <div className="text-[13px] font-bold text-ink">Pickup location</div>
             <p className="mt-1 text-[13px] text-ink/80">{booking.pickupLocation}</p>
+          </div>
+        )}
+
+        {booking.childSeats != null && booking.childSeats > 0 && (
+          <div className="mt-5 border-t border-ink/10 pt-4">
+            <div className="text-[13px] font-bold text-ink">Baby &amp; child seats</div>
+            <p className="mt-1 text-[13px] text-ink/80">
+              {booking.childSeats} {booking.childSeats === 1 ? 'seat' : 'seats'}
+              {childSeatsCost(booking.childSeats) > 0
+                ? ` — first free, €${childSeatsCost(booking.childSeats)} extra`
+                : ' — free'}
+            </p>
           </div>
         )}
 

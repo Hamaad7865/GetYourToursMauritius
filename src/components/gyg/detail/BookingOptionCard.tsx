@@ -4,9 +4,17 @@ import { useEffect, useRef } from 'react';
 import { useBooking } from './BookingProvider';
 import { useCart } from '@/lib/cart/useCart';
 import { useToast } from '@/components/site/ToastProvider';
-import { SIGHTSEEING_SUV_MAX } from '@/lib/services/pricing';
+import { SIGHTSEEING_SUV_MAX, CHILD_SEAT_EUR } from '@/lib/services/pricing';
 import { durationLabel } from '@/lib/catalogue/detail';
-import { IconCheck, IconClock, IconGlobe, IconPin, IconUsers } from '@/components/ui/icons';
+import {
+  IconCheck,
+  IconClock,
+  IconGlobe,
+  IconMinus,
+  IconPin,
+  IconPlus,
+  IconUsers,
+} from '@/components/ui/icons';
 
 function eur(n: number): string {
   return Number.isInteger(n) ? `€${n}` : `€${n.toFixed(2)}`;
@@ -57,6 +65,7 @@ export function BookingOptionCard() {
       maxGuests: null,
       seatsLeft: b.seatsLeft,
       unit: b.unitLabel,
+      childSeats: b.childSeats,
     });
     showToast({ title: 'Added to cart', description: `${b.activity.title} — ${whenText}.` });
   }
@@ -127,6 +136,52 @@ export function BookingOptionCard() {
             {b.vehicleName} · for {b.participants} {b.participants === 1 ? 'passenger' : 'passengers'}
           </div>
         )}
+
+        {/* Baby/child seats — first free, €6 each extra. Editable; capped at the party size. */}
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-ink/10 px-3 py-2.5">
+          <div className="min-w-0">
+            <div className="text-[13px] font-bold text-ink">Baby &amp; child seats</div>
+            <div className="text-[12px] text-ink-muted">
+              First seat free · {eur(CHILD_SEAT_EUR)} each extra
+              {b.childSeatsExtra > 0 && (
+                <span className="font-semibold text-teal-dark"> · +{eur(b.childSeatsExtra)}</span>
+              )}
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              aria-label="Remove child seat"
+              onClick={() => b.setChildSeats(Math.max(0, b.childSeats - 1))}
+              disabled={b.childSeats <= 0}
+              className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+            >
+              <IconMinus width={14} height={14} />
+            </button>
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={b.participants}
+              value={b.childSeats}
+              aria-label="Number of child seats"
+              onChange={(e) => {
+                const n = parseInt(e.target.value, 10);
+                if (!Number.isNaN(n)) b.setChildSeats(Math.max(0, Math.min(b.participants, n)));
+              }}
+              className="h-8 w-12 rounded-lg border border-ink/15 text-center text-[14px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+            />
+            <button
+              type="button"
+              aria-label="Add child seat"
+              onClick={() => b.setChildSeats(Math.min(b.participants, b.childSeats + 1))}
+              disabled={b.childSeats >= b.participants}
+              className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+            >
+              <IconPlus width={14} height={14} />
+            </button>
+          </div>
+        </div>
 
         <div className="mt-4 flex items-end justify-between gap-3 border-t border-ink/10 pt-4">
           <div>

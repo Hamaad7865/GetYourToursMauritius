@@ -13,6 +13,7 @@ import {
   type PaymentState,
 } from '@/lib/admin/bookings';
 import { IconCalendar, IconUsers, IconX } from '@/components/ui/icons';
+import { childSeatsCost } from '@/lib/services/pricing';
 
 // Departures + timestamps are shown in Mauritius local time, so the calendar day is
 // deterministic regardless of the staff member's own browser timezone.
@@ -445,6 +446,21 @@ function BookingDrawer({
                   Pickup location
                 </h3>
                 <p className="mt-2 text-[13px] text-ink/80">{booking.pickupLocation}</p>
+              </section>
+            )}
+
+            {/* Baby & child seats (first free, €6 each extra) */}
+            {booking.childSeats > 0 && (
+              <section className="rounded-xl border border-ink/10 p-4">
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                  Baby &amp; child seats
+                </h3>
+                <p className="mt-2 text-[13px] text-ink/80">
+                  {booking.childSeats} {booking.childSeats === 1 ? 'seat' : 'seats'}
+                  {childSeatsCost(booking.childSeats) > 0
+                    ? ` — first free, €${childSeatsCost(booking.childSeats)} extra`
+                    : ' — free'}
+                </p>
               </section>
             )}
 

@@ -37,6 +37,8 @@ export function Checkout() {
   const unit = params.get('unit') ?? '';
   // Sightseeing vehicle mode only: the SUV upgrade flag. The server re-resolves the price regardless.
   const suv = params.get('suv') === '1';
+  // Child seats chosen (first free, €6 each extra). The server recomputes the charge from this count.
+  const childSeats = Math.max(0, Math.min(25, parseInt(params.get('childSeats') ?? '0', 10) || 0));
   // Only a "Book now" from the tour-page widget (from=widget) carries a custom route. Cart checkouts
   // don't set it, so they never inherit the slug-scoped sessionStorage route of an unrelated visit.
   const fromWidget = params.get('from') === 'widget';
@@ -137,6 +139,7 @@ export function Checkout() {
             expectedSlug: slug,
             party: { [label]: qty },
             suv,
+            childSeats,
             holdId: holdId || undefined,
             itinerary: readItinerary(),
             // The pickup address the customer entered on the transport step (null when they chose

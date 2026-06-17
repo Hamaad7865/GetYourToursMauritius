@@ -25,6 +25,8 @@ export interface CartItem {
   pricingMode: PricingMode;
   /** Vehicle mode: the SUV upgrade was chosen (display only; price is already in unitEur). */
   suv?: boolean;
+  /** Child seats chosen (first free, €6 each extra; the charge is already in unitEur). */
+  childSeats?: number;
   maxGuests: number | null;
   /** Seats left on the occurrence when added — the ceiling the guests stepper clamps to. */
   seatsLeft: number;

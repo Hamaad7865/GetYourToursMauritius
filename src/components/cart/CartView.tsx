@@ -23,6 +23,7 @@ function checkoutHref(i: CartItem): string {
     // price at checkout. (holdId/idem/from=widget are intentionally absent — a cart line was never
     // held and must not inherit another visit's route.)
     ...(i.suv ? { suv: '1' } : {}),
+    ...(i.childSeats ? { childSeats: String(i.childSeats) } : {}),
   });
   return `/checkout?${q.toString()}`;
 }

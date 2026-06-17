@@ -4,7 +4,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { useRouter } from 'next/navigation';
 import type { TourType } from '@/lib/validation/common';
 import type { PricingMode, TourOption, VehiclePricing } from '@/lib/validation/tours';
-import { sightseeingQuote, SIGHTSEEING_DEFAULT, SIGHTSEEING_SUV_MAX } from '@/lib/services/pricing';
+import {
+  sightseeingQuote,
+  childSeatsCost,
+  SIGHTSEEING_DEFAULT,
+  SIGHTSEEING_SUV_MAX,
+} from '@/lib/services/pricing';
 
 export interface BookingActivity {
   slug: string;
@@ -35,6 +40,11 @@ interface BookingState {
   setLang: (l: string) => void;
   suv: boolean;
   setSuv: (b: boolean) => void;
+  /** Child seats requested (first free, €6 each extra). Bounded to the party size. */
+  childSeats: number;
+  setChildSeats: (n: number) => void;
+  /** The child-seat add-on cost in EUR (already included in `total`). */
+  childSeatsExtra: number;
   days: Map<string, DayInfo> | null;
   checked: boolean;
   setChecked: (b: boolean) => void;
@@ -92,6 +102,7 @@ export function BookingProvider({
   const [date, setDate] = useState('');
   const [lang, setLang] = useState(activity.languages[0] ?? 'English');
   const [suv, setSuv] = useState(false);
+  const [childSeats, setChildSeats] = useState(0);
   const [checked, setChecked] = useState(false);
   const [scrollTick, setScrollTick] = useState(0);
   // Reveal the card and (re)request a scroll-into-view. Bumping the tick on every press means a
@@ -193,16 +204,22 @@ export function BookingProvider({
   useEffect(() => {
     if (isVehicle && suv && participants > SIGHTSEEING_SUV_MAX) setSuv(false);
   }, [isVehicle, suv, participants]);
+  // Can't request more child seats than passengers.
+  useEffect(() => {
+    if (childSeats > participants) setChildSeats(participants);
+  }, [childSeats, participants]);
   const vehicleQuote = isVehicle
     ? sightseeingQuote(Math.min(Math.max(participants, 1), vehicleCfg.maxParty), suvActive, vehicleCfg)
     : null;
-  const total = isVehicle
+  const baseTotal = isVehicle
     ? (vehicleQuote?.totalEur ?? null)
     : cheapest == null
       ? null
       : groupSize
         ? cheapest.amountEur * Math.ceil(participants / groupSize)
         : cheapest.amountEur * participants;
+  const childSeatsExtra = childSeatsCost(childSeats);
+  const total = baseTotal == null ? null : baseTotal + childSeatsExtra;
   const vehicleName = vehicleQuote?.vehicle ?? null;
 
   async function continueToCheckout() {
@@ -255,6 +272,7 @@ export function BookingProvider({
       guests: String(participants),
       unit: unitLabel,
       suv: suvActive ? '1' : '0',
+      childSeats: String(childSeats),
       from: 'widget',
     });
     router.push(`/checkout?${q.toString()}`);
@@ -270,6 +288,9 @@ export function BookingProvider({
     setLang,
     suv,
     setSuv,
+    childSeats,
+    setChildSeats,
+    childSeatsExtra,
     days,
     checked,
     setChecked,

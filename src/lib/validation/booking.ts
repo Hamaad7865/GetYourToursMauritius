@@ -32,6 +32,9 @@ export const createBookingInputSchema = z.object({
   /** The customer's pickup location entered at checkout (pickup/sightseeing tours). Informational;
    *  bounded so a tampered payload is a clean 400, not a DB blowup. */
   pickupLocation: z.string().trim().max(200).nullish(),
+  /** Number of child seats requested. First free, each additional €6 — the charge is computed
+   *  server-side; the client value is only the count. Bounded so a tampered payload is a clean 400. */
+  childSeats: z.number().int().min(0).max(25).optional(),
   customer: z.object({
     name: z.string().min(1).max(120),
     email: z.string().email(),
@@ -79,6 +82,8 @@ export const bookingSchema = z.object({
     .nullish(),
   /** The customer's pickup location, or null/absent if none was provided. */
   pickupLocation: z.string().nullish(),
+  /** Child seats on the booking (first free, €6 each extra; the charge is in totalEur). */
+  childSeats: z.number().int().nonnegative().nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 

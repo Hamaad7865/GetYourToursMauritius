@@ -176,6 +176,58 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(got2.pickupLocation).toBeNull();
   });
 
+  it('charges child seats (first free, €6 each extra), clamps to the party, and never double-charges', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    // Baseline: party of 2, no child seats → 2 × €70.
+    const base = await call<{ totalEur: number }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 2 },
+      customerName: 'CS Base',
+      customerEmail: 'cs-base@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-cs-base-1234',
+    });
+    expect(base.totalEur).toBe(140);
+
+    // childSeats=5 on a party of 2 → clamped to 2 seats → 1 chargeable extra → +€6.
+    const seats = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 2 },
+      childSeats: 5,
+      customerName: 'CS Seats',
+      customerEmail: 'cs-seats@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-cs-seats-1234',
+    });
+    expect(seats.totalEur).toBe(146);
+    expect((await call<{ childSeats: number }>(db, 'api_get_booking', { ref: seats.ref })).childSeats).toBe(2);
+
+    // An idempotency replay must NOT charge the seat again.
+    const replay = await call<{ totalEur: number }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 2 },
+      childSeats: 5,
+      customerName: 'CS Seats',
+      customerEmail: 'cs-seats@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-cs-seats-1234',
+    });
+    expect(replay.totalEur).toBe(146);
+
+    // A single child seat is free.
+    const one = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 2 },
+      childSeats: 1,
+      customerName: 'CS One',
+      customerEmail: 'cs-one@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-cs-one-1234',
+    });
+    expect(one.totalEur).toBe(140);
+    expect((await call<{ childSeats: number }>(db, 'api_get_booking', { ref: one.ref })).childSeats).toBe(1);
+  });
+
   it('api_create_hold reserves N seats by mode, and api_book reuses the hold', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     const hold = await call<{ holdId: string; quantity: number; expiresAt: string }>(db, 'api_create_hold', {
