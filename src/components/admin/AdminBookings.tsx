@@ -438,6 +438,20 @@ function BookingDrawer({
               </div>
             </section>
 
+            {/* Customer-customized route (sightseeing tours) */}
+            {booking.customItinerary && booking.customItinerary.length > 0 && (
+              <section className="rounded-xl border border-ink/10 p-4">
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                  Customer route
+                </h3>
+                <ol className="mt-2 list-decimal pl-5 text-[13px] text-ink/80">
+                  {booking.customItinerary.map((s, i) => (
+                    <li key={i}>{s.area ? `${s.title} — ${s.area}` : s.title}</li>
+                  ))}
+                </ol>
+              </section>
+            )}
+
             {/* Payment ledger */}
             <section className="rounded-xl border border-ink/10 p-4">
               <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Payments</h3>

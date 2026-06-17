@@ -19,6 +19,7 @@ interface Booking {
   totalEur: number;
   currency: string;
   items: BookingItem[];
+  customItinerary?: Array<{ title: string; area?: string | null }> | null;
 }
 
 const STATUS_COPY: Record<string, { title: string; tone: string }> = {
@@ -124,6 +125,20 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             <dd className="text-lg font-extrabold text-ink">€{booking.totalEur.toFixed(2)}</dd>
           </div>
         </dl>
+
+        {booking.customItinerary && booking.customItinerary.length > 0 && (
+          <div className="mt-5 border-t border-ink/10 pt-4">
+            <div className="text-[13px] font-bold text-ink">Your route</div>
+            <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-[13px] text-ink/80">
+              {booking.customItinerary.map((s, i) => (
+                <li key={i}>
+                  {s.title}
+                  {s.area ? ` — ${s.area}` : ''}
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
 
         {error && (
           <p role="alert" className="mt-4 text-[13px] font-medium text-coral">
