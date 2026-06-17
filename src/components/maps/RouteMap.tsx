@@ -17,8 +17,7 @@ async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral 
   return geocode(s.title);
 }
 
-/** Evenly-spaced points from `a` (exclusive) to `b` (inclusive) — used to drive the car back along
- *  the straight return leg. */
+/** Evenly-spaced points from `a` (exclusive) to `b` (inclusive). */
 function samplePath(
   a: google.maps.LatLngLiteral,
   b: google.maps.LatLngLiteral,
@@ -28,6 +27,28 @@ function samplePath(
   for (let k = 1; k <= n; k += 1) {
     const t = k / n;
     out.push({ lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t });
+  }
+  return out;
+}
+
+/** Resample a polyline into ~`targetPoints` evenly-spaced points, so the car glides at a constant,
+ *  gentle speed and a full loop takes roughly the same time regardless of how long the route is. */
+function buildDrivePath(
+  poly: google.maps.LatLngLiteral[],
+  targetPoints: number,
+): google.maps.LatLngLiteral[] {
+  if (poly.length < 2) return poly;
+  let total = 0;
+  for (let i = 0; i < poly.length - 1; i += 1) {
+    total += Math.hypot(poly[i + 1]!.lat - poly[i]!.lat, poly[i + 1]!.lng - poly[i]!.lng);
+  }
+  const step = total > 0 ? total / targetPoints : 0;
+  const out: google.maps.LatLngLiteral[] = [poly[0]!];
+  for (let i = 0; i < poly.length - 1; i += 1) {
+    const a = poly[i]!;
+    const b = poly[i + 1]!;
+    const d = Math.hypot(b.lat - a.lat, b.lng - a.lng);
+    out.push(...samplePath(a, b, step > 0 ? Math.max(1, Math.round(d / step)) : 1));
   }
   return out;
 }
@@ -206,7 +227,9 @@ export function RouteMap({
             ],
           }),
         );
-        drivePath = [...path, ...samplePath(lastPt, firstPt, 24)];
+        // Car loop = the route out (roads or straight) + a straight return to the start, resampled
+        // to a constant gentle speed (so it doesn't jump quickly between far-apart stops).
+        drivePath = buildDrivePath([...path, firstPt], 180);
       }
 
       // The car: static at the start, or driving the loop — out along the route, back along the
@@ -216,7 +239,7 @@ export function RouteMap({
         typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
       if (animate && !reduce && drivePath.length > 1) {
-        const STEP_MS = 90; // advance one path point every ~90ms
+        const STEP_MS = 65; // advance one (closely-spaced) point every ~65ms → ~12s per loop
         let i = 0;
         let lastT = 0;
         const tick = (t: number) => {
