@@ -40,10 +40,19 @@ export function Checkout() {
   // Only a "Book now" from the tour-page widget (from=widget) carries a custom route. Cart checkouts
   // don't set it, so they never inherit the slug-scoped sessionStorage route of an unrelated visit.
   const fromWidget = params.get('from') === 'widget';
-  // The hold reserved on Continue (reused at pay so the spot isn't double-held) + its real expiry.
-  const holdId = params.get('holdId') || '';
-  const expiresAt = params.get('expiresAt') || '';
-  const idemParam = params.get('idem') || '';
+  // The hold reserved on Continue (reused at pay so the spot isn't double-held) + its real expiry +
+  // the shared idempotency key — handed over via sessionStorage (NOT the URL, which would leak them).
+  function readHold(): { holdId: string; expiresAt: string; idem: string } {
+    if (typeof window === 'undefined' || !occ) return { holdId: '', expiresAt: '', idem: '' };
+    try {
+      const raw = window.sessionStorage.getItem(`gytm:hold:${occ}`);
+      const h = raw ? JSON.parse(raw) : null;
+      return { holdId: h?.holdId || '', expiresAt: h?.expiresAt || '', idem: h?.idem || '' };
+    } catch {
+      return { holdId: '', expiresAt: '', idem: '' };
+    }
+  }
+  const { holdId, expiresAt, idem: idemParam } = readHold();
   // The route builder on the tour page stashes the chosen stops here (too big for the URL).
   function readItinerary(): Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null {
     if (typeof window === 'undefined' || !slug || !fromWidget) return null;

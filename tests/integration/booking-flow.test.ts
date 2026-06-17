@@ -186,6 +186,33 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(after).toBe(before); // api_book REUSED the hold — it did not create a second one
   });
 
+  it('an EXPIRED Continue hold does not hard-lock the booking (fallback uses a distinct key)', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    // Mirror the real key flow: the Continue hold's key is `<K>:hold`; the booking key is `<K>`.
+    const hold = await call<{ holdId: string }>(db, 'api_create_hold', {
+      occurrenceId,
+      people: 2,
+      idempotencyKey: 'collide-key-1:hold',
+    });
+    // The customer lingered past the hold TTL — expire the Continue hold.
+    await db.asOwner();
+    await db.pg.query(`update booking_holds set expires_at = now() - interval '1 minute' where id = $1`, [
+      hold.holdId,
+    ]);
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    // api_book must NOT reuse the expired hold and must NOT collide with its key → it books fine.
+    const booking = await call<{ totalEur: number }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 2 },
+      holdId: hold.holdId,
+      customerName: 'Lingerer',
+      customerEmail: 'linger@example.com',
+      source: 'web',
+      idempotencyKey: 'collide-key-1',
+    });
+    expect(booking.totalEur).toBe(140); // booked at the fresh hold, not hard-locked
+  });
+
   it('rejects a booking beyond remaining capacity', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     await expect(

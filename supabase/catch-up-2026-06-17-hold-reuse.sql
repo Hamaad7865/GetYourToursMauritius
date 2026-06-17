@@ -108,15 +108,19 @@ begin
   v_mode := coalesce(v_mode, 'per_person');
   v_want_qty := case when v_mode = 'vehicle' then 1 else v_total_qty::int end;
 
-  -- Reuse the Continue hold when it's still valid for this exact occurrence + qty.
+  -- Reuse the Continue hold when it's still valid for this exact occurrence + qty and not yet linked
+  -- to a booking (so a leaked/already-consumed hold can't be re-attached).
   if v_hold_id is not null then
     select * into v_hold from booking_holds
-    where id = v_hold_id and status = 'active' and expires_at > now()
+    where id = v_hold_id and status = 'active' and expires_at > now() and booking_id is null
       and session_occurrence_id = v_occ and quantity = v_want_qty;
     if found then v_reused := true; end if;
   end if;
+  -- Fall back to a FRESH hold on any reuse miss. The key must differ from the Continue hold's
+  -- '<key>:hold' (api_create_hold) — otherwise create_hold's idempotency short-circuit would hand back
+  -- the very hold that just failed the guard (e.g. expired), hard-locking the booking.
   if not v_reused then
-    v_hold := create_hold(v_occ, v_want_qty, v_key || ':hold');
+    v_hold := create_hold(v_occ, v_want_qty, v_key || ':book');
   end if;
 
   v_booking := create_booking(

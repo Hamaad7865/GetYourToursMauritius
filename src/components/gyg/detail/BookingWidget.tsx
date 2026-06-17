@@ -60,6 +60,7 @@ export function BookingWidget() {
     setChecked,
   } = b;
   const isTransport = activity.type === 'transport';
+  const isVehicle = activity.pricingMode === 'vehicle';
   const isGroup = b.groupSize != null;
 
   const [open, setOpen] = useState<'parts' | 'date' | 'lang' | null>(null);
@@ -312,12 +313,17 @@ export function BookingWidget() {
 
         <button
           type="button"
-          disabled={!date || seatsForDate <= 0}
+          disabled={!date || seatsForDate <= 0 || (!isVehicle && seatsForDate < participants)}
           onClick={() => setChecked(true)}
           className="mt-4 flex w-full items-center justify-center rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark disabled:opacity-50"
         >
           Check availability
         </button>
+        {date && !isVehicle && seatsForDate > 0 && seatsForDate < participants && (
+          <p className="mt-2 text-center text-[12px] font-medium text-coral">
+            Only {seatsForDate} {seatsForDate === 1 ? 'spot' : 'spots'} left on this date.
+          </p>
+        )}
         <p className="mt-2 text-center text-[11.5px] text-ink-muted">
           You won&apos;t be charged until you confirm.
         </p>

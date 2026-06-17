@@ -19,6 +19,10 @@ function checkoutHref(i: CartItem): string {
     when: i.dateLabel,
     guests: String(i.guests),
     unit: i.unit,
+    // Carry the SUV upgrade so a cart line added as an SUV isn't silently downgraded to the Sedan
+    // price at checkout. (holdId/idem/from=widget are intentionally absent — a cart line was never
+    // held and must not inherit another visit's route.)
+    ...(i.suv ? { suv: '1' } : {}),
   });
   return `/checkout?${q.toString()}`;
 }

@@ -147,8 +147,25 @@ export function BookingProvider({
   const maxParticipants = isVehicle
     ? Math.max(1, vehicleCfg.maxParty)
     : Math.max(1, Math.min(16, tierCap, date ? seatsLeft : 16));
-  const unitLabel = isVehicle ? 'per vehicle' : groupSize ? `per group up to ${groupSize}` : 'per person';
+  const unitLabel = isVehicle
+    ? 'per vehicle'
+    : groupSize
+      ? `per group up to ${groupSize}`
+      : activity.type === 'transport'
+        ? 'per vehicle'
+        : 'per person';
   const suvActive = isVehicle && suv && participants <= vehicleCfg.blockSize;
+
+  // Clamp the party down when the cap drops (e.g. switching to a date with fewer seats), so an
+  // over-capacity selection never reaches Check availability / checkout.
+  useEffect(() => {
+    if (participants > maxParticipants) setParticipants(maxParticipants);
+  }, [participants, maxParticipants]);
+  // Reset the SUV upgrade once the party grows past the entry tier, so dropping back to ≤ blockSize
+  // starts from Sedan instead of silently snapping the price back to the SUV rate.
+  useEffect(() => {
+    if (isVehicle && suv && participants > vehicleCfg.blockSize) setSuv(false);
+  }, [isVehicle, suv, participants, vehicleCfg.blockSize]);
   const vehicleQuote = isVehicle
     ? sightseeingQuote(Math.min(Math.max(participants, 1), vehicleCfg.maxParty), suvActive, vehicleCfg)
     : null;
@@ -186,6 +203,13 @@ export function BookingProvider({
     } catch {
       /* fall through — checkout creates the hold at pay if this failed */
     }
+    // Keep the hold tokens OUT of the URL (they'd leak via Referer / history / a shared checkout
+    // link); hand them to checkout via sessionStorage keyed by the occurrence instead.
+    try {
+      window.sessionStorage.setItem(`gytm:hold:${occ}`, JSON.stringify({ holdId, expiresAt, idem }));
+    } catch {
+      /* sessionStorage unavailable — checkout will create the hold at pay */
+    }
     const label = isVehicle ? (vehicleQuote?.vehicle ?? 'Vehicle') : (cheapest?.label ?? '');
     const dateText = new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -202,12 +226,9 @@ export function BookingProvider({
       total: total != null ? String(total) : '',
       when: dateText,
       guests: String(participants),
-      unit: isVehicle ? 'per vehicle' : groupSize ? `per group up to ${groupSize}` : 'per person',
+      unit: unitLabel,
       suv: suvActive ? '1' : '0',
       from: 'widget',
-      idem,
-      holdId,
-      expiresAt,
     });
     router.push(`/checkout?${q.toString()}`);
   }
