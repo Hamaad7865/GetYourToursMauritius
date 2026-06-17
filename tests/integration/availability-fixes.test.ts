@@ -37,9 +37,9 @@ describe('availability fixes (F5 reopen, F16 read/write consistency)', () => {
       `insert into activity_option_prices (activity_option_id, label, amount_minor) values ($1, 'Adult', 5000)`,
       [optionId],
     );
-    await db.pg.query(`select materialize_availability($1::jsonb)`, [
-      JSON.stringify({ activityId }),
-    ]);
+    await db.as({ role: 'service_role' });
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId })]);
+    await db.asOwner();
   });
 
   afterAll(async () => {
@@ -67,9 +67,9 @@ describe('availability fixes (F5 reopen, F16 read/write consistency)', () => {
 
     // Re-enabling availability (admin re-clicks capacity → materialize) must restore it, not leave it
     // stranded as 'closed' forever (the unique (option, starts_at) constraint blocks a replacement).
-    await db.pg.query(`select materialize_availability($1::jsonb)`, [
-      JSON.stringify({ activityId: null }),
-    ]);
+    await db.as({ role: 'service_role' });
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: null })]);
+    await db.asOwner();
     const status = (
       await db.pg.query<{ status: string }>(`select status from session_occurrences where id = $1`, [
         future,
@@ -96,5 +96,13 @@ describe('availability fixes (F5 reopen, F16 read/write consistency)', () => {
     await expect(
       db.pg.query(`select create_hold($1, 1, 'past-consistency')`, [past]),
     ).rejects.toThrow(/occurrence_in_past/);
+  });
+
+  it('blocks a non-staff signed-in customer from triggering materialize_availability', async () => {
+    // A plain logged-in customer (no staff/admin profile) must not be able to drive the heavy,
+    // full-catalogue materialization write. Only is_staff() or the service_role cron may.
+    await db.as({ sub: 'cccccccc-cccc-cccc-cccc-cccccccccccc', role: 'authenticated' });
+    await expect(db.pg.query(`select materialize_availability('{}'::jsonb)`)).rejects.toThrow(/forbidden/);
+    await db.asOwner();
   });
 });
