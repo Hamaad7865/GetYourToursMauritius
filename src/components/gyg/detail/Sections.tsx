@@ -10,6 +10,7 @@ import {
   IconClock,
   IconGlobe,
   IconPin,
+  IconShield,
   IconTrophy,
   IconUsers,
   IconWallet,
@@ -117,6 +118,52 @@ export function QuickFacts({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+/**
+ * The four standard promises that apply to every private sightseeing (vehicle) tour: duration,
+ * private vehicle, free child seat, flexible start. Rendered for vehicle-mode tours only. The
+ * duration is the tour's own; the rest are fixed operator policy.
+ */
+export function SightseeingHighlights({ durationMinutes }: { durationMinutes: number | null }) {
+  const duration = durationLabel(durationMinutes);
+  const items: Array<{ icon: React.ReactNode; title: string; sub: string }> = [
+    {
+      icon: <IconClock width={22} height={22} />,
+      title: 'Duration & availability',
+      sub: duration ? `Approx ${duration} · available daily` : 'Available daily',
+    },
+    {
+      icon: <IconUsers width={22} height={22} />,
+      title: 'Private tour',
+      sub: 'A vehicle with driver, exclusively for you and your family.',
+    },
+    {
+      icon: <IconShield width={22} height={22} />,
+      title: 'Free child seat',
+      sub: 'Your first child seat is free of charge.',
+    },
+    {
+      icon: <IconCalendar width={22} height={22} />,
+      title: 'Flexible start time',
+      sub: 'Start any time between 7:30 and 9:30 in the morning.',
+    },
+  ];
+  return (
+    <div className="mt-6 grid grid-cols-1 gap-x-5 gap-y-4 rounded-2xl border border-teal/20 bg-teal/[0.04] p-4 sm:grid-cols-2 sm:p-5">
+      {items.map((f) => (
+        <div key={f.title} className="flex items-start gap-3.5">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-teal shadow-[0_6px_16px_-10px_rgba(10,46,54,0.5)]">
+            {f.icon}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[14.5px] font-bold leading-tight text-ink">{f.title}</span>
+            <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">{f.sub}</span>
+          </span>
+        </div>
+      ))}
     </div>
   );
 }

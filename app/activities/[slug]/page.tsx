@@ -14,7 +14,13 @@ import { BookingOptionCard } from '@/components/gyg/detail/BookingOptionCard';
 import { ItineraryBuilder } from '@/components/gyg/detail/ItineraryBuilder';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
-import { QuickFacts, Overview, Itinerary, Includes } from '@/components/gyg/detail/Sections';
+import {
+  QuickFacts,
+  SightseeingHighlights,
+  Overview,
+  Itinerary,
+  Includes,
+} from '@/components/gyg/detail/Sections';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { ReviewList } from '@/components/catalogue/ReviewList';
 import { Faq } from '@/components/catalogue/Faq';
@@ -197,6 +203,10 @@ export default async function ActivityDetailPage({
                 <p className="m-0 mb-6 text-[15px] leading-relaxed text-ink/80">
                   {activity.summary}
                 </p>
+              )}
+
+              {activity.pricingMode === 'vehicle' && (
+                <SightseeingHighlights durationMinutes={activity.durationMinutes} />
               )}
 
               <BookingOptionCard />
