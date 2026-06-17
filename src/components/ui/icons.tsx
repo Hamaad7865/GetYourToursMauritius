@@ -33,6 +33,15 @@ export const IconPin = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+export const IconSwap = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M8 3 4 7l4 4" />
+    <path d="M4 7h16" />
+    <path d="m16 21 4-4-4-4" />
+    <path d="M20 17H4" />
+  </Svg>
+);
+
 export const IconStar = (p: SVGProps<SVGSVGElement>) => (
   <Svg fill="currentColor" stroke="none" {...p}>
     <path d="M12 2 15 9l7 .5-5.3 4.6L18.5 21 12 17l-6.5 4 1.8-6.9L2 9.5 9 9z" />

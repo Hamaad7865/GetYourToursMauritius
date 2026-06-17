@@ -6,7 +6,11 @@ import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import { geocode } from '@/lib/maps/geocode';
 import { mapsDirectionsUrl } from '@/lib/maps/urls';
 import { MapLinkCard } from './MapLinkCard';
-import { carIcon, pinIcon, pinLabel } from './pin';
+import { carIcon, pinIcon } from './pin';
+
+/** Marker role per stop: the start/pickup (coral), a fixed main stop (solid teal), or a swappable
+ *  "other" stop (hollow teal). */
+export type StopKind = 'start' | 'main' | 'other';
 
 async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral | null> {
   if (typeof s.lat === 'number' && typeof s.lng === 'number') return { lat: s.lat, lng: s.lng };
@@ -27,7 +31,16 @@ type MapOverlay = { setMap: (map: google.maps.Map | null) => void };
  * degrades but never breaks. The map is created ONCE and only its overlays are redrawn when `stops`
  * change, so editing a route in the builder doesn't leak a fresh Map per edit.
  */
-export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; animate?: boolean }) {
+export function RouteMap({
+  stops,
+  kinds,
+  animate = false,
+}: {
+  stops: ItineraryStop[];
+  /** Marker role per stop (aligned to `stops`). Defaults to start (index 0) + main (rest). */
+  kinds?: StopKind[];
+  animate?: boolean;
+}) {
   const status = useGoogleMaps();
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -62,26 +75,34 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
     };
 
     (async () => {
-      const points = (await Promise.all(stops.map(resolveStop))).filter(
-        (p): p is google.maps.LatLngLiteral => p !== null,
-      );
+      // Resolve point + kind + title together and drop unresolved stops as a unit, so a stop that
+      // fails to geocode can't shift the kind/title of the remaining markers.
+      const resolved = (
+        await Promise.all(
+          stops.map(async (s, idx) => {
+            const pos = await resolveStop(s);
+            if (!pos) return null;
+            const kind: StopKind = kinds?.[idx] ?? (idx === 0 ? 'start' : 'main');
+            return { pos, kind, title: s.title };
+          }),
+        )
+      ).filter((r): r is { pos: google.maps.LatLngLiteral; kind: StopKind; title: string } => r !== null);
       if (cancelled || !mapRef.current) return;
-      if (points.length === 0) {
+      if (resolved.length === 0) {
         setFailed(true);
         return;
       }
+      const points = resolved.map((r) => r.pos);
 
       const bounds = new google.maps.LatLngBounds();
-      points.forEach((pos, i) => {
-        track(
-          new google.maps.Marker({
-            map,
-            position: pos,
-            icon: pinIcon(i === 0 ? '#F76C5E' : '#0A2E36'),
-            label: pinLabel(i + 1),
-            title: stops[i]?.title,
-          }),
-        );
+      resolved.forEach(({ pos, kind, title }) => {
+        const icon =
+          kind === 'start'
+            ? pinIcon('#F76C5E')
+            : kind === 'other'
+              ? pinIcon('#0E8C92', { hollow: true })
+              : pinIcon('#0E8C92');
+        track(new google.maps.Marker({ map, position: pos, icon, title }));
         bounds.extend(pos);
       });
       if (points.length === 1) {
@@ -174,7 +195,7 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
         rafRef.current = null;
       }
     };
-  }, [status, stops, animate]);
+  }, [status, stops, kinds, animate]);
 
   // Final teardown on unmount: drop every overlay and release the map.
   useEffect(() => {

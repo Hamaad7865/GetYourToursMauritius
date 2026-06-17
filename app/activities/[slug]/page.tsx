@@ -223,7 +223,11 @@ export default async function ActivityDetailPage({
                 <section className="mt-8 border-t border-ink/10 pt-7">
                   <SectionTitle>Itinerary</SectionTitle>
                   {itinerary.some((s) => (s.options?.length ?? 0) > 0) ? (
-                    <ItineraryBuilder slug={activity.slug} stops={itinerary} />
+                    <ItineraryBuilder
+                      slug={activity.slug}
+                      stops={itinerary}
+                      meetingPoint={activity.meetingPoint}
+                    />
                   ) : (
                     <>
                       <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />

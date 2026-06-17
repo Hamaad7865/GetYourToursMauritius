@@ -1,6 +1,7 @@
 import type { ActivityExtra, ItineraryStop } from '@/lib/validation/tours';
-import { ItineraryTimeline } from './ItineraryTimeline';
-import { RouteMap } from '@/components/maps/RouteMap';
+import { ItineraryTimeline, type TimelineNode } from './ItineraryTimeline';
+import { ItineraryMap } from '@/components/maps/ItineraryMap';
+import type { StopKind } from '@/components/maps/RouteMap';
 import { durationLabel } from '@/lib/catalogue/detail';
 import {
   IconBolt,
@@ -162,27 +163,22 @@ export function Itinerary({
   meetingPoint?: string | null;
 }) {
   if (stops.length === 0) return null;
-  const nodes = [
+  const nodes: TimelineNode[] = [
     ...(meetingPoint
-      ? [{ title: 'Pickup location', area: meetingPoint, pickup: true } as const]
+      ? [{ title: 'Pickup location', area: meetingPoint, variant: 'pickup' as const }]
       : []),
-    ...stops.map((s) => ({ ...s, pickup: false as const })),
+    ...stops.map((s) => ({ title: s.title, area: s.area, tags: s.tags, variant: 'main' as const })),
   ];
+  // Map: the meeting point as the coral start pin (when set) + the stops as solid "main" pins.
+  const mapStops: ItineraryStop[] = meetingPoint
+    ? [{ title: meetingPoint } as ItineraryStop, ...stops]
+    : stops;
+  const mapKinds: StopKind[] = mapStops.map((_, i) => (meetingPoint && i === 0 ? 'start' : 'main'));
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
       <ItineraryTimeline nodes={nodes} collapseAt={meetingPoint ? 4 : 3} />
-      <div>
-        <RouteMap stops={stops} />
-        <div className="mt-2 flex items-center gap-4 text-[12px] text-ink-muted">
-          <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-coral" /> Start / main stop
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-3 w-3 rounded-full bg-ink" /> Tour stop
-          </span>
-        </div>
-      </div>
+      <ItineraryMap stops={mapStops} kinds={mapKinds} />
     </div>
   );
 }
