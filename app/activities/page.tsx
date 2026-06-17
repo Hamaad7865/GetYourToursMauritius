@@ -90,7 +90,9 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
 
           <CategoryChips active={params.category} />
 
-          <div className="mb-7">
+          {/* Mobile: pin the search/type filter below the header so it stays reachable while scrolling
+              results. Desktop: a normal inline row. */}
+          <div className="sticky top-[58px] z-30 -mx-6 mb-7 border-b border-ink/10 bg-cream px-6 py-3 sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:px-0 sm:py-0">
             <SearchFilterBar params={params} />
           </div>
 

@@ -10,6 +10,7 @@ import { RecordView } from '@/components/gyg/RecordView';
 import { Gallery } from '@/components/gyg/detail/Gallery';
 import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
 import { BookingProvider } from '@/components/gyg/detail/BookingProvider';
+import { MobileBookBar } from '@/components/gyg/detail/MobileBookBar';
 import { BookingOptionCard } from '@/components/gyg/detail/BookingOptionCard';
 import { ItineraryBuilder } from '@/components/gyg/detail/ItineraryBuilder';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
@@ -120,7 +121,7 @@ export default async function ActivityDetailPage({
       <GygHeader sticky={false} />
 
       <main className="bg-white">
-        <div className="mx-auto max-w-shell px-6 pb-16 pt-3">
+        <div className="mx-auto max-w-shell px-6 pb-24 pt-3 lg:pb-16">
           {/* Breadcrumb */}
           <nav
             aria-label="Breadcrumb"
@@ -332,6 +333,7 @@ export default async function ActivityDetailPage({
               </section>
             </div>
           </div>
+          <MobileBookBar />
           </BookingProvider>
 
           {related.length > 0 && (

@@ -219,7 +219,7 @@ export function Checkout() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-5xl gap-8 px-6 py-8 lg:grid-cols-[1fr_340px]">
+      <main className="mx-auto grid max-w-5xl gap-8 px-6 pb-28 pt-8 lg:grid-cols-[1fr_340px] lg:pb-8">
         <div>
           <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-semibold text-coral">
             <IconClock width={15} height={15} /> We&apos;ll hold your spot for {mm}:{ss} minutes.
@@ -247,7 +247,7 @@ export function Checkout() {
                 type="button"
                 onClick={continueFromTransport}
                 disabled={busy}
-                className="mt-6 flex items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+                className="mt-6 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
                 {busy ? <Spinner /> : 'Next: Personal details'}
               </button>
@@ -265,7 +265,7 @@ export function Checkout() {
               <button
                 type="button"
                 onClick={() => openAuth('signin')}
-                className="mt-5 rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark"
+                className="mt-5 hidden rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark lg:inline-flex"
               >
                 Sign in / Create account
               </button>
@@ -285,7 +285,7 @@ export function Checkout() {
                 type="button"
                 onClick={pay}
                 disabled={busy}
-                className="mt-5 flex items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+                className="mt-5 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
                 {busy ? <Spinner /> : displayTotal ? `Pay €${displayTotal}` : 'Continue to payment'}
               </button>
@@ -329,6 +329,39 @@ export function Checkout() {
           </div>
         </aside>
       </main>
+
+      {/* Mobile sticky primary action — mirrors the current step's CTA. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">
+        {step === 1 && (
+          <button
+            type="button"
+            onClick={continueFromTransport}
+            disabled={busy}
+            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+          >
+            {busy ? <Spinner /> : 'Next: Personal details'}
+          </button>
+        )}
+        {step === 2 && (
+          <button
+            type="button"
+            onClick={() => openAuth('signin')}
+            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark"
+          >
+            Sign in / Create account
+          </button>
+        )}
+        {step === 3 && (
+          <button
+            type="button"
+            onClick={pay}
+            disabled={busy}
+            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+          >
+            {busy ? <Spinner /> : displayTotal ? `Pay €${displayTotal}` : 'Continue to payment'}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
