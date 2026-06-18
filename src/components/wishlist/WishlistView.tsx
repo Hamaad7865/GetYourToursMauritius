@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
 import { useWishlist } from '@/lib/wishlist/useWishlist';
+import { useT } from '@/components/site/PreferencesProvider';
 import { PlaceCard } from '@/components/gyg/PlaceCard';
 import { IconHeart } from '@/components/ui/icons';
 
@@ -28,6 +29,7 @@ function EmptyArt() {
 }
 
 export function WishlistView({ activities }: { activities: TourSummary[] }) {
+  const t = useT();
   const { slugs } = useWishlist();
   // The wishlist lives in localStorage, so it's unknown during SSR. Hold a neutral placeholder
   // until mount to avoid flashing the empty state (and a hydration mismatch).
@@ -43,15 +45,15 @@ export function WishlistView({ activities }: { activities: TourSummary[] }) {
       <div className="grid min-h-[55vh] place-items-center py-12 text-center">
         <div>
           <EmptyArt />
-          <h1 className="mt-8 font-display text-[26px] font-semibold text-ink">Your wishlist is empty</h1>
+          <h1 className="mt-8 font-display text-[26px] font-semibold text-ink">{t('Your wishlist is empty')}</h1>
           <p className="mx-auto mt-2 max-w-sm text-[15px] text-ink-muted">
-            Save activities to your wishlist by tapping the heart icon on any tour.
+            {t('Save activities to your wishlist by tapping the heart icon on any tour.')}
           </p>
           <Link
             href="/activities"
             className="mt-6 inline-block rounded-full bg-teal px-6 py-3 text-sm font-bold text-white transition hover:bg-teal-dark"
           >
-            Find things to do
+            {t('Find things to do')}
           </Link>
         </div>
       </div>
@@ -60,9 +62,11 @@ export function WishlistView({ activities }: { activities: TourSummary[] }) {
 
   return (
     <div className="py-10">
-      <h1 className="font-display text-[26px] font-semibold text-ink">Your wishlist</h1>
+      <h1 className="font-display text-[26px] font-semibold text-ink">{t('Your wishlist')}</h1>
       <p className="mt-1 text-[14.5px] text-ink-muted">
-        {wished.length} saved {wished.length === 1 ? 'activity' : 'activities'} — tap the heart to remove.
+        {wished.length === 1
+          ? t('{n} saved activity — tap the heart to remove.', { n: wished.length })
+          : t('{n} saved activities — tap the heart to remove.', { n: wished.length })}
       </p>
       <div className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {wished.map((activity) => (

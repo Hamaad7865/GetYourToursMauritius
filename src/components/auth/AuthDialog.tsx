@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Provider } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { useT } from '@/components/site/PreferencesProvider';
 import {
   IconApple,
   IconEye,
@@ -32,6 +33,7 @@ export function AuthDialog({
   onClose: () => void;
   onSwitch: (mode: AuthMode) => void;
 }) {
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -79,7 +81,7 @@ export function AuthDialog({
         if (error) throw error;
         // Email confirmation on → no session yet; otherwise we're signed straight in.
         if (!data.session) {
-          setNotice('Check your inbox to confirm your email, then sign in.');
+          setNotice(t('Check your inbox to confirm your email, then sign in.'));
           return;
         }
       } else {
@@ -88,7 +90,7 @@ export function AuthDialog({
       }
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+      setError(err instanceof Error ? err.message : t('Something went wrong. Please try again.'));
     } finally {
       setBusy(false);
     }
@@ -105,7 +107,7 @@ export function AuthDialog({
       if (error) throw error;
       // Success redirects the browser away; nothing more to do here.
     } catch (err) {
-      setError(err instanceof Error ? err.message : `Could not continue with ${provider}.`);
+      setError(err instanceof Error ? err.message : t('Could not continue with {provider}.', { provider }));
       setBusy(false);
     }
   }
@@ -115,7 +117,7 @@ export function AuthDialog({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label={signup ? 'Create an account' : 'Sign in'}
+      aria-label={signup ? t('Create an account') : t('Sign in')}
       onMouseDown={onClose}
     >
       <div
@@ -125,19 +127,19 @@ export function AuthDialog({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('Close')}
           className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-ink-muted hover:bg-cream hover:text-ink"
         >
           <IconX width={18} height={18} />
         </button>
 
         <h2 className="font-display text-2xl font-semibold text-ink">
-          {signup ? 'Create your account' : 'Welcome back'}
+          {signup ? t('Create your account') : t('Welcome back')}
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
           {signup
-            ? 'Book direct with Belle Mare Tours and track every trip.'
-            : 'Sign in to manage your bookings.'}
+            ? t('Book direct with Belle Mare Tours and track every trip.')
+            : t('Sign in to manage your bookings.')}
         </p>
 
         <div className="mt-5 flex flex-col gap-2">
@@ -150,14 +152,14 @@ export function AuthDialog({
               className="flex items-center justify-center gap-2.5 rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-cream disabled:opacity-60"
             >
               {o.icon}
-              {o.label}
+              {t(o.label)}
             </button>
           ))}
         </div>
 
         <div className="my-5 flex items-center gap-3 text-[12px] font-semibold uppercase tracking-wide text-ink-muted">
           <span className="h-px flex-1 bg-ink/10" />
-          or
+          {t('or')}
           <span className="h-px flex-1 bg-ink/10" />
         </div>
 
@@ -168,7 +170,7 @@ export function AuthDialog({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Full name"
+                placeholder={t('Full name')}
                 autoComplete="name"
                 className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
               />
@@ -181,7 +183,7 @@ export function AuthDialog({
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
+              placeholder={t('Email address')}
               autoComplete="email"
               className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
             />
@@ -193,14 +195,14 @@ export function AuthDialog({
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
+              placeholder={t('Password')}
               autoComplete={signup ? 'new-password' : 'current-password'}
               className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
             />
             <button
               type="button"
               onClick={() => setShowPassword((s) => !s)}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
+              aria-label={showPassword ? t('Hide password') : t('Show password')}
               className="shrink-0 text-ink-muted hover:text-ink"
             >
               {showPassword ? <IconEyeOff width={18} height={18} /> : <IconEye width={18} height={18} />}
@@ -219,12 +221,12 @@ export function AuthDialog({
             disabled={busy}
             className="mt-1 rounded-xl bg-teal px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark disabled:opacity-60"
           >
-            {busy ? 'Please wait…' : signup ? 'Create account' : 'Sign in'}
+            {busy ? t('Please wait…') : signup ? t('Create account') : t('Sign in')}
           </button>
         </form>
 
         <p className="mt-5 text-center text-sm text-ink-muted">
-          {signup ? 'Already have an account?' : 'New to Belle Mare Tours?'}{' '}
+          {signup ? t('Already have an account?') : t('New to Belle Mare Tours?')}{' '}
           <button
             type="button"
             onClick={() => {
@@ -234,7 +236,7 @@ export function AuthDialog({
             }}
             className="font-bold text-teal hover:text-teal-dark"
           >
-            {signup ? 'Sign in' : 'Create one'}
+            {signup ? t('Sign in') : t('Create one')}
           </button>
         </p>
       </div>

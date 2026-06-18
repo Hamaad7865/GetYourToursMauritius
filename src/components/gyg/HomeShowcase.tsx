@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
+import { useT } from '@/components/site/PreferencesProvider';
 import { useCategories } from '@/lib/categories/useCategories';
 import { isSightseeingCategory } from '@/lib/categories/categories';
 import { PlaceCard } from './PlaceCard';
@@ -15,6 +16,7 @@ import { PlannerPromoCard } from '@/components/catalogue/PlannerPromoCard';
  * in that list is appended.
  */
 export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
+  const t = useT();
   const categories = useCategories();
 
   const byCategory = new Map<string, TourSummary[]>();
@@ -41,7 +43,7 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
     return (
       <section id="home-showcase" className="mx-auto max-w-shell scroll-mt-24 px-6 py-16">
         <p className="text-center text-[15px] text-ink-muted">
-          Activities appear here once the catalogue is connected.
+          {t('Activities appear here once the catalogue is connected.')}
         </p>
       </section>
     );
@@ -54,10 +56,10 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
           Belle Mare Tours
         </p>
         <h2 className="mt-1.5 font-display text-[clamp(24px,3vw,34px)] font-semibold tracking-tight text-ink">
-          Things to do across Mauritius
+          {t('Things to do across Mauritius')}
         </h2>
         <p className="mt-1.5 max-w-xl text-[14.5px] text-ink-muted">
-          Browse by experience — every tour booked direct with the local operator.
+          {t('Browse by experience — every tour booked direct with the local operator.')}
         </p>
       </div>
 
@@ -69,14 +71,16 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
                 {cat.name}
               </h3>
               <p className="mt-0.5 text-[13px] text-ink-muted">
-                {cat.items.length} {cat.items.length === 1 ? 'experience' : 'experiences'}
+                {cat.items.length === 1
+                  ? t('{n} experience', { n: cat.items.length })
+                  : t('{n} experiences', { n: cat.items.length })}
               </p>
             </div>
             <Link
               href={`/activities?category=${encodeURIComponent(cat.name)}`}
               className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink/15 px-4 py-2 text-[13.5px] font-bold text-ink transition-colors hover:border-teal hover:text-teal"
             >
-              See all
+              {t('See all')}
               <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
                 →
               </span>

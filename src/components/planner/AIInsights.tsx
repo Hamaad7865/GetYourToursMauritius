@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
+import { useT } from '@/components/site/PreferencesProvider';
 
 interface Insights {
   overall: string;
@@ -15,6 +16,7 @@ interface Insights {
  * Hides itself with no stops, and degrades quietly when the AI isn't configured.
  */
 export function AIInsights({ stops }: { stops: PlannerPlace[] }) {
+  const t = useT();
   const [insights, setInsights] = useState<Insights | null>(null);
   const [loading, setLoading] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
@@ -83,10 +85,10 @@ export function AIInsights({ stops }: { stops: PlannerPlace[] }) {
             </svg>
           </span>
           <div>
-            <h2 className="font-display text-[18px] font-semibold leading-none text-ink">AI insights for your day</h2>
-            <p className="mt-1 text-xs text-ink-muted">Local tips for the places you picked</p>
+            <h2 className="font-display text-[18px] font-semibold leading-none text-ink">{t('AI insights for your day')}</h2>
+            <p className="mt-1 text-xs text-ink-muted">{t('Local tips for the places you picked')}</p>
           </div>
-          {loading && <span className="ml-auto text-xs font-semibold text-teal">thinking…</span>}
+          {loading && <span className="ml-auto text-xs font-semibold text-teal">{t('thinking…')}</span>}
         </div>
 
         {loading ? (
@@ -99,7 +101,7 @@ export function AIInsights({ stops }: { stops: PlannerPlace[] }) {
             ))}
           </div>
         ) : unavailable || !insights ? (
-          <p className="text-sm text-ink-muted">AI insights aren&apos;t available right now — the rest of your plan still works.</p>
+          <p className="text-sm text-ink-muted">{t('AI insights aren’t available right now — the rest of your plan still works.')}</p>
         ) : (
           <div className="space-y-3">
             {insights.overall && (

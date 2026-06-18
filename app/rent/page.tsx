@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { InfoPage, InfoSection, FeatureList, EnquireRow } from '@/components/site/InfoPage';
 import { SITE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -11,17 +12,17 @@ export const metadata: Metadata = {
   alternates: { canonical: '/rent' },
 };
 
-export default function RentPage() {
+export default async function RentPage() {
+  const t = await getT();
   return (
     <InfoPage
-      eyebrow="Rent"
-      title="Rent a car or scooter and explore at your own pace"
-      intro="Self-drive is the best way to see Mauritius beyond the resort. We deliver to your hotel or Airbnb on the east coast, hand over a clean, insured vehicle, and stay one message away the whole trip."
+      eyebrow={t('Rent')}
+      title={t('Rent a car or scooter and explore at your own pace')}
+      intro={t('Self-drive is the best way to see Mauritius beyond the resort. We deliver to your hotel or Airbnb on the east coast, hand over a clean, insured vehicle, and stay one message away the whole trip.')}
     >
-      <InfoSection id="car" title="Rent a car">
+      <InfoSection id="car" title={t('Rent a car')}>
         <p>
-          From compact hatchbacks for two to family SUVs, our cars are well-maintained, air-conditioned
-          and fully insured. We drive on the left in Mauritius; an international or home licence is fine.
+          {t('From compact hatchbacks for two to family SUVs, our cars are well-maintained, air-conditioned and fully insured. We drive on the left in Mauritius; an international or home licence is fine.')}
         </p>
         <FeatureList
           items={[
@@ -33,10 +34,9 @@ export default function RentPage() {
         />
       </InfoSection>
 
-      <InfoSection id="scooter" title="Rent a scooter">
+      <InfoSection id="scooter" title={t('Rent a scooter')}>
         <p>
-          Perfect for short hops along the coast and into Belle Mare village. Scooters come with two
-          helmets and a quick handover so you&apos;re on the road in minutes.
+          {t('Perfect for short hops along the coast and into Belle Mare village. Scooters come with two helmets and a quick handover so you’re on the road in minutes.')}
         </p>
         <FeatureList
           items={[
@@ -48,7 +48,7 @@ export default function RentPage() {
         />
       </InfoSection>
 
-      <EnquireRow message="Hi Belle Mare Tours! I'd like to rent a car / scooter. Could you send rates and availability?" />
+      <EnquireRow message={t('Hi Belle Mare Tours! I’d like to rent a car / scooter. Could you send rates and availability?')} />
     </InfoPage>
   );
 }

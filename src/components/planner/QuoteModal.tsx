@@ -6,6 +6,8 @@ import type { PlannerQuote } from '@/lib/planner/pricing';
 import { CHILD_SEAT_EUR, childSeatsCost } from '@/lib/services/pricing';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { fmtDur } from './planner-constants';
+import { useT, useMoney } from '@/components/site/PreferencesProvider';
+import { Price } from '@/components/site/Price';
 
 const inputCls =
   'w-full rounded-[11px] border border-[#E3EEEC] bg-white px-[13px] py-[11px] text-[14.5px] text-ink outline-none focus:border-teal';
@@ -61,6 +63,8 @@ export function QuoteModal({
   bookError: string | null;
   onBook: () => void;
 }) {
+  const t = useT();
+  const money = useMoney();
   // APG modal behaviour: scroll-lock, Escape to close, focus trap, and focus restore on close.
   const dialogRef = useDialog(open, onClose);
   if (!open) return null;
@@ -72,7 +76,7 @@ export function QuoteModal({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Get your quote"
+      aria-label={t('Get your quote')}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -88,39 +92,39 @@ export function QuoteModal({
         >
           <div className="px-6">
             <div className="mb-1 flex items-center justify-between">
-              <h3 className="m-0 font-display text-[23px] font-semibold text-ink">Get my quote</h3>
-              <button type="button" onClick={onClose} aria-label="Close" className="grid h-8 w-8 cursor-pointer place-items-center rounded-[10px] bg-[#F1F6F5]">
+              <h3 className="m-0 font-display text-[23px] font-semibold text-ink">{t('Get my quote')}</h3>
+              <button type="button" onClick={onClose} aria-label={t('Close')} className="grid h-8 w-8 cursor-pointer place-items-center rounded-[10px] bg-[#F1F6F5]">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path d="M6 6l12 12M18 6L6 18" stroke="#51666B" strokeWidth={2} strokeLinecap="round" />
                 </svg>
               </button>
             </div>
             <p className="mb-4 mt-0.5 text-[13.5px] text-ink-muted">
-              {stops.length} stops · {fmtDur(route.totalMinutes)} driving · est.{' '}
-              <strong className="text-gold">{estimate != null ? `€${estimate}` : quoteError}</strong>
+              {t('{n} stops · {dur} driving · est.', { n: stops.length, dur: fmtDur(route.totalMinutes) })}{' '}
+              <strong className="text-gold">{estimate != null ? <Price eur={estimate} /> : quoteError}</strong>
             </p>
 
             <div className="mb-3 grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="q-date" className={labelCls}>Date</label>
+                <label htmlFor="q-date" className={labelCls}>{t('Date')}</label>
                 <input id="q-date" required type="date" min={minDate} value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
               </div>
               <div>
-                <label htmlFor="q-time" className={labelCls}>Pick-up time</label>
+                <label htmlFor="q-time" className={labelCls}>{t('Pick-up time')}</label>
                 <input id="q-time" required type="time" value={time} onChange={(e) => setTime(e.target.value)} className={inputCls} />
               </div>
             </div>
 
             <div className="mb-3">
-              <span className={labelCls}>Party size</span>
+              <span className={labelCls}>{t('Party size')}</span>
               <div className="flex w-fit items-center gap-3 rounded-[11px] border border-[#E6EFEE] bg-[#F4F8F7] px-3 py-[7px]">
-                <button type="button" onClick={() => setParty(Math.max(1, party - 1))} aria-label="Fewer travellers" className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark">
+                <button type="button" onClick={() => setParty(Math.max(1, party - 1))} aria-label={t('Fewer travellers')} className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark">
                   −
                 </button>
                 <span className="min-w-[60px] text-center text-[15px] font-bold tabular-nums">
-                  {party} {party > 1 ? 'people' : 'person'}
+                  {party > 1 ? t('{n} people', { n: party }) : t('{n} person', { n: party })}
                 </span>
-                <button type="button" onClick={() => setParty(Math.min(maxParty, party + 1))} aria-label="More travellers" className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark">
+                <button type="button" onClick={() => setParty(Math.min(maxParty, party + 1))} aria-label={t('More travellers')} className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark">
                   +
                 </button>
               </div>
@@ -129,17 +133,17 @@ export function QuoteModal({
             {party <= 4 && (
               <label className="mb-3 flex w-fit cursor-pointer items-center gap-2.5 text-sm text-ink">
                 <input type="checkbox" checked={suv} onChange={(e) => setSuv(e.target.checked)} className="h-4 w-4 accent-teal" />
-                SUV upgrade
+                {t('SUV upgrade')}
               </label>
             )}
 
             {/* Baby & child seats — first free, €6 each extra, capped at the party. */}
             <div className="mb-4 flex items-center justify-between gap-3 rounded-[11px] border border-[#E6EFEE] bg-[#F4F8F7] px-3 py-2.5">
               <div className="min-w-0">
-                <div className="text-[13px] font-bold text-ink">Baby &amp; child seats</div>
+                <div className="text-[13px] font-bold text-ink">{t('Baby & child seats')}</div>
                 <div className="text-[12px] text-ink-muted">
-                  First seat free · €{CHILD_SEAT_EUR} each extra
-                  {seatExtra > 0 && <span className="font-semibold text-teal-dark"> · +€{seatExtra}</span>}
+                  {t('First seat free · {price} each extra', { price: money(CHILD_SEAT_EUR) })}
+                  {seatExtra > 0 && <span className="font-semibold text-teal-dark"> · +{money(seatExtra)}</span>}
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2.5">
@@ -147,7 +151,7 @@ export function QuoteModal({
                   type="button"
                   onClick={() => setChildSeats(Math.max(0, seats - 1))}
                   disabled={seats <= 0}
-                  aria-label="Fewer child seats"
+                  aria-label={t('Fewer child seats')}
                   className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark disabled:opacity-40"
                 >
                   −
@@ -157,7 +161,7 @@ export function QuoteModal({
                   type="button"
                   onClick={() => setChildSeats(Math.min(party, seats + 1))}
                   disabled={seats >= party}
-                  aria-label="More child seats"
+                  aria-label={t('More child seats')}
                   className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark disabled:opacity-40"
                 >
                   +
@@ -173,10 +177,10 @@ export function QuoteModal({
               className="w-full cursor-pointer rounded-[13px] py-3.5 text-[15.5px] font-extrabold text-white shadow-[0_10px_24px_rgba(14,140,146,.3)] disabled:opacity-50"
               style={{ background: booking ? '#0B5C63' : 'linear-gradient(135deg,#13A0A6,#0B5C63)' }}
             >
-              {booking ? 'Starting your booking…' : 'Continue to checkout →'}
+              {booking ? t('Starting your booking…') : t('Continue to checkout →')}
             </button>
             <p className="m-0 mt-[11px] text-center text-xs text-ink-muted">
-              ✓ No payment now · confirm your details and a verified local driver on the next step
+              {t('✓ No payment now · confirm your details and a verified local driver on the next step')}
             </p>
           </div>
         </form>

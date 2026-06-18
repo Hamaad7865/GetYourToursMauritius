@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
 import type { TourSummary } from '@/lib/validation/tours';
+import { getT } from '@/lib/i18n/server';
 import { ActivityCard } from './ActivityCard';
 
-export function ActivityGrid({
+export async function ActivityGrid({
   activities,
   leadingCard,
 }: {
@@ -11,11 +12,11 @@ export function ActivityGrid({
    *  sightseeing listing). The grid still renders when it's the only card. */
   leadingCard?: ReactNode;
 }) {
+  const t = await getT();
   if (activities.length === 0 && !leadingCard) {
     return (
       <div className="rounded-card border border-teal/20 bg-white/60 p-10 text-center text-sm text-ink-muted">
-        No activities to show yet. Once the catalogue is connected, Belle Mare Tours&apos;
-        experiences appear here.
+        {t('No activities to show yet. Once the catalogue is connected, Belle Mare Tours’ experiences appear here.')}
       </div>
     );
   }

@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useT } from '@/components/site/PreferencesProvider';
 import { useCategories } from '@/lib/categories/useCategories';
 
 export function CategoryChips({ active }: { active?: string }) {
+  const t = useT();
   const categories = useCategories();
   return (
     <div className="no-bar flex gap-2.5 overflow-x-auto py-5">
@@ -15,7 +17,7 @@ export function CategoryChips({ active }: { active?: string }) {
             : 'border-transparent bg-ink text-cream'
         }`}
       >
-        All
+        {t('All')}
       </Link>
       {categories.map((category) => {
         const isActive = active === category.name;

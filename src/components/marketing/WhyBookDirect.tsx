@@ -1,4 +1,5 @@
 import { IconBolt, IconCalendar, IconShield, IconTag } from '@/components/ui/icons';
+import { getT } from '@/lib/i18n/server';
 
 const ITEMS = [
   {
@@ -23,7 +24,8 @@ const ITEMS = [
   },
 ];
 
-export function WhyBookDirect() {
+export async function WhyBookDirect() {
+  const t = await getT();
   return (
     <section className="bg-teal-dark text-cream">
       <div className="mx-auto grid max-w-shell grid-cols-1 gap-6 px-6 py-10 sm:grid-cols-2 lg:grid-cols-4">
@@ -33,8 +35,8 @@ export function WhyBookDirect() {
               <Icon />
             </span>
             <div>
-              <div className="text-[15px] font-bold">{title}</div>
-              <div className="mt-1 text-[13px] leading-snug text-cream/70">{body}</div>
+              <div className="text-[15px] font-bold">{t(title)}</div>
+              <div className="mt-1 text-[13px] leading-snug text-cream/70">{t(body)}</div>
             </div>
           </div>
         ))}

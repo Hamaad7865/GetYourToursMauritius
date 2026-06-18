@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { useT } from '@/components/site/PreferencesProvider';
+import { Price } from '@/components/site/Price';
 import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
 
 interface BookingItem {
@@ -68,6 +70,7 @@ function tripTitle(b: BookingRow): string | null {
 }
 
 function BookingCard({ b }: { b: BookingRow }) {
+  const t = useT();
   // Vehicle bookings store the headcount in pax (quantity is the vehicle count = 1); fall back to
   // quantity for per-person/per-group lines — same as the admin manifest's coalesce(pax, quantity).
   const guests = b.booking_items.reduce((sum, i) => sum + (i.pax ?? i.quantity), 0);
@@ -84,16 +87,18 @@ function BookingCard({ b }: { b: BookingRow }) {
               STATUS_STYLES[b.status] ?? 'bg-ink/10 text-ink-muted'
             }`}
           >
-            {statusLabel(b.status)}
+            {t(statusLabel(b.status))}
           </span>
         </div>
         <p className="mt-1 text-[13px] text-ink-muted">
           {title ? `${b.ref} · ` : ''}
-          {when} · {guests} {guests === 1 ? 'guest' : 'guests'}
+          {when} · {guests} {guests === 1 ? t('guest') : t('guests')}
         </p>
       </div>
       <div className="shrink-0 text-right">
-        <div className="font-bold text-ink">€{(b.total_minor / 100).toFixed(2)}</div>
+        <div className="font-bold text-ink">
+          <Price eur={b.total_minor / 100} />
+        </div>
         <div className="text-[11px] uppercase tracking-wide text-ink-muted">{b.currency}</div>
       </div>
     </li>
@@ -101,6 +106,7 @@ function BookingCard({ b }: { b: BookingRow }) {
 }
 
 export function AccountBookings() {
+  const t = useT();
   const { user, loading: authLoading } = useAuth();
   const [bookings, setBookings] = useState<BookingRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -131,7 +137,7 @@ export function AccountBookings() {
   }, [user]);
 
   if (authLoading) return <AccountSpinner />;
-  if (!user) return <SignedOutPrompt message="Sign in to see your booking history." />;
+  if (!user) return <SignedOutPrompt message={t('Sign in to see your booking history.')} />;
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
@@ -149,8 +155,8 @@ export function AccountBookings() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="font-display text-2xl font-semibold text-ink">My bookings</h1>
-      <p className="mt-1 text-sm text-ink-muted">Every trip you&apos;ve booked with Belle Mare Tours.</p>
+      <h1 className="font-display text-2xl font-semibold text-ink">{t('My bookings')}</h1>
+      <p className="mt-1 text-sm text-ink-muted">{t('Every trip you’ve booked with Belle Mare Tours.')}</p>
 
       {error && (
         <p role="alert" className="mt-6 text-[13px] font-medium text-coral">
@@ -167,17 +173,17 @@ export function AccountBookings() {
       {bookings !== null && (
         <>
           <section className="mt-8">
-            <h2 className="font-display text-lg font-semibold text-ink">Upcoming bookings</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">{t('Upcoming bookings')}</h2>
             {upcoming.length === 0 ? (
               <div className="mt-3 rounded-2xl border border-ink/10 bg-white p-8 text-center">
                 <p className="text-sm text-ink-muted">
-                  No bookings yet. Once you make a booking, you&apos;ll find it here.
+                  {t('No bookings yet. Once you make a booking, you’ll find it here.')}
                 </p>
                 <Link
                   href="/activities"
                   className="mt-4 inline-block rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
                 >
-                  Explore activities
+                  {t('Explore activities')}
                 </Link>
               </div>
             ) : (
@@ -190,9 +196,9 @@ export function AccountBookings() {
           </section>
 
           <section className="mt-10">
-            <h2 className="font-display text-lg font-semibold text-ink">Past &amp; cancelled bookings</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">{t('Past & cancelled bookings')}</h2>
             {past.length === 0 ? (
-              <p className="mt-3 text-sm text-ink-muted">You don&apos;t have any past bookings.</p>
+              <p className="mt-3 text-sm text-ink-muted">{t('You don’t have any past bookings.')}</p>
             ) : (
               <ul className="mt-3 flex flex-col gap-3">
                 {past.map((b) => (

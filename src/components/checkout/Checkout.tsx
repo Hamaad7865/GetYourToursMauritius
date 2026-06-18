@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Logo } from '@/components/site/Logo';
+import { Price } from '@/components/site/Price';
+import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupMap } from '@/components/maps/PickupMap';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
@@ -23,6 +25,8 @@ function Spinner() {
 export function Checkout() {
   const params = useSearchParams();
   const { user, profile, session, openAuth } = useAuth();
+  const t = useT();
+  const money = useMoney();
 
   const occ = params.get('occ') ?? '';
   const label = params.get('label') ?? '';
@@ -102,7 +106,8 @@ export function Checkout() {
   const [bookingRef, setBookingRef] = useState<string | null>(null);
   // Authoritative price from the created booking — what the customer is actually charged.
   const [serverTotal, setServerTotal] = useState<number | null>(null);
-  const displayTotal = serverTotal != null ? serverTotal.toFixed(2) : total;
+  // Numeric EUR amount for <Price>/money() — null when we have nothing to show yet.
+  const displayTotalNum = serverTotal != null ? serverTotal : total ? Number(total) : null;
 
   useEffect(() => {
     const t = window.setInterval(() => setSecs((s) => Math.max(0, s - 1)), 1000);
@@ -118,9 +123,9 @@ export function Checkout() {
   if (!occ || !slug) {
     return (
       <div className="py-20 text-center">
-        <p className="text-sm text-ink-muted">Your selection expired — please choose your date again.</p>
+        <p className="text-sm text-ink-muted">{t('Your selection expired — please choose your date again.')}</p>
         <Link href={slug ? `/activities/${slug}` : '/activities'} className="mt-3 inline-block text-sm font-bold text-teal">
-          Back to the activity
+          {t('Back to the activity')}
         </Link>
       </div>
     );
@@ -143,7 +148,7 @@ export function Checkout() {
 
   async function pay() {
     if (expired) {
-      setError('Your hold expired — please pick your date again.');
+      setError(t('Your hold expired — please pick your date again.'));
       return;
     }
     if (!session) return openAuth('signin');
@@ -199,7 +204,7 @@ export function Checkout() {
         const srv = typeof bookingRes.data.totalEur === 'number' ? bookingRes.data.totalEur : null;
         if (srv != null) setServerTotal(srv);
         if (srv != null && total && Math.abs(srv - Number(total)) >= 0.005) {
-          setError(`The price for this date is €${srv.toFixed(2)}. Tap Pay again to continue.`);
+          setError(t('The price for this date is {price}. Tap Pay again to continue.', { price: money(srv) }));
           setBusy(false);
           return;
         }
@@ -213,8 +218,8 @@ export function Checkout() {
       if (!payRes.ok) throw new Error(payRes.error?.message ?? 'Could not start payment.');
       window.location.href = payRes.data.redirectUrl as string;
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Something went wrong.';
-      setError(/capacity/i.test(msg) ? 'Sorry — this date just filled up. Please pick another date.' : msg);
+      const msg = err instanceof Error ? err.message : t('Something went wrong.');
+      setError(/capacity/i.test(msg) ? t('Sorry — this date just filled up. Please pick another date.') : msg);
       setBusy(false);
     }
   }
@@ -238,7 +243,7 @@ export function Checkout() {
                   >
                     {done ? '✓' : n}
                   </span>
-                  <span className={`hidden sm:inline ${active || done ? 'text-ink' : 'text-ink-muted'}`}>{s}</span>
+                  <span className={`hidden sm:inline ${active || done ? 'text-ink' : 'text-ink-muted'}`}>{t(s)}</span>
                 </li>
               );
             })}
@@ -249,23 +254,22 @@ export function Checkout() {
       <main className="mx-auto grid max-w-5xl gap-8 px-6 pb-28 pt-8 lg:grid-cols-[1fr_340px] lg:pb-8">
         <div>
           <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-semibold text-coral">
-            <IconClock width={15} height={15} /> We&apos;ll hold your spot for {mm}:{ss} minutes.
+            <IconClock width={15} height={15} /> {t('We’ll hold your spot for {time} minutes.', { time: `${mm}:${ss}` })}
           </div>
 
           {step === 1 && (
             <section>
               <h1 className="font-display text-2xl font-semibold text-ink">
-                Do you know where you want to be picked up?
+                {t('Do you know where you want to be picked up?')}
               </h1>
               <div className="mt-5 flex flex-col gap-2">
-                <PickRadio checked={pickup === 'known'} onClick={() => setPickup('known')} title="Yes, I can add it now">
+                <PickRadio checked={pickup === 'known'} onClick={() => setPickup('known')} title={t('Yes, I can add it now')}>
                   {pickup === 'known' && <PickupMap value={pickupLoc} onChange={setPickupLoc} />}
                 </PickRadio>
-                <PickRadio checked={pickup === 'unknown'} onClick={() => setPickup('unknown')} title="I don't know yet">
+                <PickRadio checked={pickup === 'unknown'} onClick={() => setPickup('unknown')} title={t('I don’t know yet')}>
                   {pickup === 'unknown' && (
                     <span className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-                      Add your pickup location 24 hours before your activity (ideally sooner) so your provider can
-                      accommodate you.
+                      {t('Add your pickup location 24 hours before your activity (ideally sooner) so your provider can accommodate you.')}
                     </span>
                   )}
                 </PickRadio>
@@ -276,7 +280,7 @@ export function Checkout() {
                 disabled={busy}
                 className="mt-6 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
-                {busy ? <Spinner /> : 'Next: Personal details'}
+                {busy ? <Spinner /> : t('Next: Personal details')}
               </button>
             </section>
           )}
@@ -284,25 +288,25 @@ export function Checkout() {
           {step === 2 && (
             <section>
               <h1 className="font-display text-2xl font-semibold text-ink">
-                Where should we send your booking confirmation?
+                {t('Where should we send your booking confirmation?')}
               </h1>
               <p className="mt-2 text-sm text-ink-muted">
-                Sign in or create an account — by email, Google, Apple or Facebook — to continue.
+                {t('Sign in or create an account — by email, Google, Apple or Facebook — to continue.')}
               </p>
               <button
                 type="button"
                 onClick={() => openAuth('signin')}
                 className="mt-5 hidden rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark lg:inline-flex"
               >
-                Sign in / Create account
+                {t('Sign in / Create account')}
               </button>
             </section>
           )}
 
           {step === 3 && (
             <section>
-              <h1 className="font-display text-2xl font-semibold text-ink">Review &amp; pay</h1>
-              <p className="mt-2 text-sm text-ink-muted">Signed in as {user?.email}.</p>
+              <h1 className="font-display text-2xl font-semibold text-ink">{t('Review & pay')}</h1>
+              <p className="mt-2 text-sm text-ink-muted">{t('Signed in as {email}.', { email: user?.email ?? '' })}</p>
               {error && (
                 <p role="alert" className="mt-3 text-[13px] font-medium text-coral">
                   {error}
@@ -314,24 +318,35 @@ export function Checkout() {
                 disabled={busy || expired}
                 className="mt-5 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
-                {busy ? <Spinner /> : displayTotal ? `Pay €${displayTotal}` : 'Continue to payment'}
+                {busy ? (
+                  <Spinner />
+                ) : displayTotalNum != null ? (
+                  <span>
+                    {t('Pay')} <Price eur={displayTotalNum} />
+                  </span>
+                ) : (
+                  t('Continue to payment')
+                )}
               </button>
+              {displayTotalNum != null && (
+                <p className="mt-2 text-[12px] text-ink-muted">{t('You will be charged in EUR')}</p>
+              )}
               <p className="mt-2 text-[12px] text-ink-muted">
-                You&apos;ll confirm the payment on the next screen.
+                {t('You’ll confirm the payment on the next screen.')}
               </p>
             </section>
           )}
         </div>
 
         <aside className="h-fit rounded-2xl border border-ink/10 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.45)]">
-          <h2 className="font-display text-lg font-semibold text-ink">Order summary</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">{t('Order summary')}</h2>
           <p className="mt-3 font-bold text-ink">{title}</p>
           <dl className="mt-3 flex flex-col gap-2 text-[13px] text-ink/80">
             <div className="flex items-center gap-2">
               <IconCalendar width={15} height={15} className="text-teal" /> {when || '—'}
             </div>
             <div className="flex items-center gap-2">
-              <IconUsers width={15} height={15} className="text-teal" /> {guests} {Number(guests) === 1 ? 'guest' : 'guests'}
+              <IconUsers width={15} height={15} className="text-teal" /> {guests} {Number(guests) === 1 ? t('guest') : t('guests')}
               {unit ? ` · ${unit}` : ''}
             </div>
             <div className="flex items-center gap-2">
@@ -340,19 +355,21 @@ export function Checkout() {
             {childSeats > 0 && (
               <div className="flex items-center gap-2">
                 <IconCheck width={15} height={15} className="text-teal" />
-                {childSeats} baby/child {childSeats === 1 ? 'seat' : 'seats'}
+                {childSeats} {t('baby/child')} {childSeats === 1 ? t('seat') : t('seats')}
                 {childSeatsCost(childSeats) > 0
-                  ? ` · first free, €${childSeatsCost(childSeats)} extra`
-                  : ' · free'}
+                  ? ` · ${t('first free, {price} extra', { price: money(childSeatsCost(childSeats)) })}`
+                  : ` · ${t('free')}`}
               </div>
             )}
           </dl>
           <div className="mt-4 flex items-center justify-between border-t border-ink/10 pt-3">
-            <span className="font-bold text-ink">Total</span>
-            <span className="text-lg font-extrabold text-ink">{displayTotal ? `€${displayTotal}` : '—'}</span>
+            <span className="font-bold text-ink">{t('Total')}</span>
+            <span className="text-lg font-extrabold text-ink">
+              {displayTotalNum != null ? <Price eur={displayTotalNum} /> : '—'}
+            </span>
           </div>
           <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
-            <IconCheck width={15} height={15} className="text-teal" /> Free cancellation up to 24 hours before
+            <IconCheck width={15} height={15} className="text-teal" /> {t('Free cancellation up to 24 hours before')}
           </div>
         </aside>
       </main>
@@ -366,7 +383,7 @@ export function Checkout() {
             disabled={busy}
             className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
           >
-            {busy ? <Spinner /> : 'Next: Personal details'}
+            {busy ? <Spinner /> : t('Next: Personal details')}
           </button>
         )}
         {step === 2 && (
@@ -375,7 +392,7 @@ export function Checkout() {
             onClick={() => openAuth('signin')}
             className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark"
           >
-            Sign in / Create account
+            {t('Sign in / Create account')}
           </button>
         )}
         {step === 3 && (
@@ -385,7 +402,15 @@ export function Checkout() {
             disabled={busy || expired}
             className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
           >
-            {busy ? <Spinner /> : displayTotal ? `Pay €${displayTotal}` : 'Continue to payment'}
+            {busy ? (
+              <Spinner />
+            ) : displayTotalNum != null ? (
+              <span>
+                {t('Pay')} <Price eur={displayTotalNum} />
+              </span>
+            ) : (
+              t('Continue to payment')
+            )}
           </button>
         )}
       </div>

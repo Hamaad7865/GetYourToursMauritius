@@ -3,22 +3,25 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useT } from '@/components/site/PreferencesProvider';
 import { IconBookings, IconUser } from '@/components/ui/icons';
 
 export function AccountSpinner() {
+  const t = useT();
   return (
     <div className="grid min-h-[40vh] place-items-center">
-      <p className="text-sm font-medium text-ink-muted">Loading…</p>
+      <p className="text-sm font-medium text-ink-muted">{t('Loading…')}</p>
     </div>
   );
 }
 
 export function SignedOutPrompt({ message }: { message: string }) {
+  const t = useT();
   const { openAuth } = useAuth();
   return (
     <div className="grid min-h-[40vh] place-items-center px-6 text-center">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-ink">You&apos;re signed out</h1>
+        <h1 className="font-display text-2xl font-semibold text-ink">{t('You’re signed out')}</h1>
         <p className="mx-auto mt-2 max-w-sm text-sm text-ink-muted">{message}</p>
         <div className="mt-5 flex items-center justify-center gap-3">
           <button
@@ -26,14 +29,14 @@ export function SignedOutPrompt({ message }: { message: string }) {
             onClick={() => openAuth('signin')}
             className="rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
           >
-            Sign in
+            {t('Sign in')}
           </button>
           <button
             type="button"
             onClick={() => openAuth('signup')}
             className="rounded-full border border-ink/15 px-5 py-2.5 text-sm font-bold text-ink hover:bg-cream"
           >
-            Create account
+            {t('Create account')}
           </button>
         </div>
       </div>
@@ -48,6 +51,7 @@ const TABS = [
 
 /** Left-rail tabs for the account area. */
 export function AccountNav() {
+  const t = useT();
   const pathname = usePathname();
   return (
     <nav className="flex gap-1 sm:flex-col">
@@ -63,7 +67,7 @@ export function AccountNav() {
             }`}
           >
             <Icon width={18} height={18} />
-            {tab.label}
+            {t(tab.label)}
           </Link>
         );
       })}

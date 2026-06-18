@@ -5,6 +5,8 @@ import type { TourType } from '@/lib/validation/common';
 import type { TourOption } from '@/lib/validation/tours';
 import { lineTotalEur } from '@/lib/catalogue/detail';
 import { whatsappUrl } from '@/lib/seo/site';
+import { useT, useMoney } from '@/components/site/PreferencesProvider';
+import { Price } from '@/components/site/Price';
 import {
   IconBolt,
   IconCalendar,
@@ -23,10 +25,6 @@ function optionFrom(option: TourOption): number | null {
   return prices.length > 0 ? Math.min(...prices) : null;
 }
 
-function eur(amount: number): string {
-  return Number.isInteger(amount) ? `€${amount}` : `€${amount.toFixed(2)}`;
-}
-
 export interface BookingPanelProps {
   type: TourType;
   title: string;
@@ -41,6 +39,8 @@ export interface BookingPanelProps {
  * WhatsApp reservation pre-filled with their selection.
  */
 export function BookingPanel({ type, title, fromPriceEur, options, languages }: BookingPanelProps) {
+  const t = useT();
+  const money = useMoney();
   const isTransport = type === 'transport';
   const [participants, setParticipants] = useState(2);
   const [optionIdx, setOptionIdx] = useState(0);
@@ -66,15 +66,21 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
         day: 'numeric',
         month: 'short',
       })
-    : 'Add a date';
+    : t('Add a date');
 
   const message =
-    `Hi Belle Mare Tours! I'd like to reserve "${title}"` +
+    t('Hi Belle Mare Tours! I’d like to reserve "{title}"', { title }) +
     (isTransport && selectedOption ? ` — ${selectedOption.name}` : '') +
-    (date ? ` on ${dateText}` : '') +
-    (isTransport ? '' : ` for ${participants} ${participants === 1 ? 'guest' : 'guests'}`) +
-    (total != null ? ` (approx ${eur(total)}).` : '.') +
-    ' Is it available?';
+    (date ? ` ${t('on {date}', { date: dateText })}` : '') +
+    (isTransport
+      ? ''
+      : ` ${
+          participants === 1
+            ? t('for {n} guest', { n: participants })
+            : t('for {n} guests', { n: participants })
+        }`) +
+    (total != null ? ` ${t('(approx {price}).', { price: money(total) })}` : '.') +
+    ` ${t('Is it available?')}`;
 
   return (
     <div className="overflow-hidden rounded-[20px] border border-ink/10 bg-white shadow-[0_24px_50px_-30px_rgba(10,46,54,0.45)]">
@@ -85,24 +91,24 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
       >
         {isTransport ? (
           <>
-            <IconShield width={15} height={15} /> Free cancellation up to 24h
+            <IconShield width={15} height={15} /> {t('Free cancellation up to 24h')}
           </>
         ) : (
           <>
-            <IconBolt width={15} height={15} /> Likely to sell out
+            <IconBolt width={15} height={15} /> {t('Likely to sell out')}
           </>
         )}
       </div>
 
       <div className="p-5">
         <div className="flex items-baseline gap-2">
-          <span className="text-[13px] text-ink-muted">From</span>
+          <span className="text-[13px] text-ink-muted">{t('From')}</span>
           <span className="text-[32px] font-extrabold tracking-tight text-ink">
-            {fromPriceEur != null ? eur(fromPriceEur) : 'On request'}
+            {fromPriceEur != null ? <Price eur={fromPriceEur} /> : t('On request')}
           </span>
         </div>
         <div className="mt-0.5 text-[13px] text-ink-muted">
-          {isTransport ? 'per vehicle, one way' : 'per person'}
+          {isTransport ? t('per vehicle, one way') : t('per person')}
         </div>
 
         <div className="mt-[18px] flex flex-col gap-3">
@@ -110,7 +116,7 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
             options.length > 0 && (
               <label className="block rounded-[13px] border border-ink/15 px-3.5 py-3">
                 <span className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-teal">
-                  Vehicle
+                  {t('Vehicle')}
                 </span>
                 <select
                   value={optionIdx}
@@ -120,7 +126,9 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
                   {options.map((option, i) => (
                     <option key={option.id} value={i}>
                       {option.name}
-                      {optionFrom(option) != null ? ` — from ${eur(optionFrom(option)!)}` : ''}
+                      {optionFrom(option) != null
+                        ? ` — ${t('from {price}', { price: money(optionFrom(option)!) })}`
+                        : ''}
                     </option>
                   ))}
                 </select>
@@ -130,16 +138,16 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
             <div className="flex items-center justify-between rounded-[13px] border border-ink/15 px-3.5 py-3">
               <div>
                 <div className="text-[11px] font-bold uppercase tracking-wider text-teal">
-                  Participants
+                  {t('Participants')}
                 </div>
-                <div className="mt-0.5 text-[13.5px] text-ink/80">Guests</div>
+                <div className="mt-0.5 text-[13.5px] text-ink/80">{t('Guests')}</div>
               </div>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setParticipants((n) => Math.max(1, n - 1))}
                   disabled={participants <= 1}
-                  aria-label="Remove a guest"
+                  aria-label={t('Remove a guest')}
                   className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-ink/15 text-ink hover:border-teal hover:text-teal disabled:opacity-40"
                 >
                   <IconMinus width={16} height={16} />
@@ -151,7 +159,7 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
                   type="button"
                   onClick={() => setParticipants((n) => Math.min(MAX_PARTICIPANTS, n + 1))}
                   disabled={participants >= MAX_PARTICIPANTS}
-                  aria-label="Add a guest"
+                  aria-label={t('Add a guest')}
                   className="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] border border-ink/15 text-ink hover:border-teal hover:text-teal disabled:opacity-40"
                 >
                   <IconPlus width={16} height={16} />
@@ -164,7 +172,7 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
             <IconCalendar width={18} height={18} className="text-teal" />
             <span className="flex-1">
               <span className="block text-[11px] font-bold uppercase tracking-wider text-teal">
-                {isTransport ? 'Arrival date' : 'Date'}
+                {isTransport ? t('Arrival date') : t('Date')}
               </span>
               <span className="block text-[13.5px] font-semibold text-ink">{dateText}</span>
             </span>
@@ -173,7 +181,7 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
               value={date}
               min={minDate || undefined}
               onChange={(e) => setDate(e.target.value)}
-              aria-label="Choose a date"
+              aria-label={t('Choose a date')}
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
             />
           </label>
@@ -183,7 +191,7 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
               <IconGlobe width={18} height={18} className="text-teal" />
               <span className="flex-1">
                 <span className="block text-[11px] font-bold uppercase tracking-wider text-teal">
-                  Live guide
+                  {t('Live guide')}
                 </span>
                 <span className="block text-[13.5px] font-semibold text-ink">
                   {languages.join(', ')}
@@ -194,9 +202,9 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
         </div>
 
         <div className="mt-4 flex items-center justify-between border-t border-ink/[0.08] pt-3.5">
-          <span className="text-[13px] font-bold text-ink/80">Total</span>
+          <span className="text-[13px] font-bold text-ink/80">{t('Total')}</span>
           <span className="text-xl font-extrabold tracking-tight text-ink">
-            {total != null ? eur(total) : '—'}
+            {total != null ? <Price eur={total} /> : '—'}
           </span>
         </div>
 
@@ -206,30 +214,29 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
           rel="noopener noreferrer"
           className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-[13px] bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark"
         >
-          <IconChat width={18} height={18} /> Reserve on WhatsApp
+          <IconChat width={18} height={18} /> {t('Reserve on WhatsApp')}
         </a>
         <p className="mt-2 text-center text-[11.5px] text-ink-muted">
-          Secure online checkout is launching soon.
+          {t('Secure online checkout is launching soon.')}
         </p>
 
         <div className="mt-4 flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5 text-[13px] text-ink/80">
-            <IconCheck width={16} height={16} className="text-teal" /> Free cancellation up to 24
-            hours before
+            <IconCheck width={16} height={16} className="text-teal" /> {t('Free cancellation up to 24 hours before')}
           </div>
           <div className="flex items-center gap-2.5 text-[13px] text-ink/80">
             <IconCheck width={16} height={16} className="text-teal" />
-            {isTransport ? 'Meet & greet — fuel & tolls included' : 'Instant confirmation & e-voucher'}
+            {isTransport ? t('Meet & greet — fuel & tolls included') : t('Instant confirmation & e-voucher')}
           </div>
         </div>
       </div>
 
       <div className="flex items-center justify-between gap-2.5 border-t border-ink/[0.08] bg-cream px-5 py-3">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-ink/80">
-          <IconShield width={15} height={15} className="text-teal" /> Secure payment by Peach
+          <IconShield width={15} height={15} className="text-teal" /> {t('Secure payment by Peach')}
         </span>
         <span className="flex items-center gap-1.5 text-xs font-bold text-teal">
-          <IconBolt width={15} height={15} /> Instant confirmation
+          <IconBolt width={15} height={15} /> {t('Instant confirmation')}
         </span>
       </div>
     </div>

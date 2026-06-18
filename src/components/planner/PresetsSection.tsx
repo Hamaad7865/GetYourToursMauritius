@@ -1,5 +1,8 @@
 'use client';
 
+import { Price } from '@/components/site/Price';
+import { useT } from '@/components/site/PreferencesProvider';
+
 export interface PresetCard {
   id: string;
   name: string;
@@ -11,18 +14,19 @@ export interface PresetCard {
 
 /** "Ready-made road trips" — open a curated route in the planner, then customise it. */
 export function PresetsSection({ items, onOpen }: { items: PresetCard[]; onOpen: (id: string) => void }) {
+  const t = useT();
   if (items.length === 0) return null;
   return (
     <section id="planner-presets" className="mx-auto max-w-shell px-[22px] pb-2 pt-[54px]">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="mb-1.5 text-[13px] font-bold uppercase tracking-[0.04em] text-teal">Ready-made road trips</p>
+          <p className="mb-1.5 text-[13px] font-bold uppercase tracking-[0.04em] text-teal">{t('Ready-made road trips')}</p>
           <h2 className="m-0 font-display text-[clamp(26px,4vw,38px)] font-semibold tracking-[-0.02em] text-ink">
-            Start from a local favourite
+            {t('Start from a local favourite')}
           </h2>
         </div>
         <p className="m-0 max-w-[330px] text-sm text-ink-muted">
-          Open any route in the planner, then make it yours — add a beach, drop a stop, the price updates live.
+          {t('Open any route in the planner, then make it yours — add a beach, drop a stop, the price updates live.')}
         </p>
       </div>
 
@@ -47,14 +51,14 @@ export function PresetsSection({ items, onOpen }: { items: PresetCard[]; onOpen:
                 <span className="font-display text-[18px] font-semibold text-ink">{p.name}</span>
               </div>
               <div className="mb-3.5 flex items-center gap-[7px] text-[13px] text-ink-muted">
-                <span>{p.stopCount} stops</span>
+                <span>{t('{n} stops', { n: p.stopCount })}</span>
                 <span className="opacity-40">·</span>
                 <span>{p.hoursLabel}</span>
                 <span className="opacity-40">·</span>
-                <span className="font-bold text-gold">from €{p.fromEur}</span>
+                <span className="font-bold text-gold">{t('from')} <Price eur={p.fromEur} /></span>
               </div>
               <span className="inline-flex items-center gap-[7px] text-[13.5px] font-bold text-teal">
-                Open in planner
+                {t('Open in planner')}
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="transition-transform group-hover:translate-x-1" aria-hidden>
                   <path d="M5 12h13m0 0-5-5m5 5-5 5" stroke="#0E8C92" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
                 </svg>

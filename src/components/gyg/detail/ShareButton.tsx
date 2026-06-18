@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { IconShare } from '@/components/ui/icons';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /** Share via the Web Share API where available, otherwise copy the link. */
 export function ShareButton({ title }: { title: string }) {
   const [copied, setCopied] = useState(false);
+  const t = useT();
 
   async function share() {
     const url = typeof window !== 'undefined' ? window.location.href : '';
@@ -28,7 +30,7 @@ export function ShareButton({ title }: { title: string }) {
       onClick={share}
       className="flex items-center gap-2 rounded-xl border border-ink/14 px-3.5 py-2 text-[13.5px] font-semibold text-ink hover:border-teal hover:text-teal"
     >
-      <IconShare width={16} height={16} /> {copied ? 'Link copied' : 'Share'}
+      <IconShare width={16} height={16} /> {copied ? t('Link copied') : t('Share')}
     </button>
   );
 }

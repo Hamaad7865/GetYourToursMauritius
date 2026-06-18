@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/components/site/PreferencesProvider';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { useCategories } from '@/lib/categories/useCategories';
 import { addRecentSearch, getRecentSearches } from '@/lib/search/recent';
@@ -35,6 +36,7 @@ const MAX_PER_GROUP = 16;
  */
 export function MobileSearch() {
   const [open, setOpen] = useState(false);
+  const t = useT();
 
   return (
     <>
@@ -44,7 +46,7 @@ export function MobileSearch() {
         className="flex w-full items-center gap-2.5 rounded-full border border-ink/10 bg-white px-4 py-2.5 text-left shadow-[0_8px_22px_-12px_rgba(10,46,54,0.5)] active:scale-[0.99] sm:hidden"
       >
         <IconSearch width={19} height={19} className="text-teal" />
-        <span className="text-[14.5px] font-semibold text-ink-muted">Search tours &amp; activities</span>
+        <span className="text-[14.5px] font-semibold text-ink-muted">{t('Search tours & activities')}</span>
       </button>
       {open && <SearchSheet onClose={() => setOpen(false)} />}
     </>
@@ -53,6 +55,7 @@ export function MobileSearch() {
 
 function SearchSheet({ onClose }: { onClose: () => void }) {
   const router = useRouter();
+  const t = useT();
   const categories = useCategories();
   const [query, setQuery] = useState('');
   const [date, setDate] = useState<Date | null>(null);
@@ -78,7 +81,7 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
   }
 
   const total = adults + kids;
-  const dateLabel = date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Anytime';
+  const dateLabel = date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : t('Anytime');
 
   return (
     <div
@@ -86,15 +89,15 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
       className="fixed inset-0 z-[70] flex animate-slide-up flex-col bg-cream sm:hidden"
       role="dialog"
       aria-modal="true"
-      aria-label="Search"
+      aria-label={t('Search')}
     >
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-ink/10 bg-white px-4 py-2.5">
-        <h2 className="flex-1 font-display text-[20px] font-semibold tracking-tight text-ink">Where to?</h2>
+        <h2 className="flex-1 font-display text-[20px] font-semibold tracking-tight text-ink">{t('Where to?')}</h2>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close search"
+          aria-label={t('Close search')}
           className="grid h-11 w-11 place-items-center rounded-full bg-ink/[0.06] text-ink hover:bg-ink/10"
         >
           <IconX width={20} height={20} />
@@ -111,8 +114,8 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && search()}
-            placeholder="Search tours, places or activities"
-            aria-label="Search tours, places or activities"
+            placeholder={t('Search tours, places or activities')}
+            aria-label={t('Search tours, places or activities')}
             className="min-w-0 flex-1 bg-transparent text-[15px] text-ink outline-none placeholder:text-ink-muted"
           />
         </div>
@@ -122,7 +125,7 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
           {recents.length > 0 && (
             <>
               <p className="px-4 pb-1 pt-3 text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
-                Recent searches
+                {t('Recent searches')}
               </p>
               {recents.map((r) => (
                 <button
@@ -140,7 +143,7 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
             </>
           )}
           <p className="px-4 pb-1 pt-3 text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
-            Browse Belle Mare
+            {t('Browse Belle Mare')}
           </p>
           {categories.map((c) => (
             <button
@@ -182,15 +185,15 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
         >
           <IconUsers width={20} height={20} className="text-teal" />
           <span className="flex-1 text-[14.5px] font-semibold text-ink">
-            {total} {total === 1 ? 'traveller' : 'travellers'}
+            {total === 1 ? t('{n} traveller', { n: total }) : t('{n} travellers', { n: total })}
           </span>
           <IconChevron width={16} height={16} className={`text-ink-muted transition-transform ${panel === 'travellers' ? 'rotate-180' : ''}`} />
         </button>
         {panel === 'travellers' && (
           <div className="mt-2 rounded-2xl border border-ink/10 bg-white p-4">
-            <Stepper label="Adults" hint="Ages 18+" value={adults} min={1} onChange={setAdults} />
+            <Stepper label={t('Adults')} hint={t('Ages 18+')} value={adults} min={1} onChange={setAdults} />
             <div className="h-px bg-ink/10" />
-            <Stepper label="Children" hint="Ages 0–17" value={kids} min={0} onChange={setKids} />
+            <Stepper label={t('Children')} hint={t('Ages 0–17')} value={kids} min={0} onChange={setKids} />
           </div>
         )}
       </div>
@@ -208,14 +211,14 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
           }}
           className="text-[14px] font-bold text-ink underline underline-offset-2"
         >
-          Clear all
+          {t('Clear all')}
         </button>
         <button
           type="button"
           onClick={search}
           className="flex items-center gap-2 rounded-full bg-teal px-7 py-3 text-[15px] font-bold text-white hover:bg-teal-dark"
         >
-          <IconSearch width={18} height={18} /> Search
+          <IconSearch width={18} height={18} /> {t('Search')}
         </button>
       </div>
     </div>
@@ -223,6 +226,7 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
 }
 
 function DateInline({ selected, onPick }: { selected: Date | null; onPick: (d: Date | null) => void }) {
+  const t = useT();
   const today = startOfDay(new Date());
   const [view, setView] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const canBack = view > new Date(today.getFullYear(), today.getMonth(), 1);
@@ -246,7 +250,7 @@ function DateInline({ selected, onPick }: { selected: Date | null; onPick: (d: D
                 active ? 'bg-teal text-white' : 'bg-cream text-ink'
               }`}
             >
-              {c.label}
+              {t(c.label)}
             </button>
           );
         })}
@@ -254,7 +258,7 @@ function DateInline({ selected, onPick }: { selected: Date | null; onPick: (d: D
       <div className="mb-2 flex items-center justify-between">
         <button
           type="button"
-          aria-label="Previous month"
+          aria-label={t('Previous month')}
           disabled={!canBack}
           onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
           className="grid h-10 w-10 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
@@ -266,7 +270,7 @@ function DateInline({ selected, onPick }: { selected: Date | null; onPick: (d: D
         </span>
         <button
           type="button"
-          aria-label="Next month"
+          aria-label={t('Next month')}
           onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
           className="grid h-10 w-10 place-items-center rounded-full text-ink hover:bg-cream"
         >
@@ -315,6 +319,7 @@ function Stepper({
   min: number;
   onChange: (n: number) => void;
 }) {
+  const t = useT();
   return (
     <div className="flex items-center justify-between py-2" role="group" aria-label={label}>
       <div>
@@ -324,7 +329,7 @@ function Stepper({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          aria-label={`Remove ${label.toLowerCase()}`}
+          aria-label={t('Remove {label}', { label: label.toLowerCase() })}
           disabled={value <= min}
           onClick={() => onChange(Math.max(min, value - 1))}
           className="grid h-10 w-10 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
@@ -336,7 +341,7 @@ function Stepper({
         </span>
         <button
           type="button"
-          aria-label={`Add ${label.toLowerCase()}`}
+          aria-label={t('Add {label}', { label: label.toLowerCase() })}
           disabled={value >= MAX_PER_GROUP}
           onClick={() => onChange(Math.min(MAX_PER_GROUP, value + 1))}
           className="grid h-10 w-10 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"

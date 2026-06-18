@@ -1,4 +1,7 @@
+'use client';
+
 import Link from 'next/link';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /**
  * Promo card for the AI Road Trip Planner, shown FIRST in the private sightseeing-tours listing
@@ -15,6 +18,7 @@ export function PlannerPromoCard({
   className?: string;
   titleAs?: 'h2' | 'h3' | 'h4';
 }) {
+  const t = useT();
   return (
     <div
       className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 border-teal/40 bg-white shadow-sm transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)] ${
@@ -38,7 +42,7 @@ export function PlannerPromoCard({
         </svg>
 
         <span className="absolute left-3 top-3 z-10 rounded-md bg-coral px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white shadow">
-          New
+          {t('New')}
         </span>
 
         <div className="absolute inset-0 z-[1] flex flex-col items-center justify-center gap-2 px-4 text-center">
@@ -47,28 +51,28 @@ export function PlannerPromoCard({
               <path d="M12 3l2.3 4.7L19.5 8l-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z" fill="#fff" />
             </svg>
           </span>
-          <span className="font-display text-[19px] font-semibold leading-tight text-white">AI Trip Planner</span>
+          <span className="font-display text-[19px] font-semibold leading-tight text-white">{t('AI Trip Planner')}</span>
         </div>
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-teal">Build your own day</div>
+        <div className="mb-1.5 text-xs font-bold uppercase tracking-wide text-teal">{t('Build your own day')}</div>
         <TitleTag className="m-0 line-clamp-2 text-base font-bold leading-snug text-ink">
-          Design your own private sightseeing day
+          {t('Design your own private sightseeing day')}
         </TitleTag>
-        <div className="mt-2 text-[13px] text-ink-muted">Pick your stops · live drive times · instant quote</div>
+        <div className="mt-2 text-[13px] text-ink-muted">{t('Pick your stops · live drive times · instant quote')}</div>
 
         <div className="mt-auto flex items-center justify-between border-t border-ink/[0.07] pt-3.5">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-teal px-3.5 py-1.5 text-[13px] font-bold text-white transition-transform group-hover:translate-x-0.5">
-            Plan my day →
+            {t('Plan my day')} →
           </span>
-          <span className="text-[12.5px] text-ink-muted">Free to try</span>
+          <span className="text-[12.5px] text-ink-muted">{t('Free to try')}</span>
         </div>
       </div>
 
       <Link
         href="/ai-road-trip-planner"
-        aria-label="Open the AI Trip Planner"
+        aria-label={t('Open the AI Trip Planner')}
         className="absolute inset-0 z-0"
       />
     </div>

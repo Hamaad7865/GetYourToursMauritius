@@ -17,18 +17,21 @@ import {
   type BrowseParams,
 } from '@/lib/catalogue/browse';
 import { SITE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 import type { TourSummary } from '@/lib/validation/tours';
 
 export const runtime = 'edge';
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-function heading(params: BrowseParams): string {
-  if (params.q) return `Results for “${params.q}”`;
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+function heading(params: BrowseParams, t: Translate): string {
+  if (params.q) return t('Results for “{q}”', { q: params.q });
   if (params.category) return params.category;
-  if (params.type === 'transport') return 'Airport transfers & transport';
-  if (params.type === 'activity') return 'Things to do';
-  return 'All activities & transfers';
+  if (params.type === 'transport') return t('Airport transfers & transport');
+  if (params.type === 'activity') return t('Things to do');
+  return t('All activities & transfers');
 }
 
 export async function generateMetadata({
@@ -37,7 +40,8 @@ export async function generateMetadata({
   searchParams: SearchParams;
 }): Promise<Metadata> {
   const params = parseBrowseParams(await searchParams);
-  const title = `${heading(params)} | ${SITE.operator}`;
+  const t = await getT();
+  const title = `${heading(params, t)} | ${SITE.operator}`;
   return {
     title,
     description: SITE.description,
@@ -66,6 +70,7 @@ async function loadResults(
 
 export default async function ActivitiesPage({ searchParams }: { searchParams: SearchParams }) {
   const params = parseBrowseParams(await searchParams);
+  const t = await getT();
   const { items, total } = await loadResults(params);
   const totalPages = Math.max(1, Math.ceil(total / BROWSE_PAGE_SIZE));
   // A tampered/stale ?page beyond the last page would render an empty grid under a
@@ -82,11 +87,15 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
         <div className="mx-auto max-w-shell px-6 pb-16 pt-6">
           <div className="mb-2">
             <h1 className="m-0 font-display text-3xl font-medium tracking-tight text-ink">
-              {heading(params)}
+              {heading(params, t)}
             </h1>
             <p className="mt-1.5 text-sm text-ink-muted">
-              {total > 0 ? `${total} ${total === 1 ? 'experience' : 'experiences'}` : 'Experiences'}{' '}
-              operated by {SITE.operator} · East-coast Mauritius
+              {total > 0
+                ? total === 1
+                  ? t('{n} experience', { n: total })
+                  : t('{n} experiences', { n: total })
+                : t('Experiences')}{' '}
+              {t('operated by {operator} · East-coast Mauritius', { operator: SITE.operator })}
             </p>
           </div>
 
@@ -107,7 +116,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
 
           {totalPages > 1 && (
             <nav
-              aria-label="Pagination"
+              aria-label={t('Pagination')}
               className="mt-10 flex items-center justify-center gap-3 text-sm"
             >
               {page > 1 ? (
@@ -116,15 +125,15 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
                   className="rounded-xl border border-ink/12 bg-white px-4 py-2.5 font-semibold text-ink hover:border-teal"
                   rel="prev"
                 >
-                  ← Previous
+                  ← {t('Previous')}
                 </Link>
               ) : (
                 <span className="rounded-xl border border-ink/[0.06] px-4 py-2.5 font-semibold text-ink-muted/50">
-                  ← Previous
+                  ← {t('Previous')}
                 </span>
               )}
               <span className="text-ink-muted">
-                Page {page} of {totalPages}
+                {t('Page {page} of {total}', { page, total: totalPages })}
               </span>
               {page < totalPages ? (
                 <Link
@@ -132,11 +141,11 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
                   className="rounded-xl border border-ink/12 bg-white px-4 py-2.5 font-semibold text-ink hover:border-teal"
                   rel="next"
                 >
-                  Next →
+                  {t('Next')} →
                 </Link>
               ) : (
                 <span className="rounded-xl border border-ink/[0.06] px-4 py-2.5 font-semibold text-ink-muted/50">
-                  Next →
+                  {t('Next')} →
                 </span>
               )}
             </nav>

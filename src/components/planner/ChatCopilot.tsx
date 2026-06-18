@@ -1,22 +1,26 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
 import type { ChatMsg, Boost } from './types';
 import { fmtDur } from './planner-constants';
 import { Thumb } from './Thumb';
+import { Price } from '@/components/site/Price';
+import { useT } from '@/components/site/PreferencesProvider';
 
 const REPLY_CHIPS = ['Add a beach', 'Add a viewpoint', 'Make it shorter'];
 
 function VerifiedCue() {
+  const t = useT();
   return (
     <span className="inline-flex items-center gap-1 rounded-[7px] bg-teal-tint px-[7px] py-[3px] text-[11px] font-bold text-teal">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
         <path d="M5 13l4 4L19 7" stroke="#0E8C92" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      Real place · open today
+      {t('Real place · open today')}
     </span>
   );
 }
@@ -56,6 +60,7 @@ export function ChatCopilot({
   onQuote: () => void;
   onAddPlace: (id: string) => void;
 }) {
+  const t = useT();
   const [draft, setDraft] = useState('');
   const bodyRef = useRef<HTMLDivElement>(null);
 
@@ -96,13 +101,13 @@ export function ChatCopilot({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M5 16l1.5-4.5A2 2 0 0 1 8.4 10h7.2a2 2 0 0 1 1.9 1.5L19 16m-14 0v2.5a.5.5 0 0 0 .5.5H7a.5.5 0 0 0 .5-.5V16m11.5 0v2.5a.5.5 0 0 1-.5.5H17a.5.5 0 0 1-.5-.5V16M5 16h14" stroke="#0B5C63" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
             </svg>
-            {drive ? `${drive.minutes} min · ${drive.km} km from last stop` : 'mapped'}
+            {drive ? t('{m} min · {km} km from last stop', { m: drive.minutes, km: drive.km }) : t('mapped')}
           </span>
           {added ? (
-            <span className="text-xs font-bold text-teal">✓ Added</span>
+            <span className="text-xs font-bold text-teal">{t('✓ Added')}</span>
           ) : (
             <button type="button" onClick={() => onAddPlace(id)} className="cursor-pointer rounded-[9px] bg-coral px-[13px] py-[7px] text-[12.5px] font-bold text-white">
-              + Add
+              {t('+ Add')}
             </button>
           )}
         </div>
@@ -114,7 +119,7 @@ export function ChatCopilot({
     return (
       <div key={key} className="max-w-[88%] animate-pop self-start rounded-[4px_16px_16px_16px] border border-[#D8ECEA] p-3.5 shadow-[0_10px_26px_rgba(14,140,146,.12)]" style={{ background: 'linear-gradient(160deg,#fff,#EAF7F5)' }}>
         <div className="mb-2.5 flex items-center gap-2">
-          <span className="font-display text-[15px] font-semibold text-ink">Your day, mapped</span>
+          <span className="font-display text-[15px] font-semibold text-ink">{t('Your day, mapped')}</span>
           <span className="ml-auto">
             <VerifiedCue />
           </span>
@@ -124,25 +129,25 @@ export function ChatCopilot({
             <div key={p.id} className="flex items-center gap-[9px] text-[13px]">
               <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-coral text-[11px] font-extrabold text-white">{i + 1}</span>
               <span className="font-semibold text-ink">{p.name}</span>
-              <span className="ml-auto text-[11.5px] text-ink-muted">{fmtDur(p.durationMin)} here</span>
+              <span className="ml-auto text-[11.5px] text-ink-muted">{t('{d} here', { d: fmtDur(p.durationMin) })}</span>
             </div>
           ))}
         </div>
         <div className="mb-[11px] flex gap-3.5 border-y border-teal/15 py-[9px]">
-          {[
+          {([
             ['Stops', String(stops.length)],
             ['Driving', fmtDur(route.totalMinutes)],
             ['Distance', `${route.totalKm} km`],
-            ['Est.', quote ? `€${quote.totalEur}` : '—'],
-          ].map(([k, v]) => (
+            ['Est.', quote ? <Price eur={quote.totalEur} /> : '—'],
+          ] as Array<[string, ReactNode]>).map(([k, v]) => (
             <div key={k}>
-              <div className="text-[10.5px] font-bold uppercase tracking-[0.03em] text-ink-muted">{k}</div>
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.03em] text-ink-muted">{t(k)}</div>
               <div className={`text-[15px] font-extrabold ${k === 'Est.' ? 'font-display text-gold' : 'text-ink'} tabular-nums`}>{v}</div>
             </div>
           ))}
         </div>
         <button type="button" onClick={onQuote} className="w-full cursor-pointer rounded-[11px] py-[11px] text-sm font-bold text-white shadow-[0_8px_18px_rgba(14,140,146,.28)]" style={{ background: 'linear-gradient(135deg,#13A0A6,#0B5C63)' }}>
-          Get my quote →
+          {t('Get my quote →')}
         </button>
       </div>
     );
@@ -161,12 +166,12 @@ export function ChatCopilot({
           <span className="absolute -bottom-px -right-px h-2.5 w-2.5 rounded-full border-2 border-white bg-[#3FD07A]" />
         </div>
         <div className="leading-[1.2]">
-          <div className="text-sm font-extrabold text-ink">Dodo co-pilot</div>
-          <div className="text-[11.5px] font-semibold text-teal">{typing ? 'planning…' : 'Local expert · online'}</div>
+          <div className="text-sm font-extrabold text-ink">{t('Dodo co-pilot')}</div>
+          <div className="text-[11.5px] font-semibold text-teal">{typing ? t('planning…') : t('Local expert · online')}</div>
         </div>
         {stops.length > 0 && (
-          <button type="button" onClick={onClear} aria-label="Start over" className="ml-auto cursor-pointer rounded-[9px] border border-[#EEF4F3] bg-white px-[11px] py-1.5 text-xs font-semibold text-ink-muted">
-            Reset
+          <button type="button" onClick={onClear} aria-label={t('Start over')} className="ml-auto cursor-pointer rounded-[9px] border border-[#EEF4F3] bg-white px-[11px] py-1.5 text-xs font-semibold text-ink-muted">
+            {t('Reset')}
           </button>
         )}
       </div>
@@ -182,12 +187,12 @@ export function ChatCopilot({
                 <circle cx={5.5} cy={15.5} r={1.2} fill="#0E8C92" />
               </svg>
             </div>
-            <p className="m-0 mb-1 font-display text-[17px] font-semibold text-ink">Plan your day with me</p>
+            <p className="m-0 mb-1 font-display text-[17px] font-semibold text-ink">{t('Plan your day with me')}</p>
             <p className="m-0 text-[13.5px] leading-[1.5] text-ink-muted">
-              Describe it above, tap a starter, or browse places — I&apos;ll build the route and keep the price live.
+              {t('Describe it above, tap a starter, or browse places — I’ll build the route and keep the price live.')}
             </p>
             <button type="button" onClick={onBrowse} className="mt-3.5 cursor-pointer rounded-[11px] border border-[#E3EEEC] bg-white px-4 py-[9px] text-[13px] font-bold text-teal-dark">
-              Or browse places
+              {t('Or browse places')}
             </button>
           </div>
         ) : null}
@@ -229,14 +234,15 @@ export function ChatCopilot({
           </span>
           <div className="flex-1">
             <p className="m-0 mb-2 text-[12.5px] font-semibold leading-[1.45] text-[#7A5A12]">
-              <strong>{boost.place} closes at {boost.close}.</strong> It&apos;s late in your order — want me to move it earlier?
+              <strong>{t('{place} closes at {time}.', { place: boost.place, time: boost.close })}</strong>{' '}
+              {t('It’s late in your order — want me to move it earlier?')}
             </p>
             <div className="flex gap-[7px]">
               <button type="button" onClick={onApplyBoost} className="cursor-pointer rounded-lg bg-gold px-3 py-1.5 text-xs font-bold text-white">
-                Yes, reorder
+                {t('Yes, reorder')}
               </button>
               <button type="button" onClick={onDismissBoost} className="cursor-pointer rounded-lg border border-[#E7D3A0] bg-white px-3 py-1.5 text-xs font-bold text-[#7A5A12]">
-                Keep as is
+                {t('Keep as is')}
               </button>
             </div>
           </div>
@@ -249,7 +255,7 @@ export function ChatCopilot({
           <div className="mb-[9px] flex flex-wrap gap-[7px]">
             {REPLY_CHIPS.map((c) => (
               <button key={c} type="button" onClick={() => onSend(c)} className="cursor-pointer rounded-full border border-[#E3EEEC] bg-teal-tint px-[11px] py-1.5 text-xs font-semibold text-teal-dark">
-                {c}
+                {t(c)}
               </button>
             ))}
           </div>
@@ -264,11 +270,11 @@ export function ChatCopilot({
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder="Message your co-pilot…"
-            aria-label="Message the AI co-pilot"
+            placeholder={t('Message your co-pilot…')}
+            aria-label={t('Message the AI co-pilot')}
             className="min-w-0 flex-1 border-none bg-transparent text-sm text-ink outline-none"
           />
-          <button type="button" aria-label="Voice input" className="grid cursor-pointer place-items-center p-1.5">
+          <button type="button" aria-label={t('Voice input')} className="grid cursor-pointer place-items-center p-1.5">
             <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z" stroke="#51666B" strokeWidth={1.8} />
               <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#51666B" strokeWidth={1.8} strokeLinecap="round" />
@@ -276,7 +282,7 @@ export function ChatCopilot({
           </button>
           <button
             type="submit"
-            aria-label="Send message"
+            aria-label={t('Send message')}
             className="grid h-[38px] w-[38px] shrink-0 cursor-pointer place-items-center rounded-[11px]"
             style={{ background: 'linear-gradient(135deg,#13A0A6,#0B5C63)' }}
           >

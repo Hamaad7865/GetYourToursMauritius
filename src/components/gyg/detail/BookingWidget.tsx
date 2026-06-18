@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useBooking } from './BookingProvider';
+import { useT } from '@/components/site/PreferencesProvider';
+import { Price } from '@/components/site/Price';
 import {
   IconBolt,
   IconCalendar,
@@ -21,9 +23,6 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /** Hard cap on the party picker — above this the customer is sent to "contact us for a quote". */
 const MAX_PARTY = 25;
 
-function eur(n: number): string {
-  return Number.isInteger(n) ? `€${n}` : `€${n.toFixed(2)}`;
-}
 function startOfDay(d: Date): Date {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -52,11 +51,12 @@ function MonthGrid({
   available: (cell: Date) => boolean;
   onPick: (cell: Date) => void;
 }) {
+  const t = useT();
   return (
     <div className="grid grid-cols-7 gap-0.5 text-center">
       {WEEKDAYS.map((w) => (
         <span key={w} className="py-1 text-[11px] font-semibold text-ink-muted">
-          {w}
+          {t(w)}
         </span>
       ))}
       {monthCells(month.getFullYear(), month.getMonth()).map((cell, i) => {
@@ -92,6 +92,7 @@ function MonthGrid({
  * (BookingOptionCard) in the page body. The vehicle (Sedan/SUV) + price + Continue live in that card.
  */
 export function BookingWidget() {
+  const t = useT();
   const b = useBooking();
   const {
     activity,
@@ -110,6 +111,11 @@ export function BookingWidget() {
   const isTransport = activity.type === 'transport';
   const isVehicle = activity.pricingMode === 'vehicle';
   const isGroup = b.groupSize != null;
+  // `unitLabel` stays English in the provider (cart/checkout post it verbatim). Translate for display:
+  // the per-group form carries a number, so interpolate it; the rest are static keys.
+  const unitLabelText = b.groupSize != null
+    ? t('per group up to {n}', { n: b.groupSize })
+    : t(unitLabel);
 
   const [open, setOpen] = useState<'parts' | 'date' | 'lang' | null>(null);
   const [view, setView] = useState(() => {
@@ -140,7 +146,7 @@ export function BookingWidget() {
 
   const dateText = date
     ? new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-    : 'Select a date';
+    : t('Select a date');
   const noAvailability = days !== null && days.size === 0;
 
   function isDisabled(cell: Date): boolean {
@@ -175,23 +181,23 @@ export function BookingWidget() {
       >
         {isTransport ? (
           <>
-            <IconShield width={15} height={15} /> Free cancellation up to 24h
+            <IconShield width={15} height={15} /> {t('Free cancellation up to 24h')}
           </>
         ) : (
           <>
-            <IconBolt width={15} height={15} /> Likely to sell out
+            <IconBolt width={15} height={15} /> {t('Likely to sell out')}
           </>
         )}
       </div>
 
       <div className="p-5">
         <div className="flex items-baseline gap-2">
-          <span className="text-[13px] text-ink-muted">From</span>
+          <span className="text-[13px] text-ink-muted">{t('From')}</span>
           <span className="text-[30px] font-extrabold tracking-tight text-ink">
-            {activity.fromPriceEur != null ? eur(activity.fromPriceEur) : 'On request'}
+            {activity.fromPriceEur != null ? <Price eur={activity.fromPriceEur} /> : t('On request')}
           </span>
         </div>
-        <div className="text-[13px] text-ink-muted">{unitLabel}</div>
+        <div className="text-[13px] text-ink-muted">{unitLabelText}</div>
 
         <div className="mt-4 flex flex-col gap-2.5">
           {/* Participants */}
@@ -199,7 +205,7 @@ export function BookingWidget() {
             <button type="button" onClick={() => setOpen((o) => (o === 'parts' ? null : 'parts'))} className={rowClass}>
               <IconUsers width={18} height={18} className="text-teal" />
               <span className="flex-1 text-[14px] font-semibold text-ink">
-                Participants <span className="text-ink-muted">× {participants}</span>
+                {t('Participants')} <span className="text-ink-muted">× {participants}</span>
               </span>
               <IconChevron width={16} height={16} className="text-ink-muted" />
             </button>
@@ -208,14 +214,14 @@ export function BookingWidget() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-bold text-ink">
-                      {activity.pricingMode === 'vehicle' ? 'Passengers' : isGroup ? 'Group size' : 'Participants'}
+                      {activity.pricingMode === 'vehicle' ? t('Passengers') : isGroup ? t('Group size') : t('Participants')}
                     </p>
-                    <p className="text-[12px] text-ink-muted">All ages welcome</p>
+                    <p className="text-[12px] text-ink-muted">{t('All ages welcome')}</p>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <button
                       type="button"
-                      aria-label="Remove participant"
+                      aria-label={t('Remove participant')}
                       onClick={() => {
                         setParticipants(Math.max(1, participants - 1));
                         touch();
@@ -231,7 +237,7 @@ export function BookingWidget() {
                       min={1}
                       max={partyCap}
                       value={participants}
-                      aria-label="Number of participants"
+                      aria-label={t('Number of participants')}
                       onChange={(e) => {
                         const n = parseInt(e.target.value, 10);
                         if (!Number.isNaN(n)) setParticipants(Math.max(1, Math.min(partyCap, n)));
@@ -241,7 +247,7 @@ export function BookingWidget() {
                     />
                     <button
                       type="button"
-                      aria-label="Add participant"
+                      aria-label={t('Add participant')}
                       onClick={() => {
                         setParticipants(Math.min(partyCap, participants + 1));
                         touch();
@@ -255,11 +261,11 @@ export function BookingWidget() {
                 </div>
                 {participants >= MAX_PARTY && (
                   <p className="mt-3 text-[12.5px] text-ink-muted">
-                    Travelling with more than {MAX_PARTY}?{' '}
+                    {t('Travelling with more than {n}?', { n: MAX_PARTY })}{' '}
                     <Link href="/contact" className="font-bold text-teal underline underline-offset-2">
-                      Contact us
+                      {t('Contact us')}
                     </Link>{' '}
-                    for a quote.
+                    {t('for a quote.')}
                   </p>
                 )}
                 <button
@@ -267,7 +273,7 @@ export function BookingWidget() {
                   onClick={() => setOpen(null)}
                   className="mt-4 w-full rounded-full bg-teal px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
                 >
-                  Continue
+                  {t('Continue')}
                 </button>
               </div>
             )}
@@ -283,7 +289,7 @@ export function BookingWidget() {
             >
               <IconCalendar width={18} height={18} className="text-teal" />
               <span className={`flex-1 text-[14px] font-semibold ${date ? 'text-ink' : 'text-ink-muted'}`}>
-                {noAvailability ? 'No dates available yet' : dateText}
+                {noAvailability ? t('No dates available yet') : dateText}
               </span>
               <IconChevron width={16} height={16} className="text-ink-muted" />
             </button>
@@ -295,7 +301,7 @@ export function BookingWidget() {
                     <div className="mb-2 flex items-center justify-between">
                       <button
                         type="button"
-                        aria-label="Previous month"
+                        aria-label={t('Previous month')}
                         disabled={!canBack}
                         onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
                         className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
@@ -307,7 +313,7 @@ export function BookingWidget() {
                       </span>
                       <button
                         type="button"
-                        aria-label="Next month"
+                        aria-label={t('Next month')}
                         disabled={!canFwd}
                         onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
                         className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
@@ -328,12 +334,12 @@ export function BookingWidget() {
               <button
                 type="button"
                 onClick={() => setOpen((o) => (o === 'lang' ? null : 'lang'))}
-                aria-label="Guide language"
+                aria-label={t('Guide language')}
                 aria-expanded={open === 'lang'}
                 className={rowClass}
               >
                 <IconGlobe width={18} height={18} className="text-teal" />
-                <span className="text-[11px] font-bold uppercase tracking-wide text-teal">Guide</span>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-teal">{t('Guide')}</span>
                 <span className="flex-1 text-right text-[14px] font-semibold text-ink">{lang}</span>
                 <IconChevron
                   width={16}
@@ -378,24 +384,27 @@ export function BookingWidget() {
           onClick={checkAvailability}
           className="mt-4 flex w-full items-center justify-center rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark disabled:opacity-50"
         >
-          Check availability
+          {t('Check availability')}
         </button>
         {date && !isVehicle && seatsForDate > 0 && seatsForDate < participants && (
           <p className="mt-2 text-center text-[12px] font-medium text-coral">
-            Only {seatsForDate} {seatsForDate === 1 ? 'spot' : 'spots'} left on this date.
+            {t('Only {n} {noun} left on this date.', {
+              n: seatsForDate,
+              noun: seatsForDate === 1 ? t('spot') : t('spots'),
+            })}
           </p>
         )}
         <p className="mt-2 text-center text-[11.5px] text-ink-muted">
-          You won&apos;t be charged until you confirm.
+          {t('You won’t be charged until you confirm.')}
         </p>
       </div>
 
       <div className="flex items-center justify-between gap-2.5 border-t border-ink/[0.08] bg-cream px-5 py-3">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-ink/80">
-          <IconShield width={15} height={15} className="text-teal" /> Secure payment by Peach
+          <IconShield width={15} height={15} className="text-teal" /> {t('Secure payment by Peach')}
         </span>
         <span className="flex items-center gap-1.5 text-xs font-bold text-teal">
-          <IconBolt width={15} height={15} /> Instant confirmation
+          <IconBolt width={15} height={15} /> {t('Instant confirmation')}
         </span>
       </div>
     </div>

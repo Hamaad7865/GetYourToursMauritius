@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/components/site/PreferencesProvider';
 import { useCategories } from '@/lib/categories/useCategories';
 import { addRecentSearch, getRecentSearches } from '@/lib/search/recent';
 import {
@@ -60,6 +61,7 @@ type Variant = 'hero' | 'compact';
  */
 export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   const router = useRouter();
+  const t = useT();
   const categories = useCategories();
   const [query, setQuery] = useState('');
   const [date, setDate] = useState<Date | null>(null);
@@ -131,8 +133,8 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   }
 
   const total = adults + kids;
-  const dateLabel = date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Anytime';
-  const travellersLabel = `${total} ${total === 1 ? 'traveller' : 'travellers'}`;
+  const dateLabel = date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : t('Anytime');
+  const travellersLabel = total === 1 ? t('{n} traveller', { n: total }) : t('{n} travellers', { n: total });
 
   const compact = variant === 'compact';
   const segClass = `flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full font-medium hover:bg-cream ${
@@ -165,8 +167,8 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') submit();
             }}
-            placeholder="Search places or activities"
-            aria-label="Search places or activities"
+            placeholder={t('Search places or activities')}
+            aria-label={t('Search places or activities')}
             className={`min-w-0 flex-1 bg-transparent text-ink outline-none placeholder:text-ink-muted ${
               compact ? 'text-[13px]' : 'text-[15px]'
             }`}
@@ -203,7 +205,7 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
               compact ? 'px-4 py-1.5 text-[13px]' : 'px-6 py-3 text-[15px]'
             }`}
           >
-            Search
+            {t('Search')}
           </button>
         </div>
       </div>
@@ -213,7 +215,7 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
           {recents.length > 0 && (
             <>
               <p className="px-3 pb-1 pt-1 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-                Recent searches
+                {t('Recent searches')}
               </p>
               {recents.map((r) => (
                 <button
@@ -231,7 +233,7 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
             </>
           )}
           <p className="px-3 pb-1 pt-2 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-            Suggestions
+            {t('Suggestions')}
           </p>
           {categories.map((category) => (
             <button
@@ -287,6 +289,7 @@ function useAutoFocus() {
 }
 
 function DatePanel({ selected, onPick }: { selected: Date | null; onPick: (d: Date | null) => void }) {
+  const t = useT();
   const today = startOfDay(new Date());
   const [view, setView] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
   const ref = useAutoFocus();
@@ -315,7 +318,7 @@ function DatePanel({ selected, onPick }: { selected: Date | null; onPick: (d: Da
             selected === null ? 'bg-teal text-white' : 'bg-cream text-ink hover:bg-ink/10'
           }`}
         >
-          Anytime
+          {t('Anytime')}
         </button>
         {chips.map((c) => (
           <button
@@ -327,7 +330,7 @@ function DatePanel({ selected, onPick }: { selected: Date | null; onPick: (d: Da
               sameDay(selected, c.date) ? 'bg-teal text-white' : 'bg-cream text-ink hover:bg-ink/10'
             }`}
           >
-            {c.label}
+            {t(c.label)}
           </button>
         ))}
       </div>
@@ -339,7 +342,7 @@ function DatePanel({ selected, onPick }: { selected: Date | null; onPick: (d: Da
               {i === 0 ? (
                 <button
                   type="button"
-                  aria-label="Previous month"
+                  aria-label={t('Previous month')}
                   disabled={!canGoBack}
                   onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
                   className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
@@ -355,7 +358,7 @@ function DatePanel({ selected, onPick }: { selected: Date | null; onPick: (d: Da
               {i === months.length - 1 ? (
                 <button
                   type="button"
-                  aria-label="Next month"
+                  aria-label={t('Next month')}
                   onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
                   className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream"
                 >
@@ -386,7 +389,7 @@ function DatePanel({ selected, onPick }: { selected: Date | null; onPick: (d: Da
                     key={cell.toISOString()}
                     type="button"
                     disabled={past}
-                    aria-label={past ? `${full}, unavailable` : full}
+                    aria-label={past ? t('{date}, unavailable', { date: full }) : full}
                     onClick={() => onPick(cell)}
                     className={`mx-auto grid h-8 w-8 place-items-center rounded-full text-[13px] font-medium transition sm:h-9 sm:w-9 ${
                       isSel
@@ -421,6 +424,7 @@ function Stepper({
   min: number;
   onChange: (n: number) => void;
 }) {
+  const t = useT();
   return (
     <div className="flex items-center justify-between py-2" role="group" aria-label={label}>
       <div>
@@ -430,7 +434,7 @@ function Stepper({
       <div className="flex items-center gap-3">
         <button
           type="button"
-          aria-label={`Remove ${label.toLowerCase()}`}
+          aria-label={t('Remove {label}', { label: label.toLowerCase() })}
           disabled={value <= min}
           onClick={() => onChange(Math.max(min, value - 1))}
           className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
@@ -442,7 +446,7 @@ function Stepper({
         </span>
         <button
           type="button"
-          aria-label={`Add ${label.toLowerCase()}`}
+          aria-label={t('Add {label}', { label: label.toLowerCase() })}
           disabled={value >= MAX_PER_GROUP}
           onClick={() => onChange(Math.min(MAX_PER_GROUP, value + 1))}
           className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-ink hover:border-teal hover:text-teal disabled:opacity-30"
@@ -467,21 +471,22 @@ function TravellersPanel({
   onKids: (n: number) => void;
   onDone: () => void;
 }) {
+  const t = useT();
   const ref = useAutoFocus();
   return (
     <div
       ref={ref}
       className="absolute right-0 top-full z-30 mt-3 w-[min(320px,calc(100vw-2rem))] rounded-3xl border border-ink/10 bg-white p-5 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)]"
     >
-      <Stepper label="Adults" hint="Ages 18 and above" value={adults} min={1} onChange={onAdults} />
+      <Stepper label={t('Adults')} hint={t('Ages 18 and above')} value={adults} min={1} onChange={onAdults} />
       <div className="h-px bg-ink/10" />
-      <Stepper label="Children" hint="Ages 0–17" value={kids} min={0} onChange={onKids} />
+      <Stepper label={t('Children')} hint={t('Ages 0–17')} value={kids} min={0} onChange={onKids} />
       <button
         type="button"
         onClick={onDone}
         className="mt-4 w-full rounded-full bg-teal px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
       >
-        Done
+        {t('Done')}
       </button>
     </div>
   );

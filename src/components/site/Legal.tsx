@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { IconChevron, IconInfo, IconCheck, IconX } from '@/components/ui/icons';
+import { getT } from '@/lib/i18n/server';
 
 /** Shared building blocks for the legal / help articles (Terms, Privacy, Refunds, Help).
  *  All presentational, server-rendered, brand-token styled, no client JS — the only interactivity
@@ -14,20 +15,21 @@ export interface TocItem {
  * Two-column reading layout: a sticky "On this page" rail on desktop, the article in a constrained
  * ~70-character measure for legibility. On mobile the rail collapses into a <details> jump menu.
  */
-export function LegalArticle({ toc, children }: { toc: TocItem[]; children: ReactNode }) {
+export async function LegalArticle({ toc, children }: { toc: TocItem[]; children: ReactNode }) {
+  const t = await getT();
   return (
     <div className="lg:grid lg:grid-cols-[200px_minmax(0,1fr)] lg:gap-12">
       {/* Mobile / tablet: collapsible jump menu */}
       <details className="group mb-7 rounded-xl border border-ink/10 bg-cream/50 lg:hidden">
         <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-bold text-ink [&::-webkit-details-marker]:hidden">
-          On this page
+          {t('On this page')}
           <IconChevron
             width={16}
             height={16}
             className="text-ink-muted transition-transform group-open:rotate-180"
           />
         </summary>
-        <nav aria-label="On this page" className="flex flex-col gap-0.5 px-3 pb-3">
+        <nav aria-label={t('On this page')} className="flex flex-col gap-0.5 px-3 pb-3">
           {toc.map((t) => (
             <TocLink key={t.id} {...t} />
           ))}
@@ -36,11 +38,11 @@ export function LegalArticle({ toc, children }: { toc: TocItem[]; children: Reac
 
       {/* Desktop: sticky rail */}
       <nav
-        aria-label="On this page"
+        aria-label={t('On this page')}
         className="sticky top-24 hidden h-max self-start lg:flex lg:flex-col lg:gap-0.5"
       >
         <p className="mb-2 px-2 text-[11px] font-bold uppercase tracking-wider text-ink-muted">
-          On this page
+          {t('On this page')}
         </p>
         {toc.map((t) => (
           <TocLink key={t.id} {...t} />

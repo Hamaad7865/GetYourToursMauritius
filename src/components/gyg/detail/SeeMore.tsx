@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /** Collapsible content block with a GetYourGuide-style "See more / See less" toggle.
  *  Assumes a cream section background for the fade. */
@@ -12,6 +13,7 @@ export function SeeMore({
   collapsedHeight?: number;
 }) {
   const [open, setOpen] = useState(false);
+  const t = useT();
   return (
     <div>
       <div
@@ -28,7 +30,7 @@ export function SeeMore({
         onClick={() => setOpen((o) => !o)}
         className="mt-2 text-sm font-bold text-teal underline underline-offset-2 hover:text-teal-dark"
       >
-        {open ? 'See less' : 'See more'}
+        {open ? t('See less') : t('See more')}
       </button>
     </div>
   );

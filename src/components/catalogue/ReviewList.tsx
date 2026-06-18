@@ -1,11 +1,14 @@
 import type { Review } from '@/lib/validation/tours';
 import { initials, ratingBreakdown } from '@/lib/catalogue/detail';
+import { getT } from '@/lib/i18n/server';
 import { IconStar } from '@/components/ui/icons';
 
-function Stars({ value, size = 14 }: { value: number; size?: number }) {
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+function Stars({ value, size = 14, t }: { value: number; size?: number; t: Translate }) {
   const filled = Math.round(value);
   return (
-    <span className="flex gap-0.5" aria-label={`${filled} out of 5 stars`}>
+    <span className="flex gap-0.5" aria-label={t('{n} out of 5 stars', { n: filled })}>
       {[1, 2, 3, 4, 5].map((n) => (
         <IconStar
           key={n}
@@ -25,7 +28,7 @@ function reviewDate(iso: string): string {
 }
 
 /** Guest-review block: aggregate score, star histogram and individual review cards. */
-export function ReviewList({
+export async function ReviewList({
   ratingAvg,
   ratingCount,
   reviews,
@@ -34,10 +37,11 @@ export function ReviewList({
   ratingCount: number;
   reviews: Review[];
 }) {
+  const t = await getT();
   if (ratingCount === 0 && reviews.length === 0) {
     return (
       <p className="text-sm text-ink-muted">
-        No reviews yet — be the first to share your experience.
+        {t('No reviews yet — be the first to share your experience.')}
       </p>
     );
   }
@@ -52,9 +56,9 @@ export function ReviewList({
             {ratingAvg?.toFixed(1) ?? '—'}
           </div>
           <div className="my-2 flex justify-center">
-            <Stars value={ratingAvg ?? 0} size={16} />
+            <Stars value={ratingAvg ?? 0} size={16} t={t} />
           </div>
-          <div className="text-xs text-ink-muted">{ratingCount} reviews</div>
+          <div className="text-xs text-ink-muted">{t('{n} reviews', { n: ratingCount })}</div>
         </div>
         {reviews.length > 0 && (
           <div className="flex min-w-[200px] flex-1 flex-col gap-1.5">
@@ -92,7 +96,7 @@ export function ReviewList({
                   <div className="text-sm font-bold text-ink">{review.author}</div>
                   <div className="text-xs text-ink-muted">{reviewDate(review.createdAt)}</div>
                 </div>
-                <Stars value={review.rating} size={13} />
+                <Stars value={review.rating} size={13} t={t} />
               </div>
               {review.text && (
                 <p className="mt-3 text-sm leading-relaxed text-ink/80">{review.text}</p>

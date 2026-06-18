@@ -9,6 +9,7 @@ import {
   usePreferences,
   LANGUAGE_LABELS,
   CURRENCY_LABELS,
+  useT,
 } from '@/components/site/PreferencesProvider';
 import {
   IconArrowRight,
@@ -93,6 +94,7 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
   const [open, setOpen] = useState(false);
   const { user, profile, openAuth, signOut } = useAuth();
   const { language, currency, openPrefs } = usePreferences();
+  const t = useT();
 
   const close = () => setOpen(false);
   // Scroll-lock, Escape, focus move-in/return, and a Tab focus trap (APG modal dialog).
@@ -103,7 +105,7 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Open menu"
+        aria-label={t('Open menu')}
         aria-expanded={open}
         className={`grid h-11 w-11 place-items-center rounded-xl sm:hidden ${light ? 'text-white' : 'text-ink'}`}
       >
@@ -112,7 +114,7 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
 
       {/* Overlay + panel. Mounted only while open; the panel slides from the right. */}
       {open && (
-        <div ref={dialogRef} className="fixed inset-0 z-[70] sm:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+        <div ref={dialogRef} className="fixed inset-0 z-[70] sm:hidden" role="dialog" aria-modal="true" aria-label={t('Menu')}>
           {/* Non-focusable scrim — click to dismiss; the X button + Escape handle keyboard. */}
           <div aria-hidden onClick={close} className="absolute inset-0 bg-ink/40" />
           {/* Full-width so it fully covers the page header — otherwise the header's logo shows
@@ -123,7 +125,7 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
               <button
                 type="button"
                 onClick={close}
-                aria-label="Close menu"
+                aria-label={t('Close menu')}
                 className="grid h-11 w-11 place-items-center rounded-full text-white/90 hover:bg-white/10"
               >
                 <IconX width={22} height={22} />
@@ -131,31 +133,31 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
             </div>
 
             <nav className="flex-1 overflow-y-auto px-3 pb-8 pt-2">
-              <Section title="Explore" />
+              <Section title={t('Explore')} />
               {NAV_LINKS.map((l) => (
                 <MenuRow
                   key={l.href}
                   href={l.href}
                   onClick={close}
-                  label={l.label}
+                  label={t(l.label)}
                   icon={<l.icon width={18} height={18} />}
                 />
               ))}
 
               <div className="my-2 h-px bg-ink/10" />
-              <Section title="Profile" />
+              <Section title={t('Profile')} />
               {user ? (
                 <>
                   <div className="px-2 pb-1">
                     <p className="truncate text-[15px] font-bold text-ink">
-                      {profile?.fullName ?? 'Traveller'}
+                      {profile?.fullName ?? t('Traveller')}
                     </p>
                     <p className="truncate text-[12.5px] text-ink-muted">{user.email}</p>
                   </div>
-                  <MenuRow href="/account" onClick={close} label="My profile" icon={<IconUser width={18} height={18} />} />
-                  <MenuRow href="/account/bookings" onClick={close} label="My bookings" icon={<IconBookings width={18} height={18} />} />
+                  <MenuRow href="/account" onClick={close} label={t('My profile')} icon={<IconUser width={18} height={18} />} />
+                  <MenuRow href="/account/bookings" onClick={close} label={t('My bookings')} icon={<IconBookings width={18} height={18} />} />
                   <MenuRow
-                    label="Log out"
+                    label={t('Log out')}
                     icon={<IconLogOut width={18} height={18} />}
                     onClick={() => {
                       close();
@@ -165,7 +167,7 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
                 </>
               ) : (
                 <MenuRow
-                  label="Log in or sign up"
+                  label={t('Log in or sign up')}
                   icon={<IconArrowRight width={18} height={18} />}
                   onClick={() => {
                     close();
@@ -175,9 +177,9 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
               )}
 
               <div className="my-2 h-px bg-ink/10" />
-              <Section title="Settings" />
+              <Section title={t('Settings')} />
               <MenuRow
-                label="Currency"
+                label={t('Currency')}
                 value={`${CURRENCY_LABELS[currency].label} ${CURRENCY_LABELS[currency].symbol}`}
                 icon={<IconWallet width={18} height={18} />}
                 onClick={() => {
@@ -186,7 +188,7 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
                 }}
               />
               <MenuRow
-                label="Language"
+                label={t('Language')}
                 value={LANGUAGE_LABELS[language]}
                 icon={<IconGlobe width={18} height={18} />}
                 onClick={() => {
@@ -196,8 +198,8 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
               />
 
               <div className="my-2 h-px bg-ink/10" />
-              <MenuRow href="/wishlist" onClick={close} label="Wishlist" icon={<IconHeart width={18} height={18} />} />
-              <MenuRow href="/cart" onClick={close} label="Cart" icon={<IconCart width={18} height={18} />} />
+              <MenuRow href="/wishlist" onClick={close} label={t('Wishlist')} icon={<IconHeart width={18} height={18} />} />
+              <MenuRow href="/cart" onClick={close} label={t('Cart')} icon={<IconCart width={18} height={18} />} />
             </nav>
           </div>
         </div>

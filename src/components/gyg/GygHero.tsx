@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { IconShield, IconBolt, IconCheck, IconUsers } from '@/components/ui/icons';
+import { getT } from '@/lib/i18n/server';
 import { HeroGallery } from './HeroGallery';
 
 /**
@@ -12,7 +13,8 @@ import { HeroGallery } from './HeroGallery';
  * italic; the open right side carries a sliding wall of real Belle Mare trip photos (HeroGallery).
  * The section is NOT clipped so the navbar search dropdowns spill over the white body below.
  */
-export function GygHero({ children }: { children?: ReactNode }) {
+export async function GygHero({ children }: { children?: ReactNode }) {
+  const t = await getT();
   return (
     <section className="relative isolate flex min-h-[560px] flex-col justify-center overflow-visible lg:min-h-[620px]">
       {/* Image-free animated lagoon backdrop (server component, no JS). Every layer is -z-10,
@@ -120,39 +122,39 @@ export function GygHero({ children }: { children?: ReactNode }) {
           </p>
 
           <h1 className="animate-fade-up mt-5 font-display text-5xl font-medium leading-[0.92] tracking-[-0.02em] text-white drop-shadow-[0_2px_16px_rgba(10,46,54,0.45)] [animation-delay:80ms] sm:text-6xl lg:text-7xl xl:text-[5.25rem]">
-            Explore
+            {t('Explore')}
             <br />
             Mauritius
             <br />
-            <span className="font-semibold italic">your way.</span>
+            <span className="font-semibold italic">{t('your way.')}</span>
           </h1>
 
           <p className="animate-fade-up mt-6 max-w-md text-[16px] font-medium leading-relaxed text-white [text-shadow:0_1px_10px_rgba(10,46,54,0.65)] [animation-delay:160ms]">
-            Book private tours, island activities and{' '}
+            {t('Book private tours, island activities and')}{' '}
             <span className="relative whitespace-nowrap">
-              custom trips
+              {t('custom trips')}
               <span
                 aria-hidden
                 className="absolute -bottom-0.5 left-0 h-[3px] w-full rounded bg-coral/90"
               />
             </span>{' '}
-            — with ease.
+            {t('— with ease.')}
           </p>
 
           {/* The search lives in the sticky header (desktop navbar / mobile search bar); the hero
               carries just the message + proof. */}
           <ul className="animate-fade-up mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)] [animation-delay:240ms]">
             <li className="flex items-center gap-1.5">
-              <IconShield width={14} height={14} /> Booked direct with the local operator
+              <IconShield width={14} height={14} /> {t('Booked direct with the local operator')}
             </li>
             <li className="flex items-center gap-1.5">
-              <IconBolt width={14} height={14} /> Instant confirmation
+              <IconBolt width={14} height={14} /> {t('Instant confirmation')}
             </li>
             <li className="flex items-center gap-1.5">
-              <IconCheck width={14} height={14} /> Free cancellation up to 24h
+              <IconCheck width={14} height={14} /> {t('Free cancellation up to 24h')}
             </li>
             <li className="flex items-center gap-1.5 max-sm:hidden">
-              <IconUsers width={14} height={14} /> Belle Mare&apos;s own crew
+              <IconUsers width={14} height={14} /> {t('Belle Mare’s own crew')}
             </li>
           </ul>
         </div>

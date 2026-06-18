@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useT } from '@/components/site/PreferencesProvider';
 
 interface Feature {
   iconBg: string;
@@ -67,13 +68,14 @@ const FEATURES: Feature[] = [
 ];
 
 export function FeaturesSection() {
+  const t = useT();
   return (
     <section className="mx-auto max-w-shell px-[22px] pb-2 pt-14">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="mb-1.5 max-w-[560px] sm:col-span-2 lg:col-span-3">
-          <p className="mb-1.5 text-[13px] font-bold uppercase tracking-[0.04em] text-teal">Why it&apos;s different</p>
+          <p className="mb-1.5 text-[13px] font-bold uppercase tracking-[0.04em] text-teal">{t('Why it’s different')}</p>
           <h2 className="m-0 font-display text-[clamp(26px,4vw,38px)] font-semibold tracking-[-0.02em] text-ink">
-            A concierge that actually builds the plan
+            {t('A concierge that actually builds the plan')}
           </h2>
         </div>
         {FEATURES.map((f) => (
@@ -83,8 +85,8 @@ export function FeaturesSection() {
                 {f.icon}
               </svg>
             </div>
-            <h3 className="mb-1.5 text-base font-bold text-ink">{f.title}</h3>
-            <p className="m-0 text-sm leading-[1.55] text-ink-muted">{f.body}</p>
+            <h3 className="mb-1.5 text-base font-bold text-ink">{t(f.title)}</h3>
+            <p className="m-0 text-sm leading-[1.55] text-ink-muted">{t(f.body)}</p>
           </div>
         ))}
       </div>

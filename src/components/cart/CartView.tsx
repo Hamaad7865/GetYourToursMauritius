@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCart, itemTotal, lineCap, CART_TTL_MS, type CartItem } from '@/lib/cart/useCart';
+import { Price } from '@/components/site/Price';
+import { useT } from '@/components/site/PreferencesProvider';
 import { IconCart, IconCalendar, IconGlobe, IconMinus, IconPlus, IconX, IconClock } from '@/components/ui/icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
@@ -32,6 +34,7 @@ function checkoutHref(i: CartItem): string {
 }
 
 function EmptyCart() {
+  const t = useT();
   return (
     <div className="grid min-h-[55vh] place-items-center py-12 text-center">
       <div>
@@ -50,16 +53,16 @@ function EmptyCart() {
           <IconCart width={54} height={54} className="relative text-teal-dark" />
         </div>
         <h1 className="mt-8 font-display text-[26px] font-semibold text-ink">
-          No activities in your cart
+          {t('No activities in your cart')}
         </h1>
         <p className="mx-auto mt-2 max-w-sm text-[15px] text-ink-muted">
-          Activities you add to your cart stay here for up to 30 minutes.
+          {t('Activities you add to your cart stay here for up to 30 minutes.')}
         </p>
         <Link
           href="/activities"
           className="mt-6 inline-block rounded-full bg-teal px-6 py-3 text-sm font-bold text-white transition hover:bg-teal-dark"
         >
-          Find things to do
+          {t('Find things to do')}
         </Link>
       </div>
     </div>
@@ -68,6 +71,7 @@ function EmptyCart() {
 
 /** mm:ss until the soonest item expires (drops out of the cart). */
 function HoldTimer({ items }: { items: CartItem[] }) {
+  const t = useT();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = window.setInterval(() => setNow(Date.now()), 1000);
@@ -84,7 +88,7 @@ function HoldTimer({ items }: { items: CartItem[] }) {
   const ss = String(left % 60).padStart(2, '0');
   return (
     <span className="inline-flex items-center gap-1.5 rounded-lg bg-coral/10 px-3 py-1.5 text-[13px] font-semibold text-coral">
-      <IconClock width={14} height={14} /> Held for {mm}:{ss}
+      <IconClock width={14} height={14} /> {t('Held for {time}', { time: `${mm}:${ss}` })}
     </span>
   );
 }
@@ -100,11 +104,12 @@ function Stepper({
   noun?: string;
   onChange: (n: number) => void;
 }) {
+  const t = useT();
   return (
     <div className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-1.5 py-1">
       <button
         type="button"
-        aria-label={`Fewer ${noun}`}
+        aria-label={t('Fewer {noun}', { noun: t(noun) })}
         onClick={() => onChange(value - 1)}
         disabled={value <= 1}
         className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-40"
@@ -114,7 +119,7 @@ function Stepper({
       <span className="min-w-[1.5rem] text-center text-sm font-bold text-ink">{value}</span>
       <button
         type="button"
-        aria-label={`More ${noun}`}
+        aria-label={t('More {noun}', { noun: t(noun) })}
         onClick={() => onChange(value + 1)}
         disabled={value >= max}
         className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-40"
@@ -126,6 +131,7 @@ function Stepper({
 }
 
 export function CartView() {
+  const t = useT();
   const { items, remove, setGuests, subtotal } = useCart();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -153,7 +159,7 @@ export function CartView() {
   return (
     <div className="pb-28 pt-10 lg:pb-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-[26px] font-semibold text-ink">Your cart</h1>
+        <h1 className="font-display text-[26px] font-semibold text-ink">{t('Your cart')}</h1>
         <HoldTimer items={items} />
       </div>
 
@@ -188,7 +194,7 @@ export function CartView() {
                     {i.pricingMode === 'vehicle' ? (
                       // The vehicle (and its flat price) is fixed at the size chosen on the activity
                       // page — changing it would change the vehicle, so it's not editable here.
-                      <div className="text-sm font-bold text-ink">{i.guests} passengers</div>
+                      <div className="text-sm font-bold text-ink">{t('{n} passengers', { n: i.guests })}</div>
                     ) : (
                       <Stepper
                         value={i.guests}
@@ -200,13 +206,15 @@ export function CartView() {
                     <div className="mt-1 text-[11px] text-ink-muted">{i.unit}</div>
                   </div>
                   <div className="text-right">
-                    <div className="text-[17px] font-extrabold text-ink">€{itemTotal(i).toFixed(2)}</div>
+                    <div className="text-[17px] font-extrabold text-ink">
+                      <Price eur={itemTotal(i)} />
+                    </div>
                     <button
                       type="button"
                       onClick={() => remove(i.id)}
                       className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-semibold text-ink-muted hover:text-coral"
                     >
-                      <IconX width={12} height={12} /> Remove
+                      <IconX width={12} height={12} /> {t('Remove')}
                     </button>
                   </div>
                 </div>
@@ -221,22 +229,24 @@ export function CartView() {
             items.length === 1 ? 'hidden lg:block' : ''
           }`}
         >
-          <h2 className="font-display text-lg font-semibold text-ink">Order summary</h2>
+          <h2 className="font-display text-lg font-semibold text-ink">{t('Order summary')}</h2>
           <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-3">
-            <span className="font-bold text-ink">{items.length > 1 ? 'Estimated total' : 'Total'}</span>
-            <span className="text-lg font-extrabold text-ink">€{subtotal.toFixed(2)}</span>
+            <span className="font-bold text-ink">{items.length > 1 ? t('Estimated total') : t('Total')}</span>
+            <span className="text-lg font-extrabold text-ink">
+              <Price eur={subtotal} />
+            </span>
           </div>
           {items.length === 1 ? (
             <Link
               href={checkoutHref(items[0]!)}
               className="mt-4 flex justify-center rounded-full bg-teal px-6 py-3 text-sm font-bold text-white transition hover:bg-teal-dark"
             >
-              Proceed to checkout
+              {t('Proceed to checkout')}
             </Link>
           ) : (
             <>
               <p className="mt-4 rounded-lg bg-teal/5 px-3 py-2 text-[12px] leading-snug text-ink-muted">
-                Each activity is booked and paid separately. Check them out one at a time below.
+                {t('Each activity is booked and paid separately. Check them out one at a time below.')}
               </p>
               <ul className="mt-3 flex flex-col gap-2">
                 {items.map((i) => (
@@ -246,7 +256,9 @@ export function CartView() {
                       className="flex items-center justify-between gap-2 rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal-dark transition hover:bg-teal/5"
                     >
                       <span className="truncate">{i.title}</span>
-                      <span className="shrink-0">€{itemTotal(i).toFixed(2)} →</span>
+                      <span className="shrink-0">
+                        <Price eur={itemTotal(i)} /> →
+                      </span>
                     </Link>
                   </li>
                 ))}
@@ -254,7 +266,7 @@ export function CartView() {
             </>
           )}
           <p className="mt-3 text-[12px] text-ink-muted">
-            Free cancellation up to 24 hours before most activities.
+            {t('Free cancellation up to 24 hours before most activities.')}
           </p>
         </aside>
       </div>
@@ -264,16 +276,18 @@ export function CartView() {
       <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">
         <div className="min-w-0">
           <div className="text-[11px] font-medium text-ink-muted">
-            {items.length > 1 ? 'Estimated total' : 'Total'}
+            {items.length > 1 ? t('Estimated total') : t('Total')}
           </div>
-          <div className="text-[19px] font-extrabold tracking-tight text-ink">€{subtotal.toFixed(2)}</div>
+          <div className="text-[19px] font-extrabold tracking-tight text-ink">
+            <Price eur={subtotal} />
+          </div>
         </div>
         {items.length === 1 ? (
           <Link
             href={checkoutHref(items[0]!)}
             className="shrink-0 rounded-full bg-teal px-6 py-3 text-sm font-bold text-white hover:bg-teal-dark"
           >
-            Proceed to checkout
+            {t('Proceed to checkout')}
           </Link>
         ) : (
           <button
@@ -283,7 +297,7 @@ export function CartView() {
             }
             className="shrink-0 rounded-full bg-teal px-6 py-3 text-sm font-bold text-white hover:bg-teal-dark"
           >
-            Check out ({items.length})
+            {t('Check out ({n})', { n: items.length })}
           </button>
         )}
       </div>

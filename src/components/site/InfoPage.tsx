@@ -4,6 +4,7 @@ import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { IconArrowRight, IconChat, IconChevron } from '@/components/ui/icons';
+import { getT } from '@/lib/i18n/server';
 
 /** Branded shell for the static landing pages (About, Rent, Taxi, …): solid header,
  *  a teal hero band with title + intro, the page body, then the footer. */
@@ -49,17 +50,18 @@ export function InfoPage({
 }
 
 /** WhatsApp + phone call-to-action row used at the foot of each landing page. */
-export function EnquireRow({ message }: { message: string }) {
+export async function EnquireRow({ message }: { message: string }) {
+  const t = await getT();
   return (
     <div className="mt-10 flex flex-wrap items-center gap-3 rounded-2xl border border-ink/10 bg-cream/60 p-5">
-      <p className="mr-auto text-[15px] font-bold text-ink">Ready to book or have a question?</p>
+      <p className="mr-auto text-[15px] font-bold text-ink">{t('Ready to book or have a question?')}</p>
       <a
         href={whatsappUrl(message)}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
       >
-        <IconChat width={17} height={17} /> WhatsApp us
+        <IconChat width={17} height={17} /> {t('WhatsApp us')}
       </a>
       <a
         href={`tel:${SITE.phone.replace(/\s+/g, '')}`}
@@ -90,13 +92,14 @@ export function InfoSection({
 }
 
 /** A bullet list with coral chevrons. */
-export function FeatureList({ items }: { items: string[] }) {
+export async function FeatureList({ items }: { items: string[] }) {
+  const t = await getT();
   return (
     <ul className="m-0 mt-4 flex list-none flex-col gap-2.5 p-0">
       {items.map((it) => (
         <li key={it} className="flex items-start gap-2.5">
           <IconChevron width={16} height={16} className="mt-1 shrink-0 -rotate-90 text-coral" />
-          <span>{it}</span>
+          <span>{t(it)}</span>
         </li>
       ))}
     </ul>
@@ -104,13 +107,14 @@ export function FeatureList({ items }: { items: string[] }) {
 }
 
 /** Inline link to the activities catalogue. */
-export function BrowseLink() {
+export async function BrowseLink() {
+  const t = await getT();
   return (
     <Link
       href="/activities"
       className="mt-6 inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"
     >
-      Browse all activities <IconArrowRight width={16} height={16} />
+      {t('Browse all activities')} <IconArrowRight width={16} height={16} />
     </Link>
   );
 }

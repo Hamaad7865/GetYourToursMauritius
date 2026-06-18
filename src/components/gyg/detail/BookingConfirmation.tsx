@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { Price } from '@/components/site/Price';
+import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
 
 interface BookingItem {
@@ -34,6 +36,8 @@ const STATUS_COPY: Record<string, { title: string; tone: string }> = {
 };
 
 export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
+  const t = useT();
+  const money = useMoney();
   const { user, session, loading: authLoading, openAuth } = useAuth();
   const params = useSearchParams();
   const isStubReturn = params.get('stub_session') != null;
@@ -48,9 +52,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
       headers: { authorization: `Bearer ${session.access_token}` },
     }).then((r) => r.json());
     if (res.ok) setBooking(res.data as Booking);
-    else setError(res.error?.message ?? 'Could not load your booking.');
+    else setError(res.error?.message ?? t('Could not load your booking.'));
     setLoading(false);
-  }, [bookingRef, session]);
+  }, [bookingRef, session, t]);
 
   useEffect(() => {
     if (session) void fetchBooking();
@@ -67,29 +71,29 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ bookingRef, outcome: 'paid', providerReference: `stub_ref_${bookingRef}` }),
       }).then((r) => r.json());
-      if (!res.ok) throw new Error(res.error?.message ?? 'Payment could not be completed.');
+      if (!res.ok) throw new Error(res.error?.message ?? t('Payment could not be completed.'));
       await fetchBooking();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Payment failed.');
+      setError(err instanceof Error ? err.message : t('Payment failed.'));
     } finally {
       setPaying(false);
     }
   }
 
   if (authLoading || loading) {
-    return <p className="py-16 text-center text-sm text-ink-muted">Loading your booking…</p>;
+    return <p className="py-16 text-center text-sm text-ink-muted">{t('Loading your booking…')}</p>;
   }
 
   if (!user) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-ink-muted">Sign in to view booking {bookingRef}.</p>
+        <p className="text-sm text-ink-muted">{t('Sign in to view booking {ref}.', { ref: bookingRef })}</p>
         <button
           type="button"
           onClick={() => openAuth('signin')}
           className="mt-4 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
         >
-          Sign in
+          {t('Sign in')}
         </button>
       </div>
     );
@@ -101,15 +105,18 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   if (!booking) return null;
 
   const paid = booking.paymentState === 'paid';
-  const copy = STATUS_COPY[booking.status] ?? { title: `Status: ${booking.status}`, tone: 'text-ink' };
+  const copy = STATUS_COPY[booking.status] ?? {
+    title: t('Status: {status}', { status: booking.status }),
+    tone: 'text-ink',
+  };
   const awaitingPayment = !paid && booking.status === 'payment_pending';
 
   return (
     <div className="mx-auto max-w-xl py-10">
       <div className="rounded-2xl border border-ink/10 bg-white p-6 sm:p-8">
-        <h1 className={`font-display text-2xl font-semibold ${copy.tone}`}>{copy.title}</h1>
+        <h1 className={`font-display text-2xl font-semibold ${copy.tone}`}>{t(copy.title)}</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          Reference <span className="font-bold text-ink">{booking.ref}</span>
+          {t('Reference')} <span className="font-bold text-ink">{booking.ref}</span>
         </p>
 
         <dl className="mt-6 flex flex-col gap-2 border-t border-ink/10 pt-4 text-sm">
@@ -117,40 +124,44 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             <div key={i} className="flex justify-between">
               <dt className="text-ink-muted">
                 {it.pax != null
-                  ? `${it.priceLabel} · ${it.pax} ${it.pax === 1 ? 'passenger' : 'passengers'}`
+                  ? `${it.priceLabel} · ${it.pax} ${it.pax === 1 ? t('passenger') : t('passengers')}`
                   : `${it.quantity} × ${it.priceLabel}`}
               </dt>
-              <dd className="font-medium text-ink">€{it.subtotalEur.toFixed(2)}</dd>
+              <dd className="font-medium text-ink">
+                <Price eur={it.subtotalEur} />
+              </dd>
             </div>
           ))}
           <div className="mt-1 flex justify-between border-t border-ink/10 pt-2">
-            <dt className="font-bold text-ink">Total</dt>
-            <dd className="text-lg font-extrabold text-ink">€{booking.totalEur.toFixed(2)}</dd>
+            <dt className="font-bold text-ink">{t('Total')}</dt>
+            <dd className="text-lg font-extrabold text-ink">
+              <Price eur={booking.totalEur} />
+            </dd>
           </div>
         </dl>
 
         {booking.pickupLocation && (
           <div className="mt-5 border-t border-ink/10 pt-4">
-            <div className="text-[13px] font-bold text-ink">Pickup location</div>
+            <div className="text-[13px] font-bold text-ink">{t('Pickup location')}</div>
             <p className="mt-1 text-[13px] text-ink/80">{booking.pickupLocation}</p>
           </div>
         )}
 
         {booking.childSeats != null && booking.childSeats > 0 && (
           <div className="mt-5 border-t border-ink/10 pt-4">
-            <div className="text-[13px] font-bold text-ink">Baby &amp; child seats</div>
+            <div className="text-[13px] font-bold text-ink">{t('Baby & child seats')}</div>
             <p className="mt-1 text-[13px] text-ink/80">
-              {booking.childSeats} {booking.childSeats === 1 ? 'seat' : 'seats'}
+              {booking.childSeats} {booking.childSeats === 1 ? t('seat') : t('seats')}
               {childSeatsCost(booking.childSeats) > 0
-                ? ` — first free, €${childSeatsCost(booking.childSeats)} extra`
-                : ' — free'}
+                ? ` — ${t('first free, {price} extra', { price: money(childSeatsCost(booking.childSeats)) })}`
+                : ` — ${t('free')}`}
             </p>
           </div>
         )}
 
         {booking.customItinerary && booking.customItinerary.length > 0 && (
           <div className="mt-5 border-t border-ink/10 pt-4">
-            <div className="text-[13px] font-bold text-ink">Your route</div>
+            <div className="text-[13px] font-bold text-ink">{t('Your route')}</div>
             <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-[13px] text-ink/80">
               {booking.customItinerary.map((s, i) => (
                 <li key={i}>
@@ -170,7 +181,7 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
 
         {paid ? (
           <p className="mt-6 rounded-xl bg-teal/10 px-4 py-3 text-sm font-medium text-teal-dark">
-            Payment received — we&apos;ve emailed your confirmation. See it any time in your bookings.
+            {t('Payment received — we’ve emailed your confirmation. See it any time in your bookings.')}
           </p>
         ) : awaitingPayment && isStubReturn ? (
           <button
@@ -179,20 +190,20 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             disabled={paying}
             className="mt-6 w-full rounded-full bg-teal px-5 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-60"
           >
-            {paying ? 'Completing…' : 'Complete payment (test)'}
+            {paying ? t('Completing…') : t('Complete payment (test)')}
           </button>
         ) : (
           <p className="mt-6 rounded-xl bg-gold-light/20 px-4 py-3 text-sm text-ink">
-            This booking is awaiting payment.
+            {t('This booking is awaiting payment.')}
           </p>
         )}
 
         <div className="mt-5 flex justify-between text-sm font-bold">
           <Link href="/account/bookings" className="text-teal hover:text-teal-dark">
-            My bookings
+            {t('My bookings')}
           </Link>
           <Link href="/activities" className="text-ink-muted hover:text-ink">
-            Browse more
+            {t('Browse more')}
           </Link>
         </div>
       </div>

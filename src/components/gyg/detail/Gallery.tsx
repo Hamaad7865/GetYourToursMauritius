@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { TourImage } from '@/lib/validation/tours';
 import { IconChevronLeft, IconChevronRight, IconX } from '@/components/ui/icons';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -37,6 +38,7 @@ function Tile({
 export function Gallery({ images, title }: { images: TourImage[]; title: string }) {
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
+  const t = useT();
 
   const go = useCallback(
     (dir: 1 | -1) => setIndex((i) => (i + dir + images.length) % Math.max(1, images.length)),
@@ -97,7 +99,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
           onClick={() => openAt(0)}
           className="absolute bottom-3.5 right-3.5 rounded-xl border border-ink/10 bg-white/95 px-4 py-2 text-[13px] font-bold text-ink shadow-[0_6px_18px_-6px_rgba(10,46,54,0.4)] hover:bg-white"
         >
-          View all {images.length} photos
+          {t('View all {n} photos', { n: images.length })}
         </button>
       </div>
 
@@ -106,7 +108,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
           className="fixed inset-0 z-[300] flex flex-col bg-[rgba(7,30,36,0.94)] p-4 sm:p-8"
           role="dialog"
           aria-modal="true"
-          aria-label="Photo gallery"
+          aria-label={t('Photo gallery')}
         >
           <div className="flex items-center justify-between text-white">
             <span className="text-sm font-semibold">
@@ -115,7 +117,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="Close gallery"
+              aria-label={t('Close gallery')}
               className="grid h-10 w-10 place-items-center rounded-full bg-white/15 hover:bg-white/25"
             >
               <IconX width={20} height={20} />
@@ -126,7 +128,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
               <button
                 type="button"
                 onClick={() => go(-1)}
-                aria-label="Previous photo"
+                aria-label={t('Previous photo')}
                 className="absolute left-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-ink/65 text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-ink/85 sm:left-4"
               >
                 <IconChevronLeft width={26} height={26} />
@@ -141,7 +143,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
               <button
                 type="button"
                 onClick={() => go(1)}
-                aria-label="Next photo"
+                aria-label={t('Next photo')}
                 className="absolute right-2 top-1/2 z-10 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full bg-ink/65 text-white shadow-lg ring-1 ring-white/25 backdrop-blur-sm transition hover:bg-ink/85 sm:right-4"
               >
                 <IconChevronRight width={26} height={26} />

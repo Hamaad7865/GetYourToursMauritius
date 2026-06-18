@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/site/Logo';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { usePreferences, CURRENCY_LABELS } from '@/components/site/PreferencesProvider';
+import { usePreferences, CURRENCY_LABELS, useT } from '@/components/site/PreferencesProvider';
 import { useCart } from '@/lib/cart/useCart';
 import { SearchBar } from './SearchBar';
 import { MainNav } from './MainNav';
@@ -45,6 +45,7 @@ function Underline({ light = false }: { light?: boolean }) {
  *  shows the account links (bookings only appear here, never before sign-in). */
 function ProfileMenu({ overHero }: { overHero: boolean }) {
   const { user, profile, loading, openAuth, signOut } = useAuth();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -69,23 +70,23 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        aria-label="Profile"
+        aria-label={t('Profile')}
         aria-expanded={open}
         className={navItemClass(overHero)}
       >
         <IconUser width={20} height={20} />
-        <span className="hidden lg:block">Profile</span>
+        <span className="hidden lg:block">{t('Profile')}</span>
         <Underline light={overHero} />
       </button>
 
       {open && (
         <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-ink/10 bg-white p-2 text-ink shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
           {loading ? (
-            <div className="px-3 py-3 text-sm text-ink-muted">Loading…</div>
+            <div className="px-3 py-3 text-sm text-ink-muted">{t('Loading…')}</div>
           ) : user ? (
             <>
               <div className="px-3 pb-1 pt-2">
-                <p className="truncate text-sm font-bold text-ink">{profile?.fullName ?? 'Traveller'}</p>
+                <p className="truncate text-sm font-bold text-ink">{profile?.fullName ?? t('Traveller')}</p>
                 <p className="truncate text-[12px] text-ink-muted">{user.email}</p>
               </div>
               <div className="my-1 h-px bg-ink/10" />
@@ -94,14 +95,14 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal"
               >
-                <IconUser width={18} height={18} /> My profile
+                <IconUser width={18} height={18} /> {t('My profile')}
               </Link>
               <Link
                 href="/account/bookings"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal"
               >
-                <IconBookings width={18} height={18} /> My bookings
+                <IconBookings width={18} height={18} /> {t('My bookings')}
               </Link>
               <div className="my-1 h-px bg-ink/10" />
               <button
@@ -112,12 +113,12 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
                 }}
                 className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-coral"
               >
-                <IconLogOut width={18} height={18} /> Log out
+                <IconLogOut width={18} height={18} /> {t('Log out')}
               </button>
             </>
           ) : (
             <>
-              <div className="px-3 pb-1 pt-2 text-[15px] font-bold text-ink">Profile</div>
+              <div className="px-3 pb-1 pt-2 text-[15px] font-bold text-ink">{t('Profile')}</div>
               <button
                 type="button"
                 onClick={() => {
@@ -139,10 +140,17 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
 /** Cart navbar item with a live count badge when items are in the cart. */
 function CartAction({ overHero }: { overHero: boolean }) {
   const { count } = useCart();
+  const t = useT();
   return (
     <Link
       href="/cart"
-      aria-label={count > 0 ? `Cart, ${count} item${count === 1 ? '' : 's'}` : 'Cart'}
+      aria-label={
+        count > 0
+          ? count === 1
+            ? t('Cart, {n} item', { n: count })
+            : t('Cart, {n} items', { n: count })
+          : t('Cart')
+      }
       className={navItemClass(overHero, 'relative flex')}
     >
       <span className="relative">
@@ -156,7 +164,7 @@ function CartAction({ overHero }: { overHero: boolean }) {
           </span>
         )}
       </span>
-      <span className="hidden lg:block">Cart</span>
+      <span className="hidden lg:block">{t('Cart')}</span>
       <Underline light={overHero} />
     </Link>
   );
@@ -165,10 +173,11 @@ function CartAction({ overHero }: { overHero: boolean }) {
 /** Bookings navbar item — only appears once signed in, mirroring GetYourGuide. */
 function BookingsAction({ overHero }: { overHero: boolean }) {
   const { user } = useAuth();
+  const t = useT();
   if (!user) return null;
   return (
     <HeaderAction
-      label="Bookings"
+      label={t('Bookings')}
       href="/account/bookings"
       light={overHero}
       icon={<IconBookings width={20} height={20} />}
@@ -179,8 +188,9 @@ function BookingsAction({ overHero }: { overHero: boolean }) {
 /** Language + currency navbar item — opens the picker modal. */
 function PrefsButton({ overHero }: { overHero: boolean }) {
   const { language, currency, openPrefs } = usePreferences();
+  const t = useT();
   return (
-    <button type="button" onClick={() => openPrefs('language')} className={navItemClass(overHero)} aria-label="Language and currency">
+    <button type="button" onClick={() => openPrefs('language')} className={navItemClass(overHero)} aria-label={t('Language and currency')}>
       <IconGlobe width={20} height={20} />
       <span className="hidden lg:block">
         {language.toUpperCase()}/{currency} {CURRENCY_LABELS[currency].symbol}
@@ -230,6 +240,7 @@ export function GygHeader({
   /** Show the docked search field in the navbar (non-hero pages). */
   showSearch?: boolean;
 }) {
+  const t = useT();
   // Non-hero pages render the solid bar immediately; hero starts transparent.
   const [solid, setSolid] = useState(!heroMode);
 
@@ -262,7 +273,7 @@ export function GygHeader({
           </div>
           <nav className="ml-auto flex shrink-0 items-center gap-1 sm:ml-0">
             <HeaderAction
-              label="Wishlist"
+              label={t('Wishlist')}
               href="/wishlist"
               light={overHero}
               icon={<IconHeart width={20} height={20} />}

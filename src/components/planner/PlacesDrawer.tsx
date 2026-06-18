@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import { PLACE_CATEGORIES, PLACE_REGIONS, ratingFor } from './planner-constants';
 import { Thumb } from './Thumb';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /** Slide-in "Add places" panel — LIVE search over Google Places (Mauritius) via /api/planner/places.
  *  Default browse on open, then category/region/free-text filters. Overlays the host pane. */
@@ -18,6 +19,7 @@ export function PlacesDrawer({
   selectedIds: string[];
   onAdd: (place: PlannerPlace) => void;
 }) {
+  const t = useT();
   const [search, setSearch] = useState('');
   const [cat, setCat] = useState('All');
   const [region, setRegion] = useState('All');
@@ -67,12 +69,12 @@ export function PlacesDrawer({
     <div className="absolute inset-0 z-30 flex animate-drawer-up flex-col bg-white">
       <div className="flex items-center gap-2.5 border-b border-[#EEF4F3] px-[15px] py-[13px]">
         <div>
-          <div className="font-display text-[17px] font-semibold text-ink">Add places</div>
+          <div className="font-display text-[17px] font-semibold text-ink">{t('Add places')}</div>
           <div className="text-xs text-ink-muted">
-            {loading ? 'searching…' : `${results.length} spots · live from Google`}
+            {loading ? t('searching…') : t('{n} spots · live from Google', { n: results.length })}
           </div>
         </div>
-        <button type="button" onClick={onClose} aria-label="Close" className="ml-auto grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-[10px] border border-[#EEF4F3] bg-white">
+        <button type="button" onClick={onClose} aria-label={t('Close')} className="ml-auto grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-[10px] border border-[#EEF4F3] bg-white">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M6 6l12 12M18 6L6 18" stroke="#51666B" strokeWidth={2} strokeLinecap="round" />
           </svg>
@@ -88,8 +90,8 @@ export function PlacesDrawer({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search beaches, waterfalls, viewpoints…"
-            aria-label="Search places"
+            placeholder={t('Search beaches, waterfalls, viewpoints…')}
+            aria-label={t('Search places')}
             className="min-w-0 flex-1 border-none bg-transparent text-sm text-ink outline-none"
           />
         </div>
@@ -103,7 +105,7 @@ export function PlacesDrawer({
                 cat === c ? 'border-teal bg-teal text-white' : 'border-[#E3EEEC] bg-white text-teal-dark'
               }`}
             >
-              {c}
+              {t(c)}
             </button>
           ))}
         </div>
@@ -117,7 +119,7 @@ export function PlacesDrawer({
                 region === r ? 'border-[#E3CFA0] bg-[#FFF8EC] text-[#7A5A12]' : 'border-[#EEF1F0] bg-white text-ink-muted'
               }`}
             >
-              {r}
+              {t(r)}
             </button>
           ))}
         </div>
@@ -137,10 +139,10 @@ export function PlacesDrawer({
           ))
         ) : errored ? (
           <div className="py-[30px] text-center text-[13.5px] text-ink-muted">
-            Couldn&apos;t load places right now — try again in a moment.
+            {t('Couldn’t load places right now — try again in a moment.')}
           </div>
         ) : results.length === 0 ? (
-          <div className="py-[30px] text-center text-[13.5px] text-ink-muted">No places match — try a different search.</div>
+          <div className="py-[30px] text-center text-[13.5px] text-ink-muted">{t('No places match — try a different search.')}</div>
         ) : (
           results.map((p) => {
             const added = selected.has(p.id);
@@ -172,12 +174,12 @@ export function PlacesDrawer({
                   type="button"
                   onClick={() => onAdd(p)}
                   disabled={added}
-                  aria-label={`Add ${p.name}`}
+                  aria-label={t('Add {name}', { name: p.name })}
                   className={`shrink-0 self-center rounded-[10px] px-3.5 py-[9px] text-[13px] font-bold ${
                     added ? 'cursor-default bg-[#EAF2F1] text-ink-muted' : 'cursor-pointer bg-coral text-white'
                   }`}
                 >
-                  {added ? '✓ Added' : '+ Add'}
+                  {added ? t('✓ Added') : t('+ Add')}
                 </button>
               </div>
             );

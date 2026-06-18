@@ -7,6 +7,7 @@ import { chosenRoute, divergesFromDefault, placeForStop } from '@/lib/itinerary/
 import { ItineraryTimeline, type TimelineNode } from './ItineraryTimeline';
 import { ItineraryMap } from '@/components/maps/ItineraryMap';
 import { IconSwap } from '@/components/ui/icons';
+import { useT } from '@/components/site/PreferencesProvider';
 
 interface Choice {
   title: string;
@@ -35,6 +36,7 @@ function StopChooser({
   onToggle: () => void;
   onSelect: (index: number) => void;
 }) {
+  const t = useT();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const groupRef = useRef<HTMLDivElement>(null);
   const wasOpen = useRef(false);
@@ -64,14 +66,14 @@ function StopChooser({
         aria-controls={id}
         className="inline-flex items-center gap-1.5 rounded-full border border-teal/40 bg-white px-3 py-1 text-[12.5px] font-bold text-teal-dark hover:border-teal hover:bg-teal/5"
       >
-        <IconSwap width={14} height={14} /> Change
+        <IconSwap width={14} height={14} /> {t('Change')}
       </button>
       {open && (
         <div
           ref={groupRef}
           id={id}
           role="radiogroup"
-          aria-label={`Choose a place for ${stopTitle}`}
+          aria-label={t('Choose a place for {stop}', { stop: stopTitle })}
           className="absolute left-0 top-[calc(100%+6px)] z-20 w-64 max-w-[78vw] rounded-xl border border-ink/12 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]"
         >
           {choices.map((c, ci) => {
@@ -99,7 +101,7 @@ function StopChooser({
                 </span>
                 {ci === 0 && (
                   <span className="ml-1 shrink-0 self-center text-[10.5px] font-bold uppercase tracking-wide text-ink-muted">
-                    Default
+                    {t('Default')}
                   </span>
                 )}
               </button>
@@ -127,6 +129,7 @@ export function ItineraryBuilder({
   stops: ItineraryStop[];
   meetingPoint?: string | null;
 }) {
+  const t = useT();
   // selectedByStop[i] = 0 (primary) | 1.. (options[n-1]).
   const [selectedByStop, setSelectedByStop] = useState<Record<number, number>>({});
   const [openStop, setOpenStop] = useState<number | null>(null);
@@ -185,7 +188,7 @@ export function ItineraryBuilder({
   // stops that have alternatives.
   const nodes: TimelineNode[] = [
     ...(meetingPoint
-      ? [{ title: 'Pickup location', area: meetingPoint, variant: 'pickup' as const }]
+      ? [{ title: t('Pickup location'), area: meetingPoint, variant: 'pickup' as const }]
       : []),
     ...stops.map((stop, i): TimelineNode => {
       const sel = selectedByStop[i] ?? 0;
@@ -228,8 +231,8 @@ export function ItineraryBuilder({
       <div>
         <ItineraryTimeline nodes={nodes} collapseAt={collapseAt} />
         <p className="mt-3 text-[12px] text-ink-muted">
-          Stops with a <span className="font-semibold text-teal-dark">Change</span> button can be
-          swapped — pick the places you want at no extra cost. Your driver follows your choices.
+          {t('Stops with a')} <span className="font-semibold text-teal-dark">{t('Change')}</span>{' '}
+          {t('button can be swapped — pick the places you want at no extra cost. Your driver follows your choices.')}
         </p>
       </div>
       <ItineraryMap stops={mapStopsDebounced} kinds={mapKinds} />

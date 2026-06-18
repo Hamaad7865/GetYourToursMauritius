@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /**
  * Contact / enquiry form. Registers a sales lead via the public POST /api/v1/leads endpoint.
@@ -8,6 +9,7 @@ import { useState } from 'react';
  * message into `contact` (capped at the schema's 200 chars).
  */
 export function ContactForm() {
+  const t = useT();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -30,10 +32,10 @@ export function ContactForm() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ name: name.trim() || 'Website enquiry', contact, source: 'web', company }),
       }).then((r) => r.json());
-      if (!res.ok) throw new Error(res.error?.message ?? 'Could not send your message.');
+      if (!res.ok) throw new Error(res.error?.message ?? t('Could not send your message.'));
       setState('sent');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong.');
+      setError(err instanceof Error ? err.message : t('Something went wrong.'));
       setState('error');
     }
   }
@@ -41,9 +43,9 @@ export function ContactForm() {
   if (state === 'sent') {
     return (
       <div className="rounded-2xl border border-teal/30 bg-teal/5 p-6 text-center">
-        <p className="text-lg font-bold text-ink">Thank you — message received!</p>
+        <p className="text-lg font-bold text-ink">{t('Thank you — message received!')}</p>
         <p className="mt-1.5 text-sm text-ink-muted">
-          We&apos;ll get back to you shortly. For anything urgent, WhatsApp us for the fastest reply.
+          {t('We’ll get back to you shortly. For anything urgent, WhatsApp us for the fastest reply.')}
         </p>
       </div>
     );
@@ -57,7 +59,7 @@ export function ContactForm() {
       {/* Honeypot: off-screen, not for humans. Bots that auto-fill every field trip it. */}
       <div aria-hidden="true" className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden">
         <label>
-          Company (leave this empty)
+          {t('Company (leave this empty)')}
           <input
             type="text"
             tabIndex={-1}
@@ -69,11 +71,11 @@ export function ContactForm() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
-          <span className="mb-1 block text-[13px] font-bold text-ink">Name</span>
+          <span className="mb-1 block text-[13px] font-bold text-ink">{t('Name')}</span>
           <input className={field} value={name} onChange={(e) => setName(e.target.value)} required />
         </label>
         <label className="block">
-          <span className="mb-1 block text-[13px] font-bold text-ink">Email</span>
+          <span className="mb-1 block text-[13px] font-bold text-ink">{t('Email')}</span>
           <input
             type="email"
             className={field}
@@ -84,17 +86,17 @@ export function ContactForm() {
         </label>
       </div>
       <label className="block">
-        <span className="mb-1 block text-[13px] font-bold text-ink">Phone / WhatsApp (optional)</span>
+        <span className="mb-1 block text-[13px] font-bold text-ink">{t('Phone / WhatsApp (optional)')}</span>
         <input className={field} value={phone} onChange={(e) => setPhone(e.target.value)} />
       </label>
       <label className="block">
-        <span className="mb-1 block text-[13px] font-bold text-ink">How can we help?</span>
+        <span className="mb-1 block text-[13px] font-bold text-ink">{t('How can we help?')}</span>
         <textarea
           className={field}
           rows={4}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Tell us what you're looking for — dates, party size, activities…"
+          placeholder={t('Tell us what you’re looking for — dates, party size, activities…')}
           required
         />
       </label>
@@ -104,7 +106,7 @@ export function ContactForm() {
         disabled={state === 'sending'}
         className="mt-1 inline-flex w-fit items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-70"
       >
-        {state === 'sending' ? 'Sending…' : 'Send message'}
+        {state === 'sending' ? t('Sending…') : t('Send message')}
       </button>
     </form>
   );

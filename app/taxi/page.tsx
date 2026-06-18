@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { InfoPage, InfoSection, FeatureList, EnquireRow } from '@/components/site/InfoPage';
 import { SITE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -11,18 +12,17 @@ export const metadata: Metadata = {
   alternates: { canonical: '/taxi' },
 };
 
-export default function TaxiPage() {
+export default async function TaxiPage() {
+  const t = await getT();
   return (
     <InfoPage
-      eyebrow="Taxi"
-      title="A trusted taxi and private driver, whenever you need one"
-      intro="Need to get somewhere, or want a driver for the day? Our local drivers know every corner of the island and quote a fair, fixed price before you set off — no meters, no surprises."
+      eyebrow={t('Taxi')}
+      title={t('A trusted taxi and private driver, whenever you need one')}
+      intro={t('Need to get somewhere, or want a driver for the day? Our local drivers know every corner of the island and quote a fair, fixed price before you set off — no meters, no surprises.')}
     >
-      <InfoSection title="By the trip or by the day">
+      <InfoSection title={t('By the trip or by the day')}>
         <p>
-          Book a one-way ride to dinner, a shopping run to a mall, or a full day with a driver who
-          doubles as a guide — stopping wherever you like along the way. Popular day routes include
-          the north (Grand Baie, Cap Malheureux) and the south-west (Chamarel, Black River Gorges).
+          {t('Book a one-way ride to dinner, a shopping run to a mall, or a full day with a driver who doubles as a guide — stopping wherever you like along the way. Popular day routes include the north (Grand Baie, Cap Malheureux) and the south-west (Chamarel, Black River Gorges).')}
         </p>
         <FeatureList
           items={[
@@ -35,7 +35,7 @@ export default function TaxiPage() {
         />
       </InfoSection>
 
-      <EnquireRow message="Hi Belle Mare Tours! I'd like to book a taxi / private driver. Here's what I need:" />
+      <EnquireRow message={t('Hi Belle Mare Tours! I’d like to book a taxi / private driver. Here’s what I need:')} />
     </InfoPage>
   );
 }

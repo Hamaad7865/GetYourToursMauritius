@@ -3,6 +3,7 @@ import { ItineraryTimeline, type TimelineNode } from './ItineraryTimeline';
 import { ItineraryMap } from '@/components/maps/ItineraryMap';
 import type { StopKind } from '@/components/maps/RouteMap';
 import { durationLabel } from '@/lib/catalogue/detail';
+import { getT } from '@/lib/i18n/server';
 import {
   IconBolt,
   IconCalendar,
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/icons';
 
 /** Two-column "at a glance" facts grid + a "loved by travellers" banner, GetYourGuide style. */
-export function QuickFacts({
+export async function QuickFacts({
   durationMinutes,
   languages,
   pickupAvailable,
@@ -37,32 +38,33 @@ export function QuickFacts({
   ratingCount: number;
   startWindow?: string | null;
 }) {
+  const t = await getT();
   const duration = durationLabel(durationMinutes);
   const facts: Array<{ icon: React.ReactNode; title: string; sub: string }> = [];
 
   if (cancellationPolicy) {
     facts.push({
       icon: <IconCalendar width={22} height={22} />,
-      title: 'Free cancellation',
+      title: t('Free cancellation'),
       sub: cancellationPolicy,
     });
   }
   facts.push({
     icon: <IconWallet width={22} height={22} />,
-    title: 'Reserve now & pay later',
-    sub: 'Book your spot today and settle up closer to the date.',
+    title: t('Reserve now & pay later'),
+    sub: t('Book your spot today and settle up closer to the date.'),
   });
   if (duration) {
     facts.push({
       icon: <IconClock width={22} height={22} />,
-      title: `Duration ${duration}`,
-      sub: startWindow ?? 'Check availability for start times',
+      title: t('Duration {d}', { d: duration }),
+      sub: startWindow ?? t('Check availability for start times'),
     });
   }
   if (languages.length > 0) {
     facts.push({
       icon: <IconGlobe width={22} height={22} />,
-      title: 'Live tour guide',
+      title: t('Live tour guide'),
       sub: languages.join(', '),
     });
   }
@@ -70,24 +72,24 @@ export function QuickFacts({
     pickupAvailable
       ? {
           icon: <IconPin width={22} height={22} />,
-          title: 'Pickup included',
-          sub: 'Hotel or port pickup & drop-off',
+          title: t('Pickup included'),
+          sub: t('Hotel or port pickup & drop-off'),
         }
       : {
           icon: <IconPin width={22} height={22} />,
-          title: 'Meeting point',
-          sub: 'Shared on your voucher',
+          title: t('Meeting point'),
+          sub: t('Shared on your voucher'),
         },
   );
   facts.push({
     icon: <IconUsers width={22} height={22} />,
-    title: type === 'transport' ? 'Private transfer' : 'Private group',
-    sub: 'Only your party — no strangers',
+    title: type === 'transport' ? t('Private transfer') : t('Private group'),
+    sub: t('Only your party — no strangers'),
   });
   facts.push({
     icon: <IconBolt width={22} height={22} />,
-    title: 'Instant confirmation',
-    sub: 'E-voucher sent straight to your inbox',
+    title: t('Instant confirmation'),
+    sub: t('E-voucher sent straight to your inbox'),
   });
 
   const loved = ratingAvg != null && ratingAvg >= 4.5 && ratingCount > 0;
@@ -100,8 +102,8 @@ export function QuickFacts({
             <IconTrophy width={22} height={22} />
           </span>
           <p className="m-0 text-[14px] leading-snug text-ink/80">
-            <b className="text-ink">Loved by travellers</b> — rated {ratingAvg.toFixed(1)}&#9733; by{' '}
-            {ratingCount} guests
+            <b className="text-ink">{t('Loved by travellers')}</b>{' — '}
+            {t('rated {avg}★ by {n} guests', { avg: ratingAvg.toFixed(1), n: ratingCount })}
           </p>
         </div>
       )}
@@ -127,28 +129,29 @@ export function QuickFacts({
  * private vehicle, free child seat, flexible start. Rendered for vehicle-mode tours only. The
  * duration is the tour's own; the rest are fixed operator policy.
  */
-export function SightseeingHighlights({ durationMinutes }: { durationMinutes: number | null }) {
+export async function SightseeingHighlights({ durationMinutes }: { durationMinutes: number | null }) {
+  const t = await getT();
   const duration = durationLabel(durationMinutes);
   const items: Array<{ icon: React.ReactNode; title: string; sub: string }> = [
     {
       icon: <IconClock width={22} height={22} />,
-      title: 'Duration & availability',
-      sub: duration ? `Approx ${duration} · available daily` : 'Available daily',
+      title: t('Duration & availability'),
+      sub: duration ? t('Approx {d} · available daily', { d: duration }) : t('Available daily'),
     },
     {
       icon: <IconUsers width={22} height={22} />,
-      title: 'Private tour',
-      sub: 'A vehicle with driver, exclusively for you and your family.',
+      title: t('Private tour'),
+      sub: t('A vehicle with driver, exclusively for you and your family.'),
     },
     {
       icon: <IconShield width={22} height={22} />,
-      title: 'Free child seat',
-      sub: 'Your first child seat is free of charge.',
+      title: t('Free child seat'),
+      sub: t('Your first child seat is free of charge.'),
     },
     {
       icon: <IconCalendar width={22} height={22} />,
-      title: 'Flexible start time',
-      sub: 'Start any time between 7:30 and 9:30 in the morning.',
+      title: t('Flexible start time'),
+      sub: t('Start any time between 7:30 and 9:30 in the morning.'),
     },
   ];
   return (
@@ -169,19 +172,20 @@ export function SightseeingHighlights({ durationMinutes }: { durationMinutes: nu
 }
 
 /** "Overview" box: availability, duration and start/return windows. */
-export function Overview({
+export async function Overview({
   durationMinutes,
   extra,
 }: {
   durationMinutes: number | null;
   extra: ActivityExtra;
 }) {
+  const t = await getT();
   const rows: Array<{ label: string; value: string }> = [];
-  if (extra.availability) rows.push({ label: 'Availability', value: extra.availability });
+  if (extra.availability) rows.push({ label: t('Availability'), value: extra.availability });
   const duration = durationLabel(durationMinutes);
-  if (duration) rows.push({ label: 'Duration', value: `About ${duration}` });
-  if (extra.startWindow) rows.push({ label: 'Start time', value: extra.startWindow });
-  if (extra.returnWindow) rows.push({ label: 'Estimated return', value: extra.returnWindow });
+  if (duration) rows.push({ label: t('Duration'), value: t('About {d}', { d: duration }) });
+  if (extra.startWindow) rows.push({ label: t('Start time'), value: extra.startWindow });
+  if (extra.returnWindow) rows.push({ label: t('Estimated return'), value: extra.returnWindow });
   if (rows.length === 0) return null;
 
   return (
@@ -202,7 +206,7 @@ export function Overview({
 }
 
 /** Itinerary timeline + a real Google Map of the route, GetYourGuide style. */
-export function Itinerary({
+export async function Itinerary({
   stops,
   meetingPoint,
 }: {
@@ -210,9 +214,10 @@ export function Itinerary({
   meetingPoint?: string | null;
 }) {
   if (stops.length === 0) return null;
+  const t = await getT();
   const nodes: TimelineNode[] = [
     ...(meetingPoint
-      ? [{ title: 'Pickup location', area: meetingPoint, variant: 'pickup' as const }]
+      ? [{ title: t('Pickup location'), area: meetingPoint, variant: 'pickup' as const }]
       : []),
     ...stops.map((s) => ({ title: s.title, area: s.area, tags: s.tags, variant: 'main' as const })),
   ];

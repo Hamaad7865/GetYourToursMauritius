@@ -1,17 +1,22 @@
+'use client';
+
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
 import { WishHeart } from './WishHeart';
 import { Price } from '@/components/site/Price';
+import { useT } from '@/components/site/PreferencesProvider';
 import { IconStar } from '@/components/ui/icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
-function durationLabel(minutes: number | null): string | null {
+type T = (key: string, vars?: Record<string, string | number>) => string;
+
+function durationLabel(minutes: number | null, t: T): string | null {
   if (minutes == null) return null;
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 60) return t('{n} min', { n: minutes });
   const h = minutes / 60;
   const rounded = Number.isInteger(h) ? h : Math.round(h * 10) / 10;
-  return `${rounded} hour${rounded === 1 ? '' : 's'}`;
+  return rounded === 1 ? t('{n} hour', { n: rounded }) : t('{n} hours', { n: rounded });
 }
 
 /**
@@ -35,6 +40,7 @@ export function PlaceCard({
   /** Heading level for the card title, so it nests correctly under the surrounding heading. */
   titleAs?: 'h2' | 'h3' | 'h4';
 }) {
+  const t = useT();
   const image = activity.heroImage ?? activity.images[0] ?? null;
 
   const topRated = activity.ratingAvg != null && activity.ratingAvg >= 4.7;
@@ -43,16 +49,16 @@ export function PlaceCard({
   const groupSize = activity.fromPriceMaxGuests;
   const unit =
     activity.type === 'transport' || activity.pricingMode === 'vehicle'
-      ? 'per vehicle'
+      ? t('per vehicle')
       : activity.pricingMode === 'per_group'
         ? // Always read as a group price; only append "up to N" when the size is known. Falling back
           // to "per person" for a per_group tour (missing maxGuests) misrepresents the price.
           groupSize && groupSize > 1
-          ? `per group up to ${groupSize}`
-          : 'per group'
-        : 'per person';
-  const duration = durationLabel(activity.durationMinutes);
-  const meta = [duration, activity.type === 'transport' ? 'Private transfer' : 'Pickup available']
+          ? t('per group up to {n}', { n: groupSize })
+          : t('per group')
+        : t('per person');
+  const duration = durationLabel(activity.durationMinutes, t);
+  const meta = [duration, activity.type === 'transport' ? t('Private transfer') : t('Pickup available')]
     .filter(Boolean)
     .join(' · ');
 
@@ -84,7 +90,7 @@ export function PlaceCard({
         </span>
         {topRated && (
           <span className="absolute left-3 top-11 z-10 rounded-md bg-ink px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white">
-            Top rated
+            {t('Top rated')}
           </span>
         )}
         <WishHeart slug={activity.slug} className="absolute right-3 top-3 z-10 h-8 w-8 shadow-sm" />
@@ -114,17 +120,17 @@ export function PlaceCard({
             </span>
           ) : (
             <span className="rounded bg-teal/10 px-1.5 py-0.5 text-[11px] font-bold text-teal">
-              New activity
+              {t('New activity')}
             </span>
           )}
           <span className="text-right text-[12.5px] text-ink-muted">
             {activity.fromPriceEur != null ? (
               <>
-                From <Price eur={activity.fromPriceEur} className="text-[18px] font-bold text-ink" />
+                {t('From')} <Price eur={activity.fromPriceEur} className="text-[18px] font-bold text-ink" />
                 <span className="block text-[11px] leading-tight">{unit}</span>
               </>
             ) : (
-              <b className="text-ink">On request</b>
+              <b className="text-ink">{t('On request')}</b>
             )}
           </span>
         </div>

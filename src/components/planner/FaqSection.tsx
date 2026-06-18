@@ -1,3 +1,5 @@
+import { useT } from '@/components/site/PreferencesProvider';
+
 const FAQS: Array<[string, string]> = [
   [
     'How accurate are the drive times?',
@@ -19,21 +21,22 @@ const FAQS: Array<[string, string]> = [
 ];
 
 export function FaqSection() {
+  const t = useT();
   return (
     <section className="mx-auto max-w-[820px] px-[22px] pb-2.5 pt-14">
       <h2 className="m-0 mb-[22px] text-center font-display text-[clamp(26px,4vw,38px)] font-semibold tracking-[-0.02em] text-ink">
-        Good to know
+        {t('Good to know')}
       </h2>
       <div className="flex flex-col gap-2.5">
         {FAQS.map(([q, a]) => (
           <details key={q} className="group rounded-[14px] border border-[#EEF4F3] bg-white px-[18px] py-0.5 shadow-[0_4px_14px_rgba(10,46,54,.04)]">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-[15px] text-[15.5px] font-bold text-ink [&::-webkit-details-marker]:hidden">
-              {q}
+              {t(q)}
               <span className="text-xl font-normal text-teal transition-transform group-open:rotate-45" aria-hidden>
                 +
               </span>
             </summary>
-            <p className="m-0 mb-4 text-sm leading-[1.6] text-ink-muted">{a}</p>
+            <p className="m-0 mb-4 text-sm leading-[1.6] text-ink-muted">{t(a)}</p>
           </details>
         ))}
       </div>

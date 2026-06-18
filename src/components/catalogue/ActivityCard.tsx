@@ -1,13 +1,17 @@
+'use client';
+
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { IconPin, IconStar } from '@/components/ui/icons';
 import { WishHeart } from '@/components/gyg/WishHeart';
 import { Price } from '@/components/site/Price';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
 export function ActivityCard({ activity }: { activity: TourSummary }) {
+  const t = useT();
   const duration = durationLabel(activity.durationMinutes);
   return (
     <div className="group relative flex flex-col overflow-hidden rounded-card border border-ink/[0.08] bg-white shadow-sm transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)]">
@@ -53,10 +57,10 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
           <span className="text-[13px] text-ink-muted">
             {activity.fromPriceEur != null ? (
               <>
-                from <Price eur={activity.fromPriceEur} className="text-[19px] font-bold text-ink" />
+                {t('from')} <Price eur={activity.fromPriceEur} className="text-[19px] font-bold text-ink" />
               </>
             ) : (
-              <b className="text-ink">On request</b>
+              <b className="text-ink">{t('On request')}</b>
             )}
           </span>
         </div>

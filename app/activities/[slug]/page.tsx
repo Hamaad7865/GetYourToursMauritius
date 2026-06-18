@@ -27,6 +27,7 @@ import { ReviewList } from '@/components/catalogue/ReviewList';
 import { Faq } from '@/components/catalogue/Faq';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { getT } from '@/lib/i18n/server';
 import { publicServiceContext } from '@/lib/http/context';
 import { getActivity, searchActivities } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
@@ -103,6 +104,7 @@ export default async function ActivityDetailPage({
   const activity = await loadActivity(slug);
   if (!activity) notFound();
 
+  const t = await getT();
   const related = await loadRelated(activity);
   const trail = breadcrumbTrail(activity);
   const faqs = buildFaq(activity);
@@ -124,7 +126,7 @@ export default async function ActivityDetailPage({
         <div className="mx-auto max-w-shell px-6 pb-24 pt-3 lg:pb-16">
           {/* Breadcrumb */}
           <nav
-            aria-label="Breadcrumb"
+            aria-label={t('Breadcrumb')}
             className="mb-4 flex flex-wrap items-center gap-2 text-[13px] text-ink-muted"
           >
             {trail.map((c) => (
@@ -150,23 +152,23 @@ export default async function ActivityDetailPage({
                     <IconStar width={16} height={16} className="text-gold-light" />
                     <b>{activity.ratingAvg?.toFixed(1)}</b>
                     <a href="#reviews" className="font-semibold text-teal underline underline-offset-2">
-                      {activity.ratingCount} reviews
+                      {t('{n} reviews', { n: activity.ratingCount })}
                     </a>
                   </span>
                 ) : (
                   <span className="rounded bg-teal/10 px-2 py-0.5 text-[12px] font-bold text-teal">
-                    New activity
+                    {t('New activity')}
                   </span>
                 )}
                 <span aria-hidden className="h-1 w-1 rounded-full bg-ink/20" />
                 <span className="text-ink/70">
-                  Activity provider: <b className="text-ink">{SITE.operator}</b>
+                  {t('Activity provider:')} <b className="text-ink">{SITE.operator}</b>
                 </span>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <span className="flex items-center gap-2 rounded-xl border border-ink/14 px-3.5 py-2 text-[13.5px] font-semibold text-ink">
-                <WishHeart slug={activity.slug} size={16} className="h-5 w-5 bg-transparent" /> Wishlist
+                <WishHeart slug={activity.slug} size={16} className="h-5 w-5 bg-transparent" /> {t('Wishlist')}
               </span>
               <ShareButton title={activity.title} />
             </div>
@@ -225,14 +227,14 @@ export default async function ActivityDetailPage({
 
               {(activity.extra.availability || activity.extra.startWindow) && (
                 <section className="mt-8">
-                  <SectionTitle>Overview</SectionTitle>
+                  <SectionTitle>{t('Overview')}</SectionTitle>
                   <Overview durationMinutes={activity.durationMinutes} extra={activity.extra} />
                 </section>
               )}
 
               {itinerary.length > 0 && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
-                  <SectionTitle>Itinerary</SectionTitle>
+                  <SectionTitle>{t('Itinerary')}</SectionTitle>
                   {activity.pricingMode === 'vehicle' && (
                     <Link
                       href={`/ai-road-trip-planner?fromTour=${encodeURIComponent(activity.slug)}`}
@@ -245,13 +247,13 @@ export default async function ActivityDetailPage({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
-                          <b className="text-[15px] text-ink">Make this tour your own</b>
+                          <b className="text-[15px] text-ink">{t('Make this tour your own')}</b>
                           <span className="rounded-full bg-coral/15 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-coral">
-                            AI Planner
+                            {t('AI Planner')}
                           </span>
                         </span>
                         <span className="mt-0.5 block text-[13px] leading-snug text-ink/70">
-                          Send these stops to the AI Trip Planner — add, drop or reorder them, then get a live quote.
+                          {t('Send these stops to the AI Trip Planner — add, drop or reorder them, then get a live quote.')}
                         </span>
                       </span>
                       <svg
@@ -276,7 +278,7 @@ export default async function ActivityDetailPage({
                     <>
                       <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
                       <p className="mt-3 text-[12.5px] text-ink-muted">
-                        For reference only. Itineraries are subject to change.
+                        {t('For reference only. Itineraries are subject to change.')}
                       </p>
                     </>
                   )}
@@ -285,7 +287,7 @@ export default async function ActivityDetailPage({
 
               {activity.highlights.length > 0 && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
-                  <SectionTitle>Highlights</SectionTitle>
+                  <SectionTitle>{t('Highlights')}</SectionTitle>
                   <ul className="m-0 flex list-none flex-col gap-3 p-0">
                     {activity.highlights.map((h) => (
                       <li key={h} className="flex items-start gap-3 text-[15px] leading-snug text-ink/85">
@@ -299,7 +301,7 @@ export default async function ActivityDetailPage({
 
               {descriptionParas.length > 0 && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
-                  <SectionTitle>Full description</SectionTitle>
+                  <SectionTitle>{t('Full description')}</SectionTitle>
                   <SeeMore>
                     <div className="flex flex-col gap-3.5">
                       {descriptionParas.map((para, i) => (
@@ -314,17 +316,17 @@ export default async function ActivityDetailPage({
 
               {(activity.inclusions.length > 0 || activity.exclusions.length > 0) && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
-                  <SectionTitle>Includes</SectionTitle>
+                  <SectionTitle>{t('Includes')}</SectionTitle>
                   <Includes inclusions={activity.inclusions} exclusions={activity.exclusions} />
                 </section>
               )}
 
               {(activity.meetingPoint || importantInfo.length > 0) && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
-                  <SectionTitle>Important information</SectionTitle>
+                  <SectionTitle>{t('Important information')}</SectionTitle>
                   {activity.meetingPoint && (
                     <p className="m-0 mb-3 text-[14.5px] text-ink/80">
-                      <b className="text-ink">Meeting point / pickup:</b> {activity.meetingPoint}
+                      <b className="text-ink">{t('Meeting point / pickup:')}</b> {activity.meetingPoint}
                     </p>
                   )}
                   {(activity.location || activity.meetingPoint) && (
@@ -337,7 +339,7 @@ export default async function ActivityDetailPage({
                   )}
                   {importantInfo.length > 0 && (
                     <SeeMore>
-                      <div className="text-[14px] font-bold text-ink">Know before you go</div>
+                      <div className="text-[14px] font-bold text-ink">{t('Know before you go')}</div>
                       <ul className="m-0 mt-2 flex list-none flex-col gap-2.5 p-0">
                         {importantInfo.map((info) => (
                           <li key={info} className="flex items-start gap-2.5 text-[14px] leading-snug text-ink/80">
@@ -352,7 +354,7 @@ export default async function ActivityDetailPage({
               )}
 
               <section id="reviews" className="mt-8 scroll-mt-24 border-t border-ink/10 pt-7">
-                <SectionTitle>Guest reviews</SectionTitle>
+                <SectionTitle>{t('Guest reviews')}</SectionTitle>
                 <ReviewList
                   ratingAvg={activity.ratingAvg}
                   ratingCount={activity.ratingCount}
@@ -361,7 +363,7 @@ export default async function ActivityDetailPage({
               </section>
 
               <section className="mt-8 border-t border-ink/10 pt-7">
-                <SectionTitle>Frequently asked questions</SectionTitle>
+                <SectionTitle>{t('Frequently asked questions')}</SectionTitle>
                 <Faq items={faqs} />
               </section>
             </div>
@@ -371,8 +373,8 @@ export default async function ActivityDetailPage({
 
           {related.length > 0 && (
             <section className="mt-12 border-t border-ink/10 pt-8">
-              <SectionTitle>You might also like</SectionTitle>
-              <Rail ariaLabel="You might also like">
+              <SectionTitle>{t('You might also like')}</SectionTitle>
+              <Rail ariaLabel={t('You might also like')}>
                 {related.map((item) => (
                   <PlaceCard key={item.id} activity={item} rail />
                 ))}

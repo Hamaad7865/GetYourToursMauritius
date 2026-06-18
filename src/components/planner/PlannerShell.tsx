@@ -22,6 +22,8 @@ import { stopsToParam } from '@/lib/planner/share';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { ChatMsg, Boost } from './types';
+import { useT } from '@/components/site/PreferencesProvider';
+import { Price } from '@/components/site/Price';
 
 const CUSTOM_SLUG = 'custom-road-trip';
 const CUSTOM_TITLE = 'Custom Road Trip';
@@ -36,6 +38,7 @@ const CUSTOM_TITLE = 'Custom Road Trip';
  */
 export function PlannerShell() {
   const router = useRouter();
+  const t = useT();
   const { pricing } = usePlannerData();
 
   const [catalog, setCatalog] = useState<Map<string, PlannerPlace>>(new Map());
@@ -104,7 +107,7 @@ export function PlannerShell() {
   try {
     quote = plannerQuote(party, suv, pricing);
   } catch {
-    quoteError = `Groups over ${pricing.maxParty} — contact us`;
+    quoteError = t('Groups over {max} — contact us', { max: pricing.maxParty });
   }
 
   const presetCards = useMemo<PresetCard[]>(
@@ -221,7 +224,7 @@ export function PlannerShell() {
               {
                 role: 'assistant',
                 kind: 'text',
-                text: `You're customizing ${tourName ?? 'this tour'} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.`,
+                text: t("You're customizing {tour} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.", { tour: tourName ?? t('this tour') }),
               },
             ]);
           } else {
@@ -229,7 +232,7 @@ export function PlannerShell() {
               {
                 role: 'assistant',
                 kind: 'text',
-                text: `Let's build on ${tourName ?? 'this tour'}. Tell me what you'd like to see, or browse places and I'll shape the day around them.`,
+                text: t("Let's build on {tour}. Tell me what you'd like to see, or browse places and I'll shape the day around them.", { tour: tourName ?? t('this tour') }),
               },
             ]);
           }
@@ -257,7 +260,7 @@ export function PlannerShell() {
                 {
                   role: 'assistant',
                   kind: 'text',
-                  text: `You're customizing the ${tour.slice(0, 80)} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.`,
+                  text: t("You're customizing the {tour} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.", { tour: tour.slice(0, 80) }),
                 },
               ]);
             }
@@ -267,7 +270,9 @@ export function PlannerShell() {
         }
       })();
     }
-  }, [addToCatalog]);
+    // `t` only seeds the initial chat copy; the initRef guard makes a re-run (e.g. on language change)
+    // a no-op, so listing it satisfies exhaustive-deps without re-resolving the deep link.
+  }, [addToCatalog, t]);
 
   // ── shareable URL ──
   useEffect(() => {
@@ -329,23 +334,23 @@ export function PlannerShell() {
       a.splice(1, 0, m!);
       return a;
     });
-    setChat((c) => [...c, { role: 'assistant', kind: 'text', text: `Done — I moved ${boost.place} earlier so you arrive well before it closes.` }]);
+    setChat((c) => [...c, { role: 'assistant', kind: 'text', text: t('Done — I moved {place} earlier so you arrive well before it closes.', { place: boost.place }) }]);
     setBoost(null);
   }
 
   // ── chat (real grounded agent over live Google Places) ──
   async function sendChat(text: string) {
-    const t = text.trim();
-    if (!t) return;
+    const trimmed = text.trim();
+    if (!trimmed) return;
     const history = chat.filter((m): m is Extract<ChatMsg, { kind: 'text' }> => m.kind === 'text').map((m) => ({ role: m.role, content: m.text }));
-    setChat((c) => [...c, { role: 'user', kind: 'text', text: t }]);
+    setChat((c) => [...c, { role: 'user', kind: 'text', text: trimmed }]);
     setTyping(true);
     setHasBuilt(true);
     try {
       const res = await fetch('/api/ai/trip-planner', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: [...history, { role: 'user', content: t }].slice(-40) }),
+        body: JSON.stringify({ messages: [...history, { role: 'user', content: trimmed }].slice(-40) }),
       }).then((r) => r.json());
       setTyping(false);
       if (res.ok) {
@@ -368,11 +373,11 @@ export function PlannerShell() {
         }
         if (warning) setChat((c) => [...c, { role: 'assistant', kind: 'text', text: warning }]);
       } else {
-        setChat((c) => [...c, { role: 'assistant', kind: 'text', text: "Sorry — I couldn't reach the co-pilot just now. Browse places on the left and I'll keep the price live." }]);
+        setChat((c) => [...c, { role: 'assistant', kind: 'text', text: t("Sorry — I couldn't reach the co-pilot just now. Browse places on the left and I'll keep the price live.") }]);
       }
     } catch {
       setTyping(false);
-      setChat((c) => [...c, { role: 'assistant', kind: 'text', text: 'Something went wrong — please try again in a moment.' }]);
+      setChat((c) => [...c, { role: 'assistant', kind: 'text', text: t('Something went wrong — please try again in a moment.') }]);
     }
   }
 
@@ -398,7 +403,7 @@ export function PlannerShell() {
     setBannerTour(null);
     setDrawerOpen(false);
     setMobileTab('day');
-    setChat([{ role: 'assistant', kind: 'text', text: `Loaded ${p.name} — ${p.places.length} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.` }]);
+    setChat([{ role: 'assistant', kind: 'text', text: t('Loaded {name} — {n} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.', { name: p.name, n: p.places.length }) }]);
     scrollToPlanner();
   }
 
@@ -411,7 +416,7 @@ export function PlannerShell() {
       const slots: Array<{ occurrenceId: string; startsAt: string; seatsLeft: number }> = avail.ok ? (avail.data ?? []) : [];
       const slot = slots.find((s) => utcDayKey(s.startsAt) === date) ?? slots[0];
       if (!slot) {
-        setBookError("That date isn't open yet — try another day, or contact us to arrange it.");
+        setBookError(t("That date isn't open yet — try another day, or contact us to arrange it."));
         return;
       }
       const occ = slot.occurrenceId;
@@ -461,7 +466,7 @@ export function PlannerShell() {
       if (dropoff && dropoff.id !== pickup.id) q.set('dropoff', dropoff.name);
       router.push(`/checkout?${q.toString()}`);
     } catch {
-      setBookError("We couldn't start your booking just now. Please try again.");
+      setBookError(t("We couldn't start your booking just now. Please try again."));
     } finally {
       setBooking(false);
     }
@@ -564,10 +569,10 @@ export function PlannerShell() {
                 </svg>
               </span>
               <div className="flex-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-coral">Customizing</span>
-                <div className="text-[14.5px] font-bold text-ink">{bannerTour} — make it yours</div>
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-coral">{t('Customizing')}</span>
+                <div className="text-[14.5px] font-bold text-ink">{t('{tour} — make it yours', { tour: bannerTour })}</div>
               </div>
-              <button type="button" onClick={() => setBannerTour(null)} aria-label="Dismiss" className="cursor-pointer p-1.5 text-ink-muted">
+              <button type="button" onClick={() => setBannerTour(null)} aria-label={t('Dismiss')} className="cursor-pointer p-1.5 text-ink-muted">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
                 </svg>
@@ -590,18 +595,18 @@ export function PlannerShell() {
                   onClick={() => setMobileTab(k)}
                   className={`flex-1 cursor-pointer rounded-[11px] py-2.5 text-[13px] font-bold ${mobileTab === k ? 'bg-teal-tint text-teal-dark' : 'bg-transparent text-ink-muted'}`}
                 >
-                  {lab}
+                  {t(lab)}
                 </button>
               ))}
             </div>
             {stops.length > 0 && (
               <div className="sticky bottom-0 mt-2.5 flex items-center gap-3 rounded-[16px] bg-ink px-3.5 py-[11px] shadow-[0_12px_28px_rgba(10,46,54,.28)]">
                 <div className="flex-1 text-white">
-                  <div className="text-[12.5px] font-bold">{stops.length} stops · {fmtDur(route.totalMinutes)} driving</div>
-                  <div className="text-xs text-[#9FD2CD]">~{quote ? `€${quote.totalEur}` : '—'} estimate</div>
+                  <div className="text-[12.5px] font-bold">{t('{n} stops · {dur} driving', { n: stops.length, dur: fmtDur(route.totalMinutes) })}</div>
+                  <div className="text-xs text-[#9FD2CD]">~{quote ? <Price eur={quote.totalEur} /> : '—'} {t('estimate')}</div>
                 </div>
                 <button type="button" onClick={() => setQuoteOpen(true)} className="cursor-pointer rounded-xl bg-coral px-[18px] py-[11px] text-sm font-extrabold text-white">
-                  Get quote
+                  {t('Get quote')}
                 </button>
               </div>
             )}

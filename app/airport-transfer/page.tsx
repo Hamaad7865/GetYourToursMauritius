@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { InfoPage, InfoSection, FeatureList, EnquireRow } from '@/components/site/InfoPage';
 import { SITE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -11,18 +12,17 @@ export const metadata: Metadata = {
   alternates: { canonical: '/airport-transfer' },
 };
 
-export default function AirportTransferPage() {
+export default async function AirportTransferPage() {
+  const t = await getT();
   return (
     <InfoPage
-      eyebrow="Airport transfer"
-      title="Private airport transfers, door to door"
-      intro="Start and end your holiday the easy way. Your driver meets you in the arrivals hall, helps with the bags, and takes you straight to your hotel — and back again when it's time to fly home."
+      eyebrow={t('Airport transfer')}
+      title={t('Private airport transfers, door to door')}
+      intro={t('Start and end your holiday the easy way. Your driver meets you in the arrivals hall, helps with the bags, and takes you straight to your hotel — and back again when it’s time to fly home.')}
     >
-      <InfoSection title="How it works">
+      <InfoSection title={t('How it works')}>
         <p>
-          We cover SSR International Airport (MRU) to and from anywhere on the island, with a focus on
-          the east coast — Belle Mare, Trou d&apos;Eau Douce, Palmar and Poste Lafayette. Prices are
-          fixed and agreed up front, with no surge pricing.
+          {t('We cover SSR International Airport (MRU) to and from anywhere on the island, with a focus on the east coast — Belle Mare, Trou d’Eau Douce, Palmar and Poste Lafayette. Prices are fixed and agreed up front, with no surge pricing.')}
         </p>
         <FeatureList
           items={[
@@ -35,7 +35,7 @@ export default function AirportTransferPage() {
         />
       </InfoSection>
 
-      <EnquireRow message="Hi Belle Mare Tours! I'd like an airport transfer. Here are my flight details and hotel:" />
+      <EnquireRow message={t('Hi Belle Mare Tours! I’d like an airport transfer. Here are my flight details and hotel:')} />
     </InfoPage>
   );
 }

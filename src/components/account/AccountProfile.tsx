@@ -3,9 +3,11 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { useT } from '@/components/site/PreferencesProvider';
 import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
 
 export function AccountProfile() {
+  const t = useT();
   const { user, profile, loading, refreshProfile } = useAuth();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -24,7 +26,7 @@ export function AccountProfile() {
   }, [profile?.id]);
 
   if (loading) return <AccountSpinner />;
-  if (!user) return <SignedOutPrompt message="Sign in to view and edit your profile." />;
+  if (!user) return <SignedOutPrompt message={t('Sign in to view and edit your profile.')} />;
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -43,7 +45,7 @@ export function AccountProfile() {
     if (error) {
       setError(error.message);
     } else if (!updated) {
-      setError('Could not save your changes. Please sign in again and retry.');
+      setError(t('Could not save your changes. Please sign in again and retry.'));
     } else {
       setSaved(true);
       await refreshProfile();
@@ -53,12 +55,12 @@ export function AccountProfile() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="font-display text-2xl font-semibold text-ink">Profile</h1>
-      <p className="mt-1 text-sm text-ink-muted">Manage your contact details for bookings.</p>
+      <h1 className="font-display text-2xl font-semibold text-ink">{t('Profile')}</h1>
+      <p className="mt-1 text-sm text-ink-muted">{t('Manage your contact details for bookings.')}</p>
 
       <form onSubmit={save} className="mt-6 flex flex-col gap-4">
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-bold text-ink">Email</span>
+          <span className="text-[13px] font-bold text-ink">{t('Email')}</span>
           <input
             type="email"
             value={user.email ?? ''}
@@ -67,17 +69,17 @@ export function AccountProfile() {
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-bold text-ink">Full name</span>
+          <span className="text-[13px] font-bold text-ink">{t('Full name')}</span>
           <input
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="Your name"
+            placeholder={t('Your name')}
             className="rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal"
           />
         </label>
         <label className="flex flex-col gap-1.5">
-          <span className="text-[13px] font-bold text-ink">Phone</span>
+          <span className="text-[13px] font-bold text-ink">{t('Phone')}</span>
           <input
             type="tel"
             value={phone}
@@ -94,7 +96,7 @@ export function AccountProfile() {
         )}
         {saved && (
           <p role="status" className="text-[13px] font-medium text-teal-dark">
-            Saved.
+            {t('Saved.')}
           </p>
         )}
 
@@ -104,7 +106,7 @@ export function AccountProfile() {
             disabled={saving}
             className="rounded-xl bg-teal px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark disabled:opacity-60"
           >
-            {saving ? 'Saving…' : 'Save changes'}
+            {saving ? t('Saving…') : t('Save changes')}
           </button>
         </div>
       </form>
