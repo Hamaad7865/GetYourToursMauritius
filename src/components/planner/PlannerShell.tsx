@@ -9,12 +9,12 @@ import { ChatCopilot } from './ChatCopilot';
 import { PlacesDrawer } from './PlacesDrawer';
 import { QuoteModal } from './QuoteModal';
 import { AIInsights } from './AIInsights';
-import { RouteMap } from '@/components/maps/RouteMap';
+import { RouteMap, type StopKind } from '@/components/maps/RouteMap';
 import { PresetsSection, type PresetCard } from './PresetsSection';
 import { FeaturesSection } from './FeaturesSection';
 import { TrustSection } from './TrustSection';
 import { FaqSection } from './FaqSection';
-import { PICKUPS, PRESETS, fmtDur } from './planner-constants';
+import { PICKUPS, PRESETS, fmtDur, type PlannerPoint } from './planner-constants';
 import { computePlannerRoute } from '@/lib/planner/route';
 import { plannerQuote, placeCountWarning, type PlannerQuote } from '@/lib/planner/pricing';
 import { stopsToParam } from '@/lib/planner/share';
@@ -39,7 +39,8 @@ export function PlannerShell() {
 
   const [catalog, setCatalog] = useState<Map<string, PlannerPlace>>(new Map());
   const [heroValue, setHeroValue] = useState('');
-  const [pickup, setPickup] = useState('belleMare');
+  const [pickup, setPickup] = useState<PlannerPoint>(PICKUPS[0]!);
+  const [dropoff, setDropoff] = useState<PlannerPoint | null>(null);
   const [stopIds, setStopIds] = useState<string[]>([]);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [typing, setTyping] = useState(false);
@@ -48,6 +49,7 @@ export function PlannerShell() {
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [party, setParty] = useState(2);
   const [suv, setSuv] = useState(false);
+  const [childSeats, setChildSeats] = useState(0);
   const [date, setDate] = useState('');
   const [minDate, setMinDate] = useState('');
   const [time, setTime] = useState('09:00');
@@ -71,21 +73,27 @@ export function PlannerShell() {
   }, []);
 
   // ── derived ──
-  const pickupObj = useMemo(() => PICKUPS.find((p) => p.id === pickup) ?? PICKUPS[0]!, [pickup]);
   const stops = useMemo(
     () => stopIds.map((id) => catalog.get(id)).filter((p): p is PlannerPlace => Boolean(p)),
     [stopIds, catalog],
   );
   const stopIndex = useMemo(() => new Map(stops.map((p, i) => [p.id, i])), [stops]);
+  // The day ends back at the pickup unless the customer chose a distinct drop-off (one-way).
+  const dropoffDiffers = !!dropoff && dropoff.id !== pickup.id;
   const route = useMemo(
-    () => computePlannerRoute(pickupObj, stops.map((s) => ({ lat: s.lat, lng: s.lng, durationMin: s.durationMin }))),
-    [pickupObj, stops],
+    () =>
+      computePlannerRoute(
+        pickup,
+        stops.map((s) => ({ lat: s.lat, lng: s.lng, durationMin: s.durationMin })),
+        dropoff && dropoff.id !== pickup.id ? dropoff : pickup,
+      ),
+    [pickup, stops, dropoff],
   );
   // Identifies a day by its *unordered* set of stops + pickup. Auto-optimization reorders the day to
   // the shortest round trip whenever this key changes (a stop added/removed, or the pickup changed);
   // since reordering leaves the key unchanged, the optimizer never re-triggers itself (no loop), and a
   // manual drag-reorder stands until the next change.
-  const optimizeKey = useMemo(() => `${pickup}|${[...stopIds].sort().join(',')}`, [pickup, stopIds]);
+  const optimizeKey = useMemo(() => `${pickup.id}|${[...stopIds].sort().join(',')}`, [pickup, stopIds]);
 
   let quote: PlannerQuote | null = null;
   let quoteError: string | null = null;
@@ -99,7 +107,7 @@ export function PlannerShell() {
     () =>
       PRESETS.map((p) => {
         const r = computePlannerRoute(
-          pickupObj,
+          pickup,
           p.places.map((x) => ({ lat: x.lat, lng: x.lng, durationMin: x.durationMin })),
         );
         return {
@@ -111,7 +119,7 @@ export function PlannerShell() {
           fromEur: pricing.standardEur,
         };
       }),
-    [pickupObj, pricing.standardEur],
+    [pickup, pricing.standardEur],
   );
 
   // ── opening-hours boost ──
@@ -147,7 +155,7 @@ export function PlannerShell() {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
-            pickup: { lat: pickupObj.lat, lng: pickupObj.lng },
+            pickup: { lat: pickup.lat, lng: pickup.lng },
             stops: stops.map((s) => ({ lat: s.lat, lng: s.lng })),
           }),
         }).then((r) => r.json());
@@ -172,7 +180,7 @@ export function PlannerShell() {
       active = false;
       clearTimeout(timer);
     };
-  }, [optimizeKey, stops, pickupObj]);
+  }, [optimizeKey, stops, pickup]);
 
   // ── mount: responsive + dates ──
   useEffect(() => {
@@ -186,11 +194,48 @@ export function PlannerShell() {
     return () => mq.removeEventListener('change', upd);
   }, []);
 
-  // ── mount: deep-link (?stops=placeId,placeId&tour=Name) resolved via Place Details ──
+  // ── mount: deep-link. `?fromTour=slug` hands a sightseeing tour's itinerary to the planner (stops
+  //    resolved server-side); `?stops=placeId,placeId&tour=Name` is the shareable form. ──
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
     const params = new URLSearchParams(window.location.search);
+
+    const fromTour = params.get('fromTour');
+    if (fromTour) {
+      (async () => {
+        try {
+          const res = await fetch(`/api/planner/from-tour?slug=${encodeURIComponent(fromTour)}`).then((r) => r.json());
+          const tourName: string | null = res.ok ? res.data?.tour ?? null : null;
+          const places: PlannerPlace[] = res.ok && Array.isArray(res.data?.places) ? res.data.places : [];
+          if (tourName) setBannerTour(tourName.slice(0, 80));
+          if (places.length) {
+            addToCatalog(places);
+            setStopIds(places.map((p) => p.id));
+            setHasBuilt(true);
+            setChat([
+              {
+                role: 'assistant',
+                kind: 'text',
+                text: `You're customizing ${tourName ?? 'this tour'} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.`,
+              },
+            ]);
+          } else {
+            setChat([
+              {
+                role: 'assistant',
+                kind: 'text',
+                text: `Let's build on ${tourName ?? 'this tour'}. Tell me what you'd like to see, or browse places and I'll shape the day around them.`,
+              },
+            ]);
+          }
+        } catch {
+          /* tour resolution failed — start from an empty day */
+        }
+      })();
+      return;
+    }
+
     const raw = (params.get('stops') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
     const tour = params.get('tour');
     if (tour) setBannerTour(tour.slice(0, 80));
@@ -224,6 +269,8 @@ export function PlannerShell() {
   useEffect(() => {
     if (!initRef.current || typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
+    // The tour hand-off is a one-shot trigger; drop it so the URL settles into the shareable form.
+    params.delete('fromTour');
     if (stopIds.length) params.set('stops', stopsToParam(stopIds));
     else params.delete('stops');
     const qs = params.toString();
@@ -392,9 +439,12 @@ export function PlannerShell() {
         guests: String(party),
         unit: 'per vehicle',
         suv: suv ? '1' : '0',
-        childSeats: '0',
+        childSeats: String(Math.min(childSeats, party)),
+        // Carry the chosen pickup (and a distinct drop-off) so they land on the booking for the driver.
+        pickup: pickup.name,
         from: 'widget',
       });
+      if (dropoff && dropoff.id !== pickup.id) q.set('dropoff', dropoff.name);
       router.push(`/checkout?${q.toString()}`);
     } catch {
       setBookError("We couldn't start your booking just now. Please try again.");
@@ -413,18 +463,34 @@ export function PlannerShell() {
     }
   }
 
-  // Real Google map: drive the route through the stops (numbered 1..n). With no stops, show the base.
-  const mapStops =
-    stops.length > 0
-      ? stops.map((s) => ({ title: s.name, lat: s.lat, lng: s.lng }))
-      : [{ title: pickupObj.name, lat: pickupObj.lat, lng: pickupObj.lng }];
+  // Real Google map: pickup pinned first ("P"), stops numbered 1..n, and the drop-off last ("D") when
+  // it differs. With no stops we still show the pickup pin (the customer's starting location).
+  const mapStops = [
+    { title: pickup.name, lat: pickup.lat, lng: pickup.lng },
+    ...stops.map((s) => ({ title: s.name, lat: s.lat, lng: s.lng })),
+    ...(dropoffDiffers ? [{ title: dropoff!.name, lat: dropoff!.lat, lng: dropoff!.lng }] : []),
+  ];
+  const mapKinds: StopKind[] = [
+    'start',
+    ...stops.map((): StopKind => 'main'),
+    ...(dropoffDiffers ? (['start'] as StopKind[]) : []),
+  ];
+  const mapLabels: Array<string | number> = [
+    'P',
+    ...stops.map((_, i) => i + 1),
+    ...(dropoffDiffers ? ['D'] : []),
+  ];
+  // Round trips draw the dashed return-to-pickup leg; a one-way day to a drop-off does not.
+  const mapLoop = !dropoffDiffers && stops.length > 0;
   const warning = placeCountWarning(stops.length);
 
   const itinerary = (
     <ItineraryPanel
       stops={stops}
-      pickupId={pickup}
+      pickup={pickup}
       onPickup={setPickup}
+      dropoff={dropoff}
+      onDropoff={setDropoff}
       route={route}
       quote={quote}
       onAddPlaces={() => setDrawerOpen(true)}
@@ -455,7 +521,17 @@ export function PlannerShell() {
       onAddPlace={addStopId}
     />
   );
-  const map = <RouteMap stops={mapStops} animate={stops.length > 0} carColor="#DC2626" className="h-full w-full" loop={false} />;
+  const map = (
+    <RouteMap
+      stops={mapStops}
+      kinds={mapKinds}
+      labels={mapLabels}
+      animate={stops.length > 0}
+      carColor="#DC2626"
+      className="h-full w-full"
+      loop={mapLoop}
+    />
+  );
   const drawer = <PlacesDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} selectedIds={stopIds} onAdd={addPlace} />;
 
   return (
@@ -563,6 +639,8 @@ export function PlannerShell() {
         setParty={setParty}
         suv={suv}
         setSuv={setSuv}
+        childSeats={childSeats}
+        setChildSeats={setChildSeats}
         booking={booking}
         bookError={bookError}
         onBook={bookDay}

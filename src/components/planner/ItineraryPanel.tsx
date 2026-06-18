@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
-import { PICKUPS, fmtDur } from './planner-constants';
+import { PICKUPS, fmtDur, type PlannerPoint } from './planner-constants';
+import { PickupSearch } from './PickupSearch';
 import { Thumb } from './Thumb';
 
 function DriveChip({ minutes, km }: { minutes: number; km: number }) {
@@ -18,11 +19,13 @@ function DriveChip({ minutes, km }: { minutes: number; km: number }) {
   );
 }
 
-/** "Your day" — pickup selector, drag-reorderable stops with live drive chips, totals + quote CTA. */
+/** "Your day" — pickup + drop-off search, drag-reorderable stops with live drive chips, totals + quote CTA. */
 export function ItineraryPanel({
   stops,
-  pickupId,
+  pickup,
   onPickup,
+  dropoff,
+  onDropoff,
   route,
   quote,
   onAddPlaces,
@@ -33,8 +36,11 @@ export function ItineraryPanel({
   shared,
 }: {
   stops: PlannerPlace[];
-  pickupId: string;
-  onPickup: (id: string) => void;
+  pickup: PlannerPoint;
+  onPickup: (point: PlannerPoint) => void;
+  /** Drop-off point, or null when it's the same as the pickup (a round trip). */
+  dropoff: PlannerPoint | null;
+  onDropoff: (point: PlannerPoint | null) => void;
   route: PlannerRouteCalc;
   quote: PlannerQuote | null;
   onAddPlaces: () => void;
@@ -45,7 +51,11 @@ export function ItineraryPanel({
   shared: boolean;
 }) {
   const dragFrom = useRef<number | null>(null);
-  const segs = route.segs; // pickup→s1, s1→s2, …, sN→pickup
+  const segs = route.segs; // pickup→s1, s1→s2, …, sN→(drop-off or pickup)
+  const dropoffDiffers = !!dropoff && dropoff.id !== pickup.id;
+  // "Different" reveals the drop-off search; the route only turns one-way once a place is actually
+  // chosen (dropoff set), so toggling the mode alone keeps the day a round trip.
+  const [differentDropoff, setDifferentDropoff] = useState(!!dropoff);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
@@ -64,28 +74,44 @@ export function ItineraryPanel({
         </button>
       </div>
 
-      {/* pickup */}
+      {/* pickup + drop-off */}
       <div className="border-b border-[#EEF4F3] px-[15px] py-3.5">
-        <label htmlFor="planner-pickup" className="mb-[7px] block text-[11px] font-bold uppercase tracking-[0.04em] text-ink-muted">
-          Pick-up
-        </label>
-        <div className="flex items-center gap-2.5 rounded-[11px] border border-[#E6EFEE] bg-[#F4F8F7] px-[11px] py-[9px]">
-          <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full bg-ink">
-            <span className="h-[7px] w-[7px] rounded-full bg-white" />
-          </span>
-          <select
-            id="planner-pickup"
-            value={pickupId}
-            onChange={(e) => onPickup(e.target.value)}
-            className="flex-1 cursor-pointer border-none bg-transparent text-[13.5px] font-semibold text-ink outline-none"
-          >
-            {PICKUPS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+        <div className="mb-[7px] block text-[11px] font-bold uppercase tracking-[0.04em] text-ink-muted">Pick-up</div>
+        <PickupSearch value={pickup} onChange={onPickup} presets={PICKUPS} dotClassName="bg-ink" />
+
+        <div className="mt-3 flex items-center justify-between">
+          <span className="text-[11px] font-bold uppercase tracking-[0.04em] text-ink-muted">Drop-off</span>
+          <div className="flex rounded-full bg-[#EEF4F3] p-0.5 text-[11.5px] font-bold">
+            <button
+              type="button"
+              onClick={() => {
+                setDifferentDropoff(false);
+                onDropoff(null);
+              }}
+              className={`rounded-full px-2.5 py-1 transition ${!differentDropoff ? 'bg-white text-ink shadow-sm' : 'text-ink-muted'}`}
+            >
+              Same as pick-up
+            </button>
+            <button
+              type="button"
+              onClick={() => setDifferentDropoff(true)}
+              className={`rounded-full px-2.5 py-1 transition ${differentDropoff ? 'bg-white text-ink shadow-sm' : 'text-ink-muted'}`}
+            >
+              Different
+            </button>
+          </div>
         </div>
+        {differentDropoff && (
+          <div className="mt-2">
+            <PickupSearch
+              value={dropoff}
+              onChange={onDropoff}
+              presets={PICKUPS}
+              placeholder="Search drop-off location"
+              dotClassName="bg-coral"
+            />
+          </div>
+        )}
       </div>
 
       {/* stops */}
@@ -167,10 +193,12 @@ export function ItineraryPanel({
               ))}
             </div>
 
-            {/* return */}
+            {/* return / drop-off */}
             <div className="flex items-center gap-[7px] pl-7 pt-[9px] text-[11.5px] font-semibold text-ink-muted">
               <span className="h-2 w-2 rounded-full border-2 border-[#B7C6C8]" />
-              Return to pick-up · {segs[segs.length - 1]?.minutes ?? 0} min
+              {dropoffDiffers
+                ? `Drop-off · ${dropoff!.name} · ${segs[segs.length - 1]?.minutes ?? 0} min`
+                : `Return to pick-up · ${segs[segs.length - 1]?.minutes ?? 0} min`}
             </div>
           </div>
         )}

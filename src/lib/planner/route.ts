@@ -12,15 +12,17 @@ export interface PlannerRouteCalc {
 }
 
 /**
- * Build the round-trip route pickup → stops (in order) → back to pickup, with a leg per hop. Drive
- * times use the same haversine heuristic as the design (road factor 1.32, ~38 km/h); the booking
- * re-times against Google server-side, so this stays a fast, offline display estimate.
+ * Build the route pickup → stops (in order) → `end`, with a leg per hop. `end` defaults to the
+ * pickup (a round trip); pass a distinct drop-off for a one-way day. Drive times use the same
+ * haversine heuristic as the design (road factor 1.32, ~38 km/h); the booking re-times against
+ * Google server-side, so this stays a fast, offline display estimate.
  */
 export function computePlannerRoute(
   pickup: LatLng,
   stops: Array<LatLng & { durationMin: number }>,
+  end: LatLng = pickup,
 ): PlannerRouteCalc {
-  const pts: LatLng[] = [pickup, ...stops, pickup];
+  const pts: LatLng[] = [pickup, ...stops, end];
   const segs: RouteSeg[] = [];
   let totalKm = 0;
   let totalMinutes = 0;

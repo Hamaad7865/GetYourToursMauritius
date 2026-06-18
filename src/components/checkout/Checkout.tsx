@@ -78,9 +78,14 @@ export function Checkout() {
     }
   }
 
+  // Pickup / drop-off chosen in the AI planner (when arriving from "Get my quote"): pre-fill the
+  // transport step with the pickup, and carry a distinct drop-off onto the booking for the driver.
+  const pickupParam = (params.get('pickup') ?? '').slice(0, 160);
+  const dropoffParam = (params.get('dropoff') ?? '').slice(0, 160);
+
   const [step, setStep] = useState(1);
-  const [pickup, setPickup] = useState<'known' | 'unknown' | null>(null);
-  const [pickupLoc, setPickupLoc] = useState('');
+  const [pickup, setPickup] = useState<'known' | 'unknown' | null>(pickupParam ? 'known' : null);
+  const [pickupLoc, setPickupLoc] = useState(pickupParam);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secs, setSecs] = useState(() => {
@@ -161,8 +166,14 @@ export function Checkout() {
             holdId: holdId || undefined,
             itinerary: readItinerary(),
             // The pickup address the customer entered on the transport step (null when they chose
-            // "I don't know yet"). Persisted on the booking so the provider actually receives it.
-            pickupLocation: pickup === 'known' && pickupLoc.trim() ? pickupLoc.trim() : null,
+            // "I don't know yet"), with the planner's distinct drop-off appended. Persisted on the
+            // booking so the provider actually receives it.
+            pickupLocation:
+              pickup === 'known' && pickupLoc.trim()
+                ? dropoffParam
+                  ? `${pickupLoc.trim()} → drop-off: ${dropoffParam}`
+                  : pickupLoc.trim()
+                : null,
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
               email: user?.email,

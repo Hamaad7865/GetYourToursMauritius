@@ -19,9 +19,10 @@ export function pinIcon(color: string, opts?: { hollow?: boolean }): google.maps
   };
 }
 
-/** Numbered label styling for a route-stop marker. `color` is the digit colour — white on a solid
- *  pin, brand teal on a hollow (white) pin so the number stays legible. */
-export function pinLabel(n: number, color = '#ffffff'): google.maps.MarkerLabel {
+/** Label styling for a route marker — a stop number, or a glyph like "P"/"D" for the pickup and
+ *  drop-off endpoints. `color` is the text colour — white on a solid pin, brand teal on a hollow
+ *  (white) pin so it stays legible. */
+export function pinLabel(n: number | string, color = '#ffffff'): google.maps.MarkerLabel {
   return { text: String(n), color, fontSize: '12px', fontWeight: '700' };
 }
 

@@ -1,8 +1,17 @@
+import type { ReactNode } from 'react';
 import type { TourSummary } from '@/lib/validation/tours';
 import { ActivityCard } from './ActivityCard';
 
-export function ActivityGrid({ activities }: { activities: TourSummary[] }) {
-  if (activities.length === 0) {
+export function ActivityGrid({
+  activities,
+  leadingCard,
+}: {
+  activities: TourSummary[];
+  /** An optional card rendered as the first grid cell (e.g. the AI planner promo on the
+   *  sightseeing listing). The grid still renders when it's the only card. */
+  leadingCard?: ReactNode;
+}) {
+  if (activities.length === 0 && !leadingCard) {
     return (
       <div className="rounded-card border border-teal/20 bg-white/60 p-10 text-center text-sm text-ink-muted">
         No activities to show yet. Once the catalogue is connected, Belle Mare Tours&apos;
@@ -12,6 +21,7 @@ export function ActivityGrid({ activities }: { activities: TourSummary[] }) {
   }
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {leadingCard}
       {activities.map((activity) => (
         <ActivityCard key={activity.id} activity={activity} />
       ))}

@@ -5,13 +5,17 @@ export interface LngLat {
   lng: number;
 }
 
-/** Pick-up bases (ported from the design). The customer's exact pickup is taken at checkout; this
- *  drives the route drawing + the "from pick-up" / "return to pick-up" drive times. */
-export interface Pickup extends LngLat {
+/** A named point on the map with coordinates — a pick-up base, a searched pickup, or a drop-off. */
+export interface PlannerPoint extends LngLat {
   id: string;
   name: string;
 }
-export const PICKUPS: Pickup[] = [
+/** Back-compat alias: the pick-up bases are PlannerPoints. */
+export type Pickup = PlannerPoint;
+
+/** Pick-up bases (ported from the design), offered as quick picks under the type-to-search pickup
+ *  field. They drive the route drawing + the "from pick-up" / "drop-off" drive times. */
+export const PICKUPS: PlannerPoint[] = [
   { id: 'belleMare', name: 'Belle Mare (our base)', lat: -20.205, lng: 57.76 },
   { id: 'grandBaie', name: 'Grand Baie hotels', lat: -20.012, lng: 57.582 },
   { id: 'portLouis', name: 'Port Louis', lat: -20.161, lng: 57.501 },

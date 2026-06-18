@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
 import { useCategories } from '@/lib/categories/useCategories';
+import { isSightseeingCategory } from '@/lib/categories/categories';
 import { PlaceCard } from './PlaceCard';
+import { PlannerPromoCard } from '@/components/catalogue/PlannerPromoCard';
 
 /**
  * Home catalogue: one section per category, each showing up to four activities with a
@@ -83,7 +85,13 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
           {/* Mobile: an edge-to-edge horizontal snap rail (cards peek the next), GetYourGuide style.
               sm+: the original responsive grid. */}
           <div className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
-            {cat.items.slice(0, 4).map((activity) => (
+            {isSightseeingCategory(cat.name) && (
+              <div className="w-[80%] shrink-0 snap-start sm:w-auto sm:shrink">
+                <PlannerPromoCard titleAs="h4" />
+              </div>
+            )}
+            {/* Leave room for the promo card so the sightseeing rail still shows four cells. */}
+            {cat.items.slice(0, isSightseeingCategory(cat.name) ? 3 : 4).map((activity) => (
               <div key={activity.id} className="w-[80%] shrink-0 snap-start sm:w-auto sm:shrink">
                 <PlaceCard activity={activity} titleAs="h4" />
               </div>

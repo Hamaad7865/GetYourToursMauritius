@@ -5,7 +5,9 @@ import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { CategoryChips } from '@/components/catalogue/CategoryChips';
 import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
+import { PlannerPromoCard } from '@/components/catalogue/PlannerPromoCard';
 import { SearchFilterBar } from '@/components/catalogue/SearchFilterBar';
+import { isSightseeingCategory } from '@/lib/categories/categories';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
 import {
@@ -96,7 +98,12 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
             <SearchFilterBar params={params} />
           </div>
 
-          <ActivityGrid activities={items} />
+          <ActivityGrid
+            activities={items}
+            leadingCard={
+              isSightseeingCategory(params.category) && page === 1 ? <PlannerPromoCard /> : undefined
+            }
+          />
 
           {totalPages > 1 && (
             <nav
