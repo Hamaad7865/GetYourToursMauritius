@@ -277,19 +277,19 @@ async function materializeActivity(activityId: string): Promise<void> {
 }
 
 /**
- * Per-group pricing needs a group size (the tier's max_guests) to compute ceil(people / size). A
- * per_group activity saved with no max_guests on any tier would silently price per-head everywhere
- * (the server now rejects it outright with invalid_per_group_tier), so reject it at save time with a
- * clear message instead of shipping a tour that mis-prices or fails to book.
+ * Per-group pricing needs a group size (the tier's max_guests) to compute ceil(people / size). The
+ * server prices any per_group tier with a NULL max_guests per head, and the widget would show one flat
+ * group rate — so EVERY priced tier must carry a cap, not just one (an uncapped cheapest tier silently
+ * diverges the displayed total from the per-head charge). Reject at save time with a clear message.
  */
 function assertPricingValid(v: ActivityFormValues): void {
   if (v.pricingMode !== 'per_group') return;
-  const hasGroupSize = v.options.some((o) =>
-    o.prices.some((p) => p.label.trim() && p.amountEur != null && p.maxGuests != null && p.maxGuests > 0),
+  const uncapped = v.options.some((o) =>
+    o.prices.some((p) => p.label.trim() && p.amountEur != null && (p.maxGuests == null || p.maxGuests <= 0)),
   );
-  if (!hasGroupSize) {
+  if (uncapped) {
     throw new Error(
-      'Per-group pricing needs a group size: give at least one price tier a "max guests" value (the number of people one group price covers).',
+      'Per-group pricing needs a group size on every price tier: set a "max guests" value (the number of people one group price covers) for each tier.',
     );
   }
 }

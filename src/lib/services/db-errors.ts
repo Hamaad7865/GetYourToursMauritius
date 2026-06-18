@@ -26,7 +26,7 @@ export function mapDbError(error: unknown): never {
     throw new ConflictError('This request was already submitted');
   }
   if (
-    /\b(occurrence_not_bookable|occurrence_not_found|occurrence_in_past|occurrence_activity_mismatch|invalid_party|invalid_item|invalid_quantity|unknown_price_tier|exceeds_max_guests|exceeds_vehicle_capacity|items_quantity_mismatch|invalid_request)\b/.test(
+    /\b(occurrence_not_bookable|occurrence_not_found|occurrence_in_past|occurrence_too_soon|occurrence_activity_mismatch|invalid_party|invalid_item|invalid_quantity|unknown_price_tier|exceeds_max_guests|exceeds_vehicle_capacity|items_quantity_mismatch|invalid_request)\b/.test(
       message,
     )
   ) {

@@ -51,12 +51,18 @@ export function Checkout() {
   const fromCart = params.get('from') === 'cart';
   // The hold reserved on Continue (reused at pay so the spot isn't double-held) + its real expiry +
   // the shared idempotency key — handed over via sessionStorage (NOT the URL, which would leak them).
+  // ONLY the widget/planner flow (from=widget) owns a stashed hold; a cart checkout must NEVER inherit
+  // it (the key is occurrence-scoped, so a stale widget hold for the same occurrence would otherwise
+  // block the cart line as "expired" and its idem could replay the earlier booking). A past expiry is
+  // treated as no hold, so the cart/fresh path mints its own key and creates its own hold at pay.
   function readHold(): { holdId: string; expiresAt: string; idem: string } {
-    if (typeof window === 'undefined' || !occ) return { holdId: '', expiresAt: '', idem: '' };
+    if (typeof window === 'undefined' || !occ || !fromWidget) return { holdId: '', expiresAt: '', idem: '' };
     try {
       const raw = window.sessionStorage.getItem(`gytm:hold:${occ}`);
       const h = raw ? JSON.parse(raw) : null;
-      return { holdId: h?.holdId || '', expiresAt: h?.expiresAt || '', idem: h?.idem || '' };
+      const exp = h?.expiresAt || '';
+      if (exp && new Date(exp).getTime() <= Date.now()) return { holdId: '', expiresAt: '', idem: '' };
+      return { holdId: h?.holdId || '', expiresAt: exp, idem: h?.idem || '' };
     } catch {
       return { holdId: '', expiresAt: '', idem: '' };
     }
@@ -191,10 +197,13 @@ export function Checkout() {
         ref = bookingRes.data.ref as string;
         setBookingRef(ref);
         // The route is now persisted on the booking — clear both stashes (slug from Continue, occ from
-        // a cart line) so neither attaches to a later booking.
+        // a cart line) and the stashed hold so none attaches to a later checkout for this occurrence.
         try {
           if (slug) window.sessionStorage.removeItem(`gytm:itinerary:${slug}`);
-          if (occ) window.sessionStorage.removeItem(`gytm:itinerary:occ:${occ}`);
+          if (occ) {
+            window.sessionStorage.removeItem(`gytm:itinerary:occ:${occ}`);
+            window.sessionStorage.removeItem(`gytm:hold:${occ}`);
+          }
         } catch {
           /* sessionStorage unavailable — nothing to clear */
         }

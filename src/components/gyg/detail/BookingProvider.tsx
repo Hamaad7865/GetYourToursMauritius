@@ -218,10 +218,12 @@ export function BookingProvider({
     : cheapest == null
       ? null
       : activity.pricingMode === 'per_group'
-        ? // One flat price per group of `groupSize`; if the group size is somehow missing (bad data),
-          // charge a single group rather than silently billing per head (the server rejects an
-          // unconfigured per_group tier outright, so this only guards the display).
-          cheapest.amountEur * (groupSize ? Math.ceil(participants / groupSize) : 1)
+        ? // One flat price per group of `groupSize`. If the group size is missing (a per_group tier
+          // saved without a cap), the server prices PER HEAD — so fall back to per head here too, so
+          // Continue, the cart line and the actual charge all agree (never a single under-stated group).
+          groupSize
+          ? cheapest.amountEur * Math.ceil(participants / groupSize)
+          : cheapest.amountEur * participants
         : cheapest.amountEur * participants;
   const childSeatsExtra = childSeatsCost(childSeats);
   const total = baseTotal == null ? null : baseTotal + childSeatsExtra;

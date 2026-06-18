@@ -195,9 +195,10 @@ export function PlannerShell() {
     const upd = () => setIsMobile(mq.matches);
     upd();
     mq.addEventListener('change', upd);
-    const today = new Date();
-    setMinDate(nominalDayKey(today));
-    setDate(nominalDayKey(new Date(today.getTime() + 86_400_000)));
+    // Earliest bookable day is TOMORROW (we don't fulfil same-day) — the server rejects today too.
+    const tomorrow = new Date(Date.now() + 86_400_000);
+    setMinDate(nominalDayKey(tomorrow));
+    setDate(nominalDayKey(tomorrow));
     return () => mq.removeEventListener('change', upd);
   }, []);
 

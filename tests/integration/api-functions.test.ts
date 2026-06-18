@@ -139,18 +139,16 @@ describe('api_* service functions', () => {
     expect(slots.length).toBeGreaterThan(5);
     expect(slots.every((s) => s.capacity === 8 && s.seatsLeft === 8)).toBe(true);
 
-    // Today's open-ended slot is at noon MAURITIUS time (UTC+4 → 08:00 UTC); the read mirrors
-    // create_hold (F16), so it's offered only while still in the future — shown before noon
-    // Mauritius, hidden after. Anchor the query to the Mauritius calendar day so it doesn't drift
-    // across the UTC-midnight boundary.
+    // We don't fulfil same-day bookings: the earliest bookable day is TOMORROW (Mauritius). So a query
+    // anchored to today's Mauritius calendar day must return NOTHING, even before noon — the read
+    // clamps its lower bound to tomorrow, matching create_hold's occurrence_too_soon guard.
     const mauToday = new Date(Date.now() + 4 * 3_600_000).toISOString().slice(0, 10);
-    const noonMauToday = Date.parse(`${mauToday}T12:00:00+04:00`);
     const sameDay = await rpc<unknown[]>(db, 'api_list_availability', {
       slug: 'open-ended-tour',
       from: mauToday,
       to: mauToday,
     });
-    expect(sameDay.length).toBe(Date.now() < noonMauToday ? 1 : 0);
+    expect(sameDay.length).toBe(0);
 
     // Materialization is idempotent — a second run creates no duplicates.
     await db.as({ role: 'service_role' });
