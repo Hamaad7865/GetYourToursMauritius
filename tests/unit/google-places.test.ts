@@ -74,4 +74,15 @@ describe('mapGooglePlace', () => {
     expect(mapGooglePlace({ displayName: { text: 'No coords' } })).toBeNull();
     expect(mapGooglePlace({ id: 'x', location: { latitude: -20, longitude: 57 } })).toBeNull();
   });
+
+  it('builds a proxied imageUrl from the first photo', () => {
+    const p = mapGooglePlace({
+      id: 'x',
+      displayName: { text: 'Y' },
+      location: { latitude: -20, longitude: 57 },
+      types: [],
+      photos: [{ name: 'places/x/photos/abc123' }],
+    });
+    expect(p?.imageUrl).toBe('/api/planner/photo?ref=places%2Fx%2Fphotos%2Fabc123');
+  });
 });
