@@ -186,11 +186,48 @@ export function PlannerShell() {
     return () => mq.removeEventListener('change', upd);
   }, []);
 
-  // ── mount: deep-link (?stops=placeId,placeId&tour=Name) resolved via Place Details ──
+  // ── mount: deep-link. `?fromTour=slug` hands a sightseeing tour's itinerary to the planner (stops
+  //    resolved server-side); `?stops=placeId,placeId&tour=Name` is the shareable form. ──
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
     const params = new URLSearchParams(window.location.search);
+
+    const fromTour = params.get('fromTour');
+    if (fromTour) {
+      (async () => {
+        try {
+          const res = await fetch(`/api/planner/from-tour?slug=${encodeURIComponent(fromTour)}`).then((r) => r.json());
+          const tourName: string | null = res.ok ? res.data?.tour ?? null : null;
+          const places: PlannerPlace[] = res.ok && Array.isArray(res.data?.places) ? res.data.places : [];
+          if (tourName) setBannerTour(tourName.slice(0, 80));
+          if (places.length) {
+            addToCatalog(places);
+            setStopIds(places.map((p) => p.id));
+            setHasBuilt(true);
+            setChat([
+              {
+                role: 'assistant',
+                kind: 'text',
+                text: `You're customizing ${tourName ?? 'this tour'} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.`,
+              },
+            ]);
+          } else {
+            setChat([
+              {
+                role: 'assistant',
+                kind: 'text',
+                text: `Let's build on ${tourName ?? 'this tour'}. Tell me what you'd like to see, or browse places and I'll shape the day around them.`,
+              },
+            ]);
+          }
+        } catch {
+          /* tour resolution failed — start from an empty day */
+        }
+      })();
+      return;
+    }
+
     const raw = (params.get('stops') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
     const tour = params.get('tour');
     if (tour) setBannerTour(tour.slice(0, 80));
@@ -224,6 +261,8 @@ export function PlannerShell() {
   useEffect(() => {
     if (!initRef.current || typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
+    // The tour hand-off is a one-shot trigger; drop it so the URL settles into the shareable form.
+    params.delete('fromTour');
     if (stopIds.length) params.set('stops', stopsToParam(stopIds));
     else params.delete('stops');
     const qs = params.toString();

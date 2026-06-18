@@ -221,6 +221,15 @@ export async function searchGooglePlaces(args: PlacesSearchArgs, apiKey: string)
   return places;
 }
 
+/** Resolve a single place from a free-text name (e.g. a tour itinerary stop). One Text Search page,
+ *  top result — lighter than the browse search — restricted to Mauritius and cached like any search. */
+export async function resolvePlaceByText(query: string, apiKey: string): Promise<PlannerPlace | null> {
+  const q = query.trim();
+  if (!q) return null;
+  const places = await searchTextCached(buildQuery({ query: q }), apiKey, 1);
+  return places[0] ?? null;
+}
+
 /** Resolve specific place ids via Place Details (for the AI's chosen ids + shareable deep-links).
  *  Per-id cached, so only the ids we haven't seen are fetched. */
 export async function placeDetailsByIds(ids: string[], apiKey: string): Promise<PlannerPlace[]> {
