@@ -32,6 +32,7 @@ import {
 const NAV_LINKS = [
   { label: 'About us', href: '/about', icon: IconInfo },
   { label: 'Activities', href: '/activities', icon: IconStar },
+  { label: 'AI Trip Planner', href: '/ai-road-trip-planner', icon: IconPin },
   { label: 'Rent a car or scooter', href: '/rent', icon: IconWallet },
   { label: 'Airport transfer', href: '/airport-transfer', icon: IconBolt },
   { label: 'Taxi', href: '/taxi', icon: IconPin },

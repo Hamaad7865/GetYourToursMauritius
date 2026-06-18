@@ -20,6 +20,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'About Us', href: '/about' },
   { label: 'Activities', href: '/activities', menu: 'categories' },
+  { label: 'AI Trip Planner', href: '/ai-road-trip-planner' },
   { label: 'Rent', href: '/rent', menu: 'rent' },
   { label: 'Airport Transfer', href: '/airport-transfer' },
   { label: 'Taxi', href: '/taxi' },
