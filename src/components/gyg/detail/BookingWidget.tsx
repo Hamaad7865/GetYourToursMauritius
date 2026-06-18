@@ -157,7 +157,6 @@ export function BookingWidget() {
 
   const canBack = view > new Date(today.getFullYear(), today.getMonth(), 1);
   const canFwd = view < new Date(horizon.getFullYear(), horizon.getMonth(), 1);
-  const nextMonth = new Date(view.getFullYear(), view.getMonth() + 1, 1);
   // The party picker stops at 25; above that we point the customer to a custom quote.
   const partyCap = Math.min(maxParticipants, MAX_PARTY);
   const rowClass =
@@ -289,9 +288,9 @@ export function BookingWidget() {
               <IconChevron width={16} height={16} className="text-ink-muted" />
             </button>
             {open === 'date' && (
-              <div className="absolute right-0 top-[calc(100%+6px)] z-20 w-[min(92vw,40rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] sm:p-5">
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                  {/* This month — its forward arrow only shows on mobile (single-month view). */}
+              <div className="absolute right-0 top-[calc(100%+6px)] z-20 w-[min(92vw,20rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+                <div>
+                  {/* Single month — fits inside the booking column so the popover never clips. */}
                   <div>
                     <div className="mb-2 flex items-center justify-between">
                       <button
@@ -311,32 +310,12 @@ export function BookingWidget() {
                         aria-label="Next month"
                         disabled={!canFwd}
                         onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
-                        className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30 sm:invisible"
-                      >
-                        <IconChevronRight width={16} height={16} />
-                      </button>
-                    </div>
-                    <MonthGrid month={view} selectedKey={date} tomorrow={tomorrow} available={(c) => !isDisabled(c)} onPick={pickDate} />
-                  </div>
-
-                  {/* Next month — desktop only. */}
-                  <div className="hidden sm:block">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="h-7 w-7" />
-                      <span className="text-[14px] font-bold text-ink">
-                        {nextMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label="Next month"
-                        disabled={!canFwd}
-                        onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
                         className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
                       >
                         <IconChevronRight width={16} height={16} />
                       </button>
                     </div>
-                    <MonthGrid month={nextMonth} selectedKey={date} tomorrow={tomorrow} available={(c) => !isDisabled(c)} onPick={pickDate} />
+                    <MonthGrid month={view} selectedKey={date} tomorrow={tomorrow} available={(c) => !isDisabled(c)} onPick={pickDate} />
                   </div>
                 </div>
               </div>
