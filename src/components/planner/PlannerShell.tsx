@@ -8,7 +8,7 @@ import { ItineraryPanel } from './ItineraryPanel';
 import { ChatCopilot } from './ChatCopilot';
 import { PlacesDrawer } from './PlacesDrawer';
 import { QuoteModal } from './QuoteModal';
-import { MauritiusMap } from './MauritiusMap';
+import { RouteMap } from '@/components/maps/RouteMap';
 import { PresetsSection, type PresetCard } from './PresetsSection';
 import { FeaturesSection } from './FeaturesSection';
 import { TrustSection } from './TrustSection';
@@ -54,8 +54,10 @@ export function PlannerShell() {
   const [bannerTour, setBannerTour] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileTab, setMobileTab] = useState<'chat' | 'day' | 'map'>('chat');
-  const [lastAdded, setLastAdded] = useState<string | null>(null);
-  const [routeKey, setRouteKey] = useState(0);
+  // Kept as write-only signals from the stop ops below; the real Google map (RouteMap) redraws on
+  // `stops` changes itself, so these values aren't read anywhere.
+  const [, setLastAdded] = useState<string | null>(null);
+  const [, setRouteKey] = useState(0);
   const [shared, setShared] = useState(false);
   const initRef = useRef(false);
 
@@ -70,7 +72,6 @@ export function PlannerShell() {
     () => computePlannerRoute(pickupObj, stops.map((s) => ({ lat: s.lat, lng: s.lng, durationMin: s.durationMin }))),
     [pickupObj, stops],
   );
-  const segMinutes = useMemo(() => route.segs.map((s) => s.minutes), [route]);
 
   let quote: PlannerQuote | null = null;
   let quoteError: string | null = null;
@@ -354,7 +355,12 @@ export function PlannerShell() {
     }
   }
 
-  const mapStops = stops.map((s) => ({ id: s.id, name: s.name, lat: s.lat, lng: s.lng }));
+  // Real Google map: drive the route through the stops (numbered 1..n, matching the itinerary). With
+  // no stops yet, show the pick-up base on the map so a real map is always visible.
+  const mapStops =
+    stops.length > 0
+      ? stops.map((s) => ({ title: s.name, lat: s.lat, lng: s.lng }))
+      : [{ title: pickupObj.name, lat: pickupObj.lat, lng: pickupObj.lng }];
   const warning = placeCountWarning(stops.length);
 
   const itinerary = (
@@ -395,7 +401,7 @@ export function PlannerShell() {
       onAddPlace={addStop}
     />
   );
-  const map = <MauritiusMap pickup={pickupObj} stops={mapStops} segMinutes={segMinutes} lastAdded={lastAdded} routeKey={routeKey} />;
+  const map = <RouteMap stops={mapStops} animate={stops.length > 0} carColor="#DC2626" className="h-full w-full" />;
   const drawer = (
     <PlacesDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} places={places} selectedIds={stopIds} onAdd={addStop} />
   );

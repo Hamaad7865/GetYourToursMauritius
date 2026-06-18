@@ -25,12 +25,13 @@ export function pinLabel(n: number, color = '#ffffff'): google.maps.MarkerLabel 
   return { text: String(n), color, fontSize: '12px', fontWeight: '700' };
 }
 
-/** A small car marker (data-URI SVG) for animating along the route. */
-export function carIcon(): google.maps.Icon {
+/** A small car marker (data-URI SVG) for animating along the route. `color` is the body + ring
+ *  colour (default brand teal; the planner uses red so the moving car stands out from coral pins). */
+export function carIcon(color = '#0E8C92'): google.maps.Icon {
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">` +
-    `<circle cx="17" cy="17" r="16" fill="#fff" stroke="#0E8C92" stroke-width="2"/>` +
-    `<path d="M9 19.5c0-.4.1-.8.3-1.1l1.3-2.2c.3-.6.9-.9 1.6-.9h7.6c.7 0 1.3.3 1.6.9l1.3 2.2c.2.3.3.7.3 1.1V22a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-.5h-9V22a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-2.5z" fill="#0E8C92"/>` +
+    `<circle cx="17" cy="17" r="16" fill="#fff" stroke="${color}" stroke-width="2"/>` +
+    `<path d="M9 19.5c0-.4.1-.8.3-1.1l1.3-2.2c.3-.6.9-.9 1.6-.9h7.6c.7 0 1.3.3 1.6.9l1.3 2.2c.2.3.3.7.3 1.1V22a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-.5h-9V22a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-2.5z" fill="${color}"/>` +
     `<circle cx="12.5" cy="21.5" r="1.4" fill="#0A2E36"/><circle cx="21.5" cy="21.5" r="1.4" fill="#0A2E36"/></svg>`;
   return {
     url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,

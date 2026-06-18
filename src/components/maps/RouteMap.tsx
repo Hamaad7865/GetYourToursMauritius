@@ -71,11 +71,17 @@ export function RouteMap({
   stops,
   kinds,
   animate = false,
+  carColor = '#0E8C92',
+  className,
 }: {
   stops: ItineraryStop[];
   /** Marker role per stop (aligned to `stops`). Defaults to start (index 0) + main (rest). */
   kinds?: StopKind[];
   animate?: boolean;
+  /** Colour of the animated car marker (default brand teal). */
+  carColor?: string;
+  /** Override the container classes (e.g. to fill a parent pane instead of the default fixed height). */
+  className?: string;
 }) {
   const status = useGoogleMaps();
   const elRef = useRef<HTMLDivElement>(null);
@@ -234,7 +240,7 @@ export function RouteMap({
 
       // The car: static at the start, or driving the loop — out along the route, back along the
       // return leg — when animated and motion is allowed.
-      const car = track(new google.maps.Marker({ map, position: drivePath[0]!, icon: carIcon(), zIndex: 1000 }));
+      const car = track(new google.maps.Marker({ map, position: drivePath[0]!, icon: carIcon(carColor), zIndex: 1000 }));
       const reduce =
         typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -262,7 +268,7 @@ export function RouteMap({
         rafRef.current = null;
       }
     };
-  }, [status, stops, kinds, animate]);
+  }, [status, stops, kinds, animate, carColor]);
 
   // Final teardown on unmount: drop every overlay and release the map.
   useEffect(() => {
@@ -283,7 +289,7 @@ export function RouteMap({
   return (
     <div
       ref={elRef}
-      className="h-[300px] w-full overflow-hidden rounded-2xl border border-ink/10 bg-ink/[0.04] lg:h-[360px]"
+      className={className ?? 'h-[300px] w-full overflow-hidden rounded-2xl border border-ink/10 bg-ink/[0.04] lg:h-[360px]'}
     />
   );
 }

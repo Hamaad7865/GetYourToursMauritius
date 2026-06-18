@@ -1,4 +1,7 @@
-import type { LngLat } from '@/lib/planner/map-projection';
+export interface LngLat {
+  lat: number;
+  lng: number;
+}
 
 /** Pick-up bases (ported from the design). The customer's exact pickup is taken at checkout; this
  *  drives the route drawing + the "from pick-up" / "return to pick-up" drive times. */
