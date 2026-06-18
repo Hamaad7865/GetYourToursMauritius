@@ -276,8 +276,27 @@ async function materializeActivity(activityId: string): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Per-group pricing needs a group size (the tier's max_guests) to compute ceil(people / size). A
+ * per_group activity saved with no max_guests on any tier would silently price per-head everywhere
+ * (the server now rejects it outright with invalid_per_group_tier), so reject it at save time with a
+ * clear message instead of shipping a tour that mis-prices or fails to book.
+ */
+function assertPricingValid(v: ActivityFormValues): void {
+  if (v.pricingMode !== 'per_group') return;
+  const hasGroupSize = v.options.some((o) =>
+    o.prices.some((p) => p.label.trim() && p.amountEur != null && p.maxGuests != null && p.maxGuests > 0),
+  );
+  if (!hasGroupSize) {
+    throw new Error(
+      'Per-group pricing needs a group size: give at least one price tier a "max guests" value (the number of people one group price covers).',
+    );
+  }
+}
+
 /** Create a new activity (+ images/options/prices). Returns the new id. */
 export async function createActivity(v: ActivityFormValues): Promise<string> {
+  assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
   const { data, error } = await sb.from('activities').insert(activityRow(v, opId)).select('id').single();
@@ -290,6 +309,7 @@ export async function createActivity(v: ActivityFormValues): Promise<string> {
 
 /** Update an activity, reconciling its images/options/prices in place (FK-safe for booked activities). */
 export async function updateActivity(id: string, v: ActivityFormValues): Promise<void> {
+  assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
   const { error } = await sb.from('activities').update(activityRow(v, opId)).eq('id', id);
