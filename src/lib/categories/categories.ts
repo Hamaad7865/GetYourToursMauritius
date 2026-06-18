@@ -9,6 +9,13 @@ export interface CategoryItem {
   imageUrl?: string | null;
 }
 
+/** True for the sightseeing-tours category (live: "Private Sightseeing tours"; fallback:
+ *  "Sightseeing tours"). These are the vehicle-priced private day tours the AI Trip Planner builds,
+ *  so we surface a planner promo card at the top of their listing. */
+export function isSightseeingCategory(name: string | null | undefined): boolean {
+  return !!name && /sightseeing/i.test(name);
+}
+
 export const FALLBACK_CATEGORIES: CategoryItem[] = [
   { name: 'Catamaran cruises', slug: 'catamaran-cruises' },
   { name: 'Île aux Cerfs', slug: 'ile-aux-cerfs' },
