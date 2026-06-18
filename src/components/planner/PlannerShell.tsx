@@ -49,6 +49,7 @@ export function PlannerShell() {
   const [quoteOpen, setQuoteOpen] = useState(false);
   const [party, setParty] = useState(2);
   const [suv, setSuv] = useState(false);
+  const [childSeats, setChildSeats] = useState(0);
   const [date, setDate] = useState('');
   const [minDate, setMinDate] = useState('');
   const [time, setTime] = useState('09:00');
@@ -438,7 +439,7 @@ export function PlannerShell() {
         guests: String(party),
         unit: 'per vehicle',
         suv: suv ? '1' : '0',
-        childSeats: '0',
+        childSeats: String(Math.min(childSeats, party)),
         // Carry the chosen pickup (and a distinct drop-off) so they land on the booking for the driver.
         pickup: pickup.name,
         from: 'widget',
@@ -638,6 +639,8 @@ export function PlannerShell() {
         setParty={setParty}
         suv={suv}
         setSuv={setSuv}
+        childSeats={childSeats}
+        setChildSeats={setChildSeats}
         booking={booking}
         bookError={bookError}
         onBook={bookDay}

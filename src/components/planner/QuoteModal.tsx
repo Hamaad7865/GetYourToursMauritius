@@ -3,6 +3,7 @@
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
+import { CHILD_SEAT_EUR, childSeatsCost } from '@/lib/services/pricing';
 import { fmtDur } from './planner-constants';
 
 const inputCls =
@@ -11,8 +12,8 @@ const labelCls = 'mb-1.5 block text-xs font-bold text-ink-muted';
 
 /**
  * Quote → real booking. Collects the day-specific bits the checkout can't (date, pick-up time, party,
- * SUV), then hands off to the live availability → hold → /checkout flow (where name + payment happen).
- * Visual structure follows the design's bottom-sheet; the conversion is the app's real booking path.
+ * SUV, baby/child seats), then hands off to the live availability → hold → /checkout flow (where name
+ * + payment happen). A centred pop-up modal; the conversion is the app's real booking path.
  */
 export function QuoteModal({
   open,
@@ -31,6 +32,8 @@ export function QuoteModal({
   setParty,
   suv,
   setSuv,
+  childSeats,
+  setChildSeats,
   booking,
   bookError,
   onBook,
@@ -51,11 +54,17 @@ export function QuoteModal({
   setParty: (n: number) => void;
   suv: boolean;
   setSuv: (v: boolean) => void;
+  childSeats: number;
+  setChildSeats: (n: number) => void;
   booking: boolean;
   bookError: string | null;
   onBook: () => void;
 }) {
   if (!open) return null;
+  // Seats are capped at the party; the first is free, then €6 each. Show the running add-on.
+  const seats = Math.min(childSeats, party);
+  const seatExtra = childSeatsCost(seats);
+  const estimate = quote ? quote.totalEur + seatExtra : null;
   return (
     <div
       role="dialog"
@@ -64,18 +73,17 @@ export function QuoteModal({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/50 backdrop-blur-[4px]"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-[4px]"
     >
-      <div className="max-h-[92vh] w-full max-w-[480px] animate-slide-up overflow-y-auto rounded-t-[22px] bg-white shadow-[0_-10px_40px_rgba(10,46,54,.3)]">
+      <div className="max-h-[90vh] w-full max-w-[460px] animate-pop overflow-y-auto rounded-[22px] bg-white shadow-[0_24px_60px_rgba(10,46,54,.34)]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             onBook();
           }}
-          className="pb-[22px] pt-2"
+          className="pb-[22px] pt-5"
         >
-          <div className="mx-auto mb-1 mt-2.5 h-[5px] w-[42px] rounded-[3px] bg-[#E3EEEC]" />
-          <div className="px-6 pt-2.5">
+          <div className="px-6">
             <div className="mb-1 flex items-center justify-between">
               <h3 className="m-0 font-display text-[23px] font-semibold text-ink">Get my quote</h3>
               <button type="button" onClick={onClose} aria-label="Close" className="grid h-8 w-8 cursor-pointer place-items-center rounded-[10px] bg-[#F1F6F5]">
@@ -86,7 +94,7 @@ export function QuoteModal({
             </div>
             <p className="mb-4 mt-0.5 text-[13.5px] text-ink-muted">
               {stops.length} stops · {fmtDur(route.totalMinutes)} driving · est.{' '}
-              <strong className="text-gold">{quote ? `€${quote.totalEur}` : quoteError}</strong>
+              <strong className="text-gold">{estimate != null ? `€${estimate}` : quoteError}</strong>
             </p>
 
             <div className="mb-3 grid grid-cols-2 gap-3">
@@ -116,11 +124,43 @@ export function QuoteModal({
             </div>
 
             {party <= 4 && (
-              <label className="mb-4 flex w-fit cursor-pointer items-center gap-2.5 text-sm text-ink">
+              <label className="mb-3 flex w-fit cursor-pointer items-center gap-2.5 text-sm text-ink">
                 <input type="checkbox" checked={suv} onChange={(e) => setSuv(e.target.checked)} className="h-4 w-4 accent-teal" />
                 SUV upgrade
               </label>
             )}
+
+            {/* Baby & child seats — first free, €6 each extra, capped at the party. */}
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-[11px] border border-[#E6EFEE] bg-[#F4F8F7] px-3 py-2.5">
+              <div className="min-w-0">
+                <div className="text-[13px] font-bold text-ink">Baby &amp; child seats</div>
+                <div className="text-[12px] text-ink-muted">
+                  First seat free · €{CHILD_SEAT_EUR} each extra
+                  {seatExtra > 0 && <span className="font-semibold text-teal-dark"> · +€{seatExtra}</span>}
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setChildSeats(Math.max(0, seats - 1))}
+                  disabled={seats <= 0}
+                  aria-label="Fewer child seats"
+                  className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark disabled:opacity-40"
+                >
+                  −
+                </button>
+                <span className="min-w-[20px] text-center text-[15px] font-bold tabular-nums">{seats}</span>
+                <button
+                  type="button"
+                  onClick={() => setChildSeats(Math.min(party, seats + 1))}
+                  disabled={seats >= party}
+                  aria-label="More child seats"
+                  className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark disabled:opacity-40"
+                >
+                  +
+                </button>
+              </div>
+            </div>
 
             {bookError && <p className="mb-3 text-sm font-medium text-coral">{bookError}</p>}
 
