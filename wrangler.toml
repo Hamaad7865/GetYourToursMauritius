@@ -1,9 +1,27 @@
 # Cloudflare Pages configuration for the next-on-pages build output.
-# Used by `npm run pages:dev` (local edge runtime) and Cloudflare Pages deploys.
-name = "getyourtoursmauritius"
+# Read by `npm run pages:dev` (local edge runtime), `wrangler pages deploy`, and — because it sits
+# in the repo root — by the Cloudflare Pages build itself (it picks up the compatibility settings).
+name = "getyourtoursmauritius"                  # Pages project name → getyourtoursmauritius.pages.dev
 compatibility_date = "2025-02-01"
-compatibility_flags = ["nodejs_compat"]
+compatibility_flags = ["nodejs_compat"]         # REQUIRED — the app 500s at runtime without it
 pages_build_output_dir = ".vercel/output/static"
 
-# Secrets/vars (SUPABASE_SERVICE_ROLE_KEY, PEACH_*, AI keys) are configured in the
-# Cloudflare Pages dashboard, never committed. Local edge dev reads them from .dev.vars.
+# ── Cloudflare Pages dashboard build settings (these can't live in wrangler.toml — set them when
+#    you create the project: Workers & Pages → Create → Pages → Connect to Git) ───────────────────
+#   Production branch:        main
+#   Framework preset:         None
+#   Build command:            npm run pages:build      (= npx @cloudflare/next-on-pages; Linux only —
+#                                                        do NOT build on Windows, it's broken there)
+#   Build output directory:   .vercel/output/static
+#   Environment variable:     NODE_VERSION = 22
+#
+# ── Runtime env vars / secrets ───────────────────────────────────────────────────────────────────
+#   Set in the Pages dashboard (Settings → Environment variables), NEVER committed here. The full
+#   list lives in src/lib/config/env.ts. Required to boot a working site:
+#     NEXT_PUBLIC_SITE_URL (your live domain), NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY,
+#     SUPABASE_SERVICE_ROLE_KEY 🔒, SUPABASE_JWT_SECRET 🔒, INTERNAL_TASK_SECRET 🔒
+#   Feature-gated: NEXT_PUBLIC_GOOGLE_MAPS_API_KEY, AI_PROVIDER + GOOGLE_GENERATIVE_AI_API_KEY 🔒,
+#     PEACH_* 🔒, RESEND_API_KEY 🔒 + RESEND_FROM.
+#   Local edge dev (`npm run pages:dev`) reads the same values from .dev.vars (see .dev.vars.example).
+#
+# No KV / R2 / D1 / Durable Object bindings are used — the planner cache is Supabase-backed.
