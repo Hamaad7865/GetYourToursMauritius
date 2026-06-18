@@ -89,7 +89,7 @@ export function BookingOptionCard() {
   return (
     <div
       ref={cardRef}
-      className="mb-6 rounded-2xl border-2 border-teal/30 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.4)]"
+      className="mt-6 mb-6 rounded-2xl border-2 border-teal/30 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.4)]"
     >
       <div className="text-[11px] font-bold uppercase tracking-wide text-teal">1 option available</div>
       <h3 className="mt-1 font-display text-[19px] font-semibold text-ink">{b.activity.title}</h3>
