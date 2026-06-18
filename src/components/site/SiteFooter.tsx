@@ -42,6 +42,7 @@ const COLUMNS = [
     links: [
       { label: 'Terms of service', href: '/terms' },
       { label: 'Privacy policy', href: '/privacy' },
+      { label: 'Cancellations & refunds', href: '/refunds' },
     ],
   },
 ];
@@ -89,7 +90,8 @@ export function SiteFooter() {
         </div>
 
         <div className="mt-12 border-t border-cream/10 pt-6 text-xs text-cream/50">
-          © {new Date().getFullYear()} {SITE.operator}. {SITE.street}.
+          © {new Date().getFullYear()} {SITE.legalName}. {SITE.street}, {SITE.region}, Mauritius ·
+          BRN {SITE.brn} · VAT {SITE.vat}
         </div>
       </div>
     </footer>
