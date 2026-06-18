@@ -6,9 +6,10 @@ import type { Currency, Language } from './PreferencesProvider';
 import { CURRENCY_LABELS, LANGUAGE_LABELS } from './PreferencesProvider';
 
 const LANGUAGES: Language[] = ['en', 'fr'];
-const CURRENCIES: Currency[] = ['EUR'];
+const CURRENCIES: Currency[] = ['EUR', 'USD'];
 
-/** GetYourGuide-style language + currency picker. We localise to English and Français, EUR. */
+/** GetYourGuide-style language + currency picker. English/Français; prices shown in EUR or USD
+ *  (USD is a live-rate display conversion — bookings are charged in EUR). */
 export function LangCurrencyModal({
   tab,
   language,

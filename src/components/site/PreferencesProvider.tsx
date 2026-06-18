@@ -1,86 +1,94 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { CCY_COOKIE, LANG_COOKIE, PREF_MAX_AGE, type Currency, type Locale } from '@/lib/i18n/config';
+import { translate } from '@/lib/i18n/translate';
+import { formatMoney } from '@/lib/money/fx';
 import { LangCurrencyModal } from './LangCurrencyModal';
 
-export type Language = 'en' | 'fr';
-export type Currency = 'EUR';
-
-export const LANGUAGE_LABELS: Record<Language, string> = { en: 'English', fr: 'Français' };
-export const CURRENCY_LABELS: Record<Currency, { label: string; symbol: string }> = {
-  EUR: { label: 'Euro', symbol: '€' },
-};
+// Back-compat re-exports (the modal + older imports used these names/paths).
+export type Language = Locale;
+export type { Currency } from '@/lib/i18n/config';
+export { LANGUAGE_LABELS, CURRENCY_LABELS } from '@/lib/i18n/config';
 
 interface PreferencesValue {
-  language: Language;
+  language: Locale;
   currency: Currency;
-  setLanguage: (l: Language) => void;
+  usdRate: number;
+  setLanguage: (l: Locale) => void;
   setCurrency: (c: Currency) => void;
   openPrefs: (tab?: 'language' | 'currency') => void;
   closePrefs: () => void;
+  /** Translate an English source string (interpolating `{name}` vars) for the current language. */
+  t: (key: string, vars?: Record<string, string | number>) => string;
+  /** Format a EUR amount in the current display currency (USD is a live-rate display conversion). */
+  money: (amountEur: number) => string;
 }
 
 const PreferencesContext = createContext<PreferencesValue | null>(null);
-const STORAGE_KEY = 'gytm:prefs';
+
+function writeCookie(name: string, value: string): void {
+  document.cookie = `${name}=${value}; path=/; max-age=${PREF_MAX_AGE}; samesite=lax`;
+}
 
 /**
- * Site-wide language + currency preference (English/Français, EUR), persisted to
- * localStorage and surfaced through the header's "EN/EUR €" control + modal. Stored as the
- * foundation for full localisation; today it drives the header label and the html lang.
+ * Site-wide language + display-currency preference (English/Français, EUR/USD). Initialised from the
+ * cookies the server already read, so the first client render matches SSR (no flash). Changing either
+ * writes the cookie and `router.refresh()`es so server-rendered pages re-render in the new
+ * language/currency, while client components update instantly from context.
  */
-export function PreferencesProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>('en');
-  const [currency, setCurrencyState] = useState<Currency>('EUR');
+export function PreferencesProvider({
+  children,
+  initialLanguage = 'en',
+  initialCurrency = 'EUR',
+  initialUsdRate = 1.08,
+}: {
+  children: ReactNode;
+  initialLanguage?: Locale;
+  initialCurrency?: Currency;
+  initialUsdRate?: number;
+}) {
+  const router = useRouter();
+  const [language, setLanguageState] = useState<Locale>(initialLanguage);
+  const [currency, setCurrencyState] = useState<Currency>(initialCurrency);
+  const [usdRate] = useState<number>(initialUsdRate);
   const [modalTab, setModalTab] = useState<'language' | 'currency' | null>(null);
 
-  // Hydrate the saved preference after mount (avoids an SSR/client mismatch).
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-      const saved = JSON.parse(raw) as { language?: Language; currency?: Currency };
-      if (saved.language === 'en' || saved.language === 'fr') setLanguageState(saved.language);
-      if (saved.currency === 'EUR') setCurrencyState(saved.currency);
-    } catch {
-      /* ignore malformed storage */
-    }
-  }, []);
-
-  useEffect(() => {
-    document.documentElement.lang = language;
-  }, [language]);
-
-  const persist = useCallback((next: { language: Language; currency: Currency }) => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-    } catch {
-      /* ignore storage errors */
-    }
-  }, []);
-
   const setLanguage = useCallback(
-    (l: Language) => {
+    (l: Locale) => {
       setLanguageState(l);
-      persist({ language: l, currency });
+      writeCookie(LANG_COOKIE, l);
+      router.refresh();
     },
-    [currency, persist],
+    [router],
   );
 
   const setCurrency = useCallback(
     (c: Currency) => {
       setCurrencyState(c);
-      persist({ language, currency: c });
+      writeCookie(CCY_COOKIE, c);
+      router.refresh();
     },
-    [language, persist],
+    [router],
   );
 
   const openPrefs = useCallback((tab: 'language' | 'currency' = 'language') => setModalTab(tab), []);
   const closePrefs = useCallback(() => setModalTab(null), []);
 
+  const t = useCallback(
+    (key: string, vars?: Record<string, string | number>) => translate(language, key, vars),
+    [language],
+  );
+  const money = useCallback(
+    (amountEur: number) => formatMoney(amountEur, currency, usdRate),
+    [currency, usdRate],
+  );
+
   const value = useMemo<PreferencesValue>(
-    () => ({ language, currency, setLanguage, setCurrency, openPrefs, closePrefs }),
-    [language, currency, setLanguage, setCurrency, openPrefs, closePrefs],
+    () => ({ language, currency, usdRate, setLanguage, setCurrency, openPrefs, closePrefs, t, money }),
+    [language, currency, usdRate, setLanguage, setCurrency, openPrefs, closePrefs, t, money],
   );
 
   return (
@@ -91,8 +99,8 @@ export function PreferencesProvider({ children }: { children: ReactNode }) {
           tab={modalTab}
           language={language}
           currency={currency}
-          onLanguage={(l) => setLanguage(l)}
-          onCurrency={(c) => setCurrency(c)}
+          onLanguage={setLanguage}
+          onCurrency={setCurrency}
           onClose={closePrefs}
         />
       )}
@@ -104,4 +112,14 @@ export function usePreferences(): PreferencesValue {
   const ctx = useContext(PreferencesContext);
   if (!ctx) throw new Error('usePreferences must be used within <PreferencesProvider>.');
   return ctx;
+}
+
+/** Convenience: the translate function bound to the current language. */
+export function useT(): (key: string, vars?: Record<string, string | number>) => string {
+  return usePreferences().t;
+}
+
+/** Convenience: the EUR-amount formatter bound to the current display currency. */
+export function useMoney(): (amountEur: number) => string {
+  return usePreferences().money;
 }

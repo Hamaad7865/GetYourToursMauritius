@@ -3,6 +3,7 @@ import type { TourSummary } from '@/lib/validation/tours';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { IconPin, IconStar } from '@/components/ui/icons';
 import { WishHeart } from '@/components/gyg/WishHeart';
+import { Price } from '@/components/site/Price';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -52,7 +53,7 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
           <span className="text-[13px] text-ink-muted">
             {activity.fromPriceEur != null ? (
               <>
-                from <b className="text-[19px] text-ink">€{activity.fromPriceEur}</b>
+                from <Price eur={activity.fromPriceEur} className="text-[19px] font-bold text-ink" />
               </>
             ) : (
               <b className="text-ink">On request</b>

@@ -6,6 +6,8 @@ import { organizationJsonLd } from '@/lib/seo/jsonld';
 import { AuthProvider } from '@/components/auth/AuthProvider';
 import { PreferencesProvider } from '@/components/site/PreferencesProvider';
 import { ToastProvider } from '@/components/site/ToastProvider';
+import { getLocale, getServerCurrency } from '@/lib/i18n/server';
+import { getUsdRate } from '@/lib/money/fx';
 import './globals.css';
 
 const display = Fraunces({
@@ -38,12 +40,20 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  // Locale + currency come from cookies the visitor set; the USD rate is fetched live (cached daily)
+  // so prices can convert at SSR. Seeding the provider from the same values keeps the first client
+  // render in sync with the server (no flash).
+  const [locale, currency, usdRate] = await Promise.all([
+    getLocale(),
+    getServerCurrency(),
+    getUsdRate(),
+  ]);
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    <html lang={locale} className={`${display.variable} ${body.variable}`}>
       <body>
         <JsonLd data={organizationJsonLd()} />
-        <PreferencesProvider>
+        <PreferencesProvider initialLanguage={locale} initialCurrency={currency} initialUsdRate={usdRate}>
           <ToastProvider>
             <AuthProvider>{children}</AuthProvider>
           </ToastProvider>

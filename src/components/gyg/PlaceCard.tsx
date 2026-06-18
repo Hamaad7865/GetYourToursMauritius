@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
 import { WishHeart } from './WishHeart';
+import { Price } from '@/components/site/Price';
 import { IconStar } from '@/components/ui/icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
@@ -119,7 +120,7 @@ export function PlaceCard({
           <span className="text-right text-[12.5px] text-ink-muted">
             {activity.fromPriceEur != null ? (
               <>
-                From <b className="text-[18px] text-ink">€{activity.fromPriceEur}</b>
+                From <Price eur={activity.fromPriceEur} className="text-[18px] font-bold text-ink" />
                 <span className="block text-[11px] leading-tight">{unit}</span>
               </>
             ) : (

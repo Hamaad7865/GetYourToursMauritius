@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCategories } from '@/lib/categories/useCategories';
+import { useT } from '@/components/site/PreferencesProvider';
 import { useHomeShowcase, showActivitiesOnHome } from './HomeShowcaseContext';
 import { IconChevron } from '@/components/ui/icons';
 
@@ -74,12 +75,13 @@ function CategoriesMenu() {
 }
 
 function RentMenu() {
+  const t = useT();
   return (
     <div className="invisible absolute left-0 top-full z-50 w-72 -translate-y-1 rounded-2xl border border-ink/10 bg-white p-2 opacity-0 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
       {RENT_LINKS.map((link) => (
         <Link key={link.href} href={link.href} className="block rounded-xl px-3 py-2.5 hover:bg-cream">
-          <span className="block text-sm font-bold text-ink">{link.label}</span>
-          <span className="block text-[12px] text-ink-muted">{link.desc}</span>
+          <span className="block text-sm font-bold text-ink">{t(link.label)}</span>
+          <span className="block text-[12px] text-ink-muted">{t(link.desc)}</span>
         </Link>
       ))}
     </div>
@@ -88,6 +90,7 @@ function RentMenu() {
 
 export function MainNav({ light }: { light: boolean }) {
   const showcase = useHomeShowcase();
+  const t = useT();
   return (
     <div className="mx-auto flex max-w-shell items-center gap-2 px-6">
       {NAV_ITEMS.map((item) => {
@@ -101,14 +104,14 @@ export function MainNav({ light }: { light: boolean }) {
                 onClick={() => showActivitiesOnHome(showcase)}
                 className="flex items-center whitespace-nowrap py-3 pr-1 outline-none"
               >
-                <NavLabel label={item.label} light={light} hasMenu />
+                <NavLabel label={t(item.label)} light={light} hasMenu />
               </button>
             ) : (
               <Link
                 href={item.href}
                 className="flex items-center whitespace-nowrap py-3 pr-1 outline-none"
               >
-                <NavLabel label={item.label} light={light} hasMenu={!!item.menu} />
+                <NavLabel label={t(item.label)} light={light} hasMenu={!!item.menu} />
               </Link>
             )}
             {item.menu === 'categories' && <CategoriesMenu />}

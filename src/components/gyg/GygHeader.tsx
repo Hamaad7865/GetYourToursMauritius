@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { Logo } from '@/components/site/Logo';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { usePreferences } from '@/components/site/PreferencesProvider';
+import { usePreferences, CURRENCY_LABELS } from '@/components/site/PreferencesProvider';
 import { useCart } from '@/lib/cart/useCart';
 import { SearchBar } from './SearchBar';
 import { MainNav } from './MainNav';
@@ -178,11 +178,13 @@ function BookingsAction({ overHero }: { overHero: boolean }) {
 
 /** Language + currency navbar item — opens the picker modal. */
 function PrefsButton({ overHero }: { overHero: boolean }) {
-  const { language, openPrefs } = usePreferences();
+  const { language, currency, openPrefs } = usePreferences();
   return (
     <button type="button" onClick={() => openPrefs('language')} className={navItemClass(overHero)} aria-label="Language and currency">
       <IconGlobe width={20} height={20} />
-      <span className="hidden lg:block">{language.toUpperCase()}/EUR €</span>
+      <span className="hidden lg:block">
+        {language.toUpperCase()}/{currency} {CURRENCY_LABELS[currency].symbol}
+      </span>
       <Underline light={overHero} />
     </button>
   );
