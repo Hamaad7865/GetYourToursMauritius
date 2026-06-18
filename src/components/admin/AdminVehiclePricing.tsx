@@ -10,9 +10,10 @@ import {
   type PlannerPricingInput,
   type SightseeingPricingInput,
 } from '@/lib/admin/vehicle-pricing';
+import { AdminHeading, AdminError, BTN_PRIMARY } from '@/components/admin/ui';
 
 const inputClass =
-  'w-28 rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-teal';
+  'w-28 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:bg-white';
 
 function EuroField({
   label,
@@ -87,23 +88,17 @@ export function AdminVehiclePricing() {
   if (!isAdmin) return <p className="text-sm text-coral">Access denied.</p>;
 
   return (
-    <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="font-display text-2xl font-semibold text-ink">Vehicle pricing</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          Flat per-vehicle prices. The fitting vehicle is chosen by party size; the price is server-authoritative.
-        </p>
-      </div>
+    <div>
+      <AdminHeading
+        title="Vehicle pricing"
+        subtitle="Flat per-vehicle prices. The fitting vehicle is chosen by party size; the price is server-authoritative."
+      />
 
-      {error && (
-        <p role="alert" className="rounded-lg bg-coral/10 px-4 py-3 text-sm font-medium text-coral">
-          {error}
-        </p>
-      )}
+      {error && <AdminError>{error}</AdminError>}
 
       {/* Sightseeing tours */}
-      <section className="rounded-2xl border border-ink/10 bg-white p-5">
-        <h2 className="font-display text-lg font-semibold text-ink">Sightseeing tours</h2>
+      <section className="mb-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
+        <h2 className="text-[15px] font-extrabold text-ink">Sightseeing tours</h2>
         <p className="mt-0.5 text-[13px] text-ink-muted">Applies to every vehicle-priced sightseeing tour.</p>
         {sight ? (
           <div className="mt-4 max-w-md">
@@ -113,15 +108,10 @@ export function AdminVehiclePricing() {
             <EuroField label="Van" hint="7–14" value={sight.vanEur} onChange={(n) => setSight({ ...sight, vanEur: n })} />
             <EuroField label="Coaster" hint="15–25" value={sight.coasterEur} onChange={(n) => setSight({ ...sight, coasterEur: n })} />
             <div className="mt-4 flex items-center gap-3">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void run('sight', () => updateSightseeingPricing(sight))}
-                className="rounded-full bg-teal px-5 py-2 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-60"
-              >
+              <button type="button" disabled={busy} onClick={() => void run('sight', () => updateSightseeingPricing(sight))} className={BTN_PRIMARY}>
                 {busy ? 'Saving…' : 'Save sightseeing prices'}
               </button>
-              {saved === 'sight' && <span className="text-sm font-semibold text-teal">Saved ✓</span>}
+              {saved === 'sight' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
             </div>
           </div>
         ) : (
@@ -130,8 +120,8 @@ export function AdminVehiclePricing() {
       </section>
 
       {/* Custom road trips (AI planner) */}
-      <section className="rounded-2xl border border-ink/10 bg-white p-5">
-        <h2 className="font-display text-lg font-semibold text-ink">Custom road trips</h2>
+      <section className="rounded-2xl border border-[#EAEEF0] bg-white p-5">
+        <h2 className="text-[15px] font-extrabold text-ink">Custom road trips</h2>
         <p className="mt-0.5 text-[13px] text-ink-muted">Used by the AI Road Trip Planner.</p>
         {planner ? (
           <div className="mt-4 max-w-md">
@@ -151,15 +141,10 @@ export function AdminVehiclePricing() {
               />
             </label>
             <div className="mt-4 flex items-center gap-3">
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => void run('planner', () => updatePlannerPricing(planner))}
-                className="rounded-full bg-teal px-5 py-2 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-60"
-              >
+              <button type="button" disabled={busy} onClick={() => void run('planner', () => updatePlannerPricing(planner))} className={BTN_PRIMARY}>
                 {busy ? 'Saving…' : 'Save road-trip prices'}
               </button>
-              {saved === 'planner' && <span className="text-sm font-semibold text-teal">Saved ✓</span>}
+              {saved === 'planner' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
             </div>
           </div>
         ) : (
