@@ -87,18 +87,21 @@ export function catalogueToSeedSql(catalogue: Catalogue): string {
     }
   }
 
-  // Sample bookable inventory: 7 daily 09:00 (Mauritius local) departures for every
-  // option that has a price. Anchored to 'Indian/Mauritius' so the stored timestamptz
-  // is the correct UTC instant regardless of the server's session timezone. Idempotent
+  // Sample bookable inventory: 7 daily 09:00 (Mauritius local) departures for every option
+  // that has a price, starting TOMORROW. Anchor the day to the Mauritius calendar date (not
+  // UTC `current_date`): near the UTC/Mauritius boundary `current_date + 1` (UTC) can still be
+  // TODAY in Mauritius, which the booking core now refuses (no same-day, occurrence_too_soon).
+  // This keeps the seed in lock-step with materialize_availability + create_hold. Idempotent
   // via ON CONFLICT on the (activity_option_id, starts_at) unique constraint.
+  const mauToday = `(now() at time zone 'Indian/Mauritius')::date`;
   lines.push(
     `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity) ` +
       `select o.id, a.operator_id, gs, gs + interval '4 hours', 20 ` +
       `from activity_options o ` +
       `join activities a on a.id = o.activity_id ` +
       `cross join generate_series(` +
-      `((current_date + 1)::timestamp + time '09:00') at time zone 'Indian/Mauritius', ` +
-      `((current_date + 7)::timestamp + time '09:00') at time zone 'Indian/Mauritius', ` +
+      `((${mauToday} + 1)::timestamp + time '09:00') at time zone 'Indian/Mauritius', ` +
+      `((${mauToday} + 7)::timestamp + time '09:00') at time zone 'Indian/Mauritius', ` +
       `interval '1 day') gs ` +
       `where exists (select 1 from activity_option_prices p where p.activity_option_id = o.id) ` +
       `on conflict (activity_option_id, starts_at) do nothing;`,
