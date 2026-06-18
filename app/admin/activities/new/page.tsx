@@ -1,15 +1,20 @@
 import Link from 'next/link';
 import { ActivityForm } from '@/components/admin/ActivityForm';
+import { IconChevron } from '@/components/ui/icons';
+import { AdminHeading } from '@/components/admin/ui';
 
 export const runtime = 'edge';
 
 export default function NewActivityPage() {
   return (
     <div>
-      <Link href="/admin/activities" className="text-sm font-bold text-teal hover:text-teal-dark">
-        ← Activities
+      <Link
+        href="/admin/activities"
+        className="mb-2 inline-flex items-center gap-1 text-[13.5px] font-semibold text-ink-muted hover:text-teal"
+      >
+        <IconChevron width={15} height={15} className="rotate-90" /> Back to tours
       </Link>
-      <h1 className="mb-6 mt-2 font-display text-2xl font-semibold text-ink">New activity</h1>
+      <AdminHeading title="New tour" />
       <ActivityForm mode="new" />
     </div>
   );
