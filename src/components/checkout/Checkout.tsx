@@ -166,13 +166,12 @@ export function Checkout() {
             holdId: holdId || undefined,
             itinerary: readItinerary(),
             // The pickup address the customer entered on the transport step (null when they chose
-            // "I don't know yet"), with the planner's distinct drop-off appended. Persisted on the
-            // booking so the provider actually receives it.
+            // "I don't know yet"), with the planner's distinct drop-off appended. Clamped to 200 to
+            // match the booking schema — a long address + drop-off would otherwise be rejected.
+            // Persisted on the booking so the provider actually receives it.
             pickupLocation:
               pickup === 'known' && pickupLoc.trim()
-                ? dropoffParam
-                  ? `${pickupLoc.trim()} → drop-off: ${dropoffParam}`
-                  : pickupLoc.trim()
+                ? (dropoffParam ? `${pickupLoc.trim()} → drop-off: ${dropoffParam}` : pickupLoc.trim()).slice(0, 200)
                 : null,
             customer: {
               name: profile?.fullName || user?.email || 'Guest',

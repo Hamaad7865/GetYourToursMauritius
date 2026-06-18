@@ -4,6 +4,7 @@ import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
 import { CHILD_SEAT_EUR, childSeatsCost } from '@/lib/services/pricing';
+import { useDialog } from '@/lib/a11y/useDialog';
 import { fmtDur } from './planner-constants';
 
 const inputCls =
@@ -60,6 +61,8 @@ export function QuoteModal({
   bookError: string | null;
   onBook: () => void;
 }) {
+  // APG modal behaviour: scroll-lock, Escape to close, focus trap, and focus restore on close.
+  const dialogRef = useDialog(open, onClose);
   if (!open) return null;
   // Seats are capped at the party; the first is free, then €6 each. Show the running add-on.
   const seats = Math.min(childSeats, party);
@@ -75,7 +78,7 @@ export function QuoteModal({
       }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-[4px]"
     >
-      <div className="max-h-[90vh] w-full max-w-[460px] animate-pop overflow-y-auto rounded-[22px] bg-white shadow-[0_24px_60px_rgba(10,46,54,.34)]">
+      <div ref={dialogRef} className="max-h-[90vh] w-full max-w-[460px] animate-pop overflow-y-auto rounded-[22px] bg-white shadow-[0_24px_60px_rgba(10,46,54,.34)]">
         <form
           onSubmit={(e) => {
             e.preventDefault();

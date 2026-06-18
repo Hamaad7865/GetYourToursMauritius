@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
@@ -26,6 +26,8 @@ export function ItineraryPanel({
   onPickup,
   dropoff,
   onDropoff,
+  wantsDropoff,
+  onWantsDropoff,
   route,
   quote,
   onAddPlaces,
@@ -41,6 +43,9 @@ export function ItineraryPanel({
   /** Drop-off point, or null when it's the same as the pickup (a round trip). */
   dropoff: PlannerPoint | null;
   onDropoff: (point: PlannerPoint | null) => void;
+  /** Whether the "Different" drop-off mode is on (parent-owned so it survives remounts/clears). */
+  wantsDropoff: boolean;
+  onWantsDropoff: (v: boolean) => void;
   route: PlannerRouteCalc;
   quote: PlannerQuote | null;
   onAddPlaces: () => void;
@@ -52,10 +57,9 @@ export function ItineraryPanel({
 }) {
   const dragFrom = useRef<number | null>(null);
   const segs = route.segs; // pickup→s1, s1→s2, …, sN→(drop-off or pickup)
+  // A distinct drop-off only turns the route one-way once a place is actually chosen; `wantsDropoff`
+  // just reveals the search.
   const dropoffDiffers = !!dropoff && dropoff.id !== pickup.id;
-  // "Different" reveals the drop-off search; the route only turns one-way once a place is actually
-  // chosen (dropoff set), so toggling the mode alone keeps the day a round trip.
-  const [differentDropoff, setDifferentDropoff] = useState(!!dropoff);
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
@@ -85,23 +89,23 @@ export function ItineraryPanel({
             <button
               type="button"
               onClick={() => {
-                setDifferentDropoff(false);
+                onWantsDropoff(false);
                 onDropoff(null);
               }}
-              className={`rounded-full px-2.5 py-1 transition ${!differentDropoff ? 'bg-white text-ink shadow-sm' : 'text-ink-muted'}`}
+              className={`rounded-full px-2.5 py-1 transition ${!wantsDropoff ? 'bg-white text-ink shadow-sm' : 'text-ink-muted'}`}
             >
               Same as pick-up
             </button>
             <button
               type="button"
-              onClick={() => setDifferentDropoff(true)}
-              className={`rounded-full px-2.5 py-1 transition ${differentDropoff ? 'bg-white text-ink shadow-sm' : 'text-ink-muted'}`}
+              onClick={() => onWantsDropoff(true)}
+              className={`rounded-full px-2.5 py-1 transition ${wantsDropoff ? 'bg-white text-ink shadow-sm' : 'text-ink-muted'}`}
             >
               Different
             </button>
           </div>
         </div>
-        {differentDropoff && (
+        {wantsDropoff && (
           <div className="mt-2">
             <PickupSearch
               value={dropoff}

@@ -17,6 +17,7 @@ import { FaqSection } from './FaqSection';
 import { PICKUPS, PRESETS, fmtDur, type PlannerPoint } from './planner-constants';
 import { computePlannerRoute } from '@/lib/planner/route';
 import { plannerQuote, placeCountWarning, type PlannerQuote } from '@/lib/planner/pricing';
+import { childSeatsCost } from '@/lib/services/pricing';
 import { stopsToParam } from '@/lib/planner/share';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
 import type { PlannerPlace } from '@/lib/validation/planner';
@@ -41,6 +42,9 @@ export function PlannerShell() {
   const [heroValue, setHeroValue] = useState('');
   const [pickup, setPickup] = useState<PlannerPoint>(PICKUPS[0]!);
   const [dropoff, setDropoff] = useState<PlannerPoint | null>(null);
+  // Whether the customer wants a distinct drop-off. Owned here (not in ItineraryPanel) so the toggle
+  // survives the mobile tab remount and a "clear trip", and stays consistent with `dropoff`.
+  const [wantsDropoff, setWantsDropoff] = useState(false);
   const [stopIds, setStopIds] = useState<string[]>([]);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [typing, setTyping] = useState(false);
@@ -305,6 +309,14 @@ export function PlannerShell() {
     setBoost(null);
     setHasBuilt(false);
     setTyping(false);
+    // "Start over" returns the day to a clean round trip — don't leave a stale drop-off behind.
+    setDropoff(null);
+    setWantsDropoff(false);
+  }, []);
+  // Changing the pickup to the current drop-off would leave a contradictory drop-off selected; clear it.
+  const choosePickup = useCallback((p: PlannerPoint) => {
+    setPickup(p);
+    setDropoff((d) => (d && d.id === p.id ? null : d));
   }, []);
 
   function applyBoost() {
@@ -434,7 +446,9 @@ export function PlannerShell() {
         slug: CUSTOM_SLUG,
         title: CUSTOM_TITLE,
         lang: 'en',
-        total: String(quote.totalEur),
+        // Include the seat add-on so checkout's price reconciliation matches the modal + server
+        // (otherwise a vehicle-only total triggers a spurious "price changed" re-confirm).
+        total: String(quote.totalEur + childSeatsCost(Math.min(childSeats, party))),
         when: `${dateText}, ${time}`,
         guests: String(party),
         unit: 'per vehicle',
@@ -488,9 +502,11 @@ export function PlannerShell() {
     <ItineraryPanel
       stops={stops}
       pickup={pickup}
-      onPickup={setPickup}
+      onPickup={choosePickup}
       dropoff={dropoff}
       onDropoff={setDropoff}
+      wantsDropoff={wantsDropoff}
+      onWantsDropoff={setWantsDropoff}
       route={route}
       quote={quote}
       onAddPlaces={() => setDrawerOpen(true)}
