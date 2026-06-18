@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { CCY_COOKIE, LANG_COOKIE, PREF_MAX_AGE, type Currency, type Locale } from '@/lib/i18n/config';
@@ -55,6 +55,12 @@ export function PreferencesProvider({
   const [currency, setCurrencyState] = useState<Currency>(initialCurrency);
   const [usdRate] = useState<number>(initialUsdRate);
   const [modalTab, setModalTab] = useState<'language' | 'currency' | null>(null);
+
+  // The static root layout renders <html lang="en">; keep the document language in sync with the
+  // chosen locale on the client (server pages already render their content in the right language).
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
 
   const setLanguage = useCallback(
     (l: Locale) => {

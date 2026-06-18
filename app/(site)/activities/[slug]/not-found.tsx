@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 
+export const runtime = 'edge';
+
 export default function ActivityNotFound() {
   return (
     <>
