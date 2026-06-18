@@ -170,7 +170,7 @@ async function searchTextPage(
 /** A full search for one query, paginated up to `maxPages` (≤3 → up to ~60 results), cached. */
 async function searchTextCached(textQuery: string, apiKey: string, maxPages: number): Promise<PlannerPlace[]> {
   const cacheKey = `s:${textQuery}|${maxPages}`;
-  const hit = cacheGet<PlannerPlace[]>(cacheKey);
+  const hit = await cacheGet<PlannerPlace[]>(cacheKey);
   if (hit) return hit;
   const out: PlannerPlace[] = [];
   let token: string | undefined;
@@ -186,7 +186,7 @@ async function searchTextCached(textQuery: string, apiKey: string, maxPages: num
     token = res.nextPageToken;
     if (!token) break;
   }
-  cacheSet(cacheKey, out, SEARCH_TTL_MS);
+  await cacheSet(cacheKey, out, SEARCH_TTL_MS);
   return out;
 }
 
@@ -226,7 +226,7 @@ export async function searchGooglePlaces(args: PlacesSearchArgs, apiKey: string)
 export async function placeDetailsByIds(ids: string[], apiKey: string): Promise<PlannerPlace[]> {
   const results = await Promise.all(
     ids.map(async (id) => {
-      const cached = cacheGet<PlannerPlace>(`d:${id}`);
+      const cached = await cacheGet<PlannerPlace>(`d:${id}`);
       if (cached) return cached;
       try {
         const res = await fetch(`${DETAILS_BASE}${encodeURIComponent(id)}`, {
@@ -234,7 +234,7 @@ export async function placeDetailsByIds(ids: string[], apiKey: string): Promise<
         });
         if (!res.ok) return null;
         const place = mapGooglePlace((await res.json()) as RawPlace);
-        if (place) cacheSet(`d:${place.id}`, place, DETAILS_TTL_MS);
+        if (place) await cacheSet(`d:${place.id}`, place, DETAILS_TTL_MS);
         return place;
       } catch {
         return null;

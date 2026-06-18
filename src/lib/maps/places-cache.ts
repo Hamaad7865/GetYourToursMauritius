@@ -1,42 +1,102 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database, Json } from '@/lib/supabase/types';
+import { createServiceRoleClient } from '@/lib/supabase/admin';
+
 /**
- * Tiny in-memory TTL cache for Google Places responses — shared by both the browse endpoint and the
- * AI co-pilot (they both go through google-places.ts), so identical searches + already-resolved place
- * ids don't re-hit the billed Places API. Module-scoped: hot within a warm server instance (and very
- * effective in dev / on a long-lived Node server). The endpoint also sets an edge HTTP cache, and a
- * durable shared store (Supabase/KV) can be layered behind this later for cross-instance reuse.
+ * Two-layer cache for Google Places responses, shared by the browse endpoint and the AI co-pilot so
+ * identical searches + resolved place ids don't re-hit the billed Places API.
+ *
+ * L1 — in-memory (per server instance): instant, but lost on cold start / not shared across isolates.
+ * L2 — durable + shared (Supabase `places_cache`, written with the service-role key): survives
+ *      restarts and is shared across every instance + user, so at scale a place is fetched from Google
+ *      roughly once per TTL for the whole platform.
+ *
+ * Both layers fail open: if Supabase/the table/the key isn't available it silently falls back to L1
+ * (and to a live API call), so caching never breaks discovery.
  */
 interface Entry<T> {
   value: T;
   expires: number;
 }
 
-const store = new Map<string, Entry<unknown>>();
+const mem = new Map<string, Entry<unknown>>();
 const MAX_ENTRIES = 500;
 
-/** Returns the cached value if present and unexpired (and marks it most-recently-used), else undefined. */
-export function cacheGet<T>(key: string): T | undefined {
-  const e = store.get(key);
+function memGet<T>(key: string): T | undefined {
+  const e = mem.get(key);
   if (!e) return undefined;
   if (e.expires <= Date.now()) {
-    store.delete(key);
+    mem.delete(key);
     return undefined;
   }
-  // Touch for LRU: re-insert so it becomes the newest entry.
-  store.delete(key);
-  store.set(key, e);
+  mem.delete(key); // re-insert as most-recently-used (LRU)
+  mem.set(key, e);
   return e.value as T;
 }
 
-/** Stores a value with a TTL, evicting the oldest entry when full. */
-export function cacheSet<T>(key: string, value: T, ttlMs: number): void {
-  if (store.size >= MAX_ENTRIES) {
-    const oldest = store.keys().next().value;
-    if (oldest !== undefined) store.delete(oldest);
+function memSet<T>(key: string, value: T, expires: number): void {
+  if (mem.size >= MAX_ENTRIES) {
+    const oldest = mem.keys().next().value;
+    if (oldest !== undefined) mem.delete(oldest);
   }
-  store.set(key, { value, expires: Date.now() + ttlMs });
+  mem.set(key, { value, expires });
 }
 
-/** Test helper — empties the cache. */
+// L2 durable client — lazy singleton; null when unconfigured or under tests (kept to L1 there).
+let durable: SupabaseClient<Database> | null | undefined;
+function durableClient(): SupabaseClient<Database> | null {
+  if (durable !== undefined) return durable;
+  if (process.env.VITEST) {
+    durable = null;
+    return null;
+  }
+  try {
+    durable = createServiceRoleClient();
+  } catch {
+    durable = null;
+  }
+  return durable;
+}
+
+/** Returns the cached value if present and unexpired (L1 first, then the durable L2), else undefined. */
+export async function cacheGet<T>(key: string): Promise<T | undefined> {
+  const hit = memGet<T>(key);
+  if (hit !== undefined) return hit;
+
+  const db = durableClient();
+  if (!db) return undefined;
+  try {
+    const { data } = await db.from('places_cache').select('data, expires_at').eq('key', key).maybeSingle();
+    if (data) {
+      const expires = new Date(data.expires_at).getTime();
+      if (expires > Date.now()) {
+        memSet(key, data.data as unknown as T, expires); // warm L1 from L2
+        return data.data as unknown as T;
+      }
+    }
+  } catch {
+    /* L2 unavailable (table missing, network) — fall through to a live fetch */
+  }
+  return undefined;
+}
+
+/** Stores a value in both layers with a TTL. The durable write is best-effort. */
+export async function cacheSet<T>(key: string, value: T, ttlMs: number): Promise<void> {
+  const expiresAt = Date.now() + ttlMs;
+  memSet(key, value, expiresAt);
+
+  const db = durableClient();
+  if (!db) return;
+  try {
+    await db
+      .from('places_cache')
+      .upsert({ key, data: value as unknown as Json, expires_at: new Date(expiresAt).toISOString() });
+  } catch {
+    /* L2 unavailable — L1 still holds it */
+  }
+}
+
+/** Test helper — empties the in-memory layer. */
 export function clearPlacesCache(): void {
-  store.clear();
+  mem.clear();
 }

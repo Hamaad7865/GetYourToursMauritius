@@ -3381,4 +3381,16 @@ join activities a on a.id = o.activity_id
 where a.slug = 'custom-road-trip'
   and not exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id);
 
+-- ---- migration 20260618030000_places_cache (durable shared Google Places cache) ----------
+create table if not exists places_cache (
+  key        text primary key,
+  data       jsonb not null,
+  expires_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists places_cache_expires_idx on places_cache (expires_at);
+alter table places_cache enable row level security;
+revoke all on places_cache from anon, authenticated;
+grant select, insert, update, delete on places_cache to service_role;
+
 commit;

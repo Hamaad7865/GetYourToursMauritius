@@ -528,6 +528,9 @@ type PlannerPlacesInsert = {
   created_at?: string;
 };
 
+type PlacesCacheRow = { key: string; data: Json; expires_at: string; created_at: string };
+type PlacesCacheInsert = { key: string; data: Json; expires_at: string };
+
 type TableDef<Row, Insert> = { Row: Row; Insert: Insert; Update: Partial<Insert>; Relationships: [] };
 
 export interface Database {
@@ -556,6 +559,7 @@ export interface Database {
       sightseeing_pricing: TableDef<SightseeingPricingRow, SightseeingPricingInsert>;
       planner_pricing: TableDef<PlannerPricingRow, PlannerPricingInsert>;
       planner_places: TableDef<PlannerPlacesRow, PlannerPlacesInsert>;
+      places_cache: TableDef<PlacesCacheRow, PlacesCacheInsert>;
     };
     Views: { [_ in never]: never };
     Functions: {
