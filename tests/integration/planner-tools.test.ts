@@ -70,7 +70,7 @@ describe('resolveItinerary', () => {
       'fetch',
       vi.fn(async (url: string) => {
         const u = String(url);
-        if (u.includes('distancematrix')) return ok({ status: 'ZERO_RESULTS' }); // → haversine fallback
+        if (u.includes('routes.googleapis')) return ok({ routes: [] }); // Routes API → parse fails → haversine
         if (u.includes('/v1/places/') && u.includes('p-cham'))
           return ok({ id: 'p-cham', displayName: { text: 'Chamarel Waterfall' }, location: { latitude: -20.44, longitude: 57.38 }, types: [] });
         return { ok: false, json: async () => ({}) } as unknown as Response;

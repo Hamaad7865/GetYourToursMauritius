@@ -37,9 +37,11 @@ const ServerEnvSchema = z.object({
     .optional()
     .transform((v) => v === 'true' || v === '1'),
 
-  // Server-only Google Maps key for the Distance Matrix API (real drive times in the AI Road Trip
-  // Planner). Falls back to NEXT_PUBLIC_GOOGLE_MAPS_API_KEY when unset; without either, the planner
-  // uses the haversine estimate so it never breaks.
+  // Server-only Google Maps key for the AI Road Trip Planner's server calls: Routes API (real drive
+  // times) + Places API (New) (live place discovery). Falls back to NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  // when unset, but that public key is usually referrer-restricted and 403s server-side, so prefer a
+  // dedicated server key. Without a working key the planner uses the haversine estimate / can't list
+  // places, but never breaks.
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
 
   AI_PROVIDER: z.enum(['google', 'workersai', 'anthropic', 'openai']).default('google'),

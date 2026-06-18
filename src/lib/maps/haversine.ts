@@ -1,8 +1,8 @@
 /**
- * Great-circle drive-time estimate — the offline fallback when Google Distance Matrix is
+ * Great-circle drive-time estimate — the offline fallback when the Google Routes API is
  * unavailable. Mirrors the planner design's heuristic: road distance ≈ straight-line × 1.32,
  * ~38 km/h on Mauritian roads. Good enough to draw a route + ballpark a day; the real numbers
- * come from `getRouteLegs` when a Maps key is set.
+ * come from `getRouteLegsViaRoutes` when a Maps key is set.
  */
 export interface LatLng {
   lat: number;

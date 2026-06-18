@@ -8,9 +8,9 @@ import type { PlannedRoute } from '@/lib/maps/route-planning';
 import type { PlannerPlace } from '@/lib/validation/planner';
 
 /**
- * The AI Road Trip Planner co-pilot. A Gemini tool-calling agent that plans a day GROUNDED in the
- * curated places + real drive times — it must never invent a place, a drive time or a price (those
- * come from search_places / set_itinerary, which call the DB + Distance Matrix). Non-streaming
+ * The AI Road Trip Planner co-pilot. A Gemini tool-calling agent that plans a day GROUNDED in real
+ * Google Places + real drive times — it must never invent a place, a drive time or a price (those
+ * come from search_places / set_itinerary, which call Google Places + the Routes API). Non-streaming
  * (generateText, multi-step) for a simple, testable contract; streaming can be layered on later.
  *
  * When no Gemini model is configured (the stub provider, or no key — e.g. tests/CI), it returns a

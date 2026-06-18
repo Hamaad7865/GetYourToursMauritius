@@ -4,8 +4,8 @@ import type { LatLng, RouteLeg } from './haversine';
 /**
  * Server-side Google Routes API (Directions v2) client — real driving distance/time for the planner.
  * Edge-compatible (native fetch). Returns ONE leg per consecutive pair of points (origin → each
- * intermediate → destination). Throws ProviderError on any failure so planRoute can fall back.
- * This is Google's current Directions/routing API (the legacy Distance Matrix path remains a fallback).
+ * intermediate → destination). Throws ProviderError on any failure so planRoute can fall back to the
+ * haversine estimate. This is Google's current Directions/routing API.
  */
 const ROUTES_URL = 'https://routes.googleapis.com/directions/v2:computeRoutes';
 
