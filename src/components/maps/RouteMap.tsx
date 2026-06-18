@@ -70,6 +70,7 @@ type MapOverlay = { setMap: (map: google.maps.Map | null) => void };
 export function RouteMap({
   stops,
   kinds,
+  labels,
   animate = false,
   carColor = '#0E8C92',
   className,
@@ -78,6 +79,9 @@ export function RouteMap({
   stops: ItineraryStop[];
   /** Marker role per stop (aligned to `stops`). Defaults to start (index 0) + main (rest). */
   kinds?: StopKind[];
+  /** Per-marker label override (aligned to `stops`). Defaults to the 1-based index. Use this to
+   *  label pickup/drop-off endpoints with a glyph (e.g. "P"/"D") while stops stay numbered. */
+  labels?: Array<string | number>;
   animate?: boolean;
   /** Colour of the animated car marker (default brand teal). */
   carColor?: string;
@@ -148,7 +152,7 @@ export function RouteMap({
             map,
             position: pos,
             icon: pinIcon(color, { hollow }),
-            label: pinLabel(i + 1, hollow ? '#0E8C92' : '#ffffff'),
+            label: pinLabel(labels?.[i] ?? i + 1, hollow ? '#0E8C92' : '#ffffff'),
             title,
           }),
         );
@@ -275,7 +279,7 @@ export function RouteMap({
         rafRef.current = null;
       }
     };
-  }, [status, stops, kinds, animate, carColor, loop]);
+  }, [status, stops, kinds, labels, animate, carColor, loop]);
 
   // Final teardown on unmount: drop every overlay and release the map.
   useEffect(() => {
