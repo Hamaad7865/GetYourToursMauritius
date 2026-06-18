@@ -43,8 +43,12 @@ export function PlaceCard({
   const unit =
     activity.type === 'transport' || activity.pricingMode === 'vehicle'
       ? 'per vehicle'
-      : activity.pricingMode === 'per_group' && groupSize && groupSize > 1
-        ? `per group up to ${groupSize}`
+      : activity.pricingMode === 'per_group'
+        ? // Always read as a group price; only append "up to N" when the size is known. Falling back
+          // to "per person" for a per_group tour (missing maxGuests) misrepresents the price.
+          groupSize && groupSize > 1
+          ? `per group up to ${groupSize}`
+          : 'per group'
         : 'per person';
   const duration = durationLabel(activity.durationMinutes);
   const meta = [duration, activity.type === 'transport' ? 'Private transfer' : 'Pickup available']

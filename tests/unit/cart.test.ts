@@ -38,6 +38,18 @@ describe('itemTotal — child-seat add-on never exceeds the party', () => {
   });
 });
 
+describe('lineCap — a full slot caps the stepper (no falsy-zero → Infinity)', () => {
+  it('caps at seatsLeft when the slot has room', () => {
+    expect(lineCap({ ...base, pricingMode: 'per_person', maxGuests: null, guests: 2, seatsLeft: 5 })).toBe(5);
+  });
+  it('seatsLeft=0 (slot filled after add) holds at the current size, never widens to Infinity', () => {
+    expect(lineCap({ ...base, pricingMode: 'per_person', maxGuests: null, guests: 3, seatsLeft: 0 })).toBe(3);
+  });
+  it('still honours the per-person tier cap', () => {
+    expect(lineCap({ ...base, pricingMode: 'per_person', maxGuests: 4, guests: 2, seatsLeft: 10 })).toBe(4);
+  });
+});
+
 describe("setGuests clamp logic (pure mirror — the localStorage-backed hook isn't node-testable)", () => {
   const clamp = (i: CartItem, guests: number) => {
     const next = Math.max(1, Math.min(lineCap(i), guests));

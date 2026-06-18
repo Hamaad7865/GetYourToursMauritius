@@ -60,7 +60,11 @@ export function itemTotal(i: CartItem): number {
  *  size changes the vehicle + price, which is done on the activity page), so they don't grow here. */
 export function lineCap(i: CartItem): number {
   if (i.pricingMode === 'vehicle') return i.guests;
-  const bySeats = i.seatsLeft && i.seatsLeft > 0 ? i.seatsLeft : Infinity;
+  // seatsLeft is the remaining capacity at add-time. >0 caps the stepper there; 0 means the slot
+  // filled after this line was added, so hold at the current size (never widen, never force below
+  // what's already configured — `i.seatsLeft && …` previously read 0 as falsy and returned Infinity,
+  // letting the stepper grow without bound on a full slot).
+  const bySeats = i.seatsLeft > 0 ? i.seatsLeft : i.guests;
   const byTier = i.pricingMode === 'per_person' && i.maxGuests ? i.maxGuests : Infinity;
   return Math.min(bySeats, byTier);
 }
@@ -126,7 +130,9 @@ export function useCart() {
 
   const clear = useCallback(() => write([]), []);
 
-  const subtotal = items.reduce((sum, i) => sum + itemTotal(i), 0);
+  // Accumulate in integer cents so a basket of several lines can't drift (0.1 + 0.2 ≠ 0.3 in
+  // floating point); each itemTotal is already cent-rounded, so *100 is exact.
+  const subtotal = Math.round(items.reduce((sum, i) => sum + Math.round(itemTotal(i) * 100), 0)) / 100;
 
   return { items, add, remove, setGuests, clear, count: items.length, subtotal };
 }

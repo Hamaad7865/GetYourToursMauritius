@@ -217,8 +217,11 @@ export function BookingProvider({
     ? (vehicleQuote?.totalEur ?? null)
     : cheapest == null
       ? null
-      : groupSize
-        ? cheapest.amountEur * Math.ceil(participants / groupSize)
+      : activity.pricingMode === 'per_group'
+        ? // One flat price per group of `groupSize`; if the group size is somehow missing (bad data),
+          // charge a single group rather than silently billing per head (the server rejects an
+          // unconfigured per_group tier outright, so this only guards the display).
+          cheapest.amountEur * (groupSize ? Math.ceil(participants / groupSize) : 1)
         : cheapest.amountEur * participants;
   const childSeatsExtra = childSeatsCost(childSeats);
   const total = baseTotal == null ? null : baseTotal + childSeatsExtra;
