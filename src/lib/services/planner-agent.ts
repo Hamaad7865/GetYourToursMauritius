@@ -26,7 +26,7 @@ Rules:
 - Be warm and concise. Mention the total driving time. If it warns about too many stops, gently suggest trimming.`;
 
 /** Build the real Gemini model, or null when unconfigured (stub provider / missing key). */
-function plannerModel(ctx: ServiceContext): LanguageModelV1 | null {
+export function plannerModel(ctx: ServiceContext): LanguageModelV1 | null {
   if (ctx.ai.name !== 'google') return null;
   const env = getServerEnv();
   if (!env.GOOGLE_GENERATIVE_AI_API_KEY) return null;

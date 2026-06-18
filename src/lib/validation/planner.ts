@@ -27,3 +27,18 @@ export const plannerChatInputSchema = z.object({
   messages: z.array(plannerChatMessageSchema).min(1).max(40),
 });
 export type PlannerChatInput = z.infer<typeof plannerChatInputSchema>;
+
+/** Request body for POST /api/ai/place-insights — the day's places to write insights about. */
+export const placeInsightsInputSchema = z.object({
+  places: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(200),
+        category: z.string().max(60),
+        region: z.string().max(60),
+      }),
+    )
+    .min(1)
+    .max(12),
+});
+export type PlaceInsightsInput = z.infer<typeof placeInsightsInputSchema>;

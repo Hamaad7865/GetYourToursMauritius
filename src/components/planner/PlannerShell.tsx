@@ -8,6 +8,7 @@ import { ItineraryPanel } from './ItineraryPanel';
 import { ChatCopilot } from './ChatCopilot';
 import { PlacesDrawer } from './PlacesDrawer';
 import { QuoteModal } from './QuoteModal';
+import { AIInsights } from './AIInsights';
 import { RouteMap } from '@/components/maps/RouteMap';
 import { PresetsSection, type PresetCard } from './PresetsSection';
 import { FeaturesSection } from './FeaturesSection';
@@ -485,6 +486,8 @@ export function PlannerShell() {
             </p>
           </div>
         )}
+
+        <AIInsights stops={stops} />
       </div>
 
       <PresetsSection items={presetCards} onOpen={openPreset} />
