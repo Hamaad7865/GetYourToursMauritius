@@ -8,6 +8,8 @@ import {
   setDailyCapacity,
   stopAvailability,
 } from '@/lib/admin/availability-write';
+import { IconChevron } from '@/components/ui/icons';
+import { AdminHeading, BTN_PRIMARY } from '@/components/admin/ui';
 
 /** Surface the real message from an Error or a Supabase/PostgREST error object (which isn't an
  *  Error instance), so failures aren't masked by a generic fallback. */
@@ -76,38 +78,38 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
 
   return (
     <div>
-      <Link href="/admin/activities" className="text-sm font-bold text-teal hover:text-teal-dark">
-        ← Activities
+      <Link
+        href="/admin/activities"
+        className="mb-2 inline-flex items-center gap-1 text-[13.5px] font-semibold text-ink-muted hover:text-teal"
+      >
+        <IconChevron width={15} height={15} className="rotate-90" /> Back to tours
       </Link>
-      <h1 className="mb-1 mt-2 font-display text-2xl font-semibold text-ink">Availability</h1>
-      <p className="mb-6 text-sm text-ink-muted">{title}</p>
+      <AdminHeading title="Availability" subtitle={title || 'Loading…'} />
 
       {loading ? (
         <p className="text-sm text-ink-muted">Loading…</p>
       ) : !hasOptions ? (
-        <p className="rounded-xl bg-gold-light/20 px-4 py-3 text-sm text-ink">
+        <div className="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-ink">
           This activity has no booking options yet. Add an option with a price in{' '}
-          <Link href={`/admin/activities/${activityId}/edit`} className="font-bold text-teal">
+          <Link href={`/admin/activities/${activityId}/edit`} className="font-bold text-teal hover:text-teal-dark">
             Edit
           </Link>{' '}
           first.
-        </p>
+        </div>
       ) : (
-        <div className="max-w-md rounded-2xl border border-ink/10 bg-white p-6">
-          <div className="flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 rounded-full ${open ? 'bg-teal' : 'bg-ink/25'}`} aria-hidden />
-            <h2 className="font-display text-lg font-semibold text-ink">
-              {open ? 'Bookable every day' : 'Not bookable yet'}
-            </h2>
+        <div className="max-w-md rounded-2xl border border-[#EAEEF0] bg-white p-6">
+          <div className="flex items-center gap-2.5">
+            <span className={`h-2.5 w-2.5 rounded-full ${open ? 'bg-emerald-500' : 'bg-ink/25'}`} aria-hidden />
+            <h2 className="text-[15px] font-extrabold text-ink">{open ? 'Bookable every day' : 'Not bookable yet'}</h2>
           </div>
-          <p className="mt-1 text-[13px] text-ink-muted">
+          <p className="mt-1.5 text-[13px] text-ink-muted">
             {open
               ? `Customers can book any day, up to ${capacity} ${pricingMode === 'vehicle' ? 'bookings' : 'guests'} per day.`
               : `Set how many ${pricingMode === 'vehicle' ? 'bookings' : 'guests'} can book per day, then turn it on. It stays open until you stop it.`}
           </p>
 
-          <label className="mt-5 flex flex-col gap-1.5">
-            <span className="text-[13px] font-bold text-ink">
+          <label className="mt-5 block">
+            <span className="mb-1.5 block text-[12.5px] font-bold text-ink/60">
               {pricingMode === 'vehicle' ? 'Bookings (vehicles) per day' : 'Bookable per day (capacity)'}
             </span>
             <input
@@ -115,7 +117,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
               min={1}
               value={capacity}
               onChange={(e) => setCapacity(Math.max(1, Number(e.target.value) || 1))}
-              className="w-40 rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal"
+              className="w-40 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal focus:bg-white"
             />
           </label>
 
@@ -124,7 +126,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
               type="button"
               disabled={busy}
               onClick={() => run(() => setDailyCapacity(activityId, capacity), open ? 'Capacity updated.' : 'Now bookable every day.')}
-              className="rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-60"
+              className={BTN_PRIMARY}
             >
               {open ? 'Update capacity' : 'Make bookable'}
             </button>
@@ -133,7 +135,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
                 type="button"
                 disabled={busy}
                 onClick={() => run(() => stopAvailability(activityId), 'Availability stopped.')}
-                className="rounded-full border border-coral/40 px-5 py-2.5 text-sm font-bold text-coral hover:bg-coral/10 disabled:opacity-60"
+                className="inline-flex items-center justify-center rounded-xl border border-coral/40 px-4 py-2.5 text-[13.5px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
               >
                 Stop availability
               </button>
@@ -146,8 +148,12 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
               {pricingMode === 'vehicle' ? 'bookings' : 'guests'} have booked it.
             </p>
           )}
-          {notice && <p className="mt-3 text-[13px] font-medium text-teal-dark">{notice}</p>}
-          {error && <p role="alert" className="mt-3 text-[13px] font-medium text-coral">{error}</p>}
+          {notice && <p className="mt-3 text-[13px] font-medium text-emerald-700">{notice}</p>}
+          {error && (
+            <p role="alert" className="mt-3 text-[13px] font-medium text-coral">
+              {error}
+            </p>
+          )}
         </div>
       )}
     </div>

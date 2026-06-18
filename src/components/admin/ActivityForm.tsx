@@ -239,23 +239,23 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
       </Section>
 
       {error && (
-        <p role="alert" className="rounded-lg bg-coral/10 px-4 py-3 text-sm font-medium text-coral">
+        <p role="alert" className="rounded-xl bg-coral/10 px-4 py-3 text-sm font-medium text-coral">
           {error}
         </p>
       )}
 
-      <div className="sticky bottom-0 flex items-center gap-3 border-t border-ink/10 bg-white/95 py-4 backdrop-blur">
+      <div className="sticky bottom-0 flex items-center gap-2 border-t border-[#EAEEF0] bg-white/95 py-4 backdrop-blur">
         <button
           type="submit"
           disabled={saving}
-          className="rounded-full bg-teal px-6 py-2.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-60"
+          className="inline-flex items-center justify-center rounded-xl bg-teal px-5 py-2.5 text-[13.5px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
         >
           {saving ? 'Saving…' : mode === 'new' ? 'Create activity' : 'Save changes'}
         </button>
         <button
           type="button"
           onClick={() => router.push('/admin/activities')}
-          className="rounded-full px-5 py-2.5 text-sm font-bold text-ink-muted hover:text-ink"
+          className="inline-flex items-center justify-center rounded-xl border border-[#E2E7EA] bg-white px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:border-teal hover:text-teal"
         >
           Cancel
         </button>
@@ -265,12 +265,12 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
 }
 
 const inputClass =
-  'w-full rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal';
+  'w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink-muted/70 focus:border-teal focus:bg-white';
 
 function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-2xl border border-ink/10 bg-white p-5 sm:p-6">
-      <h2 className="font-display text-lg font-semibold text-ink">{title}</h2>
+    <section className="rounded-2xl border border-[#EAEEF0] bg-white p-5 sm:p-6">
+      <h2 className="text-[15px] font-extrabold text-ink">{title}</h2>
       {hint && <p className="mt-0.5 text-[13px] text-ink-muted">{hint}</p>}
       <div className="mt-4">{children}</div>
     </section>
@@ -293,7 +293,7 @@ function Field({
   const id = useId();
   return (
     <label htmlFor={id} className={`flex flex-col gap-1.5 ${full ? 'sm:col-span-2' : ''}`}>
-      <span className="text-[13px] font-bold text-ink">
+      <span className="text-[12.5px] font-bold text-ink/60">
         {label} {required && <span className="text-coral">*</span>}
       </span>
       {children}

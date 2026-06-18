@@ -13,9 +13,8 @@ import {
   type PlannerPlaceInput,
   type PlannerPlaceRow,
 } from '@/lib/admin/planner-places';
-
-const inputClass =
-  'w-full rounded-xl border border-ink/15 bg-white px-3 py-2 text-sm text-ink outline-none focus:border-teal';
+import { IconChevron, IconPlus } from '@/components/ui/icons';
+import { AdminHeading, Field, AdminError, INPUT_CLS, SELECT_CLS, BTN_PRIMARY, BTN_GHOST } from '@/components/admin/ui';
 
 const EMPTY: PlannerPlaceInput = {
   name: '',
@@ -92,181 +91,142 @@ export function AdminPlannerPlaces() {
   if (!isAdmin) return <p className="text-sm text-coral">Access denied.</p>;
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Planner places</h1>
-          <p className="mt-1 text-sm text-ink-muted">Curated stops the AI Road Trip Planner builds days from.</p>
-        </div>
-        <button
-          type="button"
-          onClick={startNew}
-          className="rounded-full bg-teal px-4 py-2 text-sm font-bold text-white hover:bg-teal-dark"
-        >
-          + Add place
-        </button>
-      </div>
+    <div>
+      <AdminHeading
+        title="Planner places"
+        subtitle="Curated stops the AI Road Trip Planner builds days from."
+        action={
+          <button type="button" onClick={startNew} className={BTN_PRIMARY}>
+            <IconPlus width={16} height={16} /> Add place
+          </button>
+        }
+      />
 
-      {error && (
-        <p role="alert" className="rounded-lg bg-coral/10 px-4 py-3 text-sm font-medium text-coral">
-          {error}
-        </p>
-      )}
+      {error && <AdminError>{error}</AdminError>}
 
       {editing && (
         <form
           onSubmit={(e) => {
             e.preventDefault();
             if (!form.name.trim()) return setError('Name is required.');
-            void run(() =>
-              editing === 'new' ? createPlannerPlace(form) : updatePlannerPlace(editing, form),
-            );
+            void run(() => (editing === 'new' ? createPlannerPlace(form) : updatePlannerPlace(editing, form)));
           }}
-          className="rounded-2xl border border-ink/10 bg-white p-5"
+          className="mb-5 rounded-2xl border border-[#EAEEF0] bg-white p-5"
         >
-          <h2 className="mb-3 font-display text-lg font-semibold text-ink">
-            {editing === 'new' ? 'New place' : 'Edit place'}
-          </h2>
+          <h2 className="mb-3.5 text-[15px] font-extrabold text-ink">{editing === 'new' ? 'New place' : 'Edit place'}</h2>
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
-              Name
-              <input className={inputClass} value={form.name} onChange={(e) => set('name', e.target.value)} />
-            </label>
-            <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
-              Category
-              <select className={inputClass} value={form.category} onChange={(e) => set('category', e.target.value)}>
+            <Field label="Name">
+              <input className={INPUT_CLS} value={form.name} onChange={(e) => set('name', e.target.value)} />
+            </Field>
+            <Field label="Category">
+              <select className={SELECT_CLS} value={form.category} onChange={(e) => set('category', e.target.value)}>
                 {PLACE_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
                     {c}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
-              Region
-              <select className={inputClass} value={form.region} onChange={(e) => set('region', e.target.value)}>
+            </Field>
+            <Field label="Region">
+              <select className={SELECT_CLS} value={form.region} onChange={(e) => set('region', e.target.value)}>
                 {PLACE_REGIONS.map((r) => (
                   <option key={r} value={r}>
                     {r}
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
-              Ideal duration (min)
+            </Field>
+            <Field label="Ideal duration (min)">
               <input
                 type="number"
                 min={1}
-                className={inputClass}
+                className={INPUT_CLS}
                 value={form.durationMin}
                 onChange={(e) => set('durationMin', e.target.value ? Number(e.target.value) : 0)}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
-              Latitude
+            </Field>
+            <Field label="Latitude">
               <input
                 type="number"
                 step="0.000001"
-                className={inputClass}
+                className={INPUT_CLS}
                 value={form.lat}
                 onChange={(e) => set('lat', e.target.value ? Number(e.target.value) : 0)}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
-              Longitude
+            </Field>
+            <Field label="Longitude">
               <input
                 type="number"
                 step="0.000001"
-                className={inputClass}
+                className={INPUT_CLS}
                 value={form.lng}
                 onChange={(e) => set('lng', e.target.value ? Number(e.target.value) : 0)}
               />
-            </label>
-            <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
-              Closes at (HH:MM, blank = open)
+            </Field>
+            <Field label="Closes at (HH:MM, blank = open)">
               <input
-                className={inputClass}
+                className={INPUT_CLS}
                 value={form.closesAt ?? ''}
                 onChange={(e) => set('closesAt', e.target.value || null)}
                 placeholder="17:00"
               />
-            </label>
-            <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink">
-              Image URL
-              <input
-                className={inputClass}
-                value={form.imageUrl ?? ''}
-                onChange={(e) => set('imageUrl', e.target.value || null)}
-              />
-            </label>
-            <label className="flex flex-col gap-1 text-[13px] font-semibold text-ink sm:col-span-2">
-              Blurb
-              <input
-                className={inputClass}
-                value={form.blurb ?? ''}
-                onChange={(e) => set('blurb', e.target.value || null)}
-              />
-            </label>
+            </Field>
+            <Field label="Image URL">
+              <input className={INPUT_CLS} value={form.imageUrl ?? ''} onChange={(e) => set('imageUrl', e.target.value || null)} />
+            </Field>
+            <div className="sm:col-span-2">
+              <Field label="Blurb">
+                <input className={INPUT_CLS} value={form.blurb ?? ''} onChange={(e) => set('blurb', e.target.value || null)} />
+              </Field>
+            </div>
           </div>
-          <div className="mt-4 flex gap-3">
-            <button
-              type="submit"
-              disabled={busy}
-              className="rounded-full bg-teal px-5 py-2 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-60"
-            >
+          <div className="mt-4 flex gap-2">
+            <button type="submit" disabled={busy} className={BTN_PRIMARY}>
               {busy ? 'Saving…' : 'Save'}
             </button>
-            <button
-              type="button"
-              onClick={() => setEditing(null)}
-              className="rounded-full px-4 py-2 text-sm font-bold text-ink-muted hover:text-ink"
-            >
+            <button type="button" onClick={() => setEditing(null)} className={BTN_GHOST}>
               Cancel
             </button>
           </div>
         </form>
       )}
 
-      <div className="rounded-2xl border border-ink/10 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-[#EAEEF0] bg-white">
         {rows === null ? (
           <p className="p-5 text-sm text-ink-muted">Loading…</p>
         ) : rows.length === 0 ? (
           <p className="p-5 text-sm text-ink-muted">No places yet.</p>
         ) : (
-          <ul className="divide-y divide-ink/10">
+          <ul>
             {rows.map((p, i) => (
-              <li key={p.id} className="flex items-center gap-3 p-3">
+              <li key={p.id} className="flex items-center gap-3 border-t border-[#F2F4F6] p-3 first:border-t-0 hover:bg-[#FAFBFC]">
                 <div className="flex flex-col">
                   <button
                     type="button"
                     aria-label="Move up"
                     disabled={i === 0 || busy}
                     onClick={() => void run(() => movePlannerPlace(rows, p.id, -1))}
-                    className="text-ink-muted hover:text-teal disabled:opacity-30"
+                    className="grid h-5 w-5 place-items-center text-ink-muted hover:text-teal disabled:opacity-25"
                   >
-                    ▲
+                    <IconChevron width={14} height={14} className="rotate-180" />
                   </button>
                   <button
                     type="button"
                     aria-label="Move down"
                     disabled={i === rows.length - 1 || busy}
                     onClick={() => void run(() => movePlannerPlace(rows, p.id, 1))}
-                    className="text-ink-muted hover:text-teal disabled:opacity-30"
+                    className="grid h-5 w-5 place-items-center text-ink-muted hover:text-teal disabled:opacity-25"
                   >
-                    ▼
+                    <IconChevron width={14} height={14} />
                   </button>
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-ink">{p.name}</div>
+                  <div className="truncate text-sm font-bold text-ink">{p.name}</div>
                   <div className="text-[12px] text-ink-muted">
                     {p.category} · {p.region} · {p.durationMin} min{p.closesAt ? ` · till ${p.closesAt}` : ''}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => startEdit(p)}
-                  className="rounded-lg px-3 py-1.5 text-sm font-bold text-teal hover:bg-cream"
-                >
+                <button type="button" onClick={() => startEdit(p)} className="rounded-lg px-3 py-1.5 text-sm font-bold text-teal hover:bg-cream">
                   Edit
                 </button>
                 <button
@@ -275,7 +235,7 @@ export function AdminPlannerPlaces() {
                   onClick={() => {
                     if (confirm(`Delete ${p.name}?`)) void run(() => deletePlannerPlace(p.id));
                   }}
-                  className="rounded-lg px-3 py-1.5 text-sm font-bold text-coral hover:bg-coral/10 disabled:opacity-60"
+                  className="rounded-lg px-3 py-1.5 text-sm font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
                 >
                   Delete
                 </button>

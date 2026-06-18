@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { loadLeads, setLeadStatus, type LeadRow, type LeadStatus } from '@/lib/admin/leads';
+import { avatar } from '@/lib/admin/dashboard';
 
 function errMessage(err: unknown, fallback: string): string {
   if (err instanceof Error) return err.message;
@@ -74,29 +75,30 @@ export function AdminLeads() {
 
   return (
     <div>
-      <div className="mb-1 flex items-center gap-3">
-        <h1 className="font-display text-2xl font-semibold text-ink">Leads</h1>
-        {newCount > 0 && (
-          <span className="rounded-full bg-coral/10 px-2.5 py-1 text-[12px] font-bold text-coral">
-            {newCount} new
-          </span>
-        )}
-      </div>
-      <p className="mb-6 text-sm text-ink-muted">Enquiries from the contact form and the site.</p>
-
-      <div className="mb-4 flex flex-wrap gap-2">
-        {(['all', ...STATUSES] as const).map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFilter(f)}
-            className={`rounded-full px-3.5 py-1.5 text-[13px] font-bold capitalize ${
-              filter === f ? 'bg-teal text-white' : 'bg-white text-ink hover:bg-cream'
-            }`}
-          >
-            {f}
-          </button>
-        ))}
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="font-display text-[30px] font-medium tracking-tight text-ink">Leads</h1>
+            {newCount > 0 && (
+              <span className="rounded-full bg-coral/10 px-2.5 py-1 text-[12px] font-bold text-coral">{newCount} new</span>
+            )}
+          </div>
+          <p className="mt-1.5 text-sm text-ink-muted">Enquiries from the contact form and the site.</p>
+        </div>
+        <div className="flex flex-wrap gap-1 rounded-xl bg-[#F4F6F7] p-1">
+          {(['all', ...STATUSES] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setFilter(f)}
+              className={`rounded-lg px-3.5 py-1.5 text-[13px] font-bold capitalize ${
+                filter === f ? 'bg-ink text-white shadow-sm' : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && (
@@ -108,62 +110,74 @@ export function AdminLeads() {
       {loading ? (
         <p className="text-sm text-ink-muted">Loading…</p>
       ) : shown.length === 0 ? (
-        <p className="rounded-2xl border border-ink/10 bg-white px-5 py-8 text-center text-sm text-ink-muted">
-          {leads.length === 0 ? 'No enquiries yet.' : 'No leads in this view.'}
-        </p>
+        <div className="rounded-2xl border border-[#EAEEF0] bg-white px-6 py-14 text-center">
+          <div className="text-[15px] font-bold text-ink">{leads.length === 0 ? 'No enquiries yet' : 'No leads in this view'}</div>
+          <p className="mt-1 text-[13.5px] text-ink-muted">They’ll appear here as people use the contact form.</p>
+        </div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-ink/10 bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-ink/10 text-[12px] uppercase tracking-wide text-ink-muted">
-              <tr>
-                <th className="px-4 py-3 font-bold">Name</th>
-                <th className="px-4 py-3 font-bold">Contact</th>
-                <th className="hidden px-4 py-3 font-bold sm:table-cell">Interested in</th>
-                <th className="hidden px-4 py-3 font-bold md:table-cell">Received</th>
-                <th className="px-4 py-3 font-bold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((lead) => {
-                const href = mailtoHref(lead.contact);
-                return (
-                <tr key={lead.id} className="border-b border-ink/5 last:border-0">
-                  <td className="px-4 py-3 font-semibold text-ink">{lead.name}</td>
-                  <td className="px-4 py-3 text-ink">
-                    {href ? (
-                      <a href={href} className="text-teal hover:text-teal-dark">
-                        {lead.contact}
-                      </a>
-                    ) : (
-                      <span>{lead.contact}</span>
-                    )}
-                  </td>
-                  <td className="hidden px-4 py-3 text-ink-muted sm:table-cell">
-                    {lead.interestActivityTitle ?? '—'}
-                  </td>
-                  <td className="hidden px-4 py-3 text-ink-muted md:table-cell">{formatWhen(lead.createdAt)}</td>
-                  <td className="px-4 py-3">
-                    <label className="sr-only" htmlFor={`status-${lead.id}`}>
-                      Status for {lead.name}
-                    </label>
-                    <select
-                      id={`status-${lead.id}`}
-                      value={lead.status}
-                      onChange={(e) => changeStatus(lead.id, e.target.value as LeadStatus)}
-                      className={`rounded-full px-2.5 py-1 text-[12px] font-bold capitalize outline-none ${STATUS_STYLE[lead.status]}`}
-                    >
-                      {STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
+        <div className="overflow-hidden rounded-2xl border border-[#EAEEF0] bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="bg-[#FAFBFC] text-[11px] font-bold uppercase tracking-wide text-ink-muted">
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Contact</th>
+                  <th className="hidden px-4 py-3 sm:table-cell">Interested in</th>
+                  <th className="hidden px-4 py-3 md:table-cell">Received</th>
+                  <th className="px-4 py-3">Status</th>
                 </tr>
-                );
-              })}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {shown.map((lead) => {
+                  const href = mailtoHref(lead.contact);
+                  const av = avatar(lead.name);
+                  return (
+                    <tr key={lead.id} className="border-t border-[#F2F4F6] hover:bg-[#FAFBFC]">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <span
+                            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold text-white"
+                            style={{ background: `hsl(${av.hue} 42% 46%)` }}
+                          >
+                            {av.initials}
+                          </span>
+                          <span className="font-bold text-ink">{lead.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-ink/70">
+                        {href ? (
+                          <a href={href} className="font-semibold text-teal hover:text-teal-dark">
+                            {lead.contact}
+                          </a>
+                        ) : (
+                          <span>{lead.contact}</span>
+                        )}
+                      </td>
+                      <td className="hidden px-4 py-3 text-ink-muted sm:table-cell">{lead.interestActivityTitle ?? '—'}</td>
+                      <td className="hidden whitespace-nowrap px-4 py-3 text-ink-muted md:table-cell">{formatWhen(lead.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        <label className="sr-only" htmlFor={`status-${lead.id}`}>
+                          Status for {lead.name}
+                        </label>
+                        <select
+                          id={`status-${lead.id}`}
+                          value={lead.status}
+                          onChange={(e) => changeStatus(lead.id, e.target.value as LeadStatus)}
+                          className={`cursor-pointer rounded-lg px-2.5 py-1 text-[12px] font-bold capitalize outline-none ${STATUS_STYLE[lead.status]}`}
+                        >
+                          {STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
