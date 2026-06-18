@@ -74,6 +74,29 @@ export const IconCalendar = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+export const IconGrid = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <rect x="3" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="3" width="7" height="7" rx="1.5" />
+    <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    <rect x="3" y="14" width="7" height="7" rx="1.5" />
+  </Svg>
+);
+
+export const IconBell = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+  </Svg>
+);
+
+export const IconTrendUp = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M16 7h6v6" />
+    <path d="m22 7-8.5 8.5-5-5L2 17" />
+  </Svg>
+);
+
 export const IconShield = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p}>
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
