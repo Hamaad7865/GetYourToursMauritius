@@ -1,5 +1,9 @@
 import { ProviderError } from '@/lib/services/errors';
+import { cacheGet, cacheSet } from './places-cache';
 import type { PlannerPlace } from '@/lib/validation/planner';
+
+const SEARCH_TTL_MS = 6 * 60 * 60 * 1000; // searches: 6h
+const DETAILS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // place details: 30d (rarely change)
 
 /**
  * Google Places API (New) client for the AI Road Trip Planner — live place discovery instead of a
@@ -126,40 +130,51 @@ function buildQuery(args: PlacesSearchArgs): string {
 
 // ── API calls ───────────────────────────────────────────────────────────────
 
-/** Live Text Search over Mauritius, mapped to PlannerPlace[] (region-filtered client-side). */
+/** Live Text Search over Mauritius, mapped to PlannerPlace[] (region-filtered client-side). Cached by
+ *  query+category so repeats — and region variants of the same query — don't re-hit the billed API. */
 export async function searchGooglePlaces(args: PlacesSearchArgs, apiKey: string): Promise<PlannerPlace[]> {
-  const res = await fetch(SEARCH_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Goog-Api-Key': apiKey,
-      'X-Goog-FieldMask': FIELDS,
-    },
-    body: JSON.stringify({
-      textQuery: buildQuery(args),
-      locationRestriction: { rectangle: MU_RECT },
-      maxResultCount: 20,
-      regionCode: 'MU',
-      languageCode: 'en',
-    }),
-  });
-  if (!res.ok) throw new ProviderError(`Places searchText HTTP ${res.status}`);
-  const data = (await res.json()) as { places?: RawPlace[] };
-  let places = (data.places ?? []).map(mapGooglePlace).filter((p): p is PlannerPlace => p !== null);
-  if (args.region && args.region !== 'All') places = places.filter((p) => p.region === args.region);
+  const cacheKey = `s:${(args.query ?? '').trim().toLowerCase()}|${args.category ?? 'All'}`;
+  let places = cacheGet<PlannerPlace[]>(cacheKey);
+  if (!places) {
+    const res = await fetch(SEARCH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-Api-Key': apiKey,
+        'X-Goog-FieldMask': FIELDS,
+      },
+      body: JSON.stringify({
+        textQuery: buildQuery(args),
+        locationRestriction: { rectangle: MU_RECT },
+        maxResultCount: 20,
+        regionCode: 'MU',
+        languageCode: 'en',
+      }),
+    });
+    if (!res.ok) throw new ProviderError(`Places searchText HTTP ${res.status}`);
+    const data = (await res.json()) as { places?: RawPlace[] };
+    places = (data.places ?? []).map(mapGooglePlace).filter((p): p is PlannerPlace => p !== null);
+    cacheSet(cacheKey, places, SEARCH_TTL_MS);
+  }
+  if (args.region && args.region !== 'All') return places.filter((p) => p.region === args.region);
   return places;
 }
 
-/** Resolve specific place ids via Place Details (for the AI's chosen ids + shareable deep-links). */
+/** Resolve specific place ids via Place Details (for the AI's chosen ids + shareable deep-links).
+ *  Per-id cached, so only the ids we haven't seen are fetched. */
 export async function placeDetailsByIds(ids: string[], apiKey: string): Promise<PlannerPlace[]> {
   const results = await Promise.all(
     ids.map(async (id) => {
+      const cached = cacheGet<PlannerPlace>(`d:${id}`);
+      if (cached) return cached;
       try {
         const res = await fetch(`${DETAILS_BASE}${encodeURIComponent(id)}`, {
           headers: { 'X-Goog-Api-Key': apiKey, 'X-Goog-FieldMask': DETAIL_FIELDS },
         });
         if (!res.ok) return null;
-        return mapGooglePlace((await res.json()) as RawPlace);
+        const place = mapGooglePlace((await res.json()) as RawPlace);
+        if (place) cacheSet(`d:${place.id}`, place, DETAILS_TTL_MS);
+        return place;
       } catch {
         return null;
       }

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resolveItinerary, searchPlannerPlaces } from '@/lib/planner/tools';
+import { clearPlacesCache } from '@/lib/maps/places-cache';
 import type { PlannerPlace } from '@/lib/validation/planner';
 
 /**
@@ -16,7 +17,10 @@ const place = (id: string, lat: number, lng: number): PlannerPlace => ({
 });
 const ok = (body: unknown) => ({ ok: true, json: async () => body }) as unknown as Response;
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  clearPlacesCache();
+});
 
 describe('searchPlannerPlaces', () => {
   it('returns [] without an API key (no fetch)', async () => {
@@ -33,6 +37,15 @@ describe('searchPlannerPlaces', () => {
     expect(all.every((p) => p.region === 'South')).toBe(true);
     const north = await searchPlannerPlaces({ region: 'North' }, 'key');
     expect(north).toEqual([]); // both raw places are South
+  });
+
+  it('caches identical searches (no second API call) and shares across region variants', async () => {
+    const fetchSpy = vi.fn(async () => ok({ places: RAW_SOUTH }));
+    vi.stubGlobal('fetch', fetchSpy);
+    await searchPlannerPlaces({ query: 'south', category: 'Beach' }, 'key');
+    await searchPlannerPlaces({ query: 'south', category: 'Beach' }, 'key'); // identical → cache hit
+    await searchPlannerPlaces({ query: 'south', category: 'Beach', region: 'South' }, 'key'); // region variant → same cache
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });
 
