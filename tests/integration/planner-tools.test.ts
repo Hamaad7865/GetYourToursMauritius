@@ -1,63 +1,83 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createTestDb, type TestDb } from '../db/pglite';
-import { pgliteRpc } from '../db/rpc';
-import { StubPaymentProvider } from '@/lib/payments/stub';
-import { createStubAiProvider } from '@/lib/ai/stub';
-import type { ServiceContext } from '@/lib/services/context';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { resolveItinerary, searchPlannerPlaces } from '@/lib/planner/tools';
+import type { PlannerPlace } from '@/lib/validation/planner';
 
-describe('planner agent tools', () => {
-  let db: TestDb;
-  let ctx: ServiceContext;
+/**
+ * The co-pilot tools over LIVE Google Places, with a mocked fetch (CI-safe — no real API calls). The
+ * pure mappers are covered in google-places.test.ts; here we pin the tool behaviour: key handling,
+ * region filtering, the discovered-cache resolution path, Place Details fallback, and the warning.
+ */
+const RAW_SOUTH = [
+  { id: 'p-lemorne', displayName: { text: 'Le Morne Beach' }, location: { latitude: -20.45, longitude: 57.31 }, types: ['beach'] },
+  { id: 'p-cham', displayName: { text: 'Chamarel Waterfall' }, location: { latitude: -20.44, longitude: 57.38 }, types: [] },
+];
+const place = (id: string, lat: number, lng: number): PlannerPlace => ({
+  id, name: id, category: 'Beach', region: 'South', lat, lng, durationMin: 60, closesAt: null, blurb: null, imageUrl: null,
+});
+const ok = (body: unknown) => ({ ok: true, json: async () => body }) as unknown as Response;
 
-  beforeAll(async () => {
-    db = await createTestDb();
-    await db.asOwner();
-    ctx = { db: pgliteRpc(db.pg), payments: new StubPaymentProvider(), ai: createStubAiProvider(), now: () => new Date() };
+afterEach(() => vi.unstubAllGlobals());
+
+describe('searchPlannerPlaces', () => {
+  it('returns [] without an API key (no fetch)', async () => {
+    const f = vi.fn();
+    vi.stubGlobal('fetch', f);
+    expect(await searchPlannerPlaces({ query: 'beach' }, null)).toEqual([]);
+    expect(f).not.toHaveBeenCalled();
   });
-  afterAll(async () => {
-    await db.close();
+
+  it('maps live results and region-filters', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ok({ places: RAW_SOUTH })));
+    const all = await searchPlannerPlaces({ query: 'south' }, 'key');
+    expect(all.map((p) => p.id)).toEqual(['p-lemorne', 'p-cham']);
+    expect(all.every((p) => p.region === 'South')).toBe(true);
+    const north = await searchPlannerPlaces({ region: 'North' }, 'key');
+    expect(north).toEqual([]); // both raw places are South
   });
+});
 
-  it('searches curated places by region, category and free text', async () => {
-    const south = await searchPlannerPlaces(ctx, { region: 'South' });
-    expect(south.length).toBeGreaterThan(0);
-    expect(south.every((p) => p.region === 'South')).toBe(true);
-
-    const beaches = await searchPlannerPlaces(ctx, { category: 'Beach' });
-    expect(beaches.length).toBeGreaterThan(0);
-    expect(beaches.every((p) => p.category === 'Beach')).toBe(true);
-
-    const waterfalls = await searchPlannerPlaces(ctx, { query: 'waterfall' });
-    expect(waterfalls.some((p) => p.id === 'chamarel-waterfall')).toBe(true);
-  });
-
-  it('resolves an ordered itinerary with a drive-time route (estimate without a maps key)', async () => {
-    const r = await resolveItinerary(ctx, ['chamarel-waterfall', 'le-morne-beach', 'grand-baie-beach']);
-    expect(r.places.map((p) => p.id)).toEqual(['chamarel-waterfall', 'le-morne-beach', 'grand-baie-beach']);
+describe('resolveItinerary', () => {
+  it('resolves cached ids with a haversine route (no key → no fetch)', async () => {
+    const f = vi.fn();
+    vi.stubGlobal('fetch', f);
+    const discovered = new Map([
+      ['a', place('a', -20.45, 57.31)],
+      ['b', place('b', -20.44, 57.38)],
+    ]);
+    const r = await resolveItinerary(['a', 'b'], discovered, null);
+    expect(r.places.map((p) => p.id)).toEqual(['a', 'b']);
     expect(r.unknownIds).toEqual([]);
-    expect(r.route.legs).toHaveLength(2);
+    expect(r.route.legs).toHaveLength(1);
     expect(r.route.estimate).toBe(true);
-    expect(r.route.totalMinutes).toBeGreaterThan(0);
-    expect(r.warning).toBeNull();
+    expect(f).not.toHaveBeenCalled();
   });
 
-  it('reports unknown ids instead of dropping them silently', async () => {
-    const r = await resolveItinerary(ctx, ['chamarel-waterfall', 'not-a-real-place']);
-    expect(r.unknownIds).toEqual(['not-a-real-place']);
-    expect(r.places.map((p) => p.id)).toEqual(['chamarel-waterfall']);
+  it('fetches Place Details for uncached ids and reports unknowns', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const u = String(url);
+        if (u.includes('distancematrix')) return ok({ status: 'ZERO_RESULTS' }); // → haversine fallback
+        if (u.includes('/v1/places/') && u.includes('p-cham'))
+          return ok({ id: 'p-cham', displayName: { text: 'Chamarel Waterfall' }, location: { latitude: -20.44, longitude: 57.38 }, types: [] });
+        return { ok: false, json: async () => ({}) } as unknown as Response;
+      }),
+    );
+    const r = await resolveItinerary(['p-cham', 'missing'], new Map(), 'key');
+    expect(r.places.map((p) => p.id)).toEqual(['p-cham']);
+    expect(r.unknownIds).toEqual(['missing']);
   });
 
   it('warns past five stops', async () => {
-    const six = [
-      'chamarel-waterfall',
-      'le-morne-beach',
-      'grand-baie-beach',
-      'belle-mare-beach',
-      'ile-aux-cerfs',
-      'trou-aux-cerfs',
-    ];
-    const r = await resolveItinerary(ctx, six);
+    vi.stubGlobal('fetch', vi.fn());
+    const discovered = new Map<string, PlannerPlace>();
+    const ids: string[] = [];
+    for (let i = 0; i < 6; i += 1) {
+      const id = `s${i}`;
+      ids.push(id);
+      discovered.set(id, place(id, -20.4 - i * 0.01, 57.3 + i * 0.01));
+    }
+    const r = await resolveItinerary(ids, discovered, null);
     expect(r.places).toHaveLength(6);
     expect(r.warning).toMatch(/more than 5 places/i);
   });

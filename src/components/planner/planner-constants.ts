@@ -1,3 +1,5 @@
+import type { PlannerPlace } from '@/lib/validation/planner';
+
 export interface LngLat {
   lat: number;
   lng: number;
@@ -17,31 +19,54 @@ export const PICKUPS: Pickup[] = [
   { id: 'leMorne', name: 'Le Morne hotels', lat: -20.45, lng: 57.323 },
 ];
 
-/** Ready-made road trips. `stops` are REAL planner_places ids (resolved at runtime). */
+/** Ready-made road trips. Self-contained curated places (so presets don't depend on live search). */
 export interface Preset {
   id: string;
   name: string;
-  stops: string[];
   grad: string;
+  places: PlannerPlace[];
 }
+const pp = (
+  id: string,
+  name: string,
+  category: string,
+  region: string,
+  lat: number,
+  lng: number,
+  durationMin: number,
+  closesAt: string | null = null,
+): PlannerPlace => ({ id, name, category, region, lat, lng, durationMin, closesAt, blurb: null, imageUrl: null });
+
 export const PRESETS: Preset[] = [
   {
     id: 'south',
     name: 'South in a Day',
-    stops: ['le-morne-beach', 'chamarel-waterfall', 'chamarel-seven-coloured-earth', 'maconde-viewpoint'],
     grad: 'linear-gradient(135deg,#0E8C92,#0B5C63)',
+    places: [
+      pp('preset-le-morne', 'Le Morne Beach', 'Beach', 'South', -20.456, 57.312, 90),
+      pp('preset-chamarel-waterfall', 'Chamarel Waterfall', 'Waterfall', 'South', -20.442, 57.385, 45, '17:00'),
+      pp('preset-seven-earths', 'Seven Coloured Earths', 'Nature', 'South', -20.445, 57.374, 40, '17:00'),
+      pp('preset-gris-gris', 'Gris Gris', 'Viewpoint', 'South', -20.511, 57.525, 30),
+    ],
   },
   {
     id: 'north',
     name: 'North Highlights',
-    stops: ['cap-malheureux-church', 'grand-baie-beach', 'pamplemousses-botanical-garden'],
     grad: 'linear-gradient(135deg,#13A0A6,#0E8C92)',
+    places: [
+      pp('preset-cap-malheureux', 'Cap Malheureux', 'Culture', 'North', -19.984, 57.615, 30),
+      pp('preset-grand-baie', 'Grand Baie', 'Beach', 'North', -20.006, 57.58, 75),
+      pp('preset-pamplemousses', 'Pamplemousses Garden', 'Garden', 'North', -20.104, 57.579, 70, '17:30'),
+    ],
   },
   {
     id: 'east',
     name: 'East & Island Escape',
-    stops: ['belle-mare-beach', 'ile-aux-cerfs'],
     grad: 'linear-gradient(135deg,#F5A623,#C98A12)',
+    places: [
+      pp('preset-belle-mare', 'Belle Mare Beach', 'Beach', 'East', -20.194, 57.769, 90),
+      pp('preset-ile-aux-cerfs', 'Île aux Cerfs', 'Island', 'East', -20.266, 57.792, 180),
+    ],
   },
 ];
 

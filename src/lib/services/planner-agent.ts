@@ -5,6 +5,7 @@ import type { ServiceContext } from './context';
 import { getServerEnv } from '@/lib/config/env';
 import { resolveItinerary, searchPlannerPlaces, type ResolvedItinerary } from '@/lib/planner/tools';
 import type { PlannedRoute } from '@/lib/maps/route-planning';
+import type { PlannerPlace } from '@/lib/validation/planner';
 
 /**
  * The AI Road Trip Planner co-pilot. A Gemini tool-calling agent that plans a day GROUNDED in the
@@ -42,8 +43,9 @@ export interface PlannerTurnInput {
 }
 export interface PlannerTurnResult {
   reply: string;
-  /** The committed itinerary's place ids (empty if the model didn't set one this turn). */
-  placeIds: string[];
+  /** The committed itinerary's full places (empty if the model didn't set one this turn). The client
+   *  adds these to its catalogue, so live Google places render on the map without a re-fetch. */
+  places: PlannerPlace[];
   /** Server-computed route for the committed itinerary, or null. */
   route: PlannedRoute | null;
   warning: string | null;
@@ -55,7 +57,7 @@ export async function runPlannerTurn(ctx: ServiceContext, input: PlannerTurnInpu
     return {
       reply:
         "I can't reach the AI co-pilot right now — but you can still browse the places and build your day on the map, and I'll price it instantly.",
-      placeIds: [],
+      places: [],
       route: null,
       warning: null,
     };
@@ -63,17 +65,20 @@ export async function runPlannerTurn(ctx: ServiceContext, input: PlannerTurnInpu
 
   const apiKey = mapsKey();
   let committed: ResolvedItinerary | null = null;
+  // Places returned by search_places this turn, reused by set_itinerary so committing doesn't re-fetch.
+  const discovered = new Map<string, PlannerPlace>();
 
   const tools = {
     search_places: tool({
-      description: 'Search curated Mauritius road-trip places by free text, category and/or region.',
+      description: 'Search real Mauritius places (live Google Places) by free text, category and/or region.',
       parameters: z.object({
         query: z.string().optional(),
         category: z.string().optional().describe('Beach|Waterfall|Viewpoint|Nature|Culture|Garden|Island|Market|Landmark|Food'),
         region: z.string().optional().describe('North|South|East|West|Central'),
       }),
       execute: async (args) => {
-        const places = await searchPlannerPlaces(ctx, args);
+        const places = await searchPlannerPlaces(args, apiKey);
+        for (const p of places) discovered.set(p.id, p);
         return places.slice(0, 12).map((p) => ({
           id: p.id,
           name: p.name,
@@ -90,7 +95,7 @@ export async function runPlannerTurn(ctx: ServiceContext, input: PlannerTurnInpu
         'Commit the chosen day as an ordered list of place ids. Returns the real total drive time, any unknown ids, and a warning if there are too many stops.',
       parameters: z.object({ placeIds: z.array(z.string()).min(1).max(12) }),
       execute: async ({ placeIds }) => {
-        const resolved = await resolveItinerary(ctx, placeIds, apiKey);
+        const resolved = await resolveItinerary(placeIds, discovered, apiKey);
         committed = resolved;
         return {
           stops: resolved.places.map((p) => p.name),
@@ -114,7 +119,7 @@ export async function runPlannerTurn(ctx: ServiceContext, input: PlannerTurnInpu
   const itinerary = committed as ResolvedItinerary | null;
   return {
     reply: result.text,
-    placeIds: itinerary ? itinerary.places.map((p) => p.id) : [],
+    places: itinerary ? itinerary.places : [],
     route: itinerary ? itinerary.route : null,
     warning: itinerary ? itinerary.warning : null,
   };

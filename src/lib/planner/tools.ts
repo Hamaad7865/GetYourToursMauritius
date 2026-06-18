@@ -1,40 +1,26 @@
-import type { ServiceContext } from '@/lib/services/context';
-import { listPlannerPlaces } from '@/lib/services/planner';
+import { searchGooglePlaces, placeDetailsByIds, type PlacesSearchArgs } from '@/lib/maps/google-places';
 import { planRoute, type PlannedRoute } from '@/lib/maps/route-planning';
 import { placeCountWarning } from '@/lib/planner/pricing';
 import type { PlannerPlace } from '@/lib/validation/planner';
 
 /**
- * The grounded operations the AI co-pilot performs. Pure-ish domain logic over the curated places +
- * the drive-time layer — deterministic and unit-tested. The Gemini agent (planner-agent) wraps these
- * as tool calls; keeping the logic here means facts (places, routes) come from the DB/Google, never
- * the model.
+ * The grounded operations the AI co-pilot performs — now over LIVE Google Places (not a seed). The
+ * Gemini agent wraps these as tool calls; keeping the logic here means facts (places, routes) come
+ * from Google, never the model. Places discovered during search are cached by the caller so committing
+ * an itinerary doesn't re-fetch (and avoids extra Place Details billing).
  */
-export interface SearchPlacesArgs {
-  query?: string;
-  category?: string;
-  region?: string;
-}
+export type SearchPlacesArgs = PlacesSearchArgs;
 
-/** Search the curated places by free text, category and/or region. */
-export async function searchPlannerPlaces(ctx: ServiceContext, args: SearchPlacesArgs): Promise<PlannerPlace[]> {
-  const all = await listPlannerPlaces(ctx);
-  const q = args.query?.trim().toLowerCase();
-  return all.filter((p) => {
-    if (args.region && p.region !== args.region) return false;
-    if (args.category && p.category !== args.category) return false;
-    if (q) {
-      const hay = `${p.name} ${p.blurb ?? ''} ${p.category} ${p.region}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
+/** Search live Google Places (Mauritius) by free text, category and/or region. */
+export async function searchPlannerPlaces(args: SearchPlacesArgs, apiKey: string | null): Promise<PlannerPlace[]> {
+  if (!apiKey) return [];
+  return searchGooglePlaces(args, apiKey);
 }
 
 export interface ResolvedItinerary {
   /** The known places, in the requested order. */
   places: PlannerPlace[];
-  /** Ids the model asked for that aren't in the curated set (so it can correct itself). */
+  /** Ids the model asked for that couldn't be resolved (so it can self-correct). */
   unknownIds: string[];
   /** Real (or estimated) drive-time route through the places. */
   route: PlannedRoute;
@@ -43,19 +29,23 @@ export interface ResolvedItinerary {
 }
 
 /**
- * Resolve a list of place ids into an ordered itinerary with a drive-time route + place-count
- * warning. Unknown ids are reported (not silently dropped) so the agent can self-correct.
+ * Resolve place ids into an ordered itinerary with a drive-time route + place-count warning. Resolves
+ * from the `discovered` cache first (places already returned by search_places this turn), then Place
+ * Details for anything missing. Unknown ids are reported, not silently dropped.
  */
 export async function resolveItinerary(
-  ctx: ServiceContext,
   placeIds: string[],
-  apiKey?: string | null,
+  discovered: Map<string, PlannerPlace>,
+  apiKey: string | null,
 ): Promise<ResolvedItinerary> {
-  const byId = new Map((await listPlannerPlaces(ctx)).map((p) => [p.id, p]));
+  const missing = placeIds.filter((id) => !discovered.has(id));
+  if (missing.length && apiKey) {
+    for (const p of await placeDetailsByIds(missing, apiKey)) discovered.set(p.id, p);
+  }
   const places: PlannerPlace[] = [];
   const unknownIds: string[] = [];
   for (const id of placeIds) {
-    const place = byId.get(id);
+    const place = discovered.get(id);
     if (place) places.push(place);
     else unknownIds.push(id);
   }

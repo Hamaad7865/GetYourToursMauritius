@@ -28,7 +28,7 @@ describe('planner agent (no-model fallback)', () => {
     const result = await runPlannerTurn(ctx, {
       messages: [{ role: 'user', content: 'Plan a relaxed day in the south' }],
     });
-    expect(result.placeIds).toEqual([]);
+    expect(result.places).toEqual([]);
     expect(result.route).toBeNull();
     expect(result.warning).toBeNull();
     expect(typeof result.reply).toBe('string');

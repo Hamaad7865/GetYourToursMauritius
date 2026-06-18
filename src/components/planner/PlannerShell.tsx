@@ -16,7 +16,7 @@ import { FaqSection } from './FaqSection';
 import { PICKUPS, PRESETS, fmtDur } from './planner-constants';
 import { computePlannerRoute } from '@/lib/planner/route';
 import { plannerQuote, placeCountWarning, type PlannerQuote } from '@/lib/planner/pricing';
-import { parseStopsParam, stopsToParam } from '@/lib/planner/share';
+import { stopsToParam } from '@/lib/planner/share';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { ChatMsg, Boost } from './types';
@@ -25,16 +25,18 @@ const CUSTOM_SLUG = 'custom-road-trip';
 const CUSTOM_TITLE = 'Custom Road Trip';
 
 /**
- * AI Road Trip Planner — the full design-handoff experience wired to real data. `stopIds` + `pickup`
- * are the source of truth; route, drive times, price and the share URL derive from them. The co-pilot
- * is the real grounded agent; the map is the stylized SVG island; "Get my quote" runs the live
- * availability → hold → /checkout booking. Marketing sections (presets/features/trust/FAQ) frame it.
+ * AI Road Trip Planner — the design experience wired to LIVE Google Places. Places are no longer
+ * seeded: the drawer + co-pilot discover them from Google, and every place we encounter (browsed,
+ * AI-chosen, preset, deep-linked) is kept in a `catalog` so the map/itinerary can resolve any stop.
+ * `stopIds` + `pickup` are the source of truth; route, drive times, price + the share URL derive from
+ * them. The co-pilot is the real grounded agent; the map is the real Google map with a red car;
+ * "Get my quote" runs the live availability → hold → /checkout booking.
  */
 export function PlannerShell() {
   const router = useRouter();
-  const { places, pricing, error } = usePlannerData();
-  const byId = useMemo(() => new Map(places.map((p) => [p.id, p])), [places]);
+  const { pricing } = usePlannerData();
 
+  const [catalog, setCatalog] = useState<Map<string, PlannerPlace>>(new Map());
   const [heroValue, setHeroValue] = useState('');
   const [pickup, setPickup] = useState('belleMare');
   const [stopIds, setStopIds] = useState<string[]>([]);
@@ -54,18 +56,23 @@ export function PlannerShell() {
   const [bannerTour, setBannerTour] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileTab, setMobileTab] = useState<'chat' | 'day' | 'map'>('chat');
-  // Kept as write-only signals from the stop ops below; the real Google map (RouteMap) redraws on
-  // `stops` changes itself, so these values aren't read anywhere.
-  const [, setLastAdded] = useState<string | null>(null);
-  const [, setRouteKey] = useState(0);
   const [shared, setShared] = useState(false);
   const initRef = useRef(false);
+
+  const addToCatalog = useCallback((ps: PlannerPlace[]) => {
+    if (!ps.length) return;
+    setCatalog((prev) => {
+      const next = new Map(prev);
+      for (const p of ps) next.set(p.id, p);
+      return next;
+    });
+  }, []);
 
   // ── derived ──
   const pickupObj = useMemo(() => PICKUPS.find((p) => p.id === pickup) ?? PICKUPS[0]!, [pickup]);
   const stops = useMemo(
-    () => stopIds.map((id) => byId.get(id)).filter((p): p is PlannerPlace => Boolean(p)),
-    [stopIds, byId],
+    () => stopIds.map((id) => catalog.get(id)).filter((p): p is PlannerPlace => Boolean(p)),
+    [stopIds, catalog],
   );
   const stopIndex = useMemo(() => new Map(stops.map((p, i) => [p.id, i])), [stops]);
   const route = useMemo(
@@ -81,29 +88,26 @@ export function PlannerShell() {
     quoteError = `Groups over ${pricing.maxParty} — contact us`;
   }
 
-  const presetCards = useMemo<PresetCard[]>(() => {
-    return PRESETS.map((p) => {
-      const ids = p.stops.filter((s) => byId.has(s));
-      if (!ids.length) return null;
-      const r = computePlannerRoute(
-        pickupObj,
-        ids.map((id) => {
-          const x = byId.get(id)!;
-          return { lat: x.lat, lng: x.lng, durationMin: x.durationMin };
-        }),
-      );
-      return {
-        id: p.id,
-        name: p.name,
-        grad: p.grad,
-        stopCount: ids.length,
-        hoursLabel: `~${Math.max(1, Math.round((r.totalMinutes + r.visitMinutes) / 60))}h`,
-        fromEur: pricing.standardEur,
-      };
-    }).filter((x): x is PresetCard => x !== null);
-  }, [byId, pickupObj, pricing.standardEur]);
+  const presetCards = useMemo<PresetCard[]>(
+    () =>
+      PRESETS.map((p) => {
+        const r = computePlannerRoute(
+          pickupObj,
+          p.places.map((x) => ({ lat: x.lat, lng: x.lng, durationMin: x.durationMin })),
+        );
+        return {
+          id: p.id,
+          name: p.name,
+          grad: p.grad,
+          stopCount: p.places.length,
+          hoursLabel: `~${Math.max(1, Math.round((r.totalMinutes + r.visitMinutes) / 60))}h`,
+          fromEur: pricing.standardEur,
+        };
+      }),
+    [pickupObj, pricing.standardEur],
+  );
 
-  // ── opening-hours boost: a stop that closes early sitting too late in the order ──
+  // ── opening-hours boost ──
   useEffect(() => {
     if (stops.length < 3) {
       setBoost(null);
@@ -118,7 +122,7 @@ export function PlannerShell() {
     setBoost(found);
   }, [stops]);
 
-  // ── mount: responsive + dates + deep-link ──
+  // ── mount: responsive + dates ──
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 920px)');
     const upd = () => setIsMobile(mq.matches);
@@ -130,28 +134,39 @@ export function PlannerShell() {
     return () => mq.removeEventListener('change', upd);
   }, []);
 
+  // ── mount: deep-link (?stops=placeId,placeId&tour=Name) resolved via Place Details ──
   useEffect(() => {
-    if (initRef.current || places.length === 0) return;
+    if (initRef.current) return;
     initRef.current = true;
     const params = new URLSearchParams(window.location.search);
-    const ids = parseStopsParam(params.get('stops'), places.map((p) => p.id));
+    const raw = (params.get('stops') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
     const tour = params.get('tour');
-    if (ids.length) {
-      setStopIds(ids);
-      setHasBuilt(true);
-      setRouteKey((k) => k + 1);
-      if (tour) {
-        setBannerTour(tour.slice(0, 80));
-        setChat([
-          {
-            role: 'assistant',
-            kind: 'text',
-            text: `You're customizing the ${tour.slice(0, 80)} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.`,
-          },
-        ]);
-      }
+    if (tour) setBannerTour(tour.slice(0, 80));
+    if (raw.length) {
+      (async () => {
+        try {
+          const res = await fetch(`/api/planner/places?ids=${encodeURIComponent(raw.join(','))}`).then((r) => r.json());
+          const places: PlannerPlace[] = res.ok ? res.data : [];
+          if (places.length) {
+            addToCatalog(places);
+            setStopIds(places.map((p) => p.id));
+            setHasBuilt(true);
+            if (tour) {
+              setChat([
+                {
+                  role: 'assistant',
+                  kind: 'text',
+                  text: `You're customizing the ${tour.slice(0, 80)} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.`,
+                },
+              ]);
+            }
+          }
+        } catch {
+          /* deep-link resolution failed — start empty */
+        }
+      })();
     }
-  }, [places]);
+  }, [addToCatalog]);
 
   // ── shareable URL ──
   useEffect(() => {
@@ -164,21 +179,18 @@ export function PlannerShell() {
   }, [stopIds]);
 
   // ── stop ops ──
-  const addStop = useCallback(
-    (id: string) =>
-      setStopIds((prev) => {
-        if (prev.includes(id)) return prev;
-        setLastAdded(id);
-        setHasBuilt(true);
-        setRouteKey((k) => k + 1);
-        return [...prev, id];
-      }),
-    [],
-  );
-  const removeStop = useCallback((id: string) => {
-    setStopIds((prev) => prev.filter((x) => x !== id));
-    setRouteKey((k) => k + 1);
+  const addStopId = useCallback((id: string) => {
+    setStopIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setHasBuilt(true);
   }, []);
+  const addPlace = useCallback(
+    (place: PlannerPlace) => {
+      addToCatalog([place]);
+      addStopId(place.id);
+    },
+    [addToCatalog, addStopId],
+  );
+  const removeStop = useCallback((id: string) => setStopIds((prev) => prev.filter((x) => x !== id)), []);
   const moveStop = useCallback((from: number, to: number) => {
     setStopIds((prev) => {
       const a = [...prev];
@@ -187,7 +199,6 @@ export function PlannerShell() {
       a.splice(to, 0, m);
       return a;
     });
-    setRouteKey((k) => k + 1);
   }, []);
   const clearTrip = useCallback(() => {
     setStopIds([]);
@@ -195,7 +206,6 @@ export function PlannerShell() {
     setBoost(null);
     setHasBuilt(false);
     setTyping(false);
-    setRouteKey((k) => k + 1);
   }, []);
 
   function applyBoost() {
@@ -208,12 +218,11 @@ export function PlannerShell() {
       a.splice(1, 0, m!);
       return a;
     });
-    setRouteKey((k) => k + 1);
     setChat((c) => [...c, { role: 'assistant', kind: 'text', text: `Done — I moved ${boost.place} earlier so you arrive well before it closes.` }]);
     setBoost(null);
   }
 
-  // ── chat (real grounded agent) ──
+  // ── chat (real grounded agent over live Google Places) ──
   async function sendChat(text: string) {
     const t = text.trim();
     if (!t) return;
@@ -230,13 +239,13 @@ export function PlannerShell() {
       setTyping(false);
       if (res.ok) {
         const reply: string = res.data.reply;
-        const ids: string[] = (Array.isArray(res.data.placeIds) ? res.data.placeIds : []).filter((id: string) => byId.has(id));
+        const places: PlannerPlace[] = Array.isArray(res.data.places) ? res.data.places : [];
         const warning: string | null = res.data.warning ?? null;
-        if (ids.length) {
+        if (places.length) {
+          addToCatalog(places);
+          const ids = places.map((p) => p.id);
           const newOnes = ids.filter((id) => !stopIds.includes(id));
           setStopIds(ids);
-          setLastAdded(ids[ids.length - 1] ?? null);
-          setRouteKey((k) => k + 1);
           setChat((c) => [
             ...c,
             { role: 'assistant', kind: 'text', text: reply },
@@ -272,16 +281,13 @@ export function PlannerShell() {
   function openPreset(id: string) {
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
-    const ids = p.stops.filter((s) => byId.has(s));
-    if (!ids.length) return;
-    setStopIds(ids);
+    addToCatalog(p.places);
+    setStopIds(p.places.map((x) => x.id));
     setHasBuilt(true);
     setBannerTour(null);
     setDrawerOpen(false);
-    setLastAdded(ids[ids.length - 1] ?? null);
-    setRouteKey((k) => k + 1);
-    setChat([{ role: 'assistant', kind: 'text', text: `Loaded ${p.name} — ${ids.length} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.` }]);
     setMobileTab('day');
+    setChat([{ role: 'assistant', kind: 'text', text: `Loaded ${p.name} — ${p.places.length} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.` }]);
     scrollToPlanner();
   }
 
@@ -355,8 +361,7 @@ export function PlannerShell() {
     }
   }
 
-  // Real Google map: drive the route through the stops (numbered 1..n, matching the itinerary). With
-  // no stops yet, show the pick-up base on the map so a real map is always visible.
+  // Real Google map: drive the route through the stops (numbered 1..n). With no stops, show the base.
   const mapStops =
     stops.length > 0
       ? stops.map((s) => ({ title: s.name, lat: s.lat, lng: s.lng }))
@@ -367,10 +372,7 @@ export function PlannerShell() {
     <ItineraryPanel
       stops={stops}
       pickupId={pickup}
-      onPickup={(id) => {
-        setPickup(id);
-        setRouteKey((k) => k + 1);
-      }}
+      onPickup={setPickup}
       route={route}
       quote={quote}
       onAddPlaces={() => setDrawerOpen(true)}
@@ -388,7 +390,7 @@ export function PlannerShell() {
       boost={boost}
       hasBuilt={hasBuilt}
       stops={stops}
-      placesById={byId}
+      placesById={catalog}
       stopIndex={stopIndex}
       route={route}
       quote={quote}
@@ -398,13 +400,11 @@ export function PlannerShell() {
       onClear={clearTrip}
       onBrowse={() => setDrawerOpen(true)}
       onQuote={() => setQuoteOpen(true)}
-      onAddPlace={addStop}
+      onAddPlace={addStopId}
     />
   );
   const map = <RouteMap stops={mapStops} animate={stops.length > 0} carColor="#DC2626" className="h-full w-full" />;
-  const drawer = (
-    <PlacesDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} places={places} selectedIds={stopIds} onAdd={addStop} />
-  );
+  const drawer = <PlacesDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} selectedIds={stopIds} onAdd={addPlace} />;
 
   return (
     <main className="min-h-screen bg-white">
@@ -429,14 +429,6 @@ export function PlannerShell() {
                 </svg>
               </button>
             </div>
-          </div>
-        )}
-
-        {error && (
-          <div className="mx-auto max-w-shell px-[22px] pt-3.5">
-            <p className="rounded-[14px] border border-[#F3DCA6] bg-[#FFF8EC] px-[15px] py-2.5 text-[13px] text-[#7A5A12]">
-              Live place data isn&apos;t loading right now — the co-pilot still works, and you can try again shortly.
-            </p>
           </div>
         )}
 
