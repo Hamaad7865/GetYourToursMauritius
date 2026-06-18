@@ -11,11 +11,14 @@ export function InfoPage({
   title,
   intro,
   eyebrow,
+  meta,
   children,
 }: {
   title: string;
   intro: string;
   eyebrow?: string;
+  /** Optional small print under the intro (e.g. "Last updated 18 July 2026"). */
+  meta?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -35,6 +38,7 @@ export function InfoPage({
             <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/85 sm:text-base">
               {intro}
             </p>
+            {meta && <p className="mt-5 text-[13px] font-medium text-white/65">{meta}</p>}
           </div>
         </section>
         <div className="mx-auto max-w-shell px-6 py-12 sm:py-16">{children}</div>

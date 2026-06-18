@@ -2,6 +2,14 @@
 export const SITE = {
   name: 'GetYourToursMauritius',
   operator: 'Belle Mare Tours',
+  /** Registered legal entity behind the platform (used on legal pages + the footer). */
+  legalName: 'Belle Mare Tours Ltd',
+  /** Mauritius Business Registration Number. */
+  brn: 'C09091906',
+  /** VAT registration number. */
+  vat: '20529965',
+  /** Support / data-protection contact. TODO: confirm the real mailbox once the domain is live. */
+  email: 'hello@getyourtoursmauritius.com',
   alternateName: 'GetYourToursMauritius',
   description:
     "The official booking platform of Belle Mare Tours. Catamaran cruises, dolphin swims, sea walks and island days on Mauritius's east coast — booked direct, no reseller markup.",
