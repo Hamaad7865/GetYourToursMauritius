@@ -12,18 +12,16 @@ import {
   type BookingStatus,
   type PaymentState,
 } from '@/lib/admin/bookings';
-import { IconCalendar, IconUsers, IconX } from '@/components/ui/icons';
+import { avatar } from '@/lib/admin/dashboard';
+import { IconCalendar, IconUsers, IconX, IconSearch } from '@/components/ui/icons';
 import { childSeatsCost } from '@/lib/services/pricing';
 
 // Departures + timestamps are shown in Mauritius local time, so the calendar day is
 // deterministic regardless of the staff member's own browser timezone.
 const TZ = 'Indian/Mauritius';
-const dateFmt = new Intl.DateTimeFormat('en-GB', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  timeZone: TZ,
-});
+const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: TZ });
+const dateShortFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', timeZone: TZ });
+const timeFmt = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
 const dateTimeFmt = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
   month: 'short',
@@ -45,10 +43,79 @@ function fmtDateTime(iso: string): string {
 function eur(n: number): string {
   return `€${n.toFixed(2)}`;
 }
+function euroInt(n: number): string {
+  return `€${Math.round(n).toLocaleString('en-US')}`;
+}
 function titleCase(s: string): string {
   return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
+/** YYYY-MM-DD in Mauritius local time. */
+function mauDay(iso: string | Date): string {
+  return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
+}
+function addDays(day: string, n: number): string {
+  const d = new Date(`${day}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
 
+/** Pastel pill (matches the back-office mockup): dot + label. */
+function statusPill(status: BookingStatus): { label: string; cls: string; dot: string } {
+  switch (status) {
+    case 'confirmed':
+      return { label: 'Confirmed', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
+    case 'completed':
+      return { label: 'Completed', cls: 'bg-ink/[0.06] text-ink', dot: 'bg-ink/40' };
+    case 'cancelled':
+    case 'expired':
+    case 'failed':
+      return { label: titleCase(status), cls: 'bg-red-50 text-red-700', dot: 'bg-red-500' };
+    case 'refunded':
+    case 'refund_pending':
+      return { label: titleCase(status), cls: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
+    default:
+      return { label: titleCase(status), cls: 'bg-teal/10 text-teal-dark', dot: 'bg-teal' };
+  }
+}
+function paymentPill(state: PaymentState): { label: string; cls: string; dot: string } {
+  switch (state) {
+    case 'paid':
+      return { label: 'Paid', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
+    case 'partially_refunded':
+    case 'refunded':
+      return { label: titleCase(state), cls: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
+    case 'failed':
+      return { label: 'Failed', cls: 'bg-red-50 text-red-700', dot: 'bg-red-500' };
+    default:
+      return { label: 'Pending', cls: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' };
+  }
+}
+
+function Pill({ p }: { p: { label: string; cls: string; dot: string } }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold ${p.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
+      {p.label}
+    </span>
+  );
+}
+
+function Avatar({ name }: { name: string }) {
+  const { initials, hue } = avatar(name);
+  return (
+    <span
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[12px] font-bold text-white"
+      style={{ background: `hsl(${hue} 42% 46%)` }}
+    >
+      {initials}
+    </span>
+  );
+}
+
+function Badge({ className, children }: { className: string; children: React.ReactNode }) {
+  return <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${className}`}>{children}</span>;
+}
+// Kept for the drawer's compact badges.
 function statusClass(status: BookingStatus): string {
   switch (status) {
     case 'confirmed':
@@ -58,7 +125,6 @@ function statusClass(status: BookingStatus): string {
     case 'cancelled':
     case 'expired':
     case 'failed':
-      return 'bg-coral/10 text-coral';
     case 'refunded':
     case 'refund_pending':
       return 'bg-coral/10 text-coral';
@@ -79,20 +145,51 @@ function paymentClass(state: PaymentState): string {
   }
 }
 
-function Badge({ className, children }: { className: string; children: React.ReactNode }) {
-  return (
-    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${className}`}>{children}</span>
-  );
-}
-
 const STATUS_FILTERS: Array<{ value: 'all' | BookingStatus; label: string }> = [
   { value: 'all', label: 'All' },
   { value: 'payment_pending', label: 'Awaiting payment' },
   { value: 'confirmed', label: 'Confirmed' },
   { value: 'completed', label: 'Completed' },
   { value: 'cancelled', label: 'Cancelled' },
+];
+const PAY_FILTERS: Array<{ value: 'all' | PaymentState; label: string }> = [
+  { value: 'all', label: 'All payments' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'pending', label: 'Pending' },
   { value: 'refunded', label: 'Refunded' },
 ];
+const DATE_FILTERS = [
+  { value: 'all', label: 'All dates' },
+  { value: 'today', label: 'Today' },
+  { value: 'next7', label: 'Next 7 days' },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'past', label: 'Past' },
+] as const;
+type DateFilter = (typeof DATE_FILTERS)[number]['value'];
+type SortKey = 'ref' | 'customer' | 'date' | 'total';
+
+const SELECT_CLS =
+  'rounded-xl border border-[#E2E7EA] bg-white px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-teal cursor-pointer';
+
+function csvCell(v: string | number): string {
+  const s = String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+function exportCsv(rows: BookingRow[]): void {
+  const head = ['Ref', 'Customer', 'Email', 'Tour', 'Trip date', 'Guests', 'Total EUR', 'Payment', 'Status', 'Source'];
+  const lines = rows.map((b) =>
+    [b.ref, b.customerName, b.customerEmail, b.activityTitle, fmtDate(b.startsAt), b.guests, b.totalEur.toFixed(2), b.paymentState, b.status, b.source]
+      .map(csvCell)
+      .join(','),
+  );
+  const csv = [head.join(','), ...lines].join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `bookings-${mauDay(new Date())}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export function AdminBookings() {
   const { profile } = useAuth();
@@ -101,7 +198,12 @@ export function AdminBookings() {
   const [rows, setRows] = useState<BookingRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<'all' | BookingStatus>('all');
+  const [pay, setPay] = useState<'all' | PaymentState>('all');
+  const [tour, setTour] = useState('all');
+  const [dateF, setDateF] = useState<DateFilter>('all');
   const [query, setQuery] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -118,23 +220,36 @@ export function AdminBookings() {
     if (isAdmin) void load();
   }, [isAdmin, load]);
 
-  const stats = useMemo(() => {
-    const all = rows ?? [];
-    // Net cash actually retained: Σ(paid − refunded) per booking. Pending bookings add 0,
-    // and a refund nets itself out — so this never overstates revenue.
-    const revenue = all.reduce((sum, b) => sum + b.netPaidEur, 0);
-    return {
-      total: all.length,
-      confirmed: all.filter((b) => b.status === 'confirmed' || b.status === 'completed').length,
-      pending: all.filter((b) => b.status === 'payment_pending').length,
-      revenue,
-    };
+  const tourOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const b of rows ?? []) set.add(b.activityTitle);
+    return [...set].sort();
   }, [rows]);
+
+  const filtersActive = status !== 'all' || pay !== 'all' || tour !== 'all' || dateF !== 'all' || query.trim() !== '';
+  const clearFilters = () => {
+    setStatus('all');
+    setPay('all');
+    setTour('all');
+    setDateF('all');
+    setQuery('');
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return (rows ?? []).filter((b) => {
+    const today = mauDay(new Date());
+    const list = (rows ?? []).filter((b) => {
       if (status !== 'all' && b.status !== status) return false;
+      if (pay !== 'all' && b.paymentState !== pay) return false;
+      if (tour !== 'all' && b.activityTitle !== tour) return false;
+      if (dateF !== 'all') {
+        const d = b.startsAt ? mauDay(b.startsAt) : null;
+        if (!d) return false;
+        if (dateF === 'today' && d !== today) return false;
+        if (dateF === 'next7' && !(d >= today && d <= addDays(today, 6))) return false;
+        if (dateF === 'upcoming' && !(d >= today)) return false;
+        if (dateF === 'past' && !(d < today)) return false;
+      }
       if (!q) return true;
       return (
         b.ref.toLowerCase().includes(q) ||
@@ -143,142 +258,213 @@ export function AdminBookings() {
         b.activityTitle.toLowerCase().includes(q)
       );
     });
-  }, [rows, status, query]);
+    const dir = sortDir === 'asc' ? 1 : -1;
+    return [...list].sort((a, b) => {
+      let av: string | number;
+      let bv: string | number;
+      if (sortKey === 'customer') [av, bv] = [a.customerName.toLowerCase(), b.customerName.toLowerCase()];
+      else if (sortKey === 'total') [av, bv] = [a.totalEur, b.totalEur];
+      else if (sortKey === 'ref') [av, bv] = [a.ref, b.ref];
+      else [av, bv] = [a.startsAt ?? a.createdAt, b.startsAt ?? b.createdAt];
+      return av < bv ? -dir : av > bv ? dir : 0;
+    });
+  }, [rows, status, pay, tour, dateF, query, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else {
+      setSortKey(key);
+      setSortDir(key === 'total' || key === 'date' ? 'desc' : 'asc');
+    }
+  };
+  const sortArrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '');
+
+  const TH = ({ label, sort }: { label: string; sort?: SortKey }) => (
+    <th
+      onClick={sort ? () => toggleSort(sort) : undefined}
+      className={`whitespace-nowrap px-3 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-ink-muted ${
+        sort ? 'cursor-pointer select-none' : ''
+      } ${label === 'Total' ? 'text-right' : ''}`}
+    >
+      <span className={`inline-flex items-center gap-1 ${label === 'Total' ? 'justify-end' : ''}`}>
+        {label}
+        {sort && <span className="text-teal">{sortArrow(sort)}</span>}
+      </span>
+    </th>
+  );
 
   return (
     <div>
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-ink">Bookings</h1>
-          <p className="mt-0.5 text-sm text-ink-muted">Every booking taken on the site, newest first.</p>
+          <h1 className="font-display text-[30px] font-medium tracking-tight text-ink">Bookings</h1>
+          <p className="mt-1.5 text-sm text-ink-muted">
+            {rows ? `${filtered.length} of ${rows.length} bookings` : 'Loading…'} · tap a row to open the details
+          </p>
         </div>
         <button
           type="button"
-          onClick={() => void load()}
-          className="rounded-full border border-ink/15 px-4 py-2 text-sm font-bold text-ink hover:border-teal hover:text-teal"
+          disabled={!rows || rows.length === 0}
+          onClick={() => exportCsv(filtered)}
+          className="rounded-xl border border-[#E2E7EA] bg-white px-4 py-2.5 text-[13.5px] font-semibold text-ink hover:border-teal hover:text-teal disabled:opacity-50"
         >
-          Refresh
+          Export CSV
         </button>
       </div>
 
-      {/* KPI strip */}
-      <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat label="Total bookings" value={String(stats.total)} />
-        <Stat label="Confirmed" value={String(stats.confirmed)} tone="teal" />
-        <Stat label="Awaiting payment" value={String(stats.pending)} tone="gold" />
-        <Stat label="Net paid" value={eur(stats.revenue)} tone="teal" />
-      </div>
-
-      {/* Filters */}
-      <div className="mt-5 flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap gap-1.5">
-          {STATUS_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              onClick={() => setStatus(f.value)}
-              className={`rounded-full px-3 py-1.5 text-[13px] font-bold ${
-                status === f.value ? 'bg-ink text-white' : 'bg-white text-ink-muted hover:text-ink'
-              } border border-ink/10`}
-            >
-              {f.label}
+      {/* Filter bar */}
+      <div className="mb-4 rounded-2xl border border-[#EAEEF0] bg-white p-3.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap gap-1 rounded-xl bg-[#F4F6F7] p-1">
+            {STATUS_FILTERS.map((f) => (
+              <button
+                key={f.value}
+                type="button"
+                onClick={() => setStatus(f.value)}
+                className={`whitespace-nowrap rounded-lg px-3.5 py-1.5 text-[13px] font-bold ${
+                  status === f.value ? 'bg-ink text-white shadow-sm' : 'text-ink-muted hover:text-ink'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="relative min-w-[180px] flex-1">
+            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted">
+              <IconSearch width={16} height={16} />
+            </span>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              aria-label="Search bookings"
+              placeholder="Search ref, name or email…"
+              className="w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] py-2.5 pl-9 pr-3 text-[13.5px] text-ink outline-none focus:border-teal focus:bg-white"
+            />
+          </div>
+          <select value={tour} onChange={(e) => setTour(e.target.value)} aria-label="Filter by tour" className={`${SELECT_CLS} max-w-[190px]`}>
+            <option value="all">All tours</option>
+            {tourOptions.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <select value={pay} onChange={(e) => setPay(e.target.value as 'all' | PaymentState)} aria-label="Filter by payment" className={SELECT_CLS}>
+            {PAY_FILTERS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          <select value={dateF} onChange={(e) => setDateF(e.target.value as DateFilter)} aria-label="Filter by date" className={SELECT_CLS}>
+            {DATE_FILTERS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+          {filtersActive && (
+            <button type="button" onClick={clearFilters} className="flex items-center gap-1.5 px-2 py-2 text-[13px] font-bold text-coral">
+              <IconX width={14} height={14} /> Clear
             </button>
-          ))}
+          )}
         </div>
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search ref, name, email or activity"
-          className="ml-auto w-full max-w-xs rounded-full border border-ink/15 px-4 py-2 text-sm outline-none focus:border-teal sm:w-72"
-        />
       </div>
 
       {error && (
-        <p role="alert" className="mt-4 rounded-lg bg-coral/10 px-4 py-3 text-sm font-medium text-coral">
+        <p role="alert" className="mb-4 rounded-lg bg-coral/10 px-4 py-3 text-sm font-medium text-coral">
           {error}
         </p>
       )}
 
-      <div className="mt-4 overflow-hidden rounded-2xl border border-ink/10 bg-white">
-        {rows === null ? (
-          <p className="p-6 text-sm text-ink-muted">Loading…</p>
-        ) : filtered.length === 0 ? (
-          <p className="p-6 text-sm text-ink-muted">
-            {rows.length === 0 ? 'No bookings yet.' : 'No bookings match your filters.'}
-          </p>
-        ) : (
-          <ul className="divide-y divide-ink/10">
-            {filtered.map((b) => (
-              <li key={b.id}>
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(b.id)}
-                  className="flex w-full items-center gap-3 px-5 py-3.5 text-left hover:bg-cream/60"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-[12.5px] font-bold text-teal">{b.ref}</span>
-                      <span className="truncate font-bold text-ink">{b.customerName}</span>
-                      <Badge className={statusClass(b.status)}>{titleCase(b.status)}</Badge>
-                      <Badge className={paymentClass(b.paymentState)}>{titleCase(b.paymentState)}</Badge>
-                    </div>
-                    <p className="mt-0.5 truncate text-[12.5px] text-ink-muted">
-                      {b.activityTitle} · {fmtDate(b.startsAt)} · {b.guests} {b.guests === 1 ? 'guest' : 'guests'}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-right">
-                    <span className="block font-extrabold text-ink">{eur(b.totalEur)}</span>
-                    <span className="block text-[11.5px] text-ink-muted">{fmtDate(b.createdAt)}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+      {/* Table */}
+      <div className="overflow-hidden rounded-2xl border border-[#EAEEF0] bg-white">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[860px] border-collapse">
+            <thead>
+              <tr className="bg-[#FAFBFC]">
+                <TH label="Ref" sort="ref" />
+                <TH label="Customer" sort="customer" />
+                <TH label="Tour" />
+                <TH label="Date" sort="date" />
+                <TH label="Guests" />
+                <TH label="Total" sort="total" />
+                <TH label="Payment" />
+                <TH label="Status" />
+                <TH label="Source" />
+              </tr>
+            </thead>
+            <tbody>
+              {(rows ?? []).length > 0 &&
+                filtered.map((b) => (
+                  <tr
+                    key={b.id}
+                    onClick={() => setSelectedId(b.id)}
+                    className={`cursor-pointer border-t border-[#F2F4F6] hover:bg-[#FAFBFC] ${
+                      b.id === selectedId ? 'bg-teal/5' : ''
+                    }`}
+                  >
+                    <td className="whitespace-nowrap px-3 py-3 text-[13px] font-bold text-teal">{b.ref}</td>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <Avatar name={b.customerName} />
+                        <span className="whitespace-nowrap text-[13.5px] font-bold text-ink">{b.customerName}</span>
+                      </div>
+                    </td>
+                    <td className="max-w-[200px] px-3 py-3 text-[13px] text-ink/70">
+                      <span className="block truncate">{b.activityTitle}</span>
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
+                      {b.startsAt ? `${dateShortFmt.format(new Date(b.startsAt))} · ${timeFmt.format(new Date(b.startsAt))}` : '—'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">{b.guests}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right text-[13.5px] font-extrabold text-ink">{euroInt(b.totalEur)}</td>
+                    <td className="px-3 py-3">
+                      <Pill p={paymentPill(b.paymentState)} />
+                    </td>
+                    <td className="px-3 py-3">
+                      <Pill p={statusPill(b.status)} />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-[12.5px] font-semibold capitalize text-ink/70">
+                      {b.source.replace(/_/g, ' ')}
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+        {rows !== null && filtered.length === 0 && (
+          <div className="px-6 py-14 text-center">
+            <div className="mx-auto mb-3.5 flex h-12 w-12 items-center justify-center rounded-xl bg-[#F4F6F7] text-ink-muted">
+              <IconSearch width={20} height={20} />
+            </div>
+            <div className="text-[15px] font-bold text-ink">
+              {rows.length === 0 ? 'No bookings yet' : 'No bookings match these filters'}
+            </div>
+            <div className="mt-1 text-[13.5px] text-ink-muted">
+              {rows.length === 0 ? 'They’ll appear here as customers book.' : 'Try widening the date range or clearing filters.'}
+            </div>
+          </div>
         )}
+        {rows === null && <p className="p-6 text-sm text-ink-muted">Loading…</p>}
       </div>
 
-      {selectedId && (
-        <BookingDrawer
-          id={selectedId}
-          onClose={() => setSelectedId(null)}
-          onChanged={() => void load()}
-        />
-      )}
-    </div>
-  );
-}
-
-function Stat({ label, value, tone }: { label: string; value: string; tone?: 'teal' | 'gold' }) {
-  const valueColor = tone === 'teal' ? 'text-teal-dark' : tone === 'gold' ? 'text-ink' : 'text-ink';
-  return (
-    <div className="rounded-2xl border border-ink/10 bg-white px-4 py-3">
-      <p className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">{label}</p>
-      <p className={`mt-1 text-xl font-extrabold ${valueColor}`}>{value}</p>
+      {selectedId && <BookingDrawer id={selectedId} onClose={() => setSelectedId(null)} onChanged={() => void load()} />}
     </div>
   );
 }
 
 const CANCELLABLE: BookingStatus[] = ['draft', 'held', 'payment_pending', 'confirmed'];
 
-function BookingDrawer({
-  id,
-  onClose,
-  onChanged,
-}: {
-  id: string;
-  onClose: () => void;
-  onChanged: () => void;
-}) {
+function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const panelRef = useRef<HTMLElement>(null);
-  // Read the latest `busy` inside event handlers without re-binding them.
   const busyRef = useRef<string | null>(null);
   busyRef.current = busy;
 
-  // Don't dismiss the drawer while a write is in flight (would drop success/error feedback).
   const requestClose = useCallback(() => {
     if (!busyRef.current) onClose();
   }, [onClose]);
@@ -298,7 +484,6 @@ function BookingDrawer({
     void reload();
   }, [reload]);
 
-  // Lock background scroll while the drawer is open (matches AuthDialog / LangCurrencyModal).
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
@@ -307,14 +492,12 @@ function BookingDrawer({
     };
   }, []);
 
-  // Move focus into the dialog on open and restore it to the trigger on close.
   useEffect(() => {
     const trigger = document.activeElement as HTMLElement | null;
     panelRef.current?.focus();
     return () => trigger?.focus?.();
   }, []);
 
-  // Escape closes (unless busy); Tab is trapped within the dialog.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -357,12 +540,7 @@ function BookingDrawer({
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <button
-        type="button"
-        aria-label="Close booking details"
-        onClick={requestClose}
-        className="absolute inset-0 bg-ink/30"
-      />
+      <button type="button" aria-label="Close booking details" onClick={requestClose} className="absolute inset-0 bg-ink/30" />
       <aside
         ref={panelRef}
         role="dialog"
@@ -401,7 +579,6 @@ function BookingDrawer({
               </p>
             )}
 
-            {/* Customer */}
             <section className="rounded-xl border border-ink/10 p-4">
               <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Customer</h3>
               <p className="mt-1.5 font-bold text-ink">{booking.customerName}</p>
@@ -415,7 +592,6 @@ function BookingDrawer({
               )}
             </section>
 
-            {/* Items */}
             <section className="rounded-xl border border-ink/10 p-4">
               <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Items</h3>
               <ul className="mt-2 flex flex-col gap-3">
@@ -439,22 +615,16 @@ function BookingDrawer({
               </div>
             </section>
 
-            {/* Customer pickup location (entered at checkout) */}
             {booking.pickupLocation && (
               <section className="rounded-xl border border-ink/10 p-4">
-                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-                  Pickup location
-                </h3>
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Pickup location</h3>
                 <p className="mt-2 text-[13px] text-ink/80">{booking.pickupLocation}</p>
               </section>
             )}
 
-            {/* Baby & child seats (first free, €6 each extra) */}
             {booking.childSeats > 0 && (
               <section className="rounded-xl border border-ink/10 p-4">
-                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-                  Baby &amp; child seats
-                </h3>
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Baby &amp; child seats</h3>
                 <p className="mt-2 text-[13px] text-ink/80">
                   {booking.childSeats} {booking.childSeats === 1 ? 'seat' : 'seats'}
                   {childSeatsCost(booking.childSeats) > 0
@@ -464,12 +634,9 @@ function BookingDrawer({
               </section>
             )}
 
-            {/* Customer-customized route (sightseeing tours) */}
             {booking.customItinerary && booking.customItinerary.length > 0 && (
               <section className="rounded-xl border border-ink/10 p-4">
-                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-                  Customer route
-                </h3>
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Customer route</h3>
                 <ol className="mt-2 list-decimal pl-5 text-[13px] text-ink/80">
                   {booking.customItinerary.map((s, i) => (
                     <li key={i}>{s.area ? `${s.title} — ${s.area}` : s.title}</li>
@@ -478,7 +645,6 @@ function BookingDrawer({
               </section>
             )}
 
-            {/* Payment ledger */}
             <section className="rounded-xl border border-ink/10 p-4">
               <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Payments</h3>
               {booking.payments.length === 0 ? (
@@ -507,7 +673,6 @@ function BookingDrawer({
               )}
             </section>
 
-            {/* Internal note */}
             <section className="rounded-xl border border-ink/10 p-4">
               <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Internal note</h3>
               <textarea
@@ -527,7 +692,6 @@ function BookingDrawer({
               </button>
             </section>
 
-            {/* Actions */}
             <section className="flex flex-wrap gap-2">
               {booking.status === 'confirmed' && (
                 <button
@@ -544,19 +708,13 @@ function BookingDrawer({
                   type="button"
                   disabled={busy === 'cancel'}
                   onClick={() => {
-                    // A confirmed booking's seats are freed immediately; an unpaid hold's seats
-                    // free themselves when the hold expires. A PAID booking is routed to
-                    // refund_pending (the DB does this) so the refund owed is tracked — warn the
-                    // operator to actually issue it.
-                    const paid =
-                      booking.paymentState === 'paid' || booking.paymentState === 'partially_refunded';
+                    const paid = booking.paymentState === 'paid' || booking.paymentState === 'partially_refunded';
                     const msg = paid
                       ? `Cancel booking ${booking.ref}? It's PAID — this frees the seats and marks it refund-pending. Remember to refund the customer in your payment provider.`
                       : booking.status === 'confirmed'
                         ? `Cancel booking ${booking.ref}? This frees the seats.`
                         : `Cancel booking ${booking.ref}? Any held seats free up when the hold expires.`;
-                    if (window.confirm(msg))
-                      void act('cancel', () => setBookingStatus(booking.id, 'cancelled'));
+                    if (window.confirm(msg)) void act('cancel', () => setBookingStatus(booking.id, 'cancelled'));
                   }}
                   className="rounded-full border border-coral/40 px-4 py-2 text-[13px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
                 >
@@ -565,8 +723,8 @@ function BookingDrawer({
               )}
             </section>
             <p className="text-[11.5px] leading-relaxed text-ink-muted">
-              Payment confirmation is handled automatically by the payment provider — staff can mark a
-              booking completed or cancel it, but cannot mark it paid here.
+              Payment confirmation is handled automatically by the payment provider — staff can mark a booking completed or
+              cancel it, but cannot mark it paid here.
             </p>
           </div>
         )}
