@@ -42,3 +42,11 @@ export const placeInsightsInputSchema = z.object({
     .max(12),
 });
 export type PlaceInsightsInput = z.infer<typeof placeInsightsInputSchema>;
+
+/** Request body for POST /api/planner/optimize — pickup + the day's stops to order optimally. */
+const latLngSchema = z.object({ lat: z.number(), lng: z.number() });
+export const plannerOptimizeInputSchema = z.object({
+  pickup: latLngSchema,
+  stops: z.array(latLngSchema).min(1).max(25),
+});
+export type PlannerOptimizeInput = z.infer<typeof plannerOptimizeInputSchema>;

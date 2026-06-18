@@ -59,6 +59,7 @@ export function PlannerShell() {
   const [mobileTab, setMobileTab] = useState<'chat' | 'day' | 'map'>('chat');
   const [shared, setShared] = useState(false);
   const initRef = useRef(false);
+  const lastOptimizedKey = useRef('');
 
   const addToCatalog = useCallback((ps: PlannerPlace[]) => {
     if (!ps.length) return;
@@ -80,6 +81,11 @@ export function PlannerShell() {
     () => computePlannerRoute(pickupObj, stops.map((s) => ({ lat: s.lat, lng: s.lng, durationMin: s.durationMin }))),
     [pickupObj, stops],
   );
+  // Identifies a day by its *unordered* set of stops + pickup. Auto-optimization reorders the day to
+  // the shortest round trip whenever this key changes (a stop added/removed, or the pickup changed);
+  // since reordering leaves the key unchanged, the optimizer never re-triggers itself (no loop), and a
+  // manual drag-reorder stands until the next change.
+  const optimizeKey = useMemo(() => `${pickup}|${[...stopIds].sort().join(',')}`, [pickup, stopIds]);
 
   let quote: PlannerQuote | null = null;
   let quoteError: string | null = null;
@@ -122,6 +128,51 @@ export function PlannerShell() {
     });
     setBoost(found);
   }, [stops]);
+
+  // ── auto-optimize: reorder the day to the shortest driving round trip (pickup → stops → pickup)
+  //    via the Google Route Optimization API, debounced, whenever the stop set or pickup changes.
+  //    Best-effort + race-guarded: a stale/failed response or a newer change is ignored, and the
+  //    planner keeps its current order when optimization is unavailable. ──
+  useEffect(() => {
+    if (stops.length < 2) {
+      lastOptimizedKey.current = optimizeKey;
+      return;
+    }
+    if (optimizeKey === lastOptimizedKey.current) return;
+
+    let active = true;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/planner/optimize', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            pickup: { lat: pickupObj.lat, lng: pickupObj.lng },
+            stops: stops.map((s) => ({ lat: s.lat, lng: s.lng })),
+          }),
+        }).then((r) => r.json());
+        if (!active) return;
+        lastOptimizedKey.current = optimizeKey;
+        const order: unknown = res.ok ? res.data?.order : null;
+        if (Array.isArray(order) && order.length === stops.length) {
+          const reordered = order
+            .map((i) => stops[i as number]?.id)
+            .filter((id): id is string => Boolean(id));
+          const current = stops.map((s) => s.id);
+          if (reordered.length === current.length && reordered.join(',') !== current.join(',')) {
+            setStopIds(reordered);
+          }
+        }
+      } catch {
+        if (active) lastOptimizedKey.current = optimizeKey;
+      }
+    }, 700);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [optimizeKey, stops, pickupObj]);
 
   // ── mount: responsive + dates ──
   useEffect(() => {

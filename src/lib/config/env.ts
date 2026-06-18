@@ -44,6 +44,15 @@ const ServerEnvSchema = z.object({
   // places, but never breaks.
   GOOGLE_MAPS_API_KEY: z.string().min(1).optional(),
 
+  // Google **Route Optimization API** service account (the planner auto-orders the day's stops via
+  // `optimizeTours`). This Cloud API needs an OAuth2 service-account token (scope cloud-platform +
+  // IAM `routeoptimization.locations.use`), NOT an API key. Set this to the FULL service-account JSON
+  // (one line) and grant the SA the "Route Optimization Editor" role. Without it the planner keeps
+  // the chosen stop order (no auto-optimization), never breaks. The GCP project is read from the
+  // JSON's `project_id`; override with GOOGLE_CLOUD_PROJECT if the SA lives in another project.
+  GOOGLE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
+  GOOGLE_CLOUD_PROJECT: z.string().min(1).optional(),
+
   AI_PROVIDER: z.enum(['google', 'workersai', 'anthropic', 'openai']).default('google'),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
   // Gemini model id for the AI Road Trip Planner co-pilot. Override when Google retires a model
