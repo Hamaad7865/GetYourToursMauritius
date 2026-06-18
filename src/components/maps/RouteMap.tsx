@@ -73,6 +73,7 @@ export function RouteMap({
   animate = false,
   carColor = '#0E8C92',
   className,
+  loop = true,
 }: {
   stops: ItineraryStop[];
   /** Marker role per stop (aligned to `stops`). Defaults to start (index 0) + main (rest). */
@@ -82,6 +83,8 @@ export function RouteMap({
   carColor?: string;
   /** Override the container classes (e.g. to fill a parent pane instead of the default fixed height). */
   className?: string;
+  /** Draw the dashed "return to start" leg (a round-trip cue). Off for the one-way planner route. */
+  loop?: boolean;
 }) {
   const status = useGoogleMaps();
   const elRef = useRef<HTMLDivElement>(null);
@@ -212,30 +215,34 @@ export function RouteMap({
         path = points;
       }
 
-      // Return leg: a dashed coral line straight from the last stop back to the first (a tour returns
-      // to where it started), and the car drives it on the way back so the loop is continuous.
+      // The car's path. With `loop` (tour pages), draw a dashed coral "return to start" leg and have
+      // the car drive out then straight back — a round-trip cue. Without it (the one-way planner
+      // route), no return line: the car retraces the route so the animation stays continuous.
       let drivePath = path;
       if (points.length > 1) {
-        const lastPt = points[points.length - 1]!;
-        const firstPt = points[0]!;
-        track(
-          new google.maps.Polyline({
-            map,
-            path: [lastPt, firstPt],
-            geodesic: true,
-            strokeOpacity: 0,
-            icons: [
-              {
-                icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, scale: 3, strokeColor: '#F76C5E' },
-                offset: '0',
-                repeat: '12px',
-              },
-            ],
-          }),
-        );
-        // Car loop = the route out (roads or straight) + a straight return to the start, resampled
-        // to a constant gentle speed (so it doesn't jump quickly between far-apart stops).
-        drivePath = buildDrivePath([...path, firstPt], 180);
+        if (loop) {
+          const lastPt = points[points.length - 1]!;
+          const firstPt = points[0]!;
+          track(
+            new google.maps.Polyline({
+              map,
+              path: [lastPt, firstPt],
+              geodesic: true,
+              strokeOpacity: 0,
+              icons: [
+                {
+                  icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, scale: 3, strokeColor: '#F76C5E' },
+                  offset: '0',
+                  repeat: '12px',
+                },
+              ],
+            }),
+          );
+          drivePath = buildDrivePath([...path, firstPt], 180);
+        } else {
+          // No return leg — the car drives out then retraces the route back, resampled to a gentle speed.
+          drivePath = buildDrivePath([...path, ...[...path].reverse()], 180);
+        }
       }
 
       // The car: static at the start, or driving the loop — out along the route, back along the
@@ -268,7 +275,7 @@ export function RouteMap({
         rafRef.current = null;
       }
     };
-  }, [status, stops, kinds, animate, carColor]);
+  }, [status, stops, kinds, animate, carColor, loop]);
 
   // Final teardown on unmount: drop every overlay and release the map.
   useEffect(() => {

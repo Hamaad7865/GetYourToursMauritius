@@ -404,7 +404,7 @@ export function PlannerShell() {
       onAddPlace={addStopId}
     />
   );
-  const map = <RouteMap stops={mapStops} animate={stops.length > 0} carColor="#DC2626" className="h-full w-full" />;
+  const map = <RouteMap stops={mapStops} animate={stops.length > 0} carColor="#DC2626" className="h-full w-full" loop={false} />;
   const drawer = <PlacesDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} selectedIds={stopIds} onAdd={addPlace} />;
 
   return (
