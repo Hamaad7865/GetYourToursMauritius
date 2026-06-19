@@ -16,6 +16,43 @@ import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/comp
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 
+// A short list of common visitor nationalities for the personal-details step. Mauritius is first
+// (the home market), then the largest source markets. Display/validation only — the booking schema
+// has no country field, so this isn't sent to the server; it just personalises the form. Real-world
+// country names are proper nouns and are not translated.
+const COUNTRIES = [
+  'Mauritius',
+  'United Kingdom',
+  'France',
+  'Germany',
+  'India',
+  'South Africa',
+  'Réunion',
+  'Italy',
+  'Spain',
+  'Switzerland',
+  'Belgium',
+  'Netherlands',
+  'Austria',
+  'Ireland',
+  'Portugal',
+  'Sweden',
+  'Norway',
+  'Denmark',
+  'Poland',
+  'Russia',
+  'China',
+  'Australia',
+  'United States',
+  'Canada',
+  'United Arab Emirates',
+  'Saudi Arabia',
+  'Madagascar',
+  'Seychelles',
+  'Kenya',
+  'Other',
+] as const;
+
 function Spinner() {
   return <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />;
 }
@@ -116,6 +153,11 @@ export function Checkout() {
   // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [dropoffText, setDropoffText] = useState(dropoffParam);
+  // Personal-details (step ②) form state. Name + phone seed from the profile once it loads (see the
+  // effect below); country defaults to the home market. Email is the account email, shown read-only.
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [country, setCountry] = useState<string>(COUNTRIES[0]);
   // The chosen route's itinerary stops, read from sessionStorage post-mount (SSR-safe) for the
   // read-only route preview on step ①. The pickup + drop-off bookend these stops on the map.
   const [itineraryStops, setItineraryStops] = useState<ItineraryStop[]>([]);
@@ -143,11 +185,13 @@ export function Checkout() {
     return () => window.clearInterval(t);
   }, []);
 
-  // Signing in on the Contact step advances to Payment. Gate on `session` (not just
-  // `user`) so we don't advance before the access token the payment step needs is ready.
+  // Seed the personal-details form from the signed-in profile once it loads, without clobbering an
+  // edit the customer has already made (only fill an empty field). The account email is read straight
+  // from the session below and never stored in form state.
   useEffect(() => {
-    if (step === 2 && session) setStep(3);
-  }, [step, session]);
+    if (profile?.fullName) setName((cur) => cur || profile.fullName!);
+    if (profile?.phone) setPhone((cur) => cur || profile.phone!);
+  }, [profile]);
 
   // Prefill the pickup from the widget's stash (keyed by occurrence). The coordinates drive the
   // region-based transport fare the server computes; read post-mount to avoid an SSR mismatch.
@@ -232,6 +276,10 @@ export function Checkout() {
   const expired = Boolean(expiresAt) && secs === 0;
   // Step ① can advance unless pickup is wanted with no address and not "I don't know yet".
   const canAdvance = canAdvanceStep1({ wantsPickup, address: pickupLoc, tbd });
+  // Step ② (personal details): a phone is REQUIRED when the booking has a pickup — TBD still counts
+  // as a pickup, since the driver needs to reach the customer to arrange it. No pickup → optional.
+  const phoneRequired = wantsPickup;
+  const canAdvanceDetails = !phoneRequired || phone.trim().length > 0;
 
   function continueFromTransport() {
     // Authoritative gate: pickup wanted needs an address (or "I don't know yet"). The CTA is also
@@ -241,8 +289,17 @@ export function Checkout() {
     setError(null);
     window.setTimeout(() => {
       setBusy(false);
-      setStep(session ? 3 : 2);
+      // Always land on step ② — signed in shows the personal-details form, signed out shows the
+      // sign-in prompt. (Previously signed-in users skipped straight to payment.)
+      setStep(2);
     }, 700);
+  }
+
+  function continueFromDetails() {
+    // Authoritative gate, mirroring step ①: a pickup booking needs a phone. The CTA is also disabled,
+    // but guard here so a keyboard/programmatic advance can't skip the requirement.
+    if (!canAdvanceDetails) return;
+    setStep(3);
   }
 
   async function pay() {
@@ -282,9 +339,12 @@ export function Checkout() {
             pickupLat: wantsPickup && !tbd && pickupCoords ? pickupCoords.lat : null,
             pickupLng: wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
             customer: {
-              name: profile?.fullName || user?.email || 'Guest',
+              // Name + phone come from the step-② details form (falling back to the profile);
+              // email is always the verified account email. Country is captured for UX only — the
+              // booking schema has no country field, so it isn't sent.
+              name: name.trim() || profile?.fullName || user?.email || 'Guest',
               email: user?.email,
-              phone: profile?.phone || null,
+              phone: phone.trim() || profile?.phone || null,
             },
             source: 'web',
             idempotencyKey: idemKey,
@@ -449,7 +509,7 @@ export function Checkout() {
             </section>
           )}
 
-          {step === 2 && (
+          {step === 2 && !session && (
             <section>
               <h1 className="font-display text-2xl font-semibold text-ink">
                 {t('Where should we send your booking confirmation?')}
@@ -464,6 +524,82 @@ export function Checkout() {
               >
                 {t('Sign in / Create account')}
               </button>
+            </section>
+          )}
+
+          {step === 2 && session && (
+            <section>
+              <h1 className="font-display text-2xl font-semibold text-ink">{t('Your details')}</h1>
+              <div className="mt-5 grid gap-4 sm:max-w-md">
+                <label className="block text-[13px] font-semibold text-ink">
+                  {t('Full name')}
+                  <input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoComplete="name"
+                    placeholder={t('Your name')}
+                    className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                  />
+                </label>
+                <label className="block text-[13px] font-semibold text-ink">
+                  {t('Email address')}
+                  <input
+                    value={user?.email ?? ''}
+                    readOnly
+                    autoComplete="email"
+                    className="mt-1 w-full cursor-not-allowed rounded-xl border border-ink/15 bg-ink/[0.03] px-3.5 py-2.5 text-sm font-normal text-ink-muted outline-none"
+                  />
+                </label>
+                <label className="block text-[13px] font-semibold text-ink">
+                  {t('Country')}
+                  <select
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    autoComplete="country-name"
+                    className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                  >
+                    {COUNTRIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block text-[13px] font-semibold text-ink">
+                  {t('Mobile phone number')}
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    type="tel"
+                    autoComplete="tel"
+                    placeholder="+230 5xxx xxxx"
+                    className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                  />
+                </label>
+              </div>
+
+              <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-ink/80">
+                <span className="flex items-center gap-1.5">
+                  <IconCheck width={15} height={15} className="text-teal" /> {t('Pay nothing today')}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <IconCheck width={15} height={15} className="text-teal" /> {t('Free cancellation up to 24 hours before')}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={continueFromDetails}
+                disabled={!canAdvanceDetails}
+                className="mt-6 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
+              >
+                {t('Go to payment')}
+              </button>
+              {!canAdvanceDetails && (
+                <p className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
+                  {t('Add a phone number so your driver can reach you.')}
+                </p>
+              )}
             </section>
           )}
 
@@ -556,13 +692,23 @@ export function Checkout() {
             {busy ? <Spinner /> : t('Next: Personal details')}
           </button>
         )}
-        {step === 2 && (
+        {step === 2 && !session && (
           <button
             type="button"
             onClick={() => openAuth('signin')}
             className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark"
           >
             {t('Sign in / Create account')}
+          </button>
+        )}
+        {step === 2 && session && (
+          <button
+            type="button"
+            onClick={continueFromDetails}
+            disabled={!canAdvanceDetails}
+            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+          >
+            {t('Go to payment')}
           </button>
         )}
         {step === 3 && (
