@@ -385,6 +385,9 @@ export function BookingProvider({
       suv: bookingSuv ? '1' : '0',
       childSeats: String(childSeats),
       transport: transportExtra ? String(transportExtra) : '',
+      // Pickup CAPABILITY (distinct from the computed `transport` fee): seeds step ①'s "want pickup?"
+      // default so a pickup-capable activity booked without a pre-entered pickup still defaults to Yes.
+      pickupcap: transportEligible ? '1' : '',
       from: 'widget',
     });
     router.push(`/checkout?${q.toString()}`);

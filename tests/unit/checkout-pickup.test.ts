@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { canAdvanceStep1 } from '@/lib/checkout/pickup';
+import { canAdvanceStep1, defaultWantsPickup } from '@/lib/checkout/pickup';
+
+describe('defaultWantsPickup', () => {
+  it('defaults to yes when the activity is pickup-capable, even with no fee hint or prefill', () => {
+    expect(defaultWantsPickup({ pickupCapable: true, hasTransportHint: false, hasPickupPrefill: false })).toBe(true);
+  });
+  it('defaults to no for a fixed-location activity (not capable, no hint, no prefill)', () => {
+    expect(defaultWantsPickup({ pickupCapable: false, hasTransportHint: false, hasPickupPrefill: false })).toBe(false);
+  });
+  it('defaults to yes when a transport fee was already computed', () => {
+    expect(defaultWantsPickup({ pickupCapable: false, hasTransportHint: true, hasPickupPrefill: false })).toBe(true);
+  });
+  it('defaults to yes when an upstream entry point pre-filled a pickup address', () => {
+    expect(defaultWantsPickup({ pickupCapable: false, hasTransportHint: false, hasPickupPrefill: true })).toBe(true);
+  });
+});
 
 describe('canAdvanceStep1', () => {
   it('blocks when pickup is wanted but address is empty and not TBD', () => {

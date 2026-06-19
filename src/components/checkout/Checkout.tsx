@@ -10,7 +10,7 @@ import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupMap } from '@/components/maps/PickupMap';
 import { RouteMap, type StopKind } from '@/components/maps/RouteMap';
 import { childSeatsCost } from '@/lib/services/pricing';
-import { canAdvanceStep1 } from '@/lib/checkout/pickup';
+import { canAdvanceStep1, defaultWantsPickup } from '@/lib/checkout/pickup';
 import type { ItineraryStop } from '@/lib/validation/tours';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
@@ -137,11 +137,17 @@ export function Checkout() {
   const pickupParam = (params.get('pickup') ?? '').slice(0, 160);
   const dropoffParam = (params.get('dropoff') ?? '').slice(0, 160);
 
-  // Does this activity support pickup? The widget only carries a transport hint / pickup stash for
-  // pickup-capable (per_person/per_group with pickup, or sightseeing) activities, so a positive
-  // transport hint OR a planner/widget pickup prefill means "transport applies" → default to Yes.
-  // A fixed-location activity (no hint, no prefill) defaults to No → "Meet at {location}".
-  const transportApplies = transportHint > 0 || Boolean(pickupParam);
+  // Does this activity support pickup? The widget threads its pickup CAPABILITY (pickupcap=1) for any
+  // pickup-capable (per_person/per_group with pickup) activity, even when no fee was computed because
+  // the customer hadn't pre-entered a pickup. That capability — OR a positive transport-fee hint, OR a
+  // planner/widget pickup prefill — means "transport applies" → default to Yes. A fixed-location
+  // activity (not capable, no hint, no prefill) defaults to No → "Meet at {location}".
+  const pickupCapable = params.get('pickupcap') === '1';
+  const transportApplies = defaultWantsPickup({
+    pickupCapable,
+    hasTransportHint: transportHint > 0,
+    hasPickupPrefill: Boolean(pickupParam),
+  });
 
   const [step, setStep] = useState(1);
   // "Do you want pickup?" — default Yes when transport applies (or a pickup was pre-filled), else No.
