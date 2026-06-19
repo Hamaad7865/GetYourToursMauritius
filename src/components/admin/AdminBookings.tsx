@@ -615,12 +615,30 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
               </div>
             </section>
 
-            {booking.pickupLocation && (
-              <section className="rounded-xl border border-ink/10 p-4">
-                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Pickup location</h3>
-                <p className="mt-2 text-[13px] text-ink/80">{booking.pickupLocation}</p>
-              </section>
-            )}
+            <section className="rounded-xl border border-ink/10 p-4">
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Pickup &amp; drop-off</h3>
+              <dl className="mt-2 flex flex-col gap-2.5">
+                <div>
+                  <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">Pickup</dt>
+                  <dd className="mt-0.5 text-[13px] text-ink/80">
+                    {booking.pickupLocation ? (
+                      booking.pickupLocation
+                    ) : booking.pickupPending ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[12px] font-bold text-amber-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                        Pickup to be arranged
+                      </span>
+                    ) : (
+                      <span className="text-ink-muted">No pickup · customer makes own way</span>
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">Drop-off</dt>
+                  <dd className="mt-0.5 text-[13px] text-ink/80">{booking.dropoffLocation ?? '—'}</dd>
+                </div>
+              </dl>
+            </section>
 
             {booking.childSeats > 0 && (
               <section className="rounded-xl border border-ink/10 p-4">

@@ -23,6 +23,8 @@ function booking(over: Partial<BookingRow>): BookingRow {
     netPaidEur: 100,
     customItinerary: null,
     pickupLocation: null,
+    dropoffLocation: null,
+    pickupPending: false,
     childSeats: 0,
     ...over,
   };
@@ -59,6 +61,13 @@ describe('computeDashboard', () => {
     expect(byKey.pending).toBe('€200');
     expect(byKey.upcoming).toBe('2');
     expect(d.spark).toHaveLength(7);
+  });
+
+  it('carries pickup/drop-off DTO fields used by the booking drawer', () => {
+    const b = booking({ pickupLocation: 'Hotel X', dropoffLocation: 'Airport', pickupPending: true });
+    expect(b.pickupLocation).toBe('Hotel X');
+    expect(b.dropoffLocation).toBe('Airport');
+    expect(b.pickupPending).toBe(true);
   });
 
   it('handles an empty booking list without throwing', () => {

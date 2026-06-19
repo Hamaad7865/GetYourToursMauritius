@@ -56,6 +56,10 @@ export interface BookingRow {
   customItinerary: Array<{ title: string; area?: string | null }> | null;
   /** The customer's pickup location entered at checkout, or null if none. */
   pickupLocation: string | null;
+  /** The customer's drop-off location, or null (its own field — never merged into pickup). */
+  dropoffLocation: string | null;
+  /** "Pickup to be arranged" (TBD) — distinct from "no pickup at all" (false + no pickupLocation). */
+  pickupPending: boolean;
   /** Child seats on the booking (first free, €6 each extra; the charge is in the total). */
   childSeats: number;
 }
@@ -120,6 +124,8 @@ interface RawBooking {
   notes: string | null;
   custom_itinerary: Array<{ title: string; area?: string | null }> | null;
   pickup_location: string | null;
+  dropoff_location: string | null;
+  pickup_pending: boolean | null;
   child_seats: number | null;
   created_at: string;
   booking_items: RawItem[] | null;
@@ -128,7 +134,7 @@ interface RawBooking {
 
 const BOOKING_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
-  source, currency, total_minor, notes, custom_itinerary, pickup_location, child_seats, created_at,
+  source, currency, total_minor, notes, custom_itinerary, pickup_location, dropoff_location, pickup_pending, child_seats, created_at,
   booking_items (
     price_label, quantity, pax, unit_amount_minor, subtotal_minor,
     session_occurrences ( starts_at ),
@@ -180,6 +186,8 @@ function mapBooking(raw: RawBooking): BookingRow {
     netPaidEur: netPaidMinor / 100,
     customItinerary: raw.custom_itinerary,
     pickupLocation: raw.pickup_location,
+    dropoffLocation: raw.dropoff_location ?? null,
+    pickupPending: raw.pickup_pending ?? false,
     childSeats: raw.child_seats ?? 0,
   };
 }
