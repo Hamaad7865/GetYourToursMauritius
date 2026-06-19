@@ -15,6 +15,7 @@ import {
   createHoldInputSchema,
   createPaymentInputSchema,
   holdResultSchema,
+  holdStatusSchema,
   leadSchema,
   paymentLinkSchema,
   syncPaymentInputSchema,
@@ -34,6 +35,7 @@ const jsonBody = (schema: z.ZodTypeAny) => ({ content: { 'application/json': { s
 
 const slugParam = z.object({ slug: z.string() });
 const refParam = z.object({ ref: z.string() });
+const idParam = z.object({ id: z.string() });
 
 /**
  * Versioned /api/v1 paths. Each operation reuses the exact Zod schemas the route
@@ -80,6 +82,35 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '201': okJson(holdResultSchema, 'Hold created'),
         '400': errorResponse('Invalid request'),
         '409': errorResponse('Insufficient capacity'),
+      },
+    },
+  },
+  '/holds/{id}': {
+    get: {
+      operationId: 'getHold',
+      summary: "Get a hold's current lifecycle status (owner-scoped, for cart reconciliation)",
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: idParam },
+      responses: {
+        '200': okJson(holdStatusSchema, 'Hold status'),
+        '401': errorResponse('Authentication required'),
+        '404': errorResponse('Hold not found'),
+      },
+    },
+  },
+  '/holds/{id}/release': {
+    post: {
+      operationId: 'releaseHold',
+      summary: 'Release a hold the caller owns (the cart calls this when a held line is removed)',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: idParam },
+      responses: {
+        '200': okJson(z.object({ released: z.boolean() }), 'Released'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Not the hold owner'),
+        '404': errorResponse('Hold not found'),
       },
     },
   },

@@ -104,6 +104,14 @@ export const holdResultSchema = z.object({
 });
 export type HoldResult = z.infer<typeof holdResultSchema>;
 
+/** A hold's current lifecycle state, returned by GET /holds/{id} so the cart can reconcile. */
+export const holdStatusSchema = z.object({
+  holdId: z.string(),
+  status: z.string(), // 'active' | 'released' | 'expired' | 'booked'
+  expiresAt: z.string().nullable(),
+});
+export type HoldStatus = z.infer<typeof holdStatusSchema>;
+
 // --- Payment ----------------------------------------------------------------
 export const createPaymentInputSchema = z.object({
   bookingRef: z.string().min(3).max(40),

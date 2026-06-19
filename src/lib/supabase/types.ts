@@ -213,6 +213,7 @@ type BookingHoldsRow = {
   idempotency_key: string;
   expires_at: string;
   created_at: string;
+  created_by: string | null;
 };
 type BookingHoldsInsert = {
   id?: string;
@@ -223,6 +224,7 @@ type BookingHoldsInsert = {
   idempotency_key: string;
   expires_at?: string;
   created_at?: string;
+  created_by?: string | null;
 };
 
 type BookingsRow = {
