@@ -23,6 +23,29 @@ const OAUTH: Array<{ provider: Provider; label: string; icon: React.ReactNode }>
   { provider: 'facebook', label: 'Continue with Facebook', icon: <IconFacebook /> },
 ];
 
+/**
+ * The `/auth/callback` URL with the current page recorded as `next`, so OAuth /
+ * email-confirmation sign-in returns the visitor to where they were (matching the
+ * email+password flow, which just closes the modal in place) instead of always
+ * landing on the account page. The path also rides `sessionStorage` as a same-tab
+ * fallback in case the provider strips the query string on the round-trip.
+ */
+function authCallbackUrl(): string {
+  const url = new URL('/auth/callback', window.location.origin);
+  const { pathname, search } = window.location;
+  // Never bounce the user back to the callback page itself.
+  if (!pathname.startsWith('/auth/callback')) {
+    const next = pathname + search;
+    url.searchParams.set('next', next);
+    try {
+      sessionStorage.setItem('gytm:authNext', next);
+    } catch {
+      // sessionStorage can be unavailable (private mode); the query param still carries `next`.
+    }
+  }
+  return url.toString();
+}
+
 /** GetYourGuide-style sign in / sign up modal. Email+password plus social providers. */
 export function AuthDialog({
   mode,
@@ -75,7 +98,7 @@ export function AuthDialog({
           password,
           options: {
             data: { full_name: name || null },
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: authCallbackUrl(),
           },
         });
         if (error) throw error;
@@ -102,7 +125,7 @@ export function AuthDialog({
     try {
       const { error } = await getBrowserSupabase().auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/auth/callback` },
+        options: { redirectTo: authCallbackUrl() },
       });
       if (error) throw error;
       // Success redirects the browser away; nothing more to do here.

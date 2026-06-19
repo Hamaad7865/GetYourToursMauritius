@@ -4,14 +4,57 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 
+/** True if the string contains any ASCII control character (CR/LF/NUL/etc.). */
+function hasControlChar(value: string): boolean {
+  for (let i = 0; i < value.length; i += 1) {
+    if (value.charCodeAt(i) < 0x20) return true;
+  }
+  return false;
+}
+
+/**
+ * Only allow a same-origin absolute path, so the `next` we redirect to can never be turned
+ * into an open redirect (e.g. `//evil.com` or `/\evil.com`, which browsers treat as
+ * protocol-relative). Anything else falls back to the account page.
+ */
+function safeInternalPath(raw: string | null): string | null {
+  if (!raw) return null;
+  if (!raw.startsWith('/') || raw.startsWith('//') || raw.startsWith('/\\')) return null;
+  if (hasControlChar(raw)) return null; // reject CRLF / control-char tricks
+  if (raw.startsWith('/auth/callback')) return null; // never loop back to ourselves
+  return raw;
+}
+
+/** Where to send the visitor after sign-in: the page they came from, else their account. */
+function resolveRedirect(): string {
+  let candidate: string | null = null;
+  try {
+    candidate = new URLSearchParams(window.location.search).get('next');
+  } catch {
+    candidate = null;
+  }
+  if (!candidate) {
+    try {
+      candidate = sessionStorage.getItem('gytm:authNext');
+    } catch {
+      candidate = null;
+    }
+  }
+  return safeInternalPath(candidate) ?? '/account';
+}
+
 /**
  * Landing page for OAuth / email-confirmation redirects. The browser client
  * (detectSessionInUrl + PKCE) exchanges the `?code` for a session automatically; we just
- * wait for the session to materialise, then send the visitor on to their account.
+ * wait for the session to materialise, then send the visitor back to the page they signed
+ * in from (carried as `next`), falling back to their account.
  */
 export function AuthCallback() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  // Resolve during render, before the Supabase client strips the OAuth params (?code) — and
+  // our ?next alongside them — off the URL.
+  const [target] = useState(resolveRedirect);
 
   useEffect(() => {
     const sb = getBrowserSupabase();
@@ -19,7 +62,12 @@ export function AuthCallback() {
     const finish = () => {
       if (done) return;
       done = true;
-      router.replace('/account');
+      try {
+        sessionStorage.removeItem('gytm:authNext');
+      } catch {
+        // ignore — best-effort cleanup
+      }
+      router.replace(target);
     };
 
     sb.auth.getSession().then(({ data }) => {
@@ -38,7 +86,7 @@ export function AuthCallback() {
       sub.subscription.unsubscribe();
       clearTimeout(timer);
     };
-  }, [router]);
+  }, [router, target]);
 
   return (
     <div className="grid min-h-[60vh] place-items-center px-6 text-center">
