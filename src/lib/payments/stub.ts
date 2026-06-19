@@ -47,6 +47,19 @@ export class StubPaymentProvider implements PaymentProvider {
 
     return { outcome, bookingRef, providerReference, amountMinor, raw: parsed };
   }
+
+  async getCheckoutStatus(checkoutId: string): Promise<PaymentEvent> {
+    // createCheckout mints the id as `stub_${bookingRef}`; recover the ref and report a paid status,
+    // so the dev/CI re-query confirmation flow completes end-to-end without a real provider.
+    const bookingRef = checkoutId.startsWith('stub_') ? checkoutId.slice('stub_'.length) : null;
+    return {
+      outcome: 'paid',
+      bookingRef,
+      providerReference: `stub_status_${bookingRef ?? 'unknown'}`,
+      amountMinor: null,
+      raw: { checkoutId },
+    };
+  }
 }
 
 function isOutcome(value: string): value is PaymentOutcome {

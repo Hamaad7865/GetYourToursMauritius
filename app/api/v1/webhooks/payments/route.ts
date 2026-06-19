@@ -1,79 +1,54 @@
 import { apiHandler } from '@/lib/http/handler';
-import { jsonOk, jsonError } from '@/lib/http/envelope';
+import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { getPaymentProvider } from '@/lib/payments';
+import { extractWebhookFields } from '@/lib/payments/peach';
+import { reconcilePaymentEvent } from '@/lib/payments/reconcile';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
-import type { Json } from '@/lib/supabase/types';
+import type { PaymentEvent } from '@/lib/payments/types';
 
 export const runtime = 'edge';
 
 /**
- * POST /api/v1/webhooks/payments — the payment provider calls this when a checkout
- * settles. The provider verifies the signature and normalises the body into a
- * PaymentEvent; we then append it to the event-sourced ledger via `append_payment_event`
- * (service-role), which derives the payment state and CONFIRMS the booking on first full
- * payment. This is the ONLY path that confirms a booking — never a frontend success page.
- * Idempotent: duplicate provider events are ignored at the ledger.
+ * POST /api/v1/webhooks/payments — the payment provider calls this when a checkout settles. It's a
+ * trigger, not a source of truth: we pull the checkout id from the (untrusted) body and ask the
+ * provider DIRECTLY for the authoritative status (`getCheckoutStatus`), then append the verified
+ * result to the ledger via the shared reconcile path — which confirms the booking on first full
+ * payment. This is the only path (besides the client-driven /payments/sync) that confirms a booking,
+ * and it does NOT depend on webhook HMAC signing being enabled.
+ *
+ * Acknowledgement: Peach treats any non-200 as a delivery failure (it retries and rejects the URL at
+ * registration). So we ALWAYS return 200 once received — including the registration/validation ping,
+ * an unknown checkout, or a forgery, none of which take action — and 5xx ONLY for a genuine transient
+ * persistence error, where a retry can succeed.
  */
 export const POST = apiHandler(async (req) => {
   const rawBody = await req.text();
   const provider = getPaymentProvider();
+  const contentType = req.headers.get('content-type') ?? '';
 
-  let event;
-  try {
-    event = await provider.verifyWebhook({
-      rawBody,
-      signature: req.headers.get('x-signature') ?? req.headers.get('paymentlink-signature'),
-      headers: Object.fromEntries(req.headers.entries()),
-    });
-  } catch {
-    return jsonError(400, 'invalid_webhook', 'Could not verify the webhook payload');
+  // The checkout id rides the notification body; re-query the provider for the authoritative status
+  // so a forged or unsigned body can never confirm a booking (the status comes from an authenticated
+  // call to the provider, not the request).
+  const checkoutId = extractWebhookFields(rawBody, contentType).checkoutId;
+  if (!checkoutId) {
+    console.warn('[webhook] payment notification without a checkout id; acknowledging');
+    return jsonOk({ received: true, verified: false });
   }
 
-  if (!event.bookingRef) {
-    return jsonError(400, 'invalid_webhook', 'Webhook is missing a booking reference');
+  let event: PaymentEvent;
+  try {
+    event = await provider.getCheckoutStatus(checkoutId);
+  } catch (err) {
+    // Could not reach the provider / unknown checkout — acknowledge so the provider doesn't retry a
+    // hopeless request; the client-driven sync remains a fallback.
+    console.warn('[webhook] status re-query failed:', err instanceof Error ? err.message : err);
+    return jsonOk({ received: true, verified: false });
   }
 
   const admin = createServiceRoleClient();
-
-  const { data: booking, error: bookingErr } = await admin
-    .from('bookings')
-    .select('id')
-    .eq('ref', event.bookingRef)
-    .maybeSingle();
-  if (bookingErr) throw new Error(bookingErr.message);
-  if (!booking) return jsonError(404, 'not_found', 'Booking not found');
-
-  const { data: payment, error: paymentErr } = await admin
-    .from('payments')
-    .select('id, amount_minor')
-    .eq('booking_id', booking.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (paymentErr) throw new Error(paymentErr.message);
-  if (!payment) return jsonError(404, 'not_found', 'No payment exists for this booking');
-
-  // Only settlement events carry money. Prefer the provider-reported amount (supports partial
-  // captures/refunds — the ledger reducer handles those); fall back to the full booking total when
-  // the provider did not report one (e.g. the dev stub).
-  const settled = event.outcome === 'paid' || event.outcome === 'refunded';
-  const reported =
-    typeof event.amountMinor === 'number' && Number.isFinite(event.amountMinor) && event.amountMinor >= 0
-      ? Math.round(event.amountMinor)
-      : null;
-  const amountMinor = settled ? (reported ?? payment.amount_minor) : 0;
-  const { error: rpcErr } = await admin.rpc('append_payment_event', {
-    p_payment_id: payment.id,
-    p_type: event.outcome,
-    p_provider_event_id: event.providerReference,
-    p_amount_minor: amountMinor,
-    p_occurred_at: new Date().toISOString(),
-    p_payload: (event.raw ?? {}) as Json,
-  });
-  if (rpcErr) throw new Error(rpcErr.message);
-
-  return jsonOk({ received: true, outcome: event.outcome });
+  const result = await reconcilePaymentEvent(admin, event); // throws (→5xx) only on transient DB error
+  return jsonOk({ received: true, outcome: event.outcome, confirmed: result.confirmed });
 });
 
 export function OPTIONS(req: Request): Response {

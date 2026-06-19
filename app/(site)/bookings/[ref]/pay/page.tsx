@@ -36,7 +36,7 @@ export default async function PayPage({
       <main className="min-h-[60vh] bg-white">
         <div className="mx-auto max-w-xl px-6 py-10">
           <h1 className="font-display text-2xl font-semibold text-ink">{t('Complete your payment')}</h1>
-          <p className="mt-2 text-sm text-ink-muted">{t('You will be charged in EUR')}</p>
+          <p className="mt-2 text-sm text-ink-muted">{t('You will be charged in USD')}</p>
 
           <div className="mt-6">
             {cid && widget ? (

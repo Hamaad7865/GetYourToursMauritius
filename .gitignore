@@ -31,6 +31,9 @@ next-env.d.ts
 .env.*.local
 .dev.vars
 .dev.vars.local
+# backups of env / any file — never commit (may contain secrets)
+*.bak
+.env*.bak
 
 # logs
 npm-debug.log*

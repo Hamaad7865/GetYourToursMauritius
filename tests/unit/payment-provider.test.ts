@@ -226,7 +226,8 @@ describe('PeachPaymentProvider.createCheckout', () => {
     const provider = new PeachPaymentProvider(CONFIG);
     const session = await provider.createCheckout({
       bookingRef: 'BMT-1',
-      amountEur: 120,
+      amount: 120,
+      currency: 'USD',
       customerEmail: 'a@b.com',
       description: 'Belle Mare Tours booking BMT-1',
       returnUrl: 'https://site.example.com/bookings/BMT-1',
@@ -242,7 +243,7 @@ describe('PeachPaymentProvider.createCheckout', () => {
     const body = JSON.parse(String(checkout!.init.body));
     expect(body.merchantTransactionId).toBe('BMT-1');
     expect(body.amount).toBe('120.00');
-    expect(body.currency).toBe('EUR');
+    expect(body.currency).toBe('USD');
     expect(body.paymentType).toBe('DB');
     expect(body.authentication.entityId).toBe('e');
     expect(body.notificationUrl).toBe(CONFIG.webhookUrl);
@@ -250,5 +251,46 @@ describe('PeachPaymentProvider.createCheckout', () => {
     const headers = checkout!.init.headers as Record<string, string>;
     expect(headers.Authorization).toBe('Bearer tok');
     expect(headers.Origin).toBe('https://site.example.com');
+  });
+});
+
+describe('PeachPaymentProvider.getCheckoutStatus', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('re-queries the status endpoint and normalises a paid result', async () => {
+    const fetchMock = vi.fn(async (url: string | URL) => {
+      const u = String(url);
+      if (u.endsWith('/api/oauth/token')) {
+        return new Response(JSON.stringify({ access_token: 'tok', expires_in: 300 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      if (u.endsWith('/v2/checkout/cid_9/status')) {
+        return new Response(
+          JSON.stringify({
+            'result.code': '000.100.110',
+            merchantTransactionId: 'BMT-1',
+            amount: '97.00',
+            currency: 'USD',
+            paymentType: 'DB',
+            id: 'txn_42',
+          }),
+          { status: 200, headers: { 'content-type': 'application/json' } },
+        );
+      }
+      throw new Error(`unexpected fetch: ${u}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const provider = new PeachPaymentProvider(CONFIG);
+    const event = await provider.getCheckoutStatus('cid_9');
+
+    expect(event.outcome).toBe('paid');
+    expect(event.bookingRef).toBe('BMT-1');
+    expect(event.providerReference).toBe('txn_42');
+    expect(event.amountMinor).toBe(9700);
   });
 });

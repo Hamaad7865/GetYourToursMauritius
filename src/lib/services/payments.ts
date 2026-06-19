@@ -1,6 +1,7 @@
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import { paymentCreateResultSchema, type PaymentLink } from '@/lib/validation/booking';
+import { getUsdRate } from '@/lib/money/fx';
 
 export interface CreatePaymentLinkInput {
   bookingRef: string;
@@ -25,9 +26,15 @@ export async function createPaymentLink(
   });
   const payment = paymentCreateResultSchema.parse(data);
 
+  // The Mauritius card acquirer settles in USD (not EUR/MUR), so convert the EUR booking total to
+  // USD at charge time — whole dollars, matching the on-site USD display. The ledger stays in EUR:
+  // a successful full settlement confirms the EUR-denominated payment.
+  const rate = await getUsdRate();
+  const chargeAmount = Math.round((payment.amountMinor / 100) * rate);
   const session = await ctx.payments.createCheckout({
     bookingRef: payment.bookingRef,
-    amountEur: payment.amountMinor / 100,
+    amount: chargeAmount,
+    currency: 'USD',
     customerEmail: payment.customerEmail,
     description: `Belle Mare Tours booking ${payment.bookingRef}`,
     returnUrl: input.returnUrl,

@@ -468,6 +468,8 @@ export const fr: Record<string, string> = {
   "Pay": "Payer",
   "Continue to payment": "Continuer vers le paiement",
   "You will be charged in EUR": "Vous serez débité en EUR",
+  "You will be charged in USD": "Vous serez débité en USD",
+  "Your card will be charged in USD": "Votre carte sera débitée en USD",
   "You’ll confirm the payment on the next screen.": "Vous confirmerez le paiement sur l’écran suivant.",
   "Complete your payment": "Finalisez votre paiement",
   "We could not start this payment. Please go back and try again.":

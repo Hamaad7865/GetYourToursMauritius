@@ -15,8 +15,12 @@ export interface PeachConfig {
   merchantId: string;
   /** Channel/entity id — keys both the create-checkout body and the browser widget. */
   entityId: string;
-  /** HMAC-SHA256 secret Peach signs webhook notifications with. */
-  webhookSecret: string;
+  /**
+   * HMAC-SHA256 secret Peach signs webhook notifications with. Optional: HMAC webhook security is
+   * activated by Peach support (not a dashboard toggle), so it may not exist yet. When absent,
+   * verifyWebhook fails closed (no confirmation) — confirmation then relies on the status re-query.
+   */
+  webhookSecret?: string;
   /** Auth service base, e.g. https://sandbox-... (POST {authBaseUrl}/api/oauth/token). */
   authBaseUrl: string;
   /** Checkout API base, e.g. https://testsecure.peachpayments.com (POST {checkoutBaseUrl}/v2/checkout). */
@@ -56,8 +60,8 @@ export class PeachPaymentProvider implements PaymentProvider {
     const body: Record<string, unknown> = {
       authentication: { entityId: this.config.entityId },
       merchantTransactionId: input.bookingRef,
-      amount: input.amountEur.toFixed(2),
-      currency: 'EUR',
+      amount: input.amount.toFixed(2),
+      currency: input.currency,
       paymentType: 'DB',
       // Unique per request — Peach rejects a duplicate nonce, which doubles as idempotency.
       nonce: crypto.randomUUID(),
@@ -96,6 +100,10 @@ export class PeachPaymentProvider implements PaymentProvider {
       // Fail closed: without the signed URL we cannot recompute the HMAC.
       throw new ProviderError('PEACH_WEBHOOK_URL is not configured — cannot verify the signature');
     }
+    if (!this.config.webhookSecret) {
+      // Fail closed: HMAC isn't enabled yet (Peach activates it on request), so we can't verify.
+      throw new ProviderError('Peach webhook HMAC secret not configured — cannot verify the signature');
+    }
 
     // Peach signs `${timestamp}.${webhookId}.${url}.${payload}` with HMAC-SHA256 (hex).
     const message = `${timestamp}.${webhookId}.${this.config.webhookUrl}.${input.rawBody}`;
@@ -112,6 +120,33 @@ export class PeachPaymentProvider implements PaymentProvider {
       providerReference: fields.transactionId ?? fields.checkoutId,
       amountMinor: fields.amountMinor,
       raw: fields.raw,
+    };
+  }
+
+  async getCheckoutStatus(checkoutId: string): Promise<PaymentEvent> {
+    const token = await this.accessToken();
+    const res = await fetch(
+      `${trimSlash(this.config.checkoutBaseUrl)}/v2/checkout/${encodeURIComponent(checkoutId)}/status`,
+      { headers: { Authorization: `Bearer ${token}` } },
+    );
+    if (!res.ok) {
+      throw new ProviderError(`Peach status query failed (${res.status})`, await safeText(res));
+    }
+    // The status payload is flat with dotted keys (result.code, card.bin, …) plus merchantTransactionId,
+    // amount, currency, id, paymentType.
+    const data = (await res.json()) as Record<string, unknown>;
+    const str = (k: string): string | null => {
+      const v = data[k];
+      return typeof v === 'string' ? v : typeof v === 'number' ? String(v) : null;
+    };
+    const amountStr = str('amount');
+    const amount = amountStr != null ? Number.parseFloat(amountStr) : NaN;
+    return {
+      outcome: outcomeFor(str('result.code'), str('paymentType')),
+      bookingRef: str('merchantTransactionId'),
+      providerReference: str('id') ?? checkoutId,
+      amountMinor: Number.isFinite(amount) ? Math.round(amount * 100) : null,
+      raw: data,
     };
   }
 

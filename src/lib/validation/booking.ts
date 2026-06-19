@@ -121,6 +121,12 @@ export const paymentLinkSchema = z.object({
 });
 export type PaymentLink = z.infer<typeof paymentLinkSchema>;
 
+export const syncPaymentInputSchema = z.object({
+  /** The provider checkout id to re-query for an authoritative payment status. */
+  checkoutId: z.string().min(1).max(64),
+});
+export type SyncPaymentInput = z.infer<typeof syncPaymentInputSchema>;
+
 /** Internal: what api_create_payment returns (amount + email come from the DB). */
 export const paymentCreateResultSchema = z.object({
   paymentId: z.string(),

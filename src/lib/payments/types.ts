@@ -6,8 +6,11 @@
 export interface CreateCheckoutInput {
   /** Our booking reference (idempotency anchor across provider + webhook). */
   bookingRef: string;
-  /** Total to charge, in EUR. Computed server-side from DB prices only. */
-  amountEur: number;
+  /** Amount to charge, in `currency`'s major units (server-computed from the DB price). */
+  amount: number;
+  /** ISO-4217 currency to charge in. The Mauritius card acquirer settles in USD, so the EUR booking
+   *  total is converted to USD at charge time while the ledger stays in EUR. */
+  currency: string;
   customerEmail: string;
   description: string;
   /** Where the hosted checkout redirects the customer back to. */
@@ -55,4 +58,10 @@ export interface PaymentProvider {
   createCheckout(input: CreateCheckoutInput): Promise<CheckoutSession>;
   /** Verifies the webhook signature and normalises the payload. Throws on invalid signature. */
   verifyWebhook(input: VerifyWebhookInput): Promise<PaymentEvent>;
+  /**
+   * Queries the provider for a checkout's authoritative payment status (by the provider's checkout
+   * id). This is the webhook-independent confirmation path: we ask the provider directly rather than
+   * trusting an inbound notification, so a booking confirms even when webhooks are unsigned or missed.
+   */
+  getCheckoutStatus(providerCheckoutId: string): Promise<PaymentEvent>;
 }

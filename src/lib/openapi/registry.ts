@@ -17,6 +17,7 @@ import {
   holdResultSchema,
   leadSchema,
   paymentLinkSchema,
+  syncPaymentInputSchema,
 } from '@/lib/validation/booking';
 
 const errorResponse = (description: string): ZodOpenApiResponseObject => ({
@@ -117,6 +118,22 @@ export const apiPaths: ZodOpenApiPathsObject = {
       requestBody: jsonBody(createPaymentInputSchema),
       responses: {
         '201': okJson(paymentLinkSchema, 'Checkout link'),
+        '404': errorResponse('Booking not found'),
+      },
+    },
+  },
+  '/payments/sync': {
+    post: {
+      operationId: 'syncPayment',
+      summary: "Confirm a booking from the provider's authoritative checkout status",
+      tags: ['Payments'],
+      requestBody: jsonBody(syncPaymentInputSchema),
+      responses: {
+        '200': okJson(
+          z.object({ outcome: z.string(), confirmed: z.boolean() }),
+          'Sync result',
+        ),
+        '403': errorResponse('Not the booking owner'),
         '404': errorResponse('Booking not found'),
       },
     },

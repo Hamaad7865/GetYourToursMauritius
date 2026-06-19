@@ -8,11 +8,12 @@ export * from './types';
 
 /**
  * Builds the Peach config when every required value is present, else null. The Checkout API needs
- * the OAuth credentials (clientId/clientSecret/merchantId), the entity id, the webhook secret, and
- * the checkout base URL. PEACH_AUTH_BASE_URL is optional — Peach serves the OAuth token endpoint and
- * the checkout API on the same host in most environments, so it defaults to the checkout base URL
- * (override only if your account splits them). PEACH_WEBHOOK_URL is optional too (createCheckout
- * works without it) but webhook verification fails closed until it's set.
+ * the OAuth credentials (clientId/clientSecret/merchantId), the entity id, and the checkout base URL.
+ * PEACH_AUTH_BASE_URL is optional — Peach serves the OAuth token endpoint and the checkout API on the
+ * same host in most environments, so it defaults to the checkout base URL (override only if your
+ * account splits them). PEACH_WEBHOOK_SECRET + PEACH_WEBHOOK_URL are optional (createCheckout works
+ * without them) — they're only needed for HMAC webhook verification, which fails closed until both
+ * exist (HMAC is activated by Peach support, not a dashboard toggle).
  */
 function peachConfigFromEnv(env: ServerEnv): PeachConfig | null {
   if (
@@ -20,7 +21,6 @@ function peachConfigFromEnv(env: ServerEnv): PeachConfig | null {
     env.PEACH_CLIENT_SECRET &&
     env.PEACH_MERCHANT_ID &&
     env.PEACH_ENTITY_ID &&
-    env.PEACH_WEBHOOK_SECRET &&
     env.PEACH_CHECKOUT_BASE_URL
   ) {
     return {
@@ -97,7 +97,7 @@ export function getPaymentProvider(): PaymentProvider {
         'deployment (Supabase service-role key configured, NODE_ENV=production, or ' +
         'PEACH_ENVIRONMENT=live) but Peach credentials are missing — the stub would confirm ' +
         'bookings without a verified payment. Set PEACH_CLIENT_ID, PEACH_CLIENT_SECRET, ' +
-        'PEACH_MERCHANT_ID, PEACH_ENTITY_ID, PEACH_WEBHOOK_SECRET and PEACH_CHECKOUT_BASE_URL.',
+        'PEACH_MERCHANT_ID, PEACH_ENTITY_ID and PEACH_CHECKOUT_BASE_URL.',
     );
   }
   return new StubPaymentProvider();
