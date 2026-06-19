@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useBooking } from './BookingProvider';
+import { OptionSelector } from './OptionSelector';
 import { useCart } from '@/lib/cart/useCart';
 import { useToast } from '@/components/site/ToastProvider';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
@@ -93,7 +94,16 @@ export function BookingOptionCard() {
       ref={cardRef}
       className="mt-6 mb-6 rounded-2xl border-2 border-teal/30 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.4)]"
     >
-      <div className="text-[11px] font-bold uppercase tracking-wide text-teal">{t('1 option available')}</div>
+      <div className="text-[11px] font-bold uppercase tracking-wide text-teal">
+        {b.activity.options.length > 1
+          ? t('{count} options', { count: b.activity.options.length })
+          : t('1 option available')}
+      </div>
+
+      {/* Multi-option picker — only renders for 2+ options; placed at the top of the card so the
+          customer chooses their option before reviewing participants/date/price below. */}
+      <OptionSelector />
+
       <h3 className="mt-1 font-display text-[19px] font-semibold text-ink">{b.activity.title}</h3>
 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] text-ink/80">
