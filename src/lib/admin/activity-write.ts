@@ -1,4 +1,5 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { normalizeBadges, type BadgeInput } from '@/lib/catalogue/badges';
 import type { PricingMode } from '@/lib/validation/tours';
 
 /* Client-side admin writes. RLS already grants staff/admin full read+write on activities and
@@ -55,6 +56,7 @@ export interface ActivityFormValues {
   images: ImageInput[];
   options: OptionInput[];
   itinerary: ItineraryStopInput[];
+  badges: BadgeInput[];
 }
 
 export const EMPTY_ACTIVITY: ActivityFormValues = {
@@ -79,6 +81,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   images: [],
   options: [],
   itinerary: [],
+  badges: [],
 };
 
 export function slugify(input: string): string {
@@ -117,7 +120,11 @@ function buildExtra(v: ActivityFormValues) {
         .map((o) => ({ title: o.title.trim(), area: o.area.trim() || null }));
       return options.length ? { ...base, options } : base;
     });
-  return itinerary.length ? { itinerary } : {};
+  const badges = normalizeBadges(v.badges);
+  const out: Record<string, unknown> = {};
+  if (itinerary.length) out.itinerary = itinerary;
+  if (badges.length) out.badges = badges;
+  return out;
 }
 
 function activityRow(v: ActivityFormValues, opId: string) {
@@ -348,6 +355,7 @@ interface ExtraShape {
     tags?: string[];
     options?: Array<{ title?: string; area?: string | null }>;
   }>;
+  badges?: Array<{ icon?: string; title?: string; subtitle?: string }>;
 }
 
 /** Load an existing activity into the editable form shape. */
@@ -412,5 +420,6 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       tags: s.tags ?? [],
       options: (s.options ?? []).map((o) => ({ title: o.title ?? '', area: o.area ?? '' })),
     })),
+    badges: (extra.badges ?? []).map((b) => ({ icon: b.icon ?? '', title: b.title ?? '', subtitle: b.subtitle ?? '' })),
   };
 }
