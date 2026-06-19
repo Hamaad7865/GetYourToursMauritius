@@ -19,6 +19,7 @@ import {
   SIGHTSEEING_SUV_MAX,
 } from '@/lib/services/pricing';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
+import { defaultOptionId, cheapestTier } from '@/lib/catalogue/options';
 
 export interface BookingActivity {
   slug: string;
@@ -99,6 +100,12 @@ interface BookingState {
   scrollTick: number;
   /** The booking option id used for availability + checkout. */
   bookingOptionId: string | null;
+  /** The currently selected option's id (drives price + availability), or null. */
+  selectedOptionId: string | null;
+  /** The currently selected option object, or null when the activity has no options. */
+  selectedOption: TourOption | null;
+  /** Select a different option: re-prices, re-fetches availability, and clears the date pick. */
+  setSelectedOption: (id: string) => void;
   vehicleCfg: VehiclePricing;
   /** Cheapest tier's max_guests (per-group "up to N"), null otherwise. */
   groupSize: number | null;
@@ -179,19 +186,27 @@ export function BookingProvider({
   const isVehicle = activity.pricingMode === 'vehicle';
   const vehicleCfg = activity.vehiclePricing ?? SIGHTSEEING_DEFAULT;
 
-  // Cheapest price tier drives the bookable option id + per-person/per-group price.
-  const cheapest = useMemo(() => {
-    let best: { optionId: string; label: string; amountEur: number; maxGuests: number | null } | null = null;
-    for (const o of activity.options) {
-      for (const p of o.prices) {
-        if (!best || p.amountEur < best.amountEur) {
-          best = { optionId: o.id, label: p.label, amountEur: p.amountEur, maxGuests: p.maxGuests };
-        }
-      }
-    }
-    return best;
-  }, [activity.options]);
-  const bookingOptionId = isVehicle ? (activity.options[0]?.id ?? null) : (cheapest?.optionId ?? null);
+  // The SELECTED option drives price + availability. Defaults to today's behaviour: options[0] for
+  // vehicle mode, else the option holding the globally cheapest tier (matching the old `cheapest` scan).
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(
+    () => defaultOptionId(activity.options, activity.pricingMode === 'vehicle'),
+  );
+  const selectedOption = useMemo(
+    () => activity.options.find((o) => o.id === selectedOptionId) ?? activity.options[0] ?? null,
+    [activity.options, selectedOptionId],
+  );
+  const setSelectedOption = useCallback((id: string) => {
+    setSelectedOptionId(id);
+    setDate(''); // occurrences differ per option — force a fresh date pick
+    touch();
+  }, [touch]);
+
+  // The selected option's cheapest tier drives the per-person/per-group price (and tier caps).
+  const selectedTier = useMemo(
+    () => (selectedOption ? cheapestTier(selectedOption) : null),
+    [selectedOption],
+  );
+  const bookingOptionId = selectedOption?.id ?? null;
 
   const today = useMemo(() => {
     const d = new Date();
@@ -230,9 +245,9 @@ export function BookingProvider({
     };
   }, [activity.slug, bookingOptionId, today]);
 
-  const groupSize = activity.pricingMode === 'per_group' ? (cheapest?.maxGuests ?? null) : null;
+  const groupSize = activity.pricingMode === 'per_group' ? (selectedTier?.maxGuests ?? null) : null;
   const seatsLeft = (date ? days?.get(date)?.seatsLeft : undefined) ?? 0;
-  const tierCap = activity.pricingMode === 'per_person' && cheapest?.maxGuests ? cheapest.maxGuests : Infinity;
+  const tierCap = activity.pricingMode === 'per_person' && selectedTier?.maxGuests ? selectedTier.maxGuests : Infinity;
   const maxParticipants = isVehicle
     ? Math.max(1, vehicleCfg.maxParty)
     : Math.max(1, Math.min(16, tierCap, date ? seatsLeft : 16));
@@ -265,16 +280,16 @@ export function BookingProvider({
     : null;
   const baseTotal = isVehicle
     ? (vehicleQuote?.totalEur ?? null)
-    : cheapest == null
+    : selectedTier == null
       ? null
       : activity.pricingMode === 'per_group'
         ? // One flat price per group of `groupSize`. If the group size is missing (a per_group tier
           // saved without a cap), the server prices PER HEAD — so fall back to per head here too, so
           // Continue, the cart line and the actual charge all agree (never a single under-stated group).
           groupSize
-          ? cheapest.amountEur * Math.ceil(participants / groupSize)
-          : cheapest.amountEur * participants
-        : cheapest.amountEur * participants;
+          ? selectedTier.amountEur * Math.ceil(participants / groupSize)
+          : selectedTier.amountEur * participants
+        : selectedTier.amountEur * participants;
   const childSeatsExtra = childSeatsCost(childSeats);
 
   // Region-based transport add-on (per_person / per_group with pickup): a fee that scales with the
@@ -307,12 +322,12 @@ export function BookingProvider({
   const total = baseTotal == null ? null : baseTotal + childSeatsExtra + transportExtra;
   // Per-unit price for the cart: a vehicle is one flat unit (its whole price); per-group / per-person
   // is the tier's unit price (the cart multiplies it by the party). Never includes the child add-on.
-  const unitPriceEur = isVehicle ? (baseTotal ?? 0) : (cheapest?.amountEur ?? 0);
+  const unitPriceEur = isVehicle ? (baseTotal ?? 0) : (selectedTier?.amountEur ?? 0);
   const vehicleName = vehicleQuote?.vehicle ?? null;
   // Single source of the price-tier label for BOTH Continue and Add-to-cart. They used to diverge:
   // Add-to-cart hardcoded 'Adult', which the server rejects (unknown_price_tier) for any tour whose
   // cheapest tier isn't labelled 'Adult'.
-  const priceLabel = isVehicle ? (vehicleName ?? 'Vehicle') : (cheapest?.label ?? '');
+  const priceLabel = isVehicle ? (vehicleName ?? 'Vehicle') : (selectedTier?.label ?? '');
 
   async function continueToCheckout() {
     const occ = date ? days?.get(date)?.occurrenceId : undefined;
@@ -425,6 +440,9 @@ export function BookingProvider({
     checkAvailability,
     scrollTick,
     bookingOptionId,
+    selectedOptionId,
+    selectedOption,
+    setSelectedOption,
     vehicleCfg,
     groupSize,
     seatsLeft,
