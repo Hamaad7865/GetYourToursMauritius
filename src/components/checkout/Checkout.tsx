@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -8,10 +8,13 @@ import { Logo } from '@/components/site/Logo';
 import { Price } from '@/components/site/Price';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupMap } from '@/components/maps/PickupMap';
+import { RouteMap, type StopKind } from '@/components/maps/RouteMap';
 import { childSeatsCost } from '@/lib/services/pricing';
+import { canAdvanceStep1 } from '@/lib/checkout/pickup';
+import type { ItineraryStop } from '@/lib/validation/tours';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
-const STEPS = ['Transport', 'Contact', 'Payment'];
+const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 
 function Spinner() {
   return <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />;
@@ -93,17 +96,29 @@ export function Checkout() {
   }
 
   // Pickup / drop-off chosen in the AI planner (when arriving from "Get my quote"): pre-fill the
-  // transport step with the pickup, and carry a distinct drop-off onto the booking for the driver.
+  // pickup step with the pickup, and carry a distinct drop-off onto the booking for the driver.
   const pickupParam = (params.get('pickup') ?? '').slice(0, 160);
   const dropoffParam = (params.get('dropoff') ?? '').slice(0, 160);
 
+  // Does this activity support pickup? The widget only carries a transport hint / pickup stash for
+  // pickup-capable (per_person/per_group with pickup, or sightseeing) activities, so a positive
+  // transport hint OR a planner/widget pickup prefill means "transport applies" → default to Yes.
+  // A fixed-location activity (no hint, no prefill) defaults to No → "Meet at {location}".
+  const transportApplies = transportHint > 0 || Boolean(pickupParam);
+
   const [step, setStep] = useState(1);
-  const [pickup, setPickup] = useState<'known' | 'unknown' | null>(pickupParam ? 'known' : null);
+  // "Do you want pickup?" — default Yes when transport applies (or a pickup was pre-filled), else No.
+  const [wantsPickup, setWantsPickup] = useState(transportApplies);
+  // "I don't know yet" — a pickup is wanted but no address can be given now (server charges no fee).
+  const [tbd, setTbd] = useState(false);
   const [pickupLoc, setPickupLoc] = useState(pickupParam);
   // Resolved pickup coordinates — drive the region-based transport fee the server charges. Prefilled
   // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [dropoffText, setDropoffText] = useState('');
+  const [dropoffText, setDropoffText] = useState(dropoffParam);
+  // The chosen route's itinerary stops, read from sessionStorage post-mount (SSR-safe) for the
+  // read-only route preview on step ①. The pickup + drop-off bookend these stops on the map.
+  const [itineraryStops, setItineraryStops] = useState<ItineraryStop[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secs, setSecs] = useState(() => {
@@ -142,15 +157,62 @@ export function Checkout() {
       const raw = window.sessionStorage.getItem(`gytm:pickup:${occ}`);
       const p = raw ? JSON.parse(raw) : null;
       if (p && typeof p.lat === 'number' && typeof p.lng === 'number') {
-        setPickup('known');
+        setWantsPickup(true);
+        setTbd(false);
         setPickupLoc((cur) => cur || p.address || '');
         setPickupCoords({ lat: p.lat, lng: p.lng });
-        if (p.dropoff?.address) setDropoffText(p.dropoff.address);
+        if (p.dropoff?.address) setDropoffText((cur) => cur || p.dropoff.address);
       }
     } catch {
       /* sessionStorage unavailable — the customer can enter the pickup here */
     }
   }, [occ]);
+
+  // Load the chosen route's itinerary stops post-mount (SSR-safe) so the step-① route preview can
+  // draw pickup → stops → drop-off. readItinerary already picks the right sessionStorage key.
+  useEffect(() => {
+    const stops = readItinerary();
+    if (stops) {
+      setItineraryStops(
+        stops.map((s) => ({
+          title: s.title,
+          area: s.area ?? null,
+          lat: typeof s.lat === 'number' ? s.lat : undefined,
+          lng: typeof s.lng === 'number' ? s.lng : undefined,
+        })),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [occ, slug]);
+
+  // The read-only route preview shown when a pickup address + coords are resolved (and not TBD):
+  // pickup (coral "P") → itinerary stops (numbered teal) → drop-off (teal "D") if one was typed.
+  // Drop-off has no coords here, so it's geocoded by title (the address text) inside RouteMap.
+  const showRoutePreview = wantsPickup && !tbd && pickupLoc.trim().length > 0 && !!pickupCoords;
+  const routeStops: ItineraryStop[] = useMemo(() => {
+    if (!showRoutePreview || !pickupCoords) return [];
+    const stops: ItineraryStop[] = [
+      { title: pickupLoc.trim() || 'Pickup', lat: pickupCoords.lat, lng: pickupCoords.lng },
+      ...itineraryStops,
+    ];
+    if (dropoffText.trim()) stops.push({ title: dropoffText.trim() });
+    return stops;
+  }, [showRoutePreview, pickupCoords, pickupLoc, itineraryStops, dropoffText]);
+  // Coral endpoints: the pickup (index 0) always, and the drop-off (last) only when one was typed.
+  const hasDropoff = dropoffText.trim().length > 0;
+  const routeKinds: StopKind[] = useMemo(
+    () => routeStops.map((_, i) => (i === 0 || (hasDropoff && i === routeStops.length - 1) ? 'start' : 'main')),
+    [routeStops, hasDropoff],
+  );
+  const routeLabels = useMemo(
+    () =>
+      routeStops.map((_, i) => {
+        if (i === 0) return 'P';
+        if (hasDropoff && i === routeStops.length - 1) return 'D';
+        return i; // 1-based numbering for the activity stops between pickup and drop-off
+      }),
+    [routeStops, hasDropoff],
+  );
 
   if (!occ || !slug) {
     return (
@@ -168,8 +230,13 @@ export function Checkout() {
   // A real hold has a server expiry only when expiresAt was stashed on Continue; the 30-min fallback is
   // cosmetic. Lock Pay only when a REAL hold ran out — cart checkouts (no hold) are never blocked.
   const expired = Boolean(expiresAt) && secs === 0;
+  // Step ① can advance unless pickup is wanted with no address and not "I don't know yet".
+  const canAdvance = canAdvanceStep1({ wantsPickup, address: pickupLoc, tbd });
 
   function continueFromTransport() {
+    // Authoritative gate: pickup wanted needs an address (or "I don't know yet"). The CTA is also
+    // disabled, but guard here so a keyboard/programmatic advance can't skip step ①.
+    if (!canAdvance) return;
     setBusy(true);
     setError(null);
     window.setTimeout(() => {
@@ -202,21 +269,18 @@ export function Checkout() {
             childSeats,
             holdId: holdId || undefined,
             itinerary: readItinerary(),
-            // The pickup address the customer entered on the transport step (null when they chose
-            // "I don't know yet"), with the planner's distinct drop-off appended. Clamped to 200 to
-            // match the booking schema — a long address + drop-off would otherwise be rejected.
-            // Persisted on the booking so the provider actually receives it.
-            pickupLocation:
-              pickup === 'known' && pickupLoc.trim()
-                ? (dropoffParam || dropoffText
-                    ? `${pickupLoc.trim()} → drop-off: ${dropoffParam || dropoffText}`
-                    : pickupLoc.trim()
-                  ).slice(0, 200)
-                : null,
+            // Pickup + drop-off are DISTINCT fields on the booking — never concatenated. A fixed
+            // pickup address sends its text (+ coords); the drop-off sends its own text. "I don't
+            // know yet" (tbd) sends no address/coords but flags pickupPending so admin sees a
+            // pending pickup. "No pickup" sends all null/false. Clamped to 200 to match the schema.
+            pickupLocation: wantsPickup && !tbd && pickupLoc.trim() ? pickupLoc.trim().slice(0, 200) : null,
+            dropoffLocation: wantsPickup && !tbd && dropoffText.trim() ? dropoffText.trim().slice(0, 200) : null,
+            pickupPending: wantsPickup && tbd,
             // Pickup coordinates → the server re-derives the region and adds the transport fare (only
             // for per_person/per_group activities with pickup; ignored otherwise). Never a client price.
-            pickupLat: pickup === 'known' && pickupCoords ? pickupCoords.lat : null,
-            pickupLng: pickup === 'known' && pickupCoords ? pickupCoords.lng : null,
+            // A TBD pickup sends no coords → no transport fee, per the spec.
+            pickupLat: wantsPickup && !tbd && pickupCoords ? pickupCoords.lat : null,
+            pickupLng: wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
               email: user?.email,
@@ -312,19 +376,59 @@ export function Checkout() {
 
           {step === 1 && (
             <section>
-              <h1 className="font-display text-2xl font-semibold text-ink">
-                {t('Do you know where you want to be picked up?')}
-              </h1>
+              <h1 className="font-display text-2xl font-semibold text-ink">{t('Do you want pickup?')}</h1>
               <div className="mt-5 flex flex-col gap-2">
-                <PickRadio checked={pickup === 'known'} onClick={() => setPickup('known')} title={t('Yes, I can add it now')}>
-                  {pickup === 'known' && (
-                    <PickupMap value={pickupLoc} onChange={setPickupLoc} onCoords={setPickupCoords} />
+                <PickRadio
+                  checked={wantsPickup}
+                  onClick={() => setWantsPickup(true)}
+                  title={t('Yes, pick me up')}
+                >
+                  {wantsPickup && (
+                    <div className="mt-1">
+                      {!tbd && (
+                        <>
+                          <PickupMap value={pickupLoc} onChange={setPickupLoc} onCoords={setPickupCoords} />
+                          <label className="mt-3 block text-[13px] font-semibold text-ink">
+                            {t('Drop-off location')}
+                            <input
+                              value={dropoffText}
+                              onChange={(e) => setDropoffText(e.target.value)}
+                              placeholder={t('Same as pickup, or a different address')}
+                              className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                            />
+                          </label>
+                          {showRoutePreview && routeStops.length > 0 && (
+                            <div className="mt-3">
+                              <RouteMap stops={routeStops} kinds={routeKinds} labels={routeLabels} />
+                            </div>
+                          )}
+                        </>
+                      )}
+                      <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
+                        <input
+                          type="checkbox"
+                          checked={tbd}
+                          onChange={(e) => setTbd(e.target.checked)}
+                          className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
+                        />
+                        {t('I don’t know yet')}
+                      </label>
+                      {tbd && (
+                        <span className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
+                          {t('Add your pickup location 24 hours before your activity (ideally sooner) so your provider can accommodate you.')}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </PickRadio>
-                <PickRadio checked={pickup === 'unknown'} onClick={() => setPickup('unknown')} title={t('I don’t know yet')}>
-                  {pickup === 'unknown' && (
+                <PickRadio
+                  checked={!wantsPickup}
+                  onClick={() => setWantsPickup(false)}
+                  title={t('No, I’ll make my own way')}
+                >
+                  {!wantsPickup && (
                     <span className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-                      {t('Add your pickup location 24 hours before your activity (ideally sooner) so your provider can accommodate you.')}
+                      {t('Meet at {location}', { location: title })}
                     </span>
                   )}
                 </PickRadio>
@@ -332,11 +436,16 @@ export function Checkout() {
               <button
                 type="button"
                 onClick={continueFromTransport}
-                disabled={busy}
+                disabled={busy || !canAdvance}
                 className="mt-6 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
                 {busy ? <Spinner /> : t('Next: Personal details')}
               </button>
+              {!canAdvance && (
+                <p className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
+                  {t('Add your pickup address, or choose “I don’t know yet”.')}
+                </p>
+              )}
             </section>
           )}
 
@@ -441,7 +550,7 @@ export function Checkout() {
           <button
             type="button"
             onClick={continueFromTransport}
-            disabled={busy}
+            disabled={busy || !canAdvance}
             className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
           >
             {busy ? <Spinner /> : t('Next: Personal details')}
