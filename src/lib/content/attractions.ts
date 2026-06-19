@@ -60,7 +60,8 @@ export function formatVisitDuration(min: number): string {
 }
 
 export function attractionMetaTitle(p: PlannerPlace): string {
-  return `${p.name}, ${p.region} Mauritius — Visitor Guide | ${SITE.operator}`;
+  // The root metadata template appends the site name, so don't repeat the brand here.
+  return `${p.name}, ${p.region} Mauritius — Visitor Guide`;
 }
 
 export function attractionMetaDescription(p: PlannerPlace): string {

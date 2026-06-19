@@ -19,7 +19,8 @@ export function organizationJsonLd(): Record<string, unknown> {
     name: SITE.operator,
     alternateName: SITE.alternateName,
     url: SITE.url,
-    image: `${SITE.url}/og-belle-mare.jpg`,
+    image: `${SITE.url}/hero-mauritius.jpg`,
+    logo: `${SITE.url}/logo.png`,
     telephone: SITE.phone,
     priceRange: SITE.priceRange,
     areaServed: 'Mauritius',
@@ -32,6 +33,13 @@ export function organizationJsonLd(): Record<string, unknown> {
       addressCountry: SITE.country,
     },
     geo: { '@type': 'GeoCoordinates', latitude: SITE.geo.lat, longitude: SITE.geo.lng },
+    // Genuine operator rating (TripAdvisor 4.8/959 + Google 4.7/117). Surface the real social proof.
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: '4.8',
+      reviewCount: '1076',
+      bestRating: '5',
+    },
   };
 }
 
@@ -130,4 +138,59 @@ export function itemListJsonLd(items: { name: string; path: string }[]): Record<
       url: `${SITE.url}${it.path}`,
     })),
   };
+}
+
+/** Service (airport transfer) for a per-hotel transfer landing page. */
+export function transferServiceJsonLd(opts: {
+  name: string;
+  description: string;
+  path: string;
+  area: string;
+  fromPriceEur: number;
+}): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    serviceType: 'Airport transfer',
+    name: opts.name,
+    description: opts.description,
+    url: `${SITE.url}${opts.path}`,
+    provider: { '@type': 'TravelAgency', name: SITE.operator, '@id': `${SITE.url}/#operator` },
+    areaServed: { '@type': 'Place', name: `${opts.area}, Mauritius` },
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'EUR',
+      price: String(opts.fromPriceEur),
+      url: `${SITE.url}${opts.path}`,
+      availability: 'https://schema.org/InStock',
+    },
+  };
+}
+
+/** BlogPosting for a blog article. */
+export function articleJsonLd(opts: {
+  title: string;
+  description: string;
+  path: string;
+  datePublished: string;
+  image?: string | null;
+}): Record<string, unknown> {
+  const json: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    headline: opts.title,
+    description: opts.description,
+    url: `${SITE.url}${opts.path}`,
+    mainEntityOfPage: `${SITE.url}${opts.path}`,
+    datePublished: opts.datePublished,
+    dateModified: opts.datePublished,
+    author: { '@type': 'Organization', name: SITE.operator, url: SITE.url },
+    publisher: {
+      '@type': 'Organization',
+      name: SITE.operator,
+      logo: { '@type': 'ImageObject', url: `${SITE.url}/logo.png` },
+    },
+  };
+  if (opts.image) json.image = opts.image;
+  return json;
 }
