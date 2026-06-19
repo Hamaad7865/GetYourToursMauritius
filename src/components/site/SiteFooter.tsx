@@ -18,7 +18,7 @@ const COLUMNS = [
   {
     title: 'Transport & rentals',
     links: [
-      { label: 'Airport transfers', href: '/airport-transfer' },
+      { label: 'Airport transfers', href: '/airport-transfers' },
       { label: 'Taxi & private driver', href: '/taxi' },
       { label: 'Car & scooter rental', href: '/rent' },
     ],
@@ -27,6 +27,7 @@ const COLUMNS = [
     title: 'Company',
     links: [
       { label: 'Things to do in Mauritius', href: '/attractions' },
+      { label: 'Mauritius travel blog', href: '/blog' },
       { label: 'About Belle Mare Tours', href: '/about' },
       { label: 'Contact & pickups', href: '/contact' },
     ],
