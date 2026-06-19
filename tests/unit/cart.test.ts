@@ -22,6 +22,8 @@ const base: CartItem = {
   unit: 'per person',
   childSeats: 3,
   addedAt: 0,
+  status: 'saved',
+  idemKey: 'test-key',
 };
 
 describe('itemTotal — child-seat add-on never exceeds the party', () => {

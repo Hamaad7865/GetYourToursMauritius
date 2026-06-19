@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AltStop, PricingMode } from '@/lib/validation/tours';
 import { childSeatsCost } from '@/lib/services/pricing';
+import { dropExpiredHolds } from './cart-holds';
 
 const KEY = 'gytm:cart';
 const EVENT = 'gytm:cart';
-/** Cart items are kept for 30 minutes, mirroring the GetYourGuide cart retention. */
+/** @deprecated Kept for reference only — expiry is now driven by server hold expiresAt, not addedAt.
+ *  Saved lines (no hold) persist indefinitely in the cart. */
 export const CART_TTL_MS = 30 * 60 * 1000;
+
+export type CartLineStatus = 'saved' | 'held' | 'unavailable';
 
 export interface CartItem {
   /** Stable id = occurrence + price tier, so re-adding the same slot updates it. */
@@ -36,8 +40,15 @@ export interface CartItem {
   /** The customised route the traveller chose on the tour page (present only when it diverges from
    *  the default), so Add-to-cart carries it to checkout exactly like the Continue button does. */
   itinerary?: AltStop[];
-  /** ms epoch when added, for the 30-minute expiry. */
+  /** ms epoch when added. */
   addedAt: number;
+  /** Saved (no hold) → held (server hold) → unavailable (sold out at checkout). */
+  status: CartLineStatus;
+  /** Server hold id + ISO expiry — present only when status === 'held'. */
+  holdId?: string;
+  expiresAt?: string;
+  /** Stable idempotency anchor so re-running Checkout reuses the same hold. */
+  idemKey: string;
 }
 
 /** Price for one cart line: a flat price for vehicle pricing, per group (ceil people / size) for
@@ -74,8 +85,9 @@ function read(): CartItem[] {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(KEY) ?? '[]');
     if (!Array.isArray(parsed)) return [];
-    const now = Date.now();
-    return (parsed as CartItem[]).filter((i) => i && now - i.addedAt < CART_TTL_MS);
+    // Saved lines persist indefinitely; held lines expire by their server expiresAt;
+    // unavailable lines are silently dropped on read.
+    return dropExpiredHolds(parsed as CartItem[], Date.now()).kept;
   } catch {
     return [];
   }
@@ -108,9 +120,9 @@ export function useCart() {
     };
   }, []);
 
-  const add = useCallback((item: Omit<CartItem, 'addedAt'>) => {
+  const add = useCallback((item: Omit<CartItem, 'addedAt' | 'status' | 'idemKey'>) => {
     const current = read().filter((i) => i.id !== item.id);
-    write([...current, { ...item, addedAt: Date.now() }]);
+    write([...current, { ...item, addedAt: Date.now(), status: 'saved', idemKey: crypto.randomUUID() }]);
   }, []);
 
   const remove = useCallback((id: string) => {
