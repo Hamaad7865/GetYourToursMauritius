@@ -25,24 +25,16 @@ export function blogPath(slug: string): string {
   return `/blog/${slug}`;
 }
 
-/** Deterministic publish dates, newest first — stamped at build, no Date.now() dependency. */
-const PUBLISH_DATES = [
-  '2026-06-17',
-  '2026-06-12',
-  '2026-06-05',
-  '2026-05-29',
-  '2026-05-22',
-  '2026-05-15',
-  '2026-05-08',
-  '2026-05-01',
-  '2026-04-24',
-  '2026-04-17',
-];
+/** Deterministic publish date per post (newest first, 5 days apart) — no Date.now(), so builds are stable. */
+function dateForIndex(i: number): string {
+  const base = Date.parse('2026-06-17T00:00:00Z');
+  return new Date(base - i * 5 * 86400000).toISOString().slice(0, 10);
+}
 
 export const posts: Post[] = POSTS_RAW.map((p, i) => ({
   ...p,
   path: blogPath(p.slug),
-  datePublished: PUBLISH_DATES[i] ?? '2026-04-10',
+  datePublished: dateForIndex(i),
 })).sort((a, b) => b.datePublished.localeCompare(a.datePublished));
 
 export function getPost(slug: string): Post | null {

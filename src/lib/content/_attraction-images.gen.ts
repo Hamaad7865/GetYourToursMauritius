@@ -115,5 +115,21 @@ export const ATTRACTION_IMAGES: Record<string, { url: string; source: string }> 
   "le-pouce-mountain": {
     "url": "https://upload.wikimedia.org/wikipedia/commons/a/af/Le_Pouce2.jpg",
     "source": "https://en.wikipedia.org/wiki/Le_Pouce"
+  },
+  "grand-bassin-ganga-talao": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/7/70/Grand_Bassin%2C_Mauritius.jpg/1280px-Grand_Bassin%2C_Mauritius.jpg",
+    "source": "https://en.wikipedia.org/wiki/Ganga_Talao"
+  },
+  "mahebourg": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Esplanade%2C_Mahebourg%2C_Mauritius.JPG",
+    "source": "https://en.wikipedia.org/wiki/Mah%C3%A9bourg"
+  },
+  "tamarin-beach": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/1f/Mauritius_tamarin_beach.jpg/1280px-Mauritius_tamarin_beach.jpg",
+    "source": "https://en.wikipedia.org/wiki/Tamarin%2C_Mauritius"
+  },
+  "albion-beach": {
+    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Albion_Lighthouse-zoom.jpg/1280px-Albion_Lighthouse-zoom.jpg",
+    "source": "https://en.wikipedia.org/wiki/Albion%2C_Mauritius"
   }
 };
