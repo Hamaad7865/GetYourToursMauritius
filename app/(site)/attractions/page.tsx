@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { AttractionCard } from '@/components/attractions/AttractionCard';
-import { loadPlaces } from '@/lib/services/places';
+import { loadPlaces } from '@/lib/catalogue/places';
 import { REGION_ORDER, REGION_INTRO, attractionPath } from '@/lib/content/attractions';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';

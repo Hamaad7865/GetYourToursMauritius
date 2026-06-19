@@ -5,7 +5,7 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { AttractionCard } from '@/components/attractions/AttractionCard';
 import { LocationMap } from '@/components/maps/LocationMap';
-import { getPlace, loadPlaces } from '@/lib/services/places';
+import { getPlace, loadPlaces } from '@/lib/catalogue/places';
 import {
   attractionPath,
   attractionImage,

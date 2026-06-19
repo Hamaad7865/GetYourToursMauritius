@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { SITE } from '@/lib/seo/site';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
-import { loadPlaces } from '@/lib/services/places';
+import { loadPlaces } from '@/lib/catalogue/places';
 import { transfers } from '@/lib/content/transfers';
 import { posts } from '@/lib/content/blog';
 import { areas } from '@/lib/content/areas';

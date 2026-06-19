@@ -1,6 +1,6 @@
 import { cache } from 'react';
 import { publicServiceContext } from '@/lib/http/context';
-import { listPlannerPlaces } from './planner';
+import { listPlannerPlaces } from '@/lib/services/planner';
 import type { PlannerPlace } from '@/lib/validation/planner';
 
 /**
