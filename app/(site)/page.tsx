@@ -11,15 +11,26 @@ import type { TourSummary } from '@/lib/validation/tours';
 export const runtime = 'edge';
 
 export const metadata: Metadata = {
-  title: 'Belle Mare Tours & Mauritius East-Coast Activities',
+  title: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi',
   description:
-    "Book Belle Mare Tours direct: catamaran cruises to Île aux Cerfs, dolphin swims, undersea walks, parasailing and island day tours across Mauritius's east coast. Instant confirmation, no reseller markup.",
+    'Book Mauritius tours, activities and excursions direct with Belle Mare Tours: catamaran cruises, dolphin swims, island day tours, private sightseeing and airport taxi transfers. Transparent pricing, instant confirmation, no reseller markup.',
+  keywords: [
+    'Mauritius tours',
+    'tours in Mauritius',
+    'Belle Mare Tours',
+    'Mauritius activities',
+    'things to do in Mauritius',
+    'Mauritius sightseeing tours',
+    'taxi Mauritius',
+    'airport taxi Mauritius',
+    'Mauritius excursions',
+  ],
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
-    title: 'Belle Mare Tours & Mauritius East-Coast Activities',
+    title: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi',
     description:
-      'The official booking platform of Belle Mare Tours — booked direct, no reseller markup.',
+      'Book Mauritius tours, activities, sightseeing and airport taxi transfers direct with Belle Mare Tours — transparent pricing, instant confirmation, no reseller markup.',
     locale: 'en_GB',
     alternateLocale: 'fr_FR',
   },

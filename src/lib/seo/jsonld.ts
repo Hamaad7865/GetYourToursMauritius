@@ -1,4 +1,5 @@
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
+import type { PlannerPlace } from '@/lib/validation/planner';
 import { SITE } from './site';
 
 /**
@@ -64,4 +65,69 @@ export function productJsonLd(activity: TourDetail | TourSummary): Record<string
     };
   }
   return json;
+}
+
+/** Generic BreadcrumbList from ordered crumbs (paths are site-relative). */
+export function breadcrumbListJsonLd(items: { name: string; path: string }[]): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((it, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: it.name,
+      item: `${SITE.url}${it.path}`,
+    })),
+  };
+}
+
+/** FAQPage from question/answer pairs (rich-result eligible). */
+export function faqPageJsonLd(faqs: { q: string; a: string }[]): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({
+      '@type': 'Question',
+      name: f.q,
+      acceptedAnswer: { '@type': 'Answer', text: f.a },
+    })),
+  };
+}
+
+/** TouristAttraction entity for an attraction detail page. */
+export function attractionJsonLd(
+  place: PlannerPlace,
+  opts: { path: string; image?: string | null },
+): Record<string, unknown> {
+  const json: Record<string, unknown> = {
+    '@context': 'https://schema.org',
+    '@type': 'TouristAttraction',
+    name: place.name,
+    url: `${SITE.url}${opts.path}`,
+    address: {
+      '@type': 'PostalAddress',
+      addressRegion: `${place.region} Mauritius`,
+      addressCountry: 'MU',
+    },
+    geo: { '@type': 'GeoCoordinates', latitude: place.lat, longitude: place.lng },
+    isAccessibleForFree: true,
+  };
+  if (place.blurb) json.description = place.blurb;
+  if (opts.image) json.image = opts.image;
+  return json;
+}
+
+/** ItemList for a collection / hub page. */
+export function itemListJsonLd(items: { name: string; path: string }[]): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    numberOfItems: items.length,
+    itemListElement: items.map((it, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: it.name,
+      url: `${SITE.url}${it.path}`,
+    })),
+  };
 }

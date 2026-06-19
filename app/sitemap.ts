@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next';
 import { SITE } from '@/lib/seo/site';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
+import { loadPlaces } from '@/lib/services/places';
 
 export const runtime = 'edge';
 
@@ -10,6 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${base}/`, changeFrequency: 'daily', priority: 1 },
     { url: `${base}/activities`, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${base}/attractions`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${base}/about`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${base}/help`, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${base}/refunds`, changeFrequency: 'yearly', priority: 0.3 },
@@ -29,5 +31,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('[sitemap] catalogue fetch failed', error);
   }
 
-  return [...staticRoutes, ...activityRoutes];
+  let attractionRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const places = await loadPlaces();
+    attractionRoutes = places.map((place) => ({
+      url: `${base}/attractions/${place.id}`,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    }));
+  } catch (error) {
+    console.error('[sitemap] places fetch failed', error);
+  }
+
+  return [...staticRoutes, ...activityRoutes, ...attractionRoutes];
 }

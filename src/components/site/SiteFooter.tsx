@@ -26,6 +26,7 @@ const COLUMNS = [
   {
     title: 'Company',
     links: [
+      { label: 'Things to do in Mauritius', href: '/attractions' },
       { label: 'About Belle Mare Tours', href: '/about' },
       { label: 'Contact & pickups', href: '/contact' },
     ],
