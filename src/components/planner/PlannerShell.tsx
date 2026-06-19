@@ -500,8 +500,6 @@ export function PlannerShell() {
     ...stops.map((_, i) => i + 1),
     ...(dropoffDiffers ? ['D'] : []),
   ];
-  // Round trips draw the dashed return-to-pickup leg; a one-way day to a drop-off does not.
-  const mapLoop = !dropoffDiffers && stops.length > 0;
   const warning = placeCountWarning(stops.length);
 
   const itinerary = (
@@ -551,7 +549,6 @@ export function PlannerShell() {
       animate={stops.length > 0}
       carColor="#DC2626"
       className="h-full w-full"
-      loop={mapLoop}
     />
   );
   const drawer = <PlacesDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} selectedIds={stopIds} onAdd={addPlace} />;

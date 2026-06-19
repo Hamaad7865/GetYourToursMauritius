@@ -62,9 +62,10 @@ type MapOverlay = { setMap: (map: google.maps.Map | null) => void };
 
 /**
  * Itinerary route map. Draws the real DRIVING route along the roads (Google Directions) with numbered
- * brand pins, and — when `animate` — a car marker that drives the route on a loop (rAF, reduced-motion
- * aware). Falls back to a dashed straight-line route, then to a keyless Google Maps link, so it
- * degrades but never breaks. The map is created ONCE and only its overlays are redrawn when `stops`
+ * brand pins, and — when `animate` — a car marker that drives the route (out then back, rAF,
+ * reduced-motion aware). When Directions is unavailable it degrades to clean numbered markers plus a
+ * keyless "View on Google Maps" link — never a dashed line. If the map itself can't load, it falls
+ * back to the link card. The map is created ONCE and only its overlays are redrawn when `stops`
  * change, so editing a route in the builder doesn't leak a fresh Map per edit.
  */
 export function RouteMap({
@@ -74,7 +75,6 @@ export function RouteMap({
   animate = false,
   carColor = '#0E8C92',
   className,
-  loop = true,
 }: {
   stops: ItineraryStop[];
   /** Marker role per stop (aligned to `stops`). Defaults to start (index 0) + main (rest). */
@@ -87,8 +87,6 @@ export function RouteMap({
   carColor?: string;
   /** Override the container classes (e.g. to fill a parent pane instead of the default fixed height). */
   className?: string;
-  /** Draw the dashed "return to start" leg (a round-trip cue). Off for the one-way planner route. */
-  loop?: boolean;
 }) {
   const status = useGoogleMaps();
   const elRef = useRef<HTMLDivElement>(null);
@@ -96,6 +94,9 @@ export function RouteMap({
   const overlaysRef = useRef<MapOverlay[]>([]);
   const rafRef = useRef<number | null>(null);
   const [failed, setFailed] = useState(false);
+  // Map tiles render fine but Directions is unavailable: keep the numbered markers, draw NO line, and
+  // surface a keyless "View on Google Maps" link beneath the map (never a dashed line).
+  const [noRoute, setNoRoute] = useState(false);
 
   useEffect(() => {
     if (status !== 'ready' || !elRef.current || stops.length === 0) return;
@@ -114,6 +115,7 @@ export function RouteMap({
     // Tear down the previous render's overlays + animation before redrawing.
     overlaysRef.current.forEach((o) => o.setMap(null));
     overlaysRef.current = [];
+    setNoRoute(false);
     if (rafRef.current != null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
@@ -200,57 +202,21 @@ export function RouteMap({
       }
       if (!drewRoute) {
         if (cancelled) return;
-        // Directions unavailable → dashed straight-line fallback.
-        track(
-          new google.maps.Polyline({
-            map,
-            path: points,
-            geodesic: true,
-            strokeOpacity: 0,
-            icons: [
-              {
-                icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.7, scale: 3, strokeColor: '#0E8C92' },
-                offset: '0',
-                repeat: '12px',
-              },
-            ],
-          }),
-        );
-        path = points;
+        // Directions unavailable → draw NO line. The numbered markers (already placed) stay on the
+        // map, and a keyless "View on Google Maps" link is surfaced beneath it so the traveller still
+        // gets the full route. We never draw a dashed line, and we skip the car (nothing to drive
+        // along), so the map degrades to clean markers + link.
+        setNoRoute(true);
+        return;
       }
 
-      // The car's path. With `loop` (tour pages), draw a dashed coral "return to start" leg and have
-      // the car drive out then straight back — a round-trip cue. Without it (the one-way planner
-      // route), no return line: the car retraces the route so the animation stays continuous.
-      let drivePath = path;
-      if (points.length > 1) {
-        if (loop) {
-          const lastPt = points[points.length - 1]!;
-          const firstPt = points[0]!;
-          track(
-            new google.maps.Polyline({
-              map,
-              path: [lastPt, firstPt],
-              geodesic: true,
-              strokeOpacity: 0,
-              icons: [
-                {
-                  icon: { path: 'M 0,-1 0,1', strokeOpacity: 0.9, scale: 3, strokeColor: '#F76C5E' },
-                  offset: '0',
-                  repeat: '12px',
-                },
-              ],
-            }),
-          );
-          drivePath = buildDrivePath([...path, firstPt], 180);
-        } else {
-          // No return leg — the car drives out then retraces the route back, resampled to a gentle speed.
-          drivePath = buildDrivePath([...path, ...[...path].reverse()], 180);
-        }
-      }
+      // The car drives out along the real route, then retraces it back — a continuous animation with
+      // no return line. (We never draw a dashed "return to start" leg.)
+      const drivePath =
+        points.length > 1 ? buildDrivePath([...path, ...[...path].reverse()], 180) : path;
 
-      // The car: static at the start, or driving the loop — out along the route, back along the
-      // return leg — when animated and motion is allowed.
+      // The car: static at the start, or driving out and back along the route when animated and
+      // motion is allowed.
       const car = track(new google.maps.Marker({ map, position: drivePath[0]!, icon: carIcon(carColor), zIndex: 1000 }));
       const reduce =
         typeof window !== 'undefined' &&
@@ -279,7 +245,7 @@ export function RouteMap({
         rafRef.current = null;
       }
     };
-  }, [status, stops, kinds, labels, animate, carColor, loop]);
+  }, [status, stops, kinds, labels, animate, carColor]);
 
   // Final teardown on unmount: drop every overlay and release the map.
   useEffect(() => {
@@ -298,9 +264,18 @@ export function RouteMap({
   }
 
   return (
-    <div
-      ref={elRef}
-      className={className ?? 'h-[300px] w-full overflow-hidden rounded-2xl border border-ink/10 bg-ink/[0.04] lg:h-[360px]'}
-    />
+    <>
+      <div
+        ref={elRef}
+        className={className ?? 'h-[300px] w-full overflow-hidden rounded-2xl border border-ink/10 bg-ink/[0.04] lg:h-[360px]'}
+      />
+      {/* Directions unavailable: the map shows the numbered markers; this link carries the full route.
+          We never fall back to a dashed line. */}
+      {noRoute && stops.length > 1 && (
+        <div className="mt-2">
+          <MapLinkCard href={mapsDirectionsUrl(stops.map((s) => s.title))} label="See the full route" />
+        </div>
+      )}
+    </>
   );
 }

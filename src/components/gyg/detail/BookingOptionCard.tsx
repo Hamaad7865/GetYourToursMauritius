@@ -255,7 +255,6 @@ export function BookingOptionCard() {
                   { title: b.activity.title, lat: b.activity.lat, lng: b.activity.lng },
                 ]}
                 labels={['P', 'A']}
-                loop
               />
             )}
             <div className="mt-2.5 flex items-center justify-between border-t border-ink/10 pt-2.5 text-[13px]">

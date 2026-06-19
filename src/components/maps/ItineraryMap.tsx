@@ -26,11 +26,6 @@ export function ItineraryMap({ stops, kinds }: { stops: ItineraryStop[]; kinds?:
             <span className="h-3 w-3 rounded-full border-2 border-teal bg-white" /> Other stop
           </span>
         )}
-        {stops.length > 1 && (
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block w-5 border-t-2 border-dashed border-coral" /> Return route
-          </span>
-        )}
       </div>
     </div>
   );
