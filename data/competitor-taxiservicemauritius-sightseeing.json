@@ -1,0 +1,1028 @@
+{
+  "competitor": {
+    "name": "Taxi Service Mauritius",
+    "brand": "Taxi Mauritius by Travelhub",
+    "url": "https://taxiservicemauritius.com",
+    "operatingSince": 1987,
+    "reviews": {
+      "google": {
+        "rating": 4.8,
+        "count": 671
+      },
+      "tripadvisor": {
+        "rating": 5,
+        "countApprox": 1500
+      }
+    }
+  },
+  "source": {
+    "type": "Competitor website (public)",
+    "scope": "Sightseeing day-tours only (their /sightseeing-tours/ section + North/South hub tours)",
+    "scrapedAt": "2026-06-19",
+    "note": "Captured for offering-comparison. Activities (catamaran, dolphins, Ile aux Cerfs, hiking) and airport transfers are listed but not extracted here."
+  },
+  "summary": {
+    "totalSightseeingTours": 9,
+    "headlinePricePattern": "Per vehicle, \"from €86 for 4 people\" (Standard car); SUV ~€130; scales to coach ~€310 / 22 pax",
+    "currencies": [
+      "EUR",
+      "MUR"
+    ],
+    "withImages": 9
+  },
+  "tours": [
+    {
+      "id": "chamarel-tour",
+      "competitor": "Taxi Service Mauritius",
+      "category": "Sightseeing",
+      "title": "Chamarel Adventure Tour",
+      "url": "https://taxiservicemauritius.com/sightseeing-tours/chamarel-tour/",
+      "shortDescription": "A private day tour through Chamarel and the south-west, taking in the Trou aux Cerfs crater, Grand Bassin sacred lake, Black River Gorges, the Seven Coloured Earths, Chamarel Waterfall and rum factory, and Le Morne viewpoint.",
+      "description": "Discover the beauty and charm of Chamarel with this adventure tour offering natural wonders including Grand Bassin Spiritual Lake, the enchanting Seven-Coloured Earth, the majestic Chamarel Waterfall, and the Chamarel Rum Factory. The experience provides breathtaking views of Black River Gorges and Le Morne Mountain. The journey begins at the dormant Trou aux Cerfs Volcano Crater in Curepipe, offering panoramic vistas. Next is Grand Bassin (Ganga Talao), a sacred lake with the impressive Lord Shiva statue, providing spiritual significance and cultural insights. Alexandra Waterfall is a serene spot with abundant natural surroundings. Black River Gorges presents lush greenery, endemic flora and fauna, scenic trails with waterfalls and deep valleys. The Seven Coloured Earths showcase multi-colored volcanic sand in shades from deep red to vibrant blue. Chamarel Waterfall is Mauritius' highest waterfall cascading into a lush gorge. Rhumerie de Chamarel provides rum-making education with tastings of locally crafted spirits. The tour concludes at the Benitiers Island and Le Morne Mountain viewpoint, offering sweeping ocean and mountain vistas reflecting Mauritius' essence.",
+      "duration": "Approx 7 hours",
+      "priceFrom": {
+        "amount": 86,
+        "currency": "EUR",
+        "basis": "per vehicle, Standard Car up to 4 people"
+      },
+      "pricing": [
+        {
+          "label": "Standard Car",
+          "amount": 86,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Family Minivan",
+          "amount": 120,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 7 people"
+        },
+        {
+          "label": "Standard Minivan",
+          "amount": 132,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 10 people"
+        },
+        {
+          "label": "Executive Minivan",
+          "amount": 138,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 14 people"
+        },
+        {
+          "label": "Coach/Bus",
+          "amount": 310,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 22 people"
+        },
+        {
+          "label": "SUV",
+          "amount": 130,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Additional child seat",
+          "amount": 10,
+          "currency": "EUR",
+          "unit": "per seat",
+          "notes": "first child seat free"
+        },
+        {
+          "label": "Additional hour",
+          "amount": 500,
+          "currency": "MUR",
+          "unit": "per hour",
+          "notes": "beyond tour duration"
+        },
+        {
+          "label": "Cleaning fee",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per incident",
+          "notes": "vomiting, sand, food/drink spills"
+        }
+      ],
+      "stops": [
+        "Trou aux Cerfs Volcano Crater (Curepipe)",
+        "Grand Bassin (Ganga Talao)",
+        "Alexandra Falls & Black River Gorges",
+        "Seven Coloured Earth of Chamarel",
+        "Chamarel Waterfall",
+        "Chamarel Rum Factory (Visit & Tasting)",
+        "Benitiers Island & Le Morne Mountain Viewpoint"
+      ],
+      "included": [
+        "Pick up and drop off from any hotel or Airbnb in Mauritius",
+        "Private transportation to all the sights mentioned",
+        "An English/French-speaking driver to guide you and provide information"
+      ],
+      "notIncluded": [
+        "Entry ticket fees (Seven Coloured Earth Geopark, Rum Factory)",
+        "Lunch"
+      ],
+      "images": [
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/1-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/2-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/3-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/4-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/5-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/6-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/7-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/8-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/9-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/10-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/11-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/12-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/13-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/14-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/15-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/16-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2026/03/Private-sightseeing-tours-in-Mauritius.jpg"
+      ]
+    },
+    {
+      "id": "cultural-north-tour",
+      "competitor": "Taxi Service Mauritius",
+      "category": "Sightseeing",
+      "title": "Mauritius Cultural Tour",
+      "url": "https://taxiservicemauritius.com/sightseeing-tours/cultural-north-tour/",
+      "shortDescription": "A relaxed private tour of northern Mauritius covering the L'Aventure du Sucre sugar museum, Chateau de Labourdonnais, Grand Baie, the Red Church of Cap Malheureux, Pamplemousses Botanical Garden, and the Pereybere and Bain Boeuf beaches.",
+      "description": "Discover the cultural treasures of northern Mauritius through this relaxed private journey exploring historic estates, tropical gardens, charming coastal villages, and beautiful beaches. The tour visits L'Aventure du Sucre Museum and Chateau de Labourdonnais, followed by the seaside atmosphere of Grand-Baie and the iconic Red Church of Cap Malheureux. You'll stroll through the lush Pamplemousses Botanical Garden and unwind at Pereybere and Bain Boeuf Beach. With private transport and a friendly local driver, this tour blends culture, history, and coastal beauty. The experience is flexible and personalized, allowing you to explore at your own pace.",
+      "duration": "Approx 5-6 hours",
+      "priceFrom": {
+        "amount": 86,
+        "currency": "EUR",
+        "basis": "per vehicle, Standard Car up to 4 people"
+      },
+      "pricing": [
+        {
+          "label": "Standard Car",
+          "amount": 86,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Family Minivan",
+          "amount": 120,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 7 people"
+        },
+        {
+          "label": "Standard Minivan",
+          "amount": 132,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 10 people"
+        },
+        {
+          "label": "Executive Minivan",
+          "amount": 138,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 14 people"
+        },
+        {
+          "label": "Coach/Bus",
+          "amount": 310,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 22 people"
+        },
+        {
+          "label": "SUV",
+          "amount": 130,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Additional child seat",
+          "amount": 10,
+          "currency": "EUR",
+          "unit": "per seat",
+          "notes": "first child seat free"
+        },
+        {
+          "label": "Additional hour",
+          "amount": 500,
+          "currency": "MUR",
+          "unit": "per hour",
+          "notes": "beyond tour duration"
+        },
+        {
+          "label": "Cleaning fee",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per incident",
+          "notes": "vomiting, sand, spills"
+        }
+      ],
+      "stops": [
+        "L'Aventure du Sucre Sugar Museum",
+        "Chateau de Labourdonnais",
+        "Grand Bay Beach & Village",
+        "Red Church of Cap Malheureux",
+        "SSR (Pamplemousses) Botanical Garden",
+        "Pereybere & Bain Boeuf Beach"
+      ],
+      "included": [
+        "Pick up and drop off from any hotel or Airbnb's in Mauritius",
+        "Private transportation to all the sights mentioned above",
+        "A friendly English/French-speaking driver to guide you and provide information",
+        "First child seat free of charge (upon request)"
+      ],
+      "notIncluded": [
+        "Entry ticket fees to places such as the sugar museum, the chateau & the botanical garden",
+        "Lunch"
+      ],
+      "images": [
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Sugar-museum-visit-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Sugar-museum-visit-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Sugar-museum-visit-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Chateau-de-Labourdonnais-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Chateau-de-Labourdonnais-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Red-Church-of-Cap-Malheureux-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Red-Church-of-Cap-Malheureux-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2026/03/Private-sightseeing-tours-in-Mauritius.jpg"
+      ]
+    },
+    {
+      "id": "tea-wildlife-exploration",
+      "competitor": "Taxi Service Mauritius",
+      "category": "Sightseeing",
+      "title": "Tea & Wildlife Exploration Tour",
+      "url": "https://taxiservicemauritius.com/sightseeing-tours/tea-wildlife-exploration/",
+      "shortDescription": "A private southern tour combining tea heritage and wildlife: the Bois Cheri tea factory and museum, the Domaine des Aubineaux colonial estate, La Vanille Nature Park with giant tortoises and crocodiles, and the Gris Gris coastal viewpoint.",
+      "description": "Explore Mauritius in comfort and style with Taxi Service Mauritius's exclusive Tea & Wildlife Exploration Tour. Our private tours ensure personalized attention as you journey through the island's most enchanting destinations. With a dedicated vehicle and driver at your service, enjoy the freedom to explore at your own pace. At Bois Cheri Tea Factory & Museum, delve into the rich history of Mauritius' tea industry. Witness the tea-making process from leaf to cup and savour the aroma of freshly brewed blends. Explore the museum and learn about the cultural significance of tea on the island. Nestled amidst lush sugarcane fields, Domaine de St Aubin offers a glimpse into Mauritius' colonial past. Wander through the beautifully preserved estate, admiring its elegant architecture and vibrant gardens. Step back in time at Domaine des Aubineaux, a charming colonial house in the heart of a fragrant tea plantation. Marvel at the exquisite architecture and stroll through meticulously landscaped gardens. Prepare for an adventure at La Vanille Crocodile Nature Park, home to diverse wildlife. Encounter giant tortoises, colourful butterflies, and majestic crocodiles as you explore the lush surroundings. Marvel at the breathtaking beauty of Gris Gris Viewpoint, where rugged cliffs meet the endless expanse of the Indian Ocean. End your journey at Senneville Cliffs, a hidden gem offering sweeping vistas of Mauritius' dramatic coastline.",
+      "duration": "Approx 6 hours",
+      "priceFrom": {
+        "amount": 86,
+        "currency": "EUR",
+        "basis": "per vehicle, Standard Family Car up to 4 people"
+      },
+      "pricing": [
+        {
+          "label": "Standard Family Car",
+          "amount": 86,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Family Minivan",
+          "amount": 120,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 7 people"
+        },
+        {
+          "label": "Standard Minivan",
+          "amount": 132,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 10 people"
+        },
+        {
+          "label": "Executive Minivan",
+          "amount": 138,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 14 people"
+        },
+        {
+          "label": "Coasters/Buses",
+          "amount": 310,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 22 people"
+        },
+        {
+          "label": "SUV",
+          "amount": 135,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Additional child seat",
+          "amount": 10,
+          "currency": "EUR",
+          "unit": "per seat",
+          "notes": "first child seat free"
+        },
+        {
+          "label": "Additional hour",
+          "amount": 500,
+          "currency": "MUR",
+          "unit": "per hour",
+          "notes": "beyond tour duration"
+        },
+        {
+          "label": "Cleaning fee",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per incident",
+          "notes": "vomiting, spills"
+        }
+      ],
+      "stops": [
+        "Trou aux Cerfs Volcano Crater",
+        "Grand Bassin (Ganga Talao)",
+        "Bois Cheri Tea Factory & Museum",
+        "Domaine des Aubineaux",
+        "La Vanille Nature Park",
+        "Gris Gris Viewpoint"
+      ],
+      "included": [
+        "Pick up and drop off from any hotel or Airbnb's in Mauritius",
+        "Private transportation to all the sights mentioned above",
+        "A friendly English/French-speaking driver to guide you",
+        "First child seat ordered is free of charge"
+      ],
+      "notIncluded": [
+        "Entry ticket fees to places such as the Tea Factory & La Vanille Nature Park",
+        "Lunch"
+      ],
+      "images": [
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/1-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/2-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/3-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/4-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/5-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/6-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/7-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/8-2-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/9-2-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/10-2-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/11-3-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/12-2-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/13-2-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/14-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/15-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/16-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/17-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2024/02/Untitled-design-2024-02-19T190509.053.jpg"
+      ]
+    },
+    {
+      "id": "south-west-splendor-expedition",
+      "competitor": "Taxi Service Mauritius",
+      "category": "Sightseeing",
+      "title": "South West Splendor Expedition",
+      "url": "https://taxiservicemauritius.com/sightseeing-tours/south-west-splendor-expedition/",
+      "shortDescription": "A six-hour private tour of the south-west coast featuring the Le Morne UNESCO World Heritage site and beach, the Baie du Cap / Maconde viewpoint, the World of Seashells Museum, and the Lavilleon Adventure Park.",
+      "description": "Embark on a six-hour journey exploring the majestic Le Morne World Heritage Site, serene Le Morne Beach, breathtaking Baie du Cap/Maconde Viewpoint, the fascinating World of Seashells Museum, and thrilling Lavilleon Adventure Park. Experience exclusive, tailored moments with a private vehicle, complimentary child seat, and flexible start times between 7:30-9:30 AM. The tour unveils stories of bravery and freedom at Le Morne, a UNESCO World Heritage mountain symbolizing cultural significance. Le Morne Beach offers soft white sands and crystal-clear waters for relaxation. Baie du Cap presents dramatic coastal views where ocean meets rugged cliffs. The World of Seashells Museum showcases one of the largest shell collections. Lavilleon Adventure Park offers zip-lining, archery, and outdoor activities in lush greenery.",
+      "duration": "Approx 6 hours",
+      "priceFrom": {
+        "amount": 86,
+        "currency": "EUR",
+        "basis": "per vehicle, Standard Car up to 4 people"
+      },
+      "pricing": [
+        {
+          "label": "Standard Car",
+          "amount": 86,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Family Minivan",
+          "amount": 120,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 7 people"
+        },
+        {
+          "label": "Standard Minivan",
+          "amount": 132,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 10 people"
+        },
+        {
+          "label": "Executive Minivan",
+          "amount": 138,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 14 people"
+        },
+        {
+          "label": "Coasters/Buses",
+          "amount": 310,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 22 people"
+        },
+        {
+          "label": "SUV",
+          "amount": 130,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Additional hour",
+          "amount": 500,
+          "currency": "MUR",
+          "unit": "per hour",
+          "notes": "beyond 6-hour duration"
+        },
+        {
+          "label": "Additional child seat",
+          "amount": 10,
+          "currency": "EUR",
+          "unit": "per seat",
+          "notes": "first child seat free"
+        },
+        {
+          "label": "Cleaning fee",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per incident",
+          "notes": "vomiting, sand, food/drink spills"
+        }
+      ],
+      "stops": [
+        "Le Morne World Heritage Site",
+        "Le Morne Beach",
+        "Baie du Cap / Maconde Viewpoint",
+        "World of Seashells Museum",
+        "Lavilleon Adventure Park"
+      ],
+      "included": [
+        "Pick up and drop off from any hotel or Airbnb in Mauritius",
+        "Private transportation to all the sights mentioned",
+        "An English/French-speaking driver to guide you and provide information",
+        "Complimentary child seat"
+      ],
+      "notIncluded": [
+        "Entry ticket fees to the World of Seashells Museum and Lavilleon Adventure Park",
+        "Lunch"
+      ],
+      "images": [
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/1-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/2-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/3-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/4-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/5-3-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/6-3-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/7-3-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/8-3-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/9-3-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/10-3-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/11-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/12-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/13-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2024/02/Untitled-design-2024-02-19T190509.053.jpg"
+      ]
+    },
+    {
+      "id": "journey-through-mauritian-history",
+      "competitor": "Taxi Service Mauritius",
+      "category": "Sightseeing",
+      "title": "Mauritian History Tour",
+      "url": "https://taxiservicemauritius.com/sightseeing-tours/journey-through-mauritian-history/",
+      "shortDescription": "A private south-east heritage tour covering Blue Bay Marine Park, the Mahebourg Museum, a traditional manioc biscuit factory, the Mahebourg waterfront, the Dutch First Landing Monument, and the Frederik Hendrik Museum.",
+      "description": "Journey through the South-East of Mauritius discovering the island's rich history and natural beauty. The tour encompasses the vibrant Blue Bay Marine Park with crystal-clear waters and coral reefs, the Mahebourg Museum showcasing colonial past and naval history, the traditional Manioc Biscuit Factory producing cassava biscuits using authentic recipes, the scenic Mahebourg Waterfront with ocean views, the Dutch First Landing Monument commemorating early European settlers, and the Frederik Hendrik Museum preserving archaeological artifacts from the first Dutch settlement. This private, personalized experience offers an immersive journey through time with expert guides and comfortable transport.",
+      "duration": "Approx 7 hours",
+      "priceFrom": {
+        "amount": 86,
+        "currency": "EUR",
+        "basis": "per vehicle, Standard Car up to 4 people"
+      },
+      "pricing": [
+        {
+          "label": "Standard Car",
+          "amount": 86,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Family Minivan",
+          "amount": 120,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 7 people"
+        },
+        {
+          "label": "Standard Minivan",
+          "amount": 132,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 10 people"
+        },
+        {
+          "label": "Executive Minivan",
+          "amount": 138,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 14 people"
+        },
+        {
+          "label": "Coasters/Buses",
+          "amount": 310,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 22 people"
+        },
+        {
+          "label": "SUV",
+          "amount": 135,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "up to 4 people"
+        },
+        {
+          "label": "Additional child seat",
+          "amount": 10,
+          "currency": "EUR",
+          "unit": "per seat",
+          "notes": "first child seat free"
+        },
+        {
+          "label": "Additional hour",
+          "amount": 500,
+          "currency": "MUR",
+          "unit": "per hour",
+          "notes": "beyond tour duration"
+        },
+        {
+          "label": "Cleaning fee",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per incident",
+          "notes": "vomiting, spills"
+        }
+      ],
+      "stops": [
+        "Blue Bay Marine Park",
+        "Mahebourg Museum",
+        "Manioc Biscuit Factory",
+        "Mahebourg Waterfront",
+        "Dutch First Landing Monument",
+        "Frederik Hendrik Museum"
+      ],
+      "included": [
+        "Pick up and drop off from any hotel or Airbnb in Mauritius",
+        "Private transportation to all the sights mentioned",
+        "An English/French-speaking driver to guide you and provide information"
+      ],
+      "notIncluded": [
+        "Entry ticket fees to museums",
+        "Lunch"
+      ],
+      "images": [
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/1-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/2-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/3-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/4-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/5-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/6-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/12-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/13-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/14-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/15-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2024/02/Untitled-design-2024-02-19T190509.053.jpg"
+      ]
+    },
+    {
+      "id": "port-louis-city-tour",
+      "competitor": "Taxi Service Mauritius",
+      "category": "Sightseeing",
+      "title": "Port Louis City Tour (6hrs)",
+      "url": "https://taxiservicemauritius.com/sightseeing-tours/port-louis-city-tour/",
+      "shortDescription": "A private, personalised tour through the capital Port Louis, taking in viewpoints, Hindu temples, the Caudan Waterfront, Chinatown and bazaar, the Citadel Fort and the Odysseo Oceanarium with an English/French-speaking driver.",
+      "description": "Embark on a captivating journey through the heart of Mauritius with the Port Louis City Tour, a comprehensive exploration of the capital's rich tapestry of history, culture, and contemporary allure. The tour begins at the Marie Reine de la Paix Viewpoint, a serene haven with sweeping views of Port Louis framed against the Moka mountain range. Next, visitors immerse themselves in the spiritual and architectural grandeur of vibrant Hindu temples adorned with intricate carvings and vivid colors. The Caudan Waterfront presents the modern face of Mauritius—a bustling promenade featuring shopping, dining, and entertainment with stunning harbor views. The journey continues through Chinatown's narrow streets and traditional shops, the historic bazaar with its colors and scents, and museums providing deeper cultural understanding. The Citadel Fort, perched atop a hill, offers panoramic views spanning the cityscape and harbor. The tour concludes at the Odysseo Oceanarium, a state-of-the-art facility showcasing diverse marine life and aquatic ecosystems. Throughout the experience, visitors gain profound understanding of the island's past and present through a private, personalized journey with an English/French-speaking driver.",
+      "duration": "Approximately 6 hours",
+      "priceFrom": {
+        "amount": 86,
+        "currency": "EUR",
+        "basis": "per vehicle, Standard Car, group of 4 (max 4 people)"
+      },
+      "pricing": [
+        {
+          "label": "Standard Car",
+          "amount": 86,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "group of 4, 4 people max"
+        },
+        {
+          "label": "Family Minivan",
+          "amount": 120,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "group of 7, 7 people max"
+        },
+        {
+          "label": "Standard Minivan",
+          "amount": 132,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "group of 10, 10 people max"
+        },
+        {
+          "label": "Executive Minivan",
+          "amount": 138,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "group of 14, 14 people max"
+        },
+        {
+          "label": "Coasters/Buses",
+          "amount": 310,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "group of 22, 22 people max"
+        },
+        {
+          "label": "SUV",
+          "amount": 130,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "group of 4, 4 people max"
+        },
+        {
+          "label": "Cleaning fee",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per incident",
+          "notes": "charged for vomiting, sand, food/drink spills"
+        },
+        {
+          "label": "Additional hour",
+          "amount": 500,
+          "currency": "MUR",
+          "unit": "per hour",
+          "notes": "beyond specified tour duration"
+        },
+        {
+          "label": "Additional child seat",
+          "amount": 10,
+          "currency": "EUR",
+          "unit": "per child seat",
+          "notes": "first child seat free"
+        }
+      ],
+      "stops": [
+        "Marie Reine de la Paix Viewpoint (Optional)",
+        "Colourful Temple in Port Louis (Optional)",
+        "Port Louis Caudan Waterfront",
+        "Chinatown / Bazaar / Blue Penny Museum Visit",
+        "Citadel Fort (Fort Adelaide)",
+        "Odysseo Oceanarium"
+      ],
+      "included": [
+        "Pick up and drop off from any hotel or Airbnb in Mauritius",
+        "Private transportation to all sights",
+        "English/French-speaking driver to guide and provide information",
+        "First child seat (free of charge, upon request)"
+      ],
+      "notIncluded": [
+        "Entry ticket fees to places (Blue Penny Museum, etc.)",
+        "Lunch (customers choose restaurants; driver offers recommendations)"
+      ],
+      "images": [
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Caudan-Waterfront-in-Port-Louis-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/6-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/7-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/8-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/10-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/12-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/9-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/11-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Caudan-Waterfront-in-Port-Louis-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Colourful-Kovil-Temple-in-Port-Louis-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Citadel-Fort-in-Port-Louis-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/5-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2024/02/Untitled-design-2024-02-19T190509.053.jpg"
+      ]
+    },
+    {
+      "id": "north-beaches-tour",
+      "competitor": "Taxi Service Mauritius",
+      "category": "Sightseeing",
+      "title": "Beach Hopping Tour (North Beaches)",
+      "url": "https://taxiservicemauritius.com/sightseeing-tours/north-beaches-tour/",
+      "shortDescription": "An exclusive private beach-hopping day tour to five northern Mauritius beaches with complimentary beach chairs, umbrella, mat, snacks and drinks, and an English/French-speaking driver.",
+      "description": "An exclusive private beach tour exploring five northern Mauritius beaches in a single day. Visitors are transported by dedicated chauffeur across Trou aux Biches, Mont Choisy, La Cuvette, Grand Bay, and Pereybere beaches. The experience includes complimentary beach chairs, umbrellas, mats, snacks, and refreshing drinks. Each beach offers distinct characteristics: Mont Choisy features crystal waters and marine life; Pereybere provides vibrant atmosphere with local cafes; Grand Bay offers water sports and shopping; Trou aux Biches delivers serene, family-friendly conditions; La Cuvette provides a secluded, tranquil escape. The driver assists with beach setup and provides English/French-speaking guidance throughout.",
+      "duration": "Approximately 5-6 hours",
+      "priceFrom": {
+        "amount": 110,
+        "currency": "EUR",
+        "basis": "per vehicle, Standard Car (max 4 people)"
+      },
+      "pricing": [
+        {
+          "label": "Standard Car",
+          "amount": 110,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "4 people max"
+        },
+        {
+          "label": "Family Minivan",
+          "amount": 152,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "7 people max"
+        },
+        {
+          "label": "Standard Minivan",
+          "amount": 174,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "10 people max"
+        },
+        {
+          "label": "Additional hour",
+          "amount": 500,
+          "currency": "MUR",
+          "unit": "per hour",
+          "notes": "beyond specified tour duration"
+        },
+        {
+          "label": "Additional child seat",
+          "amount": 10,
+          "currency": "EUR",
+          "unit": "per child seat",
+          "notes": "first seat free"
+        },
+        {
+          "label": "Cleaning fee",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per incident",
+          "notes": "for vehicle damage"
+        }
+      ],
+      "stops": [
+        "Trou aux Biches Beach",
+        "Mont Choisy Beach",
+        "La Cuvette Beach",
+        "Grand Bay Beach",
+        "Pereybere Beach"
+      ],
+      "included": [
+        "Pickup and drop-off from any hotel/Airbnb in Mauritius",
+        "Private vehicle and transportation between beaches",
+        "English/French-speaking driver",
+        "Supermarket stop on route",
+        "One beach umbrella, two beach chairs, one beach mat (minimum)",
+        "Snacks and chilled soft drinks",
+        "First child seat (upon request)"
+      ],
+      "notIncluded": [
+        "Lunch (though driver provides restaurant recommendations)",
+        "Entry tickets to visiting places",
+        "Additional beach chairs/umbrellas beyond specified amounts"
+      ],
+      "images": [
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/4-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/5-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2024/02/1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/6-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/7-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/8-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/9-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/10-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/11-7-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/1-7-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/2-7-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/3-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2024/02/3.jpg"
+      ]
+    },
+    {
+      "id": "north-tour",
+      "competitor": "Taxi Service Mauritius",
+      "category": "Sightseeing",
+      "title": "North Tour Mauritius (Guided North Island Tour)",
+      "url": "https://taxiservicemauritius.com/north-tour/",
+      "shortDescription": "A landing page for guided private day tours of northern Mauritius, presenting three preset itineraries — Port Louis City Tour, Cultural North Tour and Beach Hopping Tour — plus a customisable option, in air-conditioned vehicles with bilingual drivers.",
+      "description": "The north of Mauritius offers diverse experiences combining culture, nature, and coastal beauty. In one day, travelers can explore vivid markets, colonial buildings, botanical gardens with rare flora, and crystal-clear lagoons. Taxi Service Mauritius offers three preset itineraries: the Port Louis City Tour (culture, history, markets, city landmarks), the Cultural North Tour (heritage sites, botanical gardens, coastal villages), and the Beach Hopping Tour (beach relaxation and lagoon experiences). Each tour is private, conducted in air-conditioned vehicles with bilingual drivers (English/French), includes hotel pickup/dropoff, and allows flexible pacing. The company emphasizes authentic experiences without mandatory souvenir shop stops, distinguishing itself through transparency and local expertise.",
+      "duration": "6-7 hours (Available Daily); Port Louis City Tour: 6 hours; Cultural North Tour: 6 hours; Beach Hopping Tour: 6 hours; Customise your Tour: 4-8 hours",
+      "priceFrom": {
+        "amount": 65,
+        "currency": "EUR",
+        "basis": "as from, per vehicle, party of 4 (Customise your Tour); preset tours from EUR 86 for a group of 4"
+      },
+      "pricing": [
+        {
+          "label": "Cultural North Tour / Port Louis City Tour (preset)",
+          "amount": 86,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "from, group of 4"
+        },
+        {
+          "label": "Beach Hopping Tour",
+          "amount": 110,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "as from, party of 4"
+        },
+        {
+          "label": "Customise your Tour",
+          "amount": 65,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "as from, party of 4"
+        },
+        {
+          "label": "Additional hour",
+          "amount": 500,
+          "currency": "MUR",
+          "unit": "per hour",
+          "notes": "beyond specified tour duration"
+        },
+        {
+          "label": "Cleaning fee",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per incident",
+          "notes": "vomiting, sand spreading, food/drink spills"
+        },
+        {
+          "label": "Additional child seat",
+          "amount": 10,
+          "currency": "EUR",
+          "unit": "per child seat",
+          "notes": "additional seats beyond first free seat"
+        }
+      ],
+      "stops": [
+        "Port Louis City Tour: Marie Reine de la Paix viewpoint",
+        "Port Louis City Tour: Colourful Temple",
+        "Port Louis City Tour: Caudan Waterfront",
+        "Port Louis City Tour: Port Louis Market / Bazaar / Chinatown",
+        "Port Louis City Tour: Fort Adelaide / Citadel",
+        "Port Louis City Tour: Odysseo Oceanarium",
+        "Cultural North Tour: Sugar Museum (L'Aventure du Sucre)",
+        "Cultural North Tour: SSR Botanical Garden",
+        "Cultural North Tour: Château de Labourdonnais",
+        "Cultural North Tour: Grand Bay Beach & Village",
+        "Cultural North Tour: Red Church (Cap Malheureux)",
+        "Cultural North Tour: Pereybere Beach",
+        "Cultural North Tour: Bain Boeuf Beach",
+        "Beach Hopping Tour: Trou aux Biches Beach",
+        "Beach Hopping Tour: Mont Choisy Beach",
+        "Beach Hopping Tour: La Cuvette Beach",
+        "Beach Hopping Tour: Grand Baie Beach",
+        "Beach Hopping Tour: Pereybere Beach"
+      ],
+      "included": [
+        "Pick-up and drop-off from any hotel or place of accommodation anywhere in Mauritius",
+        "Transportation all day to all sights listed",
+        "Bilingual driver (English and French) providing information at each stop",
+        "Air-conditioned vehicle",
+        "Beach equipment (chairs, umbrella, cooler) for Beach Hopping Tour",
+        "Free first child seat (various sizes available)",
+        "Professional drivers in clean, well-maintained vehicles"
+      ],
+      "notIncluded": [
+        "Entrance fees to attractions (Sugar Factory, Botanical Garden, Odysseo Oceanarium, museums)",
+        "Lunch (driver offers recommendations; customer responsible for reviewing prices)",
+        "Eating, drinking, smoking in vehicle (except for medical reasons)",
+        "Souvenir shop commissions (policy states no mandatory stops)"
+      ],
+      "images": [
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Caudan-Waterfront-in-Port-Louis-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/6-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Trou-aux-Biches-Beach-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-4-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-3-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/11-6-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/10-5-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Caudan-Waterfront-in-Port-Louis-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Chateau-de-Labourdonnais-2-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Chateau-de-Labourdonnais-1-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Red-Church-of-Cap-Malheureux-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Port-Louis-Harbour-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Pereybere-Beach-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Mont-Choisy-Beach-thegem-gallery-sidebar.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/5-5-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Trou-aux-Biches-Beach-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Red-Church-of-Cap-Malheureux-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Chateau-de-Labourdonnais-2-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-4-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Botanical-Garden-in-Pamplemousses-1024x576.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2026/01/Port-Louis.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2026/01/Caudan-Waterfront-Port-Louis.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/12/Port-Louis-Market-MAURITIUS.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2022/02/Red-Church-of-Cap-Malheureux-2.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2025/11/taxis-to-Mauritius-Botanical-Garden-thegem-product-justified-square-xl.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2025/11/taxis-to-Mauritius-Botanical-Garden-1.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2024/02/3.jpg"
+      ]
+    },
+    {
+      "id": "south-tour",
+      "competitor": "Taxi Service Mauritius",
+      "category": "Sightseeing",
+      "title": "South Tour Mauritius (Chamarel & Tea Route)",
+      "url": "https://taxiservicemauritius.com/south-tour/",
+      "shortDescription": "A landing page for private sightseeing day tours of southern Mauritius, presenting four preset itineraries — The Chamarel Tour, Tea Tasting Tour, South West Tour and Mauritian History Tour — in air-conditioned vehicles with English/French-speaking drivers.",
+      "description": "The South Tour Mauritius offers private sightseeing experiences through southern Mauritius, featuring volcanic landscapes, sacred temples, lush forests, dramatic cliffs, and charming coastal villages. The region contrasts with the busy north, showcasing the island's true natural beauty. Four preset itineraries allow travelers to explore different areas: spiritual experiences and waterfalls in Chamarel, colonial heritage and tea traditions in the southeast, coastal viewpoints in the southwest, or maritime and cultural history in the southeast. Private tours include professional English and French-speaking drivers who provide local expertise. Customized tours are available for travelers with specific interests. All tours feature air-conditioned vehicles and flexible scheduling.",
+      "duration": "6-7 hours (Available Daily); The Chamarel Tour: 7 hours; Tea Tasting Tour: 6 hours; South West Tour: 6 hours; Mauritian History Tour: 6 hours",
+      "priceFrom": {
+        "amount": 86,
+        "currency": "EUR",
+        "basis": "per vehicle, sedan, group of 4"
+      },
+      "pricing": [
+        {
+          "label": "Sedan",
+          "amount": 86,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "group of 4"
+        },
+        {
+          "label": "Additional child seat",
+          "amount": 10,
+          "currency": "EUR",
+          "unit": "per child seat",
+          "notes": "additional seats beyond the first; first child seat free"
+        },
+        {
+          "label": "Additional hour",
+          "amount": 500,
+          "currency": "MUR",
+          "unit": "per hour",
+          "notes": "beyond tour duration"
+        },
+        {
+          "label": "Cleaning fee",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per incident",
+          "notes": "vomiting/spilling"
+        }
+      ],
+      "stops": [
+        "The Chamarel Tour: Grand Bassin Spiritual Lake",
+        "The Chamarel Tour: Black River Gorges Viewpoint",
+        "The Chamarel Tour: Chamarel Seven Coloured Earth",
+        "The Chamarel Tour: Chamarel Waterfall (Viewpoint)",
+        "The Chamarel Tour: Chamarel Rum Factory",
+        "The Chamarel Tour: Benitiers Island Viewpoint",
+        "Tea Tasting Tour: Volcano Crater",
+        "Tea Tasting Tour: Grand Bassin",
+        "Tea Tasting Tour: Bois Cheri Tea Factory & Museum",
+        "Tea Tasting Tour: Domaine de St Aubin",
+        "Tea Tasting Tour: Domaine des Aubineaux",
+        "Tea Tasting Tour: La Vanille Nature Park",
+        "Tea Tasting Tour: Gris Gris Viewpoint",
+        "Tea Tasting Tour: Senneville Cliffs",
+        "South West Tour: Le Morne World Heritage Site",
+        "South West Tour: Le Morne Beach",
+        "South West Tour: Macondé Viewpoint (Baie du Cap)",
+        "South West Tour: Seashells Museum (World of Seashells)",
+        "South West Tour: Lavilleon Adventure Park",
+        "Mauritian History Tour: Blue Bay Marine Park",
+        "Mauritian History Tour: Mahebourg Naval Museum",
+        "Mauritian History Tour: Manioc Biscuit Factory",
+        "Mauritian History Tour: Mahebourg Waterfront",
+        "Mauritian History Tour: Dutch First Landing Monument",
+        "Mauritian History Tour: Frederick Hendrick Museum"
+      ],
+      "included": [
+        "Pick-up and drop-off from any hotel or accommodation in Mauritius",
+        "Transportation all day to all listed sights",
+        "Driver speaking English and French providing information at each stop",
+        "Air-conditioned vehicle",
+        "First child seat (free of charge, upon request)"
+      ],
+      "notIncluded": [
+        "Entry ticket fees to attractions (Seven Coloured Earth Geopark, Rum Factory, museums)",
+        "Lunch",
+        "Additional child seats beyond the first (charged at EUR 10 per seat)"
+      ],
+      "images": [
+        "https://taxiservicemauritius.com/wp-content/uploads/2025/12/chamarel-south-tour-mauritius-thegem-product-justified-square-xl.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2021/06/south-east-tour-mauritius-tea-route.webp",
+        "https://taxiservicemauritius.com/wp-content/uploads/2020/06/Maconde-Viewpoint-Mauritius.jpg-2.jpg",
+        "https://taxiservicemauritius.com/wp-content/uploads/2023/08/Inside-Article-Images-Template-40-thegem-product-justified-square-xl.jpg"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,2862 @@
+{
+  "business": {
+    "name": "Belle Mare Tours",
+    "website": "https://www.visitemaurice.com",
+    "location": "Belle Mare / Quatre Cocos, Mauritius"
+  },
+  "source": {
+    "type": "Official company website",
+    "url": "https://www.visitemaurice.com",
+    "language": "en",
+    "method": "Per-page extraction from visitemaurice.com (own site)",
+    "scrapedAt": "2026-06-18"
+  },
+  "summary": {
+    "totalActivities": 28,
+    "byCategory": {
+      "Sightseeing": 6,
+      "Ile aux Cerfs": 2,
+      "Catamaran Cruises": 4,
+      "Dolphin Encounter": 3,
+      "Air Activities": 3,
+      "Sea & Water Activities": 7,
+      "Hiking & Activities": 3
+    },
+    "withPriceFrom": 28,
+    "withImages": 28,
+    "totalImages": 142,
+    "currencies": [
+      "EUR",
+      "MUR"
+    ]
+  },
+  "categories": [
+    "Sightseeing",
+    "Ile aux Cerfs",
+    "Catamaran Cruises",
+    "Dolphin Encounter",
+    "Air Activities",
+    "Sea & Water Activities",
+    "Hiking & Activities"
+  ],
+  "activities": [
+    {
+      "id": "casela-world-of-adventures",
+      "category": "Sightseeing",
+      "title": "Casela World of Adventures",
+      "url": "https://www.visitemaurice.com/en/sightseeing/casela-world-of-adventures/",
+      "shortDescription": "Day trip to Casela World of Adventures, a 14-hectare nature and leisure park with safaris, zip lines, walking with lions and family activities.",
+      "description": "Welcome to the adventure world of Casela. Join us for an unforgettable day filled with activities for the whole family! Discover a 14-hectare park that opened its doors in 1979 and is currently home to 1,500 birds, lions, zebras, giant tortoises, monkeys, a tiger and many other animals. Visit the dry forest with its century-old trees like the Black Ebony and let your children have fun at the educational farm or our fishing ponds. Enjoy the natural beauty of Mauritius with a Quad, Buggy, Segway, or embark on an adventurous hike featuring several zip lines, including the longest zip line in the Indian Ocean, suspension bridges and many other surprises, or go for a walk with real lions. For our youngest guests, for those young at heart, for those who need time to disconnect from the bustling city life, and for those wanting to spice up their vacation with a bit of action, the Casela nature and leisure park offers something for everyone! Prices are per vehicle and not per person.",
+      "duration": "About 8 hours (around 3 hours at the park)",
+      "schedule": "Available every day. Start time around 09:00; return to hotel around 5:00 p.m. Park opening hours: 9:00 a.m.–5:00 p.m. (May–September) and 9:00 a.m.–6:00 p.m. (October–April). Closed on Christmas Day and New Year's Day.",
+      "priceFrom": {
+        "amount": 60,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Group of 4",
+          "amount": 60,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "Tour package starting price"
+        },
+        {
+          "label": "Park entry",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Admission ticket"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "SUV",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Family car",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [
+        "Full day transport to all the mentioned sites",
+        "Visit to Casela World of Adventures park",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Admission tickets to the park",
+        "Lunch (driver can recommend restaurants)",
+        "Wear comfortable shoes",
+        "Bring sun protection"
+      ],
+      "highlights": [
+        "14-hectare park with 1,500 animals (birds, lions, zebras, giant tortoises, monkeys, tiger)",
+        "Dry forest with century-old Black Ebony trees",
+        "Educational farm",
+        "Fishing ponds",
+        "Quad, Buggy and Segway activities",
+        "Hiking with zip lines (longest in the Indian Ocean)",
+        "Suspension bridges",
+        "Walk with real lions"
+      ],
+      "location": "Western region. Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/header-lion-safari.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/casela-world-of-adventures-double-tyrolienne-ile-maurice.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Walk-with-Lions-Mauritius-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/archway-safari-2.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/samy-mounichy-MZCwclZC1e4-unsplash-scaled.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/ricardo-marques-7oG6cBJYHx4-unsplash.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/seawalk-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/sebastian-pena-lambarri-YV593oyMKmo-unsplash.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/20230824_101231-scaled.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/06/artem-beliaikin-BZl9AVqnftI-unsplash.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/casela-nature-parc-pont-nepalais-ile-maurice.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-fatih-turan-63325184-17937827-1.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Payment: cash (MUR, EUR or USD to the driver) or online.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "south-tour-mauritius",
+      "category": "Sightseeing",
+      "title": "Full-Day South Mauritius Tour: Volcano, 7-Coloured Earth & Sacred Lake",
+      "url": "https://www.visitemaurice.com/en/sightseeing/south-tour-mauritius/",
+      "shortDescription": "Full-day tour of southern Mauritius taking in the Trou aux Cerfs volcano, the sacred lake of Grand Bassin, Black River Gorges and the seven-coloured earth of Chamarel.",
+      "description": "In the highlands, discover the impressive Trou aux Cerfs, the crater of a volcano extinct for 700,000 years, with a stunning view of the mountainous ring of Mauritius. The tour explores multiple sites in one day including Trou aux Cerfs, Floréal, Grand Bassin, the Gorges de la Rivière Noire (Black River Gorges), Chamarel and the Île Bénitier viewpoint. The itinerary is customisable, with optional activities including the Valley of Colours, Curious Corner and the Chamarel Rum Distillery. A personal driver-guide shows you around, informs you and provides personalised service, with pick-ups and drop-offs from any hotel island-wide. Prices are per vehicle and not per person.",
+      "duration": "About 8 hours",
+      "schedule": "Available every day. Start time between 8:30 a.m. and 10:00 a.m.; estimated return between 5:30 p.m. and 6:30 p.m.",
+      "priceFrom": {
+        "amount": 70,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Group of 4",
+          "amount": 70,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "SUV",
+          "amount": 3800,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Family car",
+          "amount": 3800,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Chamarel entrance",
+          "amount": 550,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Admission ticket"
+        }
+      ],
+      "included": [
+        "Full day transport to all the mentioned sites above",
+        "Personal driver-guide",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Admission tickets",
+        "Lunch (driver can recommend restaurants)"
+      ],
+      "highlights": [
+        "Trou aux Cerfs volcano (Centre region)",
+        "Floréal shopping (Centre region)",
+        "Grand Bassin – sacred lake with Hindu temple (Centre region)",
+        "Black River Gorges viewpoint (Centre region)",
+        "Chamarel seven-coloured earth and waterfall (South region)",
+        "Viewpoint of Île Bénitier (West region)"
+      ],
+      "location": "Pick-up and drop-off at all parts of the island. Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/3-1-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/durgastatue.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/trouauxcerfs.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/dan-dy-1OLqSEXXlGA-unsplash.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Cash can be paid to the driver in MUR, EUR, or USD, or you can pay online.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "la-vallee-des-couleurs-nature-park-2",
+      "category": "Sightseeing",
+      "title": "La Vallée des Couleurs Nature Park",
+      "url": "https://www.visitemaurice.com/en/sightseeing/la-vallee-des-couleurs-nature-park-2/",
+      "shortDescription": "Day trip to La Vallée des Couleurs nature park, with its 23-coloured earth, four waterfalls, native wildlife and flora in southern Mauritius.",
+      "description": "Nature lovers will find this destination appealing, offering a unique experience with indigenous wildlife and flora. The park features diverse landscapes including plateaus, mountains, valleys, craters and crater lakes. An exhibition room and fern garden showcase native flowers such as Trochetia and Banané Bouquet. Wildlife includes tortoises, monkeys, deer, fish and birds such as the Pink Pigeon and the Paille-en-Queue. Endemic trees (Ebony, Rattan Wood, Takamaka) enhance the scenery. Four waterfalls — Vacoas, Rattan Wood, Angel Hair and Chamouzé — offer relaxation spots. The main attraction is the earth with 23 distinct colours, originating from the Bassin Blanc volcano eruption millions of years ago.",
+      "duration": "Approximately 7 hours",
+      "schedule": "Available every day. Start time around 9:00 a.m.; estimated return around 4:30 p.m.",
+      "priceFrom": {
+        "amount": 60,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Group of 4",
+          "amount": 60,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "SUV",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Family car",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Entry ticket – adult",
+          "amount": 400,
+          "currency": "MUR",
+          "unit": "per adult",
+          "notes": "Admission ticket"
+        },
+        {
+          "label": "Entry ticket – child",
+          "amount": 200,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Admission ticket"
+        }
+      ],
+      "included": [
+        "Full day transport to all the mentioned sites",
+        "Pick-up and drop-off across the island"
+      ],
+      "notIncludedOrRequired": [
+        "Admission tickets",
+        "Lunch",
+        "Guide services"
+      ],
+      "highlights": [
+        "23-coloured earth formation",
+        "Four waterfalls (Vacoas, Rattan Wood, Angel Hair, Chamouzé)",
+        "Exhibition room",
+        "Fern garden with native flowers",
+        "Wildlife viewing (tortoises, monkeys, deer, birds)",
+        "Endemic tree species (Ebony, Rattan Wood, Takamaka)",
+        "South Coast panoramic views"
+      ],
+      "location": "Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius. Park located in the southern region.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/quad-riding1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/zipline-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/the-coloured-earth.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/quad-riding3.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/quad-riding2.jpg"
+      ],
+      "bookingNotes": "50% cancellation fee if cancelled 24 hours in advance; 100% cancellation fee if cancelled on the excursion day. Full refund via bank transfer if cancelled by Belle Mare Tours Ltd.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "north-tour",
+      "category": "Sightseeing",
+      "title": "North Tour",
+      "url": "https://www.visitemaurice.com/en/sightseeing/north-tour/",
+      "shortDescription": "Full-day tour of the key sites of northern Mauritius: Port Louis, Pamplemousses, Grand Baie and Cap Malheureux, with a private driver-guide.",
+      "description": "Explore various places for a fulfilling day: Port Louis, Pamplemousses, Mon Choisy, Grand Baie, and Cap Malheureux. The experience begins with discovering the capital and its central market, followed by a citadel stop with harbour views. Guests visit the Botanical Garden of Pamplemousses, then conclude in Grand Baie and Cap Malheureux. A driver-guide will be at your service to accompany and inform you. Itineraries are customisable with optional activities including swimming with turtles, diving, the Sugar Adventure, or a visit to Château De Labourdonnais. Prices are per vehicle and not per person.",
+      "duration": "About 8 hours",
+      "schedule": "Available every day. Start time between 8:30 a.m. and 10:00 a.m.; estimated return between 5:30 p.m. and 6:30 p.m.",
+      "priceFrom": {
+        "amount": 70,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Group of 4",
+          "amount": 70,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "SUV",
+          "amount": 3800,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Family car",
+          "amount": 3800,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Botanical Garden entry",
+          "amount": 300,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Admission ticket"
+        }
+      ],
+      "included": [
+        "Full day transport to all the mentioned sites",
+        "Driver-guide services",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Admission tickets",
+        "Lunch (driver can recommend restaurants)"
+      ],
+      "highlights": [
+        "Port Louis (capital)",
+        "Central Market (Marché central)",
+        "Citadel with harbour views",
+        "Botanical Garden of Pamplemousses",
+        "Grand Baie",
+        "Cap Malheureux"
+      ],
+      "location": "Pick-up and drop-off from all parts of the island. Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/redchurch.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pamplemousses.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/caudan-waterfront.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Full refund via bank transfer if cancelled by Belle Mare Tours Ltd. Cash can be paid to the driver in MUR, EUR, or USD, or you can pay online.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "shopping-tour",
+      "category": "Sightseeing",
+      "title": "Shopping Tour",
+      "url": "https://www.visitemaurice.com/en/sightseeing/shopping-tour/",
+      "shortDescription": "Half-day or full-day shopping tour through Port Louis, Curepipe and Floréal, taking in arts and crafts, luxury boutiques, department stores and markets.",
+      "description": "All day or half a day: Shopping in Mauritius can be a wonderful experience. Traditional arts and crafts, as well as the finest luxury products, can be found in various shopping centres and boutiques. There are also several department stores offering very attractive prices and vibrant markets where you can truly experience the rhythm of life in Mauritius. During this visit, you will have the opportunity to explore many places in an interesting day: Port-Louis, Curepipe and Floréal. Prices are per vehicle and not per person.",
+      "duration": "Half day or full day (customer's choice)",
+      "schedule": "Available every day. Start time around 09:00.",
+      "priceFrom": {
+        "amount": 60,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Group of 4",
+          "amount": 60,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "SUV",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Family car",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [
+        "Full day transport to all the mentioned sites above",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Admission tickets",
+        "Lunch / meals (driver can recommend restaurants)"
+      ],
+      "highlights": [
+        "Port-Louis (North West region)",
+        "Curepipe (Centre region)",
+        "Floréal (Centre region)"
+      ],
+      "location": "Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius. Pick-up and drop-off at all parts of the island.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-minan1398-1093837.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-orlovamaria-4940756.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/ricardo-marques-7oG6cBJYHx4-unsplash.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/veegish-ramdani-TE-z3OJv-54-unsplash.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/miguel-alcantara--UJDezBpAq0-unsplash-scaled.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Full refund via bank transfer if cancelled by Belle Mare Tours Ltd.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "south-east-tour",
+      "category": "Sightseeing",
+      "title": "South East Tour",
+      "url": "https://www.visitemaurice.com/en/sightseeing/south-east-tour/",
+      "shortDescription": "Full-day tour of south-east Mauritius featuring the Bois Chéri tea factory, Saint Aubin colonial house and rum distillery, Gris Gris cliffs and La Vanille crocodile park.",
+      "description": "At the Bois Chéri tea factory you will discover the different stages of production while enjoying a nice cup of tea. Saint Aubin, built in 1819, showcases its anthuriums and greenhouses as well as its rum distillery. At Gris Gris, observe the waves crashing against the cliffs. Vanille Park is a sanctuary of the Mascarene Islands, home to sunbathing crocodiles, bats, giant tortoises and an insectarium with over 20,000 different species. A personal driver-guide provides personalised service, and you can customise visits with additional activities such as the Blue Bay marine park and the Naval Museum of Mahébourg. Prices are per vehicle and not per person.",
+      "duration": "About 8 hours",
+      "schedule": "Available every day. Start time between 8:30 a.m. and 10:00 a.m.; estimated return between 5:30 p.m. and 6:30 p.m.",
+      "priceFrom": {
+        "amount": 70,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Group of 4",
+          "amount": 70,
+          "currency": "EUR",
+          "unit": "per vehicle",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "SUV",
+          "amount": 3800,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Family car (6 seats)",
+          "amount": 3800,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Minibus (14 seats)",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Coaster (25 seats)",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Bois Chéri entry – adult",
+          "amount": 600,
+          "currency": "MUR",
+          "unit": "per adult",
+          "notes": "Admission ticket"
+        },
+        {
+          "label": "Bois Chéri entry – child",
+          "amount": 300,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Admission ticket"
+        },
+        {
+          "label": "St Aubin entry – adult",
+          "amount": 600,
+          "currency": "MUR",
+          "unit": "per adult",
+          "notes": "Admission ticket"
+        },
+        {
+          "label": "St Aubin entry – child",
+          "amount": 300,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Admission ticket"
+        },
+        {
+          "label": "Réserve Des Mascareignes entry – adult",
+          "amount": 975,
+          "currency": "MUR",
+          "unit": "per adult",
+          "notes": "Admission ticket"
+        },
+        {
+          "label": "Réserve Des Mascareignes entry – child",
+          "amount": 685,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Admission ticket"
+        }
+      ],
+      "included": [
+        "Full day transport to all the mentioned sites above",
+        "Personal driver-guide",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Admission tickets",
+        "Lunch (driver can recommend good restaurants along the way)"
+      ],
+      "highlights": [
+        "Bois Chéri tea plantation and factory (Centre region)",
+        "Saint Aubin / Maison Coloniale with rum distillery (South region)",
+        "Gris Gris cliff-side beach (South region)",
+        "La Vanille crocodile park / Réserve des Mascareignes wildlife sanctuary (South region)"
+      ],
+      "location": "Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius. Pick-up and drop-off at all parts of the island.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/boischerie2.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/lavanillecrocodile.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/grisgris.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/crocodile.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Full refund via bank transfer if cancelled by Belle Mare Tours Ltd.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "speed-boat-ile-aux-cerfs",
+      "category": "Ile aux Cerfs",
+      "title": "Speed Boat – Ile Aux Cerfs",
+      "url": "https://www.visitemaurice.com/en/ile-aux-cerfs-tours/speed-boat-ile-aux-cerfs/",
+      "shortDescription": "A full-day speedboat trip to Île aux Cerfs with turquoise lagoons, the Grande Rivière Sud Est waterfall, a BBQ lunch on Îlot Mangénie and optional water activities.",
+      "description": "Enjoy an unforgettable experience with a boat trip to Île aux Cerfs. Discover and marvel at the stunning landscapes of the turquoise lagoons on the East Coast while relaxing on the fine sandy beach. Don't miss the chance to visit the spectacular Grande Rivière Sud Est waterfall and savor a delicious lunch on Îlot Mangénie. Also take advantage of the numerous water activities available to enhance your day, such as parasailing, banana boat rides, buoy rides, or water skiing. A day full of adventures and unforgettable memories awaits you on this paradise island.",
+      "duration": "About 8 hours",
+      "schedule": "Available every day. Start time from 9:00 a.m., estimated return around 4:00 p.m.",
+      "priceFrom": {
+        "amount": 40,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Per person (sharing basis)",
+          "amount": 40,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Share base"
+        },
+        {
+          "label": "Per person (sharing basis)",
+          "amount": 2000,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Approx 40 EUR; share base"
+        },
+        {
+          "label": "Child under 10 years old",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Children under 10 years old"
+        },
+        {
+          "label": "Transport (group of 4, starting price)",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "per group",
+          "notes": "Group of 4, depending on location, approximately 25 EUR"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Half lobster supplement",
+          "amount": 800,
+          "currency": "MUR",
+          "unit": "supplement",
+          "notes": "Supplement for half lobster"
+        }
+      ],
+      "included": [
+        "BBQ lunch with salads, garlic butter bread, chicken, fish, sausage",
+        "Drinks: water, Coke, beer, wine, local rum",
+        "Flaming banana dessert",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Transport is arranged separately at additional cost",
+        "Water activities (parasailing, banana boat rides, buoy rides, water skiing) are optional/additional",
+        "Please do not drink if you are going to drive",
+        "Arrive at the boarding point at least 15 minutes before cruise start time"
+      ],
+      "highlights": [
+        "Île aux Cerfs (Eastern Region)",
+        "BBQ lunch on Îlot Mangénie (Eastern Region)",
+        "Grande Rivière Sud Est (G.R.S.E) waterfall",
+        "Turquoise lagoons of the East Coast and fine sandy beaches"
+      ],
+      "location": "Departure / boarding point near Île aux Cerfs (directions on Google Maps). Operator: Belle Mare Tours Ltd., Royal Road, Belle Mare, Mauritius.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Bellemare-tour-31.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Speed_-boat.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/speed-boat.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply if cancelled 24 hours in advance; 100% cancellation fees apply on the day of the excursion. If cancelled by Belle Mare Tours Ltd, full refund via bank transfer. Payment by cash (MUR/EUR/USD) to driver or online.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "the-blue-cruise-ile-aux-cerfs-5-islands-visit",
+      "category": "Ile aux Cerfs",
+      "title": "The Blue Cruise – Ile Aux Cerfs (5 Islands Visit)",
+      "url": "https://www.visitemaurice.com/en/ile-aux-cerfs-tours/the-blue-cruise-ile-aux-cerfs-5-islands-visit/",
+      "shortDescription": "A full-day speedboat excursion from Trou d'Eau Douce taking in the GRSE waterfall, snorkeling among coral gardens, five islands, a BBQ lunch and the beaches of northern Île aux Cerfs.",
+      "description": "This speedboat excursion from Trou d'Eau Douce promises a total escape. Your adventure begins with the discovery of the majestic Grande Rivière Sud-Est waterfall, a breathtaking natural spectacle. Next, dive into a true natural aquarium during a snorkeling session. Explore coral gardens and swim among vibrant tropical fish. Continue your journey through the hidden gems of the coast: Île aux Aigrettes, Île aux Prison, and Île aux Phare. Each stop offers its share of surprises, from fascinating stories to pristine landscapes. The highlight of the day? A delicious BBQ lunch in an idyllic setting on the southern part of Île aux Cerfs. Savor local flavors with your feet in the sand, gently caressed by the sea breeze. To end this magical day, relax on the paradisiacal beaches of northern Île aux Cerfs, where the turquoise lagoon invites you to swim and unwind.",
+      "duration": "About 8 hours",
+      "schedule": "Start time from 9:00 a.m., return to hotel around 4:00 p.m. Available on specific days.",
+      "priceFrom": {
+        "amount": 65,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Per person (sharing basis)",
+          "amount": 65,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Sharing basis; approximately 3500 MUR"
+        },
+        {
+          "label": "Child under 10 years old",
+          "amount": 2000,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Children under 10 years old"
+        },
+        {
+          "label": "Transport (group of 4, starting price)",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "per group",
+          "notes": "From Rs 1200 for a group of 4 people, approximately €25"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [
+        "Lunch and drinks",
+        "BBQ lunch with salads, garlic butter bread, chicken, fish, sausage",
+        "Drinks: water, Coke, beer, wine, local rum",
+        "Flaming banana dessert",
+        "Snorkeling session",
+        "Visit to five islands",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Please do not drink if you are going to drive",
+        "Arrive at the boarding point at least 15 minutes before cruise start time"
+      ],
+      "highlights": [
+        "Grande Rivière Sud-Est (GRSE) waterfall",
+        "Snorkeling among coral gardens and tropical fish at Eau Bleue",
+        "Île aux Aigrettes (Southeast Region)",
+        "Île aux Prison (Southeast Region)",
+        "Île Phare / Île aux Phare (Southeast Region)",
+        "BBQ lunch on the southern part of Île aux Cerfs",
+        "Beaches of northern Île aux Cerfs and the turquoise lagoon"
+      ],
+      "location": "Departure / boarding point at Trou d'Eau Douce (directions on Google Maps). Operator: Belle Mare Tours Ltd., Royal Road, Belle Mare, Mauritius.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/11174200_966568543362218_8577686186521856933_o.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/big-island-snorkel-spots.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/IMG-20230725-WA0002.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Bellemare-tour-14.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply if cancelled 24 hours in advance; 100% cancellation fees apply on the day of the excursion. If cancelled by Belle Mare Tours Ltd, full refund via bank transfer. Payment by cash (MUR/EUR/USD) or online. Transport prices are per vehicle, not per person.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "catamaran-cruise-ile-aux-cerfs",
+      "category": "Catamaran Cruises",
+      "title": "Catamaran Cruise – Ile Aux Cerfs",
+      "url": "https://www.visitemaurice.com/en/catamaran-cruises/catamaran-cruise-ile-aux-cerfs/",
+      "shortDescription": "A full-day catamaran cruise from Trou D'eau Douce visiting the Grand River South East Waterfall, snorkeling, a BBQ lunch on board, and Ile aux Cerfs.",
+      "description": "Enjoy a full-day catamaran cruise departing from Trou D'eau Douce on Mauritius's east coast. The experience includes visiting the spectacular Grand River South East Waterfall, snorkeling in crystal-clear waters, and enjoying a BBQ lunch with beverages onboard. Guests then travel to Ile aux Cerfs to admire palm trees and white beaches framed by turquoise water, with time to relax on sandy beaches and swim in the lagoon.",
+      "duration": "Approximately 7 hours",
+      "schedule": "Available every day. Start around 9:00 a.m. Return between 4:30 p.m.",
+      "priceFrom": {
+        "amount": 50,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Activity (sharing basis)",
+          "amount": 2500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Sharing basis"
+        },
+        {
+          "label": "Activity (starting price)",
+          "amount": 50,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Kids under 10 years",
+          "amount": 1800,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Children under 10 years"
+        },
+        {
+          "label": "Transportation - group of 4 people (starting from)",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "per group of 4",
+          "notes": "Approximately 25 EUR, starting from"
+        },
+        {
+          "label": "Transportation - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transportation - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transportation - Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transportation - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transportation - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [
+        "Salads and garlic butter bread",
+        "BBQ items: chicken, fish, sausage",
+        "Beverages: water, Coke, beer, wine, local rum",
+        "Dessert: flaming banana",
+        "Baby seat available free on request",
+        "Snorkeling"
+      ],
+      "notIncludedOrRequired": [
+        "Private/Exclusive Catamaran - Please contact us",
+        "Guests using own transport must not drink if driving",
+        "Arrive at boarding point at least 15 minutes before the cruise start time"
+      ],
+      "highlights": [
+        "Ile aux Cerfs (Eastern Region)",
+        "GRSE Waterfall (Eastern Region)",
+        "Snorkeling (Eastern Region)",
+        "BBQ lunch (Eastern Region)"
+      ],
+      "location": "Trou D'eau Douce, east coast of Mauritius. Pick-up and drop-off available island-wide.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/IMG-20230725-WA0019.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/20230824_101751.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Bellemare-tour-31.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/11-1.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance. 100% cancellation fees apply on the day of the excursion. Full refund via bank transfer if Belle Mare Tours Ltd cancels. Payment: cash (MUR, EUR, USD) or online. Prices per vehicle, not per person.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "catamaran-cruise-3-northern-island-adventure-all-inclusive",
+      "category": "Catamaran Cruises",
+      "title": "Catamaran Cruise 3 Northern Island Adventure (All-inclusive)",
+      "url": "https://www.visitemaurice.com/en/catamaran-cruises/catamaran-cruise-3-northern-island-adventure-all-inclusive/",
+      "shortDescription": "A full day from Grand Baie exploring Île Plate with lagoon snorkeling, a gourmet lunch on board, relaxation at Île aux Gabriel, and sunset views of Coin de Mire.",
+      "description": "Depart from Grand Baie for a full day exploring Île Plate. Enjoy crystal-clear lagoon snorkeling with incredible fish and coral varieties. A gourmet lunch is prepared on the spacious catamaran, followed by relaxation at Île aux Gabriel. The day concludes with sunset views of Coin de Mire's spectacular cliffs.",
+      "duration": "About 8 hours",
+      "schedule": "Available every day. Start around 7:30 a.m. Return to the hotel between 4:00 p.m.",
+      "priceFrom": {
+        "amount": 50,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Activity (base rate)",
+          "amount": 50,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Activity (per person, transfer not included)",
+          "amount": 2500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Transfer not included"
+        },
+        {
+          "label": "Child younger than 10 (transfer not included)",
+          "amount": 1500,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Children younger than 10; transfer not included"
+        },
+        {
+          "label": "Couple activity (transfer included)",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Couple activity; transfer included"
+        },
+        {
+          "label": "Group activity (min 4 people, transfer included)",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Group activity min 4 people; transfer included"
+        }
+      ],
+      "included": [
+        "Lunch with salads",
+        "Garlic butter bread",
+        "Grilled chicken/fish/sausage",
+        "Water, Coke, beer, wine, local rum",
+        "Flaming banana",
+        "Fruit salads",
+        "Snorkeling",
+        "Baby seat free on request"
+      ],
+      "notIncludedOrRequired": [
+        "Private Catamaran (Exclusive) - Please contact us",
+        "Do not drink if you are going to drive",
+        "Arrive 15 minutes before departure",
+        "Own transport users must find directions on Google Maps"
+      ],
+      "highlights": [
+        "Île Plate (Northern Region)",
+        "Ile Aux Gabriel (Northern Region)",
+        "Coin de Mire (Northern Region)",
+        "Snorkeling (Northern Region)"
+      ],
+      "location": "Grand Baie. Pick-up and drop-off available island-wide.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/3-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/5.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Gunners-Coin-_Snorkeling-1-scaled.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/DJI_5017-scaled.jpeg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance. 100% cancellation fees apply on the day of the excursion. Full refund via bank transfer if Belle Mare Tours cancels.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "catamaran-sunset-cruise",
+      "category": "Catamaran Cruises",
+      "title": "Catamaran Sunset Cruise",
+      "url": "https://www.visitemaurice.com/en/catamaran-cruises/catamaran-sunset-cruise/",
+      "shortDescription": "Sail peacefully through the stunning sunset over Grand Bay on a beautiful catamaran while relaxing with a refreshing cocktail.",
+      "description": "Sail peacefully through the stunning sunset over Grand Bay on a beautiful catamaran while relaxing with a refreshing cocktail. The sunsets on the northwest coast of Mauritius are legendary, and the best way to experience them is from the ocean. The cruise allows visitors to enjoy the splendor of the historic town of Grand Bay and sail towards Coin de Mire with its spectacular sea cliffs, offering breathtaking views of other northern islands and Mauritius's central mountain range. The catamaran features spacious outdoor areas on the deck, front, and back, specially designed for sunset viewing, photography, and socializing. It includes a bar, high-end audio system, and refined music collection.",
+      "duration": "Approximately 2 hours (cocktail cruise); 4 hours (dinner cruise)",
+      "schedule": "Available every day. Cocktail Cruise: departure 17:00, return 19:00. Dinner Cruise: departure 17:00, return 21:00.",
+      "priceFrom": {
+        "amount": 50,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Cocktail Sunset Cruise (starting price)",
+          "amount": 50,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Cocktail Sunset Cruise (private)",
+          "amount": 19000,
+          "currency": "MUR",
+          "unit": "private",
+          "notes": "Approximately EUR 380, private"
+        },
+        {
+          "label": "Combo Cocktail and Dinner at Sunset (private)",
+          "amount": 23000,
+          "currency": "MUR",
+          "unit": "private",
+          "notes": "Approximately EUR 460, private"
+        },
+        {
+          "label": "Transportation - Standard Car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport add-on"
+        },
+        {
+          "label": "Transportation - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport add-on"
+        },
+        {
+          "label": "Transportation - Family Car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport add-on"
+        },
+        {
+          "label": "Transportation - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport add-on"
+        },
+        {
+          "label": "Transportation - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport add-on"
+        }
+      ],
+      "included": [
+        "Cocktail Cruise: Canapés (tuna, shrimp, smoked fish)",
+        "Peanuts, chips",
+        "Wine Cocktails (white, rosé)",
+        "Beer, Rum",
+        "Non-alcoholic drinks",
+        "Mineral water",
+        "Dinner Cruise: Selection of canapés and snacks",
+        "Baby seat available free on request"
+      ],
+      "notIncludedOrRequired": [
+        "Transportation to/from boarding point (available separately)",
+        "Please, do not drink if you are going to drive!",
+        "Arrive at boarding point at least 15 minutes before cruise start time"
+      ],
+      "highlights": [
+        "Grand Baie (Northern Region)",
+        "Gunner's Coin / Coin de Mire (Northern Region) - spectacular cliffs with an explosion of color",
+        "Sunset viewing over the northwest coast",
+        "Sail past Fort Malarctic and Cap Malheureux"
+      ],
+      "location": "Belle Mare Tours Ltd., Royal Road, Belle Mare, Mauritius. Boarding at Grand Baie. Pick-up and drop-off available at all island locations.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-george-desipris-769228.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-nuno-obey-127160.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-vincent-gerbouin-1167023.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-sebastian-coman-photography-3461205.jpg"
+      ],
+      "bookingNotes": "Cancellation 24+ hours in advance: 50% cancellation fees. Same day cancellation: 100% cancellation fees. If cancelled by Belle Mare Tours: full refund via bank transfer. Payment: cash (MUR, EUR, USD) to driver or online. Prices are per vehicle and not per person.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "western-cruise-catamaran",
+      "category": "Catamaran Cruises",
+      "title": "Western Cruise Catamaran",
+      "url": "https://www.visitemaurice.com/en/catamaran-cruises/western-cruise-catamaran/",
+      "shortDescription": "Head towards Tamarin Bay to search for dolphins in their natural habitat, snorkel near a coral reef, and enjoy lunch at anchor by Crystal Rock.",
+      "description": "Heading towards Tamarin Bay to search for dolphins in their natural habitat, offering a magical and unforgettable experience observing these majestic creatures in the late morning. The tour includes a stop near a beautiful coral reef for snorkeling in crystal-clear waters to discover underwater life's incredible beauty and diversity. A delicious lunch is served at anchor while viewing Crystal Rock shimmering under the tropical sun.",
+      "duration": "About 7 hours",
+      "schedule": "Available every day. Start around 8:30 a.m. Return to hotel between 4 p.m.",
+      "priceFrom": {
+        "amount": 50,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Activity (sharing basis)",
+          "amount": 50,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Sharing base"
+        },
+        {
+          "label": "Activity (sharing basis)",
+          "amount": 2500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Approximately 50 EUR, sharing base"
+        },
+        {
+          "label": "Transportation - group of 4 people",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per group of 4",
+          "notes": "Approximately 60 EUR"
+        },
+        {
+          "label": "Transportation - Standard Car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transportation - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transportation - Family Car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transportation - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transportation - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [
+        "Lunch on board: salads",
+        "Garlic butter bread",
+        "Chicken, fish, sausage",
+        "Water, Coke, beer, wine, local rum",
+        "Flaming banana",
+        "Fruit salads",
+        "Snorkeling"
+      ],
+      "notIncludedOrRequired": [
+        "Catamaran in Exclusive - Please contact us",
+        "Please, do not drink if you are going to drive!",
+        "Arrive at boarding point at least 15 minutes before start",
+        "Own transport requires directions from Google Maps"
+      ],
+      "highlights": [
+        "Departure from Black River (West region)",
+        "Dolphin watching at Tamarin Bay",
+        "Crystal Rock snorkeling (West region)",
+        "Benitier Island (West region)",
+        "Lunch on board (West region)"
+      ],
+      "location": "Black River, West region. Pick-up and drop-off available at all island locations.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/20230824_101231-scaled.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/IMG_40988560377817-1.jpeg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/dji_fly_20230813_132902_0_1691918942596_photo_low_quality.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/20230813_104716-scaled.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance. 100% cancellation fees apply on the day of the excursion. Full refund via bank transfer if cancelled by Belle Mare Tours Ltd. Payment: cash (MUR, EUR, USD) or online.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "swim-with-dolphins-south-tours-all-inclusive",
+      "category": "Dolphin Encounter",
+      "title": "Swim with Dolphins & South Tours All Inclusive",
+      "url": "https://www.visitemaurice.com/en/dolphin-encounter/swim-with-dolphins-south-tours-all-inclusive/",
+      "shortDescription": "Sunrise speedboat swim with dolphins at Tamarin, then a southern road tour to Chamarel's Seven Colored Earth, Black River Gorges, Grand Bassin and a rum distillery.",
+      "description": "Depart at 6 AM from your hotel to Tamarin, witnessing the sunrise over the Indian Ocean. Board a speedboat to swim with dolphins in their natural habitat while exploring the western lagoon. Engage in diving and observe marine life, followed by snorkeling to experience the vibrant underwater world. At 10:30 AM, travel by taxi to Chamarel to visit the Seven Colored Earth and the island's highest waterfall. Experience panoramic views of the Black River Gorges, Grand Bassin, Trou aux Cerfs, and Floreal. Visit the Chamarel Rum Distillery for rum tasting before returning to your hotel.",
+      "duration": "About 8 hours",
+      "schedule": "Available every day. Departure around 06h00; return to hotel around 5:00 p.m.",
+      "priceFrom": {
+        "amount": 70,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Per person (approximate)",
+          "amount": 70,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Approximate"
+        },
+        {
+          "label": "Per person including swimming with dolphins and transport",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Including swimming with dolphins and transport"
+        },
+        {
+          "label": "Per person (couple rate) including swimming with dolphins and transport",
+          "amount": 3800,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Couple rate; including swimming with dolphins and transport"
+        }
+      ],
+      "included": [
+        "Pick-up and drop-off at all parts of the island",
+        "Swimming with dolphins",
+        "Transport",
+        "Snorkeling gear (masks, fins, snorkels)",
+        "Towels"
+      ],
+      "notIncludedOrRequired": [
+        "Swimwear (must be worn before visit starts)",
+        "Entrance fees and lunch"
+      ],
+      "highlights": [
+        "Tamarin Bay",
+        "Benitier Island viewpoint",
+        "Chamarel (Seven Colored Earth and waterfall)",
+        "Black River Gorges",
+        "Grand Bassin (Ganga Talao)",
+        "Trou aux Cerfs",
+        "Floreal",
+        "Chamarel Rum Distillery"
+      ],
+      "location": "Hotel pick-up (all island locations); activity at Tamarin Bay with southern Mauritius road tour.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/saute-de-dauphin.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/swim-with-dolphins-mauritius.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/hugues-mathers-YoLdMZ4AIdo-unsplash.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/dan-dy-1OLqSEXXlGA-unsplash.jpg"
+      ],
+      "bookingNotes": "Cancellation: 50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion; full refund via bank transfer if cancelled by Belle Mare Tours.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "swimming-with-dolphins",
+      "category": "Dolphin Encounter",
+      "title": "Swimming with Dolphins",
+      "url": "https://www.visitemaurice.com/en/dolphin-encounter/swimming-with-dolphins/",
+      "shortDescription": "Early-morning speedboat trip to Tamarin Bay to swim with wild dolphins in their natural habitat, followed by snorkeling over coral reefs.",
+      "description": "Make your trip to Mauritius truly unforgettable with the magical experience of swimming alongside dolphins. Set off early at 7:30 AM on a speedboat and head to Tamarin Bay, where you'll meet these incredible creatures in their natural habitat. Feel the thrill as you dive into crystal-clear waters and watch dolphins play just a few feet away. Listen to their calls, observe their graceful movements, and enjoy a unique moment of connection with nature. This extraordinary adventure will fill you with joy, wonder, and an unmatched sense of freedom.\n\nAfter your dolphin encounter, explore the vibrant marine life beneath the waves. Snorkel through colorful coral reefs, swim alongside tropical fish, and discover the breathtaking underwater world of the Indian Ocean. Every moment is a chance to escape, recharge, and reconnect with the beauty of the sea. Don't forget to capture these unforgettable memories with stunning photos.",
+      "duration": "About 2 hours",
+      "schedule": "Available every day. Departure at 7:30 AM; return to hotel around 10:30 a.m.",
+      "priceFrom": {
+        "amount": 30,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Per person (starting price)",
+          "amount": 30,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Per person (group activity)",
+          "amount": 1500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Group activity / share basis"
+        },
+        {
+          "label": "Child under 10 years old",
+          "amount": 1000,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Child under 10 years old"
+        },
+        {
+          "label": "Exclusive boat for 2 pax",
+          "amount": 10000,
+          "currency": "MUR",
+          "unit": "per boat",
+          "notes": "Exclusive boat for 2 pax"
+        },
+        {
+          "label": "Transport for group of 4 people",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Approximately 60 EUR; for group of 4 people"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Standard car"
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "SUV"
+        },
+        {
+          "label": "Transport - Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Family car"
+        },
+        {
+          "label": "Transport - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Minibus"
+        },
+        {
+          "label": "Transport - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Coaster"
+        }
+      ],
+      "included": [
+        "Snorkeling gear (masks, fins, snorkels)",
+        "Pick-up and drop-off at all parts of the island",
+        "Speedboat transportation to Tamarin Bay"
+      ],
+      "notIncludedOrRequired": [
+        "Swimwear (must be worn before visit starts)",
+        "Towels",
+        "Payment for transportation (separate from tour price)"
+      ],
+      "highlights": [
+        "Tamarin (West Region) - departure point",
+        "Swim with dolphins in Tamarin Bay in their natural habitat (West Region)",
+        "Snorkeling - explore colorful coral reefs and tropical fish in the Indian Ocean (West Region)"
+      ],
+      "location": "Tamarin Bay, West Region of Mauritius. Directions to the boarding point are available on Google Maps; arrive at the boarding point at least 15 minutes before the cruise start time.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Dolphins-Swimming.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/IMG_40988560377817-1.jpeg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/nage-avec-le-dauphin-1-scaled.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Bellemare-tour-31.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/standard-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/suv-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/6-seaters-taxi.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/minibus-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/coaster-tours.jpg"
+      ],
+      "bookingNotes": "Cancellation: 50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion; full refund via bank transfer if cancelled by Belle Mare Tours Ltd. Transport prices apply per vehicle, not per person. Payment by cash (MUR, EUR, USD) to driver or online. Do not drink and drive if using own transport.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "swimming-with-dolphins-benitier-island-speedboat-all-inclusive",
+      "category": "Dolphin Encounter",
+      "title": "Swimming with Dolphins & Benitier Island (Speedboat) All Inclusive",
+      "url": "https://www.visitemaurice.com/en/dolphin-encounter/swimming-with-dolphins-benitier-island-speedboat-all-inclusive/",
+      "shortDescription": "Full-day speedboat excursion in western Mauritius: swim with dolphins, snorkel, visit Crystal Rock, and enjoy a barbecue lunch on Ile aux Benitiers.",
+      "description": "This full-day speedboat excursion offers an immersive ocean experience in Mauritius's western region. Guests encounter dolphins in their natural habitat, explore underwater ecosystems through snorkeling, visit the iconic Crystal Rock island formation, and conclude with a barbecue lunch on Ile aux Benitiers. The all-inclusive package combines wildlife observation with island exploration and dining.",
+      "duration": "Approximately 7 hours",
+      "schedule": "Available every day. Departure between 7:30 a.m. from Tamarin Bay; return to hotel between 3:30 p.m.",
+      "priceFrom": {
+        "amount": 50,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Per person (share basis)",
+          "amount": 2500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Activity, share basis"
+        },
+        {
+          "label": "Introductory rate per person",
+          "amount": 50,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "As from EUR 50 per person"
+        },
+        {
+          "label": "Children under 10",
+          "amount": 1500,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": "Children under 10"
+        },
+        {
+          "label": "Transport (1-4 people group)",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Group of 1-4 people"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Standard car"
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "SUV"
+        },
+        {
+          "label": "Transport - Family car (6-seater)",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Family car, 6-seater"
+        },
+        {
+          "label": "Transport - Minibus (14-seater)",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Minibus, 14-seater"
+        },
+        {
+          "label": "Transport - Coaster (25-seater)",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Coaster, 25-seater"
+        }
+      ],
+      "included": [
+        "Dolphin swimming experience",
+        "Snorkeling with provided gear (masks, fins, snorkels)",
+        "Crystal Rock Island visit",
+        "Barbecue lunch (salads, garlic butter bread, grilled chicken, fish, sausage; water, Coke, beer, wine, local rum; flaming banana dessert)",
+        "Hotel pickup and dropoff (all island locations)"
+      ],
+      "notIncludedOrRequired": [
+        "Swimwear (must be worn before visit starts)",
+        "Towels",
+        "Driver payment (cash in MUR, EUR, USD accepted, or online payment)"
+      ],
+      "highlights": [
+        "Swim with dolphins (Western Region)",
+        "Snorkeling (Western Region)",
+        "Visit Crystal Rock Island (Western Region)",
+        "Ile aux Benitiers barbecue lunch (Western Region)"
+      ],
+      "location": "Tamarin Bay, Western Region of Mauritius. Operator: Belle Mare Tours Ltd., Royal Road, Belle Mare, Mauritius.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/IMG-20230725-WA0009.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/saute-de-dauphin.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/swim-with-dolphins-mauritius.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/dji_fly_20230813_131353_0_1691918033908_photo_low_quality-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/standard-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/suv-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/6-seaters-taxi.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/minibus-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/coaster-tours.jpg"
+      ],
+      "bookingNotes": "Cancellation: 50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion; full refund via bank transfer if cancelled by Belle Mare Tours. Boat exclusive available on request (contact operator for quote). Payment by cash (MUR, EUR, USD) to driver or online.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "seaplane",
+      "category": "Air Activities",
+      "title": "Fly Over the Underwater Waterfall: Mauritius Seaplane Tour",
+      "url": "https://www.visitemaurice.com/en/air-activities/seaplane/",
+      "shortDescription": "Take off barefoot from the turquoise lagoon at La Prairie beach and fly beside the famous underwater waterfall illusion, next to a UNESCO World Heritage site.",
+      "description": "We have the privilege of flying over the UNDERWATER CASCADE daily. Our seaplanes take off from the beach of La Prairie, right next to this natural wonder. Just a few steps away, barefoot in the turquoise lagoon, you board the seaplane. Get ready to take off from the crystal-clear waters, beside a UNESCO World Heritage site. Comfortably seated next to the pilot, you will discover this famous illusion: a waterfall at the bottom of the Indian Ocean. It's magical and majestic. The most photogenic view has captivated the entire world since its photos made their rounds on the internet. This natural treasure is truly something to see in person.",
+      "duration": "Tour options of 15min, 30min or 60min",
+      "schedule": "Daily flights",
+      "priceFrom": {
+        "amount": 145,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Seaplane tour",
+          "amount": 145,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Transport",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "for a group of 4 people",
+          "notes": "Depending on your location; approximately 25 EUR"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [],
+      "notIncludedOrRequired": [],
+      "highlights": [
+        "Fly over the famous underwater waterfall illusion at the bottom of the Indian Ocean",
+        "Take off barefoot from the turquoise lagoon at La Prairie beach",
+        "Seated next to the pilot",
+        "Views beside a UNESCO World Heritage site",
+        "Three tour options: 15min (the short ambre), 30min (the Turquoise experience), 60min (the mythical east)"
+      ],
+      "location": "Beach of La Prairie, Mauritius",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/10/DSC02794-1-scaled.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/10/PHOTO-2024-03-19-14-21-39-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/10/PHOTO-2024-03-19-14-21-38-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/standard-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/suv-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/6-seaters-taxi.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/minibus-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/coaster-tours.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. If the cancellation is made by Belle Mare Tours Ltd, a full refund will be processed via bank transfer.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "helicotour",
+      "category": "Air Activities",
+      "title": "Helicopter Tour of Mauritius",
+      "url": "https://www.visitemaurice.com/activites-aeriennes/helicotour/",
+      "shortDescription": "Discover Mauritius from above on a private helicopter flight departing from the Triolet base in the north, with three packages from a short scenic hop to a full island tour.",
+      "description": "THE MUST (departing from Triolet, North): A short flight and memories forever etched in your mind. The route departing from the Triolet base includes a flyover of the northern landscapes and islets. Enjoy the bustling life of Grand-Baie seen from above and the boats lined up near the golden sand beach. Then fly over Coin de Mire, which dominates the north coast, and Ile Plate, home to various species of reptiles. The flight ends with a magnificent stretch over Ile d'Ambre, where the famous Saint-Geran was shipwrecked and which was the setting of Paul et Virginie by Bernardin de Saint-Pierre.\n\nTHE MAGIC (departing from Triolet, North): Discover beautiful panoramas of Mauritius by flying over the island for 40 minutes with our exclusive Le Magique experience. The adventure begins with a majestic take-off from our base in Triolet, where our dedicated team gives you the warmest of welcomes. Enjoy a moment of relaxation in our elegant lounge, followed by a complete flight briefing for an unforgettable experience. Then embark on a fascinating aerial excursion that will reveal the hidden treasures of Mauritius. Admire the breathtaking view of Port-Louis, fly over the iconic silos of the Moulin de la Concorde, watch the ships filling the capital, marvel at the vast green spaces and crystal-clear lagoon, discover Ile aux Benitiers and contemplate the majestic Albion lighthouse that proudly dominates its surroundings. An unforgettable experience awaits you, ready to transform your vision of Mauritius forever. If you are wondering which is that majestic mountain where the tropicbirds live, it is the Morne Brabant! Do not miss the Underwater Waterfall and admire the magnificent colours of Chamarel. Relax on the white sand beaches of Ile aux Cerfs and enjoy the tropical sun while sipping a refreshing cocktail. Explore the Riviere-Noire gorges to discover the beauty of raw nature, then admire the Tamarin waterfalls hidden in an endemic forest. Dive into the crystal-clear waters of Blue Bay Marine Park for an unforgettable diving experience among the corals and colourful fish. Approach Le Pieter Both, a mountain linked to a famous legend, before ending your journey with a breathtaking flyover with Corail Helicopteres! Do not forget to taste the delights of local Mauritian cuisine, such as chicken curry and spicy samosas, for an authentic culinary experience.\n\nTHE EXCELLENCE (departing from Triolet, North): You will circle around Pieter Both and Le Pouce to get your adventure off to a great start. Then admire the beautiful panorama of the Tamarin Waterfall in the middle of a verdant forest and rocks sculpted by Mother Nature. You will also feel as if you are flying with the tropicbirds as you approach the Riviere-Noire Gorges. After a detour to Ile aux Benitiers, capture the Underwater Waterfall near Morne Brabant, listed as a UNESCO heritage site. You may wonder whether the rainbow has fallen when you fly over Chamarel. The magic is always present here! Have you ever seen an islet in the middle of a lake? Live this unique experience at Ganga Talao. Do not forget to take a look at the crater of the sleeping Kanaka volcano in Mauritius. As you approach the island, fly over Ile aux Cerfs in the east, then head back north passing over Ile d'Ambre and Ile Plate, famous for its artistically patterned chameleons! Near Cap Malheureux lies Le Coin de Mire, visible from our base if the clouds allow! This is Mauritius in all its splendour!",
+      "duration": "The Must: about 25 minutes; The Magic: about 45 minutes; The Excellence: about 75 minutes",
+      "schedule": null,
+      "priceFrom": {
+        "amount": 250,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "The Must",
+          "amount": 12500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Approximately 250 EUR"
+        },
+        {
+          "label": "The Magic",
+          "amount": 17500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Approximately 350 EUR"
+        },
+        {
+          "label": "The Excellence",
+          "amount": 155000,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "Approximately 3100 EUR"
+        },
+        {
+          "label": "Transport",
+          "amount": 80,
+          "currency": "EUR",
+          "unit": "for a group of 4",
+          "notes": null
+        },
+        {
+          "label": "Transport",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "for a group of 4 people",
+          "notes": "Depending on your location; approximately 25 EUR"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [
+        "Scenic aerial flight (itinerary depending on the package)",
+        "Complete flight briefing (The Magic)",
+        "Access to the elegant lounge (The Magic)"
+      ],
+      "notIncludedOrRequired": [
+        "Transport is optional (do not drink if you are going to drive)"
+      ],
+      "highlights": [
+        "The Must: flyover of the northern landscapes and islets, Grand-Baie, Coin de Mire, Ile Plate, Ile d'Ambre (site of the Saint-Geran shipwreck)",
+        "The Magic: Port-Louis, Moulin de la Concorde, Ile aux Benitiers, Morne Brabant, the Underwater Waterfall, Chamarel, Ile aux Cerfs, Riviere-Noire, the Tamarin waterfalls, Blue Bay Marine Park, Pieter Both",
+        "The Excellence: Pieter Both, Le Pouce, Tamarin Waterfall, Riviere-Noire Gorges, Ile aux Benitiers, the Underwater Waterfall, Morne Brabant, Chamarel, Ganga Talao, the Kanaka volcano crater, Ile aux Cerfs, Ile d'Ambre, Ile Plate, Cap Malheureux, Coin de Mire"
+      ],
+      "location": "Triolet base (North), Mauritius. Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius. Directions to the boarding point are available on Google Maps.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/combien-coute-un-vol-helico-prive-Corail-Helicopteres.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/helicopter.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/grisgris.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/image003.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/image004.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/standard-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/suv-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/6-seaters-taxi.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/minibus-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/coaster-tours.jpg"
+      ],
+      "bookingNotes": "Please arrive at the boarding point at least 15 minutes before the start time. Pickup and drop-off available in all parts of the island. 50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. If cancelled by Belle Mare Tours Ltd, a full refund is processed via bank transfer to the client's account. Payment in cash (MUR, EUR, or USD) or online.",
+      "sourceLanguage": "fr"
+    },
+    {
+      "id": "skydive",
+      "category": "Air Activities",
+      "title": "Tandem Skydiving in Mauritius",
+      "url": "https://www.visitemaurice.com/en/air-activities/skydive/",
+      "shortDescription": "Tandem skydive from 10,000 feet over Mon Loisir's sugarcane fields, freefalling at 200 km/h before gliding down over the lagoons and reefs of the Indian Ocean.",
+      "description": "Enjoy the spectacular views of Mauritius with a tandem skydive. Soar through the skies while securely harnessed to your experienced instructor. Experience a 360 degree view of the stunning coastline, interior, and mountains before your jump. This adrenaline-pumping activity is suitable for both beginners and experienced thrill-seekers alike. At 10,000 feet, you'll freefall at 200 km/h for a minute, then glide for 5 minutes before landing safely. Feel the rush of excitement as you plummet towards the earth surrounded by breathtaking panoramas. Take off from Mon Loisir's beautiful sugarcane fields overlooking the lagoons and reefs of the Indian Ocean. After the exhilarating experience, relax and reflect on your adventure while enjoying refreshments at the drop zone. The whole skydiving excursion lasts about 1 hour, including ground training, 25 minutes of flight, freefall, and parachute descent. Celebrate your bravery and sense of achievement with friends and family who can witness your jump and cheer you on. Receive a tandem skydiving certificate and opt for a DVD of your jump as a keepsake at an additional cost. Make sure to book in advance to secure your spot for this unforgettable adventure in Mauritius.",
+      "duration": "About 1 hour (including ground training, 25 minutes of flight, freefall, and parachute descent)",
+      "schedule": "Every day, starting between 8:30 a.m. and 10:00 a.m.",
+      "priceFrom": {
+        "amount": 410,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Tandem skydive",
+          "amount": 410,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Tandem skydive",
+          "amount": 20500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Video add-on",
+          "amount": 5000,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "In addition to the Rs 20500 skydive price"
+        },
+        {
+          "label": "Video and photos add-on",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": "In addition to the Rs 20500 skydive price"
+        },
+        {
+          "label": "Transport",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "for a group of 4 people",
+          "notes": "Depending on your location; approximately 25 EUR"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [
+        "Tandem skydive from 10,000 feet",
+        "Ground training",
+        "25 minutes of flight",
+        "Freefall and parachute descent",
+        "Tandem skydiving certificate",
+        "Refreshments at the drop zone",
+        "Pickup and drop-off at all island locations"
+      ],
+      "notIncludedOrRequired": [
+        "DVD of your jump (additional cost: Rs 5000)",
+        "Photos (additional cost: Rs 6500)",
+        "Do not drink if you are driving your own transport"
+      ],
+      "highlights": [
+        "360 degree panoramic views of the coastline, interior, and mountains",
+        "Take off from Mon Loisir's sugarcane fields overlooking the lagoons and reefs of the Indian Ocean",
+        "Freefall at 200 km/h for one minute",
+        "Glide descent for 5 minutes",
+        "Refreshments at the drop zone"
+      ],
+      "location": "Take off from Mon Loisir; Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius. Arrive at least 15 minutes before the start time.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-hasanguher-6372752.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/skydive1-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/skydive3-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/skydive2-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/standard-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/suv-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/6-seaters-taxi.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/minibus-300x225-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/coaster-tours.jpg"
+      ],
+      "bookingNotes": "Book in advance to secure your spot. 50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. If cancelled by Belle Mare Tours Ltd, a full refund is processed via bank transfer. Cash payment can be made to the driver in MUR, EUR, or USD, or pay online.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "blue-safari-submarine-subscooter",
+      "category": "Sea & Water Activities",
+      "title": "Blue Safari Submarine & Subscooter",
+      "url": "https://www.visitemaurice.com/en/sea-water-activities/blue-safari-submarine-subscooter/",
+      "shortDescription": "Descend into the depths of the Indian Ocean by submarine or subscooter to explore reefs, corals, marine life and the wreck of 'Le Star Hope'.",
+      "description": "Gradually discover the underwater world by observing the beauty of the Indian Ocean and its marine life. You will receive a briefing before boarding the submarine from a boat platform. As you descend into the depths, you will explore the reefs, the corals, the local marine wildlife, the wreck of 'Le Star Hope,' and an ancient anchor from the 17th century at the bottom of the ocean.",
+      "duration": "Depending on the activity",
+      "schedule": "Available every day. Start once the time slot is assigned.",
+      "priceFrom": {
+        "amount": 117,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Submarine – adult",
+          "amount": 5670,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Submarine – child under 12 years",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per child",
+          "notes": null
+        },
+        {
+          "label": "Submarine – infant under 3 years",
+          "amount": 1700,
+          "currency": "MUR",
+          "unit": "per infant",
+          "notes": null
+        },
+        {
+          "label": "Under scooter – couple (two people)",
+          "amount": 7500,
+          "currency": "MUR",
+          "unit": "per couple",
+          "notes": null
+        },
+        {
+          "label": "Under scooter – premium (one person only)",
+          "amount": 5670,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Taxi (4 pax)",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Taxi (6 pax)",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "From (overview)",
+          "amount": 117,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Transport (from)",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "group of 4",
+          "notes": "Starting price for a group of 4 people"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        }
+      ],
+      "included": [
+        "Briefing before boarding",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Do not drink if you are going to drive",
+        "Arrive at the boarding point at least 15 minutes before the cruise start time"
+      ],
+      "highlights": [
+        "Explore the reefs and corals",
+        "Observe local marine wildlife",
+        "See the wreck of 'Le Star Hope'",
+        "Discover an ancient 17th-century anchor at the bottom of the ocean"
+      ],
+      "location": "Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/maxresdefault.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-tomfisk-4618223.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Bellemare-tour-31.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/11.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply if cancelled 24 hours in advance; 100% cancellation fees apply on the day of the excursion. If the cancellation is made by Belle Mare Tours Ltd, a full refund is processed via bank transfer.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "deep-sea-fishing",
+      "category": "Sea & Water Activities",
+      "title": "Deep Sea fishing",
+      "url": "https://www.visitemaurice.com/en/sea-water-activities/deep-sea-fishing/",
+      "shortDescription": "Fish for Blue Marlin, Dorado and other big game under the guidance of experienced skippers on well-equipped modern boats.",
+      "description": "Whether you are a beginner or an expert, you will enjoy fishing for a Blue Marlin, a Dorado, or other large fish under the guidance of experienced skippers. The modern boats designed for deep-sea fishing are well equipped. The minimum rental duration is 6 hours, and a boat can be shared by a maximum of three anglers. The boats operate from the north, west, and east coasts. You will sail along the reef and observe the corals up close, explore the rich local marine life, visit the wreck of the famous cruiser Star Hope, and discover a 17th-century anchor resting at the ocean's bottom.",
+      "duration": "About 8 hours (minimum rental duration 6 hours)",
+      "schedule": "Available every day. Half-day excursion from 7:00 AM to 12:30 PM; full-day excursion from 7:00 AM to 4:00 PM.",
+      "priceFrom": {
+        "amount": 360,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "From (overview)",
+          "amount": 360,
+          "currency": "EUR",
+          "unit": "per boat",
+          "notes": null
+        },
+        {
+          "label": "Half-day boat",
+          "amount": 18000,
+          "currency": "MUR",
+          "unit": "per boat",
+          "notes": "Boat shared by a maximum of three anglers"
+        },
+        {
+          "label": "Full day boat trip",
+          "amount": 23000,
+          "currency": "MUR",
+          "unit": "per boat",
+          "notes": "Boat shared by a maximum of three anglers"
+        },
+        {
+          "label": "Transport (from)",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "group of 4",
+          "notes": "Starting price for a group of 4 people (approximately 25 EUR)"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        }
+      ],
+      "included": [
+        "Experienced skipper guidance",
+        "Modern, well-equipped boats",
+        "Access to three departure locations (north, west, east coasts)",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Do not drink if you are going to drive",
+        "Arrive at least 15 minutes before the cruise start time"
+      ],
+      "highlights": [
+        "Fish for Blue Marlin, Dorado and other large fish",
+        "Sail along the reef and observe corals up close",
+        "Explore local marine life",
+        "Visit the wreck of the cruiser Star Hope",
+        "Discover a 17th-century anchor at the ocean's bottom"
+      ],
+      "location": "Departures from Grand Baie (North region), Riviere Noire (West region) and Trou d'eau douce (East region), Mauritius",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-willmac-3793366.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/WhatsApp-Image-2024-05-03-at-15.08.31_f983b852.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/WhatsApp-Image-2024-05-03-at-15.08.28_6e128af8.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/sebastian-pena-lambarri-YV593oyMKmo-unsplash.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply if cancelled 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Transport prices are per vehicle and not per person. Pick-up and drop-off at all parts of the island.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "diving-with-bottle-scuba-dive",
+      "category": "Sea & Water Activities",
+      "title": "Diving with bottle – Scuba Dive",
+      "url": "https://www.visitemaurice.com/en/sea-water-activities/diving-with-bottle-scuba-dive/",
+      "shortDescription": "Explore the breathtaking underwater scenery of Mauritius, with colourful corals and a rich variety of fish in crystal-clear waters.",
+      "description": "Diving in Mauritius provides an unforgettable and extraordinary experience as you explore breathtaking underwater scenery, where colorful corals form enchanting landscapes teeming with an astonishing variety of shimmering fish. It truly is a earthly paradise for diving enthusiasts eager to delve into the richness of the captivating marine life of the Indian Ocean, alongside the many hidden treasures waiting to be discovered in its crystal-clear waters, perfect for wonder and adventure.",
+      "duration": "Around 8 hours",
+      "schedule": "Available every day. Departure around 09h00, return around 16h00.",
+      "priceFrom": {
+        "amount": 50,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Diving (from)",
+          "amount": 50,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Diving",
+          "amount": 2500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Diving Initiation",
+          "amount": 4500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Package 5-Diving",
+          "amount": 11000,
+          "currency": "MUR",
+          "unit": "package",
+          "notes": null
+        },
+        {
+          "label": "Package 10-Diving",
+          "amount": 20000,
+          "currency": "MUR",
+          "unit": "package",
+          "notes": null
+        },
+        {
+          "label": "Transport (from)",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "group of 4",
+          "notes": "Starting price for a group of 4 people, depending on your location (approximately 25 EUR)"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        }
+      ],
+      "included": [
+        "Baby seat (free on demand)",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Do not drink if you are going to drive",
+        "Arrive at least 15 minutes before the cruise start time",
+        "If using your own transport, directions to the boarding point are available on Google Maps"
+      ],
+      "highlights": [
+        "Explore colourful corals and rich marine life of the Indian Ocean",
+        "Three location options (weather dependent): Grand Baie (North), Belle Mare (East), Flic-en-Flac (West)"
+      ],
+      "location": "Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-toulouse-3098970.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-tomfisk-1522160.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-miles-hardacre-1263314-2404370.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-freestockpro-1540108.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply if cancelled 24 hours in advance; 100% cancellation fees apply on the day of the excursion. If the cancellation is made by Belle Mare Tours Ltd, a full refund is processed via bank transfer. Prices are per vehicle, not per person. Payment in cash (MUR, EUR, USD) to the driver or online. Contact: +230 57729919 / +230 55055463, info@visitemaurice.com.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "encountering-the-whales-and-swim-with-dolphins-excursion",
+      "category": "Sea & Water Activities",
+      "title": "Encountering the Whales and swim with Dolphins excursion",
+      "url": "https://www.visitemaurice.com/en/sea-water-activities/encountering-the-whales-and-swim-with-dolphins-excursion/",
+      "shortDescription": "A West coast boat excursion to admire humpback or sperm whales and snorkel with dolphins, under the supervision of professional skippers and crew.",
+      "description": "A unique experience creating memories to last for a lifetime! Immerse yourself in the adventure of a lifetime which will bring you into contact with strikingly beautiful scenery, unspoiled landscapes and wonderful marine animals. On the West coast of Mauritius, we offer a large selection of trips, both on a shared basis and private basis. All the activities are done under the instructions and supervision of professional skippers and crew members while respecting and protecting the aquatic life and natural environment. The first part of this excursion will give you the opportunity to admire the biggest and largest marine animal. Either the humpback whales or the sperm whales these cetaceans remain wild and unpredictable, so it is not 100% guaranteed to meet them, just like dolphins but our dedicated crew members most of time do their best to make our guests enjoy an unforgettable and a lifetime memory. After this pure moment of happiness, it will be time to search for the joyful, playful, intelligent and charming Dolphins. A briefing about the rules to respect concerning the approach, as well as all safety measures will be given by the boat captain or crew members before getting into the water. Then you will enjoy the magical snorkeling moment with one of the most fantastic creatures under the supervision of an instructor. While cruising back depending on the time remaining, the boat trip may continue at the Aquarium, a magical snorkeling site to discover and enjoy the Mauritian aquatic life. Then the boat will be heading back to the shore where your journey will end happily thinking of your most recent encounter.",
+      "duration": "Approximately 4 hours",
+      "schedule": "Pick-up between 5:30 AM and 6:30 AM (depending on accommodation location); meeting at 6:45 AM; boat departure at 7:00 AM. Two departures available daily for whale watching and dolphin swimming.",
+      "priceFrom": {
+        "amount": 90,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Per person",
+          "amount": 90,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Standard car (4 seats)",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport only"
+        },
+        {
+          "label": "SUV (5 seats)",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport only"
+        },
+        {
+          "label": "Family car (6 seats)",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport only"
+        },
+        {
+          "label": "Minibus (14 seats)",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport only"
+        },
+        {
+          "label": "Coaster (25 seats)",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport only"
+        }
+      ],
+      "included": [
+        "Professional skipper and crew supervision",
+        "Fins, masks and snorkels (provided on board)",
+        "Snorkeling instruction",
+        "Complimentary refreshments (water and soft drinks)"
+      ],
+      "notIncludedOrRequired": [
+        "Snorkeling not recommended for pregnant women",
+        "Children under 12 must be accompanied by an adult",
+        "Guests may bring their own snorkeling gear if preferred"
+      ],
+      "highlights": [
+        "Admire humpback or sperm whales",
+        "Swim and snorkel with dolphins",
+        "Optional snorkeling at the Aquarium site",
+        "Return to shore"
+      ],
+      "location": "West coast of Mauritius; Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/09/pexels-andre-estevez-1743712-3309785.jpg"
+      ],
+      "bookingNotes": "Belle Mare Tours reserves the right to cancel the trip in case of bad weather, to avoid any risk to your safety. Wildlife sightings are not guaranteed (cetaceans are wild and unpredictable); approximately 70% chance for whale sightings and 90% for dolphin encounters.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "flat-island-gabriel-island-and-the-gunners-coin-by-speedboat-exclusive-basis-only",
+      "category": "Sea & Water Activities",
+      "title": "Flat Island, Gabriel Island and the Gunners Coin by Speedboat (Exclusive basis only)",
+      "url": "https://www.visitemaurice.com/en/sea-water-activities/flat-island-gabriel-island-and-the-gunners-coin-by-speedboat-exclusive-basis-only/",
+      "shortDescription": "A private speedboat day trip from Grand Bay to Flat Island, Gabriel Island and Gunner's Coin, with snorkeling, BBQ lunch and beverages.",
+      "description": "A private day trip by speedboat to visit three northern islands of Mauritius. Departure is from Grand Bay, with an approximately 45-minute journey to Flat Island for relaxation and snorkeling in the lagoons. Tropical fauna and flora await discovery both in the water and on the island. After a BBQ lunch, the boat proceeds to Gabriel Island for exploration. A final snorkeling session takes place near Gunner's Coin, one of the most beautiful diving spots off the north of Mauritius.",
+      "duration": "About 8 hours",
+      "schedule": "Available daily. Start from around 9:00 a.m.; return to the hotel around 4:30 p.m.",
+      "priceFrom": {
+        "amount": 380,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Speedboat exclusive (2 persons)",
+          "amount": 380,
+          "currency": "EUR",
+          "unit": "for 2 persons",
+          "notes": "Exclusive basis"
+        },
+        {
+          "label": "Speedboat exclusive (2 passengers)",
+          "amount": 25000,
+          "currency": "MUR",
+          "unit": "for 2 passengers",
+          "notes": "Exclusive basis"
+        },
+        {
+          "label": "Transport (from)",
+          "amount": 1500,
+          "currency": "MUR",
+          "unit": "group of 4",
+          "notes": "Starting price for a group of 4 people (approximately 27 EUR)"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        }
+      ],
+      "included": [
+        "Salads and garlic butter bread",
+        "BBQ: chicken, fish, sausage",
+        "Beverages: water, Coke, beer, wine, local rum",
+        "Dessert: flaming banana",
+        "Snorkeling sessions",
+        "Pick-up and drop-off available across the island"
+      ],
+      "notIncludedOrRequired": [
+        "Do not drink if you are going to drive",
+        "Arrive at least 15 minutes before the cruise start time"
+      ],
+      "highlights": [
+        "Flat Island: relaxation, snorkeling and BBQ lunch",
+        "Gabriel Island: island exploration",
+        "Gunner's Coin: snorkeling at one of the most beautiful diving spots off the north of Mauritius"
+      ],
+      "location": "Departure from Grand Bay, Northern Mauritius (directions available on Google Maps)",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2025/08/decouvrez-coin-de-mire-dans-le-nord-de-lile-maurice-1024x682-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/speed-boat.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply if cancelled 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Full refund via bank transfer if cancelled by Belle Mare Tours. Payment in cash (MUR/EUR/USD) to the driver or online. Contact: +230 57729919 / +230 55055463, info@visitemaurice.com.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "underwater-sea-walk-excursion",
+      "category": "Sea & Water Activities",
+      "title": "Underwater Sea Walk Excursion",
+      "url": "https://www.visitemaurice.com/en/sea-water-activities/underwater-sea-walk-excursion/",
+      "shortDescription": "Walk on the ocean floor at a depth of 10-13 feet in a diving suit, accompanied by experienced instructors, to observe marine fauna and flora.",
+      "description": "Equipped with a diving suit and accompanied by experienced instructors, dive into the underwater world at a depth of 10-13 feet for an unforgettable and enriching experience. Explore the ocean floor, observe the marine fauna and flora in their natural habitat, and let yourself be amazed by the beauty and diversity of this fascinating universe. Take advantage of this unique adventure to marvel at nature and learn more about marine life.",
+      "duration": "About 20 mins",
+      "schedule": "Available every day. Departure from around 10am.",
+      "priceFrom": {
+        "amount": 30,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "As from",
+          "amount": 30,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Adult activity at Belle Mare beach",
+          "amount": 1500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Transport (from)",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "group of 4",
+          "notes": "Starting price for a group of 4 people (approximately 25 EUR)"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        }
+      ],
+      "included": [
+        "Diving suit provided",
+        "Experienced instructors",
+        "Underwater exploration at a depth of 10-13 feet",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Do not drink if you are going to drive",
+        "If using your own transport, arrive at least 15 minutes early"
+      ],
+      "highlights": [
+        "Walk on the ocean floor in a diving suit",
+        "Observe marine fauna and flora in their natural habitat",
+        "Experience the beauty and diversity of the underwater world"
+      ],
+      "location": "Belle Mare beach; Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/1-9.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/seawalk-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-francesco-ungaro-3361052.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-richard-segal-732340-1645028.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply if cancelled 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Full refund via bank transfer if cancelled by Belle Mare Tours Ltd. Pick-up and drop-off available across the island.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "visit-to-ambre-island-by-kayak",
+      "category": "Sea & Water Activities",
+      "title": "Visit To Ambre Island By Kayak",
+      "url": "https://www.visitemaurice.com/en/sea-water-activities/visit-to-ambre-island-by-kayak/",
+      "shortDescription": "Kayak through the tranquil mangroves of Amber Island, explore its hidden corners and ancient ruins, and relax on Bernache Island.",
+      "description": "Kayak through the mangroves of Amber Island and discover its environment in a unique and immersive way. Take in the natural beauty that surrounds these tranquil waters and observe the local wildlife and flora in their natural habitat. Explore the hidden corners of the island, dive into its fascinating past by visiting ancient ruins and uncovering the thrilling stories that surround them. Invite your entire extended family, including grandparents, uncles, aunts, as well as your closest friends, to join you on this unforgettable adventure in Mauritius. Your kayak excursion will begin with a detailed safety briefing, followed by a peaceful paddle through the lagoon and lush mangroves. Let yourself be swept away by the picturesque landscapes and crystal-clear waters as you navigate through the shaded waterways and small scenic islets that dot the region. Extend your exploration of Amber Island, soak in its serenity, and discover the mysteries that lie behind every corner. Finally, treat yourself to a well-deserved moment of relaxation on Bernache Island, where you can recharge and absorb the natural beauty that surrounds you before heading back to solid ground, stars in your eyes and unforgettable memories in your heart.",
+      "duration": "Depending on the activity",
+      "schedule": "Available every day. Start once the time slot is assigned.",
+      "priceFrom": {
+        "amount": 40,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Per person",
+          "amount": 40,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Per person",
+          "amount": 2000,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Transport (from)",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "group of 4",
+          "notes": "Starting price for a group of 4 people, depending on your location (approximately 25 EUR)"
+        },
+        {
+          "label": "Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        },
+        {
+          "label": "Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": "Transport"
+        }
+      ],
+      "included": [
+        "Safety briefing",
+        "Kayak paddling through the lagoon and mangroves",
+        "Exploration of Amber Island",
+        "Visit to Bernache Island for relaxation",
+        "Pick-up and drop-off at all parts of the island"
+      ],
+      "notIncludedOrRequired": [
+        "Do not drink if you are going to drive",
+        "Arrive at least 15 minutes before the start time",
+        "If using your own transport, directions to the boarding point are available on Google Maps"
+      ],
+      "highlights": [
+        "Safety briefing",
+        "Paddle through the lagoon and lush mangroves",
+        "Navigate shaded waterways and scenic islets",
+        "Explore Amber Island's hidden corners and ancient ruins",
+        "Relax on Bernache Island"
+      ],
+      "location": "Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/kayak5.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-amirul-chakim-2963992-18432278.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-shivkumarsd-1522344.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-asadphoto-1430672.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply if cancelled 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Full refund via bank transfer if cancelled by Belle Mare Tours Ltd. Group minimum 6 persons, maximum 15 persons. Payment in cash (MUR/EUR/USD) to the driver or online.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "black-river-gorges-hiking",
+      "category": "Hiking & Activities",
+      "title": "Black River Gorges Hiking",
+      "url": "https://www.visitemaurice.com/en/hiking-activities/black-river-gorges-hiking/",
+      "shortDescription": "Hike the heart of the Black River Gorges National Park to discover secret waterfalls, endemic wildlife, and panoramic ridge views.",
+      "description": "Explore with us the heart of the Black River Gorges and be amazed by its hidden treasures that gradually reveal themselves to you. The twists and turns of our adventure highlight the splendor of this protected national park and unveil secret waterfalls scented with wild guava flowers, along with the sights and sounds of numerous endemic wildlife and plant species such as the echo parakeet and pink pigeons. A must-see for all nature and wildlife enthusiasts. The trail features a ridge ascent that winds around the valley, offering panoramic views of LaTourelle, Île aux Benetiers, and the distant Morne. A challenging and adventurous path that is best suited for our enthusiastic explorers, given the elevation gain, the terrain, the humidity, and the possibility of mud in these conditions.",
+      "duration": null,
+      "schedule": null,
+      "priceFrom": {
+        "amount": 40,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Activity per person",
+          "amount": 40,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Activity per person",
+          "amount": 1500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Transport for group of 4",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "per group of 4",
+          "notes": "Approximately 25 EUR"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [],
+      "notIncludedOrRequired": [],
+      "highlights": [
+        "Ridge ascent winding around the valley",
+        "Panoramic views of LaTourelle, Île aux Benetiers, and the Morne",
+        "Secret waterfalls scented with wild guava flowers",
+        "Endemic wildlife such as the echo parakeet and pink pigeons"
+      ],
+      "location": "Royal Road, Belle Mare, Mauritius",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/blackriverhiking.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/Mauritius_Black-River-Gorges-National-Park-01.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/hiking-the-black-river-gorges-full-day-incl-lunch-transfer-2359813.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/image02.jpg"
+      ],
+      "bookingNotes": "50% cancellation fee if cancelled 24+ hours in advance; 100% fee for same-day cancellation; full refund if cancelled by the operator. Arrive 15 minutes early.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "hiking-at-the-tamarind-falls-7-cascade",
+      "category": "Hiking & Activities",
+      "title": "Hiking At The Tamarind Falls / 7 Cascade",
+      "url": "https://www.visitemaurice.com/en/hiking-activities/hiking-at-the-tamarind-falls-7-cascade/",
+      "shortDescription": "Guided hike to Tamarind Falls (7 Cascades), the highest waterfall in Mauritius, through plateaus rich in plants and exotic birds.",
+      "description": "7 Cascades, also known as Tamarind Falls, is located near the small village of Henrietta, on the high plateaus of Mauritius, and its source originates from Rivière Tamarin. The 7 Cascades measure 293 meters/961 feet, making it the highest waterfall in Mauritius. You can find a wide variety of plants and exotic birds in this peaceful and enchanting location. It is recommended to be accompanied by a guide who will assist you during the hike as there are not many precise trails to follow.",
+      "duration": "Half Day / Full Day",
+      "schedule": "Available every day; departure time: 9h00",
+      "priceFrom": {
+        "amount": 40,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Activity per person",
+          "amount": 40,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Guide service per person",
+          "amount": 1500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Transport for group of 4",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "per group of 4",
+          "notes": "Approximately 25 EUR"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Family car",
+          "amount": 3500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [],
+      "notIncludedOrRequired": [
+        "Bring water",
+        "Comfortable hiking shoes",
+        "Sunscreen and mosquito repellent",
+        "In case you want to go swimming, bring your swimsuits and towels too"
+      ],
+      "highlights": [
+        "Tamarind Falls (7 Cascades), the highest waterfall in Mauritius at 293 meters / 961 feet",
+        "Wide variety of plants and exotic birds",
+        "Peaceful and enchanting location on the high plateaus",
+        "Optional swimming"
+      ],
+      "location": "Near the village of Henrietta, on the high plateaus of Mauritius. Operator: Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius.",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/tamarin_falls_-_full_day_2_20091108_2051346542.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/20230824_100523-scaled.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/2-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/4-1.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/original_album-photo-les-sept-cascades-les-plus-authentiques-alb-1-image979-1.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Pick-up and drop-off at all parts of the island.",
+      "sourceLanguage": "en"
+    },
+    {
+      "id": "hiking-le-morne",
+      "category": "Hiking & Activities",
+      "title": "Hiking Le Morne",
+      "url": "https://www.visitemaurice.com/en/hiking-activities/hiking-le-morne/",
+      "shortDescription": "Climb the UNESCO World Heritage Le Morne mountain to its 'V' summit for spectacular views of turquoise lagoons and lush mountain ranges.",
+      "description": "Discover the beauty and majesty of Morne Mountain as you climb from its base to the peak of the 'V' summit while enjoying the spectacular landscape. Reach out and touch the clouds while marveling at the magnificence of the turquoise lagoons and lush mountain ranges that stretch out before you as you effortlessly gaze towards the horizon. Explore the tumultuous history, folklore, and myths that have surrounded the mountain and celebrate the triumph of reaching the summit after bravely tackling the thrilling climbing terrains you will encounter. Designated a UNESCO World Heritage Site in 2006, the mountain is a protected sanctuary for the plethora of rare plant and animal species that continue to thrive.",
+      "duration": "3 to 4 hours",
+      "schedule": "Start time: 6h00",
+      "priceFrom": {
+        "amount": 40,
+        "currency": "EUR"
+      },
+      "pricing": [
+        {
+          "label": "Activity per person",
+          "amount": 40,
+          "currency": "EUR",
+          "unit": "per person",
+          "notes": "Starting price"
+        },
+        {
+          "label": "Activity per person",
+          "amount": 1500,
+          "currency": "MUR",
+          "unit": "per person",
+          "notes": null
+        },
+        {
+          "label": "Transport for group of 4",
+          "amount": 1200,
+          "currency": "MUR",
+          "unit": "per group of 4",
+          "notes": "Approximately 25 EUR"
+        },
+        {
+          "label": "Transport - Standard car",
+          "amount": 3000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - SUV",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Family car",
+          "amount": 4000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Minibus",
+          "amount": 6500,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        },
+        {
+          "label": "Transport - Coaster",
+          "amount": 12000,
+          "currency": "MUR",
+          "unit": "per vehicle",
+          "notes": null
+        }
+      ],
+      "included": [],
+      "notIncludedOrRequired": [],
+      "highlights": [
+        "Climb from base to the peak of the 'V' summit",
+        "Spectacular views of turquoise lagoons and lush mountain ranges",
+        "Explore the mountain's history, folklore, and myths",
+        "UNESCO World Heritage Site, sanctuary for rare plant and animal species",
+        "Distance: 5.6 km; elevation gain: 465 m"
+      ],
+      "location": "Belle Mare Tours Ltd, Royal Road, Belle Mare, Mauritius",
+      "images": [
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-fatih-turan-63325184-17937827.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/20230824_100355-scaled.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/pexels-michalmarek-3703465.jpg",
+        "https://www.visitemaurice.com/wp-content/uploads/2024/03/655.jpg"
+      ],
+      "bookingNotes": "50% cancellation fees apply 24 hours in advance; 100% cancellation fees apply on the day of the excursion. Pick-up and drop-off at all parts of the island. Cash payment can be made to the driver in MUR, EUR, or USD, or pay online. Transport prices are per vehicle and not per person.",
+      "sourceLanguage": "en"
+    }
+  ]
+}
