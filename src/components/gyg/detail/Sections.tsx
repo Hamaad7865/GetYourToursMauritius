@@ -4,6 +4,7 @@ import { ItineraryMap } from '@/components/maps/ItineraryMap';
 import type { StopKind } from '@/components/maps/RouteMap';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { getT } from '@/lib/i18n/server';
+import { badgeIcon } from '@/components/ui/badge-icons';
 import {
   IconBolt,
   IconCalendar,
@@ -28,6 +29,7 @@ export async function QuickFacts({
   ratingAvg,
   ratingCount,
   startWindow,
+  badges,
 }: {
   durationMinutes: number | null;
   languages: string[];
@@ -37,8 +39,38 @@ export async function QuickFacts({
   ratingAvg: number | null;
   ratingCount: number;
   startWindow?: string | null;
+  badges?: { icon: string; title: string; subtitle: string }[];
 }) {
   const t = await getT();
+
+  // When the activity has admin-authored custom badges, render exactly those in the
+  // same visual layout as the derived strip below (the "Loved by travellers" banner
+  // stays default-strip-only — see report). Otherwise fall through to the derived facts.
+  if (badges && badges.length > 0) {
+    return (
+      <div className="border-t border-ink/10 pt-6">
+        <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+          {badges.map((b, i) => {
+            const Icon = badgeIcon(b.icon);
+            return (
+              <div key={`${b.icon}-${b.title}-${i}`} className="flex items-start gap-3.5">
+                <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-ink/[0.05] text-ink">
+                  {Icon ? <Icon width={22} height={22} /> : null}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[15px] font-bold leading-tight text-ink">{b.title}</span>
+                  {b.subtitle ? (
+                    <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">{b.subtitle}</span>
+                  ) : null}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   const duration = durationLabel(durationMinutes);
   const facts: Array<{ icon: React.ReactNode; title: string; sub: string }> = [];
 

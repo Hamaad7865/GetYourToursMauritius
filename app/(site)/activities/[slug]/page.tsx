@@ -114,6 +114,7 @@ export default async function ActivityDetailPage({
     .filter(Boolean);
   const itinerary = activity.extra.itinerary ?? [];
   const importantInfo = activity.extra.importantInfo ?? [];
+  const badges = activity.extra.badges ?? [];
 
   return (
     <>
@@ -228,6 +229,7 @@ export default async function ActivityDetailPage({
                 ratingAvg={activity.ratingAvg}
                 ratingCount={activity.ratingCount}
                 startWindow={activity.extra.startWindow}
+                badges={badges}
               />
 
               {(activity.extra.availability || activity.extra.startWindow) && (
