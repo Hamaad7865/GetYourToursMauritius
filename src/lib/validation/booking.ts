@@ -33,6 +33,12 @@ export const createBookingInputSchema = z.object({
   /** The customer's pickup location entered at checkout (pickup/sightseeing tours). Informational;
    *  bounded so a tampered payload is a clean 400, not a DB blowup. */
   pickupLocation: z.string().trim().max(200).nullish(),
+  /** The customer's drop-off location (its own field — NEVER merged into pickupLocation). Informational;
+   *  bounded so a tampered payload is a clean 400, not a DB blowup. */
+  dropoffLocation: z.string().trim().max(200).nullish(),
+  /** "Pickup to be arranged" (TBD) — distinct from no pickup. Lets admin see a pending pickup that
+   *  has no address yet. */
+  pickupPending: z.boolean().optional(),
   /** Pickup coordinates (per_person / per_group activities with pickup). The SERVER re-derives the
    *  region from these and computes the region-based transport fare — they never carry a price.
    *  nullish like pickupLocation (the checkout sends explicit null when there's no pickup). */
@@ -88,6 +94,10 @@ export const bookingSchema = z.object({
     .nullish(),
   /** The customer's pickup location, or null/absent if none was provided. */
   pickupLocation: z.string().nullish(),
+  /** The customer's drop-off location, or null/absent if none was provided. */
+  dropoffLocation: z.string().nullish(),
+  /** True when the pickup is "to be arranged" (TBD) rather than a fixed address or no pickup. */
+  pickupPending: z.boolean().nullish(),
   /** Child seats on the booking (first free, €6 each extra; the charge is in totalEur). */
   childSeats: z.number().int().nonnegative().nullish(),
   /** Region-based transport add-on charged on this booking (already included in totalEur). */

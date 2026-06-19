@@ -249,6 +249,8 @@ type BookingsRow = {
   operator_payout_minor: number;
   payment_state: Database['public']['Enums']['payment_state'];
   notes: string | null;
+  dropoff_location: string | null;
+  pickup_pending: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -268,6 +270,8 @@ type BookingsInsert = {
   operator_payout_minor?: number;
   payment_state?: Database['public']['Enums']['payment_state'];
   notes?: string | null;
+  dropoff_location?: string | null;
+  pickup_pending?: boolean;
   created_at?: string;
   updated_at?: string;
 };
