@@ -10,6 +10,7 @@ import { SearchBar } from './SearchBar';
 import { MainNav } from './MainNav';
 import { MobileMenu } from './MobileMenu';
 import { MobileSearch } from './MobileSearch';
+import { NotificationsBell } from '@/components/site/NotificationsBell';
 import {
   IconArrowRight,
   IconBookings,
@@ -279,6 +280,7 @@ export function GygHeader({
               icon={<IconHeart width={20} height={20} />}
             />
             <CartAction overHero={overHero} />
+            <NotificationsBell />
             {/* Bookings/currency/profile have no room on a phone — they live in the hamburger menu. */}
             <div className="hidden items-center gap-1 sm:flex">
               <BookingsAction overHero={overHero} />

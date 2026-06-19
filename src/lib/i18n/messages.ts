@@ -664,5 +664,7 @@ export const fr: Record<string, string> = {
   "Clean, air-conditioned vehicles": "Véhicules propres et climatisés",
   "Day hire with as many stops as you like": "Location à la journée avec autant d’arrêts que vous le souhaitez",
   "Available across the whole island, day or night": "Disponible sur toute l’île, de jour comme de nuit",
-  "Hi Belle Mare Tours! I’d like to book a taxi / private driver. Here’s what I need:": "Bonjour Belle Mare Tours ! J’aimerais réserver un taxi / chauffeur privé. Voici ce dont j’ai besoin :"
+  "Hi Belle Mare Tours! I’d like to book a taxi / private driver. Here’s what I need:": "Bonjour Belle Mare Tours ! J’aimerais réserver un taxi / chauffeur privé. Voici ce dont j’ai besoin :",
+  "Notifications": "Notifications",
+  "No notifications yet": "Aucune notification pour l’instant"
 };
