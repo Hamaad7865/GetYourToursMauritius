@@ -58,7 +58,7 @@ npm run dev                     # http://localhost:3000
 See [`.env.example`](.env.example) for the full list with descriptions. Summary:
 
 - **Public** (browser-safe): `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- **Server-only**: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `AI_PROVIDER` + the selected provider's key (`GOOGLE_GENERATIVE_AI_API_KEY` by default), `PEACH_ENTITY_ID`, `PEACH_ACCESS_TOKEN`, `PEACH_WEBHOOK_SECRET`, `PEACH_ENVIRONMENT`
+- **Server-only**: `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `AI_PROVIDER` + the selected provider's key (`GOOGLE_GENERATIVE_AI_API_KEY` by default), and the Peach Checkout set (`PEACH_CLIENT_ID`, `PEACH_CLIENT_SECRET`, `PEACH_MERCHANT_ID`, `PEACH_ENTITY_ID`, `PEACH_WEBHOOK_SECRET`, `PEACH_AUTH_BASE_URL`, `PEACH_CHECKOUT_BASE_URL`, `PEACH_WEBHOOK_URL`, `PEACH_ENVIRONMENT`)
 
 No real accounts are required to build or test: external services sit behind interfaces with deterministic stubs.
 

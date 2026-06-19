@@ -225,7 +225,17 @@ export function Checkout() {
         body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${idemKey}:pay` }),
       }).then((r) => r.json());
       if (!payRes.ok) throw new Error(payRes.error?.message ?? 'Could not start payment.');
-      window.location.href = payRes.data.redirectUrl as string;
+      const link = payRes.data as { checkoutId?: string; redirectUrl?: string };
+      if (link.checkoutId) {
+        // Embedded Peach checkout: mount the widget on the pay step. The booking is confirmed by
+        // the verified webhook, never by this navigation.
+        window.location.href = `/bookings/${ref}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
+      } else if (link.redirectUrl) {
+        // Hosted redirect (and the dev stub).
+        window.location.href = link.redirectUrl;
+      } else {
+        throw new Error(t('Could not start payment.'));
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : t('Something went wrong.');
       setError(/capacity/i.test(msg) ? t('Sorry — this date just filled up. Please pick another date.') : msg);

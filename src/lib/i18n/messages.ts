@@ -469,6 +469,18 @@ export const fr: Record<string, string> = {
   "Continue to payment": "Continuer vers le paiement",
   "You will be charged in EUR": "Vous serez débité en EUR",
   "You’ll confirm the payment on the next screen.": "Vous confirmerez le paiement sur l’écran suivant.",
+  "Complete your payment": "Finalisez votre paiement",
+  "We could not start this payment. Please go back and try again.":
+    "Nous n’avons pas pu démarrer ce paiement. Veuillez revenir en arrière et réessayer.",
+  "Back to your booking": "Retour à votre réservation",
+  "We could not load the payment form. Please try again.":
+    "Nous n’avons pas pu charger le formulaire de paiement. Veuillez réessayer.",
+  "We could not start the payment form. Please try again.":
+    "Nous n’avons pas pu démarrer le formulaire de paiement. Veuillez réessayer.",
+  "We could not reach the payment provider. Please try again.":
+    "Nous n’avons pas pu joindre le prestataire de paiement. Veuillez réessayer.",
+  "This payment session expired. Please start again.":
+    "Cette session de paiement a expiré. Veuillez recommencer.",
   "Order summary": "Récapitulatif de la commande",
   "guest": "voyageur",
   "guests": "voyageurs",

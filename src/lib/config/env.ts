@@ -63,9 +63,22 @@ const ServerEnvSchema = z.object({
   CLOUDFLARE_ACCOUNT_ID: z.string().min(1).optional(),
   CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
 
+  // Peach Payments — Checkout (embedded widget). The Checkout API authenticates via OAuth:
+  // POST {PEACH_AUTH_BASE_URL}/api/oauth/token with clientId+clientSecret+merchantId returns a
+  // short-lived Bearer token, used to POST {PEACH_CHECKOUT_BASE_URL}/v2/checkout (→ checkoutId).
+  // PEACH_ENTITY_ID keys both the create-checkout body and the browser widget. PEACH_WEBHOOK_SECRET
+  // verifies the HMAC-SHA256 signature on settlement notifications (the only path that confirms a
+  // booking). PEACH_WEBHOOK_URL is the publicly-reachable webhook URL Peach signs over (set it to the
+  // local tunnel URL during sandbox testing). All optional so dev/CI/build run on the stub; the
+  // factory (getPaymentProvider) fails closed on a production-like runtime when they're missing.
+  PEACH_CLIENT_ID: z.string().min(1).optional(),
+  PEACH_CLIENT_SECRET: z.string().min(1).optional(),
+  PEACH_MERCHANT_ID: z.string().min(1).optional(),
   PEACH_ENTITY_ID: z.string().min(1).optional(),
-  PEACH_ACCESS_TOKEN: z.string().min(1).optional(),
   PEACH_WEBHOOK_SECRET: z.string().min(1).optional(),
+  PEACH_AUTH_BASE_URL: z.string().url().optional(),
+  PEACH_CHECKOUT_BASE_URL: z.string().url().optional(),
+  PEACH_WEBHOOK_URL: z.string().url().optional(),
   PEACH_ENVIRONMENT: z.enum(['test', 'live']).default('test'),
 
   // Transactional email (Resend). Without both, notifications fall back to the no-op stub.

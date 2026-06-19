@@ -17,8 +17,13 @@ export interface CreateCheckoutInput {
 export interface CheckoutSession {
   /** Provider-side checkout/session id. */
   id: string;
-  /** Hosted checkout URL to redirect the customer to. */
-  redirectUrl: string;
+  /**
+   * Hosted-checkout URL to redirect the customer to. Present for redirect-style providers (and the
+   * dev stub); absent for an embedded widget, which mounts client-side via `checkoutId` instead.
+   */
+  redirectUrl?: string;
+  /** Embedded-checkout instance id — the browser mounts the Peach widget with this. */
+  checkoutId?: string;
   provider: string;
 }
 

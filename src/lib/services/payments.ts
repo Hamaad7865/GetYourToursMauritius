@@ -33,5 +33,10 @@ export async function createPaymentLink(
     returnUrl: input.returnUrl,
   });
 
-  return { sessionId: session.id, redirectUrl: session.redirectUrl, provider: session.provider };
+  return {
+    sessionId: session.id,
+    redirectUrl: session.redirectUrl,
+    checkoutId: session.checkoutId,
+    provider: session.provider,
+  };
 }

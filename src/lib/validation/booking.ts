@@ -113,7 +113,10 @@ export type CreatePaymentInput = z.infer<typeof createPaymentInputSchema>;
 
 export const paymentLinkSchema = z.object({
   sessionId: z.string(),
-  redirectUrl: z.string(),
+  /** Hosted-checkout redirect URL (redirect providers + the dev stub). Absent for embedded checkout. */
+  redirectUrl: z.string().optional(),
+  /** Embedded-checkout instance id — the browser mounts the Peach widget with this. */
+  checkoutId: z.string().optional(),
   provider: z.string(),
 });
 export type PaymentLink = z.infer<typeof paymentLinkSchema>;
