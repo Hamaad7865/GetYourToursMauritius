@@ -157,11 +157,17 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           </div>
         )}
 
-        {booking.dropoffLocation && (
+        {/* Drop-off: a distinct address shows verbatim; a null drop-off WITH a pickup reads as
+            "Same as pickup" (not "no drop-off"). Nothing shows when there's no pickup at all. */}
+        {(booking.dropoffLocation || booking.pickupLocation || booking.pickupPending) && (
           <div className="mt-5 border-t border-ink/10 pt-4">
             <div className="text-[13px] font-bold text-ink">{t('Drop-off')}</div>
-            {/* Place names / addresses are DB content — shown verbatim, never translated. */}
-            <p className="mt-1 text-[13px] text-ink/80">{booking.dropoffLocation}</p>
+            {booking.dropoffLocation ? (
+              // Place names / addresses are DB content — shown verbatim, never translated.
+              <p className="mt-1 text-[13px] text-ink/80">{booking.dropoffLocation}</p>
+            ) : (
+              <p className="mt-1 text-[13px] text-ink/80">{t('Same as pickup')}</p>
+            )}
           </div>
         )}
 

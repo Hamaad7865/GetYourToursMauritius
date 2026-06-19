@@ -635,7 +635,14 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                 </div>
                 <div>
                   <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">Drop-off</dt>
-                  <dd className="mt-0.5 text-[13px] text-ink/80">{booking.dropoffLocation ?? '—'}</dd>
+                  <dd className="mt-0.5 text-[13px] text-ink/80">
+                    {booking.dropoffLocation
+                      ? booking.dropoffLocation
+                      : booking.pickupLocation || booking.pickupPending
+                        ? // A null drop-off WITH a pickup means "same as pickup", not "no drop-off".
+                          <span className="text-ink-muted">Same as pickup</span>
+                        : '—'}
+                  </dd>
                 </div>
               </dl>
             </section>

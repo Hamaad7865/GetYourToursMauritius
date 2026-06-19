@@ -1,17 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { Logo } from '@/components/site/Logo';
 import { Price } from '@/components/site/Price';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
-import { PickupMap } from '@/components/maps/PickupMap';
-import { RouteMap, type StopKind } from '@/components/maps/RouteMap';
+import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { canAdvanceStep1, defaultWantsPickup } from '@/lib/checkout/pickup';
-import type { ItineraryStop } from '@/lib/validation/tours';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
@@ -158,15 +156,21 @@ export function Checkout() {
   // Resolved pickup coordinates — drive the region-based transport fee the server charges. Prefilled
   // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
   const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // Drop-off — mirrors the booking widget's `dropoffSame` (default true = same point as pickup). When
+  // the customer turns it OFF, the single map reveals a distinct drop-off input + a second pin, and a
+  // distinct drop-off is sent on the booking. The text/coords are captured from that map. A planner
+  // prefill that carried a DISTINCT drop-off starts with the toggle off so that address shows.
+  const [dropoffSame, setDropoffSame] = useState(!dropoffParam);
   const [dropoffText, setDropoffText] = useState(dropoffParam);
+  // Resolved drop-off coordinates — UX only: the map captures them (and pre-fills from a planner stash)
+  // to place/bound the second pin, but they have no DB column, so the parent never reads the value back
+  // and never sends it on the booking body. Hence the getter is intentionally unused (underscored).
+  const [_dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   // Personal-details (step ②) form state. Name + phone seed from the profile once it loads (see the
   // effect below); country defaults to the home market. Email is the account email, shown read-only.
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState<string>(COUNTRIES[0]);
-  // The chosen route's itinerary stops, read from sessionStorage post-mount (SSR-safe) for the
-  // read-only route preview on step ①. The pickup + drop-off bookend these stops on the map.
-  const [itineraryStops, setItineraryStops] = useState<ItineraryStop[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secs, setSecs] = useState(() => {
@@ -211,58 +215,19 @@ export function Checkout() {
         setTbd(false);
         setPickupLoc((cur) => cur || p.address || '');
         setPickupCoords({ lat: p.lat, lng: p.lng });
-        if (p.dropoff?.address) setDropoffText((cur) => cur || p.dropoff.address);
+        if (p.dropoff?.address) {
+          // A stashed distinct drop-off: reveal it (toggle off) and pre-fill its text + coords.
+          setDropoffSame(false);
+          setDropoffText((cur) => cur || p.dropoff.address);
+          if (typeof p.dropoff.lat === 'number' && typeof p.dropoff.lng === 'number') {
+            setDropoffCoords({ lat: p.dropoff.lat, lng: p.dropoff.lng });
+          }
+        }
       }
     } catch {
       /* sessionStorage unavailable — the customer can enter the pickup here */
     }
   }, [occ]);
-
-  // Load the chosen route's itinerary stops post-mount (SSR-safe) so the step-① route preview can
-  // draw pickup → stops → drop-off. readItinerary already picks the right sessionStorage key.
-  useEffect(() => {
-    const stops = readItinerary();
-    if (stops) {
-      setItineraryStops(
-        stops.map((s) => ({
-          title: s.title,
-          area: s.area ?? null,
-          lat: typeof s.lat === 'number' ? s.lat : undefined,
-          lng: typeof s.lng === 'number' ? s.lng : undefined,
-        })),
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [occ, slug]);
-
-  // The read-only route preview shown when a pickup address + coords are resolved (and not TBD):
-  // pickup (coral "P") → itinerary stops (numbered teal) → drop-off (teal "D") if one was typed.
-  // Drop-off has no coords here, so it's geocoded by title (the address text) inside RouteMap.
-  const showRoutePreview = wantsPickup && !tbd && pickupLoc.trim().length > 0 && !!pickupCoords;
-  const routeStops: ItineraryStop[] = useMemo(() => {
-    if (!showRoutePreview || !pickupCoords) return [];
-    const stops: ItineraryStop[] = [
-      { title: pickupLoc.trim() || 'Pickup', lat: pickupCoords.lat, lng: pickupCoords.lng },
-      ...itineraryStops,
-    ];
-    if (dropoffText.trim()) stops.push({ title: dropoffText.trim() });
-    return stops;
-  }, [showRoutePreview, pickupCoords, pickupLoc, itineraryStops, dropoffText]);
-  // Coral endpoints: the pickup (index 0) always, and the drop-off (last) only when one was typed.
-  const hasDropoff = dropoffText.trim().length > 0;
-  const routeKinds: StopKind[] = useMemo(
-    () => routeStops.map((_, i) => (i === 0 || (hasDropoff && i === routeStops.length - 1) ? 'start' : 'main')),
-    [routeStops, hasDropoff],
-  );
-  const routeLabels = useMemo(
-    () =>
-      routeStops.map((_, i) => {
-        if (i === 0) return 'P';
-        if (hasDropoff && i === routeStops.length - 1) return 'D';
-        return i; // 1-based numbering for the activity stops between pickup and drop-off
-      }),
-    [routeStops, hasDropoff],
-  );
 
   if (!occ || !slug) {
     return (
@@ -337,7 +302,13 @@ export function Checkout() {
             // know yet" (tbd) sends no address/coords but flags pickupPending so admin sees a
             // pending pickup. "No pickup" sends all null/false. Clamped to 200 to match the schema.
             pickupLocation: wantsPickup && !tbd && pickupLoc.trim() ? pickupLoc.trim().slice(0, 200) : null,
-            dropoffLocation: wantsPickup && !tbd && dropoffText.trim() ? dropoffText.trim().slice(0, 200) : null,
+            // A distinct drop-off is sent ONLY when the "same as pickup" toggle is off; "same" sends
+            // null (the driver returns the customer to the pickup point). dropoffCoords is UX-only —
+            // it has no DB column, so it's never sent here.
+            dropoffLocation:
+              wantsPickup && !tbd && !dropoffSame && dropoffText.trim()
+                ? dropoffText.trim().slice(0, 200)
+                : null,
             pickupPending: wantsPickup && tbd,
             // Pickup coordinates → the server re-derives the region and adds the transport fare (only
             // for per_person/per_group activities with pickup; ignored otherwise). Never a client price.
@@ -453,21 +424,28 @@ export function Checkout() {
                     <div className="mt-1">
                       {!tbd && (
                         <>
-                          <PickupMap value={pickupLoc} onChange={setPickupLoc} onCoords={setPickupCoords} />
-                          <label className="mt-3 block text-[13px] font-semibold text-ink">
-                            {t('Drop-off location')}
+                          <PickupDropoffMap
+                            pickupValue={pickupLoc}
+                            onPickupChange={setPickupLoc}
+                            onPickupCoords={setPickupCoords}
+                            showDropoff={!dropoffSame}
+                            dropoffValue={dropoffText}
+                            onDropoffChange={setDropoffText}
+                            onDropoffCoords={setDropoffCoords}
+                            pickupPlaceholder={t('Hotel name or address')}
+                            dropoffPlaceholder={t('Drop-off location')}
+                          />
+                          {/* Toggle below the map — same point as the pickup by default. Unchecking
+                              reveals the drop-off input + a second pin on the SAME map above. */}
+                          <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
                             <input
-                              value={dropoffText}
-                              onChange={(e) => setDropoffText(e.target.value)}
-                              placeholder={t('Same as pickup, or a different address')}
-                              className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                              type="checkbox"
+                              checked={dropoffSame}
+                              onChange={(e) => setDropoffSame(e.target.checked)}
+                              className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
                             />
+                            {t('Drop-off — same as pickup')}
                           </label>
-                          {showRoutePreview && routeStops.length > 0 && (
-                            <div className="mt-3">
-                              <RouteMap stops={routeStops} kinds={routeKinds} labels={routeLabels} />
-                            </div>
-                          )}
                         </>
                       )}
                       <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
