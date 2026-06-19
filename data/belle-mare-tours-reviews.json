@@ -5,8 +5,8 @@
     "address": "Royal Road, Belle Mare, Mauritius 41601",
     "latitude": -20.196686,
     "longitude": 57.77505,
-    "website": 
-    "ratings": {"http://www.visitemaurice.com",
+    "website": "http://www.visitemaurice.com",
+    "ratings": {
       "tripadvisor": {
         "rating": 4.8,
         "reviewCount": 959,
