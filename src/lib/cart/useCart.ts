@@ -3,7 +3,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AltStop, PricingMode } from '@/lib/validation/tours';
 import { childSeatsCost } from '@/lib/services/pricing';
-import { dropExpiredHolds } from './cart-holds';
+import {
+  dropExpiredHolds,
+  markHeld as markHeldItems,
+  markUnavailable as markUnavailableItems,
+} from './cart-holds';
+import { getHoldStatus, releaseHoldRequest } from './holdClient';
+import { pushNotification } from '@/lib/notifications/inbox';
 
 const KEY = 'gytm:cart';
 const EVENT = 'gytm:cart';
@@ -100,23 +106,65 @@ function write(items: CartItem[]): void {
 
 /**
  * Client-side cart of configured activity slots, persisted in localStorage and shared across
- * components (same-tab event + cross-tab storage). Items auto-expire after 30 minutes. The cart
- * is a planning basket — the real inventory hold + payment happen at checkout.
+ * components (same-tab event + cross-tab storage). Saved lines (no hold) persist indefinitely;
+ * held lines expire by their server `expiresAt`. The cart is a planning basket — the real
+ * inventory hold + payment happen at checkout.
  */
 export function useCart() {
   const [items, setItems] = useState<CartItem[]>([]);
 
+  // Drop expired holds + unavailable lines from the store, notifying for each. Saved lines survive.
+  // Pure helper does the partition; we only persist `kept` and fire the per-line notes.
+  const reconcile = useCallback(() => {
+    const { kept, expired, unavailable } = dropExpiredHolds(read(), Date.now());
+    if (expired.length === 0 && unavailable.length === 0) return;
+    for (const i of expired) {
+      pushNotification('expired', `${i.title} — your held spot expired`, `expired:${i.holdId ?? i.id}`);
+    }
+    for (const i of unavailable) {
+      pushNotification('unavailable', `${i.title} — no longer available`, `unavail:${i.id}`);
+    }
+    write(kept);
+  }, []);
+
   useEffect(() => {
     const sync = () => setItems(read());
     sync();
+    reconcile();
     window.addEventListener(EVENT, sync);
     window.addEventListener('storage', sync);
-    // Re-read periodically so expired items drop out of the UI on their own.
-    const t = window.setInterval(sync, 15_000);
+    // Re-read periodically and prune expired holds so they drop out of the UI on their own.
+    const t = window.setInterval(() => {
+      reconcile();
+      sync();
+    }, 15_000);
     return () => {
       window.removeEventListener(EVENT, sync);
       window.removeEventListener('storage', sync);
       window.clearInterval(t);
+    };
+  }, [reconcile]);
+
+  // Server reconcile on mount (held lines only): verify each remaining hold against the server and
+  // drop it ONLY on a definite non-active status. A `null` (transient/auth failure) keeps the line
+  // so a flaky network never discards a valid hold.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const held = read().filter(
+        (i) => i.status === 'held' && i.holdId && i.expiresAt && new Date(i.expiresAt).getTime() > Date.now(),
+      );
+      for (const i of held) {
+        const res = await getHoldStatus(i.holdId!);
+        if (cancelled) return;
+        if (res && res.status !== 'active') {
+          pushNotification('expired', `${i.title} — your held spot expired`, `expired:${i.holdId ?? i.id}`);
+          write(read().filter((x) => x.id !== i.id));
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
   }, []);
 
@@ -142,10 +190,42 @@ export function useCart() {
 
   const clear = useCallback(() => write([]), []);
 
+  // Flip a line to held (server hold created) — stamps holdId + expiresAt via the pure helper.
+  const markHeld = useCallback((id: string, h: { holdId: string; expiresAt: string }) => {
+    write(markHeldItems(read(), id, h));
+  }, []);
+
+  // Flip a line to unavailable (sold out at checkout); the pure helper also clears any stale hold.
+  const markUnavailable = useCallback((id: string) => {
+    write(markUnavailableItems(read(), id));
+  }, []);
+
+  // Remove a line; if it currently holds a server reservation, release it first (fire-and-forget so
+  // the UI doesn't wait on the network), then drop the line.
+  const removeHeld = useCallback((id: string) => {
+    const line = read().find((i) => i.id === id);
+    if (line?.status === 'held' && line.holdId) {
+      void releaseHoldRequest(line.holdId);
+    }
+    write(read().filter((i) => i.id !== id));
+  }, []);
+
   // Accumulate in integer cents so a basket of several lines can't drift (0.1 + 0.2 ≠ 0.3 in
   // floating point); each itemTotal is already cent-rounded, so *100 is exact.
   const subtotal = Math.round(items.reduce((sum, i) => sum + Math.round(itemTotal(i) * 100), 0)) / 100;
 
-  return { items, add, remove, setGuests, clear, count: items.length, subtotal };
+  return {
+    items,
+    add,
+    remove,
+    removeHeld,
+    setGuests,
+    clear,
+    markHeld,
+    markUnavailable,
+    reconcile,
+    count: items.length,
+    subtotal,
+  };
 }
 

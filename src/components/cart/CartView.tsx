@@ -2,12 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useCart, itemTotal, lineCap, CART_TTL_MS, type CartItem } from '@/lib/cart/useCart';
+import { useCart, itemTotal, lineCap, type CartItem } from '@/lib/cart/useCart';
+import { createHoldsForLines } from '@/lib/cart/holdClient';
+import { pushNotification } from '@/lib/notifications/inbox';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
 import { IconCart, IconCalendar, IconGlobe, IconMinus, IconPlus, IconX, IconClock } from '@/components/ui/icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
+
+function Spinner() {
+  return <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />;
+}
 
 function checkoutHref(i: CartItem): string {
   const q = new URLSearchParams({
@@ -69,26 +75,27 @@ function EmptyCart() {
   );
 }
 
-/** mm:ss until the soonest item expires (drops out of the cart). */
-function HoldTimer({ items }: { items: CartItem[] }) {
+/** mm:ss countdown for a single held line, driven by its server `expiresAt`. Renders nothing if the
+ *  line has no expiry (shouldn't happen for a held line). When it reaches zero it nudges the store to
+ *  prune the line immediately (instead of waiting for the next 15s reconcile) so timer and list agree. */
+function HoldTimer({ item }: { item: CartItem }) {
   const t = useT();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    const t = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(t);
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
   }, []);
-  const soonest = Math.min(...items.map((i) => i.addedAt + CART_TTL_MS));
-  const left = Math.max(0, Math.floor((soonest - now) / 1000));
-  // When the soonest item hits zero, nudge the store to prune it immediately (instead of
-  // waiting for the next 15s sync) so the countdown and the list agree.
+  const expiresAtMs = item.expiresAt ? new Date(item.expiresAt).getTime() : NaN;
+  const left = Number.isFinite(expiresAtMs) ? Math.max(0, Math.floor((expiresAtMs - now) / 1000)) : 0;
   useEffect(() => {
-    if (left === 0) window.dispatchEvent(new Event('gytm:cart'));
-  }, [left]);
+    if (Number.isFinite(expiresAtMs) && left === 0) window.dispatchEvent(new Event('gytm:cart'));
+  }, [left, expiresAtMs]);
+  if (!item.expiresAt) return null;
   const mm = String(Math.floor(left / 60)).padStart(2, '0');
   const ss = String(left % 60).padStart(2, '0');
   return (
     <span className="inline-flex items-center gap-1.5 rounded-lg bg-coral/10 px-3 py-1.5 text-[13px] font-semibold text-coral">
-      <IconClock width={14} height={14} /> {t('Held for {time}', { time: `${mm}:${ss}` })}
+      <IconClock width={14} height={14} /> {t('Held — {time} left', { time: `${mm}:${ss}` })}
     </span>
   );
 }
@@ -132,9 +139,47 @@ function Stepper({
 
 export function CartView() {
   const t = useT();
-  const { items, remove, setGuests, subtotal } = useCart();
+  const { items, removeHeld, setGuests, subtotal, markHeld, markUnavailable } = useCart();
   const [mounted, setMounted] = useState(false);
+  const [busy, setBusy] = useState(false);
   useEffect(() => setMounted(true), []);
+
+  // Checkout handoff: create a server hold per saved line, flip each line to held (with its countdown)
+  // or unavailable (sold out), notify, then hand off to the EXISTING per-line checkout exactly as the
+  // cart does today (navigate to the clicked line's checkoutHref). Multi-step checkout is a separate
+  // future effort — we only add hold-creation + sold-out handling before the existing navigation.
+  async function proceed(line: CartItem) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const saved = items.filter((i) => i.status !== 'unavailable');
+      const outcomes = await createHoldsForLines(saved);
+      let anyHeld = false;
+      let anySoldOut = false;
+      for (const o of outcomes) {
+        if (o.ok && o.holdId && o.expiresAt) {
+          markHeld(o.id, { holdId: o.holdId, expiresAt: o.expiresAt });
+          anyHeld = true;
+        } else {
+          markUnavailable(o.id);
+          anySoldOut = true;
+        }
+      }
+      if (anySoldOut) pushNotification('unavailable', t('Some spots sold out and were skipped.'));
+      if (anyHeld) {
+        pushNotification('secured', t('Spots secured — pay within 30 minutes.'));
+        // The clicked line is sold out — don't navigate into a checkout for a spot we couldn't hold.
+        const clicked = outcomes.find((o) => o.id === line.id);
+        if (clicked?.ok) window.location.href = checkoutHref(line);
+        else setBusy(false);
+      } else {
+        // Nothing could be held (everything sold out) — stay on the cart so the pills are visible.
+        setBusy(false);
+      }
+    } catch {
+      setBusy(false);
+    }
+  }
 
   // Stage each line's customised route by occurrence so its checkout link can post it (the array is
   // too big for the URL). Keyed by occ — slug-scoped would collide across lines / stale widget visits.
@@ -160,7 +205,6 @@ export function CartView() {
     <div className="pb-28 pt-10 lg:pb-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="font-display text-[26px] font-semibold text-ink">{t('Your cart')}</h1>
-        <HoldTimer items={items} />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -189,6 +233,16 @@ export function CartView() {
                     <IconGlobe width={13} height={13} className="text-teal" /> {i.lang}
                   </span>
                 </div>
+                {i.status === 'held' && (
+                  <div className="mt-1.5">
+                    <HoldTimer item={i} />
+                  </div>
+                )}
+                {i.status === 'unavailable' && (
+                  <span className="mt-1.5 inline-flex w-fit items-center rounded-lg bg-ink/5 px-2.5 py-1 text-[12px] font-semibold text-ink-muted">
+                    {t('No longer available')}
+                  </span>
+                )}
                 <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
                   <div>
                     {i.pricingMode === 'vehicle' ? (
@@ -211,7 +265,7 @@ export function CartView() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => remove(i.id)}
+                      onClick={() => removeHeld(i.id)}
                       className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-semibold text-ink-muted hover:text-coral"
                     >
                       <IconX width={12} height={12} /> {t('Remove')}
@@ -237,12 +291,14 @@ export function CartView() {
             </span>
           </div>
           {items.length === 1 ? (
-            <Link
-              href={checkoutHref(items[0]!)}
-              className="mt-4 flex justify-center rounded-full bg-teal px-6 py-3 text-sm font-bold text-white transition hover:bg-teal-dark"
+            <button
+              type="button"
+              onClick={() => proceed(items[0]!)}
+              disabled={busy || items[0]!.status === 'unavailable'}
+              className="mt-4 flex w-full items-center justify-center rounded-full bg-teal px-6 py-3 text-sm font-bold text-white transition hover:bg-teal-dark disabled:opacity-80"
             >
-              {t('Proceed to checkout')}
-            </Link>
+              {busy ? <Spinner /> : t('Proceed to checkout')}
+            </button>
           ) : (
             <>
               <p className="mt-4 rounded-lg bg-teal/5 px-3 py-2 text-[12px] leading-snug text-ink-muted">
@@ -251,15 +307,23 @@ export function CartView() {
               <ul className="mt-3 flex flex-col gap-2">
                 {items.map((i) => (
                   <li key={i.id}>
-                    <Link
-                      href={checkoutHref(i)}
-                      className="flex items-center justify-between gap-2 rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal-dark transition hover:bg-teal/5"
+                    <button
+                      type="button"
+                      onClick={() => proceed(i)}
+                      disabled={busy || i.status === 'unavailable'}
+                      className="flex w-full items-center justify-between gap-2 rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal-dark transition hover:bg-teal/5 disabled:opacity-50 disabled:hover:bg-transparent"
                     >
                       <span className="truncate">{i.title}</span>
                       <span className="shrink-0">
-                        <Price eur={itemTotal(i)} /> →
+                        {i.status === 'unavailable' ? (
+                          t('No longer available')
+                        ) : (
+                          <>
+                            <Price eur={itemTotal(i)} /> →
+                          </>
+                        )}
                       </span>
-                    </Link>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -283,12 +347,14 @@ export function CartView() {
           </div>
         </div>
         {items.length === 1 ? (
-          <Link
-            href={checkoutHref(items[0]!)}
-            className="shrink-0 rounded-full bg-teal px-6 py-3 text-sm font-bold text-white hover:bg-teal-dark"
+          <button
+            type="button"
+            onClick={() => proceed(items[0]!)}
+            disabled={busy || items[0]!.status === 'unavailable'}
+            className="flex shrink-0 items-center justify-center rounded-full bg-teal px-6 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
           >
-            {t('Proceed to checkout')}
-          </Link>
+            {busy ? <Spinner /> : t('Proceed to checkout')}
+          </button>
         ) : (
           <button
             type="button"
