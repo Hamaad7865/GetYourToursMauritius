@@ -70,6 +70,9 @@ type ActivitiesRow = {
   rating_avg: number | null;
   rating_count: number;
   extra: Json;
+  region: string | null;
+  lat: number | null;
+  lng: number | null;
   created_at: string;
 };
 type ActivitiesInsert = {
@@ -98,6 +101,9 @@ type ActivitiesInsert = {
   rating_avg?: number | null;
   rating_count?: number;
   extra?: Json;
+  region?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   created_at?: string;
 };
 
@@ -501,6 +507,24 @@ type PlannerPricingRow = {
 };
 type PlannerPricingInsert = Partial<PlannerPricingRow>;
 
+type TransportBandPricingRow = {
+  band: 'same' | 'near' | 'far';
+  sedan_minor: number;
+  suv_minor: number;
+  family_minor: number;
+  van_minor: number;
+  coaster_minor: number;
+  updated_at: string;
+};
+type TransportBandPricingInsert = Partial<TransportBandPricingRow> & { band: 'same' | 'near' | 'far' };
+
+type RegionZoneDistanceRow = {
+  region_a: string;
+  region_b: string;
+  band: 'near' | 'far';
+};
+type RegionZoneDistanceInsert = RegionZoneDistanceRow;
+
 type PlannerPlacesRow = {
   id: string;
   name: string;
@@ -560,6 +584,8 @@ export interface Database {
       chat_messages: TableDef<ChatMessagesRow, ChatMessagesInsert>;
       sightseeing_pricing: TableDef<SightseeingPricingRow, SightseeingPricingInsert>;
       planner_pricing: TableDef<PlannerPricingRow, PlannerPricingInsert>;
+      transport_band_pricing: TableDef<TransportBandPricingRow, TransportBandPricingInsert>;
+      region_zone_distance: TableDef<RegionZoneDistanceRow, RegionZoneDistanceInsert>;
       planner_places: TableDef<PlannerPlacesRow, PlannerPlacesInsert>;
       places_cache: TableDef<PlacesCacheRow, PlacesCacheInsert>;
     };

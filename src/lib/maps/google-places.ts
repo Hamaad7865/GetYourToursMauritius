@@ -1,6 +1,11 @@
 import { ProviderError } from '@/lib/services/errors';
+import { regionFromCoords } from '@/lib/services/pricing';
 import { cacheGet, cacheSet } from './places-cache';
 import type { PlannerPlace } from '@/lib/validation/planner';
+
+// regionFromCoords lives in the pure pricing module (so client bundles can use it without this file's
+// server-only cache deps); re-export it here to keep its long-standing import path working.
+export { regionFromCoords };
 
 const SEARCH_TTL_MS = 6 * 60 * 60 * 1000; // searches: 6h
 const DETAILS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // place details: 30d (rarely change)
@@ -30,15 +35,6 @@ export interface PlacesSearchArgs {
 }
 
 // ── pure mappers ────────────────────────────────────────────────────────────
-
-/** Coarse N/S/E/W/Central region from Mauritius coordinates (rough, for the filter chips). */
-export function regionFromCoords(lat: number, lng: number): string {
-  if (lat >= -20.08) return 'North';
-  if (lat <= -20.42) return 'South';
-  if (lng >= 57.63) return 'East';
-  if (lng <= 57.43) return 'West';
-  return 'Central';
-}
 
 /** Best-effort map from Google place types + name to our planner categories. */
 export function categoryFromTypes(types: string[], name: string): string {

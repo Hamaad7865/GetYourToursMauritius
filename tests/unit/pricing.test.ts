@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { centsToEur, eurToCents, quoteTotal, sightseeingQuote } from '@/lib/services/pricing';
+import {
+  centsToEur,
+  eurToCents,
+  quoteTotal,
+  sightseeingQuote,
+  regionDistanceBand,
+  transportFareMinor,
+  transportFare,
+  TRANSPORT_BANDS_DEFAULT,
+  REGION_DISTANCE_DEFAULT,
+} from '@/lib/services/pricing';
 import { ServiceError } from '@/lib/services/errors';
 
 const TIERS = [
@@ -113,5 +123,85 @@ describe('quoteTotal', () => {
 
   it('rejects an empty tier list', () => {
     expect(() => quoteTotal([], { Adult: 1 })).toThrow(/No price tiers/);
+  });
+});
+
+const D = REGION_DISTANCE_DEFAULT;
+const B = TRANSPORT_BANDS_DEFAULT;
+
+describe('regionDistanceBand', () => {
+  it('is "same" for the same region', () => {
+    expect(regionDistanceBand('West', 'West', D)).toBe('same');
+    expect(regionDistanceBand('Central', 'Central', D)).toBe('same');
+  });
+
+  it('reads near/far from the seeded pairs', () => {
+    expect(regionDistanceBand('North', 'West', D)).toBe('near');
+    expect(regionDistanceBand('East', 'West', D)).toBe('far');
+    expect(regionDistanceBand('North', 'South', D)).toBe('far');
+    expect(regionDistanceBand('Central', 'East', D)).toBe('near');
+  });
+
+  it('is symmetric (order does not matter)', () => {
+    expect(regionDistanceBand('West', 'East', D)).toBe(regionDistanceBand('East', 'West', D));
+    expect(regionDistanceBand('South', 'North', D)).toBe(regionDistanceBand('North', 'South', D));
+  });
+
+  it('fails safe to "far" for a missing pair or a null region', () => {
+    expect(regionDistanceBand('North', 'West', {})).toBe('far');
+    expect(regionDistanceBand(null, 'West', D)).toBe('far');
+    expect(regionDistanceBand('West', null, D)).toBe('far');
+  });
+});
+
+describe('transportFareMinor', () => {
+  it('prices each vehicle bracket within a band (same)', () => {
+    // pax -> expected minor for the "same" band
+    const cases: Array<[number, number]> = [
+      [1, 1500], [4, 1500], // Sedan
+      [5, 2500], [6, 2500], // Family
+      [7, 4000], [14, 4000], // Van
+      [15, 7000], [25, 7000], // Coaster
+    ];
+    for (const [pax, minor] of cases) {
+      expect(transportFareMinor('West', 'West', pax, false, B, D)).toBe(minor);
+    }
+  });
+
+  it('applies the SUV upgrade only for parties of 1–4', () => {
+    expect(transportFareMinor('West', 'West', 2, true, B, D)).toBe(2000); // SUV same
+    expect(transportFareMinor('West', 'West', 4, true, B, D)).toBe(2000);
+    expect(transportFareMinor('West', 'West', 5, true, B, D)).toBe(2500); // suv ignored above 4
+  });
+
+  it('scales with distance band (same < near < far)', () => {
+    const same = transportFareMinor('West', 'West', 2, false, B, D); // 1500
+    const near = transportFareMinor('North', 'West', 2, false, B, D); // 3000
+    const far = transportFareMinor('East', 'West', 2, false, B, D); // 5000
+    expect(same).toBe(1500);
+    expect(near).toBe(3000);
+    expect(far).toBe(5000);
+    expect(same).toBeLessThan(near);
+    expect(near).toBeLessThan(far);
+  });
+
+  it('charges multiple coasters above 25 pax', () => {
+    expect(transportFareMinor('East', 'West', 26, false, B, D)).toBe(18000 * 2);
+    expect(transportFareMinor('East', 'West', 50, false, B, D)).toBe(18000 * 2);
+    expect(transportFareMinor('East', 'West', 51, false, B, D)).toBe(18000 * 3);
+  });
+
+  it('returns 0 when a region or party is missing (no pickup -> no fee)', () => {
+    expect(transportFareMinor(null, 'West', 2, false, B, D)).toBe(0);
+    expect(transportFareMinor('North', null, 2, false, B, D)).toBe(0);
+    expect(transportFareMinor('North', 'West', 0, false, B, D)).toBe(0);
+  });
+});
+
+describe('transportFare (EUR)', () => {
+  it('is the minor fare in euros', () => {
+    expect(transportFare('West', 'West', 2, false, B, D)).toBe(15);
+    expect(transportFare('East', 'West', 2, false, B, D)).toBe(50);
+    expect(transportFare(null, 'West', 2, false, B, D)).toBe(0);
   });
 });

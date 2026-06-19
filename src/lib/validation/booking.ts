@@ -33,6 +33,11 @@ export const createBookingInputSchema = z.object({
   /** The customer's pickup location entered at checkout (pickup/sightseeing tours). Informational;
    *  bounded so a tampered payload is a clean 400, not a DB blowup. */
   pickupLocation: z.string().trim().max(200).nullish(),
+  /** Pickup coordinates (per_person / per_group activities with pickup). The SERVER re-derives the
+   *  region from these and computes the region-based transport fare — they never carry a price.
+   *  nullish like pickupLocation (the checkout sends explicit null when there's no pickup). */
+  pickupLat: z.number().min(-90).max(90).nullish(),
+  pickupLng: z.number().min(-180).max(180).nullish(),
   /** Number of child seats requested. First free, each additional €6 — the charge is computed
    *  server-side; the client value is only the count. Bounded so a tampered payload is a clean 400. */
   childSeats: z.number().int().min(0).max(25).optional(),
@@ -85,6 +90,10 @@ export const bookingSchema = z.object({
   pickupLocation: z.string().nullish(),
   /** Child seats on the booking (first free, €6 each extra; the charge is in totalEur). */
   childSeats: z.number().int().nonnegative().nullish(),
+  /** Region-based transport add-on charged on this booking (already included in totalEur). */
+  transportEur: z.number().nonnegative().nullish(),
+  /** Pickup region the transport fare was based on, or null/absent if no transport was added. */
+  pickupRegion: z.string().nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 

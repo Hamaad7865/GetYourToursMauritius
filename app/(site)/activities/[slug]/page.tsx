@@ -188,6 +188,11 @@ export default async function ActivityDetailPage({
               durationMinutes: activity.durationMinutes,
               pickupAvailable: activity.pickupAvailable,
               image: activity.heroImage?.url ?? activity.images[0]?.url ?? null,
+              region: activity.region ?? null,
+              lat: activity.lat ?? null,
+              lng: activity.lng ?? null,
+              transportBands: activity.transportBands ?? null,
+              regionDistances: activity.regionDistances ?? null,
             }}
           >
           <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">

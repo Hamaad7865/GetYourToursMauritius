@@ -45,6 +45,10 @@ export function Checkout() {
   // Child seats chosen (first free, €6 each extra). Clamp to [0,25] AND to the party (qty): the server
   // caps child_seats at the booked party, so a stale/hand-edited URL must not show or charge more.
   const childSeats = Math.max(0, Math.min(25, qty, parseInt(params.get('childSeats') ?? '0', 10) || 0));
+  // Transport add-on display hint from the widget; the server re-derives + enforces the real fee from
+  // the pickup coordinates, so this is only for the order summary before the booking is created.
+  const transportNum = Number(params.get('transport'));
+  const transportHint = Number.isFinite(transportNum) && transportNum > 0 ? transportNum : 0;
   // Continue ("Book now", from=widget) carries a custom route stashed by slug; a cart line carries its
   // OWN route, staged by occurrence (from=cart). Either may be present; neither inherits the other's.
   const fromWidget = params.get('from') === 'widget';
@@ -96,6 +100,10 @@ export function Checkout() {
   const [step, setStep] = useState(1);
   const [pickup, setPickup] = useState<'known' | 'unknown' | null>(pickupParam ? 'known' : null);
   const [pickupLoc, setPickupLoc] = useState(pickupParam);
+  // Resolved pickup coordinates — drive the region-based transport fee the server charges. Prefilled
+  // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
+  const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [dropoffText, setDropoffText] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secs, setSecs] = useState(() => {
@@ -125,6 +133,24 @@ export function Checkout() {
   useEffect(() => {
     if (step === 2 && session) setStep(3);
   }, [step, session]);
+
+  // Prefill the pickup from the widget's stash (keyed by occurrence). The coordinates drive the
+  // region-based transport fare the server computes; read post-mount to avoid an SSR mismatch.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !occ) return;
+    try {
+      const raw = window.sessionStorage.getItem(`gytm:pickup:${occ}`);
+      const p = raw ? JSON.parse(raw) : null;
+      if (p && typeof p.lat === 'number' && typeof p.lng === 'number') {
+        setPickup('known');
+        setPickupLoc((cur) => cur || p.address || '');
+        setPickupCoords({ lat: p.lat, lng: p.lng });
+        if (p.dropoff?.address) setDropoffText(p.dropoff.address);
+      }
+    } catch {
+      /* sessionStorage unavailable — the customer can enter the pickup here */
+    }
+  }, [occ]);
 
   if (!occ || !slug) {
     return (
@@ -182,8 +208,15 @@ export function Checkout() {
             // Persisted on the booking so the provider actually receives it.
             pickupLocation:
               pickup === 'known' && pickupLoc.trim()
-                ? (dropoffParam ? `${pickupLoc.trim()} → drop-off: ${dropoffParam}` : pickupLoc.trim()).slice(0, 200)
+                ? (dropoffParam || dropoffText
+                    ? `${pickupLoc.trim()} → drop-off: ${dropoffParam || dropoffText}`
+                    : pickupLoc.trim()
+                  ).slice(0, 200)
                 : null,
+            // Pickup coordinates → the server re-derives the region and adds the transport fare (only
+            // for per_person/per_group activities with pickup; ignored otherwise). Never a client price.
+            pickupLat: pickup === 'known' && pickupCoords ? pickupCoords.lat : null,
+            pickupLng: pickup === 'known' && pickupCoords ? pickupCoords.lng : null,
             customer: {
               name: profile?.fullName || user?.email || 'Guest',
               email: user?.email,
@@ -203,6 +236,7 @@ export function Checkout() {
           if (occ) {
             window.sessionStorage.removeItem(`gytm:itinerary:occ:${occ}`);
             window.sessionStorage.removeItem(`gytm:hold:${occ}`);
+            window.sessionStorage.removeItem(`gytm:pickup:${occ}`);
           }
         } catch {
           /* sessionStorage unavailable — nothing to clear */
@@ -283,7 +317,9 @@ export function Checkout() {
               </h1>
               <div className="mt-5 flex flex-col gap-2">
                 <PickRadio checked={pickup === 'known'} onClick={() => setPickup('known')} title={t('Yes, I can add it now')}>
-                  {pickup === 'known' && <PickupMap value={pickupLoc} onChange={setPickupLoc} />}
+                  {pickup === 'known' && (
+                    <PickupMap value={pickupLoc} onChange={setPickupLoc} onCoords={setPickupCoords} />
+                  )}
                 </PickRadio>
                 <PickRadio checked={pickup === 'unknown'} onClick={() => setPickup('unknown')} title={t('I don’t know yet')}>
                   {pickup === 'unknown' && (
@@ -378,6 +414,12 @@ export function Checkout() {
                 {childSeatsCost(childSeats) > 0
                   ? ` · ${t('first free, {price} extra', { price: money(childSeatsCost(childSeats)) })}`
                   : ` · ${t('free')}`}
+              </div>
+            )}
+            {transportHint > 0 && (
+              <div className="flex items-center gap-2">
+                <IconCheck width={15} height={15} className="text-teal" />
+                {t('Door-to-door transport')} · {money(transportHint)}
               </div>
             )}
           </dl>

@@ -15,10 +15,14 @@ const BELLE_MARE = { lat: -20.1965, lng: 57.7669 };
 export function PickupMap({
   value,
   onChange,
+  onCoords,
   placeholder = 'Hotel name or address',
 }: {
   value: string;
   onChange: (address: string) => void;
+  /** Reports the chosen coordinates (place selected / pin dragged / map clicked), or null when the user
+   *  edits the address text freely (no resolved point). Optional — checkout's plain pickup ignores it. */
+  onCoords?: (coords: { lat: number; lng: number } | null) => void;
   placeholder?: string;
 }) {
   const status = useGoogleMaps();
@@ -26,9 +30,11 @@ export function PickupMap({
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.Marker | null>(null);
-  // Keep the latest onChange without re-running the map-setup effect.
+  // Keep the latest callbacks without re-running the map-setup effect.
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onCoordsRef = useRef(onCoords);
+  onCoordsRef.current = onCoords;
 
   useEffect(() => {
     if (status !== 'ready' || !mapElRef.current || !inputRef.current) return;
@@ -69,7 +75,10 @@ export function PickupMap({
       autocomplete.addListener('place_changed', () => {
         const p = autocomplete!.getPlace();
         if (p.geometry?.location) {
-          place({ lat: p.geometry.location.lat(), lng: p.geometry.location.lng() });
+          const lat = p.geometry.location.lat();
+          const lng = p.geometry.location.lng();
+          place({ lat, lng });
+          onCoordsRef.current?.({ lat, lng });
         }
         onChangeRef.current(p.formatted_address ?? p.name ?? inputRef.current?.value ?? '');
       });
@@ -80,12 +89,18 @@ export function PickupMap({
     // Dragging the pin reports its coordinates (the typed address text is kept as-is).
     marker.addListener('dragend', () => {
       const pos = marker.getPosition();
-      if (pos) map.panTo(pos);
+      if (pos) {
+        map.panTo(pos);
+        onCoordsRef.current?.({ lat: pos.lat(), lng: pos.lng() });
+      }
     });
 
     // Click on the map to move the pin too.
     map.addListener('click', (e: google.maps.MapMouseEvent) => {
-      if (e.latLng) place({ lat: e.latLng.lat(), lng: e.latLng.lng() }, 0);
+      if (e.latLng) {
+        place({ lat: e.latLng.lat(), lng: e.latLng.lng() }, 0);
+        onCoordsRef.current?.({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+      }
     });
 
     return () => {
@@ -103,7 +118,12 @@ export function PickupMap({
       <input
         ref={inputRef}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => {
+          onChange(e.target.value);
+          // Free-typed text isn't a resolved point — drop any prior coords so a stale lat/lng
+          // (from an earlier pin/selection) can't price a different address.
+          onCoords?.(null);
+        }}
         placeholder={placeholder}
         className="w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm outline-none focus:border-teal"
       />

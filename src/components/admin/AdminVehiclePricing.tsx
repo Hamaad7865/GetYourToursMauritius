@@ -5,12 +5,25 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import {
   loadPlannerPricing,
   loadSightseeingPricing,
+  loadTransportBands,
+  loadRegionDistances,
   updatePlannerPricing,
   updateSightseeingPricing,
+  updateTransportBand,
+  updateRegionDistance,
   type PlannerPricingInput,
   type SightseeingPricingInput,
+  type TransportBandInput,
+  type RegionPairInput,
+  type ZoneBand,
 } from '@/lib/admin/vehicle-pricing';
 import { AdminHeading, AdminError, BTN_PRIMARY } from '@/components/admin/ui';
+
+const BAND_LABEL: Record<ZoneBand, string> = {
+  same: 'Same region (short drive)',
+  near: 'Nearby region',
+  far: 'Far region (opposite coast / ends)',
+};
 
 const inputClass =
   'w-28 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:bg-white';
@@ -51,15 +64,24 @@ export function AdminVehiclePricing() {
   const isAdmin = profile?.role === 'admin' || profile?.role === 'staff';
   const [sight, setSight] = useState<SightseeingPricingInput | null>(null);
   const [planner, setPlanner] = useState<PlannerPricingInput | null>(null);
+  const [bands, setBands] = useState<TransportBandInput[] | null>(null);
+  const [pairs, setPairs] = useState<RegionPairInput[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState<'sight' | 'planner' | null>(null);
+  const [saved, setSaved] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [s, p] = await Promise.all([loadSightseeingPricing(), loadPlannerPricing()]);
+      const [s, p, tb, rd] = await Promise.all([
+        loadSightseeingPricing(),
+        loadPlannerPricing(),
+        loadTransportBands(),
+        loadRegionDistances(),
+      ]);
       setSight(s);
       setPlanner(p);
+      setBands(tb);
+      setPairs(rd);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load pricing.');
@@ -70,7 +92,14 @@ export function AdminVehiclePricing() {
     if (isAdmin) void load();
   }, [isAdmin, load]);
 
-  async function run(which: 'sight' | 'planner', fn: () => Promise<void>) {
+  function patchBand(i: number, patch: Partial<TransportBandInput>) {
+    setBands((cur) => cur && cur.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
+  }
+  function setPairBand(i: number, band: 'near' | 'far') {
+    setPairs((cur) => cur && cur.map((p, idx) => (idx === i ? { ...p, band } : p)));
+  }
+
+  async function run(which: string, fn: () => Promise<void>) {
     setBusy(true);
     setError(null);
     setSaved(null);
@@ -149,6 +178,93 @@ export function AdminVehiclePricing() {
           </div>
         ) : (
           <p className="mt-4 text-sm text-ink-muted">Loading…</p>
+        )}
+      </section>
+
+      {/* Activity transport add-on */}
+      <section className="mt-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
+        <h2 className="text-[15px] font-extrabold text-ink">Activity transport add-on</h2>
+        <p className="mt-0.5 text-[13px] text-ink-muted">
+          Door-to-door transport for per-person / per-group activities, by how far the pickup is from the
+          activity and the vehicle the party needs. The fee is added only when a customer enters a pickup.
+        </p>
+        {bands ? (
+          <div className="mt-4 max-w-md space-y-3">
+            {bands.map((bnd, i) => (
+              <div key={bnd.band} className="rounded-xl border border-[#EAEEF0] p-3">
+                <div className="text-[13px] font-bold text-ink">{BAND_LABEL[bnd.band]}</div>
+                <EuroField label="Sedan" hint="1–4" value={bnd.sedanEur} onChange={(n) => patchBand(i, { sedanEur: n })} />
+                <EuroField label="SUV" hint="1–4 upgrade" value={bnd.suvEur} onChange={(n) => patchBand(i, { suvEur: n })} />
+                <EuroField label="Family car" hint="5–6" value={bnd.familyEur} onChange={(n) => patchBand(i, { familyEur: n })} />
+                <EuroField label="Van" hint="7–14" value={bnd.vanEur} onChange={(n) => patchBand(i, { vanEur: n })} />
+                <EuroField label="Coaster" hint="15–25" value={bnd.coasterEur} onChange={(n) => patchBand(i, { coasterEur: n })} />
+              </div>
+            ))}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run('transport', async () => {
+                    for (const b of bands) await updateTransportBand(b);
+                  })
+                }
+                className={BTN_PRIMARY}
+              >
+                {busy ? 'Saving…' : 'Save transport fares'}
+              </button>
+              {saved === 'transport' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-ink-muted">Loading…</p>
+        )}
+
+        {pairs && pairs.length > 0 && (
+          <div className="mt-6 max-w-md border-t border-[#EAEEF0] pt-5">
+            <div className="text-[13px] font-bold text-ink">Region distances</div>
+            <p className="mt-0.5 text-[12px] text-ink-muted">
+              Same region is always the cheapest band; set each pair to Nearby or Far.
+            </p>
+            <div className="mt-3 space-y-1">
+              {pairs.map((pr, i) => (
+                <div key={`${pr.regionA}-${pr.regionB}`} className="flex items-center justify-between gap-3 py-1">
+                  <span className="text-sm text-ink">
+                    {pr.regionA} ↔ {pr.regionB}
+                  </span>
+                  <div className="flex overflow-hidden rounded-lg border border-[#E2E7EA]">
+                    {(['near', 'far'] as const).map((band) => (
+                      <button
+                        key={band}
+                        type="button"
+                        onClick={() => setPairBand(i, band)}
+                        className={`px-3 py-1.5 text-[12.5px] font-bold capitalize ${
+                          pr.band === band ? 'bg-teal text-white' : 'bg-white text-ink-muted hover:bg-[#F7F8FA]'
+                        }`}
+                      >
+                        {band}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run('regions', async () => {
+                    for (const p of pairs) await updateRegionDistance(p.regionA, p.regionB, p.band);
+                  })
+                }
+                className={BTN_PRIMARY}
+              >
+                {busy ? 'Saving…' : 'Save region distances'}
+              </button>
+              {saved === 'regions' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+            </div>
+          </div>
         )}
       </section>
     </div>

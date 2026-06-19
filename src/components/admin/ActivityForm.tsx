@@ -185,6 +185,21 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             />
             Hotel pickup available
           </label>
+          <Field label="Home region (transport add-on)">
+            <select className={inputClass} value={v.region} onChange={(e) => set('region', e.target.value)}>
+              <option value="">Auto (from map coordinates)</option>
+              <option value="North">North</option>
+              <option value="South">South</option>
+              <option value="East">East</option>
+              <option value="West">West</option>
+              <option value="Central">Central</option>
+            </select>
+            <p className="mt-1.5 text-[12px] text-ink-muted">
+              The activity’s boarding region. For per-person / per-group activities with hotel pickup, the
+              door-to-door transport fee scales with how far the customer’s pickup is from this region. Fares
+              live in Vehicle pricing → Activity transport add-on.
+            </p>
+          </Field>
           <Field label="Pricing">
             <select
               className={inputClass}

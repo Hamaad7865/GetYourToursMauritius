@@ -90,3 +90,75 @@ export async function updatePlannerPricing(input: PlannerPricingInput): Promise<
     .eq('id', true);
   if (error) throw error;
 }
+
+/* Region-based transport add-on (per_person / per_group activities). Two tables: the band × vehicle
+ * fare grid, and the region-pair near/far map. Both are staff-editable (RLS) via the browser client. */
+export type ZoneBand = 'same' | 'near' | 'far';
+
+export interface TransportBandInput {
+  band: ZoneBand;
+  sedanEur: number;
+  suvEur: number;
+  familyEur: number;
+  vanEur: number;
+  coasterEur: number;
+}
+
+const BAND_ORDER: ZoneBand[] = ['same', 'near', 'far'];
+
+export async function loadTransportBands(): Promise<TransportBandInput[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('transport_band_pricing')
+    .select('band, sedan_minor, suv_minor, family_minor, van_minor, coaster_minor');
+  if (error) throw error;
+  return (data ?? [])
+    .map((r) => ({
+      band: r.band,
+      sedanEur: r.sedan_minor / 100,
+      suvEur: r.suv_minor / 100,
+      familyEur: r.family_minor / 100,
+      vanEur: r.van_minor / 100,
+      coasterEur: r.coaster_minor / 100,
+    }))
+    .sort((a, b) => BAND_ORDER.indexOf(a.band) - BAND_ORDER.indexOf(b.band));
+}
+
+export async function updateTransportBand(input: TransportBandInput): Promise<void> {
+  const { error } = await getBrowserSupabase()
+    .from('transport_band_pricing')
+    .update({
+      sedan_minor: eurToMinor(input.sedanEur),
+      suv_minor: eurToMinor(input.suvEur),
+      family_minor: eurToMinor(input.familyEur),
+      van_minor: eurToMinor(input.vanEur),
+      coaster_minor: eurToMinor(input.coasterEur),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('band', input.band);
+  if (error) throw error;
+}
+
+export interface RegionPairInput {
+  regionA: string;
+  regionB: string;
+  band: 'near' | 'far';
+}
+
+export async function loadRegionDistances(): Promise<RegionPairInput[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('region_zone_distance')
+    .select('region_a, region_b, band')
+    .order('region_a')
+    .order('region_b');
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ regionA: r.region_a, regionB: r.region_b, band: r.band }));
+}
+
+export async function updateRegionDistance(regionA: string, regionB: string, band: 'near' | 'far'): Promise<void> {
+  const { error } = await getBrowserSupabase()
+    .from('region_zone_distance')
+    .update({ band })
+    .eq('region_a', regionA)
+    .eq('region_b', regionB);
+  if (error) throw error;
+}

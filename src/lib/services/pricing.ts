@@ -170,3 +170,110 @@ export const CHILD_SEAT_EUR = 6;
 export function childSeatsCost(seats: number): number {
   return Math.max(0, Math.floor(seats) - 1) * CHILD_SEAT_EUR;
 }
+
+// ── Region-based transport add-on ────────────────────────────────────────────
+// An OPTIONAL fee for per_person / per_group activities that scales with how far the customer's pickup
+// is from the activity's boarding region: same region = short drive = cheap; Near / Far = more. The SQL
+// (transport_fare_minor / region_distance_band in 20260720000000_activity_transport_pricing) is
+// AUTHORITATIVE; everything below mirrors it cent-for-cent for the live widget quote. All amounts are in
+// integer minor units (EUR cents), exactly like the DB config, so there is no float drift.
+
+/** The five Mauritius zones, matching regionFromCoords() in google-places.ts and region_from_coords() in SQL. */
+export const REGIONS = ['North', 'South', 'East', 'West', 'Central'] as const;
+export type Region = (typeof REGIONS)[number];
+
+/** Coarse N/S/E/W/Central region from Mauritius coordinates. The single source of this logic: SQL's
+ *  region_from_coords() ports the SAME thresholds, and google-places.ts re-exports this function (so the
+ *  planner, the widget and the server all classify a point identically). Pure — safe in client bundles. */
+export function regionFromCoords(lat: number, lng: number): Region {
+  if (lat >= -20.08) return 'North';
+  if (lat <= -20.42) return 'South';
+  if (lng >= 57.63) return 'East';
+  if (lng <= 57.43) return 'West';
+  return 'Central';
+}
+
+/** Distance band between a pickup region and an activity's region. */
+export type ZoneBand = 'same' | 'near' | 'far';
+
+/** One flat fare per vehicle bracket, for a single distance band (minor units / EUR cents). */
+export interface TransportBandFare {
+  sedanMinor: number; // 1-4
+  suvMinor: number; // 1-4 upgrade
+  familyMinor: number; // 5-6
+  vanMinor: number; // 7-14
+  coasterMinor: number; // 15-25 (×N coasters above 25)
+}
+
+/** Fares for all three bands — the global config (one row per band in transport_band_pricing). */
+export type TransportBandPricing = Record<ZoneBand, TransportBandFare>;
+
+/** Unordered region-pair -> near|far. Keyed `${lo}|${hi}` with lo < hi (lexicographic), mirroring the
+ *  SQL least/greatest. Same-region is handled as 'same' and is not stored. */
+export type RegionDistanceMap = Record<string, 'near' | 'far'>;
+
+/** Defaults mirroring the migration seed — used as a fallback and by the unit tests. */
+export const TRANSPORT_BANDS_DEFAULT: TransportBandPricing = {
+  same: { sedanMinor: 1500, suvMinor: 2000, familyMinor: 2500, vanMinor: 4000, coasterMinor: 7000 },
+  near: { sedanMinor: 3000, suvMinor: 3800, familyMinor: 4500, vanMinor: 7000, coasterMinor: 12000 },
+  far: { sedanMinor: 5000, suvMinor: 6000, familyMinor: 7000, vanMinor: 11000, coasterMinor: 18000 },
+};
+
+/** Region-pair distances mirroring the migration seed (lo|hi keys). */
+export const REGION_DISTANCE_DEFAULT: RegionDistanceMap = {
+  'Central|East': 'near',
+  'Central|North': 'near',
+  'Central|South': 'near',
+  'Central|West': 'near',
+  'East|North': 'near',
+  'East|South': 'near',
+  'East|West': 'far',
+  'North|South': 'far',
+  'North|West': 'near',
+  'South|West': 'near',
+};
+
+/** Distance band for two regions: 'same' if equal, else the seeded near/far for the unordered pair
+ *  ('far' when missing — fail safe to the higher fare). Mirrors region_distance_band() in SQL. */
+export function regionDistanceBand(a: string | null, b: string | null, distances: RegionDistanceMap): ZoneBand {
+  if (!a || !b) return 'far';
+  if (a === b) return 'same';
+  const [lo, hi] = a < b ? [a, b] : [b, a];
+  return distances[`${lo}|${hi}`] ?? 'far';
+}
+
+/**
+ * Transport fare in MINOR units (EUR cents) for a party, mirroring transport_fare_minor() in SQL
+ * cent-for-cent: band lookup -> vehicle bracket by party size (Sedan ≤4, Family ≤6, Van ≤14, Coaster
+ * ≤25, ×ceil(pax/25) coasters above 25); SUV is the ≤4 upgrade. Returns 0 when a region or pickup is
+ * missing (no pickup -> no fee).
+ */
+export function transportFareMinor(
+  pickupRegion: string | null,
+  activityRegion: string | null,
+  pax: number,
+  suv: boolean,
+  bands: Record<string, TransportBandFare>,
+  distances: RegionDistanceMap,
+): number {
+  if (!pickupRegion || !activityRegion || !Number.isFinite(pax) || pax < 1) return 0;
+  const row = bands[regionDistanceBand(pickupRegion, activityRegion, distances)];
+  if (!row) return 0;
+  if (pax <= 4) return suv ? row.suvMinor : row.sedanMinor;
+  if (pax <= 6) return row.familyMinor;
+  if (pax <= 14) return row.vanMinor;
+  if (pax <= 25) return row.coasterMinor;
+  return row.coasterMinor * Math.ceil(pax / 25);
+}
+
+/** As {@link transportFareMinor}, but in EUR — for the widget quote line (`<Price>` takes EUR). */
+export function transportFare(
+  pickupRegion: string | null,
+  activityRegion: string | null,
+  pax: number,
+  suv: boolean,
+  bands: Record<string, TransportBandFare>,
+  distances: RegionDistanceMap,
+): number {
+  return centsToEur(transportFareMinor(pickupRegion, activityRegion, pax, suv, bands, distances));
+}

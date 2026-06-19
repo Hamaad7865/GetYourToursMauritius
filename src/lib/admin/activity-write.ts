@@ -40,6 +40,9 @@ export interface ActivityFormValues {
   description: string;
   meetingPoint: string;
   pickupAvailable: boolean;
+  /** Home/boarding region (North/South/East/West/Central), or '' to auto-derive from coords. Drives the
+   *  region-based transport add-on for per_person / per_group activities with pickup. */
+  region: string;
   /** per_person (× people), per_group (× ceil(people/size)), or vehicle (one flat price for the
    *  vehicle that fits the party — a tier's max_guests is the vehicle's capacity). */
   pricingMode: PricingMode;
@@ -65,6 +68,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   description: '',
   meetingPoint: '',
   pickupAvailable: false,
+  region: '',
   pricingMode: 'per_person',
   cancellationPolicy: 'Free cancellation up to 24 hours before your activity for a full refund.',
   status: 'published',
@@ -129,6 +133,7 @@ function activityRow(v: ActivityFormValues, opId: string) {
     duration_minutes: v.durationMinutes,
     meeting_point: v.meetingPoint.trim() || null,
     pickup_available: v.pickupAvailable,
+    region: v.region.trim() || null,
     pricing_mode: v.pricingMode,
     languages: v.languages.filter((l) => l.trim()),
     inclusions: v.inclusions.filter((l) => l.trim()),
@@ -384,6 +389,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     description: act.description ?? '',
     meetingPoint: act.meeting_point ?? '',
     pickupAvailable: act.pickup_available,
+    region: act.region ?? '',
     pricingMode: (act.pricing_mode ?? 'per_person') as PricingMode,
     cancellationPolicy: act.cancellation_policy ?? '',
     status: act.status,

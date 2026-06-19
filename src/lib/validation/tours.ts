@@ -28,6 +28,22 @@ export const vehiclePricingSchema = z.object({
 });
 export type VehiclePricing = z.infer<typeof vehiclePricingSchema>;
 
+/** One band's flat fares (minor units), for the region-based transport add-on. Mirrors
+ *  transport_band_pricing; only returned for per_person / per_group tours with pickup. */
+export const transportBandFareSchema = z.object({
+  sedanMinor: z.number().nonnegative(),
+  suvMinor: z.number().nonnegative(),
+  familyMinor: z.number().nonnegative(),
+  vanMinor: z.number().nonnegative(),
+  coasterMinor: z.number().nonnegative(),
+});
+/** Fares keyed by band (same|near|far). */
+export const transportBandsSchema = z.record(z.string(), transportBandFareSchema);
+export type TransportBands = z.infer<typeof transportBandsSchema>;
+/** Unordered region-pair (`${lo}|${hi}`) -> near|far. */
+export const regionDistancesSchema = z.record(z.string(), z.enum(['near', 'far']));
+export type RegionDistances = z.infer<typeof regionDistancesSchema>;
+
 export const tourImageSchema = z.object({
   id: z.string(),
   url: z.string(),
@@ -117,6 +133,14 @@ export const tourDetailSchema = tourSummarySchema.extend({
   description: z.string().nullable(),
   meetingPoint: z.string().nullable(),
   pickupAvailable: z.boolean(),
+  // Home/boarding region + coords for the region-based transport add-on. `.nullish().catch` so the page
+  // still renders against a DB where the transport migration hasn't been applied yet.
+  region: z.string().nullish().catch(null),
+  lat: z.number().nullish().catch(null),
+  lng: z.number().nullish().catch(null),
+  // Global transport fare tables, returned only for per_person / per_group tours that offer pickup.
+  transportBands: transportBandsSchema.nullish().catch(undefined),
+  regionDistances: regionDistancesSchema.nullish().catch(undefined),
   languages: z.array(z.string()),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),
