@@ -213,3 +213,15 @@ export function reviewsPageJsonLd(reviews: { author: string; rating: number; tex
     })),
   };
 }
+
+/** TouristDestination for an area / destination guide page. */
+export function destinationJsonLd(opts: { name: string; description: string; path: string }): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'TouristDestination',
+    name: `${opts.name}, Mauritius`,
+    description: opts.description,
+    url: `${SITE.url}${opts.path}`,
+    address: { '@type': 'PostalAddress', addressRegion: 'Mauritius', addressCountry: 'MU' },
+  };
+}

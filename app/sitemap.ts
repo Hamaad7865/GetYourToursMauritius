@@ -5,6 +5,7 @@ import { searchActivities } from '@/lib/services/activities';
 import { loadPlaces } from '@/lib/services/places';
 import { transfers } from '@/lib/content/transfers';
 import { posts } from '@/lib/content/blog';
+import { areas } from '@/lib/content/areas';
 
 export const runtime = 'edge';
 
@@ -18,6 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/blog`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${base}/mauritius-travel-guide`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${base}/reviews`, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${base}/destinations`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${base}/ai-road-trip-planner`, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${base}/airport-transfer`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${base}/taxi`, changeFrequency: 'monthly', priority: 0.5 },
@@ -39,6 +41,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const blogRoutes: MetadataRoute.Sitemap = posts.map((p) => ({
     url: `${base}${p.path}`,
     lastModified: p.datePublished,
+    changeFrequency: 'monthly',
+    priority: 0.6,
+  }));
+
+  const destinationRoutes: MetadataRoute.Sitemap = areas.map((a) => ({
+    url: `${base}${a.path}`,
     changeFrequency: 'monthly',
     priority: 0.6,
   }));
@@ -67,5 +75,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('[sitemap] places fetch failed', error);
   }
 
-  return [...staticRoutes, ...transferRoutes, ...blogRoutes, ...activityRoutes, ...attractionRoutes];
+  return [
+    ...staticRoutes,
+    ...transferRoutes,
+    ...blogRoutes,
+    ...destinationRoutes,
+    ...activityRoutes,
+    ...attractionRoutes,
+  ];
 }
