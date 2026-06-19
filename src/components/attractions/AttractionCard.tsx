@@ -1,24 +1,25 @@
 import Link from 'next/link';
 import type { PlannerPlace } from '@/lib/validation/planner';
-import { attractionPath, categoryMeta } from '@/lib/content/attractions';
+import { attractionPath, attractionImage, categoryMeta } from '@/lib/content/attractions';
 
-/** Card for the attractions hub + the "nearby" rail. Falls back to a branded
- *  category hero when a place has no photo. */
+/** Card for the attractions hub + the "nearby" rail. Uses a real Wikimedia photo when we
+ *  have one, otherwise a branded category gradient. */
 export function AttractionCard({ place }: { place: PlannerPlace }) {
   const meta = categoryMeta(place.category);
+  const img = attractionImage(place.id) ?? (place.imageUrl ? { url: place.imageUrl } : null);
   return (
     <Link
       href={attractionPath(place.id)}
       className="group block overflow-hidden rounded-2xl border border-ink/10 bg-white transition hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div className={`relative aspect-[4/3] bg-gradient-to-br ${meta.gradient}`}>
-        {place.imageUrl ? (
+        {img ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={place.imageUrl}
+            src={img.url}
             alt={place.name}
             loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
           <span aria-hidden className="absolute inset-0 grid place-items-center text-5xl opacity-90">

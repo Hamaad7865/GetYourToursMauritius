@@ -8,6 +8,7 @@ import { LocationMap } from '@/components/maps/LocationMap';
 import { getPlace, loadPlaces } from '@/lib/services/places';
 import {
   attractionPath,
+  attractionImage,
   attractionMetaTitle,
   attractionMetaDescription,
   buildAttractionFaq,
@@ -32,6 +33,7 @@ export async function generateMetadata({
   const title = attractionMetaTitle(place);
   const description = attractionMetaDescription(place);
   const canonical = attractionPath(place.id);
+  const img = attractionImage(place.id);
   return {
     title,
     description,
@@ -42,7 +44,7 @@ export async function generateMetadata({
       description,
       url: `${SITE.url}${canonical}`,
       locale: 'en_GB',
-      ...(place.imageUrl ? { images: [{ url: place.imageUrl }] } : {}),
+      ...(img ? { images: [{ url: img.url }] } : {}),
     },
   };
 }
@@ -71,6 +73,7 @@ export default async function AttractionDetailPage({
   const extra = ATTRACTION_EXTRA[place.id];
   const meta = categoryMeta(place.category);
   const path = attractionPath(place.id);
+  const img = attractionImage(place.id);
 
   const aboutParas =
     extra?.body ?? [
@@ -82,7 +85,7 @@ export default async function AttractionDetailPage({
 
   return (
     <>
-      <JsonLd data={attractionJsonLd(place, { path, image: place.imageUrl })} />
+      <JsonLd data={attractionJsonLd(place, { path, image: img?.url ?? null })} />
       <JsonLd
         data={breadcrumbListJsonLd([
           { name: 'Home', path: '/' },
@@ -112,6 +115,25 @@ export default async function AttractionDetailPage({
           <span className="text-ink/25">/</span>
           <span className="font-semibold text-ink">{place.name}</span>
         </nav>
+
+        {/* Hero photo (real Wikimedia image where we have one) */}
+        {img && (
+          <figure className="mb-8 overflow-hidden rounded-2xl border border-ink/10">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.url} alt={place.name} className="aspect-[16/9] w-full object-cover" />
+            <figcaption className="px-4 py-2 text-[11px] text-ink-muted">
+              Photo via{' '}
+              <a
+                href={img.source}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="underline hover:text-teal"
+              >
+                Wikimedia Commons
+              </a>
+            </figcaption>
+          </figure>
+        )}
 
         {/* Quick facts */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

@@ -1,5 +1,11 @@
 import type { PlannerPlace } from '@/lib/validation/planner';
 import { SITE } from '@/lib/seo/site';
+import { ATTRACTION_IMAGES } from './_attraction-images.gen';
+
+/** Real Wikimedia photo for an attraction, or null (then the card/detail uses the gradient hero). */
+export function attractionImage(slug: string): { url: string; source: string } | null {
+  return ATTRACTION_IMAGES[slug] ?? null;
+}
 
 /**
  * Presentation + SEO content layer for attraction pages. The base data (name, region,
