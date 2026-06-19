@@ -119,6 +119,14 @@ export const itineraryStopSchema = z.object({
 });
 export type ItineraryStop = z.infer<typeof itineraryStopSchema>;
 
+/** A custom, editable highlights badge ({ icon, title, subtitle }) shown on the activity page. */
+export const activityBadgeSchema = z.object({
+  icon: z.string(),
+  title: z.string(),
+  subtitle: z.string().default(''),
+});
+export type ActivityBadge = z.infer<typeof activityBadgeSchema>;
+
 /** GetYourGuide-style presentational extras (itinerary, know-before-you-go, overview). */
 export const activityExtraSchema = z.object({
   itinerary: z.array(itineraryStopSchema).optional(),
@@ -126,6 +134,7 @@ export const activityExtraSchema = z.object({
   availability: z.string().nullable().optional(),
   startWindow: z.string().nullable().optional(),
   returnWindow: z.string().nullable().optional(),
+  badges: z.array(activityBadgeSchema).optional(),
 });
 export type ActivityExtra = z.infer<typeof activityExtraSchema>;
 
