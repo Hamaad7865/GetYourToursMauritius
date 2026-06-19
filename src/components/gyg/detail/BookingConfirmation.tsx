@@ -24,6 +24,8 @@ interface Booking {
   items: BookingItem[];
   customItinerary?: Array<{ title: string; area?: string | null }> | null;
   pickupLocation?: string | null;
+  dropoffLocation?: string | null;
+  pickupPending?: boolean;
   childSeats?: number | null;
 }
 
@@ -140,10 +142,26 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           </div>
         </dl>
 
-        {booking.pickupLocation && (
+        {(booking.pickupLocation || booking.pickupPending) && (
           <div className="mt-5 border-t border-ink/10 pt-4">
             <div className="text-[13px] font-bold text-ink">{t('Pickup location')}</div>
-            <p className="mt-1 text-[13px] text-ink/80">{booking.pickupLocation}</p>
+            {booking.pickupLocation ? (
+              // Place names / addresses are DB content — shown verbatim, never translated.
+              <p className="mt-1 text-[13px] text-ink/80">{booking.pickupLocation}</p>
+            ) : (
+              <span className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[12px] font-bold text-amber-700">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                {t('Pickup to be arranged')}
+              </span>
+            )}
+          </div>
+        )}
+
+        {booking.dropoffLocation && (
+          <div className="mt-5 border-t border-ink/10 pt-4">
+            <div className="text-[13px] font-bold text-ink">{t('Drop-off')}</div>
+            {/* Place names / addresses are DB content — shown verbatim, never translated. */}
+            <p className="mt-1 text-[13px] text-ink/80">{booking.dropoffLocation}</p>
           </div>
         )}
 
