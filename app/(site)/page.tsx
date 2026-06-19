@@ -4,6 +4,8 @@ import { GygHero } from '@/components/gyg/GygHero';
 import { HomeShowcase } from '@/components/gyg/HomeShowcase';
 import { HomeShowcaseProvider } from '@/components/gyg/HomeShowcaseContext';
 import { SiteFooter } from '@/components/site/SiteFooter';
+import { TrustStrip } from '@/components/site/TrustStrip';
+import { FeaturedReviews } from '@/components/site/FeaturedReviews';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
 import type { TourSummary } from '@/lib/validation/tours';
@@ -53,8 +55,10 @@ export default async function HomePage() {
     <HomeShowcaseProvider>
       <GygHeader heroMode />
       <GygHero />
+      <TrustStrip />
       <main className="bg-white pb-14">
         <HomeShowcase activities={activities} />
+        <FeaturedReviews />
       </main>
       <SiteFooter />
     </HomeShowcaseProvider>

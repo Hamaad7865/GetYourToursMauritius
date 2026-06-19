@@ -36,6 +36,7 @@ const COLUMNS = [
   {
     title: 'Support',
     links: [
+      { label: 'Guest reviews', href: '/reviews' },
       { label: 'Help centre', href: '/help' },
       { label: 'FAQ', href: '/help' },
       { label: 'WhatsApp us', href: '#whatsapp' },

@@ -194,3 +194,22 @@ export function articleJsonLd(opts: {
   if (opts.image) json.image = opts.image;
   return json;
 }
+
+/** TravelAgency (same @id as the global Organization) enriched with displayed reviews. */
+export function reviewsPageJsonLd(reviews: { author: string; rating: number; text: string; date: string | null }[]): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'TravelAgency',
+    '@id': `${SITE.url}/#operator`,
+    name: SITE.operator,
+    url: SITE.url,
+    aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '1076', bestRating: '5' },
+    review: reviews.map((r) => ({
+      '@type': 'Review',
+      reviewRating: { '@type': 'Rating', ratingValue: String(r.rating), bestRating: '5' },
+      author: { '@type': 'Person', name: r.author },
+      reviewBody: r.text,
+      ...(r.date ? { datePublished: r.date } : {}),
+    })),
+  };
+}
