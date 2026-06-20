@@ -83,6 +83,8 @@ describe('catch-up.sql stays in parity with the migrations', () => {
       ['30-minute hold default (F19)', /interval '30 minutes'/],
       ['reopen closed availability (F5)', /set status = 'open'/],
       ['availability past-slot filter (F16)', /starts_at > now\(\)/],
+      ['generic rate-limit table (P0 wallet-DoS)', /create table if not exists rate_limits/],
+      ['generic rate-limit function (P0 wallet-DoS)', /function api_rate_limit/],
     ];
     const missing = required.filter(([, re]) => !re.test(CATCH_UP)).map(([label]) => label);
     expect(missing, `catch-up.sql is missing: ${missing.join('; ')}`).toEqual([]);

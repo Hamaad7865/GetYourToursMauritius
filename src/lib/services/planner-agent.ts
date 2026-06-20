@@ -113,7 +113,10 @@ export async function runPlannerTurn(ctx: ServiceContext, input: PlannerTurnInpu
     system: SYSTEM_PROMPT,
     messages: input.messages,
     tools,
-    maxSteps: 6,
+    // Each step can call a BILLED tool (search_places → Google Places, set_itinerary → Routes API), so
+    // this bounds the billed fan-out per turn. A normal plan is: search_places → set_itinerary → reply,
+    // so 4 leaves headroom for one retry (e.g. dropping unknownIds) without uncapped tool loops.
+    maxSteps: 4,
   });
 
   const itinerary = committed as ResolvedItinerary | null;

@@ -22,9 +22,11 @@ export const plannerChatMessageSchema = z.object({
   content: z.string().min(1).max(4000),
 });
 
-/** Request body for POST /api/ai/trip-planner — the running conversation. */
+/** Request body for POST /api/ai/trip-planner — the running conversation. A normal planning chat is a
+ *  handful of turns; the cap is kept low (12) so one request can't smuggle a huge transcript that
+ *  inflates the billed Gemini token count per call. */
 export const plannerChatInputSchema = z.object({
-  messages: z.array(plannerChatMessageSchema).min(1).max(40),
+  messages: z.array(plannerChatMessageSchema).min(1).max(12),
 });
 export type PlannerChatInput = z.infer<typeof plannerChatInputSchema>;
 

@@ -4352,4 +4352,62 @@ as $$
   from bookings b where b.id = p_booking_id;
 $$;
 
+-- ===========================================================================
+-- 20260722120000_generic_rate_limit: a generic per-IP limiter the public AI/planner routes share.
+-- The four unauthenticated AI/planner endpoints each fan out to BILLED Gemini + Google Places/Routes
+-- with no throttle (wallet-DoS). The only prior limiter was inline in api_capture_lead, coupled to the
+-- leads table, so it couldn't be reused. This factors a generic fixed-window counter. Mirror of the
+-- migration; additive (new table + function) so it can't drift a migrated DB.
+-- ===========================================================================
+create table if not exists rate_limits (
+  bucket       text not null,
+  ip           text not null,
+  window_start timestamptz not null,
+  hits         int not null default 0,
+  primary key (bucket, ip, window_start)
+);
+create index if not exists rate_limits_window_idx on rate_limits (window_start);
+
+alter table rate_limits enable row level security;
+revoke all on rate_limits from anon, authenticated;
+
+create or replace function api_rate_limit(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_bucket text := nullif(p ->> 'bucket', '');
+  v_ip text := nullif(p ->> 'ip', '');
+  v_limit int := greatest(coalesce((p ->> 'limit')::int, 0), 1);
+  v_window int := greatest(coalesce((p ->> 'windowSeconds')::int, 60), 1);
+  v_start timestamptz;
+  v_hits int;
+begin
+  if v_bucket is null then
+    raise exception 'invalid_request' using detail = 'rate_limit: bucket required';
+  end if;
+  if v_ip is null then
+    return jsonb_build_object('ok', true, 'remaining', v_limit);
+  end if;
+
+  v_start := to_timestamp(floor(extract(epoch from now()) / v_window) * v_window);
+
+  insert into rate_limits (bucket, ip, window_start, hits)
+  values (v_bucket, v_ip, v_start, 1)
+  on conflict (bucket, ip, window_start)
+  do update set hits = rate_limits.hits + 1
+  returning hits into v_hits;
+
+  if v_hits > v_limit then
+    raise exception 'rate_limited' using detail = format('bucket %s ip %s', v_bucket, v_ip);
+  end if;
+
+  return jsonb_build_object('ok', true, 'remaining', greatest(v_limit - v_hits, 0));
+end;
+$$;
+
+grant execute on function api_rate_limit(jsonb) to anon, authenticated, service_role;
+
 commit;
