@@ -708,5 +708,9 @@ export const fr: Record<string, string> = {
   "Available across the whole island, day or night": "Disponible sur toute l’île, de jour comme de nuit",
   "Hi Belle Mare Tours! I’d like to book a taxi / private driver. Here’s what I need:": "Bonjour Belle Mare Tours ! J’aimerais réserver un taxi / chauffeur privé. Voici ce dont j’ai besoin :",
   "Notifications": "Notifications",
-  "No notifications yet": "Aucune notification pour l’instant"
+  "No notifications yet": "Aucune notification pour l’instant",
+  "We use cookies to run this site and show maps. No tracking or ads.": "Nous utilisons des cookies pour faire fonctionner ce site et afficher les cartes. Aucun pistage ni publicité.",
+  "Accept": "Accepter",
+  "Cookie policy": "Politique relative aux cookies",
+  "Cookie notice": "Avis relatif aux cookies"
 };

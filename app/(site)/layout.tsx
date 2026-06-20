@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { AuthProvider } from '@/components/auth/AuthProvider';
+import { CookieNotice } from '@/components/site/CookieNotice';
 import { PreferencesProvider } from '@/components/site/PreferencesProvider';
 import { ToastProvider } from '@/components/site/ToastProvider';
 import { getLocale, getServerCurrency } from '@/lib/i18n/server';
@@ -25,6 +26,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       <ToastProvider>
         <AuthProvider>{children}</AuthProvider>
       </ToastProvider>
+      <CookieNotice />
     </PreferencesProvider>
   );
 }
