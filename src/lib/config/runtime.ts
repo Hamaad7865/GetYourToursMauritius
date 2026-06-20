@@ -27,3 +27,38 @@ export function isProductionLikeRuntime(env: ServerEnv): boolean {
     Boolean(env.SUPABASE_SERVICE_ROLE_KEY)
   );
 }
+
+/**
+ * True when `url` points at the local loopback host (localhost / 127.0.0.1 / ::1, any port).
+ * This is the schema default for `NEXT_PUBLIC_SITE_URL`, so an unset/typo'd value in a real deploy
+ * silently becomes a loopback URL — which is load-bearing on the money path (it builds the Peach
+ * return URL + Origin) and on every canonical/OG/sitemap link. A malformed URL is treated as a
+ * loopback (not configured) too: better to fail closed than ship a bad return URL.
+ */
+export function isLocalhostUrl(url: string | undefined | null): boolean {
+  if (!url) return true;
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return true;
+  }
+  return (
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '::1' ||
+    host === '[::1]' ||
+    host.endsWith('.localhost')
+  );
+}
+
+/**
+ * True when `NEXT_PUBLIC_SITE_URL` is safe to use for live customer-facing flows: either we are NOT
+ * production-like (local dev / CI / tests legitimately run on the localhost default), or we are
+ * production-like AND the site URL is a real non-loopback origin. Reused by the payments money-path
+ * guard and the health readiness gate so both agree on what "configured for live" means.
+ */
+export function isSiteUrlConfiguredForLive(env: ServerEnv): boolean {
+  if (!isProductionLikeRuntime(env)) return true;
+  return !isLocalhostUrl(env.NEXT_PUBLIC_SITE_URL);
+}

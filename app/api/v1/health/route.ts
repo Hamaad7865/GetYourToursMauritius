@@ -2,6 +2,7 @@ import { apiHandler } from '@/lib/http/handler';
 import { jsonOk, jsonError } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { getServerEnv } from '@/lib/config/env';
+import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
 import { getPaymentProvider } from '@/lib/payments';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
@@ -34,6 +35,12 @@ export const GET = apiHandler(async (req) => {
   checks.supabaseConfigured = Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   checks.serviceRoleConfigured = Boolean(env.SUPABASE_SERVICE_ROLE_KEY);
 
+  // NEXT_PUBLIC_SITE_URL defaults to localhost; if a production-like deploy ships with it
+  // unset/localhost, customer return URLs, the Peach Origin, canonicals/OG/sitemap all point at
+  // localhost. Surface it as a hard 503 so a misconfigured deploy is caught immediately. Keyed on
+  // isProductionLikeRuntime (via the shared helper), so it fires even when PEACH_ENVIRONMENT=test.
+  checks.siteUrlConfigured = isSiteUrlConfiguredForLive(env);
+
   // The payment provider must never be the unauthenticated stub in a live environment.
   try {
     checks.paymentsSafe = !isLive || getPaymentProvider().name !== 'stub';
@@ -47,9 +54,17 @@ export const GET = apiHandler(async (req) => {
   if (deep) checks.database = await pingDatabase();
 
   // Outside a live environment, only the safety checks gate health (config may be partial in dev).
+  // siteUrlConfigured gates in both branches: it is true unless the runtime is production-like with a
+  // localhost/unset site URL, so it never fails a genuine dev/CI run but always catches a bad deploy.
   const gates = isLive
-    ? [checks.supabaseConfigured, checks.serviceRoleConfigured, checks.paymentsSafe, checks.legacyAuthDisabled]
-    : [checks.paymentsSafe, checks.legacyAuthDisabled];
+    ? [
+        checks.supabaseConfigured,
+        checks.serviceRoleConfigured,
+        checks.paymentsSafe,
+        checks.legacyAuthDisabled,
+        checks.siteUrlConfigured,
+      ]
+    : [checks.paymentsSafe, checks.legacyAuthDisabled, checks.siteUrlConfigured];
   const healthy = gates.every(Boolean) && (deep ? checks.database : true);
 
   const body = { status: healthy ? 'ok' : 'degraded', live: isLive, checks, time: new Date().toISOString() };

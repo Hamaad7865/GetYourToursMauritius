@@ -80,8 +80,8 @@ export class RateLimitError extends ServiceError {
 }
 
 export class ConfigError extends ServiceError {
-  constructor(message = 'Service is not configured') {
-    super('config_error', message, 500);
+  constructor(message = 'Service is not configured', details?: unknown) {
+    super('config_error', message, 500, details);
   }
 }
 
