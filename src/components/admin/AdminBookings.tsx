@@ -13,6 +13,7 @@ import {
   type PaymentState,
 } from '@/lib/admin/bookings';
 import { avatar } from '@/lib/admin/dashboard';
+import { csvCell } from '@/lib/admin/csv';
 import { IconCalendar, IconUsers, IconX, IconSearch } from '@/components/ui/icons';
 import { childSeatsCost } from '@/lib/services/pricing';
 
@@ -171,10 +172,6 @@ type SortKey = 'ref' | 'customer' | 'date' | 'total';
 const SELECT_CLS =
   'rounded-xl border border-[#E2E7EA] bg-white px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-teal cursor-pointer';
 
-function csvCell(v: string | number): string {
-  const s = String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
 function exportCsv(rows: BookingRow[]): void {
   const head = ['Ref', 'Customer', 'Email', 'Tour', 'Trip date', 'Guests', 'Total EUR', 'Payment', 'Status', 'Source'];
   const lines = rows.map((b) =>
