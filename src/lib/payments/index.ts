@@ -1,4 +1,5 @@
 import { getServerEnv, type ServerEnv } from '@/lib/config/env';
+import { isProductionLikeRuntime } from '@/lib/config/runtime';
 import { ConfigError } from '@/lib/services/errors';
 import type { PaymentProvider } from './types';
 import { PeachPaymentProvider, type PeachConfig } from './peach';
@@ -51,30 +52,6 @@ export function getPeachWidgetConfig(): { entityId: string; scriptUrl: string } 
       ? 'https://checkout.peachpayments.com/js/checkout.js'
       : 'https://sandbox-checkout.peachpayments.com/js/checkout.js';
   return { entityId: env.PEACH_ENTITY_ID, scriptUrl };
-}
-
-/**
- * True when this process looks like a real / production deployment rather than local dev or CI.
- *
- * The gate must NOT key on `PEACH_ENVIRONMENT`: its schema default is `'test'`, i.e. the UNSAFE
- * value, so a production deploy that simply forgets to set it would silently fall through. Instead
- * we look at signals that are set by the platform or the real backend and are therefore present
- * exactly when it matters: a configured Supabase service-role key (the webhook needs it to run at
- * all), `NODE_ENV=production` (set by the build/runtime, not hand-managed), or an explicit
- * `PEACH_ENVIRONMENT=live`.
- *
- * EXCEPTION: `next dev` (NODE_ENV=development) legitimately runs with a live Supabase service-role
- * key for local admin/webhook testing, yet is NOT a production deploy — the stub is correct there.
- * So development is never treated as production-like (production sets NODE_ENV=production; the test
- * runner runs as 'test', which still honours the service-role-key signal).
- */
-function isProductionLikeRuntime(env: ServerEnv): boolean {
-  if (process.env.NODE_ENV === 'development') return false;
-  return (
-    env.PEACH_ENVIRONMENT === 'live' ||
-    process.env.NODE_ENV === 'production' ||
-    Boolean(env.SUPABASE_SERVICE_ROLE_KEY)
-  );
 }
 
 /**

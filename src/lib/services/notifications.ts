@@ -40,6 +40,11 @@ export async function drainNotifications(
       sent += 1;
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'send failed';
+      // One-line, secret-free signal so a misconfigured provider (e.g. notifications_not_configured)
+      // is loud in the logs instead of a silent black-hole. Only ids + the error message are logged.
+      console.error(
+        `notification send failed: id=${message.id} template=${message.template} reason=${reason}`,
+      );
       await callRpc(ctx, 'mark_notification', { id: message.id, result: 'failed', error: reason });
       failed += 1;
     }
