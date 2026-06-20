@@ -54,6 +54,10 @@ const nextConfig = {
     const cc = (value) => [{ key: 'Cache-Control', value }];
     return [
       { source: '/(.*)', headers: security },
+      // /checkout must NEVER be cached or served from the bfcache: it mints/holds a booking and a
+      // stale re-execution after a successful booking could otherwise create a duplicate. no-store
+      // (defence-in-depth alongside the per-occurrence booking-identity stash in Checkout.tsx).
+      { source: '/checkout', headers: cc('no-store, must-revalidate') },
       // Listings (the activity DETAIL path /activities/:slug* is deliberately NOT cached — see above).
       { source: '/', headers: cc(cache) },
       { source: '/activities', headers: cc(cache) },

@@ -10,6 +10,7 @@ import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { canAdvanceStep1, defaultWantsPickup } from '@/lib/checkout/pickup';
+import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
@@ -110,6 +111,22 @@ export function Checkout() {
     }
   }
   const { holdId, expiresAt, idem: idemParam } = readHold();
+  // The booking IDENTITY (idempotency key + the created ref) persisted per occurrence. Unlike the hold
+  // / pickup / itinerary stashes, this one SURVIVES a successful booking on purpose: pressing browser
+  // Back or reloading /checkout remounts this component, and rehydrating from here means the SAME idem
+  // key is reused (the server dedups → no second booking row) and the existing ref is reused (pay()
+  // takes the `else` branch instead of creating again). Without it a fresh random key would mint a
+  // duplicate, payable booking → a double charge. Keyed by occurrence; try/catch as storage may be off.
+  function readBooking(): { idem: string; ref: string | null } {
+    if (typeof window === 'undefined' || !occ) return { idem: '', ref: null };
+    try {
+      const raw = window.sessionStorage.getItem(`gytm:booking:${occ}`);
+      const b = raw ? JSON.parse(raw) : null;
+      return { idem: b?.idemKey || '', ref: b?.bookingRef || null };
+    } catch {
+      return { idem: '', ref: null };
+    }
+  }
   // The chosen route is stashed in sessionStorage (too big for the URL): by slug from Continue, by
   // occurrence from a cart line. Read whichever applies to this checkout — never the other's key.
   function readItinerary(): Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null {
@@ -180,11 +197,16 @@ export function Checkout() {
     }
     return 30 * 60;
   });
-  // Stable idempotency key + booking ref so a retry reuses the same booking/payment instead of
-  // creating an orphaned, seat-holding duplicate. Reuse the key from Continue so the hold → booking
-  // chain shares one key.
-  const [idemKey] = useState(() => idemParam || crypto.randomUUID());
-  const [bookingRef, setBookingRef] = useState<string | null>(null);
+  // Stable idempotency key + booking ref so a retry — including a browser Back or a /checkout reload
+  // that REMOUNTS this component — reuses the same booking/payment instead of creating an orphaned,
+  // seat-holding, separately-payable duplicate (a double charge). Precedence for the key: a key
+  // persisted for this occurrence (gytm:booking) → the hold's key handed over from Continue → a fresh
+  // random key. The ref rehydrates from the same stash so pay() goes straight to the existing booking's
+  // payment instead of re-creating it.
+  const [idemKey] = useState(() =>
+    resolveIdemKey({ persisted: readBooking().idem, fromHold: idemParam, fresh: crypto.randomUUID() }),
+  );
+  const [bookingRef, setBookingRef] = useState<string | null>(() => readBooking().ref);
   // Authoritative price from the created booking — what the customer is actually charged.
   const [serverTotal, setServerTotal] = useState<number | null>(null);
   // Numeric EUR amount for <Price>/money() — null when we have nothing to show yet.
@@ -286,6 +308,13 @@ export function Checkout() {
       // Create the booking once (idempotent + remembered); a retry reuses it.
       let ref = bookingRef;
       if (!ref) {
+        // Persist the idem key BEFORE the request so a crash/abort mid-flight still reuses the same key
+        // on the retry (server then dedups → no duplicate booking). Updated with the ref once it lands.
+        try {
+          if (occ) window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey }));
+        } catch {
+          /* sessionStorage unavailable — the key is still stable for the lifetime of this mount */
+        }
         const bookingRes = await fetch('/api/v1/bookings', {
           method: 'POST',
           headers,
@@ -330,8 +359,17 @@ export function Checkout() {
         if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
         ref = bookingRes.data.ref as string;
         setBookingRef(ref);
-        // The route is now persisted on the booking — clear both stashes (slug from Continue, occ from
-        // a cart line) and the stashed hold so none attaches to a later checkout for this occurrence.
+        // Persist the booking IDENTITY (idem key + ref) so a Back/reload remount rehydrates it and goes
+        // straight to this booking's payment rather than creating a second one. This stash is
+        // deliberately NOT cleared below — that is the whole point of the fix.
+        try {
+          if (occ) window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey, bookingRef: ref }));
+        } catch {
+          /* sessionStorage unavailable — the in-state ref still guards this mount */
+        }
+        // The route is now persisted on the booking — clear the route/hold/pickup stashes (slug from
+        // Continue, occ from a cart line) so none attaches to a later checkout for this occurrence.
+        // NOTE: gytm:booking:${occ} is intentionally NOT cleared here so a Back/reload can rehydrate it.
         try {
           if (slug) window.sessionStorage.removeItem(`gytm:itinerary:${slug}`);
           if (occ) {

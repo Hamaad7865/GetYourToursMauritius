@@ -17,4 +17,9 @@ describe('next.config headers() caching', () => {
     expect(config).toContain("source: '/activities'");
     expect(config).toContain('s-maxage=300');
   });
+
+  it('sets no-store on /checkout so a bfcache re-execution cannot create a duplicate booking', () => {
+    expect(config).toContain("source: '/checkout'");
+    expect(config).toContain('no-store');
+  });
 });
