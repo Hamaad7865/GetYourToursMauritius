@@ -4410,4 +4410,40 @@ $$;
 
 grant execute on function api_rate_limit(jsonb) to anon, authenticated, service_role;
 
+-- ===========================================================================
+-- 20260723000000_payment_charge: persist what the card was actually charged.
+-- The booking ledger is EUR but the Mauritius acquirer settles in USD; createPaymentLink converts
+-- the EUR total to whole-dollar USD at charge time and never recorded it, so a receipt/invoice could
+-- only show the EUR figure. Record the real charge (best-effort) on the payment row. Additive (two
+-- nullable columns + a new SECURITY DEFINER writer) so it can't drift a migrated DB.
+-- ===========================================================================
+alter table payments add column if not exists charged_amount_minor integer;
+alter table payments add column if not exists charged_currency text;
+
+create or replace function api_record_payment_charge(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_payment_id uuid := nullif(p ->> 'paymentId', '')::uuid;
+  v_minor int := (p ->> 'chargedAmountMinor')::int;
+  v_currency text := nullif(p ->> 'chargedCurrency', '');
+begin
+  if v_payment_id is null then
+    raise exception 'invalid_request' using detail = 'record_payment_charge: paymentId required';
+  end if;
+
+  update payments
+  set charged_amount_minor = v_minor,
+      charged_currency = v_currency
+  where id = v_payment_id;
+
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+grant execute on function api_record_payment_charge(jsonb) to authenticated, service_role;
+
 commit;

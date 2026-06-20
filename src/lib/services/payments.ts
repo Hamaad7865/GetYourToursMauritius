@@ -29,16 +29,30 @@ export async function createPaymentLink(
   // The Mauritius card acquirer settles in USD (not EUR/MUR), so convert the EUR booking total to
   // USD at charge time — whole dollars, matching the on-site USD display. The ledger stays in EUR:
   // a successful full settlement confirms the EUR-denominated payment.
+  const chargeCurrency = 'USD';
   const rate = await getUsdRate();
   const chargeAmount = Math.round((payment.amountMinor / 100) * rate);
   const session = await ctx.payments.createCheckout({
     bookingRef: payment.bookingRef,
     amount: chargeAmount,
-    currency: 'USD',
+    currency: chargeCurrency,
     customerEmail: payment.customerEmail,
     description: `Belle Mare Tours booking ${payment.bookingRef}`,
     returnUrl: input.returnUrl,
   });
+
+  // Persist what the card was actually charged (USD, minor units) so the receipt/invoice can show
+  // the real billed amount rather than the EUR ledger figure. Best-effort: the checkout already
+  // succeeded, so a failure here must never strand the customer — log and continue.
+  try {
+    await callRpc(ctx, 'api_record_payment_charge', {
+      paymentId: payment.paymentId,
+      chargedAmountMinor: Math.round(chargeAmount * 100),
+      chargedCurrency: chargeCurrency,
+    });
+  } catch (error) {
+    console.error('failed to record payment charge', { paymentId: payment.paymentId, error });
+  }
 
   return {
     sessionId: session.id,

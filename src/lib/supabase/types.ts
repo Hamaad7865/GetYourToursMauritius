@@ -311,6 +311,8 @@ type PaymentsRow = {
   status: Database['public']['Enums']['payment_state'];
   paid_minor: number;
   refunded_minor: number;
+  charged_amount_minor: number | null;
+  charged_currency: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -324,6 +326,8 @@ type PaymentsInsert = {
   status?: Database['public']['Enums']['payment_state'];
   paid_minor?: number;
   refunded_minor?: number;
+  charged_amount_minor?: number | null;
+  charged_currency?: string | null;
   created_at?: string;
   updated_at?: string;
 };
