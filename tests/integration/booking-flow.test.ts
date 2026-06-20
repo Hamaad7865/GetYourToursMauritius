@@ -265,6 +265,75 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(after).toBe(before); // api_book REUSED the hold — it did not create a second one
   });
 
+  it('reuses the cart hold on a capacity-tight occurrence — books with exactly ONE active hold (P1)', async () => {
+    // The cart double-hold bug (P1): proceed() reserved a REAL hold for the line, but checkout dropped
+    // the holdId/idem, so api_book minted a SECOND hold for the same party. On an occurrence where free
+    // seats == party, used_capacity then counted 2×party > capacity → insufficient_capacity, and the
+    // customer's own purchase showed "this date just filled up". The fix hands the cart hold (id + the
+    // SAME idem it was created under) to checkout so api_book's reuse branch attaches it — one hold only.
+    await db.asOwner();
+    const tight = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         select activity_option_id, operator_id, now() + interval '3 days', now() + interval '3 days 4 hours', 2
+         from session_occurrences where id = $1 returning id`,
+        [occurrenceId],
+      )
+    ).rows[0]!.id;
+
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    // proceed(): createHoldsForLines posts the line's idemKey as the hold key. The cart then hands
+    // { holdId, expiresAt, idem: <that key> } to checkout, which sends holdId + idem on the booking.
+    const HOLD_IDEM = 'cart-tight-idem-1';
+    const hold = await call<{ holdId: string; quantity: number }>(db, 'api_create_hold', {
+      occurrenceId: tight,
+      people: 2, // the whole occurrence — a second hold of 2 would overflow capacity 2
+      idempotencyKey: HOLD_IDEM,
+    });
+    expect(hold.quantity).toBe(2);
+
+    const heldBefore = (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from booking_holds
+         where session_occurrence_id = $1 and status = 'active' and booking_id is null`,
+        [tight],
+      )
+    ).rows[0]!.n;
+    expect(heldBefore).toBe(1); // exactly the cart hold
+
+    // Checkout's booking POST: holdId from the cart stash + the SAME idem flowing in as fromHold.
+    // Without reuse this would raise insufficient_capacity (2 held + 2 fresh > 2 capacity).
+    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+      occurrenceId: tight,
+      party: { Adult: 2 },
+      holdId: hold.holdId,
+      customerName: 'Cart Reuse',
+      customerEmail: 'cart-reuse@example.com',
+      source: 'web',
+      idempotencyKey: HOLD_IDEM,
+    });
+    expect(booking.totalEur).toBe(140); // 2 × €70 — the booking SUCCEEDED, no false "filled up"
+
+    // Exactly ONE hold exists for the occurrence, and it is the cart hold (now attached to the booking).
+    // A second, freshly-minted hold would mean two rows here (and the capacity overflow that blocked pay).
+    const holdsAfter = (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from booking_holds where session_occurrence_id = $1`,
+        [tight],
+      )
+    ).rows[0]!.n;
+    expect(holdsAfter).toBe(1); // ONE hold total — reused, not double-held
+
+    const reusedRow = (
+      await db.pg.query<{ id: string; booking_id: string | null }>(
+        `select id, booking_id from booking_holds where session_occurrence_id = $1`,
+        [tight],
+      )
+    ).rows[0]!;
+    expect(reusedRow.id).toBe(hold.holdId); // the SAME hold the cart created
+    expect(reusedRow.booking_id).not.toBeNull(); // it was settled onto the booking, not orphaned
+  });
+
   it('an EXPIRED Continue hold does not hard-lock the booking (fallback uses a distinct key)', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     // Mirror the real key flow: the Continue hold's key is `<K>:hold`; the booking key is `<K>`.

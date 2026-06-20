@@ -92,14 +92,15 @@ export function Checkout() {
   // OWN route, staged by occurrence (from=cart). Either may be present; neither inherits the other's.
   const fromWidget = params.get('from') === 'widget';
   const fromCart = params.get('from') === 'cart';
-  // The hold reserved on Continue (reused at pay so the spot isn't double-held) + its real expiry +
+  // The hold reserved before checkout (reused at pay so the spot isn't double-held) + its real expiry +
   // the shared idempotency key — handed over via sessionStorage (NOT the URL, which would leak them).
-  // ONLY the widget/planner flow (from=widget) owns a stashed hold; a cart checkout must NEVER inherit
-  // it (the key is occurrence-scoped, so a stale widget hold for the same occurrence would otherwise
-  // block the cart line as "expired" and its idem could replay the earlier booking). A past expiry is
-  // treated as no hold, so the cart/fresh path mints its own key and creates its own hold at pay.
+  // BOTH the widget/planner Continue (from=widget) AND a cart proceed (from=cart) stash a real hold for
+  // this occurrence; either may reuse it. A plain (no-from) checkout must NEVER inherit one (the key is
+  // occurrence-scoped, so a stale hold for the same occurrence would otherwise block the line as
+  // "expired" and its idem could replay the earlier booking). A past expiry is treated as no hold, so the
+  // fresh path mints its own key and creates its own hold at pay.
   function readHold(): { holdId: string; expiresAt: string; idem: string } {
-    if (typeof window === 'undefined' || !occ || !fromWidget) return { holdId: '', expiresAt: '', idem: '' };
+    if (typeof window === 'undefined' || !occ || !(fromWidget || fromCart)) return { holdId: '', expiresAt: '', idem: '' };
     try {
       const raw = window.sessionStorage.getItem(`gytm:hold:${occ}`);
       const h = raw ? JSON.parse(raw) : null;

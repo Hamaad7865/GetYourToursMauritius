@@ -28,13 +28,14 @@ function checkoutHref(i: CartItem): string {
     guests: String(i.guests),
     unit: i.unit,
     // Carry the SUV upgrade so a cart line added as an SUV isn't silently downgraded to the Sedan
-    // price at checkout. (holdId/idem/from=widget are intentionally absent — a cart line was never
-    // held and must not inherit another visit's route.)
+    // price at checkout. (holdId/idem are intentionally absent from the URL — the hold reserved in
+    // proceed() is handed to checkout via sessionStorage so its tokens don't leak via Referer/history.)
     ...(i.suv ? { suv: '1' } : {}),
     ...(i.childSeats ? { childSeats: String(i.childSeats) } : {}),
-    // Signal checkout to read this line's captured route (staged to sessionStorage by occurrence).
-    // NOT `from=widget` — that path also reuses a hold the cart never created.
-    ...(i.itinerary && i.itinerary.length ? { from: 'cart' } : {}),
+    // Signal checkout this is a CART line: read this line's captured route AND reuse the hold proceed()
+    // reserved for this occurrence (both staged to sessionStorage by occurrence). Always present — NOT
+    // `from=widget` (a distinct stash + price hints) — so the cart hold is reused instead of re-minted.
+    from: 'cart',
   });
   return `/checkout?${q.toString()}`;
 }
@@ -160,6 +161,22 @@ export function CartView() {
         if (o.ok && o.holdId && o.expiresAt) {
           markHeld(o.id, { holdId: o.holdId, expiresAt: o.expiresAt });
           anyHeld = true;
+          // Hand this line's REAL hold to checkout via sessionStorage keyed by occurrence — mirrors the
+          // widget's continueToCheckout stash exactly: { holdId, expiresAt, idem }. The idem MUST be the
+          // value the hold was created under (the line's idemKey, posted by createHoldsForLines), so the
+          // booking POST reuses the hold AND api_book's reuse branch matches — no second hold is minted.
+          // Tokens stay OUT of the URL (Referer/history leak); from=cart in checkoutHref reads this stash.
+          const held = saved.find((i) => i.id === o.id);
+          if (held) {
+            try {
+              window.sessionStorage.setItem(
+                `gytm:hold:${held.occurrenceId}`,
+                JSON.stringify({ holdId: o.holdId, expiresAt: o.expiresAt, idem: held.idemKey }),
+              );
+            } catch {
+              /* sessionStorage unavailable — checkout falls back to minting its own hold at pay */
+            }
+          }
         } else {
           markUnavailable(o.id);
           anySoldOut = true;
