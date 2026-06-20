@@ -39,14 +39,34 @@ export class ResendNotificationProvider implements NotificationProvider {
     if (message.channel !== 'email') {
       throw new Error(`Resend cannot deliver channel '${message.channel}' — no provider configured`);
     }
-    const { subject, text } = render(message);
+    // A fully pre-rendered message (e.g. the invoice/receipt email) carries its own subject/text/html;
+    // use those as-is. Otherwise fall back to render() from the template + payload.
+    const rendered = render(message);
+    const subject = message.subject ?? rendered.subject;
+    const text = message.text ?? rendered.text;
+
+    const body: {
+      from: string;
+      to: string;
+      subject: string;
+      text: string;
+      html?: string;
+      attachments?: Array<{ filename: string; content: string }>;
+    } = { from: this.config.from, to: message.recipient, subject, text };
+    if (message.html) body.html = message.html;
+    if (message.attachments?.length) {
+      // Resend's attachment shape is { filename, content } where content is base64; it infers the
+      // MIME type from the filename, so we deliberately omit contentType to stay on the safe shape.
+      body.attachments = message.attachments.map((a) => ({ filename: a.filename, content: a.content }));
+    }
+
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         authorization: `Bearer ${this.config.apiKey}`,
         'content-type': 'application/json',
       },
-      body: JSON.stringify({ from: this.config.from, to: message.recipient, subject, text }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
