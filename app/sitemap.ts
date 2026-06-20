@@ -30,6 +30,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/refunds`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${base}/terms`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${base}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${base}/cookies`, changeFrequency: 'yearly', priority: 0.3 },
   ];
 
   const transferRoutes: MetadataRoute.Sitemap = transfers.map((t) => ({

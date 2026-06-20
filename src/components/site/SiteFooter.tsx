@@ -48,6 +48,7 @@ const COLUMNS = [
     links: [
       { label: 'Terms of service', href: '/terms' },
       { label: 'Privacy policy', href: '/privacy' },
+      { label: 'Cookie policy', href: '/cookies' },
       { label: 'Cancellations & refunds', href: '/refunds' },
     ],
   },
