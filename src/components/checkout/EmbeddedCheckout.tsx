@@ -4,6 +4,31 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/components/site/PreferencesProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { SYNC_RETRY_ATTEMPTS, nextDelayMs } from '@/lib/checkout/confirm-poll';
+
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/** Try to (re)obtain the user's access token, retrying briefly — it can be momentarily unavailable
+ *  right after the widget completes (session refresh in flight). Returns null if it never appears. */
+async function getAccessToken(attempts = 3): Promise<string | null> {
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const { data } = await getBrowserSupabase().auth.getSession();
+      const token = data.session?.access_token;
+      if (token) return token;
+    } catch {
+      // ignore and retry
+    }
+    if (i < attempts - 1) await sleep(500);
+  }
+  return null;
+}
+
+/** Append `?just_paid=1` to the booking return URL so the confirmation page knows a payment just
+ *  completed and should poll for confirmation rather than show a cold "awaiting payment" dead-end. */
+function withJustPaid(returnUrl: string): string {
+  return returnUrl.includes('?') ? `${returnUrl}&just_paid=1` : `${returnUrl}?just_paid=1`;
+}
 
 // Minimal typing for Peach's global checkout.js widget (loaded at runtime from their CDN).
 interface PeachCheckoutInstance {
@@ -55,23 +80,45 @@ export function EmbeddedCheckout({
     let cancelled = false;
 
     // On completion, confirm the booking from the provider's authoritative status before returning —
-    // so the booking page already reflects "confirmed" rather than waiting on the webhook. Best
-    // effort: if it fails, the webhook (and the booking page) remain fallbacks, so we still return.
+    // so the booking page already reflects "confirmed" rather than waiting on the webhook. We retry
+    // the (idempotent) sync a few times with short backoff because the provider settlement can still
+    // be 'pending' for a beat (Peach result 000.200) or the network can blip. We INSPECT the response
+    // and stop early once it reports confirmed. Either way we eventually navigate — appending
+    // `?just_paid=1` so the booking page polls for confirmation instead of showing a cold dead-end.
     const confirmThenReturn = async () => {
+      let confirmed = false;
       try {
-        const { data } = await getBrowserSupabase().auth.getSession();
-        const token = data.session?.access_token;
+        const token = await getAccessToken();
         if (token) {
-          await fetch('/api/v1/payments/sync', {
-            method: 'POST',
-            headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-            body: JSON.stringify({ checkoutId }),
-          });
+          for (let attempt = 0; attempt < SYNC_RETRY_ATTEMPTS; attempt++) {
+            try {
+              const res = await fetch('/api/v1/payments/sync', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+                body: JSON.stringify({ checkoutId }),
+              });
+              if (res.ok) {
+                const body = (await res.json().catch(() => null)) as
+                  | { ok?: boolean; data?: { confirmed?: boolean } }
+                  | null;
+                if (body?.data?.confirmed) {
+                  confirmed = true;
+                  break;
+                }
+              }
+            } catch {
+              // network blip — fall through to the backoff and retry
+            }
+            if (attempt < SYNC_RETRY_ATTEMPTS - 1) await sleep(nextDelayMs(attempt));
+          }
         }
       } catch {
-        // ignore — confirmation falls back to the webhook
+        // ignore — confirmation falls back to the page's polling and the webhook
       }
-      router.replace(returnUrl);
+      if (cancelled) return;
+      // If sync already confirmed, the plain booking page shows the success view immediately;
+      // otherwise hand off to the page's own polling (Part B) via the just_paid flag.
+      router.replace(confirmed ? returnUrl : withJustPaid(returnUrl));
     };
 
     const mount = () => {

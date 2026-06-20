@@ -7,6 +7,12 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { Price } from '@/components/site/Price';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
+import {
+  CONFIRM_POLL_INTERVAL_MS,
+  CONFIRM_POLL_MAX_MS,
+  isConfirmedStatus,
+  shouldKeepPolling,
+} from '@/lib/checkout/confirm-poll';
 
 interface BookingItem {
   priceLabel: string;
@@ -43,25 +49,106 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   const { user, session, loading: authLoading, openAuth } = useAuth();
   const params = useSearchParams();
   const isStubReturn = params.get('stub_session') != null;
+  const justPaid = params.get('just_paid') != null;
   const [booking, setBooking] = useState<Booking | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
+  // `confirming` drives the interim "Confirming your payment…" state while we poll a just-paid,
+  // still-pending booking. `pollExhausted` flips when the window elapses without a flip to confirmed,
+  // so we show a Refresh affordance instead of a cold dead-end.
+  const [confirming, setConfirming] = useState(justPaid);
+  const [pollExhausted, setPollExhausted] = useState(false);
 
-  const fetchBooking = useCallback(async () => {
-    if (!session) return;
+  // Fetch the booking and return it so callers (the poll loop) can decide whether to keep going.
+  const fetchBooking = useCallback(async (): Promise<Booking | null> => {
+    if (!session) return null;
     const res = await fetch(`/api/v1/bookings/${bookingRef}`, {
       headers: { authorization: `Bearer ${session.access_token}` },
     }).then((r) => r.json());
-    if (res.ok) setBooking(res.data as Booking);
-    else setError(res.error?.message ?? t('Could not load your booking.'));
+    if (res.ok) {
+      const next = res.data as Booking;
+      setBooking(next);
+      setLoading(false);
+      return next;
+    }
+    setError(res.error?.message ?? t('Could not load your booking.'));
     setLoading(false);
+    return null;
   }, [bookingRef, session, t]);
 
   useEffect(() => {
     if (session) void fetchBooking();
     else if (!authLoading) setLoading(false);
   }, [session, authLoading, fetchBooking]);
+
+  // Poll a just-paid booking that is still `payment_pending`. The webhook may be absent at launch and
+  // the provider settlement can land a beat after the redirect, so we re-fetch every few seconds for
+  // up to CONFIRM_POLL_MAX_MS. Stops the instant the status flips to confirmed, or when the window
+  // elapses (then we surface a manual Refresh affordance instead of a cold dead-end).
+  useEffect(() => {
+    if (!session) return;
+    if (!booking || booking.status !== 'payment_pending') {
+      // Nothing to confirm (already terminal) — clear any interim state.
+      if (confirming) setConfirming(false);
+      return;
+    }
+    if (!justPaid && !confirming) return;
+
+    setConfirming(true);
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
+    const startedAt = Date.now();
+
+    // Note: we deliberately don't re-trigger /api/v1/payments/sync from here — that endpoint keys off
+    // the provider `checkoutId` (which this page doesn't hold). The embedded checkout already retries
+    // sync before redirecting; here we just poll the authoritative booking status until it flips.
+    const tick = async () => {
+      if (stopped) return;
+      const next = await fetchBooking();
+      if (stopped) return;
+      const status = next?.status ?? 'payment_pending';
+      if (isConfirmedStatus(status)) {
+        setConfirming(false);
+        return;
+      }
+      if (!shouldKeepPolling({ status, elapsedMs: Date.now() - startedAt, maxMs: CONFIRM_POLL_MAX_MS })) {
+        setConfirming(false);
+        setPollExhausted(true);
+        return;
+      }
+      timer = setTimeout(() => void tick(), CONFIRM_POLL_INTERVAL_MS);
+    };
+
+    timer = setTimeout(() => void tick(), CONFIRM_POLL_INTERVAL_MS);
+
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+    // We intentionally key this on the booking *status* (not the whole object) so a status flip
+    // restarts/stops the loop, but a benign re-fetch of the same pending booking doesn't. `confirming`
+    // is read but intentionally omitted so toggling it doesn't restart the loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, booking?.status, justPaid, fetchBooking]);
+
+  // Manual "Refresh status" — re-fetch on demand after the auto-poll window has elapsed.
+  const [refreshing, setRefreshing] = useState(false);
+  const refreshStatus = useCallback(async () => {
+    setRefreshing(true);
+    setError(null);
+    try {
+      const next = await fetchBooking();
+      if (next && next.status === 'payment_pending') {
+        // Still pending — keep the exhausted state so the Refresh button remains visible.
+        setPollExhausted(true);
+      } else {
+        setPollExhausted(false);
+      }
+    } finally {
+      setRefreshing(false);
+    }
+  }, [fetchBooking]);
 
   async function completeStubPayment() {
     setPaying(true);
@@ -207,6 +294,23 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           <p className="mt-6 rounded-xl bg-teal/10 px-4 py-3 text-sm font-medium text-teal-dark">
             {t('Payment received — we’ve emailed your confirmation. See it any time in your bookings.')}
           </p>
+        ) : awaitingPayment && confirming ? (
+          // Interim state: payment just completed and we're polling for confirmation. Never a cold
+          // dead-end — a spinner + reassuring copy while the provider/webhook settles.
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-6 flex items-center gap-3 rounded-xl bg-gold-light/20 px-4 py-3 text-sm text-ink"
+          >
+            <span
+              aria-hidden="true"
+              className="h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-teal/30 border-t-teal"
+            />
+            <span>
+              <span className="font-medium">{t('Confirming your payment…')}</span>{' '}
+              {t('This usually takes a few seconds. You can keep this page open.')}
+            </span>
+          </div>
         ) : awaitingPayment && isStubReturn ? (
           <button
             type="button"
@@ -216,6 +320,32 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           >
             {paying ? t('Completing…') : t('Complete payment (test)')}
           </button>
+        ) : awaitingPayment ? (
+          // Post-window (or never-confirming) fallback: a clear status with a manual Refresh and a
+          // way to complete payment — explicitly NOT a silent dead-end.
+          <div className="mt-6 rounded-xl bg-gold-light/20 px-4 py-3 text-sm text-ink">
+            <p>
+              {pollExhausted
+                ? t('We haven’t received confirmation of your payment yet. It can take a little longer to settle.')
+                : t('This booking is awaiting payment.')}
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void refreshStatus()}
+                disabled={refreshing}
+                className="rounded-full bg-teal px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-60"
+              >
+                {refreshing ? t('Checking…') : t('Refresh status')}
+              </button>
+              <Link
+                href={`/bookings/${booking.ref}/pay`}
+                className="rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal hover:bg-teal/5"
+              >
+                {t('Complete payment')}
+              </Link>
+            </div>
+          </div>
         ) : (
           <p className="mt-6 rounded-xl bg-gold-light/20 px-4 py-3 text-sm text-ink">
             {t('This booking is awaiting payment.')}
