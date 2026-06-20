@@ -1,0 +1,22 @@
+# Companion Worker that runs GYTM's scheduled jobs. Cloudflare Pages has no native cron, so this
+# separate Worker fires on Cron Triggers and pings the Pages app's protected internal endpoints.
+#
+# Deploy + configure (run from the REPO ROOT):
+#   npx wrangler deploy --config workers/cron/wrangler.toml
+#   npx wrangler secret put INTERNAL_TASK_SECRET --config workers/cron/wrangler.toml
+# Then paste the SAME INTERNAL_TASK_SECRET value you set on the Pages project. See README.md.
+
+name = "gytm-cron"
+main = "src/index.js"
+compatibility_date = "2025-02-01"
+
+# Cron schedules are UTC. Cloudflare passes the matched expression to the handler as event.cron.
+#   */2 → drain queued emails;  */5 → sweep expired holds + roll the availability window.
+[triggers]
+crons = ["*/2 * * * *", "*/5 * * * *"]
+
+[vars]
+# Public base URL of the live site. Change this if the domain changes.
+SITE_URL = "https://getyourtoursmauritius.com"
+# NOTE: INTERNAL_TASK_SECRET is a SECRET — never put it here. Set it with:
+#   npx wrangler secret put INTERNAL_TASK_SECRET --config workers/cron/wrangler.toml
