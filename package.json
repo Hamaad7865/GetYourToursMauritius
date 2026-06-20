@@ -26,7 +26,8 @@
     "setup:sql": "tsx scripts/build-setup-sql.ts",
     "db:setup": "tsx scripts/db-setup.ts",
     "import:catalogue": "tsx scripts/import-catalogue.ts",
-    "gen:types": "supabase gen types typescript --local > src/lib/supabase/types.ts"
+    "gen:types": "supabase gen types typescript --local > src/lib/supabase/types.ts",
+    "email:test": "tsx scripts/send-test-email.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^1.1.17",
