@@ -35,4 +35,10 @@ describe('csvCell', () => {
     expect(csvCell('\t=1')).toBe("'\t=1");
     expect(csvCell('\r=1')).toBe("'\r=1");
   });
+
+  it('guards a leading newline then re-quotes for RFC-4180 (newline cell)', () => {
+    // Leading \n is a formula trigger → apostrophe guard; the embedded newline
+    // also forces RFC-4180 quoting, so the guarded value is wrapped in quotes.
+    expect(csvCell('\n=1')).toBe('"\'\n=1"');
+  });
 });
