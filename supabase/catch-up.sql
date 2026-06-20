@@ -2166,6 +2166,13 @@ begin
   if not found then
     raise exception 'booking_not_found';
   end if;
+  -- Refuse to (re)create a payment for a booking that is already paid or in a terminal state — a
+  -- returning customer (back/reload of checkout) must not be walked into a second charge for the same
+  -- booking. The pre-payment states (draft/held/payment_pending) are allowed through unchanged.
+  if v_booking.status in ('confirmed', 'completed', 'cancelled', 'expired', 'refund_pending', 'refunded', 'failed')
+     or v_booking.payment_state in ('paid', 'partially_refunded', 'refunded') then
+    raise exception 'booking_not_payable' using detail = v_booking.status::text;
+  end if;
   if not (is_staff() or (auth.uid() is not null and v_booking.user_id = auth.uid())) then
     raise exception 'forbidden';
   end if;

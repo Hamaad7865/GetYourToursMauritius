@@ -11,6 +11,7 @@ export type ServiceErrorCode =
   | 'forbidden'
   | 'not_found'
   | 'conflict'
+  | 'booking_not_payable'
   | 'rate_limited'
   | 'config_error'
   | 'provider_error'
@@ -58,6 +59,17 @@ export class NotFoundError extends ServiceError {
 export class ConflictError extends ServiceError {
   constructor(message = 'Conflict', details?: unknown) {
     super('conflict', message, 409, details);
+  }
+}
+
+/**
+ * A booking is already paid or in a terminal state (expired/cancelled/refunded), so a payment cannot
+ * be (re)created for it. Distinct 409 code so the checkout client can clear its stale stashed ref and
+ * prompt a fresh booking, instead of walking a returning customer into a second charge.
+ */
+export class BookingNotPayableError extends ServiceError {
+  constructor(message = 'This booking is already paid or is no longer payable') {
+    super('booking_not_payable', message, 409);
   }
 }
 

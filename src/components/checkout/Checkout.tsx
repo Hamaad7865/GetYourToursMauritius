@@ -397,7 +397,23 @@ export function Checkout() {
         headers,
         body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${idemKey}:pay` }),
       }).then((r) => r.json());
-      if (!payRes.ok) throw new Error(payRes.error?.message ?? 'Could not start payment.');
+      if (!payRes.ok) {
+        // The booking is already paid (or expired/cancelled) — the server refuses a second checkout
+        // session for it. Clear the persisted ref so a Back/reload no longer rehydrates this dead
+        // booking and the customer can start fresh, then surface a clear, actionable message.
+        if (payRes.error?.code === 'booking_not_payable') {
+          try {
+            if (occ) window.sessionStorage.removeItem(`gytm:booking:${occ}`);
+          } catch {
+            /* sessionStorage unavailable — nothing to clear */
+          }
+          setBookingRef(null);
+          setError(t('This booking is already paid or has expired — start a new booking.'));
+          setBusy(false);
+          return;
+        }
+        throw new Error(payRes.error?.message ?? 'Could not start payment.');
+      }
       const link = payRes.data as { checkoutId?: string; redirectUrl?: string };
       if (link.checkoutId) {
         // Embedded Peach checkout: mount the widget on the pay step. The booking is confirmed by

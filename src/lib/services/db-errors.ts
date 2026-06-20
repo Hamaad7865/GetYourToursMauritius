@@ -1,4 +1,5 @@
 import {
+  BookingNotPayableError,
   ConflictError,
   ForbiddenError,
   NotFoundError,
@@ -20,6 +21,11 @@ export function mapDbError(error: unknown): never {
   }
   if (/\b(hold_not_active|hold_not_found)\b/.test(message)) {
     throw new ConflictError('This reservation has expired — please try again');
+  }
+  // Already paid / terminal booking — a returning customer must not be re-charged. Distinct 409 code
+  // so the checkout client can clear its stale ref and offer a fresh booking.
+  if (/\bbooking_not_payable\b/.test(message)) {
+    throw new BookingNotPayableError();
   }
   // Non-RAISE Postgres errors (e.g. the idempotency-key race) must become 409, not 500.
   if (/duplicate key value|unique constraint/i.test(message)) {

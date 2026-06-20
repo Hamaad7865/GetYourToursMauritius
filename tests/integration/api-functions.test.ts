@@ -203,6 +203,53 @@ describe('api_* service functions', () => {
     await db.asOwner();
   });
 
+  it('api_create_payment refuses an already-paid (confirmed) or terminal (expired) booking', async () => {
+    // A returning customer who pressed Back / reloaded /checkout after paying is routed back into
+    // POST /api/v1/payments for the persisted ref. The guard must refuse a SECOND checkout session
+    // for an already-paid booking (and any terminal state), without breaking the normal first payment.
+    await db.as({ sub: USER, role: 'authenticated' });
+
+    // Normal first-payment flow on a payment_pending booking still SUCCEEDS.
+    const pending = await rpc<{ ref: string; status: string }>(db, 'api_book', {
+      occurrenceId,
+      party: { 'Private group': 1 },
+      customerName: 'Returning',
+      customerEmail: 'returning@example.com',
+      idempotencyKey: 'guard-pending-book',
+      expectedSlug: 'private-south-tour-with-pickup',
+    });
+    expect(pending.status).toBe('payment_pending');
+    await expect(
+      rpc(db, 'api_create_payment', { bookingRef: pending.ref, idempotencyKey: 'guard-pending-pay' }),
+    ).resolves.toMatchObject({ bookingRef: pending.ref });
+
+    // Confirmed (paid) booking → refused. Simulate the webhook outcome by flipping the cached state.
+    await db.asOwner();
+    await db.pg.query(
+      `update bookings set status = 'confirmed', payment_state = 'paid' where ref = $1`,
+      [pending.ref],
+    );
+    await db.as({ sub: USER, role: 'authenticated' });
+    await expect(
+      rpc(db, 'api_create_payment', { bookingRef: pending.ref, idempotencyKey: 'guard-paid-again' }),
+    ).rejects.toThrow(/booking_not_payable/);
+
+    // Expired (terminal, never paid) booking → also refused.
+    await db.asOwner();
+    const expired = await db.pg.query<{ ref: string }>(
+      `insert into bookings (user_id, customer_name, customer_email, status, total_minor)
+       values ($1, 'Expired', 'expired@example.com', 'expired', 11000) returning ref`,
+      [USER],
+    );
+    const expiredRef = expired.rows[0]!.ref;
+    await db.as({ sub: USER, role: 'authenticated' });
+    await expect(
+      rpc(db, 'api_create_payment', { bookingRef: expiredRef, idempotencyKey: 'guard-expired-pay' }),
+    ).rejects.toThrow(/booking_not_payable/);
+
+    await db.asOwner();
+  });
+
   it('api_create_payment refuses an anonymous caller (a ref is not a bearer token)', async () => {
     await db.as(null);
     const booking = await rpc<{ ref: string }>(db, 'api_book', {

@@ -516,6 +516,7 @@ export const fr: Record<string, string> = {
   "Your hold expired — please pick your date again.": "Votre réservation provisoire a expiré — veuillez choisir à nouveau votre date.",
   "The price for this date is {price}. Tap Pay again to continue.": "Le prix pour cette date est de {price}. Appuyez à nouveau sur Payer pour continuer.",
   "Something went wrong.": "Une erreur est survenue.",
+  "This booking is already paid or has expired — start a new booking.": "Cette réservation est déjà payée ou a expiré — commencez une nouvelle réservation.",
   "Sorry — this date just filled up. Please pick another date.": "Désolé — cette date vient de se remplir. Veuillez choisir une autre date.",
   "No activities in your cart": "Aucune activité dans votre panier",
   "Activities you add to your cart stay here for up to 30 minutes.": "Les activités ajoutées à votre panier y restent jusqu’à 30 minutes.",
