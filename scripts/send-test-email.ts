@@ -29,11 +29,13 @@ function readEnvLocal(): Record<string, string> {
   for (const line of raw.split(/\r?\n/)) {
     const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
     if (!m || line.trim().startsWith('#')) continue;
-    let v = m[2].trim();
+    const key = m[1];
+    if (key === undefined) continue;
+    let v = (m[2] ?? '').trim();
     if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
       v = v.slice(1, -1);
     }
-    out[m[1]] = v;
+    out[key] = v;
   }
   return out;
 }
