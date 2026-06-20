@@ -28,7 +28,9 @@ schedules.)
 
 ## Verify it works
 
-- **Logs:** `npx wrangler tail gytm-cron` — you'll see a `[cron] POST … -> 200` line every couple of minutes.
+- **Logs:** `npx wrangler tail --config workers/cron/wrangler.toml` — you'll see a `[cron] POST … -> 200`
+  line every couple of minutes. (The `--config` flag is required on EVERY command here — without it wrangler
+  picks up the root Pages `wrangler.toml` and errors with "Workers-specific command in a Pages project".)
 - **Dashboard:** Workers & Pages → `gytm-cron` → it lists the next/last cron runs.
 - **Manual fire:** the Worker's URL responds `gytm-cron: alive` to a GET (proves it deployed); a manual
   "Trigger" from the dashboard runs both jobs once.
