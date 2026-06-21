@@ -237,7 +237,7 @@ export function AuthDialog({
               id="auth-error"
               role="alert"
               aria-live="assertive"
-              className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral"
+              className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral-dark"
             >
               {error}
             </p>
@@ -254,7 +254,7 @@ export function AuthDialog({
           <button
             type="submit"
             disabled={busy}
-            className="mt-1 rounded-xl bg-teal px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark disabled:opacity-60"
+            className="mt-1 rounded-xl bg-teal-dark px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
           >
             {busy ? t('Please wait…') : signup ? t('Create account') : t('Sign in')}
           </button>
@@ -269,7 +269,7 @@ export function AuthDialog({
               setNotice(null);
               onSwitch(signup ? 'signin' : 'signup');
             }}
-            className="font-bold text-teal hover:text-teal-dark"
+            className="font-bold text-teal-dark hover:text-teal-dark/80"
           >
             {signup ? t('Sign in') : t('Create one')}
           </button>

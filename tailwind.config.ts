@@ -15,7 +15,10 @@ const config: Config = {
           DEFAULT: 'rgb(var(--color-ink) / <alpha-value>)',
           muted: 'rgb(var(--color-ink-muted) / <alpha-value>)',
         },
-        coral: 'rgb(var(--color-coral) / <alpha-value>)',
+        coral: {
+          DEFAULT: 'rgb(var(--color-coral) / <alpha-value>)',
+          dark: 'rgb(var(--color-coral-dark) / <alpha-value>)',
+        },
         teal: {
           DEFAULT: 'rgb(var(--color-teal) / <alpha-value>)',
           dark: 'rgb(var(--color-teal-dark) / <alpha-value>)',

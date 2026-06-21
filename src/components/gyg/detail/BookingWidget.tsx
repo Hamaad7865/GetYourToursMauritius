@@ -314,7 +314,7 @@ export function BookingWidget() {
                   {participants >= MAX_PARTY && (
                     <p className="mt-3 text-[12.5px] text-ink-muted">
                       {t('Travelling with more than {n}?', { n: MAX_PARTY })}{' '}
-                      <Link href="/contact" className="font-bold text-teal underline underline-offset-2">
+                      <Link href="/contact" className="font-bold text-teal-dark underline underline-offset-2">
                         {t('Contact us')}
                       </Link>{' '}
                       {t('for a quote.')}
@@ -324,7 +324,7 @@ export function BookingWidget() {
                 <button
                   type="button"
                   onClick={() => closePopover('parts')}
-                  className="mt-4 w-full rounded-full bg-teal px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
+                  className="mt-4 w-full rounded-full bg-teal-dark px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-dark/90"
                 >
                   {t('Continue')}
                 </button>
@@ -430,7 +430,7 @@ export function BookingWidget() {
                 className={rowClass}
               >
                 <IconGlobe width={18} height={18} className="text-teal" />
-                <span className="text-[11px] font-bold uppercase tracking-wide text-teal">{t('Guide')}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-teal-dark">{t('Guide')}</span>
                 <span className="flex-1 text-right text-[14px] font-semibold text-ink">{lang}</span>
                 <IconChevron
                   width={16}
@@ -479,14 +479,14 @@ export function BookingWidget() {
           type="button"
           disabled={!date || seatsForDate <= 0 || (!isVehicle && seatsForDate < participants)}
           onClick={checkAvailability}
-          className="mt-4 flex w-full items-center justify-center rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark disabled:opacity-50"
+          className="mt-4 flex w-full items-center justify-center rounded-xl bg-teal-dark px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(11,92,99,0.7)] hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
         >
           {t('Check availability')}
         </button>
         {/* aria-live so a screen reader hears the low-availability warning when it appears/updates. */}
         <div aria-live="polite">
           {date && !isVehicle && seatsForDate > 0 && seatsForDate < participants && (
-            <p className="mt-2 text-center text-[12px] font-medium text-coral">
+            <p className="mt-2 text-center text-[12px] font-medium text-coral-dark">
               {t('Only {n} {noun} left on this date.', {
                 n: seatsForDate,
                 noun: seatsForDate === 1 ? t('spot') : t('spots'),
@@ -503,7 +503,7 @@ export function BookingWidget() {
         <span className="flex items-center gap-1.5 text-xs font-semibold text-ink/80">
           <IconShield width={15} height={15} className="text-teal" /> {t('Secure payment by Peach')}
         </span>
-        <span className="flex items-center gap-1.5 text-xs font-bold text-teal">
+        <span className="flex items-center gap-1.5 text-xs font-bold text-teal-dark">
           <IconBolt width={15} height={15} /> {t('Instant confirmation')}
         </span>
       </div>

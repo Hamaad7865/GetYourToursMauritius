@@ -225,7 +225,7 @@ export function BookingOptionCard() {
               type="button"
               disabled={b.busy || b.updating || b.total == null}
               onClick={() => void b.continueToCheckout()}
-              className="rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-60"
+              className="rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
             >
               {b.busy ? t('Holding…') : t('Continue')}
             </button>

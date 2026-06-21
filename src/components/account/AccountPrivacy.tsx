@@ -197,7 +197,7 @@ export function AccountPrivacy() {
           {t('Export your profile and booking history as a JSON file.')}
         </p>
         {exportError && (
-          <p role="alert" className="mt-3 text-[13px] font-medium text-coral">
+          <p role="alert" className="mt-3 text-[13px] font-medium text-coral-dark">
             {exportError}
           </p>
         )}
@@ -205,7 +205,7 @@ export function AccountPrivacy() {
           type="button"
           onClick={downloadData}
           disabled={exporting}
-          className="mt-4 rounded-xl bg-teal px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark disabled:opacity-60"
+          className="mt-4 rounded-xl bg-teal-dark px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
         >
           {exporting ? t('Preparing…') : t('Download my data')}
         </button>
@@ -223,7 +223,7 @@ export function AccountPrivacy() {
         <button
           type="button"
           onClick={openConfirm}
-          className="mt-4 rounded-xl border border-coral px-5 py-2.5 text-sm font-bold text-coral transition hover:bg-coral/10"
+          className="mt-4 rounded-xl border border-coral-dark px-5 py-2.5 text-sm font-bold text-coral-dark transition hover:bg-coral/10"
         >
           {t('Delete my account')}
         </button>
@@ -272,7 +272,7 @@ export function AccountPrivacy() {
               </label>
 
               {deleteError && (
-                <p role="alert" className="mt-3 text-[13px] font-medium text-coral">
+                <p role="alert" className="mt-3 text-[13px] font-medium text-coral-dark">
                   {deleteError}
                 </p>
               )}
@@ -282,7 +282,7 @@ export function AccountPrivacy() {
                   type="button"
                   onClick={confirmDelete}
                   disabled={!confirmReady || deleting}
-                  className="rounded-xl bg-coral px-5 py-2.5 text-sm font-bold text-white transition hover:bg-coral/90 disabled:opacity-50"
+                  className="rounded-xl bg-coral-dark px-5 py-2.5 text-sm font-bold text-white transition hover:bg-coral-dark/90 disabled:cursor-not-allowed disabled:bg-coral-dark/90"
                 >
                   {deleting ? t('Deleting…') : t('Permanently delete')}
                 </button>

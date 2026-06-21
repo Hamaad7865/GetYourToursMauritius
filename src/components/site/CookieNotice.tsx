@@ -44,14 +44,14 @@ export function CookieNotice() {
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[13px] leading-snug text-ink-muted">
           {t('We use cookies to run this site and show maps. No tracking or ads.')}{' '}
-          <a href="/cookies" className="font-semibold text-teal underline-offset-2 hover:underline">
+          <a href="/cookies" className="font-semibold text-teal-dark underline-offset-2 hover:underline">
             {t('Cookie policy')}
           </a>
         </p>
         <button
           type="button"
           onClick={accept}
-          className="shrink-0 self-start rounded-full bg-teal px-5 py-2 text-[13px] font-bold text-white outline-none transition hover:bg-teal/90 focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 sm:self-auto"
+          className="shrink-0 self-start rounded-full bg-teal-dark px-5 py-2 text-[13px] font-bold text-white outline-none transition hover:bg-teal-dark/90 focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 sm:self-auto"
         >
           {t('Accept')}
         </button>

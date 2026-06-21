@@ -378,7 +378,7 @@ export function Checkout() {
     return (
       <div className="py-20 text-center">
         <p className="text-sm text-ink-muted">{t('Your selection expired — please choose your date again.')}</p>
-        <Link href={slug ? `/activities/${slug}` : '/activities'} className="mt-3 inline-block text-sm font-bold text-teal">
+        <Link href={slug ? `/activities/${slug}` : '/activities'} className="mt-3 inline-block text-sm font-bold text-teal-dark">
           {t('Back to the activity')}
         </Link>
       </div>
@@ -630,7 +630,7 @@ export function Checkout() {
 
       <main className="mx-auto grid max-w-5xl gap-8 px-6 pb-28 pt-8 lg:grid-cols-[1fr_340px] lg:pb-8">
         <div>
-          <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-semibold text-coral">
+          <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-semibold text-coral-dark">
             <IconClock width={15} height={15} /> {t('We’ll hold your spot for {time} minutes.', { time: `${mm}:${ss}` })}
           </div>
 
@@ -708,7 +708,7 @@ export function Checkout() {
                 onClick={continueFromTransport}
                 disabled={busy || !canAdvance}
                 aria-busy={busy}
-                className="mt-6 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
+                className="mt-6 hidden items-center justify-center rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85 lg:flex"
               >
                 {busy ? <Spinner label={t('Loading')} /> : t('Next: Personal details')}
               </button>
@@ -731,7 +731,7 @@ export function Checkout() {
               <button
                 type="button"
                 onClick={() => openAuth('signin')}
-                className="mt-5 hidden rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark lg:inline-flex"
+                className="mt-5 hidden rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 lg:inline-flex"
               >
                 {t('Sign in / Create account')}
               </button>
@@ -811,7 +811,7 @@ export function Checkout() {
                 type="button"
                 onClick={continueFromDetails}
                 disabled={!canAdvanceDetails}
-                className="mt-6 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
+                className="mt-6 hidden items-center justify-center rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85 lg:flex"
               >
                 {t('Go to payment')}
               </button>
@@ -828,7 +828,7 @@ export function Checkout() {
               <h1 className="font-display text-2xl font-semibold text-ink">{t('Review & pay')}</h1>
               <p className="mt-2 text-sm text-ink-muted">{t('Signed in as {email}.', { email: user?.email ?? '' })}</p>
               {error && (
-                <p role="alert" className="mt-3 text-[13px] font-medium text-coral">
+                <p role="alert" className="mt-3 text-[13px] font-medium text-coral-dark">
                   {error}
                 </p>
               )}
@@ -842,7 +842,7 @@ export function Checkout() {
                 onClick={pay}
                 disabled={busy || expired}
                 aria-busy={busy}
-                className="mt-5 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
+                className="mt-5 hidden items-center justify-center rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85 lg:flex"
               >
                 {busy ? (
                   <Spinner label={t('Loading')} />
@@ -917,7 +917,7 @@ export function Checkout() {
             onClick={continueFromTransport}
             disabled={busy || !canAdvance}
             aria-busy={busy}
-            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+            className="flex w-full items-center justify-center rounded-full bg-teal-dark px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
           >
             {busy ? <Spinner label={t('Loading')} /> : t('Next: Personal details')}
           </button>
@@ -926,7 +926,7 @@ export function Checkout() {
           <button
             type="button"
             onClick={() => openAuth('signin')}
-            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark"
+            className="flex w-full items-center justify-center rounded-full bg-teal-dark px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark/90"
           >
             {t('Sign in / Create account')}
           </button>
@@ -936,7 +936,7 @@ export function Checkout() {
             type="button"
             onClick={continueFromDetails}
             disabled={!canAdvanceDetails}
-            className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
+            className="flex w-full items-center justify-center rounded-full bg-teal-dark px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
           >
             {t('Go to payment')}
           </button>

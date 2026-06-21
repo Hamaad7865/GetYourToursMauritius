@@ -14,6 +14,9 @@
   --color-ink: 10 46 54;
   --color-ink-muted: 81 102 107;
   --color-coral: 247 108 94;
+  /* AA-contrast coral for TEXT + destructive fills: #B23A20 = 5.95:1 on white AND white-on it.
+     The brand coral (#F76C5E, 2.89:1 on white) stays for large/display/decorative use only. */
+  --color-coral-dark: 178 58 32;
   --color-teal: 14 140 146;
   --color-teal-dark: 11 92 99;
   --color-teal-tint: 234 247 245;
@@ -169,7 +172,10 @@
   .animate-float-in,
   .animate-pop,
   .animate-drop-pin,
-  .animate-drawer-up {
+  .animate-drawer-up,
+  /* The Tailwind `animate-pulse` (the BookingOptionCard "recomputing" dim) is the only
+     non-decorative looping animation not authored here; gate it too. */
+  .animate-pulse {
     animation: none;
   }
   /* Freeze the lagoon backdrop to its composed still (!important beats the inline-shorthand
