@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { ResumePaymentButton } from '@/components/checkout/ResumePaymentButton';
 import { useT } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
 import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
@@ -77,6 +78,10 @@ function BookingCard({ b }: { b: BookingRow }) {
   const date = tripDate(b);
   const when = date ? formatDate(date.toISOString()) : formatDate(b.created_at);
   const title = tripTitle(b);
+  // An unpaid booking (e.g. the customer abandoned the payment step or returned later) needs a working
+  // way to pay. ResumePaymentButton mints a fresh checkout session and lands on /pay?cid=… — without it
+  // the bookings list offered no pay affordance at all and the email "Complete payment" link was dead.
+  const awaitingPayment = b.status === 'payment_pending' && b.payment_state !== 'paid';
   return (
     <li className="flex items-center justify-between gap-4 rounded-2xl border border-ink/10 bg-white px-5 py-4">
       <div className="min-w-0">
@@ -94,6 +99,11 @@ function BookingCard({ b }: { b: BookingRow }) {
           {title ? `${b.ref} · ` : ''}
           {when} · {guests} {guests === 1 ? t('guest') : t('guests')}
         </p>
+        {awaitingPayment && (
+          <div className="mt-2">
+            <ResumePaymentButton bookingRef={b.ref} label={t('Pay now')} />
+          </div>
+        )}
       </div>
       <div className="shrink-0 text-right">
         <div className="font-bold text-ink">

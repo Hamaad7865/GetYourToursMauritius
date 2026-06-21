@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { EmbeddedCheckout } from '@/components/checkout/EmbeddedCheckout';
+import { PayPageFallback } from '@/components/checkout/PayPageFallback';
 import { getPeachWidgetConfig } from '@/lib/payments';
 import { getT } from '@/lib/i18n/server';
 
@@ -47,17 +48,10 @@ export default async function PayPage({
                 returnUrl={returnUrl}
               />
             ) : (
-              <div className="rounded-xl border border-coral/30 bg-coral/5 p-4">
-                <p role="alert" className="text-sm font-medium text-coral">
-                  {t('We could not start this payment. Please go back and try again.')}
-                </p>
-                <a
-                  href={returnUrl}
-                  className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark"
-                >
-                  {t('Back to your booking')}
-                </a>
-              </div>
+              // No `cid` — a returning customer reached this page via the email link / a new tab, so no
+              // checkout session was ever minted. Auto-mint one (POST /api/v1/payments) and redirect to
+              // ?cid=… rather than show a cold dead-end. Already-paid bookings get a friendly note.
+              <PayPageFallback bookingRef={ref} returnUrl={returnUrl} />
             )}
           </div>
         </div>

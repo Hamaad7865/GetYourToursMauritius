@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { ResumePaymentButton } from '@/components/checkout/ResumePaymentButton';
 import { Price } from '@/components/site/Price';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
@@ -338,12 +339,14 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
               >
                 {refreshing ? t('Checking…') : t('Refresh status')}
               </button>
-              <Link
-                href={`/bookings/${booking.ref}/pay`}
-                className="rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal hover:bg-teal/5"
-              >
-                {t('Complete payment')}
-              </Link>
+              {/* Mints a FRESH checkout session and lands on /pay?cid=… — the bare /pay link had no
+                  cid, so the pay page could never start the payment for a returning customer. */}
+              <ResumePaymentButton
+                bookingRef={booking.ref}
+                label={t('Complete payment')}
+                className="rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal hover:bg-teal/5 disabled:opacity-60"
+              />
+              {/* Starting…/error/already-paid copy renders inside ResumePaymentButton. */}
             </div>
           </div>
         ) : (
