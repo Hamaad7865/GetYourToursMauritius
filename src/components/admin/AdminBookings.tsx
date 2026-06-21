@@ -6,6 +6,7 @@ import {
   loadBookings,
   loadBookingDetail,
   setBookingStatus,
+  markBookingRefunded,
   saveBookingNotes,
   type BookingRow,
   type BookingDetail,
@@ -741,6 +742,21 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                   className="rounded-full border border-coral/40 px-4 py-2 text-[13px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
                 >
                   {busy === 'cancel' ? 'Cancelling…' : 'Cancel booking'}
+                </button>
+              )}
+              {(booking.status === 'refund_pending' ||
+                ((booking.status === 'confirmed' || booking.status === 'completed') &&
+                  (booking.paymentState === 'paid' || booking.paymentState === 'partially_refunded'))) && (
+                <button
+                  type="button"
+                  disabled={busy === 'refund'}
+                  onClick={() => {
+                    const msg = `Confirm you've refunded ${eur(booking.netPaidEur)} to ${booking.customerName} in Peach. This records the refund in the ledger and emails the customer their refund confirmation.`;
+                    if (window.confirm(msg)) void act('refund', () => markBookingRefunded(booking.id));
+                  }}
+                  className="rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
+                >
+                  {busy === 'refund' ? 'Recording…' : 'Mark refunded'}
                 </button>
               )}
             </section>

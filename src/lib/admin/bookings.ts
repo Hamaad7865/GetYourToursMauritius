@@ -267,6 +267,15 @@ export async function setBookingStatus(id: string, status: 'completed' | 'cancel
   if (error) throw error;
 }
 
+/** Record that a manual (Peach-dashboard) refund happened on a refund_pending (or paid) booking.
+ *  Calls the staff-only `api_mark_refunded` RPC, which records the refund through the same ledger
+ *  path the webhook uses — transitioning the booking to `refunded`, setting refunded_minor, and
+ *  firing the `booking_refunded` customer email. Idempotent: a second call is a no-op. */
+export async function markBookingRefunded(id: string): Promise<void> {
+  const { error } = await getBrowserSupabase().rpc('api_mark_refunded', { p: { bookingId: id } });
+  if (error) throw error;
+}
+
 /** Save the internal staff note on a booking. */
 export async function saveBookingNotes(id: string, notes: string): Promise<void> {
   const { error } = await getBrowserSupabase()

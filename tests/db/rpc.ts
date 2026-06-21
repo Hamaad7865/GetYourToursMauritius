@@ -9,6 +9,7 @@ const ALLOWED = new Set([
   'api_book',
   'api_create_payment',
   'api_record_payment_charge',
+  'api_mark_refunded',
   'api_get_booking',
   'api_booking_receipt',
   'api_capture_lead',
