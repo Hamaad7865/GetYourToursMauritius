@@ -266,6 +266,7 @@ export const fr: Record<string, string> = {
   "Travelling with more than {n}?": "Vous voyagez à plus de {n} ?",
   "for a quote.": "pour obtenir un devis.",
   "No dates available yet": "Aucune date disponible pour le moment",
+  "Please book at least {n} days in advance — this experience needs planning.": "Réservez au moins {n} jours à l’avance — cette expérience demande de la préparation.",
   "Guide language": "Langue du guide",
   "Guide": "Guide",
   "Check availability": "Vérifier les disponibilités",

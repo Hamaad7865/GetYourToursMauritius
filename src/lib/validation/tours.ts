@@ -142,6 +142,10 @@ export const tourDetailSchema = tourSummarySchema.extend({
   description: z.string().nullable(),
   meetingPoint: z.string().nullable(),
   pickupAvailable: z.boolean(),
+  // Minimum advance booking (lead time) in days: planning-heavy activities can't be booked sooner than
+  // this. `.default(1).catch(1)` so a DB without the column (migration not yet applied) reads as the old
+  // "tomorrow-earliest" behaviour instead of crashing the page.
+  minAdvanceDays: z.number().int().nonnegative().default(1).catch(1),
   // Home/boarding region + coords for the region-based transport add-on. `.nullish().catch` so the page
   // still renders against a DB where the transport migration hasn't been applied yet.
   region: z.string().nullish().catch(null),

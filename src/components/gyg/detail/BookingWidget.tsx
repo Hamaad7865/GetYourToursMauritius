@@ -415,6 +415,15 @@ export function BookingWidget() {
                 </div>
               </div>
             )}
+            {/* Lead-time notice: explains why the nearest days aren't selectable for planning-heavy trips. */}
+            {activity.minAdvanceDays > 1 && (
+              <p className="mt-2 flex items-start gap-1.5 text-[12px] font-medium text-ink-muted">
+                <IconCalendar width={13} height={13} className="mt-px shrink-0 text-teal" />
+                {t('Please book at least {n} days in advance — this experience needs planning.', {
+                  n: activity.minAdvanceDays,
+                })}
+              </p>
+            )}
           </div>
 
           {/* Language */}

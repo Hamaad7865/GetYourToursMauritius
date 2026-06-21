@@ -37,6 +37,9 @@ export interface ActivityFormValues {
   category: string;
   location: string;
   durationMinutes: number | null;
+  /** Minimum advance booking (lead time) in days. 1 = "tomorrow earliest" (the default); higher for
+   *  planning-heavy trips. Enforced server-side in create_hold + api_list_availability. */
+  minAdvanceDays: number;
   summary: string;
   description: string;
   meetingPoint: string;
@@ -66,6 +69,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   category: 'Sightseeing tours',
   location: '',
   durationMinutes: null,
+  minAdvanceDays: 1,
   summary: '',
   description: '',
   meetingPoint: '',
@@ -138,6 +142,7 @@ function activityRow(v: ActivityFormValues, opId: string) {
     category: v.category as never,
     location: v.location.trim() || null,
     duration_minutes: v.durationMinutes,
+    min_advance_days: Math.max(0, Math.round(v.minAdvanceDays || 0)),
     meeting_point: v.meetingPoint.trim() || null,
     pickup_available: v.pickupAvailable,
     region: v.region.trim() || null,
@@ -393,6 +398,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     category: act.category,
     location: act.location ?? '',
     durationMinutes: act.duration_minutes,
+    minAdvanceDays: act.min_advance_days ?? 1,
     summary: act.summary ?? '',
     description: act.description ?? '',
     meetingPoint: act.meeting_point ?? '',

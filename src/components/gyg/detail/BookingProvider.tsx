@@ -30,6 +30,8 @@ export interface BookingActivity {
   vehiclePricing: VehiclePricing | null;
   durationMinutes: number | null;
   pickupAvailable: boolean;
+  /** Minimum advance booking (lead time) in days — the earliest bookable day is today + this. */
+  minAdvanceDays: number;
   image: string | null;
   /** Home/boarding region + coords for the region-based transport add-on. */
   region: string | null;

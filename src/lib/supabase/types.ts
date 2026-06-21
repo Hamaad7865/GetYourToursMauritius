@@ -61,6 +61,7 @@ type ActivitiesRow = {
   pickup_available: boolean;
   pricing_mode: 'per_person' | 'per_group' | 'vehicle';
   daily_capacity: number | null;
+  min_advance_days: number;
   languages: string[];
   inclusions: string[];
   exclusions: string[];
@@ -92,6 +93,7 @@ type ActivitiesInsert = {
   pickup_available?: boolean;
   pricing_mode?: 'per_person' | 'per_group' | 'vehicle';
   daily_capacity?: number | null;
+  min_advance_days?: number;
   languages?: string[];
   inclusions?: string[];
   exclusions?: string[];

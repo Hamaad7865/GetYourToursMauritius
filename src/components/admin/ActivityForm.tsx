@@ -140,6 +140,22 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               placeholder="480"
             />
           </Field>
+          <Field label="Minimum advance booking (days)">
+            <input
+              type="number"
+              min={0}
+              max={60}
+              className={inputClass}
+              value={v.minAdvanceDays}
+              onChange={(e) => set('minAdvanceDays', e.target.value ? Math.max(0, Number(e.target.value)) : 0)}
+              placeholder="1"
+            />
+            <p className="mt-1.5 text-[12px] text-ink-muted">
+              How many days ahead a customer must book. 1 = next day (the default — no same-day). Raise it
+              for trips that need planning (e.g. 3); the date picker hides any sooner dates and the server
+              rejects them.
+            </p>
+          </Field>
         </div>
       </Section>
 

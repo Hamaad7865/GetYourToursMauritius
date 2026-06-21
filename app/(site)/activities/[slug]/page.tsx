@@ -188,6 +188,7 @@ export default async function ActivityDetailPage({
               vehiclePricing: activity.vehiclePricing ?? null,
               durationMinutes: activity.durationMinutes,
               pickupAvailable: activity.pickupAvailable,
+              minAdvanceDays: activity.minAdvanceDays,
               image: activity.heroImage?.url ?? activity.images[0]?.url ?? null,
               region: activity.region ?? null,
               lat: activity.lat ?? null,
