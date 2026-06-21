@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useDialog } from '@/lib/a11y/useDialog';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { useToast } from '@/components/site/ToastProvider';
 import { useT } from '@/components/site/PreferencesProvider';
@@ -62,6 +63,10 @@ export function AccountPrivacy() {
   const [upcomingWarning, setUpcomingWarning] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const confirmInputRef = useRef<HTMLInputElement>(null);
+  // APG modal behaviour for the destructive confirm: scroll-lock, Escape, focus the DELETE
+  // input on open, trap Tab, and restore focus to the trigger on close.
+  const dialogRef = useDialog(confirmOpen, () => setConfirmOpen(false), () => confirmInputRef.current);
 
   if (loading) return <AccountSpinner />;
   if (!user) return <SignedOutPrompt message={t('Sign in to manage your data and privacy.')} />;
@@ -215,60 +220,81 @@ export function AccountPrivacy() {
           )}
         </p>
 
-        {!confirmOpen ? (
-          <button
-            type="button"
-            onClick={openConfirm}
-            className="mt-4 rounded-xl border border-coral px-5 py-2.5 text-sm font-bold text-coral transition hover:bg-coral/10"
+        <button
+          type="button"
+          onClick={openConfirm}
+          className="mt-4 rounded-xl border border-coral px-5 py-2.5 text-sm font-bold text-coral transition hover:bg-coral/10"
+        >
+          {t('Delete my account')}
+        </button>
+
+        {confirmOpen && (
+          <div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="del-acct-title"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
+            onMouseDown={() => !deleting && setConfirmOpen(false)}
           >
-            {t('Delete my account')}
-          </button>
-        ) : (
-          <div className="mt-4 rounded-xl border border-coral/30 bg-coral/[0.04] p-4">
-            {upcomingWarning && (
-              <p className="mb-3 rounded-lg bg-gold-light/20 px-3 py-2 text-[13px] font-medium text-ink">
-                {t(
-                  'Your upcoming bookings will be anonymized — contact us to reschedule before deleting.',
-                )}
-              </p>
-            )}
-            <label className="flex flex-col gap-1.5">
-              <span className="text-[13px] font-bold text-ink">
-                {t('Type DELETE to confirm')}
-              </span>
-              <input
-                type="text"
-                value={confirmText}
-                onChange={(e) => setConfirmText(e.target.value)}
-                autoComplete="off"
-                placeholder={CONFIRM_WORD}
-                className="rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-coral"
-              />
-            </label>
+            <div
+              className="relative w-full max-w-[460px] rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <h2 id="del-acct-title" className="font-display text-lg font-semibold text-ink">
+                {t('Delete my account')}
+              </h2>
 
-            {deleteError && (
-              <p role="alert" className="mt-3 text-[13px] font-medium text-coral">
-                {deleteError}
-              </p>
-            )}
+              {upcomingWarning && (
+                <p
+                  role="status"
+                  className="mt-3 rounded-lg bg-gold-light/20 px-3 py-2 text-[13px] font-medium text-ink"
+                >
+                  {t(
+                    'Your upcoming bookings will be anonymized — contact us to reschedule before deleting.',
+                  )}
+                </p>
+              )}
 
-            <div className="mt-4 flex items-center gap-3">
-              <button
-                type="button"
-                onClick={confirmDelete}
-                disabled={!confirmReady || deleting}
-                className="rounded-xl bg-coral px-5 py-2.5 text-sm font-bold text-white transition hover:bg-coral/90 disabled:opacity-50"
-              >
-                {deleting ? t('Deleting…') : t('Permanently delete')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfirmOpen(false)}
-                disabled={deleting}
-                className="rounded-xl border border-ink/15 px-5 py-2.5 text-sm font-bold text-ink transition hover:bg-cream disabled:opacity-60"
-              >
-                {t('Cancel')}
-              </button>
+              <label className="mt-4 flex flex-col gap-1.5">
+                <span className="text-[13px] font-bold text-ink">
+                  {t('Type DELETE to confirm')}
+                </span>
+                <input
+                  ref={confirmInputRef}
+                  type="text"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  autoComplete="off"
+                  placeholder={CONFIRM_WORD}
+                  className="rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-coral"
+                />
+              </label>
+
+              {deleteError && (
+                <p role="alert" className="mt-3 text-[13px] font-medium text-coral">
+                  {deleteError}
+                </p>
+              )}
+
+              <div className="mt-4 flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={confirmDelete}
+                  disabled={!confirmReady || deleting}
+                  className="rounded-xl bg-coral px-5 py-2.5 text-sm font-bold text-white transition hover:bg-coral/90 disabled:opacity-50"
+                >
+                  {deleting ? t('Deleting…') : t('Permanently delete')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(false)}
+                  disabled={deleting}
+                  className="rounded-xl border border-ink/15 px-5 py-2.5 text-sm font-bold text-ink transition hover:bg-cream disabled:opacity-60"
+                >
+                  {t('Cancel')}
+                </button>
+              </div>
             </div>
           </div>
         )}

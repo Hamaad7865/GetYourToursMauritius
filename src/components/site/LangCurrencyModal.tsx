@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useState } from 'react';
 import { IconCheck, IconGlobe, IconWallet, IconX } from '@/components/ui/icons';
+import { useDialog } from '@/lib/a11y/useDialog';
 import type { Currency, Language } from './PreferencesProvider';
 import { CURRENCY_LABELS, LANGUAGE_LABELS, useT } from './PreferencesProvider';
 
@@ -27,22 +28,13 @@ export function LangCurrencyModal({
 }) {
   const t = useT();
   const [active, setActive] = useState<'language' | 'currency'>(tab);
-
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [onClose]);
+  const firstTabRef = useRef<HTMLButtonElement>(null);
+  // APG modal behaviour: scroll-lock, Escape, focus move-in/return, and a Tab focus trap.
+  const dialogRef = useDialog(true, onClose, () => firstTabRef.current);
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
@@ -63,7 +55,7 @@ export function LangCurrencyModal({
         </button>
 
         <div className="flex gap-6 border-b border-ink/10">
-          <TabButton active={active === 'language'} onClick={() => setActive('language')} icon={<IconGlobe width={18} height={18} />}>
+          <TabButton ref={firstTabRef} active={active === 'language'} onClick={() => setActive('language')} icon={<IconGlobe width={18} height={18} />}>
             {t('Language')}
           </TabButton>
           <TabButton active={active === 'currency'} onClick={() => setActive('currency')} icon={<IconWallet width={18} height={18} />}>
@@ -106,14 +98,17 @@ function TabButton({
   onClick,
   icon,
   children,
+  ref,
 }: {
   active: boolean;
   onClick: () => void;
   icon: React.ReactNode;
   children: React.ReactNode;
+  ref?: React.Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
       className={`-mb-px flex items-center gap-2 border-b-2 pb-3 text-sm font-bold transition-colors ${

@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Provider } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { useDialog } from '@/lib/a11y/useDialog';
 import { useT } from '@/components/site/PreferencesProvider';
 import {
   IconApple,
@@ -65,23 +66,9 @@ export function AuthDialog({
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const previouslyFocused = document.activeElement as HTMLElement | null;
-    emailRef.current?.focus();
-    // Lock background scroll while the modal is open (mirrors the gallery lightbox).
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = prevOverflow;
-      previouslyFocused?.focus?.();
-    };
-  }, [onClose]);
+  // APG modal behaviour: scroll-lock, Escape, focus the email field on open, trap Tab, and
+  // restore focus to the trigger on close.
+  const dialogRef = useDialog(true, onClose, () => emailRef.current);
 
   const signup = mode === 'signup';
 
@@ -137,6 +124,7 @@ export function AuthDialog({
 
   return (
     <div
+      ref={dialogRef}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
