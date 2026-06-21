@@ -172,10 +172,10 @@ export function BookingWidget() {
   return (
     <div
       ref={rootRef}
-      className="overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-[0_24px_50px_-30px_rgba(10,46,54,0.45)]"
+      className="rounded-2xl border border-ink/10 bg-white shadow-[0_24px_50px_-30px_rgba(10,46,54,0.45)]"
     >
       <div
-        className={`flex items-center gap-2 px-5 py-2.5 text-[12.5px] font-bold text-white ${
+        className={`flex items-center gap-2 rounded-t-2xl px-5 py-2.5 text-[12.5px] font-bold text-white ${
           isTransport ? 'bg-teal' : 'bg-gradient-to-r from-coral to-[#e8584a]'
         }`}
       >
@@ -294,34 +294,51 @@ export function BookingWidget() {
               <IconChevron width={16} height={16} className="text-ink-muted" />
             </button>
             {open === 'date' && (
-              <div className="absolute right-0 top-[calc(100%+6px)] z-20 w-[min(92vw,20rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
-                <div>
-                  {/* Single month — fits inside the booking column so the popover never clips. */}
-                  <div>
-                    <div className="mb-2 flex items-center justify-between">
-                      <button
-                        type="button"
-                        aria-label={t('Previous month')}
-                        disabled={!canBack}
-                        onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
-                        className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
-                      >
-                        <IconChevronLeft width={16} height={16} />
-                      </button>
-                      <span className="text-[14px] font-bold text-ink">
-                        {view.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={t('Next month')}
-                        disabled={!canFwd}
-                        onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
-                        className="grid h-7 w-7 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
-                      >
-                        <IconChevronRight width={16} height={16} />
-                      </button>
-                    </div>
+              // Floats above the page (the card no longer clips it) — anchored right, it extends left
+              // over the gallery. Two months on sm+, one on mobile, like the GYG-style picker.
+              <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-[min(92vw,21rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] sm:w-[40rem]">
+                {/* Nav: prev far-left, month name(s) centred, next far-right. */}
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    aria-label={t('Previous month')}
+                    disabled={!canBack}
+                    onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
+                  >
+                    <IconChevronLeft width={16} height={16} />
+                  </button>
+                  <div className="flex flex-1 justify-around text-[14px] font-bold text-ink">
+                    <span>{view.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</span>
+                    <span className="hidden sm:inline">
+                      {new Date(view.getFullYear(), view.getMonth() + 1, 1).toLocaleDateString('en-GB', {
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label={t('Next month')}
+                    disabled={!canFwd}
+                    onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
+                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
+                  >
+                    <IconChevronRight width={16} height={16} />
+                  </button>
+                </div>
+                <div className="flex gap-6">
+                  <div className="flex-1">
                     <MonthGrid month={view} selectedKey={date} tomorrow={tomorrow} available={(c) => !isDisabled(c)} onPick={pickDate} />
+                  </div>
+                  <div className="hidden flex-1 sm:block">
+                    <MonthGrid
+                      month={new Date(view.getFullYear(), view.getMonth() + 1, 1)}
+                      selectedKey={date}
+                      tomorrow={tomorrow}
+                      available={(c) => !isDisabled(c)}
+                      onPick={pickDate}
+                    />
                   </div>
                 </div>
               </div>
@@ -399,7 +416,7 @@ export function BookingWidget() {
         </p>
       </div>
 
-      <div className="flex items-center justify-between gap-2.5 border-t border-ink/[0.08] bg-cream px-5 py-3">
+      <div className="flex items-center justify-between gap-2.5 rounded-b-2xl border-t border-ink/[0.08] bg-cream px-5 py-3">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-ink/80">
           <IconShield width={15} height={15} className="text-teal" /> {t('Secure payment by Peach')}
         </span>
