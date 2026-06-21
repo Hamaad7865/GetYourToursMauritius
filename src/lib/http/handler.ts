@@ -65,10 +65,26 @@ export function apiHandler<C = unknown>(
         res.headers.set(key, value);
       }
     } catch (error) {
-      res = errorToResponse(error, cors, requestId);
+      // errorToResponse is defensive, but guard it too: a throw HERE would escape the wrapper and
+      // surface to the client as a CDN HTML 500 ("Unexpected token '<'" when parsed) — the one thing
+      // this layer must never do. Fall back to a minimal JSON envelope.
+      try {
+        res = errorToResponse(error, cors, requestId);
+      } catch {
+        res = new Response(
+          JSON.stringify({ ok: false, error: { code: 'internal_error', message: 'Something went wrong' } }),
+          { status: 500, headers: { 'content-type': 'application/json; charset=utf-8', ...cors } },
+        );
+      }
     }
 
-    res.headers.set('x-request-id', requestId);
+    // Best-effort: a Response with immutable headers (e.g. a redirect) would throw on .set — never let
+    // that escape as an uncaught error (which would become a CDN HTML 500).
+    try {
+      res.headers.set('x-request-id', requestId);
+    } catch {
+      /* immutable headers — skip the correlation header */
+    }
     // One structured line per API request (method, path, status, latency). 5xx/unhandled errors get
     // an additional detail line from errorToResponse sharing this requestId.
     log.info('request', {

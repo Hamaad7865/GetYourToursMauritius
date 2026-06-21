@@ -14,6 +14,7 @@ import { canAdvanceStep1 } from '@/lib/checkout/pickup';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { selectionHash, shouldRehydrateBooking } from '@/lib/checkout/selection';
 import { useCart } from '@/lib/cart/useCart';
+import { parseApiJson } from '@/lib/http/fetch-json';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
@@ -341,7 +342,7 @@ export function Checkout() {
     if (!slug) return;
     let active = true;
     fetch(`/api/v1/activities/${slug}`)
-      .then((r) => r.json())
+      .then((r) => parseApiJson<{ region?: string; transportBands?: TransportBands; regionDistances?: RegionDistances }>(r))
       .then((body) => {
         if (!active || !body.ok) return;
         const a = body.data;
@@ -500,9 +501,9 @@ export function Checkout() {
             source: 'web',
             idempotencyKey: idemKey,
           }),
-        }).then((r) => r.json());
+        }).then((r) => parseApiJson<{ ref: string; totalEur?: number }>(r));
         if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
-        ref = bookingRes.data.ref as string;
+        ref = bookingRes.data.ref;
         setBookingRef(ref);
         // Persist the booking IDENTITY (idem key + ref + selection hash) so a Back/reload remount
         // rehydrates it — but ONLY when the selection still matches — and goes straight to this
@@ -551,7 +552,7 @@ export function Checkout() {
         // price-reconciliation here too: fetch the booking's authoritative total and compare it to the
         // displayed total BEFORE charging. Never silently pay a mismatched amount on the rehydrated path.
         const bookingRes = await fetch(`/api/v1/bookings/${encodeURIComponent(ref)}`, { headers }).then((r) =>
-          r.json(),
+          parseApiJson<{ totalEur?: number }>(r),
         );
         if (bookingRes.ok) {
           const srv = typeof bookingRes.data?.totalEur === 'number' ? bookingRes.data.totalEur : null;
@@ -565,7 +566,7 @@ export function Checkout() {
         method: 'POST',
         headers,
         body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${idemKey}:pay` }),
-      }).then((r) => r.json());
+      }).then((r) => parseApiJson<{ checkoutId?: string; redirectUrl?: string }>(r));
       if (!payRes.ok) {
         // The booking is already paid (or expired/cancelled) — the server refuses a second checkout
         // session for it. Clear the persisted ref so a Back/reload no longer rehydrates this dead
