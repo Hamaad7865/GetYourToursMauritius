@@ -7,7 +7,7 @@ const FAQS: Array<[string, string]> = [
   ],
   [
     'Can I change a plan the AI made?',
-    'Completely. Drag to reorder, drop a stop, add a beach, or just tell the co-pilot — the route and price update live.',
+    'Completely. Drag to reorder, drop a stop, add a beach, or just tell ZilAi — the route and price update live.',
   ],
   [
     'How fast is a quote, really?',

@@ -131,7 +131,7 @@ export function ItineraryPanel({
                 <path d="M12 5v14M5 12h14" stroke="#9DBDBB" strokeWidth={2} strokeLinecap="round" />
               </svg>
             </div>
-            <p className="m-0 text-[13.5px] font-semibold text-[#7A8B8F]">{t('Ask the co-pilot or add places')}</p>
+            <p className="m-0 text-[13.5px] font-semibold text-[#7A8B8F]">{t('Ask ZilAi or add places')}</p>
             <p className="m-0 mt-1 text-[12.5px]">{t('Stops appear here with live drive times.')}</p>
           </div>
         ) : (

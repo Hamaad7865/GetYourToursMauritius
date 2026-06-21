@@ -374,7 +374,7 @@ export function PlannerShell() {
         }
         if (warning) setChat((c) => [...c, { role: 'assistant', kind: 'text', text: warning }]);
       } else {
-        setChat((c) => [...c, { role: 'assistant', kind: 'text', text: t("Sorry — I couldn't reach the co-pilot just now. Browse places on the left and I'll keep the price live.") }]);
+        setChat((c) => [...c, { role: 'assistant', kind: 'text', text: t("Sorry — I couldn't reach ZilAi just now. Browse places on the left and I'll keep the price live.") }]);
       }
     } catch {
       setTyping(false);

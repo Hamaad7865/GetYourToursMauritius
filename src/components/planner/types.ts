@@ -1,4 +1,4 @@
-/** A message in the Dodo co-pilot chat. Text bubbles plus the design's rich place + summary cards. */
+/** A message in the ZilAi chat. Text bubbles plus the design's rich place + summary cards. */
 export type ChatMsg =
   | { role: 'user' | 'assistant'; kind: 'text'; text: string }
   | { role: 'assistant'; kind: 'place'; id: string; why?: string }

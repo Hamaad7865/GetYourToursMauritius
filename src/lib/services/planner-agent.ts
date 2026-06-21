@@ -16,7 +16,7 @@ import type { PlannerPlace } from '@/lib/validation/planner';
  * When no Gemini model is configured (the stub provider, or no key — e.g. tests/CI), it returns a
  * graceful fallback so the page still works (browse + build manually).
  */
-const SYSTEM_PROMPT = `You are ZilAi, the friendly local co-pilot for a Mauritius road-trip planner. Help the visitor build a one-day itinerary.
+const SYSTEM_PROMPT = `You are ZilAi, a friendly local trip-planning assistant for a Mauritius road-trip planner. Help the visitor build a one-day itinerary.
 
 Rules:
 - ONLY suggest real places returned by the search_places tool. Never invent places, drive times, opening hours or prices.
@@ -56,7 +56,7 @@ export async function runPlannerTurn(ctx: ServiceContext, input: PlannerTurnInpu
   if (!model) {
     return {
       reply:
-        "I can't reach the AI co-pilot right now — but you can still browse the places and build your day on the map, and I'll price it instantly.",
+        "I can't reach ZilAi right now — but you can still browse the places and build your day on the map, and I'll price it instantly.",
       places: [],
       route: null,
       warning: null,
