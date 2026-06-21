@@ -18,6 +18,11 @@ import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/comp
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 
+// Stable ids for the disabled-CTA gate hints, so a related input's aria-describedby always points at
+// the same element (the hint is an aria-live region that announces WHY the Next/Pay CTA is disabled).
+const PICKUP_HINT_ID = 'checkout-pickup-hint';
+const PHONE_HINT_ID = 'checkout-phone-hint';
+
 // A short list of common visitor nationalities for the personal-details step. Mauritius is first
 // (the home market), then the largest source markets. Display/validation only — the booking schema
 // has no country field, so this isn't sent to the server; it just personalises the form. Real-world
@@ -55,8 +60,16 @@ const COUNTRIES = [
   'Other',
 ] as const;
 
-function Spinner() {
-  return <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />;
+function Spinner({ label }: { label: string }) {
+  // role="img" + an accessible name so the spinning CTA isn't a nameless button during the
+  // multi-second create→reconcile→pay round-trip (the live status region below also announces it).
+  return (
+    <span
+      role="img"
+      aria-label={label}
+      className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white"
+    />
+  );
 }
 
 /**
@@ -599,7 +612,7 @@ export function Checkout() {
               const done = step > n;
               const active = step === n;
               return (
-                <li key={s} className="flex items-center gap-2">
+                <li key={s} aria-current={active ? 'step' : undefined} className="flex items-center gap-2">
                   <span
                     className={`grid h-6 w-6 place-items-center rounded-full text-[12px] ${
                       done ? 'bg-teal text-white' : active ? 'bg-ink text-white' : 'bg-ink/10 text-ink-muted'
@@ -624,7 +637,7 @@ export function Checkout() {
           {step === 1 && (
             <section>
               <h1 className="font-display text-2xl font-semibold text-ink">{t('Do you want pickup?')}</h1>
-              <div className="mt-5 flex flex-col gap-2">
+              <div role="radiogroup" aria-label={t('Do you want pickup?')} className="mt-5 flex flex-col gap-2">
                 <PickRadio
                   checked={wantsPickup}
                   onClick={() => setWantsPickup(true)}
@@ -644,6 +657,9 @@ export function Checkout() {
                             onDropoffCoords={setDropoffCoords}
                             pickupPlaceholder={t('Hotel name or address')}
                             dropoffPlaceholder={t('Drop-off location')}
+                            // Point the pickup input at the gate hint below so a screen-reader user
+                            // learns WHY Next is disabled (a pickup address is required to advance).
+                            pickupDescribedBy={!canAdvance ? PICKUP_HINT_ID : undefined}
                           />
                           {/* Toggle below the map — same point as the pickup by default. Unchecking
                               reveals the drop-off input + a second pin on the SAME map above. */}
@@ -668,7 +684,7 @@ export function Checkout() {
                         {t('I don’t know yet')}
                       </label>
                       {tbd && (
-                        <span className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
+                        <span role="status" className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
                           {t('Add your pickup location 24 hours before your activity (ideally sooner) so your provider can accommodate you.')}
                         </span>
                       )}
@@ -691,15 +707,16 @@ export function Checkout() {
                 type="button"
                 onClick={continueFromTransport}
                 disabled={busy || !canAdvance}
+                aria-busy={busy}
                 className="mt-6 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
-                {busy ? <Spinner /> : t('Next: Personal details')}
+                {busy ? <Spinner label={t('Loading')} /> : t('Next: Personal details')}
               </button>
-              {!canAdvance && (
-                <p className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
-                  {t('Add your pickup address, or choose “I don’t know yet”.')}
-                </p>
-              )}
+              {/* Stable, always-rendered live region: the pickup input's aria-describedby points here,
+                  and the hint is announced when it appears (it explains why Next is disabled). */}
+              <p id={PICKUP_HINT_ID} aria-live="polite" className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
+                {!canAdvance ? t('Add your pickup address, or choose “I don’t know yet”.') : ''}
+              </p>
             </section>
           )}
 
@@ -741,8 +758,13 @@ export function Checkout() {
                     value={user?.email ?? ''}
                     readOnly
                     autoComplete="email"
+                    // Explain to a screen-reader user why this field is read-only.
+                    aria-describedby="checkout-email-hint"
                     className="mt-1 w-full cursor-not-allowed rounded-xl border border-ink/15 bg-ink/[0.03] px-3.5 py-2.5 text-sm font-normal text-ink-muted outline-none"
                   />
+                  <span id="checkout-email-hint" className="sr-only">
+                    {t('This is your account email.')}
+                  </span>
                 </label>
                 <label className="block text-[13px] font-semibold text-ink">
                   {t('Country')}
@@ -767,6 +789,10 @@ export function Checkout() {
                     type="tel"
                     autoComplete="tel"
                     placeholder="+230 5xxx xxxx"
+                    // When a phone is required but missing, point at the gate hint so a screen-reader
+                    // user hears WHY "Go to payment" is disabled.
+                    aria-describedby={!canAdvanceDetails ? PHONE_HINT_ID : undefined}
+                    aria-invalid={!canAdvanceDetails}
                     className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
                   />
                 </label>
@@ -789,11 +815,11 @@ export function Checkout() {
               >
                 {t('Go to payment')}
               </button>
-              {!canAdvanceDetails && (
-                <p className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
-                  {t('Add a phone number so your driver can reach you.')}
-                </p>
-              )}
+              {/* Stable, always-rendered live region: the phone input's aria-describedby points here,
+                  and the hint is announced when it appears (it explains why "Go to payment" is disabled). */}
+              <p id={PHONE_HINT_ID} aria-live="polite" className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
+                {!canAdvanceDetails ? t('Add a phone number so your driver can reach you.') : ''}
+              </p>
             </section>
           )}
 
@@ -806,14 +832,20 @@ export function Checkout() {
                   {error}
                 </p>
               )}
+              {/* Announce the multi-second create→reconcile→pay round-trip — the CTA only shows a
+                  silent spinner, so a screen-reader user otherwise gets no feedback that Pay worked. */}
+              <p role="status" aria-live="polite" className="sr-only">
+                {busy ? t('Starting payment…') : ''}
+              </p>
               <button
                 type="button"
                 onClick={pay}
                 disabled={busy || expired}
+                aria-busy={busy}
                 className="mt-5 hidden items-center justify-center rounded-full bg-teal px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80 lg:flex"
               >
                 {busy ? (
-                  <Spinner />
+                  <Spinner label={t('Loading')} />
                 ) : displayTotalNum != null ? (
                   <span>
                     {t('Pay')} <Price eur={displayTotalNum} />
@@ -884,9 +916,10 @@ export function Checkout() {
             type="button"
             onClick={continueFromTransport}
             disabled={busy || !canAdvance}
+            aria-busy={busy}
             className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
           >
-            {busy ? <Spinner /> : t('Next: Personal details')}
+            {busy ? <Spinner label={t('Loading')} /> : t('Next: Personal details')}
           </button>
         )}
         {step === 2 && !session && (
@@ -913,10 +946,11 @@ export function Checkout() {
             type="button"
             onClick={pay}
             disabled={busy || expired}
+            aria-busy={busy}
             className="flex w-full items-center justify-center rounded-full bg-teal px-7 py-3.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-80"
           >
             {busy ? (
-              <Spinner />
+              <Spinner label={t('Loading')} />
             ) : displayTotalNum != null ? (
               <span>
                 {t('Pay')} <Price eur={displayTotalNum} />
@@ -944,10 +978,17 @@ function PickRadio({
 }) {
   return (
     <div
-      role="button"
+      role="radio"
+      aria-checked={checked}
       tabIndex={0}
       onClick={onClick}
-      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onClick()}
+      onKeyDown={(e) => {
+        // preventDefault BEFORE activating so Space picks the radio instead of scrolling the page.
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
       className={`cursor-pointer rounded-xl border px-4 py-3 ${
         checked ? 'border-teal bg-teal/5' : 'border-ink/15 hover:border-ink/30'
       }`}

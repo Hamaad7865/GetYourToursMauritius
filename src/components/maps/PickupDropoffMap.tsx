@@ -30,6 +30,7 @@ export function PickupDropoffMap({
   onDropoffCoords,
   pickupPlaceholder = 'Hotel name or address',
   dropoffPlaceholder = 'Drop-off address',
+  pickupDescribedBy,
 }: {
   pickupValue: string;
   onPickupChange: (address: string) => void;
@@ -40,6 +41,9 @@ export function PickupDropoffMap({
   onDropoffCoords: (coords: { lat: number; lng: number } | null) => void;
   pickupPlaceholder?: string;
   dropoffPlaceholder?: string;
+  // The id of an external hint (e.g. the disabled-CTA gate hint) describing the pickup input — so a
+  // screen-reader user hears why this required field matters. Optional; omit to leave it undescribed.
+  pickupDescribedBy?: string;
 }) {
   const status = useGoogleMaps();
   const pickupInputRef = useRef<HTMLInputElement>(null);
@@ -307,6 +311,12 @@ export function PickupDropoffMap({
           // (from an earlier pin/selection) can't price a different address.
           onPickupCoords(null);
         }}
+        // The placeholder is only a hint and isn't an accessible name; name the input so a
+        // screen-reader user knows this required field is the pickup address. autoComplete off
+        // so browser autofill doesn't collide with the Google Places suggestion dropdown.
+        aria-label={pickupPlaceholder}
+        aria-describedby={pickupDescribedBy}
+        autoComplete="off"
         placeholder={pickupPlaceholder}
         className="w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm outline-none focus:border-teal"
       />
@@ -326,6 +336,9 @@ export function PickupDropoffMap({
             onDropoffChange(e.target.value);
             onDropoffCoords(null);
           }}
+          // Name the drop-off input for the same reason as the pickup input above.
+          aria-label={dropoffPlaceholder}
+          autoComplete="off"
           placeholder={dropoffPlaceholder}
           className="mt-2 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm outline-none focus:border-teal"
         />
