@@ -7,6 +7,7 @@ import {
   loadBookingDetail,
   setBookingStatus,
   markBookingRefunded,
+  eraseCustomerData,
   saveBookingNotes,
   type BookingRow,
   type BookingDetail,
@@ -459,6 +460,7 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
+  const [erasedMsg, setErasedMsg] = useState<string | null>(null);
   const panelRef = useRef<HTMLElement>(null);
   const busyRef = useRef<string | null>(null);
   busyRef.current = busy;
@@ -759,7 +761,41 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                   {busy === 'refund' ? 'Recording…' : 'Mark refunded'}
                 </button>
               )}
+              <button
+                type="button"
+                disabled={busy === 'erase'}
+                onClick={() => {
+                  const msg = `Permanently anonymise ${booking.customerEmail}'s personal data across ALL their bookings + delete their account data. Use ONLY for a verified erasure request. This cannot be undone.`;
+                  if (!window.confirm(msg)) return;
+                  const email = booking.customerEmail;
+                  setBusy('erase');
+                  setError(null);
+                  setErasedMsg(null);
+                  void (async () => {
+                    try {
+                      const r = await eraseCustomerData(email);
+                      setErasedMsg(
+                        `Erased — anonymised ${r.anonymizedBookings} retained booking(s), deleted ${r.deletedBookings} booking(s) and ${r.deletedLeads} lead(s).`,
+                      );
+                      await reload();
+                      onChanged();
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : 'Action failed.');
+                    } finally {
+                      setBusy(null);
+                    }
+                  })();
+                }}
+                className="rounded-full border border-coral/40 px-4 py-2 text-[13px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
+              >
+                {busy === 'erase' ? 'Erasing…' : 'Erase customer data'}
+              </button>
             </section>
+            {erasedMsg && (
+              <p role="status" className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark">
+                {erasedMsg}
+              </p>
+            )}
             <p className="text-[11.5px] leading-relaxed text-ink-muted">
               Payment confirmation is handled automatically by the payment provider — staff can mark a booking completed or
               cancel it, but cannot mark it paid here.

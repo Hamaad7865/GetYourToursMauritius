@@ -276,6 +276,29 @@ export async function markBookingRefunded(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** The counts returned by `api_erase_user` — how much PII was removed/anonymized. */
+export interface EraseResult {
+  deletedBookings: number;
+  anonymizedBookings: number;
+  deletedLeads: number;
+}
+
+/** Fulfil a verified GUEST / written erasure request by the customer's email (GDPR right to erasure).
+ *  Calls the staff-only `api_erase_user` RPC the same way `markBookingRefunded` calls its RPC — through
+ *  the authenticated browser client, so the RPC's `is_staff()` guard runs against the operator's JWT.
+ *  Anonymize-with-retention: unpaid bookings are hard-deleted, paid/terminal ones keep their financial
+ *  row but have PII stripped. Idempotent: a second call anonymizes 0 further rows. */
+export async function eraseCustomerData(email: string): Promise<EraseResult> {
+  const { data, error } = await getBrowserSupabase().rpc('api_erase_user', { p: { email } });
+  if (error) throw error;
+  const summary = (data ?? {}) as Partial<EraseResult>;
+  return {
+    deletedBookings: summary.deletedBookings ?? 0,
+    anonymizedBookings: summary.anonymizedBookings ?? 0,
+    deletedLeads: summary.deletedLeads ?? 0,
+  };
+}
+
 /** Save the internal staff note on a booking. */
 export async function saveBookingNotes(id: string, notes: string): Promise<void> {
   const { error } = await getBrowserSupabase()
