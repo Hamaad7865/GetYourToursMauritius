@@ -629,6 +629,7 @@ export const fr: Record<string, string> = {
   "or": "ou",
   "Email address": "Adresse e-mail",
   "Password": "Mot de passe",
+  "Password must be at least 6 characters.": "Le mot de passe doit comporter au moins 6 caractères.",
   "Hide password": "Masquer le mot de passe",
   "Show password": "Afficher le mot de passe",
   "Please wait…": "Veuillez patienter…",

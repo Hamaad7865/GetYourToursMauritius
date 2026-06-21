@@ -181,6 +181,7 @@ export function AuthDialog({
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                aria-label={t('Full name')}
                 placeholder={t('Full name')}
                 autoComplete="name"
                 className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
@@ -192,6 +193,10 @@ export function AuthDialog({
               ref={emailRef}
               type="email"
               required
+              aria-required="true"
+              aria-label={t('Email address')}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? 'auth-error' : undefined}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={t('Email address')}
@@ -204,6 +209,10 @@ export function AuthDialog({
               type={showPassword ? 'text' : 'password'}
               required
               minLength={6}
+              aria-required="true"
+              aria-label={t('Password')}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={`auth-password-hint${error ? ' auth-error' : ''}`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={t('Password')}
@@ -219,12 +228,27 @@ export function AuthDialog({
               {showPassword ? <IconEyeOff width={18} height={18} /> : <IconEye width={18} height={18} />}
             </button>
           </Field>
+          <span id="auth-password-hint" className="sr-only">
+            {t('Password must be at least 6 characters.')}
+          </span>
 
           {error && (
-            <p className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral">{error}</p>
+            <p
+              id="auth-error"
+              role="alert"
+              aria-live="assertive"
+              className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral"
+            >
+              {error}
+            </p>
           )}
           {notice && (
-            <p className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark">{notice}</p>
+            <p
+              role="status"
+              className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark"
+            >
+              {notice}
+            </p>
           )}
 
           <button
@@ -258,7 +282,9 @@ export function AuthDialog({
 function Field({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <label className="flex items-center gap-2.5 rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 focus-within:border-teal">
-      <span className="shrink-0 text-ink-muted">{icon}</span>
+      <span className="shrink-0 text-ink-muted" aria-hidden="true">
+        {icon}
+      </span>
       {children}
     </label>
   );

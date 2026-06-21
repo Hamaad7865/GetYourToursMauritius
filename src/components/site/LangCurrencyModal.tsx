@@ -54,7 +54,7 @@ export function LangCurrencyModal({
           <IconX width={18} height={18} />
         </button>
 
-        <div className="flex gap-6 border-b border-ink/10">
+        <div role="tablist" aria-label={t('Language and currency')} className="flex gap-6 border-b border-ink/10">
           <TabButton ref={firstTabRef} active={active === 'language'} onClick={() => setActive('language')} icon={<IconGlobe width={18} height={18} />}>
             {t('Language')}
           </TabButton>
@@ -110,6 +110,8 @@ function TabButton({
     <button
       ref={ref}
       type="button"
+      role="tab"
+      aria-selected={active}
       onClick={onClick}
       className={`-mb-px flex items-center gap-2 border-b-2 pb-3 text-sm font-bold transition-colors ${
         active ? 'border-teal text-teal' : 'border-transparent text-ink-muted hover:text-ink'
@@ -125,13 +127,14 @@ function Option({ selected, label, onClick }: { selected: boolean; label: string
   return (
     <button
       type="button"
+      aria-pressed={selected}
       onClick={onClick}
       className={`flex items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
         selected ? 'text-teal' : 'text-ink hover:bg-cream'
       }`}
     >
       {label}
-      {selected && <IconCheck width={16} height={16} className="shrink-0 text-teal" />}
+      {selected && <IconCheck width={16} height={16} aria-hidden="true" className="shrink-0 text-teal" />}
     </button>
   );
 }
