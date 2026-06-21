@@ -86,8 +86,12 @@ export class ConfigError extends ServiceError {
 }
 
 export class ProviderError extends ServiceError {
+  // 500, NOT 502: we run on Cloudflare, which REPLACES a 502 returned by the Function with its own
+  // "Bad gateway" HTML page — so our JSON error body (and the x-request-id) never reach the client,
+  // and the customer sees an opaque gateway error. 500 is passed through intact. The cause is still an
+  // upstream failure; `code: 'provider_error'` and the logs preserve that meaning.
   constructor(message = 'Upstream provider error', details?: unknown) {
-    super('provider_error', message, 502, details);
+    super('provider_error', message, 500, details);
   }
 }
 

@@ -7,6 +7,7 @@ import type {
   VerifyWebhookInput,
 } from './types';
 import { ProviderError } from '@/lib/services/errors';
+import { log } from '@/lib/log';
 
 export interface PeachConfig {
   /** OAuth client credentials (sandbox Dashboard → Settings → API keys). */
@@ -102,7 +103,19 @@ export class PeachPaymentProvider implements PaymentProvider {
       body: JSON.stringify(body),
     });
     if (!res.ok) {
-      throw new ProviderError(`Peach create-checkout failed (${res.status})`, await safeText(res));
+      // Capture Peach's rejection reason in the logs (no secrets — entityId is the public widget key,
+      // the rest is request metadata + Peach's own error body) so a create-checkout 4xx is diagnosable.
+      const detail = await safeText(res);
+      log.error('peach_create_checkout_failed', {
+        status: res.status,
+        body: detail,
+        amount: body.amount,
+        currency: body.currency,
+        entityId: this.config.entityId,
+        environment: this.config.environment,
+        checkoutBaseUrl: this.config.checkoutBaseUrl,
+      });
+      throw new ProviderError(`Peach create-checkout failed (${res.status})`, detail);
     }
     const data = (await res.json()) as { checkoutId?: string; result?: { code?: string } };
     if (!data.checkoutId) {
