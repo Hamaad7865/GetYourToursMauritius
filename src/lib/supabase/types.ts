@@ -637,6 +637,8 @@ export interface Database {
         Returns: PaymentsRow;
       };
       materialize_availability: { Args: { p: Json }; Returns: number };
+      api_record_payment_checkout: { Args: { p: Json }; Returns: Json };
+      api_pending_payment_checkouts: { Args: { p: Json }; Returns: Json };
       api_swap_category_positions: { Args: { p_id_a: string; p_id_b: string }; Returns: undefined };
       api_mark_refunded: { Args: { p: Json }; Returns: Json };
       api_erase_user: { Args: { p: Json }; Returns: Json };

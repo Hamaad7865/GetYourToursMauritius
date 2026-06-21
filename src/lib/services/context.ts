@@ -1,4 +1,6 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { DbRpc } from '@/lib/db/rpc';
+import type { Database } from '@/lib/supabase/types';
 import type { PaymentProvider } from '@/lib/payments/types';
 import type { AiProvider } from '@/lib/ai/types';
 
@@ -15,6 +17,14 @@ export interface ServiceContext {
   db: DbRpc;
   payments: PaymentProvider;
   ai: AiProvider;
+  /**
+   * Service-role Supabase client for the few trusted server-side flows that must act across users by
+   * bypassing RLS — currently the payment reconciliation sweep, which appends verified settlement events
+   * to any booking's ledger. Present ONLY on the service-role context (the maintenance cron); undefined
+   * on user-scoped/public contexts. Importing the admin client into the service layer is forbidden, so it
+   * arrives via this seam. Tests pass a PGlite-backed Supabase shim.
+   */
+  admin?: SupabaseClient<Database>;
   /** Injectable clock for deterministic tests. */
   now: () => Date;
 }

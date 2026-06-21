@@ -1,5 +1,7 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ServiceContext } from '@/lib/services/context';
 import type { DbRpc } from '@/lib/db/rpc';
+import type { Database } from '@/lib/supabase/types';
 import type { PaymentProvider } from '@/lib/payments/types';
 import { createUserClient } from '@/lib/supabase/client';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
@@ -16,7 +18,7 @@ import { getBearerToken } from './auth';
  * otherwise the fail-closed payment gate (refuses the stub on a real backend) would 500 an
  * unrelated read. Payment routes access `ctx.payments` and get the gate as intended.
  */
-function makeContext(db: DbRpc): ServiceContext {
+function makeContext(db: DbRpc, admin?: SupabaseClient<Database>): ServiceContext {
   let payments: PaymentProvider | null = null;
   return {
     db,
@@ -25,6 +27,7 @@ function makeContext(db: DbRpc): ServiceContext {
       return payments;
     },
     ai: getAiProvider(),
+    ...(admin ? { admin } : {}),
     now: () => new Date(),
   };
 }
@@ -68,5 +71,8 @@ export function publicServiceContext(): ServiceContext {
  * from a user-facing route.
  */
 export function serviceRoleServiceContext(): ServiceContext {
-  return makeContext(supabaseRpc(createServiceRoleClient()));
+  // One service-role client backs both the rpc port (db) and the raw admin client the reconciliation
+  // sweep needs to append settlement events across users.
+  const admin = createServiceRoleClient();
+  return makeContext(supabaseRpc(admin), admin);
 }

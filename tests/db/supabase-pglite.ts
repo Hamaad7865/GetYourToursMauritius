@@ -24,6 +24,8 @@ class QueryBuilder implements PromiseLike<Result> {
   private cols = '*';
   private filters: Filter[] = [];
   private orderBy: string | null = null;
+  private orderAsc = true;
+  private limitN: number | null = null;
   private payload: Record<string, unknown> | Record<string, unknown>[] | null = null;
   private returning: string | null = null;
   private rowMode: RowMode = 'many';
@@ -64,8 +66,13 @@ class QueryBuilder implements PromiseLike<Result> {
     this.filters.push({ col, op: 'in', val: vals });
     return this;
   }
-  order(col: string): this {
+  order(col: string, opts?: { ascending?: boolean }): this {
     this.orderBy = col;
+    this.orderAsc = opts?.ascending ?? true;
+    return this;
+  }
+  limit(n: number): this {
+    this.limitN = n;
     return this;
   }
   single(): this {
@@ -118,8 +125,11 @@ class QueryBuilder implements PromiseLike<Result> {
       let sql: string;
 
       if (this.op === 'select') {
-        const order = this.orderBy ? ` order by ${this.orderBy}` : '';
-        sql = `select ${this.cols} from ${this.table}${this.buildWhere(params)}${order}`;
+        const order = this.orderBy
+          ? ` order by ${this.orderBy} ${this.orderAsc ? 'asc' : 'desc'}`
+          : '';
+        const limit = this.limitN !== null ? ` limit ${this.limitN}` : '';
+        sql = `select ${this.cols} from ${this.table}${this.buildWhere(params)}${order}${limit}`;
       } else if (this.op === 'insert') {
         const rows = Array.isArray(this.payload) ? this.payload : [this.payload ?? {}];
         const cols = Object.keys(rows[0] ?? {});
