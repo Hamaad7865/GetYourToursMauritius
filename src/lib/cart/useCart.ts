@@ -173,6 +173,20 @@ export function useCart() {
     write([...current, { ...item, addedAt: Date.now(), status: 'saved', idemKey: crypto.randomUUID() }]);
   }, []);
 
+  // Insert (or refresh) an already-HELD line — the held twin of `add`, for the Book-now → checkout path
+  // which creates the server hold BEFORE any cart line exists. Unlike `add` it KEEPS the passed idemKey
+  // (it must equal the key the hold was created under, so checkout + pay reuse the one hold rather than
+  // minting a second) and writes status:'held' with the hold's id + expiry. A same-id line is replaced,
+  // so re-entering checkout just refreshes it (idempotent). The store's existing reconcile + 15s prune +
+  // expiry bell then own its lifecycle, exactly like a proceeded cart line.
+  const upsertHeld = useCallback(
+    (item: Omit<CartItem, 'addedAt' | 'status'> & { holdId: string; expiresAt: string }) => {
+      const current = read().filter((i) => i.id !== item.id);
+      write([...current, { ...item, addedAt: Date.now(), status: 'held' }]);
+    },
+    [],
+  );
+
   const remove = useCallback((id: string) => {
     write(read().filter((i) => i.id !== id));
   }, []);
@@ -217,6 +231,7 @@ export function useCart() {
   return {
     items,
     add,
+    upsertHeld,
     remove,
     removeHeld,
     setGuests,

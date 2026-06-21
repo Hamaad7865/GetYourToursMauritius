@@ -313,6 +313,37 @@ export function BookingProvider({
       month: 'short',
       year: 'numeric',
     });
+    // Mirror this Book-now reservation into the cart as an on-hold line (same shape as Add-to-cart),
+    // keyed by occurrence, so leaving checkout doesn't hide the held spot. Checkout reads this on mount
+    // and upserts it with the hold details; the cart's timer + reconcile + expiry bell own it after.
+    // (A cart proceed already has its line, so it never stashes one here.) idemKey = the hold's idem so
+    // checkout + pay reuse the one hold.
+    try {
+      window.sessionStorage.setItem(
+        `gytm:cartline:${occ}`,
+        JSON.stringify({
+          id: `${occ}:${vehicleName ?? 'tour'}`,
+          slug: activity.slug,
+          title: activity.title,
+          image: activity.image,
+          occurrenceId: occ,
+          dateLabel: dateText,
+          lang,
+          priceLabel,
+          guests: participants,
+          unitEur: unitPriceEur,
+          pricingMode: activity.pricingMode,
+          suv: suvActive,
+          childSeats,
+          maxGuests: groupSize,
+          seatsLeft,
+          unit: unitLabel,
+          idemKey: idem,
+        }),
+      );
+    } catch {
+      /* sessionStorage unavailable — the on-hold cart line just won't appear; checkout still works */
+    }
     const q = new URLSearchParams({
       occ,
       label: priceLabel,

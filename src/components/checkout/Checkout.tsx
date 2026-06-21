@@ -12,6 +12,7 @@ import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1, defaultWantsPickup } from '@/lib/checkout/pickup';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
+import { useCart } from '@/lib/cart/useCart';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
@@ -67,6 +68,9 @@ export function Checkout() {
   const { user, profile, session, openAuth } = useAuth();
   const t = useT();
   const money = useMoney();
+  // Mirror the active checkout hold into the cart as an on-hold line (see the mount effect below), and
+  // remove it once the booking is paid. Both functions are useCallback-stable across renders.
+  const { upsertHeld, remove: removeCartLine } = useCart();
 
   const occ = params.get('occ') ?? '';
   const label = params.get('label') ?? '';
@@ -293,6 +297,23 @@ export function Checkout() {
     };
   }, [slug]);
 
+  // Mirror this checkout's live hold into the cart as an "on hold" line, so leaving the page keeps the
+  // held spot visible (with its countdown) instead of silently ticking away. Reads the line the widget
+  // stashed (gytm:cartline:{occ}) + the hold from readHold(); the cart's own timer + server reconcile +
+  // expiry bell take over from there. A cart proceed already has its line (no stash), so it's skipped;
+  // re-entering checkout just refreshes the same-id line (upsertHeld is idempotent).
+  useEffect(() => {
+    if (typeof window === 'undefined' || !occ || !holdId || !expiresAt) return;
+    if (new Date(expiresAt).getTime() <= Date.now()) return;
+    try {
+      const raw = window.sessionStorage.getItem(`gytm:cartline:${occ}`);
+      const line = raw ? JSON.parse(raw) : null;
+      if (line?.id) upsertHeld({ ...line, holdId, expiresAt });
+    } catch {
+      /* sessionStorage unavailable — skip the mirror; checkout still works */
+    }
+  }, [occ, holdId, expiresAt, upsertHeld]);
+
   if (!occ || !slug) {
     return (
       <div className="py-20 text-center">
@@ -418,6 +439,18 @@ export function Checkout() {
             window.sessionStorage.removeItem(`gytm:itinerary:occ:${occ}`);
             window.sessionStorage.removeItem(`gytm:hold:${occ}`);
             window.sessionStorage.removeItem(`gytm:pickup:${occ}`);
+            // The activity is now BOOKED — drop its on-hold cart line. Use remove (NOT removeHeld) so the
+            // server hold, now consumed by the booking, is not released (that would free the paid seat).
+            const cl = window.sessionStorage.getItem(`gytm:cartline:${occ}`);
+            if (cl) {
+              try {
+                const line = JSON.parse(cl);
+                if (line?.id) removeCartLine(line.id);
+              } catch {
+                /* malformed stash — nothing to remove */
+              }
+              window.sessionStorage.removeItem(`gytm:cartline:${occ}`);
+            }
           }
         } catch {
           /* sessionStorage unavailable — nothing to clear */
