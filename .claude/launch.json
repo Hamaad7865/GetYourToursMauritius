@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "gytm-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Projects\\GetYourToursMauritius && npm run dev"],
       "port": 3000,
       "autoPort": false
     }

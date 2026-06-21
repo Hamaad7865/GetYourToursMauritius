@@ -8,7 +8,8 @@ import { Logo } from '@/components/site/Logo';
 import { Price } from '@/components/site/Price';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
-import { childSeatsCost } from '@/lib/services/pricing';
+import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
+import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1, defaultWantsPickup } from '@/lib/checkout/pickup';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
@@ -184,6 +185,12 @@ export function Checkout() {
   // to place/bound the second pin, but they have no DB column, so the parent never reads the value back
   // and never sends it on the booking body. Hence the getter is intentionally unused (underscored).
   const [_dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
+  // This activity's region + transport fare tables, fetched once for the slug. Lets checkout show the
+  // LIVE region-based transport fee as the customer enters their pickup (transport is chosen + priced
+  // HERE now, not on the activity page). The server still re-derives + enforces the fee from the coords.
+  const [fares, setFares] = useState<{ region: string; bands: TransportBands; distances: RegionDistances } | null>(
+    null,
+  );
   // Personal-details (step ②) form state. Name + phone seed from the profile once it loads (see the
   // effect below); country defaults to the home market. Email is the account email, shown read-only.
   const [name, setName] = useState('');
@@ -210,8 +217,20 @@ export function Checkout() {
   const [bookingRef, setBookingRef] = useState<string | null>(() => readBooking().ref);
   // Authoritative price from the created booking — what the customer is actually charged.
   const [serverTotal, setServerTotal] = useState<number | null>(null);
+  // Live region-based transport fee, computed as the customer enters pickup (mirrors the server's
+  // transport_fare_minor cent-for-cent; the server still re-derives + enforces it at booking). It's 0
+  // when there's no pickup / not eligible / fares haven't loaded — in which case the authoritative
+  // server total reveals any fee at the pay step via the reconciliation gate below.
+  const pickupRegion = pickupCoords ? regionFromCoords(pickupCoords.lat, pickupCoords.lng) : null;
+  const liveTransport =
+    fares && wantsPickup && !tbd && pickupCoords && pickupRegion
+      ? transportFare(pickupRegion, fares.region, qty, suv, fares.bands, fares.distances)
+      : 0;
+  // The pre-booking total we SHOW + reconcile against: base (URL) + the live transport fee. Once the
+  // booking is created, the authoritative serverTotal takes over.
+  const expectedTotal = total ? Number(total) + liveTransport : null;
   // Numeric EUR amount for <Price>/money() — null when we have nothing to show yet.
-  const displayTotalNum = serverTotal != null ? serverTotal : total ? Number(total) : null;
+  const displayTotalNum = serverTotal != null ? serverTotal : expectedTotal;
 
   useEffect(() => {
     const t = window.setInterval(() => setSecs((s) => Math.max(0, s - 1)), 1000);
@@ -251,6 +270,28 @@ export function Checkout() {
       /* sessionStorage unavailable — the customer can enter the pickup here */
     }
   }, [occ]);
+
+  // Fetch this activity's transport fare tables once. api_get_activity returns them ONLY for eligible
+  // (per_person/per_group with pickup) activities, so a null result just means "no transport here".
+  useEffect(() => {
+    if (!slug) return;
+    let active = true;
+    fetch(`/api/v1/activities/${slug}`)
+      .then((r) => r.json())
+      .then((body) => {
+        if (!active || !body.ok) return;
+        const a = body.data;
+        if (a?.region && a?.transportBands && a?.regionDistances) {
+          setFares({ region: a.region, bands: a.transportBands, distances: a.regionDistances });
+        }
+      })
+      .catch(() => {
+        /* offline / not found — server still enforces any fee; reconciliation surfaces it at pay */
+      });
+    return () => {
+      active = false;
+    };
+  }, [slug]);
 
   if (!occ || !slug) {
     return (
@@ -386,7 +427,7 @@ export function Checkout() {
         // confirm before sending the customer to the hosted payment page.
         const srv = typeof bookingRes.data.totalEur === 'number' ? bookingRes.data.totalEur : null;
         if (srv != null) setServerTotal(srv);
-        if (srv != null && total && Math.abs(srv - Number(total)) >= 0.005) {
+        if (srv != null && expectedTotal != null && Math.abs(srv - expectedTotal) >= 0.005) {
           setError(t('The price for this date is {price}. Tap Pay again to continue.', { price: money(srv) }));
           setBusy(false);
           return;
@@ -700,10 +741,13 @@ export function Checkout() {
                   : ` · ${t('free')}`}
               </div>
             )}
-            {transportHint > 0 && (
+            {liveTransport > 0 && (
               <div className="flex items-center gap-2">
                 <IconCheck width={15} height={15} className="text-teal" />
-                {t('Door-to-door transport')} · {money(transportHint)}
+                {pickupRegion
+                  ? t('Door-to-door transport (from {region})', { region: pickupRegion })
+                  : t('Door-to-door transport')}{' '}
+                · {money(liveTransport)}
               </div>
             )}
           </dl>

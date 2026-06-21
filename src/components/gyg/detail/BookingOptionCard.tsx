@@ -7,8 +7,6 @@ import { useCart } from '@/lib/cart/useCart';
 import { useToast } from '@/components/site/ToastProvider';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
-import { PickupMap } from '@/components/maps/PickupMap';
-import { RouteMap } from '@/components/maps/RouteMap';
 import { SIGHTSEEING_SUV_MAX, CHILD_SEAT_EUR } from '@/lib/services/pricing';
 import { durationLabel } from '@/lib/catalogue/detail';
 import type { AltStop } from '@/lib/validation/tours';
@@ -214,75 +212,6 @@ export function BookingOptionCard() {
             </button>
           </div>
         </div>
-
-        {/* Region-based transport add-on: enter a pickup → a distance-based transport fee is added.
-            Skip it and the customer meets at the boarding point (no fee). */}
-        {b.transportEligible && (
-          <div className="mt-3 rounded-lg border border-ink/10 p-3">
-            <div className="text-[13px] font-bold text-ink">{t('Hotel pickup & drop-off')}</div>
-            <div className="mt-0.5 text-[12px] text-ink-muted">
-              {t('Add your hotel and we’ll add door-to-door transport based on the distance. Skip it to meet at the boarding point.')}
-            </div>
-            <PickupMap
-              value={b.pickupText}
-              onChange={b.setPickupText}
-              onCoords={b.setPickupCoords}
-              placeholder={t('Hotel name or address')}
-            />
-            <label className="mt-2.5 flex items-center gap-2 text-[13px] text-ink/80">
-              <input
-                type="checkbox"
-                checked={b.dropoffSame}
-                onChange={(e) => b.setDropoffSame(e.target.checked)}
-                className="h-4 w-4 accent-teal"
-              />
-              {t('Drop-off same as pickup')}
-            </label>
-            {!b.dropoffSame && (
-              <PickupMap
-                value={b.dropoffText}
-                onChange={b.setDropoffText}
-                onCoords={b.setDropoffCoords}
-                placeholder={t('Drop-off address')}
-              />
-            )}
-            {b.showTransportSuv && (
-              <label className="mt-2.5 flex items-center gap-2 text-[13px] text-ink/80">
-                <input
-                  type="checkbox"
-                  checked={b.suv}
-                  onChange={(e) => b.setSuv(e.target.checked)}
-                  className="h-4 w-4 accent-teal"
-                />
-                {t('I need an SUV / larger vehicle')}
-              </label>
-            )}
-            {b.pickupCoords && b.activity.lat != null && b.activity.lng != null && (
-              <RouteMap
-                className="mt-2.5 h-[200px] w-full overflow-hidden rounded-xl border border-ink/10"
-                stops={[
-                  { title: t('Pickup'), lat: b.pickupCoords.lat, lng: b.pickupCoords.lng },
-                  { title: b.activity.title, lat: b.activity.lat, lng: b.activity.lng },
-                ]}
-                labels={['P', 'A']}
-              />
-            )}
-            <div className="mt-2.5 flex items-center justify-between border-t border-ink/10 pt-2.5 text-[13px]">
-              <span className="text-ink/80">
-                {b.transportExtra > 0 && b.pickupRegion
-                  ? t('Transport (pickup from {region})', { region: b.pickupRegion })
-                  : t('Transport')}
-              </span>
-              <span className="font-semibold text-ink">
-                {b.transportExtra > 0 ? (
-                  <>+<Price eur={b.transportExtra} /></>
-                ) : (
-                  <span className="text-ink-muted">{t('Enter pickup to see price')}</span>
-                )}
-              </span>
-            </div>
-          </div>
-        )}
 
         <div className="mt-4 flex items-end justify-between gap-3 border-t border-ink/10 pt-4">
           <div>

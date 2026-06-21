@@ -13,8 +13,6 @@ import type {
 import {
   sightseeingQuote,
   childSeatsCost,
-  regionFromCoords,
-  transportFare,
   SIGHTSEEING_DEFAULT,
   SIGHTSEEING_SUV_MAX,
 } from '@/lib/services/pricing';
@@ -69,27 +67,6 @@ interface BookingState {
   setChildSeats: (n: number) => void;
   /** The child-seat add-on cost in EUR (already included in `total`). */
   childSeatsExtra: number;
-  // ── Region-based transport add-on (per_person / per_group with pickup) ──
-  /** True when this activity supports the transport add-on (mode + pickup_available + fare tables loaded). */
-  transportEligible: boolean;
-  /** Pickup address text (may be set without coords until a place/pin resolves). */
-  pickupText: string;
-  setPickupText: (s: string) => void;
-  /** Resolved pickup coordinates (drive the fare), or null. */
-  pickupCoords: { lat: number; lng: number } | null;
-  setPickupCoords: (c: { lat: number; lng: number } | null) => void;
-  /** The region the pickup resolves to (for the "pickup from {region}" label), or null. */
-  pickupRegion: string | null;
-  /** Drop-off defaults to "same as pickup"; when off, a separate drop-off is captured (map/records only). */
-  dropoffSame: boolean;
-  setDropoffSame: (b: boolean) => void;
-  dropoffText: string;
-  setDropoffText: (s: string) => void;
-  setDropoffCoords: (c: { lat: number; lng: number } | null) => void;
-  /** Whether to offer the SUV upgrade for transport (eligible, pickup set, party ≤4). */
-  showTransportSuv: boolean;
-  /** The transport add-on cost in EUR (already included in `total`); 0 until a pickup is set. */
-  transportExtra: number;
   days: Map<string, DayInfo> | null;
   checked: boolean;
   setChecked: (b: boolean) => void;
@@ -155,12 +132,6 @@ export function BookingProvider({
   const [lang, setLang] = useState(activity.languages[0] ?? 'English');
   const [suv, setSuv] = useState(false);
   const [childSeats, setChildSeats] = useState(0);
-  // Region-based transport add-on: pickup (coords drive the fare) + optional separate drop-off.
-  const [pickupText, setPickupText] = useState('');
-  const [pickupCoords, setPickupCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [dropoffSame, setDropoffSame] = useState(true);
-  const [dropoffText, setDropoffText] = useState('');
-  const [dropoffCoords, setDropoffCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [checked, setChecked] = useState(false);
   const [scrollTick, setScrollTick] = useState(0);
   // Reveal the card and (re)request a scroll-into-view. Bumping the tick on every press means a
@@ -292,34 +263,10 @@ export function BookingProvider({
         : selectedTier.amountEur * participants;
   const childSeatsExtra = childSeatsCost(childSeats);
 
-  // Region-based transport add-on (per_person / per_group with pickup): a fee that scales with the
-  // distance from the pickup to the activity's region. The displayed fare mirrors transportFare() and
-  // the SQL exactly; the server re-derives and enforces it at booking. No pickup -> no fee.
-  const transportEligible =
-    (activity.pricingMode === 'per_person' || activity.pricingMode === 'per_group') &&
-    activity.pickupAvailable &&
-    !!activity.region &&
-    !!activity.transportBands &&
-    !!activity.regionDistances;
-  const pickupRegion = pickupCoords ? regionFromCoords(pickupCoords.lat, pickupCoords.lng) : null;
-  const showTransportSuv = transportEligible && !!pickupCoords && participants <= SIGHTSEEING_SUV_MAX;
-  const transportSuv = showTransportSuv && suv;
-  const transportExtra =
-    transportEligible && pickupRegion && activity.region && activity.transportBands && activity.regionDistances
-      ? transportFare(
-          pickupRegion,
-          activity.region,
-          participants,
-          transportSuv,
-          activity.transportBands,
-          activity.regionDistances,
-        )
-      : 0;
-  // The SUV flag posted to the server: the sightseeing vehicle upgrade OR the transport upgrade (only
-  // one applies per activity). Carried to checkout so the server prices the same vehicle the widget showed.
-  const bookingSuv = suvActive || transportSuv;
-
-  const total = baseTotal == null ? null : baseTotal + childSeatsExtra + transportExtra;
+  // Region-based transport is no longer chosen here — pickup + the distance-based transport fee are
+  // confirmed in the CHECKOUT flow (one global place, for every pricing mode). The activity page shows
+  // the base price only; `pickupcap` (below) seeds checkout's "want pickup?" default.
+  const total = baseTotal == null ? null : baseTotal + childSeatsExtra;
   // Per-unit price for the cart: a vehicle is one flat unit (its whole price); per-group / per-person
   // is the tier's unit price (the cart multiplies it by the party). Never includes the child add-on.
   const unitPriceEur = isVehicle ? (baseTotal ?? 0) : (selectedTier?.amountEur ?? 0);
@@ -361,26 +308,6 @@ export function BookingProvider({
     } catch {
       /* sessionStorage unavailable — checkout will create the hold at pay */
     }
-    // Carry the pickup (coords + optional drop-off) to checkout via sessionStorage, keyed by occurrence —
-    // never in the URL (it'd leak the customer's hotel via Referer / history). Checkout prefills its
-    // Transport step from this and posts pickupLat/pickupLng so the server prices the same transport fare.
-    if (transportEligible && pickupCoords) {
-      try {
-        window.sessionStorage.setItem(
-          `gytm:pickup:${occ}`,
-          JSON.stringify({
-            address: pickupText,
-            lat: pickupCoords.lat,
-            lng: pickupCoords.lng,
-            dropoff: dropoffSame
-              ? null
-              : { address: dropoffText, lat: dropoffCoords?.lat ?? null, lng: dropoffCoords?.lng ?? null },
-          }),
-        );
-      } catch {
-        /* sessionStorage unavailable — checkout collects the pickup again */
-      }
-    }
     const dateText = new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
       day: 'numeric',
       month: 'short',
@@ -397,12 +324,15 @@ export function BookingProvider({
       when: dateText,
       guests: String(participants),
       unit: unitLabel,
-      suv: bookingSuv ? '1' : '0',
+      suv: suvActive ? '1' : '0',
       childSeats: String(childSeats),
-      transport: transportExtra ? String(transportExtra) : '',
-      // Pickup CAPABILITY (distinct from the computed `transport` fee): seeds step ①'s "want pickup?"
-      // default so a pickup-capable activity booked without a pre-entered pickup still defaults to Yes.
-      pickupcap: transportEligible ? '1' : '',
+      // Pickup CAPABILITY: seeds checkout step ①'s "want pickup?" default to Yes for a pickup-capable
+      // (per_person/per_group with pickup) activity. The pickup itself + the transport fee are chosen
+      // and priced AT CHECKOUT now, not here.
+      pickupcap:
+        (activity.pricingMode === 'per_person' || activity.pricingMode === 'per_group') && activity.pickupAvailable
+          ? '1'
+          : '',
       from: 'widget',
     });
     router.push(`/checkout?${q.toString()}`);
@@ -421,19 +351,6 @@ export function BookingProvider({
     childSeats,
     setChildSeats,
     childSeatsExtra,
-    transportEligible,
-    pickupText,
-    setPickupText,
-    pickupCoords,
-    setPickupCoords,
-    pickupRegion,
-    dropoffSame,
-    setDropoffSame,
-    dropoffText,
-    setDropoffText,
-    setDropoffCoords,
-    showTransportSuv,
-    transportExtra,
     days,
     checked,
     setChecked,
