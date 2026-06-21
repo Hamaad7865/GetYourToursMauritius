@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { IconCheck, IconGlobe, IconWallet, IconX } from '@/components/ui/icons';
 import type { Currency, Language } from './PreferencesProvider';
-import { CURRENCY_LABELS, LANGUAGE_LABELS } from './PreferencesProvider';
+import { CURRENCY_LABELS, LANGUAGE_LABELS, useT } from './PreferencesProvider';
 
 const LANGUAGES: Language[] = ['en', 'fr'];
 const CURRENCIES: Currency[] = ['EUR', 'USD'];
@@ -25,6 +25,7 @@ export function LangCurrencyModal({
   onCurrency: (c: Currency) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   const [active, setActive] = useState<'language' | 'currency'>(tab);
 
   useEffect(() => {
@@ -45,7 +46,7 @@ export function LangCurrencyModal({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label="Language and currency"
+      aria-label={t('Language and currency')}
       onMouseDown={onClose}
     >
       <div
@@ -55,7 +56,7 @@ export function LangCurrencyModal({
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close"
+          aria-label={t('Close')}
           className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full text-ink-muted hover:bg-cream hover:text-ink"
         >
           <IconX width={18} height={18} />
@@ -63,10 +64,10 @@ export function LangCurrencyModal({
 
         <div className="flex gap-6 border-b border-ink/10">
           <TabButton active={active === 'language'} onClick={() => setActive('language')} icon={<IconGlobe width={18} height={18} />}>
-            Language
+            {t('Language')}
           </TabButton>
           <TabButton active={active === 'currency'} onClick={() => setActive('currency')} icon={<IconWallet width={18} height={18} />}>
-            Currency
+            {t('Currency')}
           </TabButton>
         </div>
 

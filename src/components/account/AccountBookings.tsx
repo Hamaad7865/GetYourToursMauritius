@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { ResumePaymentButton } from '@/components/checkout/ResumePaymentButton';
-import { useT } from '@/components/site/PreferencesProvider';
+import { usePreferences, useT } from '@/components/site/PreferencesProvider';
+import { formatLocaleDate } from '@/lib/i18n/format';
+import type { Locale } from '@/lib/i18n/config';
 import { Price } from '@/components/site/Price';
 import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
 
@@ -49,8 +51,8 @@ function statusLabel(status: string): string {
   return status.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+function formatDate(iso: string, locale: Locale): string {
+  return formatLocaleDate(iso, locale, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 /** Earliest trip date across a booking's items, or null if none is known. */
@@ -72,11 +74,12 @@ function tripTitle(b: BookingRow): string | null {
 
 function BookingCard({ b }: { b: BookingRow }) {
   const t = useT();
+  const { language } = usePreferences();
   // Vehicle bookings store the headcount in pax (quantity is the vehicle count = 1); fall back to
   // quantity for per-person/per-group lines — same as the admin manifest's coalesce(pax, quantity).
   const guests = b.booking_items.reduce((sum, i) => sum + (i.pax ?? i.quantity), 0);
   const date = tripDate(b);
-  const when = date ? formatDate(date.toISOString()) : formatDate(b.created_at);
+  const when = date ? formatDate(date.toISOString(), language) : formatDate(b.created_at, language);
   const title = tripTitle(b);
   // An unpaid booking (e.g. the customer abandoned the payment step or returned later) needs a working
   // way to pay. ResumePaymentButton mints a fresh checkout session and lands on /pay?cid=… — without it

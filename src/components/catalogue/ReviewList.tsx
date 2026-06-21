@@ -1,6 +1,8 @@
 import type { Review } from '@/lib/validation/tours';
 import { initials, ratingBreakdown } from '@/lib/catalogue/detail';
-import { getT } from '@/lib/i18n/server';
+import { getLocale, getT } from '@/lib/i18n/server';
+import { formatLocaleDate } from '@/lib/i18n/format';
+import type { Locale } from '@/lib/i18n/config';
 import { IconStar } from '@/components/ui/icons';
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string;
@@ -21,10 +23,8 @@ function Stars({ value, size = 14, t }: { value: number; size?: number; t: Trans
   );
 }
 
-function reviewDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+function reviewDate(iso: string, locale: Locale): string {
+  return formatLocaleDate(iso, locale, { month: 'short', year: 'numeric' });
 }
 
 /** Guest-review block: aggregate score, star histogram and individual review cards. */
@@ -38,6 +38,7 @@ export async function ReviewList({
   reviews: Review[];
 }) {
   const t = await getT();
+  const locale = await getLocale();
   if (ratingCount === 0 && reviews.length === 0) {
     return (
       <p className="text-sm text-ink-muted">
@@ -94,7 +95,7 @@ export async function ReviewList({
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-bold text-ink">{review.author}</div>
-                  <div className="text-xs text-ink-muted">{reviewDate(review.createdAt)}</div>
+                  <div className="text-xs text-ink-muted">{reviewDate(review.createdAt, locale)}</div>
                 </div>
                 <Stars value={review.rating} size={13} t={t} />
               </div>

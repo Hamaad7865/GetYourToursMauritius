@@ -39,7 +39,7 @@ export function CookieNotice() {
     <div
       role="region"
       aria-label={t('Cookie notice')}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-white shadow-[0_-12px_30px_-24px_rgba(10,46,54,0.45)]"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-ink/10 bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_30px_-24px_rgba(10,46,54,0.45)]"
     >
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[13px] leading-snug text-ink-muted">
