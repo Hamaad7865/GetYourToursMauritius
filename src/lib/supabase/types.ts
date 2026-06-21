@@ -34,6 +34,7 @@ type ProfilesRow = {
   full_name: string | null;
   role: Database['public']['Enums']['user_role'];
   phone: string | null;
+  date_of_birth: string | null;
   created_at: string;
 };
 type ProfilesInsert = {
@@ -41,6 +42,7 @@ type ProfilesInsert = {
   full_name?: string | null;
   role?: Database['public']['Enums']['user_role'];
   phone?: string | null;
+  date_of_birth?: string | null;
   created_at?: string;
 };
 

@@ -4785,4 +4785,10 @@ $$;
 revoke execute on function api_erase_user(jsonb) from anon;
 grant execute on function api_erase_user(jsonb) to authenticated, service_role;
 
+-- ---- 20260622000000_profile_dob --------------------------------------------
+-- Optional date of birth on customer profiles (account "Personal details" page).
+-- RLS profiles_update already lets a user edit their own row; the GDPR erase
+-- deletes the whole profiles row, so this column is wiped on erasure too.
+alter table profiles add column if not exists date_of_birth date;
+
 commit;

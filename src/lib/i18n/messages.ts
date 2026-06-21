@@ -612,6 +612,7 @@ export const fr: Record<string, string> = {
   "Full name": "Nom complet",
   "Your name": "Votre nom",
   "Phone": "Téléphone",
+  "Date of birth": "Date de naissance",
   "Saved.": "Enregistré.",
   "Saving…": "Enregistrement…",
   "Save changes": "Enregistrer les modifications",

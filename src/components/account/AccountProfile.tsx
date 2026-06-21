@@ -11,6 +11,7 @@ export function AccountProfile() {
   const { user, profile, loading, refreshProfile } = useAuth();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
+  const [dob, setDob] = useState('');
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,6 +21,7 @@ export function AccountProfile() {
   useEffect(() => {
     setFullName(profile?.fullName ?? '');
     setPhone(profile?.phone ?? '');
+    setDob(profile?.dateOfBirth ?? '');
     // Intentionally keyed on identity only — syncing on every value change would overwrite
     // in-progress edits when refreshProfile() runs after a save.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -27,6 +29,9 @@ export function AccountProfile() {
 
   if (loading) return <AccountSpinner />;
   if (!user) return <SignedOutPrompt message={t('Sign in to view and edit your profile.')} />;
+
+  // Cap the date picker at today — a date of birth is never in the future.
+  const today = new Date().toISOString().slice(0, 10);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +43,7 @@ export function AccountProfile() {
     // missing profile row updates zero rows WITHOUT an error, which must not read as "Saved".
     const { data: updated, error } = await getBrowserSupabase()
       .from('profiles')
-      .update({ full_name: fullName || null, phone: phone || null })
+      .update({ full_name: fullName || null, phone: phone || null, date_of_birth: dob || null })
       .eq('id', user.id)
       .select('id')
       .maybeSingle();
@@ -85,6 +90,16 @@ export function AccountProfile() {
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+230 …"
+            className="rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal"
+          />
+        </label>
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[13px] font-bold text-ink">{t('Date of birth')}</span>
+          <input
+            type="date"
+            value={dob}
+            max={today}
+            onChange={(e) => setDob(e.target.value)}
             className="rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal"
           />
         </label>

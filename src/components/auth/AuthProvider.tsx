@@ -21,6 +21,7 @@ export interface Profile {
   id: string;
   fullName: string | null;
   phone: string | null;
+  dateOfBirth: string | null;
   role: string;
 }
 
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const sb = getBrowserSupabase();
     const { data, error } = await sb
       .from('profiles')
-      .select('id, full_name, phone, role')
+      .select('id, full_name, phone, role, date_of_birth')
       .eq('id', current.id)
       .maybeSingle();
 
@@ -69,7 +70,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     if (data) {
-      setProfile({ id: data.id, fullName: data.full_name, phone: data.phone, role: data.role });
+      setProfile({
+        id: data.id,
+        fullName: data.full_name,
+        phone: data.phone,
+        dateOfBirth: data.date_of_birth,
+        role: data.role,
+      });
       return;
     }
 
@@ -83,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: inserted, error: insertError } = await sb
       .from('profiles')
       .insert({ id: current.id, full_name: fullName })
-      .select('id, full_name, phone, role')
+      .select('id, full_name, phone, role, date_of_birth')
       .maybeSingle();
 
     if (insertError) {
@@ -91,12 +98,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // the primary-key constraint — re-read it rather than masking the failure.
       const { data: existing } = await sb
         .from('profiles')
-        .select('id, full_name, phone, role')
+        .select('id, full_name, phone, role, date_of_birth')
         .eq('id', current.id)
         .maybeSingle();
       setProfile(
         existing
-          ? { id: existing.id, fullName: existing.full_name, phone: existing.phone, role: existing.role }
+          ? {
+              id: existing.id,
+              fullName: existing.full_name,
+              phone: existing.phone,
+              dateOfBirth: existing.date_of_birth,
+              role: existing.role,
+            }
           : null,
       );
       return;
@@ -104,8 +117,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setProfile(
       inserted
-        ? { id: inserted.id, fullName: inserted.full_name, phone: inserted.phone, role: inserted.role }
-        : { id: current.id, fullName, phone: null, role: 'customer' },
+        ? {
+            id: inserted.id,
+            fullName: inserted.full_name,
+            phone: inserted.phone,
+            dateOfBirth: inserted.date_of_birth,
+            role: inserted.role,
+          }
+        : { id: current.id, fullName, phone: null, dateOfBirth: null, role: 'customer' },
     );
   }, []);
 
