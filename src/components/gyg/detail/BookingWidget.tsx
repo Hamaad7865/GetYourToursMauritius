@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useBooking } from './BookingProvider';
-import { useT } from '@/components/site/PreferencesProvider';
+import { usePreferences, useT } from '@/components/site/PreferencesProvider';
+import { formatLocaleDate } from '@/lib/i18n/format';
+import type { Locale } from '@/lib/i18n/config';
 import { Price } from '@/components/site/Price';
 import {
   IconBolt,
@@ -43,12 +45,14 @@ function MonthGrid({
   selectedKey,
   tomorrow,
   available,
+  locale,
   onPick,
 }: {
   month: Date;
   selectedKey: string;
   tomorrow: Date;
   available: (cell: Date) => boolean;
+  locale: Locale;
   onPick: (cell: Date) => void;
 }) {
   const t = useT();
@@ -64,21 +68,38 @@ function MonthGrid({
         const past = cell < tomorrow;
         const ok = available(cell);
         const isSel = selectedKey === nominalDayKey(cell);
+        // Full localized date so a screen reader announces "Saturday, 9 August 2026" instead of "9".
+        // Unavailable days get the localized ", unavailable" suffix so the visual (muted + strike)
+        // cue is also conveyed to assistive tech.
+        const fullDate = formatLocaleDate(cell, locale, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+        const label = ok ? fullDate : t('{date}, unavailable', { date: fullDate });
         return (
+          // Outer button is the ≥44px tap target; the inner span keeps the 36px visual glyph.
           <button
             key={cell.toISOString()}
             type="button"
             disabled={!ok}
+            aria-label={label}
+            aria-pressed={isSel}
             onClick={() => onPick(cell)}
-            className={`mx-auto grid h-9 w-9 place-items-center rounded-full text-[13px] font-medium ${
-              isSel
-                ? 'bg-teal text-white'
-                : ok
-                  ? 'text-ink hover:bg-teal/10'
-                  : `cursor-default text-ink/30 ${past ? 'line-through' : ''}`
-            }`}
+            className="mx-auto grid min-h-[44px] min-w-[44px] place-items-center"
           >
-            {cell.getDate()}
+            <span
+              className={`grid h-9 w-9 place-items-center rounded-full text-[13px] font-medium ${
+                isSel
+                  ? 'bg-teal text-white'
+                  : ok
+                    ? 'text-ink hover:bg-teal/10'
+                    : `cursor-default text-ink/55 ${past ? 'line-through' : ''}`
+              }`}
+            >
+              {cell.getDate()}
+            </span>
           </button>
         );
       })}
@@ -93,6 +114,7 @@ function MonthGrid({
  */
 export function BookingWidget() {
   const t = useT();
+  const { language } = usePreferences();
   const b = useBooking();
   const {
     activity,
@@ -123,6 +145,18 @@ export function BookingWidget() {
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
   const rootRef = useRef<HTMLDivElement>(null);
+  const partsTriggerRef = useRef<HTMLButtonElement>(null);
+  const dateTriggerRef = useRef<HTMLButtonElement>(null);
+  const langTriggerRef = useRef<HTMLButtonElement>(null);
+
+  /** Close a popover and return focus to the trigger that opened it (disclosure focus-restore). */
+  function closePopover(which?: 'parts' | 'date' | 'lang') {
+    const target = which ?? open;
+    setOpen(null);
+    const ref =
+      target === 'parts' ? partsTriggerRef : target === 'date' ? dateTriggerRef : target === 'lang' ? langTriggerRef : null;
+    ref?.current?.focus();
+  }
 
   const today = startOfDay(new Date());
   const tomorrow = new Date(today);
@@ -133,19 +167,24 @@ export function BookingWidget() {
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
+      // Outside pointer-click closes without yanking focus back — the user is already elsewhere.
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(null);
     };
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(null);
+    // Escape returns focus to the trigger that opened the popover (well-behaved disclosure).
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closePopover(open);
+    };
     window.addEventListener('mousedown', onClick);
     window.addEventListener('keydown', onKey);
     return () => {
       window.removeEventListener('mousedown', onClick);
       window.removeEventListener('keydown', onKey);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const dateText = date
-    ? new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    ? formatLocaleDate(`${date}T00:00:00`, language, { day: 'numeric', month: 'short', year: 'numeric' })
     : t('Select a date');
   const noAvailability = days !== null && days.size === 0;
 
@@ -156,7 +195,7 @@ export function BookingWidget() {
   }
   function pickDate(cell: Date) {
     setDate(nominalDayKey(cell));
-    setOpen(null);
+    closePopover('date'); // close + return focus to the date trigger
     touch(); // keep the option card open + show it updating to the new date
     setParticipants(Math.max(1, Math.min(participants, maxParticipants)));
   }
@@ -202,7 +241,14 @@ export function BookingWidget() {
         <div className="mt-4 flex flex-col gap-2.5">
           {/* Participants */}
           <div className="relative">
-            <button type="button" onClick={() => setOpen((o) => (o === 'parts' ? null : 'parts'))} className={rowClass}>
+            <button
+              ref={partsTriggerRef}
+              type="button"
+              onClick={() => setOpen((o) => (o === 'parts' ? null : 'parts'))}
+              aria-haspopup="dialog"
+              aria-expanded={open === 'parts'}
+              className={rowClass}
+            >
               <IconUsers width={18} height={18} className="text-teal" />
               <span className="flex-1 text-[14px] font-semibold text-ink">
                 {t('Participants')} <span className="text-ink-muted">× {participants}</span>
@@ -227,9 +273,11 @@ export function BookingWidget() {
                         touch();
                       }}
                       disabled={participants <= 1}
-                      className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+                      className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
                     >
-                      <IconMinus width={15} height={15} />
+                      <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
+                        <IconMinus width={15} height={15} />
+                      </span>
                     </button>
                     <input
                       type="number"
@@ -253,24 +301,29 @@ export function BookingWidget() {
                         touch();
                       }}
                       disabled={participants >= partyCap}
-                      className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+                      className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
                     >
-                      <IconPlus width={15} height={15} />
+                      <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
+                        <IconPlus width={15} height={15} />
+                      </span>
                     </button>
                   </div>
                 </div>
-                {participants >= MAX_PARTY && (
-                  <p className="mt-3 text-[12.5px] text-ink-muted">
-                    {t('Travelling with more than {n}?', { n: MAX_PARTY })}{' '}
-                    <Link href="/contact" className="font-bold text-teal underline underline-offset-2">
-                      {t('Contact us')}
-                    </Link>{' '}
-                    {t('for a quote.')}
-                  </p>
-                )}
+                {/* aria-live so a screen reader hears the over-cap note appear/clear as the count crosses MAX_PARTY. */}
+                <div aria-live="polite">
+                  {participants >= MAX_PARTY && (
+                    <p className="mt-3 text-[12.5px] text-ink-muted">
+                      {t('Travelling with more than {n}?', { n: MAX_PARTY })}{' '}
+                      <Link href="/contact" className="font-bold text-teal underline underline-offset-2">
+                        {t('Contact us')}
+                      </Link>{' '}
+                      {t('for a quote.')}
+                    </p>
+                  )}
+                </div>
                 <button
                   type="button"
-                  onClick={() => setOpen(null)}
+                  onClick={() => closePopover('parts')}
                   className="mt-4 w-full rounded-full bg-teal px-4 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
                 >
                   {t('Continue')}
@@ -282,9 +335,12 @@ export function BookingWidget() {
           {/* Date */}
           <div className="relative">
             <button
+              ref={dateTriggerRef}
               type="button"
               disabled={noAvailability}
               onClick={() => setOpen((o) => (o === 'date' ? null : 'date'))}
+              aria-haspopup="dialog"
+              aria-expanded={open === 'date'}
               className={`${rowClass} disabled:opacity-60`}
             >
               <IconCalendar width={18} height={18} className="text-teal" />
@@ -296,7 +352,11 @@ export function BookingWidget() {
             {open === 'date' && (
               // Floats above the page (the card no longer clips it) — anchored right, it extends left
               // over the gallery. Two months on sm+, one on mobile, like the GYG-style picker.
-              <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-[min(92vw,21rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] sm:w-[40rem]">
+              <div
+                role="dialog"
+                aria-label={t('Choose a date')}
+                className="absolute right-0 top-[calc(100%+6px)] z-30 w-[min(92vw,21rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] sm:w-[40rem]"
+              >
                 {/* Nav: prev far-left, month name(s) centred, next far-right. */}
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <button
@@ -304,14 +364,16 @@ export function BookingWidget() {
                     aria-label={t('Previous month')}
                     disabled={!canBack}
                     onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
+                    className="grid h-11 w-11 shrink-0 place-items-center text-ink disabled:opacity-30"
                   >
-                    <IconChevronLeft width={16} height={16} />
+                    <span className="grid h-7 w-7 place-items-center rounded-full hover:bg-cream">
+                      <IconChevronLeft width={16} height={16} />
+                    </span>
                   </button>
                   <div className="flex flex-1 justify-around text-[14px] font-bold text-ink">
-                    <span>{view.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</span>
+                    <span>{formatLocaleDate(view, language, { month: 'long', year: 'numeric' })}</span>
                     <span className="hidden sm:inline">
-                      {new Date(view.getFullYear(), view.getMonth() + 1, 1).toLocaleDateString('en-GB', {
+                      {formatLocaleDate(new Date(view.getFullYear(), view.getMonth() + 1, 1), language, {
                         month: 'long',
                         year: 'numeric',
                       })}
@@ -322,14 +384,23 @@ export function BookingWidget() {
                     aria-label={t('Next month')}
                     disabled={!canFwd}
                     onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
-                    className="grid h-7 w-7 shrink-0 place-items-center rounded-full text-ink hover:bg-cream disabled:opacity-30"
+                    className="grid h-11 w-11 shrink-0 place-items-center text-ink disabled:opacity-30"
                   >
-                    <IconChevronRight width={16} height={16} />
+                    <span className="grid h-7 w-7 place-items-center rounded-full hover:bg-cream">
+                      <IconChevronRight width={16} height={16} />
+                    </span>
                   </button>
                 </div>
                 <div className="flex gap-6">
                   <div className="flex-1">
-                    <MonthGrid month={view} selectedKey={date} tomorrow={tomorrow} available={(c) => !isDisabled(c)} onPick={pickDate} />
+                    <MonthGrid
+                      month={view}
+                      selectedKey={date}
+                      tomorrow={tomorrow}
+                      available={(c) => !isDisabled(c)}
+                      locale={language}
+                      onPick={pickDate}
+                    />
                   </div>
                   <div className="hidden flex-1 sm:block">
                     <MonthGrid
@@ -337,6 +408,7 @@ export function BookingWidget() {
                       selectedKey={date}
                       tomorrow={tomorrow}
                       available={(c) => !isDisabled(c)}
+                      locale={language}
                       onPick={pickDate}
                     />
                   </div>
@@ -349,9 +421,11 @@ export function BookingWidget() {
           {activity.languages.length > 0 && (
             <div className="relative">
               <button
+                ref={langTriggerRef}
                 type="button"
                 onClick={() => setOpen((o) => (o === 'lang' ? null : 'lang'))}
                 aria-label={t('Guide language')}
+                aria-haspopup="listbox"
                 aria-expanded={open === 'lang'}
                 className={rowClass}
               >
@@ -365,16 +439,22 @@ export function BookingWidget() {
                 />
               </button>
               {open === 'lang' && (
-                <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/12 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+                <div
+                  role="listbox"
+                  aria-label={t('Guide language')}
+                  className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/12 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]"
+                >
                   {activity.languages.map((l) => {
                     const active = l === lang;
                     return (
                       <button
                         key={l}
                         type="button"
+                        role="option"
+                        aria-selected={active}
                         onClick={() => {
                           setLang(l);
-                          setOpen(null);
+                          closePopover('lang');
                         }}
                         className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-ink hover:bg-cream"
                       >
@@ -403,14 +483,17 @@ export function BookingWidget() {
         >
           {t('Check availability')}
         </button>
-        {date && !isVehicle && seatsForDate > 0 && seatsForDate < participants && (
-          <p className="mt-2 text-center text-[12px] font-medium text-coral">
-            {t('Only {n} {noun} left on this date.', {
-              n: seatsForDate,
-              noun: seatsForDate === 1 ? t('spot') : t('spots'),
-            })}
-          </p>
-        )}
+        {/* aria-live so a screen reader hears the low-availability warning when it appears/updates. */}
+        <div aria-live="polite">
+          {date && !isVehicle && seatsForDate > 0 && seatsForDate < participants && (
+            <p className="mt-2 text-center text-[12px] font-medium text-coral">
+              {t('Only {n} {noun} left on this date.', {
+                n: seatsForDate,
+                noun: seatsForDate === 1 ? t('spot') : t('spots'),
+              })}
+            </p>
+          )}
+        </div>
         <p className="mt-2 text-center text-[11.5px] text-ink-muted">
           {t('You won’t be charged until you confirm.')}
         </p>
