@@ -99,3 +99,106 @@ describe('createPaymentLink persists the charged amount + currency', () => {
     expect(row.charged_amount_minor).toBe(expectedUsd * 100); // 12100 minor units
   });
 });
+
+/**
+ * api_record_payment_charge is SECURITY DEFINER, so it bypasses payments RLS. 20260725000000 adds the
+ * authorization guard (only staff or the booking owner may record a charge — closing the IDOR) and the
+ * record-once clause (a re-pay at a moved FX rate must not overwrite the first recorded charge).
+ *
+ * These call the RPC directly so we can flip the caller's auth.uid()/role precisely.
+ */
+describe('api_record_payment_charge authorization + record-once guards', () => {
+  const OWNER = 'c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1';
+  const ATTACKER = 'd2d2d2d2-d2d2-d2d2-d2d2-d2d2d2d2d2d2';
+  let db: TestDb;
+  let paymentId: string;
+
+  beforeAll(async () => {
+    db = await createTestDb();
+    await db.asOwner();
+    await db.pg.exec(catalogueToSeedSql(catalogue));
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [OWNER]);
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [ATTACKER]);
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [OWNER]);
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [ATTACKER]);
+
+    const { rows } = await db.pg.query<{ id: string }>(
+      `select so.id from session_occurrences so
+       join activity_options o on o.id = so.activity_option_id
+       join activities a on a.id = o.activity_id
+       where a.slug = 'private-south-tour-with-pickup' limit 1`,
+    );
+    const occId = rows[0]!.id;
+
+    // Owner books + creates a payment via the real RPC path (runs as the owner).
+    await db.as({ sub: OWNER, role: 'authenticated' });
+    const ctx: ServiceContext = {
+      db: pgliteRpc(db.pg),
+      payments: new StubPaymentProvider(),
+      ai: createStubAiProvider(),
+      now: () => new Date(),
+    };
+    const booking = await createBooking(ctx, {
+      occurrenceId: occId,
+      party: { 'Private group': 2 },
+      customer: { name: 'Owner', email: 'owner@example.com' },
+      idempotencyKey: 'guard-book-1',
+    });
+    // createBooking (api_book) only creates the booking; the payment row comes from api_create_payment
+    // (also owner-or-staff guarded, so this runs as the owner).
+    const created = await db.pg.query<{ data: { paymentId: string } }>(
+      `select api_create_payment($1::jsonb) as data`,
+      [JSON.stringify({ bookingRef: booking.ref, idempotencyKey: 'guard-pay-1' })],
+    );
+    paymentId = created.rows[0]!.data.paymentId;
+    await db.asOwner();
+  });
+
+  afterAll(async () => {
+    await db.close();
+  });
+
+  const recordCharge = (minor: number, currency: string) =>
+    db.pg.query<{ data: unknown }>(`select api_record_payment_charge($1::jsonb) as data`, [
+      JSON.stringify({ paymentId, chargedAmountMinor: minor, chargedCurrency: currency }),
+    ]);
+
+  const readCharge = async () => {
+    await db.asOwner();
+    const row = (
+      await db.pg.query<{ charged_amount_minor: number | null; charged_currency: string | null }>(
+        `select charged_amount_minor, charged_currency from payments where id = $1`,
+        [paymentId],
+      )
+    ).rows[0]!;
+    return row;
+  };
+
+  it('IDOR: a non-owner authenticated caller is rejected (forbidden) and records nothing', async () => {
+    await db.as({ sub: ATTACKER, role: 'authenticated' });
+    await expect(recordCharge(99900, 'USD')).rejects.toThrow(/forbidden/);
+
+    const row = await readCharge();
+    expect(row.charged_amount_minor).toBeNull(); // attacker's value never landed
+    expect(row.charged_currency).toBeNull();
+  });
+
+  it('legit: the booking owner can record the charge', async () => {
+    await db.as({ sub: OWNER, role: 'authenticated' });
+    await recordCharge(12100, 'USD');
+
+    const row = await readCharge();
+    expect(row.charged_amount_minor).toBe(12100);
+    expect(row.charged_currency).toBe('USD');
+  });
+
+  it('record-once (FX drift): a second call does NOT overwrite an already-recorded charge', async () => {
+    // Owner re-pays an older checkout after the rate moved — the new (wrong) amount must not stick.
+    await db.as({ sub: OWNER, role: 'authenticated' });
+    await recordCharge(13000, 'USD'); // succeeds (no error) but is a no-op on the already-set row
+
+    const row = await readCharge();
+    expect(row.charged_amount_minor).toBe(12100); // still the first recorded value
+    expect(row.charged_currency).toBe('USD');
+  });
+});

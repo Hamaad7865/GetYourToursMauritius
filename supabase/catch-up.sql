@@ -4421,6 +4421,9 @@ grant execute on function api_rate_limit(jsonb) to anon, authenticated, service_
 alter table payments add column if not exists charged_amount_minor integer;
 alter table payments add column if not exists charged_currency text;
 
+-- Superseded by 20260725000000_payment_charge_guard: IDOR guard (SECURITY DEFINER bypassed payments RLS,
+-- so any signed-in user with a payment UUID could falsify the recorded charge on another customer's
+-- invoice) + record-once (FX-drift: a re-pay at a moved rate must not overwrite the first charge).
 create or replace function api_record_payment_charge(p jsonb)
 returns jsonb
 language plpgsql
@@ -4436,10 +4439,21 @@ begin
     raise exception 'invalid_request' using detail = 'record_payment_charge: paymentId required';
   end if;
 
+  -- IDOR guard: SECURITY DEFINER bypasses payments RLS, so authorize here. Only staff or the booking's
+  -- owner may record a charge. auth.uid() must be non-null, else `null = null` is NULL (not false).
+  if not (is_staff() or exists (
+    select 1 from payments pay
+    join bookings b on b.id = pay.booking_id
+    where pay.id = v_payment_id and auth.uid() is not null and b.user_id = auth.uid()
+  )) then
+    raise exception 'forbidden';
+  end if;
+
+  -- Record the charge ONCE (FX-drift fix): a later re-pay at a different rate must not overwrite it.
   update payments
   set charged_amount_minor = v_minor,
       charged_currency = v_currency
-  where id = v_payment_id;
+  where id = v_payment_id and charged_amount_minor is null;
 
   return jsonb_build_object('ok', true);
 end;
