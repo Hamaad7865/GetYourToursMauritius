@@ -10,7 +10,7 @@ import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
-import { canAdvanceStep1, defaultWantsPickup } from '@/lib/checkout/pickup';
+import { canAdvanceStep1 } from '@/lib/checkout/pickup';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { useCart } from '@/lib/cart/useCart';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
@@ -89,10 +89,6 @@ export function Checkout() {
   // Child seats chosen (first free, €6 each extra). Clamp to [0,25] AND to the party (qty): the server
   // caps child_seats at the booked party, so a stale/hand-edited URL must not show or charge more.
   const childSeats = Math.max(0, Math.min(25, qty, parseInt(params.get('childSeats') ?? '0', 10) || 0));
-  // Transport add-on display hint from the widget; the server re-derives + enforces the real fee from
-  // the pickup coordinates, so this is only for the order summary before the booking is created.
-  const transportNum = Number(params.get('transport'));
-  const transportHint = Number.isFinite(transportNum) && transportNum > 0 ? transportNum : 0;
   // Continue ("Book now", from=widget) carries a custom route stashed by slug; a cart line carries its
   // OWN route, staged by occurrence (from=cart). Either may be present; neither inherits the other's.
   const fromWidget = params.get('from') === 'widget';
@@ -158,21 +154,11 @@ export function Checkout() {
   const pickupParam = (params.get('pickup') ?? '').slice(0, 160);
   const dropoffParam = (params.get('dropoff') ?? '').slice(0, 160);
 
-  // Does this activity support pickup? The widget threads its pickup CAPABILITY (pickupcap=1) for any
-  // pickup-capable (per_person/per_group with pickup) activity, even when no fee was computed because
-  // the customer hadn't pre-entered a pickup. That capability — OR a positive transport-fee hint, OR a
-  // planner/widget pickup prefill — means "transport applies" → default to Yes. A fixed-location
-  // activity (not capable, no hint, no prefill) defaults to No → "Meet at {location}".
-  const pickupCapable = params.get('pickupcap') === '1';
-  const transportApplies = defaultWantsPickup({
-    pickupCapable,
-    hasTransportHint: transportHint > 0,
-    hasPickupPrefill: Boolean(pickupParam),
-  });
-
   const [step, setStep] = useState(1);
-  // "Do you want pickup?" — default Yes when transport applies (or a pickup was pre-filled), else No.
-  const [wantsPickup, setWantsPickup] = useState(transportApplies);
+  // "Do you want pickup?" — ALWAYS defaults to Yes (this operator picks customers up by default). The
+  // customer can still switch to "No, I'll make my own way". A pickup default needs an address (or
+  // "I don't know yet") to advance — see canAdvanceStep1.
+  const [wantsPickup, setWantsPickup] = useState(true);
   // "I don't know yet" — a pickup is wanted but no address can be given now (server charges no fee).
   const [tbd, setTbd] = useState(false);
   const [pickupLoc, setPickupLoc] = useState(pickupParam);
