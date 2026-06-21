@@ -5,7 +5,7 @@ import { SITE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
-const UPDATED = '18 July 2026';
+const UPDATED = '22 June 2026';
 
 export const metadata: Metadata = {
   title: `Privacy policy · ${SITE.operator}`,
@@ -60,23 +60,39 @@ export default function PrivacyPage() {
         </LegalSection>
 
         <LegalSection id="collect" title="What we collect">
+          <P>
+            We collect only what we need to take your booking and run your trip. Concretely, that is:
+          </P>
           <LegalList
             items={[
-              <>
-                <strong>Booking details</strong> — the activity, date, party size, options and any
-                pickup location or itinerary you choose.
-              </>,
               <>
                 <strong>Contact details</strong> — your name, email and phone number, so we can
                 confirm and run your booking.
               </>,
               <>
-                <strong>Account details</strong> — if you create an account, your email and a secured
-                password (we never see it in plain text), handled by our authentication provider.
+                <strong>Booking details</strong> — the activity, date, party size and options you
+                choose, plus any <strong>pickup and drop-off location</strong> and custom itinerary
+                you give us so your guide or driver can reach you.
               </>,
               <>
-                <strong>Payment confirmation</strong> — the amount, currency and a reference from our
-                payment provider. We do <strong>not</strong> receive or store your full card number.
+                <strong>Payment confirmation</strong> — the amount, currency, payment status and a
+                reference from our payment provider. We do <strong>not</strong> receive or store your
+                full card number.
+              </>,
+              <>
+                <strong>Enquiries</strong> — if you send us an enquiry or contact us about an activity,
+                we keep your name and the email or phone number you contacted us on, so we can reply
+                and follow up.
+              </>,
+              <>
+                <strong>Account details</strong> — creating an account is optional. If you do, we hold
+                your email, an optional name and phone number, and a secured password we never see in
+                plain text (handled by our authentication provider).
+              </>,
+              <>
+                <strong>Trip planner</strong> — if you use the AI road-trip planner, your messages are
+                sent to our AI provider to generate suggestions for that session. We don&apos;t use
+                them to build a marketing profile of you.
               </>,
               <>
                 <strong>Usage data</strong> — basic, mostly anonymous information about how the site is
@@ -121,17 +137,48 @@ export default function PrivacyPage() {
 
         <LegalSection id="sharing" title="Who we share it with">
           <P>
-            We don&apos;t sell your data. We share it only with the trusted providers that help us run
-            the service, and only as far as needed:
+            We don&apos;t sell your data. We share it only with the trusted service providers
+            (&quot;processors&quot;) that help us run the platform, and only as far as each one needs:
           </P>
           <LegalList
             items={[
-              'Our payment provider, to process your payment securely.',
-              'Our hosting, database and email providers, to operate the platform and send confirmations.',
-              'Guides, skippers and drivers who run your specific activity, with just the details they need to deliver it.',
-              'Authorities or advisers where we are legally required to, or to protect our rights.',
+              <>
+                <strong>Supabase</strong> — hosting and database for your booking, account and enquiry
+                data.
+              </>,
+              <>
+                <strong>Resend</strong> — sends your transactional email, such as booking
+                confirmations, vouchers and receipts.
+              </>,
+              <>
+                <strong>Peach Payments</strong> — processes your card payment. Your card details go
+                directly to them; we only receive a confirmation.
+              </>,
+              <>
+                <strong>Google</strong> — powers maps and location search, and the AI road-trip
+                planner. Location searches and planner messages are processed by Google to return
+                results.
+              </>,
+              <>
+                <strong>Cloudflare</strong> — hosting and content delivery (CDN) that serves the site
+                securely and quickly.
+              </>,
+              <>
+                <strong>Guides, skippers and drivers</strong> who run your specific activity, with just
+                the details they need to find you and deliver it.
+              </>,
+              <>
+                <strong>Authorities or professional advisers</strong> where we are legally required to,
+                or to establish or defend legal claims.
+              </>,
             ]}
           />
+          <P>
+            Some of these providers process data outside Mauritius and the EU. Where that happens, we
+            rely on appropriate safeguards — such as standard contractual clauses — so your data keeps
+            a comparable level of protection. See{' '}
+            <a href="#transfers">International transfers</a> below.
+          </P>
         </LegalSection>
 
         <LegalSection id="payments" title="Payment data">
@@ -145,42 +192,83 @@ export default function PrivacyPage() {
         <LegalSection id="cookies" title="Cookies & storage">
           <P>
             We keep this light. We use essential cookies and similar browser storage to keep you
-            signed in, remember your cart and keep the site secure. We default to declining
-            non-essential cookies and we don&apos;t run third-party advertising trackers.
+            signed in, remember your cart, language and currency, and keep the site secure. We
+            don&apos;t run third-party advertising trackers. This browser-stored data stays on your
+            device and is cleared when you sign out.
+          </P>
+          <P>
+            For the full detail of what we store in your browser and why, see our{' '}
+            <a href="/cookies">Cookie notice</a>.
           </P>
         </LegalSection>
 
         <LegalSection id="retention" title="How long we keep it">
-          <P>
-            We keep booking and account data for as long as you have an account or an active booking
-            with us, and afterwards only as long as needed for legal, accounting and dispute purposes
-            (typically up to the period required by Mauritius law). We then delete or anonymise it.
-          </P>
+          <LegalList
+            items={[
+              <>
+                <strong>Paid bookings</strong> — the financial records of a paid booking (invoice,
+                amount, reference) are kept for the period required by Mauritius tax and accounting
+                law. After that, your personal details on those records are anonymised while the
+                figures we&apos;re obliged to keep remain.
+              </>,
+              <>
+                <strong>Enquiries, draft bookings and your profile</strong> — non-essential data like
+                this is kept while it&apos;s useful and is deleted when you ask us to, or when you
+                delete your account.
+              </>,
+              <>
+                <strong>Browser-stored data</strong> — your cart and preferences live on your device,
+                not on our servers, and clear when you sign out.
+              </>,
+            ]}
+          />
         </LegalSection>
 
         <LegalSection id="rights" title="Your rights">
           <P>Subject to the applicable law, you can ask us to:</P>
           <LegalList
             items={[
-              'Access the personal data we hold about you, and receive a copy.',
-              'Correct anything that is inaccurate or incomplete.',
-              'Delete your data where we no longer need it.',
-              'Restrict or object to certain uses, and withdraw any consent you gave.',
-              'Receive your data in a portable format where that right applies.',
+              <>
+                <strong>Access</strong> the personal data we hold about you, and receive a copy.
+              </>,
+              <>
+                <strong>Rectify</strong> anything that is inaccurate or incomplete.
+              </>,
+              <>
+                <strong>Erase</strong> your data where we no longer need it (financial records we are
+                legally required to keep are anonymised rather than deleted).
+              </>,
+              <>
+                <strong>Port</strong> your data — receive it in a portable, machine-readable format
+                where that right applies.
+              </>,
+              <>
+                <strong>Object to or restrict</strong> certain uses, and withdraw any consent you gave.
+              </>,
             ]}
           />
-          <P>
-            To exercise any of these, email{' '}
-            <a href={`mailto:${SITE.email}`}>{SITE.email}</a>. We&apos;ll respond within the time the
-            law allows, and we may need to verify your identity first.
-          </P>
+          <Callout tone="info" title="How to exercise your rights">
+            <P>
+              <strong>If you have an account</strong>, the quickest way is the{' '}
+              <a href="/account/privacy">Data &amp; privacy</a> section of your account. There you can{' '}
+              <strong>Download my data</strong> (a copy of your profile and booking history) or{' '}
+              <strong>Delete my account</strong> (which removes your personal details; paid bookings
+              are anonymised for the legal reasons above).
+            </P>
+            <P>
+              <strong>If you booked as a guest, or want to make a written request</strong>, email{' '}
+              <a href={`mailto:${SITE.email}`}>{SITE.email}</a>. We aim to respond within{' '}
+              <strong>30 days</strong>, and we may need to verify your identity first.
+            </P>
+          </Callout>
         </LegalSection>
 
         <LegalSection id="transfers" title="International transfers">
           <P>
-            Some of our providers operate outside Mauritius. Where your data is transferred abroad, we
-            take steps to ensure it stays protected to a standard consistent with applicable
-            data-protection law.
+            Some of our providers — including Supabase, Resend, Peach Payments, Google and Cloudflare —
+            operate outside Mauritius and the EU. Where your data is transferred abroad, we rely on
+            appropriate safeguards, such as <strong>standard contractual clauses</strong>, so it keeps
+            a level of protection consistent with applicable data-protection law.
           </P>
         </LegalSection>
 
