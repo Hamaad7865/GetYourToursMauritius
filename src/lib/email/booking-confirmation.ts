@@ -1,4 +1,5 @@
 import type { InvoiceModel } from '@/lib/invoice/model';
+import { formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
 
 /**
  * Branded HTML confirmation email rendered from the pure {@link InvoiceModel}. The invoice/receipt PDF
@@ -33,16 +34,6 @@ function money(currency: string, amount: number): string {
   return `${currency} ${amount.toFixed(2)}`;
 }
 
-/** Render an ISO timestamp as a stable, locale-independent UTC string. Pure — no `new Date()` math. */
-function formatWhen(iso: string): string {
-  if (!iso) return '';
-  // Keep it deterministic and dependency-free: show the date + HH:MM from the ISO string itself.
-  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(iso);
-  if (!m) return iso;
-  const [, y, mo, d, hh, mm] = m;
-  return `${y}-${mo}-${d} ${hh}:${mm} UTC`;
-}
-
 export interface RenderedEmail {
   subject: string;
   html: string;
@@ -53,7 +44,7 @@ export function renderConfirmationEmail(model: InvoiceModel): RenderedEmail {
   const operator = model.business.legalName;
   const ref = model.booking.ref;
   const activity = model.booking.activityTitle;
-  const when = formatWhen(model.booking.when);
+  const when = formatMauritiusDateTime(model.booking.when);
   const totalStr = money(model.currency, model.totalGrossEur);
   const totalHtml = escapeHtml(totalStr);
 

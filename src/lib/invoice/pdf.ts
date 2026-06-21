@@ -1,5 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import type { InvoiceModel } from './model';
+import { formatMauritiusDate, formatMauritiusDateTime } from './mauritius-time';
 
 /**
  * Edge-safe combined Tax Invoice / Receipt PDF renderer.
@@ -56,26 +57,6 @@ function fitText(text: string, font: PDFFont, size: number, maxWidth: number): s
     else hi = mid - 1;
   }
   return clean.slice(0, lo) + ellipsis;
-}
-
-/** Format an ISO timestamp as `YYYY-MM-DD HH:mm UTC`; fall back to the raw string if unparseable. */
-function formatWhen(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return toWinAnsi(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(
-    d.getUTCHours(),
-  )}:${pad(d.getUTCMinutes())} UTC`;
-}
-
-/** Format an ISO timestamp as a plain `YYYY-MM-DD` date (no time); raw fallback. */
-function formatDate(iso: string | null | undefined): string {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return toWinAnsi(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
 }
 
 export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array> {
@@ -148,7 +129,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   y -= 16;
   textRight(`Invoice No: ${model.invoiceNumber}`, CONTENT_RIGHT, { size: 9, color: MUTED });
   y -= 12;
-  textRight(`Date: ${formatDate(model.issuedAt)}`, CONTENT_RIGHT, { size: 9, color: MUTED });
+  textRight(`Date: ${formatMauritiusDate(model.issuedAt)}`, CONTENT_RIGHT, { size: 9, color: MUTED });
   // Resume below whichever block (left header / right title) ended lower.
   y = Math.min(savedY, y) - 22;
 
@@ -181,7 +162,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   text(fitText(trip.activityTitle || '', font, 10, CONTENT_RIGHT - MARGIN), { size: 10 });
   y -= 13;
   if (trip.when) {
-    text(`Date: ${formatWhen(trip.when)}`, { size: 10, color: MUTED });
+    text(`Date: ${formatMauritiusDateTime(trip.when)}`, { size: 10, color: MUTED });
     y -= 13;
   }
   if (trip.pickup) {
@@ -265,7 +246,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   if (pay && typeof pay.chargedAmount === 'number') {
     chargeParts.push(`${toWinAnsi(pay.chargedCurrency || currency)} ${pay.chargedAmount.toFixed(2)}`);
   }
-  if (pay?.paidAt) chargeParts.push(`on ${formatDate(pay.paidAt)}`);
+  if (pay?.paidAt) chargeParts.push(`on ${formatMauritiusDate(pay.paidAt)}`);
   by -= 20;
   if (chargeParts.length) {
     page.drawText(fitText(chargeParts.join('  '), font, 10, boxWidth - 24), {

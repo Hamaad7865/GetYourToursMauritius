@@ -65,6 +65,10 @@ export class ResendNotificationProvider implements NotificationProvider {
       headers: {
         authorization: `Bearer ${this.config.apiKey}`,
         'content-type': 'application/json',
+        // Idempotency: the drain does send -> mark-sent. If the edge worker dies between the two,
+        // the row re-claims after its lease and re-sends. Keying on the outbox row id (message.id)
+        // lets Resend dedup the retry for 24h, so the customer never gets a second invoice email.
+        'Idempotency-Key': `notif:${message.id}`,
       },
       body: JSON.stringify(body),
     });

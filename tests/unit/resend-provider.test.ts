@@ -57,6 +57,11 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
     const { url, body } = onlyCall(calls);
     expect(url).toBe('https://api.resend.com/emails');
 
+    // Idempotency: the POST carries `Idempotency-Key: notif:{message.id}` so a re-claimed retry
+    // (worker died between send + mark-sent) is deduped by Resend and never delivers a 2nd copy.
+    const headers = calls[0]?.init.headers as Record<string, string> | undefined;
+    expect(headers?.['Idempotency-Key']).toBe('notif:n1');
+
     expect(body.from).toBe(CONFIG.from);
     expect(body.to).toBe('guest@example.com');
     expect(body.subject).toBe('Your invoice for BMT-1');
