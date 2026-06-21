@@ -29,7 +29,7 @@ const FEATURES: Feature[] = [
         <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#F76C5E" strokeWidth={2} strokeLinecap="round" />
       </>
     ),
-    title: 'AI co-pilot, not a chatbot',
+    title: 'ZilAi, not a chatbot',
     body: 'Describe your day in plain words; stops drop onto the map and the route draws itself.',
   },
   {
@@ -70,10 +70,10 @@ const FEATURES: Feature[] = [
 export function FeaturesSection() {
   const t = useT();
   return (
-    <section className="mx-auto max-w-shell px-[22px] pb-2 pt-14">
+    <section id="how-zilai-works" className="mx-auto max-w-shell scroll-mt-24 px-[22px] pb-2 pt-14">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="mb-1.5 max-w-[560px] sm:col-span-2 lg:col-span-3">
-          <p className="mb-1.5 text-[13px] font-bold uppercase tracking-[0.04em] text-teal">{t('Why it’s different')}</p>
+          <p className="mb-1.5 text-[13px] font-bold uppercase tracking-[0.04em] text-teal">{t('How ZilAi works')}</p>
           <h2 className="m-0 font-display text-[clamp(26px,4vw,38px)] font-semibold tracking-[-0.02em] text-ink">
             {t('A concierge that actually builds the plan')}
           </h2>

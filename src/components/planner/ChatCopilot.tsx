@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import Link from 'next/link';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
@@ -166,7 +167,7 @@ export function ChatCopilot({
           <span className="absolute -bottom-px -right-px h-2.5 w-2.5 rounded-full border-2 border-white bg-[#3FD07A]" />
         </div>
         <div className="leading-[1.2]">
-          <div className="text-sm font-extrabold text-ink">{t('Dodo co-pilot')}</div>
+          <div className="text-sm font-extrabold text-ink">ZilAi</div>
           <div className="text-[11.5px] font-semibold text-teal">{typing ? t('planning…') : t('Local expert · online')}</div>
         </div>
         {stops.length > 0 && (
@@ -270,8 +271,8 @@ export function ChatCopilot({
           <input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={t('Message your co-pilot…')}
-            aria-label={t('Message the AI co-pilot')}
+            placeholder={t('Message ZilAi…')}
+            aria-label={t('Message ZilAi')}
             className="min-w-0 flex-1 border-none bg-transparent text-sm text-ink outline-none"
           />
           <button type="button" aria-label={t('Voice input')} className="grid cursor-pointer place-items-center p-1.5">
@@ -291,6 +292,27 @@ export function ChatCopilot({
             </svg>
           </button>
         </form>
+
+        {/* AI disclaimer — ZilAi is a generative assistant; estimates can be wrong and free text shouldn't
+            carry personal data. Links to the policies + a plain-language "how it works" explainer. */}
+        <p className="mt-2 px-0.5 text-center text-[10.5px] leading-[1.5] text-ink-muted">
+          {t('ZilAi is AI — it can be inaccurate. Don’t share personal data.')}{' '}
+          <Link href="/terms" className="underline hover:text-teal">
+            {t('Terms')}
+          </Link>
+          {' · '}
+          <Link href="/privacy" className="underline hover:text-teal">
+            {t('Privacy')}
+          </Link>
+          {' · '}
+          <Link href="/cookies" className="underline hover:text-teal">
+            {t('Cookies')}
+          </Link>
+          {' · '}
+          <Link href="/ai-road-trip-planner#how-zilai-works" className="underline hover:text-teal">
+            {t('How ZilAi works')}
+          </Link>
+        </p>
       </div>
     </div>
   );

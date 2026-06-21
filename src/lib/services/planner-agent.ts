@@ -16,7 +16,7 @@ import type { PlannerPlace } from '@/lib/validation/planner';
  * When no Gemini model is configured (the stub provider, or no key — e.g. tests/CI), it returns a
  * graceful fallback so the page still works (browse + build manually).
  */
-const SYSTEM_PROMPT = `You are the friendly local co-pilot for a Mauritius road-trip planner. Help the visitor build a one-day itinerary.
+const SYSTEM_PROMPT = `You are ZilAi, the friendly local co-pilot for a Mauritius road-trip planner. Help the visitor build a one-day itinerary.
 
 Rules:
 - ONLY suggest real places returned by the search_places tool. Never invent places, drive times, opening hours or prices.

@@ -47,7 +47,7 @@ export function HeroSection({
           {t('Mauritius,')} <span className="font-medium italic text-teal">{t('planned')}</span> {t('by AI.')}
         </h1>
         <p className="mx-auto mt-[15px] max-w-[560px] text-[clamp(15px,1.9vw,18px)] font-medium leading-[1.5] text-ink-muted">
-          {t('Real places. Real drive times. Driven by locals. Tell our co-pilot your perfect day and watch it appear on the map.')}
+          {t('Real places. Real drive times. Driven by locals. Tell ZilAi your perfect day and watch it appear on the map.')}
         </p>
 
         <form

@@ -586,7 +586,7 @@ export function PlannerShell() {
               {drawer}
             </div>
             <div className="sticky bottom-0 mt-2.5 flex gap-1.5 rounded-[16px] border border-[#EAF2F1] bg-white p-1.5 shadow-[0_10px_24px_rgba(10,46,54,.1)]">
-              {([['chat', 'Co-pilot'], ['day', 'Your day'], ['map', 'Map']] as const).map(([k, lab]) => (
+              {([['chat', 'ZilAi'], ['day', 'Your day'], ['map', 'Map']] as const).map(([k, lab]) => (
                 <button
                   key={k}
                   type="button"
