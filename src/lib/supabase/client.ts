@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { getServerEnv } from '@/lib/config/env';
 import { ConfigError } from '@/lib/services/errors';
+import { timeoutFetch, DEFAULT_UPSTREAM_TIMEOUT_MS } from '@/lib/http/timeout-fetch';
 
 /**
  * Per-request, user-scoped Supabase client. Uses the public anon key and injects
@@ -24,6 +25,11 @@ export function createUserClient(accessToken?: string | null): SupabaseClient<Da
       autoRefreshToken: false,
       detectSessionInUrl: false,
     },
-    global: accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : undefined,
+    // Timeout every DB call so a slow/unreachable Supabase fails fast as a clean error instead of
+    // hanging the edge worker into a Cloudflare 502.
+    global: {
+      fetch: timeoutFetch(DEFAULT_UPSTREAM_TIMEOUT_MS),
+      ...(accessToken ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}),
+    },
   });
 }

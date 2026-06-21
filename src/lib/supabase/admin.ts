@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { getServerEnv } from '@/lib/config/env';
 import { ConfigError } from '@/lib/services/errors';
+import { timeoutFetch, DEFAULT_UPSTREAM_TIMEOUT_MS } from '@/lib/http/timeout-fetch';
 
 /**
  * Service-role Supabase client. SERVER ONLY — bypasses Row Level Security.
@@ -22,5 +23,8 @@ export function createServiceRoleClient(): SupabaseClient<Database> {
       persistSession: false,
       autoRefreshToken: false,
     },
+    // Timeout every DB call so a slow/unreachable Supabase fails fast as a clean error instead of
+    // hanging the edge worker into a Cloudflare 502.
+    global: { fetch: timeoutFetch(DEFAULT_UPSTREAM_TIMEOUT_MS) },
   });
 }

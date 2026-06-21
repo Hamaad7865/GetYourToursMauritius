@@ -43,6 +43,29 @@ const PENDING_CODE = /^(000\.200)/;
 /** Module-scoped OAuth token cache (reused across requests within an edge isolate). */
 let tokenCache: { key: string; token: string; expiresAt: number } | null = null;
 
+/** Hard timeout for every outbound Peach call. Without it a slow / unreachable Peach hangs the edge
+ *  worker until Cloudflare gives up and returns a 502 Bad Gateway (an HTML page the client can't parse).
+ *  With it the call fails fast as a ProviderError → a clean JSON 5xx the UI can show. */
+const PEACH_TIMEOUT_MS = 12_000;
+
+/** fetch() with an AbortController timeout, normalising a timeout/network failure into a ProviderError
+ *  (so it surfaces as our JSON envelope, never as a worker hang → CDN 502). */
+async function fetchPeach(url: string, init: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PEACH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    const timedOut = error instanceof Error && error.name === 'AbortError';
+    throw new ProviderError(
+      timedOut ? `Peach request timed out after ${PEACH_TIMEOUT_MS}ms` : 'Peach request failed (network)',
+      { url, timedOut },
+    );
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Peach Payments **Checkout** provider (embedded widget). Edge-safe: fetch for the API,
  * Web Crypto (HMAC-SHA256) for webhook verification — no Node built-ins.
@@ -69,7 +92,7 @@ export class PeachPaymentProvider implements PaymentProvider {
     };
     if (this.config.webhookUrl) body.notificationUrl = this.config.webhookUrl;
 
-    const res = await fetch(`${trimSlash(this.config.checkoutBaseUrl)}/v2/checkout`, {
+    const res = await fetchPeach(`${trimSlash(this.config.checkoutBaseUrl)}/v2/checkout`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -125,7 +148,7 @@ export class PeachPaymentProvider implements PaymentProvider {
 
   async getCheckoutStatus(checkoutId: string): Promise<PaymentEvent> {
     const token = await this.accessToken();
-    const res = await fetch(
+    const res = await fetchPeach(
       `${trimSlash(this.config.checkoutBaseUrl)}/v2/checkout/${encodeURIComponent(checkoutId)}/status`,
       { headers: { Authorization: `Bearer ${token}` } },
     );
@@ -156,7 +179,7 @@ export class PeachPaymentProvider implements PaymentProvider {
     if (tokenCache && tokenCache.key === this.config.clientId && tokenCache.expiresAt > now + 5_000) {
       return tokenCache.token;
     }
-    const res = await fetch(`${trimSlash(this.config.authBaseUrl)}/api/oauth/token`, {
+    const res = await fetchPeach(`${trimSlash(this.config.authBaseUrl)}/api/oauth/token`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
