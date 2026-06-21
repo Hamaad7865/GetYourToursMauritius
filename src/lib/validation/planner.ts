@@ -1,13 +1,18 @@
 import { z } from 'zod';
 
+/** Latitude in degrees: finite (no NaN/Infinity) and within the valid -90..90 range. */
+const latSchema = z.number().finite().min(-90).max(90);
+/** Longitude in degrees: finite (no NaN/Infinity) and within the valid -180..180 range. */
+const lngSchema = z.number().finite().min(-180).max(180);
+
 /** A curated road-trip place (from `planner_places` via `api_planner_places`). */
 export const plannerPlaceSchema = z.object({
   id: z.string(),
   name: z.string(),
   category: z.string(),
   region: z.string(),
-  lat: z.number(),
-  lng: z.number(),
+  lat: latSchema,
+  lng: lngSchema,
   durationMin: z.number().int(),
   closesAt: z.string().nullable(),
   blurb: z.string().nullable(),
@@ -46,7 +51,7 @@ export const placeInsightsInputSchema = z.object({
 export type PlaceInsightsInput = z.infer<typeof placeInsightsInputSchema>;
 
 /** Request body for POST /api/planner/optimize — pickup + the day's stops to order optimally. */
-const latLngSchema = z.object({ lat: z.number(), lng: z.number() });
+const latLngSchema = z.object({ lat: latSchema, lng: lngSchema });
 export const plannerOptimizeInputSchema = z.object({
   pickup: latLngSchema,
   stops: z.array(latLngSchema).min(1).max(25),

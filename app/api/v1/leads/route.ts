@@ -3,6 +3,7 @@ import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { authenticateOptional } from '@/lib/http/auth';
 import { buildServiceContext } from '@/lib/http/context';
+import { clientIp } from '@/lib/http/rate-limit';
 import { captureLeadInputSchema } from '@/lib/validation/booking';
 import { captureLead } from '@/lib/services/leads';
 
@@ -23,10 +24,8 @@ export const POST = apiHandler(async (req) => {
   }
 
   const ctx = buildServiceContext(req);
-  const ip =
-    req.headers.get('cf-connecting-ip') ??
-    req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-    null;
+  // Length-capped (see clientIp) so a spoofed giant x-forwarded-for can't bloat the lead row.
+  const ip = clientIp(req);
   const lead = await captureLead(ctx, input, ip);
   return jsonOk(lead, { status: 201 });
 });

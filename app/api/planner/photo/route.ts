@@ -1,3 +1,4 @@
+import { apiHandler } from '@/lib/http/handler';
 import { getServerEnv } from '@/lib/config/env';
 
 export const runtime = 'edge';
@@ -11,8 +12,12 @@ function mapsKey(): string | null {
  * GET /api/planner/photo?ref=places/<id>/photos/<ref> — proxies a Google Places photo so the API key
  * stays server-side. Streams the image bytes back with a long cache so each photo is billed once and
  * then served from the edge/browser cache. The `ref` is strictly validated to avoid open-proxy abuse.
+ *
+ * Wrapped in `apiHandler` so an upstream fetch rejection (Google unreachable / DNS) maps to the
+ * standard error envelope instead of a raw 500. apiHandler only sets CORS headers on a successful
+ * Response and is JSON-only on the error path, so the image/redirect success body is preserved.
  */
-export async function GET(req: Request): Promise<Response> {
+export const GET = apiHandler(async (req) => {
   const ref = new URL(req.url).searchParams.get('ref') ?? '';
   if (!/^places\/[\w-]+\/photos\/[\w-]+$/.test(ref)) {
     return new Response('Invalid photo reference', { status: 400 });
@@ -31,4 +36,4 @@ export async function GET(req: Request): Promise<Response> {
       'Cache-Control': 'public, max-age=86400, s-maxage=604800, immutable',
     },
   });
-}
+});

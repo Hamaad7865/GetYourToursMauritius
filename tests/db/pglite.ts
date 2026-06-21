@@ -6,6 +6,23 @@ const ROOT = process.cwd();
 const MIGRATIONS_DIR = join(ROOT, 'supabase', 'migrations');
 const AUTH_SHIM = join(ROOT, 'tests', 'db', 'auth-shim.sql');
 
+/**
+ * Per-process cache of SQL file contents, keyed by absolute path. Each `createTestDb` call would
+ * otherwise re-open every migration with `readFileSync`; under vitest's parallel workers two tests in
+ * the same process opening the same file concurrently can trip a Windows-only file-handle race
+ * ("UNKNOWN: unknown error, open …_ops.sql"). Reading each file at most once and serving the rest from
+ * memory removes the concurrent-open contention while keeping full test parallelism.
+ */
+const sqlCache = new Map<string, string>();
+function readSqlCached(path: string): string {
+  let sql = sqlCache.get(path);
+  if (sql === undefined) {
+    sql = readFileSync(path, 'utf8');
+    sqlCache.set(path, sql);
+  }
+  return sql;
+}
+
 // `sub` is optional: a service_role token carries no user id (auth.uid() resolves to null).
 export type JwtClaims = { sub?: string; role?: string; email?: string } & Record<string, unknown>;
 
@@ -28,13 +45,13 @@ export interface TestDb {
  */
 export async function createTestDb(): Promise<TestDb> {
   const pg = new PGlite();
-  await pg.exec(readFileSync(AUTH_SHIM, 'utf8'));
+  await pg.exec(readSqlCached(AUTH_SHIM));
 
   const files = readdirSync(MIGRATIONS_DIR)
     .filter((file) => file.endsWith('.sql'))
     .sort();
   for (const file of files) {
-    await pg.exec(readFileSync(join(MIGRATIONS_DIR, file), 'utf8'));
+    await pg.exec(readSqlCached(join(MIGRATIONS_DIR, file)));
   }
 
   return {

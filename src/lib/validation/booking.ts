@@ -1,6 +1,11 @@
 import { z } from 'zod';
 import { bookingSourceSchema, bookingStatusSchema, paymentStateSchema } from './common';
 
+/** Latitude in degrees: finite (rejects NaN/Infinity) and within the valid -90..90 range. */
+const latSchema = z.number().finite().min(-90).max(90);
+/** Longitude in degrees: finite (rejects NaN/Infinity) and within the valid -180..180 range. */
+const lngSchema = z.number().finite().min(-180).max(180);
+
 // --- Booking ----------------------------------------------------------------
 export const createBookingInputSchema = z.object({
   occurrenceId: z.string().uuid(),
@@ -24,8 +29,8 @@ export const createBookingInputSchema = z.object({
       z.object({
         title: z.string().min(1).max(120),
         area: z.string().max(120).nullish(),
-        lat: z.number().optional(),
-        lng: z.number().optional(),
+        lat: latSchema.optional(),
+        lng: lngSchema.optional(),
       }),
     )
     .max(30)
@@ -42,8 +47,8 @@ export const createBookingInputSchema = z.object({
   /** Pickup coordinates (per_person / per_group activities with pickup). The SERVER re-derives the
    *  region from these and computes the region-based transport fare — they never carry a price.
    *  nullish like pickupLocation (the checkout sends explicit null when there's no pickup). */
-  pickupLat: z.number().min(-90).max(90).nullish(),
-  pickupLng: z.number().min(-180).max(180).nullish(),
+  pickupLat: latSchema.nullish(),
+  pickupLng: lngSchema.nullish(),
   /** Number of child seats requested. First free, each additional €6 — the charge is computed
    *  server-side; the client value is only the count. Bounded so a tampered payload is a clean 400. */
   childSeats: z.number().int().min(0).max(25).optional(),
@@ -87,8 +92,8 @@ export const bookingSchema = z.object({
       z.object({
         title: z.string(),
         area: z.string().nullish(),
-        lat: z.number().optional(),
-        lng: z.number().optional(),
+        lat: latSchema.optional(),
+        lng: lngSchema.optional(),
       }),
     )
     .nullish(),

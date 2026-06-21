@@ -3,7 +3,8 @@ import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { authenticateOptional } from '@/lib/http/auth';
 import { getServerEnv } from '@/lib/config/env';
-import { publicServiceContext } from '@/lib/http/context';
+import { buildServiceContext, publicServiceContext } from '@/lib/http/context';
+import { rateLimit } from '@/lib/http/rate-limit';
 import { getActivity } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
 import { resolvePlaceByText } from '@/lib/maps/google-places';
@@ -22,9 +23,14 @@ function mapsKey(): string | null {
  * returns `{ tour, slug, places }` so the planner can preload the day and let the customer customise
  * it. Graceful: an unknown tour, no maps key, or stops that don't resolve all return fewer/zero
  * places rather than erroring. Edge-cached since a tour's stops change rarely.
+ *
+ * Public + unauthenticated, and a cache MISS fans out one billed Places Text Search per itinerary
+ * stop, so it is wallet-DoS-prone. Per-IP rate limit (DB-backed, defence in depth) caps floods BEFORE
+ * the upstream calls, matching the sibling /api/planner/* routes; Cloudflare is the edge backstop.
  */
 export const GET = apiHandler(async (req) => {
   await authenticateOptional(req);
+  await rateLimit(req, buildServiceContext(req), 'planner:from-tour', 30);
   const slug = (new URL(req.url).searchParams.get('slug') ?? '').trim();
   if (!slug) return jsonOk({ tour: null, slug: '', places: [] });
 
