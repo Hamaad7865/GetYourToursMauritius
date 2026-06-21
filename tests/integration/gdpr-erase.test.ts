@@ -19,6 +19,9 @@ const U_EMAIL = 'erase-me@example.com';
 const OTHER = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 const STAFF = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
 const GUEST_EMAIL = 'guest-erase@example.com';
+// A stranger's guest email — never the caller's own. Used to prove a non-staff caller cannot reach
+// someone else's records by SUPPLYING their email: the function overrides the email to the caller's own.
+const VICTIM_EMAIL = 'victim-guest@example.com';
 
 /** Seed a booking owned by a given user (or guest), at a chosen status/payment_state + customer email. */
 async function seedBooking(
@@ -76,12 +79,14 @@ describe('api_erase_user — anonymize-with-retention', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    for (const [id, role] of [
-      [U, 'customer'],
-      [OTHER, 'customer'],
-      [STAFF, 'staff'],
+    // Seed auth.users WITH the email claim. api_erase_user reads the caller's own email from auth.users
+    // (the SECURITY DEFINER override path) for a non-staff self-erase, so U must carry U_EMAIL here.
+    for (const [id, role, email] of [
+      [U, 'customer', U_EMAIL],
+      [OTHER, 'customer', 'other@example.com'],
+      [STAFF, 'staff', 'staff@example.com'],
     ] as const) {
-      await db.pg.query(`insert into auth.users (id) values ($1)`, [id]);
+      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [id, email]);
       await db.pg.query(`insert into profiles (id, role) values ($1, $2)`, [id, role]);
     }
   });
@@ -104,6 +109,15 @@ describe('api_erase_user — anonymize-with-retention', () => {
       email: U_EMAIL,
       status: 'draft',
       paymentState: 'pending',
+    });
+    // A PRE-ACCOUNT guest booking U made under their OWN email before signing up (user_id null). The
+    // override forces v_email to U's own email, so this must still be swept (anonymized) on self-erase.
+    const preAccountId = await seedBooking(db, 'u-preaccount', {
+      userId: null,
+      email: U_EMAIL,
+      status: 'confirmed',
+      paymentState: 'paid',
+      name: 'Pre Account',
     });
 
     await db.asOwner();
@@ -140,6 +154,12 @@ describe('api_erase_user — anonymize-with-retention', () => {
     expect(conf.status).toBe('confirmed'); // UNCHANGED
     expect(Number(conf.total_minor)).toBe(totalBefore); // UNCHANGED
 
+    // The PRE-ACCOUNT guest booking (user_id null, U's own email) was caught by the email override and
+    // anonymized — proving self-erase still sweeps the caller's own pre-account guest rows.
+    const pre = (await bookingRow(db, preAccountId))!;
+    expect(pre.customer_email).toBe('deleted@privacy.invalid');
+    expect(pre.customer_name).toBe('(Deleted user)');
+
     // The outbox row is redacted: no customerName in payload, recipient stripped of the real email
     // (recipient is NOT NULL in the schema → redacted to the sentinel, not nulled).
     const outbox = (
@@ -174,6 +194,52 @@ describe('api_erase_user — anonymize-with-retention', () => {
     await db.as({ sub: OTHER, role: 'authenticated' });
     await expect(callErase(db, { userId: U, email: U_EMAIL })).rejects.toThrow(/forbidden/);
     await db.asOwner();
+  });
+
+  it('ignores a non-staff caller’s supplied email — cannot reach a stranger’s guest rows', async () => {
+    // The victim is a pure guest (user_id null) U has no relationship to. Their data is keyed on an
+    // email U does NOT own. U then calls erase with their OWN userId but SUPPLIES the victim's email.
+    const victimConfirmed = await seedBooking(db, 'v-confirmed', {
+      userId: null,
+      email: VICTIM_EMAIL,
+      status: 'confirmed',
+      paymentState: 'paid',
+      name: 'Victim Person',
+    });
+    const victimDraft = await seedBooking(db, 'v-draft', {
+      userId: null,
+      email: VICTIM_EMAIL,
+      status: 'draft',
+      paymentState: 'pending',
+    });
+    // U's OWN data, so we can confirm the call still erased the caller (the supplied email is ignored,
+    // not the whole call rejected).
+    const uOwnDraft = await seedBooking(db, 'u2-draft', {
+      userId: U,
+      email: U_EMAIL,
+      status: 'draft',
+      paymentState: 'pending',
+    });
+    await db.asOwner();
+    await db.pg.query(`insert into leads (name, contact) values ('Victim', $1)`, [VICTIM_EMAIL]);
+
+    // U (non-staff) supplies the victim's email. The guard passes on U's own userId; the override then
+    // forces v_email back to U's own address, so the victim's email is never matched.
+    await db.as({ sub: U, role: 'authenticated' });
+    await expect(callErase(db, { userId: U, email: VICTIM_EMAIL })).resolves.toBeTruthy();
+
+    await db.asOwner();
+    // The victim's guest rows are UNTOUCHED — the supplied email was ignored.
+    expect(await bookingRow(db, victimDraft)).toBeTruthy(); // draft NOT deleted
+    const v = (await bookingRow(db, victimConfirmed))!;
+    expect(v.customer_email).toBe(VICTIM_EMAIL); // NOT anonymized
+    expect(v.customer_name).toBe('Victim Person');
+    expect(
+      (await db.pg.query(`select 1 from leads where lower(contact) = $1`, [VICTIM_EMAIL])).rows,
+    ).toHaveLength(1); // victim's lead NOT deleted
+
+    // U's own data WAS erased (the call ran, just scoped to U's identity).
+    expect(await bookingRow(db, uOwnDraft)).toBeUndefined();
   });
 
   it('lets STAFF erase a pure-guest booking by email (user_id null)', async () => {

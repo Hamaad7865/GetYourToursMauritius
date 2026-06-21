@@ -4665,6 +4665,19 @@ begin
   if not (is_staff() or (auth.uid() is not null and v_uid is not null and auth.uid() = v_uid)) then
     raise exception 'forbidden';
   end if;
+
+  -- Bind the email scope to the CALLER'S identity for a non-staff self-erase. The caller-supplied email
+  -- is untrusted: a signed-in user could pass a stranger's address and, because the row scope matches on
+  -- lower(customer_email) = v_email, sweep that stranger's GUEST bookings/leads (user_id null) — broken
+  -- access control. So for non-staff we IGNORE the supplied email and force v_email to the caller's own
+  -- JWT identity, read from auth.users (the SECURITY DEFINER owner can see it; auth.email() is not
+  -- relied on here). This still catches the user's own pre-account guest bookings (made under their own
+  -- email before they had an account), while making a stranger's email unreachable. Staff keep the
+  -- supplied email — they legitimately erase a pure-guest record by its address.
+  if not is_staff() then
+    select lower(email) into v_email from auth.users where id = auth.uid();
+  end if;
+
   if v_uid is null and v_email is null then
     raise exception 'invalid_request' using detail = 'erase_user: userId or email required';
   end if;
