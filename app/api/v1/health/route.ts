@@ -50,6 +50,13 @@ export const GET = apiHandler(async (req) => {
   // The legacy HS256 forgery path must be off in live.
   checks.legacyAuthDisabled = !isLive || !env.ACCEPT_LEGACY_HS256;
 
+  // Reported (not gating): the booking-confirmation/receipt email needs Resend configured AND the cron
+  // worker — which authenticates with INTERNAL_TASK_SECRET — draining the outbox. Surfacing them makes
+  // a "no email arrived" report diagnosable from /health without log access. Not a 503 gate: email is a
+  // feature, not a liveness requirement, and a partially-configured deploy must still read "ok".
+  checks.emailConfigured = Boolean(env.RESEND_API_KEY && env.RESEND_FROM);
+  checks.internalTasksConfigured = Boolean(env.INTERNAL_TASK_SECRET);
+
   const deep = new URL(req.url).searchParams.get('deep') === 'true';
   if (deep) checks.database = await pingDatabase();
 
