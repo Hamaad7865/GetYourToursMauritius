@@ -20,6 +20,7 @@ import {
   paymentLinkSchema,
   syncPaymentInputSchema,
 } from '@/lib/validation/booking';
+import { clientErrorReportSchema } from '@/lib/validation/telemetry';
 
 const errorResponse = (description: string): ZodOpenApiResponseObject => ({
   description,
@@ -178,6 +179,19 @@ export const apiPaths: ZodOpenApiPathsObject = {
       responses: {
         '201': okJson(leadSchema, 'Lead captured'),
         '400': errorResponse('Invalid request'),
+      },
+    },
+  },
+  '/client-errors': {
+    post: {
+      operationId: 'reportClientError',
+      summary: 'Receive a browser-side error report (telemetry; per-IP rate limited)',
+      tags: ['Meta'],
+      requestBody: jsonBody(clientErrorReportSchema),
+      responses: {
+        '202': okJson(z.object({ received: z.boolean() }), 'Report accepted'),
+        '400': errorResponse('Invalid request'),
+        '429': errorResponse('Too many reports'),
       },
     },
   },

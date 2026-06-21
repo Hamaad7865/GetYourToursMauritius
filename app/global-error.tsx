@@ -4,13 +4,32 @@
    when even the root layout / router context may have failed, so it must use a plain <a> (next/link's
    <Link> depends on the app-router context that isn't guaranteed here). */
 
+import { useEffect } from 'react';
+import { reportClientError } from '@/lib/client-error-report';
+
 /**
  * Ultimate fallback: catches errors thrown in the ROOT layout itself, where the normal error boundary
  * can't render. It replaces the whole document, so it must be fully self-contained (its own <html>/<body>,
  * inline styles — no Tailwind/layout, which may be exactly what failed). Keeps a crash from ever showing
  * a blank white screen.
  */
-export default function GlobalError({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
+export default function GlobalError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  // A root-layout crash is the most severe client failure — always report it (best-effort).
+  useEffect(() => {
+    reportClientError({
+      kind: 'react.global',
+      message: error.message,
+      stack: error.stack,
+      digest: error.digest,
+    });
+  }, [error]);
+
   return (
     <html lang="en">
       <body

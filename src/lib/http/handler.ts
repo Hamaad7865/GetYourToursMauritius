@@ -1,5 +1,6 @@
 import { z, ZodError, type ZodTypeAny } from 'zod';
 import { ValidationError } from '@/lib/services/errors';
+import { log, newCorrelationId } from '@/lib/log';
 import { corsHeaders } from './cors';
 import { errorToResponse } from './envelope';
 
@@ -46,14 +47,37 @@ export function apiHandler<C = unknown>(
   return async (req: Request, routeCtx?: C): Promise<Response> => {
     const origin = req.headers.get('origin');
     const cors = corsHeaders(origin);
+    // One id per request: returned to the caller as `x-request-id`, stamped on the request-summary
+    // log line, and reused as the error id so a reported id maps to exactly what failed.
+    const requestId = newCorrelationId();
+    const start = Date.now();
+    let route = req.url;
     try {
-      const res = await handler(req, routeCtx as C);
+      route = new URL(req.url).pathname;
+    } catch {
+      /* malformed URL — keep the raw value */
+    }
+
+    let res: Response;
+    try {
+      res = await handler(req, routeCtx as C);
       for (const [key, value] of Object.entries(cors)) {
         res.headers.set(key, value);
       }
-      return res;
     } catch (error) {
-      return errorToResponse(error, cors);
+      res = errorToResponse(error, cors, requestId);
     }
+
+    res.headers.set('x-request-id', requestId);
+    // One structured line per API request (method, path, status, latency). 5xx/unhandled errors get
+    // an additional detail line from errorToResponse sharing this requestId.
+    log.info('request', {
+      requestId,
+      method: req.method,
+      route,
+      status: res.status,
+      ms: Date.now() - start,
+    });
+    return res;
   };
 }

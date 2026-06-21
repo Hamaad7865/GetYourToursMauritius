@@ -1,5 +1,6 @@
 import type { PaginationMeta } from '@/lib/validation/common';
 import { isServiceError } from '@/lib/services/errors';
+import { log } from '@/lib/log';
 
 export interface SuccessBody<T> {
   ok: true;
@@ -57,8 +58,16 @@ function genericServerMessage(code: string): string {
   }
 }
 
-/** Maps any thrown value to a consistent error response. 4xx ServiceErrors keep their message. */
-export function errorToResponse(error: unknown, headers?: Record<string, string>): Response {
+/**
+ * Maps any thrown value to a consistent error response. 4xx ServiceErrors keep their message.
+ * `correlationId` (the apiHandler's request id) ties the error log + client-facing id to the request
+ * log line; when absent a fresh id is generated so the function is safe to call standalone.
+ */
+export function errorToResponse(
+  error: unknown,
+  headers?: Record<string, string>,
+  correlationId?: string,
+): Response {
   if (isServiceError(error)) {
     // Client errors (4xx) are safe to surface verbatim — they describe the caller's mistake.
     if (error.status < 500) {
@@ -66,32 +75,19 @@ export function errorToResponse(error: unknown, headers?: Record<string, string>
     }
     // Server errors (5xx) may carry internal detail (e.g. WHICH env var is missing, upstream
     // specifics). Log the real message with a correlation id; return only a generic message + id.
-    const errorId = crypto.randomUUID();
-    console.error(
-      JSON.stringify({
-        level: 'error',
-        event: 'service_error',
-        errorId,
-        code: error.code,
-        message: error.message,
-        time: new Date().toISOString(),
-      }),
-    );
+    const errorId = correlationId ?? crypto.randomUUID();
+    log.error('service_error', { errorId, code: error.code, message: error.message });
     return jsonError(error.status, error.code, genericServerMessage(error.code), { errorId }, headers);
   }
-  // Unhandled error: emit a single structured JSON line (parseable by Cloudflare Logpush / any log
-  // sink) with a correlation id, and return that id to the client so a report can be traced — but
-  // never the raw error text.
-  const errorId = crypto.randomUUID();
-  console.error(
-    JSON.stringify({
-      level: 'error',
-      event: 'unhandled_api_error',
-      errorId,
-      name: error instanceof Error ? error.name : typeof error,
-      message: error instanceof Error ? error.message : String(error),
-      time: new Date().toISOString(),
-    }),
-  );
+  // Unhandled error: emit a single structured line (parseable by Cloudflare Logpush / any log sink)
+  // with a correlation id, and return that id to the client so a report can be traced — but never the
+  // raw error text.
+  const errorId = correlationId ?? crypto.randomUUID();
+  log.error('unhandled_api_error', {
+    errorId,
+    name: error instanceof Error ? error.name : typeof error,
+    message: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack : undefined,
+  });
   return jsonError(500, 'internal_error', 'Something went wrong', { errorId }, headers);
 }
