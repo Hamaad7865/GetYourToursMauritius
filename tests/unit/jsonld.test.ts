@@ -13,6 +13,7 @@ const base: TourSummary = {
   durationMinutes: 480,
   fromPriceEur: 75,
   pricingMode: 'per_person',
+  minAdvanceDays: 1,
   ratingAvg: 4.8,
   ratingCount: 1158,
   heroImage: null,

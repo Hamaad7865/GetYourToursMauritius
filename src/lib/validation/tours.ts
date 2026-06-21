@@ -68,6 +68,9 @@ export const tourSummarySchema = z.object({
   // How fromPriceEur is billed: per_person (× people), per_group (× ceil(people / size)), or
   // vehicle (one flat price for the vehicle that fits the party). Defaults so older DBs parse.
   pricingMode: pricingModeSchema.default('per_person'),
+  // Minimum advance booking (lead time) in days. Listing cards show a "Book N+ days ahead" badge when
+  // > 1. `.default(1).catch(1)` so a summary from a DB without the column reads as the old behaviour.
+  minAdvanceDays: z.number().int().nonnegative().default(1).catch(1),
   ratingAvg: z.number().nullable(),
   ratingCount: z.number().int(),
   heroImage: tourImageSchema.nullable(),
@@ -142,10 +145,6 @@ export const tourDetailSchema = tourSummarySchema.extend({
   description: z.string().nullable(),
   meetingPoint: z.string().nullable(),
   pickupAvailable: z.boolean(),
-  // Minimum advance booking (lead time) in days: planning-heavy activities can't be booked sooner than
-  // this. `.default(1).catch(1)` so a DB without the column (migration not yet applied) reads as the old
-  // "tomorrow-earliest" behaviour instead of crashing the page.
-  minAdvanceDays: z.number().int().nonnegative().default(1).catch(1),
   // Home/boarding region + coords for the region-based transport add-on. `.nullish().catch` so the page
   // still renders against a DB where the transport migration hasn't been applied yet.
   region: z.string().nullish().catch(null),

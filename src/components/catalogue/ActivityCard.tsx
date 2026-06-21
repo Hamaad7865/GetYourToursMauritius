@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { TourSummary } from '@/lib/validation/tours';
 import { durationLabel } from '@/lib/catalogue/detail';
-import { IconPin, IconStar } from '@/components/ui/icons';
+import { IconCalendar, IconPin, IconStar } from '@/components/ui/icons';
 import { WishHeart } from '@/components/gyg/WishHeart';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
@@ -47,6 +47,11 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
           {activity.title}
         </h3>
         {duration && <div className="mt-2 text-[13px] text-ink-muted">{duration}</div>}
+        {activity.minAdvanceDays > 1 && (
+          <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-md bg-teal/10 px-1.5 py-0.5 text-[11px] font-bold text-teal-dark">
+            <IconCalendar width={11} height={11} /> {t('Book {n}+ days ahead', { n: activity.minAdvanceDays })}
+          </span>
+        )}
 
         <div className="mt-auto flex items-center justify-between border-t border-ink/[0.07] pt-3.5">
           <span className="flex items-center gap-1.5 text-sm text-ink">

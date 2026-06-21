@@ -335,6 +335,7 @@ export const fr: Record<string, string> = {
   "{n} hour": "{n} heure",
   "{n} hours": "{n} heures",
   "Pickup available": "Prise en charge disponible",
+  "Book {n}+ days ahead": "Réservez {n}+ jours à l’avance",
   "Stops": "Arrêts",
   "Driving": "Conduite",
   "Distance": "Distance",

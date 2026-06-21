@@ -5,7 +5,7 @@ import type { TourSummary } from '@/lib/validation/tours';
 import { WishHeart } from './WishHeart';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
-import { IconStar } from '@/components/ui/icons';
+import { IconCalendar, IconStar } from '@/components/ui/icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -110,6 +110,11 @@ export function PlaceCard({
           {activity.title}
         </TitleTag>
         {meta && !compact && <div className="mt-1.5 text-[12.5px] text-ink-muted">{meta}</div>}
+        {activity.minAdvanceDays > 1 && !compact && (
+          <span className="mt-1.5 inline-flex w-fit items-center gap-1 rounded-md bg-teal/10 px-1.5 py-0.5 text-[11px] font-bold text-teal-dark">
+            <IconCalendar width={11} height={11} /> {t('Book {n}+ days ahead', { n: activity.minAdvanceDays })}
+          </span>
+        )}
 
         <div className={`mt-auto flex items-end justify-between ${compact ? 'pt-2' : 'pt-3'}`}>
           {activity.ratingCount > 0 ? (
