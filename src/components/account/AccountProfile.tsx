@@ -55,7 +55,7 @@ export function AccountProfile() {
 
   return (
     <div className="max-w-xl">
-      <h1 className="font-display text-2xl font-semibold text-ink">{t('Profile')}</h1>
+      <h1 className="font-display text-2xl font-semibold text-ink">{t('Personal details')}</h1>
       <p className="mt-1 text-sm text-ink-muted">{t('Manage your contact details for bookings.')}</p>
 
       <form onSubmit={save} className="mt-6 flex flex-col gap-4">

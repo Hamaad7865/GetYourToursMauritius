@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Logo } from '@/components/site/Logo';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useInbox } from '@/lib/notifications/inbox';
+import { NotificationsList } from '@/components/site/NotificationsList';
 import {
   usePreferences,
   LANGUAGE_LABELS,
@@ -13,6 +15,7 @@ import {
 } from '@/components/site/PreferencesProvider';
 import {
   IconArrowRight,
+  IconBell,
   IconBolt,
   IconBookings,
   IconCart,
@@ -24,8 +27,8 @@ import {
   IconMail,
   IconMenu,
   IconPin,
+  IconSettings,
   IconStar,
-  IconUser,
   IconWallet,
   IconX,
 } from '@/components/ui/icons';
@@ -92,8 +95,10 @@ function Section({ title }: { title: string }) {
  */
 export function MobileMenu({ light = false }: { light?: boolean }) {
   const [open, setOpen] = useState(false);
+  const [showUpdates, setShowUpdates] = useState(false);
   const { user, profile, openAuth, signOut } = useAuth();
   const { language, currency, openPrefs } = usePreferences();
+  const { notes, unread, markAllRead } = useInbox();
   const t = useT();
 
   const close = () => setOpen(false);
@@ -107,9 +112,17 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
         onClick={() => setOpen(true)}
         aria-label={t('Open menu')}
         aria-expanded={open}
-        className={`grid h-11 w-11 place-items-center rounded-xl sm:hidden ${light ? 'text-white' : 'text-ink'}`}
+        className={`relative grid h-11 w-11 place-items-center rounded-xl sm:hidden ${light ? 'text-white' : 'text-ink'}`}
       >
         <IconMenu width={24} height={24} />
+        {!!user && unread > 0 && (
+          <span
+            aria-hidden
+            className="absolute right-1.5 top-1.5 grid h-4 min-w-[1rem] place-items-center rounded-full bg-coral px-1 text-[10px] font-extrabold leading-none text-ink"
+          >
+            {unread}
+          </span>
+        )}
       </button>
 
       {/* Overlay + panel. Mounted only while open; the panel slides from the right. */}
@@ -154,8 +167,35 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
                     </p>
                     <p className="truncate text-[12.5px] text-ink-muted">{user.email}</p>
                   </div>
-                  <MenuRow href="/account" onClick={close} label={t('My profile')} icon={<IconUser width={18} height={18} />} />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowUpdates((s) => {
+                        if (!s) markAllRead();
+                        return !s;
+                      })
+                    }
+                    aria-expanded={showUpdates}
+                    className="flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left active:bg-cream"
+                  >
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-teal/[0.08] text-teal">
+                      <IconBell width={18} height={18} />
+                    </span>
+                    <span className="flex-1 text-[15.5px] font-semibold text-ink">{t('Updates')}</span>
+                    {unread > 0 && (
+                      <span className="grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-coral px-1 text-[11px] font-extrabold leading-none text-ink">
+                        {unread}
+                      </span>
+                    )}
+                    <IconChevronRight width={18} height={18} className="text-ink-muted" />
+                  </button>
+                  {showUpdates && (
+                    <div className="px-2 pb-1">
+                      <NotificationsList notes={notes} />
+                    </div>
+                  )}
                   <MenuRow href="/account/bookings" onClick={close} label={t('My bookings')} icon={<IconBookings width={18} height={18} />} />
+                  <MenuRow href="/account" onClick={close} label={t('Settings')} icon={<IconSettings width={18} height={18} />} />
                   <MenuRow
                     label={t('Log out')}
                     icon={<IconLogOut width={18} height={18} />}
@@ -177,7 +217,7 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
               )}
 
               <div className="my-2 h-px bg-ink/10" />
-              <Section title={t('Settings')} />
+              <Section title={t('Preferences')} />
               <MenuRow
                 label={t('Currency')}
                 value={`${CURRENCY_LABELS[currency].label} ${CURRENCY_LABELS[currency].symbol}`}

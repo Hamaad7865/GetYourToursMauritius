@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useT } from '@/components/site/PreferencesProvider';
-import { IconBookings, IconUser, IconShield } from '@/components/ui/icons';
+import { IconBell, IconBookings, IconShield, IconUser, IconWallet } from '@/components/ui/icons';
 
 export function AccountSpinner() {
   const t = useT();
@@ -45,8 +45,10 @@ export function SignedOutPrompt({ message }: { message: string }) {
 }
 
 const TABS = [
-  { href: '/account', label: 'Profile', icon: IconUser },
+  { href: '/account', label: 'Personal details', icon: IconUser },
   { href: '/account/bookings', label: 'Bookings', icon: IconBookings },
+  { href: '/account/notifications', label: 'Notifications', icon: IconBell },
+  { href: '/account/cards', label: 'Saved cards', icon: IconWallet },
   { href: '/account/privacy', label: 'Data & privacy', icon: IconShield },
 ];
 

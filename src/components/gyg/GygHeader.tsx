@@ -6,18 +6,23 @@ import { Logo } from '@/components/site/Logo';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { usePreferences, CURRENCY_LABELS, useT } from '@/components/site/PreferencesProvider';
 import { useCart } from '@/lib/cart/useCart';
+import { useInbox } from '@/lib/notifications/inbox';
 import { SearchBar } from './SearchBar';
 import { MainNav } from './MainNav';
 import { MobileMenu } from './MobileMenu';
 import { MobileSearch } from './MobileSearch';
-import { NotificationsBell } from '@/components/site/NotificationsBell';
+import { NotificationsList } from '@/components/site/NotificationsList';
 import {
   IconArrowRight,
+  IconBell,
   IconBookings,
   IconCart,
+  IconChevronLeft,
+  IconChevronRight,
   IconGlobe,
   IconHeart,
   IconLogOut,
+  IconSettings,
   IconUser,
 } from '@/components/ui/icons';
 
@@ -42,16 +47,24 @@ function Underline({ light = false }: { light?: boolean }) {
   );
 }
 
-/** Profile navbar item — opens a dropdown. Signed out it offers sign-in; signed in it
- *  shows the account links (bookings only appear here, never before sign-in). */
+/** Profile navbar item — opens a dropdown. Signed out it offers sign-in; signed in it shows the
+ *  account links plus an inline "Updates" inbox (the old standalone bell folded in here) and a
+ *  Settings entry. The button carries the unread badge so notifications are still visible at a glance. */
 function ProfileMenu({ overHero }: { overHero: boolean }) {
   const { user, profile, loading, openAuth, signOut } = useAuth();
+  const { notes, unread, markAllRead } = useInbox();
   const t = useT();
   const [open, setOpen] = useState(false);
+  // Master/detail inside the popover: the account menu, or the notifications inbox.
+  const [view, setView] = useState<'menu' | 'updates'>('menu');
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // Always reopen on the menu, never stuck on the updates pane.
+      setView('menu');
+      return;
+    }
     const onClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
@@ -66,6 +79,16 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
     };
   }, [open]);
 
+  const firstName = profile?.fullName?.trim().split(/\s+/)[0];
+  const label = user && firstName ? firstName : t('Profile');
+  const showBadge = !!user && unread > 0;
+  const openUpdates = () => {
+    markAllRead();
+    setView('updates');
+  };
+
+  const itemClass = 'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal';
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -75,15 +98,37 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
         aria-expanded={open}
         className={navItemClass(overHero)}
       >
-        <IconUser width={20} height={20} />
-        <span className="hidden lg:block">{t('Profile')}</span>
+        <span className="relative">
+          <IconUser width={20} height={20} />
+          {showBadge && (
+            <span
+              aria-hidden
+              className="absolute -right-2 -top-1.5 grid h-4 min-w-[1rem] place-items-center rounded-full bg-coral px-1 text-[10px] font-extrabold leading-none text-ink"
+            >
+              {unread}
+            </span>
+          )}
+        </span>
+        <span className="hidden max-w-[6rem] truncate lg:block">{label}</span>
         <Underline light={overHero} />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-2xl border border-ink/10 bg-white p-2 text-ink shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+        <div className="absolute right-0 top-full z-50 mt-2 w-72 rounded-2xl border border-ink/10 bg-white p-2 text-ink shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
           {loading ? (
             <div className="px-3 py-3 text-sm text-ink-muted">{t('Loading…')}</div>
+          ) : view === 'updates' ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setView('menu')}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-bold text-ink hover:bg-cream"
+              >
+                <IconChevronLeft width={18} height={18} /> {t('Updates')}
+              </button>
+              <div className="my-1 h-px bg-ink/10" />
+              <NotificationsList notes={notes} />
+            </>
           ) : user ? (
             <>
               <div className="px-3 pb-1 pt-2">
@@ -91,19 +136,23 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
                 <p className="truncate text-[12px] text-ink-muted">{user.email}</p>
               </div>
               <div className="my-1 h-px bg-ink/10" />
-              <Link
-                href="/account"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal"
-              >
-                <IconUser width={18} height={18} /> {t('My profile')}
-              </Link>
-              <Link
-                href="/account/bookings"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal"
-              >
+              <button type="button" onClick={openUpdates} className={itemClass}>
+                <IconBell width={18} height={18} />
+                <span className="flex-1 text-left">{t('Updates')}</span>
+                {unread > 0 && (
+                  <span className="grid h-4 min-w-[1rem] place-items-center rounded-full bg-coral px-1 text-[10px] font-extrabold leading-none text-ink">
+                    {unread}
+                  </span>
+                )}
+                <IconChevronRight width={16} height={16} className="text-ink-muted" />
+              </button>
+              <Link href="/account/bookings" onClick={() => setOpen(false)} className={itemClass}>
                 <IconBookings width={18} height={18} /> {t('My bookings')}
+              </Link>
+              <Link href="/account" onClick={() => setOpen(false)} className={itemClass}>
+                <IconSettings width={18} height={18} />
+                <span className="flex-1 text-left">{t('Settings')}</span>
+                <IconChevronRight width={16} height={16} className="text-ink-muted" />
               </Link>
               <div className="my-1 h-px bg-ink/10" />
               <button
@@ -128,7 +177,7 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
                 }}
                 className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-cream hover:text-teal"
               >
-                <IconArrowRight width={18} height={18} /> Log in or sign up
+                <IconArrowRight width={18} height={18} /> {t('Log in or sign up')}
               </button>
             </>
           )}
@@ -280,8 +329,9 @@ export function GygHeader({
               icon={<IconHeart width={20} height={20} />}
             />
             <CartAction overHero={overHero} />
-            <NotificationsBell />
-            {/* Bookings/currency/profile have no room on a phone — they live in the hamburger menu. */}
+            {/* Bookings/currency/profile have no room on a phone — they live in the hamburger menu.
+                Notifications used to be a standalone bell here; they now live inside the profile menu
+                ("Updates"), with the unread badge surfaced on the profile button. */}
             <div className="hidden items-center gap-1 sm:flex">
               <BookingsAction overHero={overHero} />
               <PrefsButton overHero={overHero} />
