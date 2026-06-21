@@ -54,6 +54,18 @@ export async function createPaymentLink(
     console.error('failed to record payment charge', { paymentId: payment.paymentId, error });
   }
 
+  // Persist the Peach checkout id so a later server-side reconciliation sweep can re-query the payment's
+  // status. Best-effort like the charge record above: the checkout already succeeded, so a failure here
+  // must never strand the customer — log (no PII) and continue.
+  try {
+    await callRpc(ctx, 'api_record_payment_checkout', {
+      paymentId: payment.paymentId,
+      checkoutId: session.checkoutId,
+    });
+  } catch (error) {
+    console.error('failed to record payment checkout id', { paymentId: payment.paymentId, error });
+  }
+
   return {
     sessionId: session.id,
     redirectUrl: session.redirectUrl,

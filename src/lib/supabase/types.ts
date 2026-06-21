@@ -317,6 +317,7 @@ type PaymentsRow = {
   refunded_minor: number;
   charged_amount_minor: number | null;
   charged_currency: string | null;
+  provider_checkout_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -332,6 +333,7 @@ type PaymentsInsert = {
   refunded_minor?: number;
   charged_amount_minor?: number | null;
   charged_currency?: string | null;
+  provider_checkout_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };
