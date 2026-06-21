@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useT } from '@/components/site/PreferencesProvider';
-import { IconBookings, IconUser } from '@/components/ui/icons';
+import { IconBookings, IconUser, IconShield } from '@/components/ui/icons';
 
 export function AccountSpinner() {
   const t = useT();
@@ -47,6 +47,7 @@ export function SignedOutPrompt({ message }: { message: string }) {
 const TABS = [
   { href: '/account', label: 'Profile', icon: IconUser },
   { href: '/account/bookings', label: 'Bookings', icon: IconBookings },
+  { href: '/account/privacy', label: 'Data & privacy', icon: IconShield },
 ];
 
 /** Left-rail tabs for the account area. */
