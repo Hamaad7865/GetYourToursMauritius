@@ -12,6 +12,7 @@ import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
+import { selectionHash, shouldRehydrateBooking } from '@/lib/checkout/selection';
 import { useCart } from '@/lib/cart/useCart';
 import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
 
@@ -113,20 +114,27 @@ export function Checkout() {
     }
   }
   const { holdId, expiresAt, idem: idemParam } = readHold();
-  // The booking IDENTITY (idempotency key + the created ref) persisted per occurrence. Unlike the hold
-  // / pickup / itinerary stashes, this one SURVIVES a successful booking on purpose: pressing browser
-  // Back or reloading /checkout remounts this component, and rehydrating from here means the SAME idem
-  // key is reused (the server dedups → no second booking row) and the existing ref is reused (pay()
-  // takes the `else` branch instead of creating again). Without it a fresh random key would mint a
-  // duplicate, payable booking → a double charge. Keyed by occurrence; try/catch as storage may be off.
-  function readBooking(): { idem: string; ref: string | null } {
-    if (typeof window === 'undefined' || !occ) return { idem: '', ref: null };
+  // The booking IDENTITY (idempotency key + the created ref + the selection hash that created it)
+  // persisted per occurrence. Unlike the hold / pickup / itinerary stashes, this one SURVIVES a
+  // successful booking on purpose: pressing browser Back or reloading /checkout remounts this
+  // component, and rehydrating from here means the SAME idem key is reused (the server dedups → no
+  // second booking row) and the existing ref is reused (pay() takes the `else` branch instead of
+  // creating again). Without it a fresh random key would mint a duplicate, payable booking → a double
+  // charge. Keyed by occurrence; try/catch as storage may be off.
+  //
+  // The occurrence id is party/config-INDEPENDENT (date + option), so the bare ref/idem must NOT be
+  // trusted on their own: a re-checkout of the SAME date with a DIFFERENT party hits the same key and
+  // would rehydrate the OLD party's booking → pay() would skip creation AND the price-reconciliation
+  // gate → wrong-amount charge (the P0). The persisted `sel` (a selectionHash of the price-relevant
+  // fields) lets the caller rehydrate ONLY when the current selection matches.
+  function readBooking(): { idem: string; ref: string | null; sel: string } {
+    if (typeof window === 'undefined' || !occ) return { idem: '', ref: null, sel: '' };
     try {
       const raw = window.sessionStorage.getItem(`gytm:booking:${occ}`);
       const b = raw ? JSON.parse(raw) : null;
-      return { idem: b?.idemKey || '', ref: b?.bookingRef || null };
+      return { idem: b?.idemKey || '', ref: b?.bookingRef || null, sel: b?.sel || '' };
     } catch {
-      return { idem: '', ref: null };
+      return { idem: '', ref: null, sel: '' };
     }
   }
   // The chosen route is stashed in sessionStorage (too big for the URL): by slug from Continue, by
@@ -153,6 +161,47 @@ export function Checkout() {
   // pickup step with the pickup, and carry a distinct drop-off onto the booking for the driver.
   const pickupParam = (params.get('pickup') ?? '').slice(0, 160);
   const dropoffParam = (params.get('dropoff') ?? '').slice(0, 160);
+
+  // The PRICE-RELEVANT selection, hashed from inputs that are STABLE across a Back/reload of this
+  // /checkout URL. Used on BOTH sides of the rehydration gate: pay() persists this hash with the
+  // booking ref, and a remount recomputes it and only rehydrates when they match. Every price-moving
+  // dimension is covered: the price-tier (label), party (qty), SUV upgrade, child seats, the planner
+  // pickup/drop-off text, AND the displayed `total` — which already folds in the price effect of the
+  // pickup region fee and the chosen itinerary, so those don't need their own (volatile, post-success
+  // cleared) sessionStorage reads here. The occurrence id is party/config-INDEPENDENT, so this hash —
+  // not `occ` — is what distinguishes "the SAME selection (legit Back/reload → rehydrate)" from "a
+  // DIFFERENT party for the same date (must NOT rehydrate → fresh booking at the new price)".
+  //
+  // Pickup is now chosen IN checkout (the customer can add/change it here), so its coords aren't known
+  // at mount and aren't part of this mount-time gate — only the planner/URL pickup/drop-off TEXT and
+  // the URL `total` are. That's the right scope: the gate exists to stop a re-checkout of the same
+  // occurrence with a DIFFERENT URL selection (party/tier/seats/total) from replaying an earlier
+  // booking. A pickup chosen here changes the SERVER total, which the pay() reconciliation gate below
+  // re-checks before charging on BOTH the create and the rehydrated-ref paths.
+  function urlSelectionHash(): string {
+    return selectionHash({
+      priceLabel: label,
+      qty,
+      suv,
+      childSeats,
+      pickupText: pickupParam,
+      pickupLat: null,
+      pickupLng: null,
+      pickupTbd: false,
+      dropoffText: dropoffParam,
+      itinerary: null,
+      total,
+    });
+  }
+  // Decide ONCE at mount whether the persisted booking identity may be rehydrated: only when the
+  // entry is widget/cart AND the stored selection hash matches the current one. A stale/mismatched
+  // stash (a DIFFERENT party for the same occurrence, or a cold no-from load) is ignored so neither
+  // the ref nor the idem key replays the wrong-priced booking.
+  const canRehydrateBooking = shouldRehydrateBooking({
+    storedSel: typeof window !== 'undefined' && occ ? readBooking().sel : '',
+    currentSel: typeof window !== 'undefined' && occ ? urlSelectionHash() : '',
+    from: fromWidget ? 'widget' : fromCart ? 'cart' : 'none',
+  });
 
   const [step, setStep] = useState(1);
   // "Do you want pickup?" — ALWAYS defaults to Yes (this operator picks customers up by default). The
@@ -201,10 +250,22 @@ export function Checkout() {
   // persisted for this occurrence (gytm:booking) → the hold's key handed over from Continue → a fresh
   // random key. The ref rehydrates from the same stash so pay() goes straight to the existing booking's
   // payment instead of re-creating it.
+  //
+  // BOTH rehydrations are gated on `canRehydrateBooking` (entry is widget/cart AND the persisted
+  // selection hash matches the current one). When the selection differs (same occurrence, different
+  // party/config) we deliberately DROP the persisted key too — not just the ref — so a changed
+  // selection mints a FRESH idem key → the server does NOT dedup it as a replay → pay() creates a NEW
+  // booking at the NEW price. Reusing the old key would replay the old (wrong-priced) booking.
   const [idemKey] = useState(() =>
-    resolveIdemKey({ persisted: readBooking().idem, fromHold: idemParam, fresh: crypto.randomUUID() }),
+    resolveIdemKey({
+      persisted: canRehydrateBooking ? readBooking().idem : null,
+      fromHold: idemParam,
+      fresh: crypto.randomUUID(),
+    }),
   );
-  const [bookingRef, setBookingRef] = useState<string | null>(() => readBooking().ref);
+  const [bookingRef, setBookingRef] = useState<string | null>(() =>
+    canRehydrateBooking ? readBooking().ref : null,
+  );
   // Authoritative price from the created booking — what the customer is actually charged.
   const [serverTotal, setServerTotal] = useState<number | null>(null);
   // Live region-based transport fee, computed as the customer enters pickup (mirrors the server's
@@ -344,6 +405,23 @@ export function Checkout() {
     setStep(3);
   }
 
+  // Reconcile the authoritative server total against the total we DISPLAYED. Returns true (and
+  // surfaces the "price changed" warning) when they differ — the caller must STOP before charging.
+  // Used on BOTH the create path AND the rehydrated-ref path, so a rehydrated booking can never
+  // silently pay a mismatched amount. The baseline is `expectedTotal` (the URL base + the live
+  // pickup/transport fee the customer chose HERE in checkout), NOT the bare URL `total` — otherwise
+  // legitimately adding a pickup fee in this step would falsely trip the warning. When we have no
+  // displayed total to compare against, we never block (the server stays the final authority at pay).
+  function reconcileOrWarn(srv: number | null): boolean {
+    if (srv != null) setServerTotal(srv);
+    if (srv != null && expectedTotal != null && Math.abs(srv - expectedTotal) >= 0.005) {
+      setError(t('The price for this date is {price}. Tap Pay again to continue.', { price: money(srv) }));
+      setBusy(false);
+      return true;
+    }
+    return false;
+  }
+
   async function pay() {
     if (expired) {
       setError(t('Your hold expired — please pick your date again.'));
@@ -354,13 +432,18 @@ export function Checkout() {
     setError(null);
     try {
       const headers = { 'content-type': 'application/json', authorization: `Bearer ${session.access_token}` };
+      // The selection hash scopes the persisted booking identity to the FULL price-relevant config, so
+      // a later re-checkout of the same occurrence with a different party can't rehydrate this ref. The
+      // SAME urlSelectionHash() recomputed on a remount is what gates the rehydration (see above).
+      const sel = urlSelectionHash();
       // Create the booking once (idempotent + remembered); a retry reuses it.
       let ref = bookingRef;
       if (!ref) {
-        // Persist the idem key BEFORE the request so a crash/abort mid-flight still reuses the same key
-        // on the retry (server then dedups → no duplicate booking). Updated with the ref once it lands.
+        // Persist the idem key + selection hash BEFORE the request so a crash/abort mid-flight still
+        // reuses the same key on the retry (server then dedups → no duplicate booking), and a remount
+        // only rehydrates when the selection still matches. Updated with the ref once it lands.
         try {
-          if (occ) window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey }));
+          if (occ) window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey, sel }));
         } catch {
           /* sessionStorage unavailable — the key is still stable for the lifetime of this mount */
         }
@@ -408,11 +491,13 @@ export function Checkout() {
         if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
         ref = bookingRes.data.ref as string;
         setBookingRef(ref);
-        // Persist the booking IDENTITY (idem key + ref) so a Back/reload remount rehydrates it and goes
-        // straight to this booking's payment rather than creating a second one. This stash is
-        // deliberately NOT cleared below — that is the whole point of the fix.
+        // Persist the booking IDENTITY (idem key + ref + selection hash) so a Back/reload remount
+        // rehydrates it — but ONLY when the selection still matches — and goes straight to this
+        // booking's payment rather than creating a second one. This stash is deliberately NOT cleared
+        // below — that is the whole point of the fix.
         try {
-          if (occ) window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey, bookingRef: ref }));
+          if (occ)
+            window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey, bookingRef: ref, sel }));
         } catch {
           /* sessionStorage unavailable — the in-state ref still guards this mount */
         }
@@ -445,12 +530,22 @@ export function Checkout() {
         // (a tier was edited since add-to-cart), surface the real amount and require a second
         // confirm before sending the customer to the hosted payment page.
         const srv = typeof bookingRes.data.totalEur === 'number' ? bookingRes.data.totalEur : null;
-        if (srv != null) setServerTotal(srv);
-        if (srv != null && expectedTotal != null && Math.abs(srv - expectedTotal) >= 0.005) {
-          setError(t('The price for this date is {price}. Tap Pay again to continue.', { price: money(srv) }));
-          setBusy(false);
-          return;
+        if (reconcileOrWarn(srv)) return;
+      } else {
+        // Rehydrated-ref path (a Back/reload remount reused an existing booking). The selection-hash
+        // gate already ensures this ref matches the CURRENT config — but the server total could still
+        // have moved since the booking was created (a tier edited in admin), so re-run the SAME
+        // price-reconciliation here too: fetch the booking's authoritative total and compare it to the
+        // displayed total BEFORE charging. Never silently pay a mismatched amount on the rehydrated path.
+        const bookingRes = await fetch(`/api/v1/bookings/${encodeURIComponent(ref)}`, { headers }).then((r) =>
+          r.json(),
+        );
+        if (bookingRes.ok) {
+          const srv = typeof bookingRes.data?.totalEur === 'number' ? bookingRes.data.totalEur : null;
+          if (reconcileOrWarn(srv)) return;
         }
+        // A failed GET (e.g. transient) is non-fatal: fall through to payment, where the server is the
+        // final authority on the amount and refuses a non-payable booking.
       }
 
       const payRes = await fetch('/api/v1/payments', {
