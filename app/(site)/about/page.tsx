@@ -9,7 +9,7 @@ import { breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
 import { RevealOnScroll } from '@/components/about/RevealOnScroll';
-import { HeroSlideshow } from '@/components/about/HeroSlideshow';
+import { HeroWaves } from '@/components/about/HeroWaves';
 
 export const runtime = 'edge';
 
@@ -324,21 +324,7 @@ export default async function AboutPage() {
           className="relative flex items-end overflow-hidden"
           style={{ minHeight: 'clamp(580px, 90vh, 840px)' }}
         >
-          <HeroSlideshow
-            images={[
-              '/hero/islands/aerial-lagoon.jpg',
-              '/hero/islands/blue-lagoon.jpg',
-              '/hero/islands/marine-park.jpg',
-              '/hero/islands/ile-de-la-passe.jpg',
-            ]}
-          />
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                'linear-gradient(180deg, rgba(11,92,99,0.55) 0%, rgba(11,92,99,0.15) 32%, rgba(17,32,31,0.35) 60%, rgba(17,32,31,0.82) 100%)',
-            }}
-          />
+          <HeroWaves />
           <div
             className="relative z-[2] mx-auto w-full max-w-shell"
             style={{ padding: 'clamp(40px,8vw,96px) clamp(18px,5vw,72px) clamp(120px,12vw,160px)' }}
