@@ -8,6 +8,23 @@ export function attractionImage(slug: string): { url: string; source: string } |
 }
 
 /**
+ * The src to actually render for an attraction photo. Wikimedia thumbnails are hot-linked from
+ * upload.wikimedia.org, which rate-limits (429) the ~20-image burst a single page load fires — so route
+ * those through our cached /api/img proxy (served from our own edge, fetched from Wikimedia at most once
+ * per POP). Local/own photos and any other host are returned unchanged.
+ */
+export function attractionImageSrc(url: string): string {
+  try {
+    if (new URL(url, 'https://x').hostname === 'upload.wikimedia.org') {
+      return `/api/img?u=${encodeURIComponent(url)}`;
+    }
+  } catch {
+    /* not an absolute URL — a local /public path; use it directly */
+  }
+  return url;
+}
+
+/**
  * Presentation + SEO content layer for attraction pages. The base data (name, region,
  * coords, blurb) comes from `planner_places`; this module adds region/category framing,
  * programmatic copy, an FAQ builder and optional hand-written editorial for marquee spots.

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import { attractionPath, attractionImage, categoryMeta } from '@/lib/content/attractions';
+import { AttractionImage } from './AttractionImage';
 
 /** Card for the attractions hub + the "nearby" rail. Uses a real Wikimedia photo when we
  *  have one, otherwise a branded category gradient. */
@@ -14,13 +15,7 @@ export function AttractionCard({ place }: { place: PlannerPlace }) {
     >
       <div className={`relative aspect-[4/3] bg-gradient-to-br ${meta.gradient}`}>
         {img ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={img.url}
-            alt={place.name}
-            loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
-          />
+          <AttractionImage url={img.url} alt={place.name} emoji={meta.emoji} />
         ) : (
           <span aria-hidden className="absolute inset-0 grid place-items-center text-5xl opacity-90">
             {meta.emoji}
