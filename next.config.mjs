@@ -36,7 +36,7 @@ const nextConfig = {
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://*.peachpayments.com",
       "style-src 'self' 'unsafe-inline' https://*.googleapis.com",
       "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
+      "font-src 'self' data: https://fonts.gstatic.com",
       "connect-src 'self' https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.peachpayments.com",
       "frame-src 'self' https://*.peachpayments.com",
       "frame-ancestors 'self'",
