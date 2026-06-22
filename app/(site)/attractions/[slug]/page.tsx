@@ -34,6 +34,8 @@ export async function generateMetadata({
   const description = attractionMetaDescription(place);
   const canonical = attractionPath(place.id);
   const img = attractionImage(place.id);
+  // Local photos are stored as a root-relative path; crawlers need an absolute OG image URL.
+  const ogImage = img ? (img.url.startsWith('http') ? img.url : `${SITE.url}${img.url}`) : null;
   return {
     title,
     description,
@@ -44,7 +46,7 @@ export async function generateMetadata({
       description,
       url: `${SITE.url}${canonical}`,
       locale: 'en_GB',
-      ...(img ? { images: [{ url: img.url }] } : {}),
+      ...(ogImage ? { images: [{ url: ogImage }] } : {}),
     },
   };
 }
@@ -85,7 +87,12 @@ export default async function AttractionDetailPage({
 
   return (
     <>
-      <JsonLd data={attractionJsonLd(place, { path, image: img?.url ?? null })} />
+      <JsonLd
+        data={attractionJsonLd(place, {
+          path,
+          image: img ? (img.url.startsWith('http') ? img.url : `${SITE.url}${img.url}`) : null,
+        })}
+      />
       <JsonLd
         data={breadcrumbListJsonLd([
           { name: 'Home', path: '/' },
@@ -116,22 +123,24 @@ export default async function AttractionDetailPage({
           <span className="font-semibold text-ink">{place.name}</span>
         </nav>
 
-        {/* Hero photo (real Wikimedia image where we have one) */}
+        {/* Hero photo — a Wikimedia image (credited) or one of our own (no Commons credit). */}
         {img && (
           <figure className="mb-8 overflow-hidden rounded-2xl border border-ink/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={img.url} alt={place.name} className="aspect-[16/9] w-full object-cover" />
-            <figcaption className="px-4 py-2 text-[11px] text-ink-muted">
-              Photo via{' '}
-              <a
-                href={img.source}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="underline hover:text-teal"
-              >
-                Wikimedia Commons
-              </a>
-            </figcaption>
+            {/(wikimedia|wikipedia)\.org/.test(img.source) && (
+              <figcaption className="px-4 py-2 text-[11px] text-ink-muted">
+                Photo via{' '}
+                <a
+                  href={img.source}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="underline hover:text-teal"
+                >
+                  Wikimedia Commons
+                </a>
+              </figcaption>
+            )}
           </figure>
         )}
 

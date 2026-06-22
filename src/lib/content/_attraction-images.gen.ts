@@ -1,4 +1,5 @@
-// AUTO-GENERATED: real attraction photos from Wikipedia/Wikimedia Commons (source links for attribution).
+// Real attraction photos. Most are from Wikipedia/Wikimedia Commons (source links for attribution);
+// some are our own photos served from /public/activities (source = the site, no Commons credit shown).
 export const ATTRACTION_IMAGES: Record<string, { url: string; source: string }> = {
   "grand-baie-beach": {
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Grand_Baie%2C_La_Croisette.jpg/1280px-Grand_Baie%2C_La_Croisette.jpg",
@@ -109,8 +110,8 @@ export const ATTRACTION_IMAGES: Record<string, { url: string; source: string }> 
     "source": "https://en.wikipedia.org/wiki/Tamarind_Falls"
   },
   "pieter-both-mountain": {
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/59/Pieter_Both.jpg/1280px-Pieter_Both.jpg",
-    "source": "https://en.wikipedia.org/wiki/Pieter_Both"
+    "url": "/activities/pieter-both-mountain.jpg",
+    "source": "https://getyourtoursmauritius.com"
   },
   "le-pouce-mountain": {
     "url": "https://upload.wikimedia.org/wikipedia/commons/a/af/Le_Pouce2.jpg",
@@ -133,12 +134,12 @@ export const ATTRACTION_IMAGES: Record<string, { url: string; source: string }> 
     "source": "https://en.wikipedia.org/wiki/Albion%2C_Mauritius"
   },
   "pereybere-beach": {
-    "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/51/Pereybere_Beach_Mauritius_2019-09-27.jpg/1280px-Pereybere_Beach_Mauritius_2019-09-27.jpg",
-    "source": "https://commons.wikimedia.org/wiki/File:Pereybere_Beach_Mauritius_2019-09-27.jpg"
+    "url": "/activities/pereybere-beach.jpg",
+    "source": "https://getyourtoursmauritius.com"
   },
   "coin-de-mire-island": {
-    "url": "https://upload.wikimedia.org/wikipedia/commons/e/ec/Coin_de_Mire%2C_from_Cape_Malheureux%2C_Mauritius.jpg",
-    "source": "https://commons.wikimedia.org/wiki/File:Coin_de_Mire,_from_Cape_Malheureux,_Mauritius.jpg"
+    "url": "/activities/coin-de-mire.jpg",
+    "source": "https://getyourtoursmauritius.com"
   },
   "maconde-viewpoint": {
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Maconde_Point_in_Baie-du-Cap.jpg/1280px-Maconde_Point_in_Baie-du-Cap.jpg",
@@ -263,5 +264,17 @@ export const ATTRACTION_IMAGES: Record<string, { url: string; source: string }> 
   "tamarin-salt-pans-viewpoint": {
     "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bb/Mauritius_tamarin_salt_fields.jpg/1280px-Mauritius_tamarin_salt_fields.jpg",
     "source": "https://commons.wikimedia.org/wiki/File:Mauritius_tamarin_salt_fields.jpg"
+  },
+  "anse-la-raie": {
+    "url": "/activities/anse-la-raie.jpg",
+    "source": "https://getyourtoursmauritius.com"
+  },
+  "domaine-de-letoile": {
+    "url": "/activities/domaine-de-letoile.webp",
+    "source": "https://getyourtoursmauritius.com"
+  },
+  "palmar-beach": {
+    "url": "/activities/palmar-beach.jpg",
+    "source": "https://getyourtoursmauritius.com"
   }
 };
