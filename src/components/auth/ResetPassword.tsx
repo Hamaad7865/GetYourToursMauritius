@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
@@ -26,6 +26,7 @@ export function ResetPassword() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const pwRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const sb = getBrowserSupabase();
@@ -36,6 +37,10 @@ export function ResetPassword() {
       setPhase('ready');
     };
 
+    // Any active session unlocks the form. The recovery link's PKCE exchange establishes one (and
+    // fires PASSWORD_RECOVERY); we deliberately accept a pre-existing logged-in session too, since
+    // updating your own password is in-scope — and gating strictly on the PASSWORD_RECOVERY event
+    // would race the subscription (the event can fire before onAuthStateChange attaches).
     sb.auth.getSession().then(({ data }) => {
       if (data.session) ready();
     });
@@ -56,6 +61,12 @@ export function ResetPassword() {
       clearTimeout(timer);
     };
   }, []);
+
+  // Move keyboard focus to the first field once the form is shown (this is a full page, not a
+  // focus-trapped modal, so nothing else does it).
+  useEffect(() => {
+    if (phase === 'ready') pwRef.current?.focus();
+  }, [phase]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -112,6 +123,7 @@ export function ResetPassword() {
         <form onSubmit={submit} className="mt-5 flex flex-col gap-3">
           <Field icon={<IconLock width={18} height={18} />}>
             <input
+              ref={pwRef}
               type={showPassword ? 'text' : 'password'}
               required
               minLength={6}

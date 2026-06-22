@@ -88,6 +88,14 @@ export function AuthDialog({
     setView('auth');
   }, [mode]);
 
+  // Toggling the forgot-password view unmounts/remounts the email field; move focus to the new
+  // one after React commits. The initial open is already focused by useDialog, so skip first run.
+  const viewMounted = useRef(false);
+  useEffect(() => {
+    if (viewMounted.current) emailRef.current?.focus();
+    else viewMounted.current = true;
+  }, [view]);
+
   async function submitEmail(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
