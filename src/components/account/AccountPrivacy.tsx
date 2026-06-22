@@ -20,6 +20,18 @@ interface PrivacyBookingRow {
   created_at: string;
   pickup_location: string | null;
   dropoff_location: string | null;
+  traveller_gender: string | null;
+  traveller_company: string | null;
+  traveller_country: string | null;
+  special_notes: string | null;
+  room_or_cabin: string | null;
+  luggage_details: string | null;
+  child_seat_age: number | null;
+  flight_number: string | null;
+  arrival_time: string | null;
+  return_date: string | null;
+  return_time: string | null;
+  departure_flight_number: string | null;
   booking_items: Array<{
     price_label: string;
     quantity: number;
@@ -83,7 +95,7 @@ export function AccountPrivacy() {
         sb
           .from('bookings')
           .select(
-            'ref, status, total_minor, currency, created_at, pickup_location, dropoff_location, booking_items(price_label, quantity, session_occurrences(starts_at, activity_options(activities(title))))',
+            'ref, status, total_minor, currency, created_at, pickup_location, dropoff_location, traveller_gender, traveller_company, traveller_country, special_notes, room_or_cabin, luggage_details, child_seat_age, flight_number, arrival_time, return_date, return_time, departure_flight_number, booking_items(price_label, quantity, session_occurrences(starts_at, activity_options(activities(title))))',
           )
           .order('created_at', { ascending: false })
           .returns<PrivacyBookingRow[]>(),
@@ -99,6 +111,18 @@ export function AccountPrivacy() {
         created_at: b.created_at,
         pickup_location: b.pickup_location,
         dropoff_location: b.dropoff_location,
+        traveller_gender: b.traveller_gender,
+        traveller_company: b.traveller_company,
+        traveller_country: b.traveller_country,
+        special_notes: b.special_notes,
+        room_or_cabin: b.room_or_cabin,
+        luggage_details: b.luggage_details,
+        child_seat_age: b.child_seat_age,
+        flight_number: b.flight_number,
+        arrival_time: b.arrival_time,
+        return_date: b.return_date,
+        return_time: b.return_time,
+        departure_flight_number: b.departure_flight_number,
         items: b.booking_items.map((i) => ({
           price_label: i.price_label,
           quantity: i.quantity,

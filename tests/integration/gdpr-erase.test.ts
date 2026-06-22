@@ -67,8 +67,9 @@ const bookingRow = async (db: TestDb, id: string) =>
       customer_phone: string | null;
       status: string;
       total_minor: number | string;
+      special_notes: string | null;
     }>(
-      `select id, customer_name, customer_email, customer_phone, status, total_minor from bookings where id = $1`,
+      `select id, customer_name, customer_email, customer_phone, status, total_minor, special_notes from bookings where id = $1`,
       [id],
     )
   ).rows[0];
@@ -122,6 +123,11 @@ describe('api_erase_user — anonymize-with-retention', () => {
 
     await db.asOwner();
     const totalBefore = Number((await bookingRow(db, confirmedId))!.total_minor);
+    // Stamp a transfer-PII field on the retained booking so we can assert it is nulled by erasure
+    // (the airport-transfer columns must be stripped alongside name/email/phone).
+    await db.pg.query(`update bookings set special_notes = 'Wheelchair access please' where id = $1`, [
+      confirmedId,
+    ]);
 
     // A lead carrying U's email (PII to hard-delete).
     await db.pg.query(`insert into leads (name, contact) values ('Erase Me', $1)`, [U_EMAIL]);
@@ -151,6 +157,7 @@ describe('api_erase_user — anonymize-with-retention', () => {
     expect(conf.customer_email).toBe('deleted@privacy.invalid');
     expect(conf.customer_email).not.toBe(U_EMAIL); // real PII gone
     expect(conf.customer_phone).toBeNull();
+    expect(conf.special_notes).toBeNull(); // transfer PII stripped alongside the contact fields
     expect(conf.status).toBe('confirmed'); // UNCHANGED
     expect(Number(conf.total_minor)).toBe(totalBefore); // UNCHANGED
 

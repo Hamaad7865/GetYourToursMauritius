@@ -31,6 +31,19 @@ export interface ExportBookingInput {
   created_at: string;
   pickup_location?: string | null;
   dropoff_location?: string | null;
+  // Airport-transfer + traveller PII captured on the booking (Art. 15/20 export must be complete).
+  traveller_gender?: string | null;
+  traveller_company?: string | null;
+  traveller_country?: string | null;
+  special_notes?: string | null;
+  room_or_cabin?: string | null;
+  luggage_details?: string | null;
+  child_seat_age?: number | null;
+  flight_number?: string | null;
+  arrival_time?: string | null;
+  return_date?: string | null;
+  return_time?: string | null;
+  departure_flight_number?: string | null;
   items: ExportBookingItemInput[];
 }
 
@@ -49,6 +62,19 @@ export interface AccountExportBooking {
   items: AccountExportItem[];
   pickup?: string;
   dropoff?: string;
+  // Traveller / airport-transfer PII (only emitted when present, to keep the export tidy).
+  gender?: string;
+  company?: string;
+  country?: string;
+  specialNotes?: string;
+  roomOrCabin?: string;
+  luggageDetails?: string;
+  childSeatAge?: number;
+  flightNumber?: string;
+  arrivalTime?: string;
+  returnDate?: string;
+  returnTime?: string;
+  departureFlightNumber?: string;
 }
 
 export interface AccountExport {
@@ -99,6 +125,18 @@ export function buildAccountExport(
       };
       if (b.pickup_location) booking.pickup = b.pickup_location;
       if (b.dropoff_location) booking.dropoff = b.dropoff_location;
+      if (b.traveller_gender) booking.gender = b.traveller_gender;
+      if (b.traveller_company) booking.company = b.traveller_company;
+      if (b.traveller_country) booking.country = b.traveller_country;
+      if (b.special_notes) booking.specialNotes = b.special_notes;
+      if (b.room_or_cabin) booking.roomOrCabin = b.room_or_cabin;
+      if (b.luggage_details) booking.luggageDetails = b.luggage_details;
+      if (b.child_seat_age != null) booking.childSeatAge = b.child_seat_age;
+      if (b.flight_number) booking.flightNumber = b.flight_number;
+      if (b.arrival_time) booking.arrivalTime = b.arrival_time;
+      if (b.return_date) booking.returnDate = b.return_date;
+      if (b.return_time) booking.returnTime = b.return_time;
+      if (b.departure_flight_number) booking.departureFlightNumber = b.departure_flight_number;
       return booking;
     }),
   };

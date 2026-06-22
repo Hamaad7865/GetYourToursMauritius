@@ -820,6 +820,7 @@ export function Checkout() {
                           <input
                             value={dropoffArea}
                             onChange={(e) => setDropoffArea(e.target.value)}
+                            aria-label={t('Area / village')}
                             placeholder={t('Area / village (e.g. Mahébourg, Grand Baie)')}
                             className="w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
                           />
