@@ -6,6 +6,8 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { ResumePaymentButton } from '@/components/checkout/ResumePaymentButton';
 import { Price } from '@/components/site/Price';
+import { Confetti } from '@/components/site/Confetti';
+import { IconDownload } from '@/components/ui/icons';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
 import {
@@ -34,7 +36,12 @@ interface Booking {
   dropoffLocation?: string | null;
   pickupPending?: boolean;
   childSeats?: number | null;
+  /** Region-based transport add-on (EUR), already inside totalEur — shown as its own breakdown line. */
+  transportEur?: number | null;
 }
+
+/** VAT is included in the booking total at this rate (matches the invoice/receipt). */
+const VAT_RATE = 0.15;
 
 const STATUS_COPY: Record<string, { title: string; tone: string }> = {
   confirmed: { title: 'Booking confirmed 🎉', tone: 'text-teal-dark' },
@@ -151,6 +158,43 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
     }
   }, [fetchBooking]);
 
+  // Download the invoice/receipt PDF. The endpoint is owner-scoped (bearer), so fetch it with the
+  // token, then trigger a client-side download of the blob (a plain <a href> can't send the header).
+  const [downloading, setDownloading] = useState(false);
+  const downloadInvoice = useCallback(async () => {
+    if (!session) return;
+    setDownloading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/v1/bookings/${bookingRef}/invoice`, {
+        headers: { authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) {
+        let msg = t('Could not download the invoice. Please try again.');
+        try {
+          const body = (await res.json()) as { error?: { message?: string } };
+          if (body?.error?.message) msg = body.error.message;
+        } catch {
+          /* non-JSON (e.g. a gateway error) — keep the generic message */
+        }
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `invoice-${bookingRef}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('Could not download the invoice. Please try again.'));
+    } finally {
+      setDownloading(false);
+    }
+  }, [bookingRef, session, t]);
+
   async function completeStubPayment() {
     setPaying(true);
     setError(null);
@@ -203,6 +247,7 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
 
   return (
     <div className="mx-auto max-w-xl py-10">
+      {paid && <Confetti />}
       <div className="rounded-2xl border border-ink/10 bg-white p-6 sm:p-8">
         <h1 className={`font-display text-2xl font-semibold ${copy.tone}`}>{t(copy.title)}</h1>
         <p className="mt-1 text-sm text-ink-muted">
@@ -222,10 +267,24 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
               </dd>
             </div>
           ))}
+          {booking.transportEur != null && booking.transportEur > 0 && (
+            <div className="flex justify-between">
+              <dt className="text-ink-muted">{t('Door-to-door transport')}</dt>
+              <dd className="font-medium text-ink">
+                <Price eur={booking.transportEur} />
+              </dd>
+            </div>
+          )}
           <div className="mt-1 flex justify-between border-t border-ink/10 pt-2">
             <dt className="font-bold text-ink">{t('Total')}</dt>
             <dd className="text-lg font-extrabold text-ink">
               <Price eur={booking.totalEur} />
+            </dd>
+          </div>
+          <div className="flex justify-between text-[12px] text-ink-muted">
+            <dt>{t('Includes VAT ({pct}%)', { pct: 15 })}</dt>
+            <dd>
+              <Price eur={Math.round((booking.totalEur - booking.totalEur / (1 + VAT_RATE)) * 100) / 100} />
             </dd>
           </div>
         </dl>
@@ -292,9 +351,20 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
         )}
 
         {paid ? (
-          <p className="mt-6 rounded-xl bg-teal/10 px-4 py-3 text-sm font-medium text-teal-dark">
-            {t('Payment received — we’ve emailed your confirmation. See it any time in your bookings.')}
-          </p>
+          <div className="mt-6">
+            <p className="rounded-xl bg-teal/10 px-4 py-3 text-sm font-medium text-teal-dark">
+              {t('Payment received — we’ve emailed your confirmation. See it any time in your bookings.')}
+            </p>
+            <button
+              type="button"
+              onClick={() => void downloadInvoice()}
+              disabled={downloading}
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal hover:bg-teal/5 disabled:opacity-60"
+            >
+              <IconDownload width={15} height={15} />
+              {downloading ? t('Preparing…') : t('Download invoice (PDF)')}
+            </button>
+          </div>
         ) : awaitingPayment && confirming ? (
           // Interim state: payment just completed and we're polling for confirmation. Never a cold
           // dead-end — a spinner + reassuring copy while the provider/webhook settles.

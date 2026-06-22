@@ -269,6 +269,13 @@ export const IconMail = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+export const IconDownload = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
+    <path d="M5 21h14" />
+  </Svg>
+);
+
 export const IconLock = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p}>
     <rect x="3" y="11" width="18" height="11" rx="2" />

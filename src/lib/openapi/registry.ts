@@ -142,6 +142,21 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/bookings/{ref}/invoice': {
+    get: {
+      operationId: 'getBookingInvoice',
+      summary: 'Download the booking’s invoice/receipt PDF (owner-or-staff, once paid)',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      responses: {
+        '200': { description: 'Invoice PDF', content: { 'application/pdf': { schema: z.string() } } },
+        '401': errorResponse('Authentication required'),
+        '404': errorResponse('Booking not found'),
+        '409': errorResponse('Invoice not available until the booking is paid'),
+      },
+    },
+  },
   '/payments': {
     post: {
       operationId: 'createPayment',

@@ -6,7 +6,7 @@ import { loadBookingForReceipt } from './receipt';
 import { buildInvoice } from '@/lib/invoice/model';
 import { renderInvoicePdf } from '@/lib/invoice/pdf';
 import { renderConfirmationEmail } from '@/lib/email/booking-confirmation';
-import { SITE } from '@/lib/seo/site';
+import { INVOICE_BUSINESS } from '@/lib/invoice/business';
 
 const claimedSchema = z.array(
   z.object({
@@ -19,19 +19,6 @@ const claimedSchema = z.array(
     bookingId: z.string().nullable().default(null),
   }),
 );
-
-/** The business identity block buildInvoice expects, projected from the site-wide SITE constant. */
-const INVOICE_BUSINESS = {
-  legalName: SITE.legalName,
-  brn: SITE.brn,
-  vat: SITE.vat,
-  street: SITE.street,
-  locality: SITE.locality,
-  region: SITE.region,
-  country: SITE.country,
-  email: SITE.email,
-  phone: SITE.phone,
-};
 
 /**
  * Base64-encode bytes on the edge runtime. `btoa(String.fromCharCode(...bytes))` spreads the whole

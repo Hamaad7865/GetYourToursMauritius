@@ -86,10 +86,10 @@ function BookingCard({ b }: { b: BookingRow }) {
   // the bookings list offered no pay affordance at all and the email "Complete payment" link was dead.
   const awaitingPayment = b.status === 'payment_pending' && b.payment_state !== 'paid';
   return (
-    <li className="flex items-center justify-between gap-4 rounded-2xl border border-ink/10 bg-white px-5 py-4">
+    <li className="group relative flex items-center justify-between gap-4 rounded-2xl border border-ink/10 bg-white px-5 py-4 transition-shadow hover:shadow-[0_12px_28px_-18px_rgba(10,46,54,0.45)]">
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-bold text-ink">{title ?? b.ref}</span>
+          <span className="font-bold text-ink group-hover:text-teal-dark">{title ?? b.ref}</span>
           <span
             className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
               STATUS_STYLES[b.status] ?? 'bg-ink/10 text-ink-muted'
@@ -103,7 +103,8 @@ function BookingCard({ b }: { b: BookingRow }) {
           {when} · {guests} {guests === 1 ? t('guest') : t('guests')}
         </p>
         {awaitingPayment && (
-          <div className="mt-2">
+          // Above the stretched link so Pay stays independently clickable.
+          <div className="relative z-10 mt-2">
             <ResumePaymentButton bookingRef={b.ref} label={t('Pay now')} />
           </div>
         )}
@@ -114,6 +115,13 @@ function BookingCard({ b }: { b: BookingRow }) {
         </div>
         <div className="text-[11px] uppercase tracking-wide text-ink-muted">{b.currency}</div>
       </div>
+      {/* Whole-card link to the booking detail (breakdown + invoice download). Stretched over the card
+          but BELOW the Pay button's z-10 wrapper, so both stay clickable. */}
+      <Link
+        href={`/bookings/${b.ref}`}
+        aria-label={t('View booking {ref}', { ref: b.ref })}
+        className="absolute inset-0 rounded-2xl"
+      />
     </li>
   );
 }
