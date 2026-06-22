@@ -34,7 +34,7 @@ export function InfoPage({
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={heroImage} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-br from-[#0B5C63]/92 via-[#0E8C92]/82 to-[#0B5C63]/92" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#03262b]/95 via-[#0a4953]/88 to-[#0E8C92]/55" />
             </>
           )}
           <div className="relative mx-auto max-w-shell px-6 py-14 sm:py-20">
@@ -43,10 +43,10 @@ export function InfoPage({
                 {eyebrow}
               </p>
             )}
-            <h1 className="max-w-3xl text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.05] tracking-tight text-white">
+            <h1 className={`max-w-3xl text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.05] tracking-tight text-white${heroImage ? ' [text-shadow:0_2px_18px_rgba(2,22,24,0.55)]' : ''}`}>
               {title}
             </h1>
-            <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/85 sm:text-base">
+            <p className={`mt-4 max-w-2xl text-[15px] leading-relaxed text-white/85 sm:text-base${heroImage ? ' [text-shadow:0_2px_18px_rgba(2,22,24,0.55)]' : ''}`}>
               {intro}
             </p>
             {meta && <p className="mt-5 text-[13px] font-medium text-white/65">{meta}</p>}
