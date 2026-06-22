@@ -15,7 +15,7 @@ import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { selectionHash, shouldRehydrateBooking } from '@/lib/checkout/selection';
 import { useCart } from '@/lib/cart/useCart';
 import { parseApiJson } from '@/lib/http/fetch-json';
-import { IconCalendar, IconCheck, IconClock, IconGlobe, IconUsers } from '@/components/ui/icons';
+import { IconCalendar, IconCheck, IconClock, IconGlobe, IconPin, IconUsers } from '@/components/ui/icons';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 
@@ -176,6 +176,14 @@ export function Checkout() {
   const pickupParam = (params.get('pickup') ?? '').slice(0, 160);
   const dropoffParam = (params.get('dropoff') ?? '').slice(0, 160);
 
+  // Airport transfer: a fixed-origin (SSR) product. `transfer=1` switches step ① to flight details
+  // (no pickup map — pickup IS the airport). The server re-derives the destination region from
+  // dropoffSlug and recomputes the fare; the URL `total` is only a display hint, reconciled before pay.
+  const isAirport = params.get('transfer') === '1';
+  const dropoffSlug = (params.get('dropoffSlug') ?? '').slice(0, 120);
+  const tripType: 'one_way' | 'return' = params.get('tripType') === 'return' ? 'return' : 'one_way';
+  const returnDateParam = (params.get('retDate') ?? '').slice(0, 40);
+
   // The PRICE-RELEVANT selection, hashed from inputs that are STABLE across a Back/reload of this
   // /checkout URL. Used on BOTH sides of the rehydration gate: pay() persists this hash with the
   // booking ref, and a remount recomputes it and only rehydrates when they match. Every price-moving
@@ -244,6 +252,12 @@ export function Checkout() {
   const [fares, setFares] = useState<{ region: string; bands: TransportBands; distances: RegionDistances } | null>(
     null,
   );
+  // Airport-transfer flight details (collected HERE so travellers "save time on arrival"). They don't
+  // affect the fare, so they're captured at checkout rather than before the hold.
+  const [flightNumber, setFlightNumber] = useState('');
+  const [arrivalTime, setArrivalTime] = useState('');
+  const [departureFlight, setDepartureFlight] = useState('');
+  const [returnTime, setReturnTime] = useState('');
   // Personal-details (step ②) form state. Name + phone seed from the profile once it loads (see the
   // effect below); country defaults to the home market. Email is the account email, shown read-only.
   const [name, setName] = useState('');
@@ -391,11 +405,15 @@ export function Checkout() {
   // A real hold has a server expiry only when expiresAt was stashed on Continue; the 30-min fallback is
   // cosmetic. Lock Pay only when a REAL hold ran out — cart checkouts (no hold) are never blocked.
   const expired = Boolean(expiresAt) && secs === 0;
-  // Step ① can advance unless pickup is wanted with no address and not "I don't know yet".
-  const canAdvance = canAdvanceStep1({ wantsPickup, address: pickupLoc, tbd });
+  // Step ① can advance unless pickup is wanted with no address and not "I don't know yet" — or, for an
+  // airport transfer, until the arrival flight number + time are entered.
+  const canAdvance = isAirport
+    ? flightNumber.trim().length > 0 && arrivalTime.trim().length > 0
+    : canAdvanceStep1({ wantsPickup, address: pickupLoc, tbd });
   // Step ② (personal details): a phone is REQUIRED when the booking has a pickup — TBD still counts
-  // as a pickup, since the driver needs to reach the customer to arrange it. No pickup → optional.
-  const phoneRequired = wantsPickup;
+  // as a pickup, since the driver needs to reach the customer to arrange it. An airport transfer always
+  // needs one (the driver meets the traveller at arrivals). No pickup → optional.
+  const phoneRequired = isAirport || wantsPickup;
   const canAdvanceDetails = !phoneRequired || phone.trim().length > 0;
 
   function continueFromTransport() {
@@ -476,20 +494,34 @@ export function Checkout() {
             // pickup address sends its text (+ coords); the drop-off sends its own text. "I don't
             // know yet" (tbd) sends no address/coords but flags pickupPending so admin sees a
             // pending pickup. "No pickup" sends all null/false. Clamped to 200 to match the schema.
-            pickupLocation: wantsPickup && !tbd && pickupLoc.trim() ? pickupLoc.trim().slice(0, 200) : null,
-            // A distinct drop-off is sent ONLY when the "same as pickup" toggle is off; "same" sends
-            // null (the driver returns the customer to the pickup point). dropoffCoords is UX-only —
-            // it has no DB column, so it's never sent here.
-            dropoffLocation:
-              wantsPickup && !tbd && !dropoffSame && dropoffText.trim()
+            // Airport transfer: pickup IS the airport, drop-off is the hotel. Otherwise the customer's
+            // chosen pickup (+ a distinct drop-off only when "same as pickup" is off). dropoffCoords is
+            // UX-only (no DB column), so it's never sent here.
+            pickupLocation: isAirport
+              ? 'SSR International Airport (arrivals)'
+              : wantsPickup && !tbd && pickupLoc.trim()
+                ? pickupLoc.trim().slice(0, 200)
+                : null,
+            dropoffLocation: isAirport
+              ? dropoffParam || null
+              : wantsPickup && !tbd && !dropoffSame && dropoffText.trim()
                 ? dropoffText.trim().slice(0, 200)
                 : null,
-            pickupPending: wantsPickup && tbd,
+            pickupPending: isAirport ? false : wantsPickup && tbd,
             // Pickup coordinates → the server re-derives the region and adds the transport fare (only
             // for per_person/per_group activities with pickup; ignored otherwise). Never a client price.
-            // A TBD pickup sends no coords → no transport fee, per the spec.
-            pickupLat: wantsPickup && !tbd && pickupCoords ? pickupCoords.lat : null,
-            pickupLng: wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
+            // A TBD pickup — or an airport transfer (fixed origin) — sends no coords → no transport fee.
+            pickupLat: !isAirport && wantsPickup && !tbd && pickupCoords ? pickupCoords.lat : null,
+            pickupLng: !isAirport && wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
+            // Airport transfer: the SERVER looks up the destination region from dropoffSlug and recomputes
+            // the fare; the flight/trip fields are stored for the operator run sheet + receipt.
+            dropoffSlug: isAirport ? dropoffSlug || null : null,
+            tripType: isAirport ? tripType : undefined,
+            flightNumber: isAirport ? flightNumber.trim() || null : undefined,
+            arrivalTime: isAirport ? arrivalTime.trim() || null : undefined,
+            returnDate: isAirport && tripType === 'return' ? returnDateParam || null : undefined,
+            returnTime: isAirport && tripType === 'return' ? returnTime.trim() || null : undefined,
+            departureFlightNumber: isAirport && tripType === 'return' ? departureFlight.trim() || null : undefined,
             customer: {
               // Name + phone come from the step-② details form (falling back to the profile);
               // email is always the verified account email. Country is captured for UX only — the
@@ -637,6 +669,71 @@ export function Checkout() {
 
           {step === 1 && (
             <section>
+              {isAirport ? (
+                <div>
+                  <h1 className="font-display text-2xl font-semibold text-ink">{t('Your airport transfer')}</h1>
+                  <p className="mt-2 text-sm text-ink-muted">
+                    {t('Meet & greet at SSR International Airport arrivals, then a private transfer to {hotel}.', {
+                      hotel: dropoffParam || t('your hotel'),
+                    })}
+                  </p>
+                  <div className="mt-5 grid gap-4 sm:max-w-md">
+                    <div className="rounded-xl border border-ink/10 bg-teal/5 px-3.5 py-3 text-[13px] text-ink/85">
+                      <div>
+                        <span className="font-semibold">{t('Pickup')}:</span> {t('SSR International Airport (arrivals)')}
+                      </div>
+                      <div className="mt-1">
+                        <span className="font-semibold">{t('Drop-off')}:</span> {dropoffParam || t('your hotel')}
+                      </div>
+                      <div className="mt-1">
+                        <span className="font-semibold">{t('Trip')}:</span>{' '}
+                        {tripType === 'return' ? t('Return (airport ⇄ hotel)') : t('One-way (airport → hotel)')}
+                      </div>
+                    </div>
+                    <label className="block text-[13px] font-semibold text-ink">
+                      {t('Arrival flight number')}
+                      <input
+                        value={flightNumber}
+                        onChange={(e) => setFlightNumber(e.target.value)}
+                        placeholder="MK015 / BA2065"
+                        className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                      />
+                    </label>
+                    <label className="block text-[13px] font-semibold text-ink">
+                      {t('Arrival time (local)')}
+                      <input
+                        value={arrivalTime}
+                        onChange={(e) => setArrivalTime(e.target.value)}
+                        placeholder="14:30"
+                        className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                      />
+                    </label>
+                    {tripType === 'return' && (
+                      <>
+                        <label className="block text-[13px] font-semibold text-ink">
+                          {t('Departure flight number')}
+                          <input
+                            value={departureFlight}
+                            onChange={(e) => setDepartureFlight(e.target.value)}
+                            placeholder="MK014 / BA2066"
+                            className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                          />
+                        </label>
+                        <label className="block text-[13px] font-semibold text-ink">
+                          {t('Airport pickup time (departure day)')}
+                          <input
+                            value={returnTime}
+                            onChange={(e) => setReturnTime(e.target.value)}
+                            placeholder="10:00"
+                            className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                          />
+                        </label>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ) : (
+              <>
               <h1 className="font-display text-2xl font-semibold text-ink">{t('Do you want pickup?')}</h1>
               <div role="radiogroup" aria-label={t('Do you want pickup?')} className="mt-5 flex flex-col gap-2">
                 <PickRadio
@@ -704,6 +801,8 @@ export function Checkout() {
                   )}
                 </PickRadio>
               </div>
+              </>
+              )}
               <button
                 type="button"
                 onClick={continueFromTransport}
@@ -716,7 +815,11 @@ export function Checkout() {
               {/* Stable, always-rendered live region: the pickup input's aria-describedby points here,
                   and the hint is announced when it appears (it explains why Next is disabled). */}
               <p id={PICKUP_HINT_ID} aria-live="polite" className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
-                {!canAdvance ? t('Add your pickup address, or choose “I don’t know yet”.') : ''}
+                {!canAdvance
+                  ? isAirport
+                    ? t('Add your arrival flight number and time.')
+                    : t('Add your pickup address, or choose “I don’t know yet”.')
+                  : ''}
               </p>
             </section>
           )}
@@ -876,9 +979,23 @@ export function Checkout() {
               <IconUsers width={15} height={15} className="text-teal" /> {guests} {Number(guests) === 1 ? t('guest') : t('guests')}
               {unit ? ` · ${unit}` : ''}
             </div>
-            <div className="flex items-center gap-2">
-              <IconGlobe width={15} height={15} className="text-teal" /> {lang}
-            </div>
+            {!isAirport && (
+              <div className="flex items-center gap-2">
+                <IconGlobe width={15} height={15} className="text-teal" /> {lang}
+              </div>
+            )}
+            {isAirport && (
+              <>
+                <div className="flex items-center gap-2">
+                  <IconPin width={15} height={15} className="text-teal" />{' '}
+                  {t('SSR Airport → {hotel}', { hotel: dropoffParam || t('your hotel') })}
+                </div>
+                <div className="flex items-center gap-2">
+                  <IconCheck width={15} height={15} className="text-teal" />{' '}
+                  {tripType === 'return' ? t('Return transfer') : t('One-way transfer')}
+                </div>
+              </>
+            )}
             {childSeats > 0 && (
               <div className="flex items-center gap-2">
                 <IconCheck width={15} height={15} className="text-teal" />

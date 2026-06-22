@@ -539,6 +539,29 @@ type RegionZoneDistanceRow = {
 };
 type RegionZoneDistanceInsert = RegionZoneDistanceRow;
 
+type AirportTransferFareRow = {
+  region: 'North' | 'South' | 'East' | 'West' | 'Central';
+  sedan_minor: number;
+  suv_minor: number;
+  family_minor: number;
+  van_minor: number;
+  coaster_minor: number;
+  updated_at: string;
+};
+type AirportTransferFareInsert = Partial<AirportTransferFareRow> & {
+  region: 'North' | 'South' | 'East' | 'West' | 'Central';
+};
+
+type AirportTransferConfigRow = { id: boolean; return_discount_pct: number; updated_at: string };
+type AirportTransferConfigInsert = Partial<AirportTransferConfigRow>;
+
+type AirportTransferHotelsRow = {
+  slug: string;
+  hotel_name: string;
+  region: 'North' | 'South' | 'East' | 'West' | 'Central';
+};
+type AirportTransferHotelsInsert = AirportTransferHotelsRow;
+
 type PlannerPlacesRow = {
   id: string;
   name: string;
@@ -600,6 +623,9 @@ export interface Database {
       planner_pricing: TableDef<PlannerPricingRow, PlannerPricingInsert>;
       transport_band_pricing: TableDef<TransportBandPricingRow, TransportBandPricingInsert>;
       region_zone_distance: TableDef<RegionZoneDistanceRow, RegionZoneDistanceInsert>;
+      airport_transfer_fare: TableDef<AirportTransferFareRow, AirportTransferFareInsert>;
+      airport_transfer_config: TableDef<AirportTransferConfigRow, AirportTransferConfigInsert>;
+      airport_transfer_hotels: TableDef<AirportTransferHotelsRow, AirportTransferHotelsInsert>;
       planner_places: TableDef<PlannerPlacesRow, PlannerPlacesInsert>;
       places_cache: TableDef<PlacesCacheRow, PlacesCacheInsert>;
     };

@@ -3,6 +3,13 @@ import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { transfers, TRANSFER_REGION_ORDER, type Transfer } from '@/lib/content/transfers';
+import { reviewStats } from '@/lib/content/reviews';
+import { HotelMap } from '@/components/transfers/HotelMap';
+import { TransferSteps } from '@/components/transfers/TransferSteps';
+import { TransferReviews } from '@/components/transfers/TransferReviews';
+import { TransferGuides } from '@/components/transfers/TransferGuides';
+import { TransferService } from '@/components/transfers/TransferService';
+import { IconCheck, IconClock, IconPin, IconStar } from '@/components/ui/icons';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';
 
@@ -73,6 +80,39 @@ export default function AirportTransfersIndexPage() {
           .
         </p>
 
+        {/* Trust strip */}
+        <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-ink/10 bg-cream/40 px-5 py-4 text-[13.5px] font-semibold text-ink">
+          <span className="flex items-center gap-1.5">
+            <IconStar width={16} height={16} className="text-gold-light" /> {reviewStats.average.toFixed(1)}/5 ·{' '}
+            {reviewStats.total.toLocaleString('en-GB')} reviews
+          </span>
+          <span className="flex items-center gap-1.5">
+            <IconPin width={16} height={16} className="text-teal" /> Meet &amp; greet at arrivals
+          </span>
+          <span className="flex items-center gap-1.5">
+            <IconClock width={16} height={16} className="text-teal" /> Free flight tracking
+          </span>
+          <span className="flex items-center gap-1.5">
+            <IconCheck width={16} height={16} className="text-teal" /> Fixed price · free cancellation
+          </span>
+        </div>
+
+        <TransferSteps />
+
+        {/* All-hotels map */}
+        <section className="mt-12 border-t border-ink/10 pt-9">
+          <h2 className="text-[22px] font-extrabold tracking-tight text-ink">Find your hotel on the map</h2>
+          <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/75">
+            Tap your resort to see the driving route from SSR Airport, the distance and time, and a price.
+          </p>
+          <div className="mt-5">
+            <HotelMap />
+          </div>
+        </section>
+
+        <h2 className="mt-12 border-t border-ink/10 pt-9 text-[22px] font-extrabold tracking-tight text-ink">
+          Transfers by region
+        </h2>
         {groups.map((g) => (
           <section key={g.region} className="border-t border-ink/10 py-9 first:border-t-0 first:pt-0">
             <h2 className="text-[22px] font-extrabold tracking-tight text-ink">{g.region} coast</h2>
@@ -83,6 +123,10 @@ export default function AirportTransfersIndexPage() {
             </div>
           </section>
         ))}
+
+        <TransferReviews />
+        <TransferGuides />
+        <TransferService />
 
         <section className="mt-10 rounded-2xl border border-teal/20 bg-teal-tint/50 p-6 sm:p-8">
           <h2 className="text-[20px] font-extrabold tracking-tight text-ink">Not your hotel?</h2>

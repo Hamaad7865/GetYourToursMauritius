@@ -153,6 +153,11 @@ export const tourDetailSchema = tourSummarySchema.extend({
   // Global transport fare tables, returned only for per_person / per_group tours that offer pickup.
   transportBands: transportBandsSchema.nullish().catch(undefined),
   regionDistances: regionDistancesSchema.nullish().catch(undefined),
+  // Airport transfer: the destination-region × vehicle fare matrix + the return discount, returned only
+  // for the airport-transfer product (`isAirportTransfer`). `.catch` so an old-shaped payload degrades.
+  isAirportTransfer: z.boolean().default(false).catch(false),
+  airportFares: z.record(z.string(), transportBandFareSchema).nullish().catch(undefined),
+  returnDiscountPct: z.number().int().nullish().catch(undefined),
   languages: z.array(z.string()),
   inclusions: z.array(z.string()),
   exclusions: z.array(z.string()),

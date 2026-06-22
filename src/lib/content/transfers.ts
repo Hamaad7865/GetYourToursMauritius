@@ -15,6 +15,10 @@ export interface TransferContent {
   region: TransferRegion;
   distanceKmFromAirport: number;
   durationMinFromAirport: number;
+  /** Hotel coordinates (geocoded once into _transfers.gen.ts). Used to pin the hotel + draw the
+   *  airport→hotel route on the maps. Optional: a missing coord falls back to geocoding by name. */
+  lat?: number;
+  lng?: number;
   intro: string;
   included: string[];
   nearbyAttractions: string[];

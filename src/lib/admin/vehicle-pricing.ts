@@ -162,3 +162,68 @@ export async function updateRegionDistance(regionA: string, regionB: string, ban
     .eq('region_b', regionB);
   if (error) throw error;
 }
+
+/* Airport transfers — the destination-region × vehicle fare matrix + the return-trip discount %. One
+ * fare row per region (staff-editable via RLS) and a single-row config for the discount. */
+export type AirportRegion = 'North' | 'South' | 'East' | 'West' | 'Central';
+
+export interface AirportFareInput {
+  region: AirportRegion;
+  sedanEur: number;
+  suvEur: number;
+  familyEur: number;
+  vanEur: number;
+  coasterEur: number;
+}
+
+const AIRPORT_REGION_ORDER: AirportRegion[] = ['North', 'East', 'Central', 'West', 'South'];
+
+export async function loadAirportFares(): Promise<AirportFareInput[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('airport_transfer_fare')
+    .select('region, sedan_minor, suv_minor, family_minor, van_minor, coaster_minor');
+  if (error) throw error;
+  return (data ?? [])
+    .map((r) => ({
+      region: r.region,
+      sedanEur: r.sedan_minor / 100,
+      suvEur: r.suv_minor / 100,
+      familyEur: r.family_minor / 100,
+      vanEur: r.van_minor / 100,
+      coasterEur: r.coaster_minor / 100,
+    }))
+    .sort((a, b) => AIRPORT_REGION_ORDER.indexOf(a.region) - AIRPORT_REGION_ORDER.indexOf(b.region));
+}
+
+export async function updateAirportFare(input: AirportFareInput): Promise<void> {
+  const { error } = await getBrowserSupabase()
+    .from('airport_transfer_fare')
+    .update({
+      sedan_minor: eurToMinor(input.sedanEur),
+      suv_minor: eurToMinor(input.suvEur),
+      family_minor: eurToMinor(input.familyEur),
+      van_minor: eurToMinor(input.vanEur),
+      coaster_minor: eurToMinor(input.coasterEur),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('region', input.region);
+  if (error) throw error;
+}
+
+export async function loadAirportReturnDiscount(): Promise<number> {
+  const { data, error } = await getBrowserSupabase()
+    .from('airport_transfer_config')
+    .select('return_discount_pct')
+    .eq('id', true)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.return_discount_pct ?? 10;
+}
+
+export async function updateAirportReturnDiscount(pct: number): Promise<void> {
+  const { error } = await getBrowserSupabase()
+    .from('airport_transfer_config')
+    .update({ return_discount_pct: Math.max(0, Math.min(90, Math.round(pct))), updated_at: new Date().toISOString() })
+    .eq('id', true);
+  if (error) throw error;
+}

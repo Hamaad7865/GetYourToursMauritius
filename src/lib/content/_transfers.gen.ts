@@ -43,7 +43,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer?",
         "a": "Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. For departures we schedule the pickup to fit your check-in, with comfortable time to reach SSR."
       }
-    ]
+    ],
+    "lat": -20.1916,
+    "lng": 57.7725
   },
   {
     "slug": "constance-belle-mare-plage",
@@ -86,7 +88,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight, so your driver adjusts the pickup time automatically if you land early or late. You also have up to 60 minutes of free waiting after landing while you clear immigration and collect your bags, so there's no need to worry about delays at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.1989,
+    "lng": 57.7745
   },
   {
     "slug": "long-beach-mauritius",
@@ -130,7 +134,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight, so your driver automatically adjusts the pickup time to your actual landing. You also get up to 60 minutes of free waiting after touchdown, so there is no need to worry about delays at immigration or baggage."
       }
-    ]
+    ],
+    "lat": -20.2069,
+    "lng": 57.7785
   },
   {
     "slug": "shangri-la-le-touessrok",
@@ -173,7 +179,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer back to the airport?",
         "a": "Yes. You can add a departure transfer when you book, and we will pick you up from the hotel at a time that gets you to the airport with comfortable check-in margin."
       }
-    ]
+    ],
+    "lat": -20.27,
+    "lng": 57.7905
   },
   {
     "slug": "ambre-mauritius",
@@ -216,7 +224,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight number, so your driver automatically adjusts to the new landing time. You also get up to 60 minutes of free waiting after you clear the arrivals hall, with no extra charge for normal delays."
       }
-    ]
+    ],
+    "lat": -20.2331,
+    "lng": 57.7806
   },
   {
     "slug": "paradis-beachcomber",
@@ -260,7 +270,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer too?",
         "a": "Yes. You can add a return transfer from Paradis Beachcomber back to the airport in the same booking, and we will schedule the pickup to suit your check-in time."
       }
-    ]
+    ],
+    "lat": -20.453,
+    "lng": 57.3206
   },
   {
     "slug": "dinarobin-beachcomber",
@@ -303,7 +315,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight number, so your driver automatically adjusts to the new landing time at no extra cost. You also get up to 60 minutes of free waiting after touchdown, giving you time to clear immigration and collect your bags without worry."
       }
-    ]
+    ],
+    "lat": -20.456,
+    "lng": 57.3186
   },
   {
     "slug": "lux-le-morne",
@@ -346,7 +360,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight, so your driver's pickup time adjusts automatically to the actual landing time. You also get up to 60 minutes of free waiting after touchdown, giving you time to clear immigration and collect your bags at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.4491,
+    "lng": 57.3219
   },
   {
     "slug": "st-regis-mauritius",
@@ -389,7 +405,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight number, so your driver always knows the real landing time and adjusts the pickup automatically. There is no extra charge for delays, and you get up to 60 minutes of free waiting time after touchdown while you clear immigration and collect your bags."
       }
-    ]
+    ],
+    "lat": -20.4575,
+    "lng": 57.316
   },
   {
     "slug": "sugar-beach-mauritius",
@@ -432,7 +450,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer?",
         "a": "Absolutely. You can book your return transfer from Sugar Beach back to the airport at the same time, and we recommend it so your departure is already arranged. Your driver collects you from the hotel at an agreed time to get you to the airport with plenty of margin before check-in."
       }
-    ]
+    ],
+    "lat": -20.2872,
+    "lng": 57.3641
   },
   {
     "slug": "sofitel-so-mauritius",
@@ -475,7 +495,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight in real time, so your driver adjusts the pickup to your actual landing time at no extra charge. You also have up to 60 minutes of free waiting time after you clear immigration and collect your bags."
       }
-    ]
+    ],
+    "lat": -20.5012,
+    "lng": 57.406
   },
   {
     "slug": "heritage-le-telfair",
@@ -518,7 +540,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer as well?",
         "a": "Absolutely. Most guests book a round trip so we collect you from Heritage Le Telfair and bring you back to the airport in good time for check-in. Share your departure flight details and we'll set the pickup time for you."
       }
-    ]
+    ],
+    "lat": -20.504,
+    "lng": 57.3902
   },
   {
     "slug": "trou-aux-biches-beachcomber",
@@ -561,7 +585,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight, so your driver adjusts the pickup time automatically if you land early or late. You also have up to 60 minutes of free waiting after touchdown, which covers immigration and baggage collection at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.0331,
+    "lng": 57.5455
   },
   {
     "slug": "canonnier-beachcomber",
@@ -604,7 +630,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight, so there is nothing for you to do. Your driver adjusts the pickup time automatically to match the new landing time, and you also get up to 60 minutes of free waiting after touchdown while you clear immigration and collect your bags at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.0067,
+    "lng": 57.5681
   },
   {
     "slug": "lux-grand-gaube",
@@ -648,7 +676,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight number, so your driver's pickup time adjusts automatically if you land early or late, with no penalty. You also get up to 60 minutes of free waiting time after touchdown to clear passport control and collect your bags, which covers most delays at arrivals."
       }
-    ]
+    ],
+    "lat": -19.9876,
+    "lng": 57.6566
   },
   {
     "slug": "ravenala-attitude",
@@ -691,7 +721,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return transfer back to the airport?",
         "a": "Yes. You can book a one-way arrival transfer or add a departure transfer back to SSR Airport. For the return leg we agree a pickup time at the hotel that gives you comfortable time to check in for your flight."
       }
-    ]
+    ],
+    "lat": -20.0874,
+    "lng": 57.5167
   },
   {
     "slug": "westin-turtle-bay",
@@ -734,7 +766,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer back to the airport?",
         "a": "Yes. You can book a one-way transfer or a return, and we will pick you up from The Westin Turtle Bay Resort & Spa at an agreed time for your departure flight, allowing for the roughly hour-long drive back to SSR Airport."
       }
-    ]
+    ],
+    "lat": -20.0884,
+    "lng": 57.5152
   },
   {
     "slug": "le-meridien-ile-maurice",
@@ -777,7 +811,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight in real time, so your driver adjusts the pickup to your actual landing time at no extra cost. You also have up to 60 minutes of free waiting after you land, which covers immigration and baggage collection, so your driver will be waiting whenever you reach the arrivals hall."
       }
-    ]
+    ],
+    "lat": -20.0606,
+    "lng": 57.5226
   },
   {
     "slug": "victoria-beachcomber",
@@ -821,7 +857,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer?",
         "a": "Yes. You can book a one-way airport-to-hotel trip, a hotel-to-airport departure, or both as a round trip. For departures we set the pickup time based on your flight so you reach the airport with comfortable time to spare."
       }
-    ]
+    ],
+    "lat": -20.0641,
+    "lng": 57.5212
   },
   {
     "slug": "radisson-blu-azuri",
@@ -864,7 +902,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight in real time, so if it lands early or late your driver adjusts the pickup automatically. You also get up to 60 minutes of free waiting time after landing, with no extra charge for normal delays."
       }
-    ]
+    ],
+    "lat": -20.1083,
+    "lng": 57.7203
   },
   {
     "slug": "royal-palm-beachcomber",
@@ -907,7 +947,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer?",
         "a": "Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time to reach SSR from Grand Baie, around 75 minutes plus a margin for traffic."
       }
-    ]
+    ],
+    "lat": -20.0033,
+    "lng": 57.5806
   },
   {
     "slug": "mauricia-beachcomber",
@@ -950,7 +992,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return transfer back to the airport?",
         "a": "Yes. You can book a one-way transfer or add the return leg from Grand Baie back to SSR at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time for the 75-minute drive south."
       }
-    ]
+    ],
+    "lat": -20.012,
+    "lng": 57.5841
   },
   {
     "slug": "veranda-grand-baie",
@@ -993,7 +1037,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight in real time, so there is nothing for you to do. Your driver adjusts the pickup automatically to match the new landing time, and you also have up to 60 minutes of free waiting after touchdown while you clear immigration and collect your bags, at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.0061,
+    "lng": 57.5876
   },
   {
     "slug": "lagoon-attitude",
@@ -1036,7 +1082,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer?",
         "a": "Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. For departures we schedule the pickup to suit your check-in, allowing comfortable time for the roughly 75-minute drive back to SSR."
       }
-    ]
+    ],
+    "lat": -19.9836,
+    "lng": 57.6427
   },
   {
     "slug": "zilwa-attitude",
@@ -1079,7 +1127,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Is the price fixed and can I bring child seats?",
         "a": "Yes. You pay a fixed price agreed when you book, with no meter and no hidden fees for luggage or tolls. The first child seat or booster is free on request, so just tell us your children's ages when booking and we will have it fitted before you arrive."
       }
-    ]
+    ],
+    "lat": -19.9758,
+    "lng": 57.6431
   },
   {
     "slug": "recif-attitude",
@@ -1122,7 +1172,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can you provide a child seat?",
         "a": "Yes. We provide the first child seat or booster free of charge. Just tell us your children's ages and the number of seats you need when booking, and we will have them fitted and ready for your arrival."
       }
-    ]
+    ],
+    "lat": -20.0556,
+    "lng": 57.5226
   },
   {
     "slug": "coin-de-mire-attitude",
@@ -1165,7 +1217,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can you provide a child seat and fit our luggage?",
         "a": "Yes. Your first child or booster seat is free when you request it at booking, and additional seats can be arranged. Our vehicles are sized to your group, so please tell us the number of passengers and large suitcases and we will send a car with enough space."
       }
-    ]
+    ],
+    "lat": -19.9869,
+    "lng": 57.6135
   },
   {
     "slug": "veranda-pointe-aux-biches",
@@ -1209,7 +1263,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Is the price fixed, and how do I pay?",
         "a": "The fare is fixed and agreed when you book, per car rather than per person, with no meter. You can settle directly with your licensed driver in cash or by card on the day, and you receive instant email confirmation with your trip and driver details after booking."
       }
-    ]
+    ],
+    "lat": -20.0492,
+    "lng": 57.523
   },
   {
     "slug": "anahita-golf-spa",
@@ -1252,7 +1308,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight, so your driver adjusts the pickup time automatically if you land early or late. You also have up to 60 minutes of free waiting after landing while you clear immigration and collect your bags, so there's no need to worry about delays at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.282,
+    "lng": 57.7785
   },
   {
     "slug": "four-seasons-anahita",
@@ -1295,7 +1353,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can you provide a child seat?",
         "a": "Yes. The first child seat or booster is free on request, and additional seats can be arranged at no extra cost. Just tell us the children's ages when booking so we can fit the right seats."
       }
-    ]
+    ],
+    "lat": -20.2862,
+    "lng": 57.7793
   },
   {
     "slug": "one-only-le-saint-geran",
@@ -1338,7 +1398,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return transfer back to the airport?",
         "a": "Yes. You can book a one-way transfer or add the return leg from One&Only Le Saint Géran back to SSR at the same time. For departures we schedule the pickup to fit your check-in, with comfortable time for the roughly 50-minute drive south."
       }
-    ]
+    ],
+    "lat": -20.1646,
+    "lng": 57.78
   },
   {
     "slug": "the-residence-mauritius",
@@ -1381,7 +1443,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Do you provide child seats?",
         "a": "Yes. We provide one child seat or booster free of charge on request. Just let us know your child's age when booking and we will have the right seat fitted and ready for your arrival."
       }
-    ]
+    ],
+    "lat": -20.205,
+    "lng": 57.7773
   },
   {
     "slug": "emeraude-beach-attitude",
@@ -1424,7 +1488,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight in real time, so your driver adjusts the pickup automatically if you land early or late. You also get up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags, at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.2122,
+    "lng": 57.776
   },
   {
     "slug": "tropical-attitude",
@@ -1467,7 +1533,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer back to the airport?",
         "a": "Yes. You can book a one-way transfer or add the return leg at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time to reach SSR from Trou d'Eau Douce."
       }
-    ]
+    ],
+    "lat": -20.2456,
+    "lng": 57.7875
   },
   {
     "slug": "solana-beach",
@@ -1510,7 +1578,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Are child seats available?",
         "a": "Yes. The first child or baby seat is free on request. Just tell us the child's age when you book so we can fit the correct type before pickup, and let us know if you need more than one."
       }
-    ]
+    ],
+    "lat": -20.215,
+    "lng": 57.777
   },
   {
     "slug": "preskil-island-resort",
@@ -1553,7 +1623,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer back to the airport?",
         "a": "Yes. You can book a one-way arrival transfer or add the return leg back to SSR Airport in the same booking. As the airport is so close, the departure pickup is short, but we still allow comfortable time for check-in."
       }
-    ]
+    ],
+    "lat": -20.4181,
+    "lng": 57.7019
   },
   {
     "slug": "shandrani-beachcomber",
@@ -1596,7 +1668,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer?",
         "a": "Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. Because Shandrani is so close to SSR, departures are quick and stress-free, and we schedule the pickup to fit your check-in with comfortable time to spare."
       }
-    ]
+    ],
+    "lat": -20.4432,
+    "lng": 57.6975
   },
   {
     "slug": "tamassa-bel-ombre",
@@ -1639,7 +1713,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Are child seats available?",
         "a": "Yes. The first child or baby seat is provided free of charge when you request it during booking. Just tell us your child's age so we fit the correct seat, and we can add more seats for larger families at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.5031,
+    "lng": 57.398
   },
   {
     "slug": "outrigger-mauritius",
@@ -1682,7 +1758,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return transfer back to the airport?",
         "a": "Yes. You can book a one-way transfer or add the return leg from Bel Ombre back to SSR Airport at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time for the south-coast drive."
       }
-    ]
+    ],
+    "lat": -20.5052,
+    "lng": 57.3852
   },
   {
     "slug": "hilton-mauritius",
@@ -1725,7 +1803,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight in real time, so your driver adjusts the pickup automatically if you land early or late. You also get up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags, at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.292,
+    "lng": 57.3648
   },
   {
     "slug": "la-pirogue",
@@ -1768,7 +1848,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "What happens if my flight is delayed?",
         "a": "We track your flight in real time, so there is nothing for you to do. If your arrival is early or delayed, your driver adjusts the pickup to match the new landing time. You also have up to 60 minutes of free waiting time after you land while you clear immigration and collect your bags, at no extra cost."
       }
-    ]
+    ],
+    "lat": -20.2884,
+    "lng": 57.3645
   },
   {
     "slug": "sands-suites",
@@ -1811,7 +1893,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return or departure transfer?",
         "a": "Absolutely. You can book your return transfer from Sands Suites back to the airport at the same time, and we recommend it so your departure is already arranged. Your driver collects you from the hotel at an agreed time to reach SSR with comfortable margin before check-in."
       }
-    ]
+    ],
+    "lat": -20.296,
+    "lng": 57.366
   },
   {
     "slug": "maradiva-villas",
@@ -1854,7 +1938,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Can I book a return transfer back to the airport?",
         "a": "Yes. You can add the return leg from Maradiva Villas back to SSR Airport in the same booking. For departures we schedule the pickup to suit your check-in time, allowing comfortable time for the roughly 55-minute drive."
       }
-    ]
+    ],
+    "lat": -20.2905,
+    "lng": 57.3651
   },
   {
     "slug": "pearle-beach",
@@ -1897,7 +1983,9 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Is the price fixed, and how do I pay?",
         "a": "Yes, the price is fixed and confirmed when you book, with no hidden fees or surge pricing. You can pay the driver in cash (MUR or EUR) on arrival, or arrange card or online payment in advance when you book."
       }
-    ]
+    ],
+    "lat": -20.274,
+    "lng": 57.3651
   },
   {
     "slug": "riu-le-morne",
@@ -1940,6 +2028,8 @@ export const TRANSFERS_RAW: TransferContent[] = [
         "q": "Is the price fixed and do you provide child seats?",
         "a": "Yes, you pay a fixed, agreed price with no hidden fees, no surge pricing, and no meter. The first child seat or booster is free on request, so please share your children's ages when booking and we will have the right seat ready for you."
       }
-    ]
+    ],
+    "lat": -20.448,
+    "lng": 57.3222
   }
 ];

@@ -52,6 +52,18 @@ export const createBookingInputSchema = z.object({
   /** Number of child seats requested. First free, each additional €6 — the charge is computed
    *  server-side; the client value is only the count. Bounded so a tampered payload is a clean 400. */
   childSeats: z.number().int().min(0).max(25).optional(),
+  /** Airport transfer: the hotel page slug. The SERVER looks up the destination region from it and
+   *  recomputes the fare — it never trusts a client-sent region or price. */
+  dropoffSlug: z.string().trim().max(120).nullish(),
+  /** Airport transfer trip type. Return = two legs minus the configured discount (computed server-side). */
+  tripType: z.enum(['one_way', 'return']).optional(),
+  /** Airport transfer flight details (informational; bounded so a tampered payload is a clean 400). */
+  flightNumber: z.string().trim().max(40).nullish(),
+  arrivalTime: z.string().trim().max(40).nullish(),
+  /** Return-leg details (only meaningful when tripType === 'return'). returnDate is an ISO YYYY-MM-DD. */
+  returnDate: z.string().trim().max(40).nullish(),
+  returnTime: z.string().trim().max(40).nullish(),
+  departureFlightNumber: z.string().trim().max(40).nullish(),
   customer: z.object({
     name: z.string().min(1).max(120),
     email: z.string().email(),
@@ -109,6 +121,13 @@ export const bookingSchema = z.object({
   transportEur: z.number().nonnegative().nullish(),
   /** Pickup region the transport fare was based on, or null/absent if no transport was added. */
   pickupRegion: z.string().nullish(),
+  /** Airport transfer: trip type + flight details (null/absent for non-transfer bookings). */
+  tripType: z.string().nullish(),
+  flightNumber: z.string().nullish(),
+  arrivalTime: z.string().nullish(),
+  returnDate: z.string().nullish(),
+  returnTime: z.string().nullish(),
+  departureFlightNumber: z.string().nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 

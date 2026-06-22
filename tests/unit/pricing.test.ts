@@ -9,6 +9,11 @@ import {
   transportFare,
   TRANSPORT_BANDS_DEFAULT,
   REGION_DISTANCE_DEFAULT,
+  airportTransferFareMinor,
+  airportTransferQuoteMinor,
+  airportVehicleLabel,
+  AIRPORT_FARE_DEFAULT,
+  AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
 } from '@/lib/services/pricing';
 import { ServiceError } from '@/lib/services/errors';
 
@@ -203,5 +208,68 @@ describe('transportFare (EUR)', () => {
     expect(transportFare('West', 'West', 2, false, B, D)).toBe(15);
     expect(transportFare('East', 'West', 2, false, B, D)).toBe(50);
     expect(transportFare(null, 'West', 2, false, B, D)).toBe(0);
+  });
+});
+
+// Airport transfers — must match airport_transfer_fare_minor() + the return discount in api_book.
+const AF = AIRPORT_FARE_DEFAULT;
+
+describe('airportTransferFareMinor', () => {
+  it('picks the vehicle bracket by party size, per destination region', () => {
+    // North: sedan 5000 / suv 6500 / family 8000 / van 12000 / coaster 20000
+    expect(airportTransferFareMinor('North', 1, false, AF)).toBe(5000);
+    expect(airportTransferFareMinor('North', 4, false, AF)).toBe(5000);
+    expect(airportTransferFareMinor('North', 4, true, AF)).toBe(6500); // SUV upgrade ≤4
+    expect(airportTransferFareMinor('North', 6, false, AF)).toBe(8000);
+    expect(airportTransferFareMinor('North', 14, false, AF)).toBe(12000);
+    expect(airportTransferFareMinor('North', 25, false, AF)).toBe(20000);
+  });
+
+  it('scales to multiple coasters above 25 and ignores SUV above 4', () => {
+    expect(airportTransferFareMinor('South', 5, true, AF)).toBe(4000); // suv ignored above 4 → family
+    expect(airportTransferFareMinor('North', 26, false, AF)).toBe(20000 * 2);
+    expect(airportTransferFareMinor('North', 51, false, AF)).toBe(20000 * 3);
+  });
+
+  it('varies by region (South nearest, North farthest)', () => {
+    expect(airportTransferFareMinor('South', 2, false, AF)).toBe(2500);
+    expect(airportTransferFareMinor('North', 2, false, AF)).toBe(5000);
+  });
+
+  it('returns 0 on a missing/unknown region or empty party', () => {
+    expect(airportTransferFareMinor(null, 2, false, AF)).toBe(0);
+    expect(airportTransferFareMinor('Nowhere', 2, false, AF)).toBe(0);
+    expect(airportTransferFareMinor('North', 0, false, AF)).toBe(0);
+  });
+});
+
+describe('airportTransferQuoteMinor (one-way vs return)', () => {
+  it('one-way is the matrix fare', () => {
+    expect(airportTransferQuoteMinor('North', 8, false, 'one_way', AF, 10)).toBe(12000);
+  });
+
+  it('return is two legs minus the discount, rounded once', () => {
+    // North van one-way 12000 → return = round(12000 * 2 * 0.9) = 21600
+    expect(airportTransferQuoteMinor('North', 8, false, 'return', AF, 10)).toBe(21600);
+    // West sedan 4000 → return @10% = round(4000*2*0.9) = 7200; @ default pct
+    expect(
+      airportTransferQuoteMinor('West', 2, false, 'return', AF, AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT),
+    ).toBe(7200);
+    // 0% discount → exactly double
+    expect(airportTransferQuoteMinor('South', 2, false, 'return', AF, 0)).toBe(5000);
+  });
+
+  it('is 0 when the one-way fare is 0', () => {
+    expect(airportTransferQuoteMinor(null, 2, false, 'return', AF, 10)).toBe(0);
+  });
+});
+
+describe('airportVehicleLabel', () => {
+  it('names the vehicle class by party size (+ SUV upgrade ≤4)', () => {
+    expect(airportVehicleLabel(2, false)).toBe('Standard car');
+    expect(airportVehicleLabel(4, true)).toBe('SUV');
+    expect(airportVehicleLabel(6, false)).toBe('Family car');
+    expect(airportVehicleLabel(14, false)).toBe('Minibus');
+    expect(airportVehicleLabel(20, false)).toBe('Coaster');
   });
 });

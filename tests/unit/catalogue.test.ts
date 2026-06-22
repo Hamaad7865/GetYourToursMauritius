@@ -71,6 +71,7 @@ function detail(overrides: Partial<TourDetail> = {}): TourDetail {
     description: 'Para one.\n\nPara two.',
     meetingPoint: 'Belle Mare public beach jetty',
     pickupAvailable: true,
+    isAirportTransfer: false,
     languages: ['English', 'French'],
     inclusions: ['BBQ lunch', 'Snorkelling gear'],
     exclusions: ['Gratuities'],

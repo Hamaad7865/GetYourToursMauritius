@@ -11,11 +11,16 @@ import {
   updateSightseeingPricing,
   updateTransportBand,
   updateRegionDistance,
+  loadAirportFares,
+  updateAirportFare,
+  loadAirportReturnDiscount,
+  updateAirportReturnDiscount,
   type PlannerPricingInput,
   type SightseeingPricingInput,
   type TransportBandInput,
   type RegionPairInput,
   type ZoneBand,
+  type AirportFareInput,
 } from '@/lib/admin/vehicle-pricing';
 import { AdminHeading, AdminError, BTN_PRIMARY } from '@/components/admin/ui';
 
@@ -66,22 +71,28 @@ export function AdminVehiclePricing() {
   const [planner, setPlanner] = useState<PlannerPricingInput | null>(null);
   const [bands, setBands] = useState<TransportBandInput[] | null>(null);
   const [pairs, setPairs] = useState<RegionPairInput[] | null>(null);
+  const [airFares, setAirFares] = useState<AirportFareInput[] | null>(null);
+  const [airReturnPct, setAirReturnPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [s, p, tb, rd] = await Promise.all([
+      const [s, p, tb, rd, af, rp] = await Promise.all([
         loadSightseeingPricing(),
         loadPlannerPricing(),
         loadTransportBands(),
         loadRegionDistances(),
+        loadAirportFares(),
+        loadAirportReturnDiscount(),
       ]);
       setSight(s);
       setPlanner(p);
       setBands(tb);
       setPairs(rd);
+      setAirFares(af);
+      setAirReturnPct(rp);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load pricing.');
@@ -97,6 +108,9 @@ export function AdminVehiclePricing() {
   }
   function setPairBand(i: number, band: 'near' | 'far') {
     setPairs((cur) => cur && cur.map((p, idx) => (idx === i ? { ...p, band } : p)));
+  }
+  function patchFare(i: number, patch: Partial<AirportFareInput>) {
+    setAirFares((cur) => cur && cur.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
   }
 
   async function run(which: string, fn: () => Promise<void>) {
@@ -265,6 +279,64 @@ export function AdminVehiclePricing() {
               {saved === 'regions' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
             </div>
           </div>
+        )}
+      </section>
+
+      {/* Airport transfers */}
+      <section className="mt-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
+        <h2 className="text-[15px] font-extrabold text-ink">Airport transfers</h2>
+        <p className="mt-0.5 text-[13px] text-ink-muted">
+          Fixed transfer fare from SSR Airport, by the hotel’s region and the vehicle the party needs. The
+          return discount applies when a traveller books the return leg at the same time.
+        </p>
+        {airFares ? (
+          <div className="mt-4 max-w-md space-y-3">
+            {airFares.map((f, i) => (
+              <div key={f.region} className="rounded-xl border border-[#EAEEF0] p-3">
+                <div className="text-[13px] font-bold text-ink">{f.region}</div>
+                <EuroField label="Standard car" hint="1–4" value={f.sedanEur} onChange={(n) => patchFare(i, { sedanEur: n })} />
+                <EuroField label="SUV" hint="1–4 upgrade" value={f.suvEur} onChange={(n) => patchFare(i, { suvEur: n })} />
+                <EuroField label="Family car" hint="5–6" value={f.familyEur} onChange={(n) => patchFare(i, { familyEur: n })} />
+                <EuroField label="Minibus" hint="7–14" value={f.vanEur} onChange={(n) => patchFare(i, { vanEur: n })} />
+                <EuroField label="Coaster" hint="15–25" value={f.coasterEur} onChange={(n) => patchFare(i, { coasterEur: n })} />
+              </div>
+            ))}
+            <label className="flex items-center justify-between gap-3 py-1.5">
+              <span className="text-sm text-ink">
+                Return discount <span className="text-ink-muted">· % off the two legs</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={0}
+                  max={90}
+                  step="1"
+                  className={inputClass}
+                  value={airReturnPct ?? 0}
+                  onChange={(e) => setAirReturnPct(e.target.value ? Number(e.target.value) : 0)}
+                />
+                <span className="text-sm text-ink-muted">%</span>
+              </span>
+            </label>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run('airport', async () => {
+                    for (const f of airFares) await updateAirportFare(f);
+                    if (airReturnPct != null) await updateAirportReturnDiscount(airReturnPct);
+                  })
+                }
+                className={BTN_PRIMARY}
+              >
+                {busy ? 'Saving…' : 'Save transfer fares'}
+              </button>
+              {saved === 'airport' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-ink-muted">Loading…</p>
         )}
       </section>
     </div>
