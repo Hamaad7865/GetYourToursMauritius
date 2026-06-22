@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
 import { parseApiJson } from '@/lib/http/fetch-json';
@@ -46,11 +46,22 @@ export function TransferBookingWidget({
 }) {
   const t = useT();
   const router = useRouter();
+  const params = useSearchParams();
+
+  // Prefill from the landing-page quote calculator (?party=&suv=&trip=). The guest still confirms
+  // the exact hotel + date here; these only set the opening party/vehicle/trip so the quote they saw
+  // carries over. Clamped/validated so a hand-edited URL can't push the widget out of range.
+  const prefillParty = (() => {
+    const n = Number(params.get('party'));
+    return Number.isFinite(n) && n >= 1 && n <= MAX_PARTY ? Math.floor(n) : 2;
+  })();
+  const prefillSuv = params.get('suv') === '1';
+  const prefillTrip: TripType = params.get('trip') === 'return' ? 'return' : 'one_way';
 
   const today = useMemo(() => ymd(new Date()), []);
-  const [party, setParty] = useState(2);
-  const [suv, setSuv] = useState(false);
-  const [tripType, setTripType] = useState<TripType>('one_way');
+  const [party, setParty] = useState(prefillParty);
+  const [suv, setSuv] = useState(prefillSuv);
+  const [tripType, setTripType] = useState<TripType>(prefillTrip);
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [returnDate, setReturnDate] = useState('');
@@ -68,7 +79,11 @@ export function TransferBookingWidget({
       .then((r) => parseApiJson<{ airportFares?: AirportFareByZone; returnDiscountPct?: number }>(r))
       .then((body) => {
         if (!active || !body.ok) return;
-        if (body.data?.airportFares) setFares(body.data.airportFares);
+        // Only adopt the live matrix if it's the ZONE-keyed shape (zone1/zone2) the quote prices
+        // against; a pre-migration DB may still return a region-keyed matrix, in which case the bundled
+        // zone defaults stand (the server reconciles the price at pay regardless).
+        const live = body.data?.airportFares;
+        if (live && live.zone1 && live.zone2) setFares(live);
         if (typeof body.data?.returnDiscountPct === 'number') setReturnPct(body.data.returnDiscountPct);
       })
       .catch(() => {
