@@ -14,7 +14,7 @@ import {
   type AirportFareByRegion,
   type TripType,
 } from '@/lib/services/pricing';
-import { IconCalendar, IconCheck, IconClock, IconMinus, IconPin, IconPlus, IconUsers } from '@/components/ui/icons';
+import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconMinus, IconPin, IconPlus, IconUsers } from '@/components/ui/icons';
 
 const SLUG = 'airport-transfer';
 const MAX_PARTY = 25;
@@ -166,6 +166,13 @@ export function TransferBookingWidget({
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="font-display text-lg font-semibold text-ink">{t('Book your transfer')}</h2>
         <span className="text-[12px] font-semibold text-ink-muted">~{durationMin} min</span>
+      </div>
+      {/* Origin is fixed to the airport; the hotel is the destination. */}
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[12.5px] text-ink/75">
+        <IconPin width={14} height={14} className="shrink-0 text-coral" />
+        <span className="font-semibold text-ink">{t('SSR Airport')}</span>
+        <IconArrowRight width={13} height={13} className="text-ink/40" />
+        <span className="min-w-0 truncate font-semibold text-ink">{hotelName}</span>
       </div>
 
       {/* Trip type */}

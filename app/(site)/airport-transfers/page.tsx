@@ -5,6 +5,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { transfers, TRANSFER_REGION_ORDER, type Transfer } from '@/lib/content/transfers';
 import { reviewStats } from '@/lib/content/reviews';
 import { HotelMap } from '@/components/transfers/HotelMap';
+import { TransferSearch } from '@/components/transfers/TransferSearch';
 import { TransferSteps } from '@/components/transfers/TransferSteps';
 import { TransferReviews } from '@/components/transfers/TransferReviews';
 import { TransferGuides } from '@/components/transfers/TransferGuides';
@@ -70,7 +71,10 @@ export default function AirportTransfersIndexPage() {
         title="Mauritius airport transfers, hotel by hotel"
         intro={DESCRIPTION}
       >
-        <p className="text-[15px] leading-relaxed text-ink/75">
+        {/* Search: airport is the fixed origin; find your hotel to start booking */}
+        <TransferSearch />
+
+        <p className="mt-6 text-[15px] leading-relaxed text-ink/75">
           Every transfer is private, door-to-door and fixed-price — your own English- and French-speaking
           driver meets you in arrivals, tracks your flight, and takes you straight to your hotel. Pick your
           resort below for drive times and a price, or see how it all works on our{' '}
