@@ -857,5 +857,103 @@ export const fr: Record<string, string> = {
   "Your session has expired. Please sign in again.": "Votre session a expiré. Veuillez vous reconnecter.",
   "We couldn’t delete your account. Please contact us and we’ll help.": "Nous n’avons pas pu supprimer votre compte. Contactez-nous et nous vous aiderons.",
   "Account deleted": "Compte supprimé",
-  "Your account and personal data were deleted.": "Votre compte et vos données personnelles ont été supprimés."
+  "Your account and personal data were deleted.": "Votre compte et vos données personnelles ont été supprimés.",
+
+  // ── About page (Claude Design handoff rebuild) ──────────────────────────────
+  // Hero ("About Belle Mare Tours" + "Mauritius, shown to you by the people who live here" already keyed above)
+  "We’re Belle Mare Tours — a licensed east-coast operator run by veteran driver-guides Noorani & Satar. Book direct with the team that actually drives the roads, for fixed prices and a guide who stays with you all day.": "Nous sommes Belle Mare Tours — un opérateur agréé de la côte est, dirigé par les chauffeurs-guides chevronnés Noorani et Satar. Réservez en direct avec l’équipe qui connaît vraiment les routes, pour des prix fixes et un guide qui reste avec vous toute la journée.",
+  "Browse tours": "Voir les excursions",
+  "Read our story": "Notre histoire",
+  "An aerial view of a turquoise Mauritius lagoon meeting a pale sand beach under a clear sky": "Vue aérienne d’un lagon turquoise mauricien bordé d’une plage de sable clair sous un ciel dégagé",
+
+  // Trust strip
+  "Why travellers trust us": "Pourquoi les voyageurs nous font confiance",
+  "Tourism Authority licensed": "Agréé par l’Office du tourisme",
+  "Approved & licensed by the Mauritius Tourism Authority.": "Approuvé et agréé par la Mauritius Tourism Authority.",
+  "4.8★ from 1,000+ reviews": "4,8★ sur plus de 1 000 avis",
+  "Rated across TripAdvisor & Google by real travellers.": "Noté sur TripAdvisor et Google par de vrais voyageurs.",
+  "The same guide all day": "Le même guide toute la journée",
+  "One driver-guide, door to door — never passed between taxis.": "Un seul chauffeur-guide, de porte à porte — jamais ballotté entre les taxis.",
+  "Book direct, no commission": "Réservez en direct, sans commission",
+  "No reseller mark-up — so your price stays lower.": "Aucune marge de revendeur — votre prix reste plus bas.",
+
+  // Our story
+  "Our story": "Notre histoire",
+  "Two driver-guides, one island they know by heart": "Deux chauffeurs-guides, une île qu’ils connaissent par cœur",
+  "Noorani and Satar have spent their lives on Mauritian roads — two of the island’s most experienced driver-guides, based where the day begins, in Belle Mare on the east coast.": "Noorani et Satar ont passé leur vie sur les routes mauriciennes — deux des chauffeurs-guides les plus expérimentés de l’île, installés là où la journée commence, à Belle Mare sur la côte est.",
+  "Over the years they grew a trusted local operation on one simple promise: the same driver-guide looks after you from morning pickup to evening drop-off. You’re never handed between taxis, never left waiting, never sold a detour you didn’t ask for.": "Au fil des années, ils ont bâti une activité locale de confiance sur une promesse simple : le même chauffeur-guide s’occupe de vous, de la prise en charge le matin au retour le soir. Jamais transféré d’un taxi à l’autre, jamais laissé à attendre, jamais embarqué dans un détour que vous n’avez pas demandé.",
+  "The Mauritius they show you is the one they grew up with — the still lagoons off Belle Mare, a catamaran out to Île aux Cerfs, dolphins at first light in Tamarin Bay, and the colour of the Port Louis markets.": "L’île Maurice qu’ils vous font découvrir est celle où ils ont grandi — les lagons paisibles de Belle Mare, un catamaran vers l’Île aux Cerfs, les dauphins à l’aube dans la baie de Tamarin, et les couleurs des marchés de Port-Louis.",
+  "A speedboat crossing calm turquoise water off the Mauritius coast": "Un hors-bord traversant des eaux turquoise et calmes au large de la côte mauricienne",
+  "Sunlit shallows breaking over pale sand on a Mauritius beach": "Des hauts-fonds ensoleillés déferlant sur le sable clair d’une plage mauricienne",
+  "East coast": "Côte est",
+  "Based in Belle Mare": "Basés à Belle Mare",
+
+  // What we offer ("What we offer" already keyed above)
+  "Every way to see Mauritius — booked direct": "Toutes les façons de découvrir Maurice — réservées en direct",
+  "From a full day of private sightseeing to a quick airport run, it’s the same trusted team behind every trip.": "D’une journée complète de visite privée à un simple trajet vers l’aéroport, c’est la même équipe de confiance derrière chaque trajet.",
+  "Private Sightseeing Tours of Mauritius": "Excursions privées à la découverte de Maurice",
+  "Your own driver-guide and vehicle, north to south, at your pace.": "Votre propre chauffeur-guide et véhicule, du nord au sud, à votre rythme.",
+  "Explore tours": "Voir les excursions",
+  "Catamaran Cruises & Île aux Cerfs": "Croisières en catamaran et Île aux Cerfs",
+  "Sail the east-coast lagoon to the island’s most loved beach.": "Naviguez sur le lagon de la côte est jusqu’à la plage la plus prisée de l’île.",
+  "View cruises": "Voir les croisières",
+  "Dolphin Swims in Tamarin Bay": "Nage avec les dauphins dans la baie de Tamarin",
+  "An early west-coast start to meet wild dolphins offshore.": "Un départ matinal sur la côte ouest pour rencontrer des dauphins sauvages au large.",
+  "See the trip": "Voir l’excursion",
+  "Airport Transfers & Door-to-Door Pickup": "Transferts aéroport et prise en charge de porte à porte",
+  "Clean, modern minivans meeting you at arrivals — fixed fares.": "Des minibus propres et modernes vous attendent à l’arrivée — tarifs fixes.",
+  "Get a transfer": "Réserver un transfert",
+  "Car & Scooter Rental in Mauritius": "Location de voiture et de scooter à Maurice",
+  "Want to explore solo? Pick up wheels through the same local team.": "Envie d’explorer en solo ? Louez un véhicule auprès de la même équipe locale.",
+  "View rentals": "Voir les locations",
+  "Build a Custom Day with AI": "Composez votre journée sur mesure avec l’IA",
+  "Tell us your dates and pace — get a tailored island day in seconds.": "Indiquez vos dates et votre rythme — obtenez une journée sur l’île sur mesure en quelques secondes.",
+  // "Plan my day" already keyed above
+
+  // Why we built GetYourToursMauritius ("Why we built GetYourToursMauritius" already keyed above)
+  "Cut out the middleman, keep the price honest": "Supprimer l’intermédiaire, garder un prix juste",
+  "Big booking platforms take a heavy commission on every trip. That money either inflates the price you pay — or quietly shrinks what reaches the local team who actually drive you around the island.": "Les grandes plateformes de réservation prélèvent une lourde commission sur chaque trajet. Cet argent gonfle le prix que vous payez — ou réduit discrètement ce qui revient à l’équipe locale qui vous conduit réellement à travers l’île.",
+  "So we built our own booking platform. Reserve direct with the operator and you get transparent fixed prices, instant confirmation, free cancellation — and more of what you pay stays with the people showing you Mauritius.": "Nous avons donc créé notre propre plateforme de réservation. Réservez en direct avec l’opérateur et bénéficiez de prix fixes transparents, d’une confirmation instantanée, d’une annulation gratuite — et une plus grande part de ce que vous payez revient à ceux qui vous font découvrir Maurice.",
+  "Transparent fixed EUR prices": "Prix fixes et transparents en euros",
+  "What you see up front is what you pay. No reseller mark-up.": "Le prix affiché est celui que vous payez. Aucune marge de revendeur.",
+  "Instant e-voucher confirmation": "Confirmation par e-billet instantanée",
+  "Pay securely by card and your booking is confirmed at once.": "Payez en toute sécurité par carte et votre réservation est confirmée aussitôt.",
+  // "Free cancellation up to 24h" already keyed above
+  "Plans change. Cancel up to 24 hours before, free.": "Les projets changent. Annulez jusqu’à 24 heures avant, gratuitement.",
+
+  // Across the whole island ("Across the whole island" already keyed above)
+  "One operator, every corner of Mauritius": "Un seul opérateur, aux quatre coins de Maurice",
+  "Door-to-door pickup island-wide — wherever you’re staying, we reach you.": "Prise en charge de porte à porte dans toute l’île — où que vous logiez, nous venons à vous.",
+  // Region tags North/South/West/Central already keyed above
+  "Grand Baie & Pamplemousses": "Grand Baie et Pamplemousses",
+  "Cap Malheureux, the botanical garden & northern islets.": "Cap Malheureux, le jardin botanique et les îlots du nord.",
+  "East · home": "Est · chez nous",
+  "Belle Mare & Île aux Cerfs": "Belle Mare et l’Île aux Cerfs",
+  "Our home shore — Trou d’Eau Douce & the calm lagoons.": "Notre rivage — Trou d’Eau Douce et les lagons paisibles.",
+  "Le Morne & Chamarel": "Le Morne et Chamarel",
+  "Seven Coloured Earths, Black River Gorges & Gris Gris.": "Terre des Sept Couleurs, gorges de Rivière Noire et Gris Gris.",
+  "Tamarin & Flic en Flac": "Tamarin et Flic en Flac",
+  "Dolphin bay, the sunset coast & Casela nature park.": "La baie des dauphins, la côte des couchers de soleil et le parc nature de Casela.",
+  "Port Louis & the highlands": "Port-Louis et les hauts plateaux",
+  "The capital’s markets, Trou aux Cerfs & Plaine Champagne.": "Les marchés de la capitale, le Trou aux Cerfs et la Plaine Champagne.",
+
+  // FAQ ("Good to know", "Which areas of Mauritius do you cover?" and "Are your tours private?" already keyed above)
+  "Is Belle Mare Tours licensed?": "Belle Mare Tours est-il agréé ?",
+  "Yes. Belle Mare Tours Ltd is approved and licensed by the Mauritius Tourism Authority, run by veteran local driver-guides Noorani and Satar, based in Belle Mare on the east coast.": "Oui. Belle Mare Tours Ltd est approuvé et agréé par la Mauritius Tourism Authority, dirigé par les chauffeurs-guides locaux chevronnés Noorani et Satar, basés à Belle Mare sur la côte est.",
+  "We operate island-wide — North, East, South, West and Central — with door-to-door pickup from any hotel, Airbnb or cruise port.": "Nous opérons dans toute l’île — Nord, Est, Sud, Ouest et Centre — avec une prise en charge de porte à porte depuis tout hôtel, Airbnb ou port de croisière.",
+  "Do you pick up from my hotel and the airport?": "Venez-vous me chercher à mon hôtel et à l’aéroport ?",
+  "Yes. We offer door-to-door pickup from any hotel, Airbnb or cruise port island-wide, as well as airport arrivals and transfers.": "Oui. Nous proposons une prise en charge de porte à porte depuis tout hôtel, Airbnb ou port de croisière dans toute l’île, ainsi que les arrivées et transferts à l’aéroport.",
+  "Yes. The same English- and French-speaking driver-guide looks after you all day — you are never passed between taxis.": "Oui. Le même chauffeur-guide, anglophone et francophone, s’occupe de vous toute la journée — vous n’êtes jamais ballotté entre les taxis.",
+  "How do I pay?": "Comment payer ?",
+  "Prices are transparent and fixed in EUR, shown up front. You pay securely by card and receive instant e-voucher confirmation.": "Les prix sont transparents et fixes en euros, affichés d’emblée. Vous payez en toute sécurité par carte et recevez une confirmation par e-billet instantanée.",
+  "What is your cancellation policy?": "Quelle est votre politique d’annulation ?",
+  "Free cancellation up to 24 hours before your booking.": "Annulation gratuite jusqu’à 24 heures avant votre réservation.",
+
+  // CTA band
+  "Ready when you are": "Prêts quand vous l’êtes",
+  "Let’s plan your Mauritius, together": "Planifions votre séjour à Maurice, ensemble",
+  "Message Noorani & Satar directly, or browse fixed-price tours and book in minutes.": "Écrivez directement à Noorani et Satar, ou parcourez les excursions à prix fixe et réservez en quelques minutes.",
+  "Hi Belle Mare Tours! I’d like to plan my trip to Mauritius.": "Bonjour Belle Mare Tours ! J’aimerais organiser mon voyage à Maurice.",
+  "Message us on WhatsApp": "Écrivez-nous sur WhatsApp",
+  "English & French spoken · Door-to-door island-wide · Free cancellation up to 24h": "Anglais et français parlés · Porte à porte dans toute l’île · Annulation gratuite jusqu’à 24 h"
 };
