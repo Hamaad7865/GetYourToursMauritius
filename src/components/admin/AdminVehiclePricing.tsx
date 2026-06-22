@@ -34,6 +34,15 @@ const BAND_LABEL: Record<ZoneBand, string> = {
 const inputClass =
   'w-28 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:bg-white';
 
+/** Vehicle brackets for the airport-fare grid, in column order — keyed to AirportFareInput fields. */
+const AIRPORT_VEHICLES: { key: 'sedanEur' | 'suvEur' | 'familyEur' | 'vanEur' | 'coasterEur'; label: string; hint: string }[] = [
+  { key: 'sedanEur', label: 'Standard car', hint: '1–4' },
+  { key: 'suvEur', label: 'SUV', hint: '1–4 upgrade' },
+  { key: 'familyEur', label: 'Family car', hint: '5–6' },
+  { key: 'vanEur', label: 'Minibus', hint: '7–14' },
+  { key: 'coasterEur', label: 'Coaster', hint: '15–25' },
+];
+
 function EuroField({
   label,
   hint,
@@ -291,20 +300,57 @@ export function AdminVehiclePricing() {
           is the near-airport south-east cluster; Zone 1 is everywhere else. The return discount applies
           when a traveller books the return leg at the same time.
         </p>
-        {/* TODO(AT-3): redesign this as the proper 2-zone grid (zones as columns, vehicles as rows). */}
         {airFares ? (
-          <div className="mt-4 max-w-md space-y-3">
-            {airFares.map((f, i) => (
-              <div key={f.zone} className="rounded-xl border border-[#EAEEF0] p-3">
-                <div className="text-[13px] font-bold text-ink">{AIRPORT_ZONE_LABEL[f.zone]}</div>
-                <EuroField label="Standard car" hint="1–4" value={f.sedanEur} onChange={(n) => patchFare(i, { sedanEur: n })} />
-                <EuroField label="SUV" hint="1–4 upgrade" value={f.suvEur} onChange={(n) => patchFare(i, { suvEur: n })} />
-                <EuroField label="Family car" hint="5–6" value={f.familyEur} onChange={(n) => patchFare(i, { familyEur: n })} />
-                <EuroField label="Minibus" hint="7–14" value={f.vanEur} onChange={(n) => patchFare(i, { vanEur: n })} />
-                <EuroField label="Coaster" hint="15–25" value={f.coasterEur} onChange={(n) => patchFare(i, { coasterEur: n })} />
-              </div>
-            ))}
-            <label className="flex items-center justify-between gap-3 py-1.5">
+          <div className="mt-4">
+            <p className="mb-3 max-w-2xl text-[12px] text-ink-muted">
+              Zone 2 = near-airport south-east (Mahébourg, Blue Bay, Pointe d&apos;Esny, Grand Port, Ferney +
+              Shandrani/Preskil/Anantara IKO/Holiday Inn/Astroea/Le Peninsula Bay). Zone 1 = the rest of the island.
+              Prices are per vehicle, fixed, in EUR.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <caption className="sr-only">Airport transfer fares by zone and vehicle, in euros</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60">
+                      Zone
+                    </th>
+                    {AIRPORT_VEHICLES.map((v) => (
+                      <th key={v.key} scope="col" className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60">
+                        {v.label}
+                        <span className="block font-medium text-ink-muted">{v.hint}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {airFares.map((f, i) => (
+                    <tr key={f.zone} className="border-t border-[#EAEEF0]">
+                      <th scope="row" className="px-2 py-2.5 text-left align-middle text-[13px] font-bold text-ink">
+                        {AIRPORT_ZONE_LABEL[f.zone]}
+                      </th>
+                      {AIRPORT_VEHICLES.map((v) => (
+                        <td key={v.key} className="px-2 py-2.5 align-middle">
+                          <span className="flex items-center gap-1">
+                            <span className="text-sm text-ink-muted">€</span>
+                            <input
+                              type="number"
+                              min={0}
+                              step="1"
+                              className={inputClass}
+                              aria-label={`${AIRPORT_ZONE_LABEL[f.zone]} — ${v.label} fare in euros`}
+                              value={Number.isFinite(f[v.key]) ? f[v.key] : ''}
+                              onChange={(e) => patchFare(i, { [v.key]: e.target.value ? Number(e.target.value) : 0 })}
+                            />
+                          </span>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <label className="mt-4 flex max-w-md items-center justify-between gap-3 py-1.5">
               <span className="text-sm text-ink">
                 Return discount <span className="text-ink-muted">· % off the two legs</span>
               </span>
@@ -315,13 +361,14 @@ export function AdminVehiclePricing() {
                   max={90}
                   step="1"
                   className={inputClass}
+                  aria-label="Return discount percentage off the two legs"
                   value={airReturnPct ?? 0}
                   onChange={(e) => setAirReturnPct(e.target.value ? Number(e.target.value) : 0)}
                 />
                 <span className="text-sm text-ink-muted">%</span>
               </span>
             </label>
-            <div className="flex items-center gap-3">
+            <div className="mt-4 flex items-center gap-3">
               <button
                 type="button"
                 disabled={busy}
