@@ -41,7 +41,7 @@ function loadMaps(apiKey: string): Promise<void> {
     const script = document.createElement('script');
     const params = new URLSearchParams({
       key: apiKey,
-      libraries: 'places,marker',
+      libraries: 'places,marker,routes',
       loading: 'async',
       callback: CALLBACK,
       v: 'weekly',

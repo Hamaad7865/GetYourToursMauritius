@@ -57,9 +57,9 @@ function buildDrivePath(
  * of the session — every retry just re-spams the console. The straight-line fallback takes over. */
 let directionsDenied = false;
 
-/** Overlays added to the map: AdvancedMarkers (removed via `.map = null`) and the DirectionsRenderer
+/** Overlays added to the map: AdvancedMarkers (removed via `.map = null`) and route Polylines
  *  (removed via `setMap(null)`). */
-type MapOverlay = google.maps.marker.AdvancedMarkerElement | google.maps.DirectionsRenderer;
+type MapOverlay = google.maps.marker.AdvancedMarkerElement | google.maps.Polyline;
 function clearOverlay(o: MapOverlay): void {
   if (o instanceof google.maps.marker.AdvancedMarkerElement) o.map = null;
   else o.setMap(null);
@@ -177,32 +177,36 @@ export function RouteMap({
       let drewRoute = false;
       if (points.length >= 2 && !directionsDenied) {
         try {
-          const ds = new google.maps.DirectionsService();
-          const res = await ds.route({
+          // Routes API (the successor to the deprecated DirectionsService). We request only `path`
+          // (the polyline points) and render it ourselves with createPolylines (real Polylines, not
+          // the deprecated DirectionsRenderer). Intermediate stops are non-`via` waypoints.
+          const { routes: computed } = await google.maps.routes.Route.computeRoutes({
             origin: points[0]!,
             destination: points[points.length - 1]!,
-            waypoints: points.slice(1, -1).map((location) => ({ location, stopover: true })),
+            intermediates: points.slice(1, -1).map((location) => ({ location })),
             travelMode: google.maps.TravelMode.DRIVING,
+            fields: ['path'],
           });
           if (cancelled) return;
-          const route = res.routes[0];
-          if (route) {
-            track(
-              new google.maps.DirectionsRenderer({
-                map,
-                directions: res,
-                suppressMarkers: true,
-                preserveViewport: true,
+          const route = computed?.[0];
+          if (route?.path?.length) {
+            route
+              .createPolylines({
                 polylineOptions: { strokeColor: '#0E8C92', strokeWeight: 4, strokeOpacity: 0.9 },
-              }),
-            );
-            path = route.overview_path.map((p) => ({ lat: p.lat(), lng: p.lng() }));
+              })
+              .forEach((pl) => {
+                pl.setMap(map);
+                track(pl);
+              });
+            // LatLngAltitude exposes lat/lng as number getters (not methods).
+            path = route.path.map((p) => ({ lat: p.lat, lng: p.lng }));
             drewRoute = true;
           }
         } catch (err: unknown) {
-          // "not enabled / denied" is permanent for this key → stop retrying it this session.
+          // "not enabled / denied / disabled" is permanent for this key → stop retrying it this
+          // session (every retry just re-spams the console); the straight-line fallback takes over.
           const code = (err as { code?: string })?.code ?? String(err);
-          if (/denied|not.*activated|not.*enabled/i.test(code)) directionsDenied = true;
+          if (/denied|not.*activated|not.*enabled|disabled|permission/i.test(code)) directionsDenied = true;
         }
       }
       if (!drewRoute) {
