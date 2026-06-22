@@ -5648,12 +5648,47 @@ as $$
   where a.slug = p ->> 'slug';
 $$;
 
+-- 9b) Seed the airport-transfer PRODUCT itself (the row + its vehicle options/prices). It previously
+--     lived only in seed.sql, so a prod DB that ran ONLY catch-up.sql never had it — and with no
+--     activity there were no bookable slots. Insert it here (idempotent) so catch-up.sql is self-sufficient.
+insert into activities
+  (operator_id, slug, type, title, summary, description, category, location, duration_minutes,
+   meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode)
+select id, 'airport-transfer', 'transport', 'Airport Transfer',
+   'Private meet-and-greet transfer between SSR International Airport and your accommodation, 24/7.',
+   null, 'Airport transfers', 'Island-wide', 60, 'SSR International Airport (arrivals)', true,
+   array['en','fr']::text[], array['Driver','Luggage assistance']::text[], '{}'::text[],
+   array['Meet & greet','24/7','Door to door']::text[], 'published', 'vehicle'
+from operators where slug = 'belle-mare-tours'
+on conflict (slug) do nothing;
+
+do $$
+declare v_act uuid := (select id from activities where slug = 'airport-transfer'); v_opt uuid; r record;
+begin
+  if v_act is null then return; end if;
+  for r in select * from (values
+      ('Standard car (4 seats, 2 suitcases)', 3600, 4), ('SUV (4 seats, 4 suitcases)', 4000, 4),
+      ('Family car (6 seats, 4 suitcases)', 4000, 6), ('Minibus (14 seats)', 9000, 14),
+      ('Coaster (22 seats)', 13000, 22)) as t(name, amount_minor, max_guests)
+  loop
+    select id into v_opt from activity_options where activity_id = v_act and name = r.name limit 1;
+    if v_opt is null then
+      insert into activity_options (activity_id, name) values (v_act, r.name) returning id into v_opt;
+    end if;
+    if not exists (select 1 from activity_option_prices where activity_option_id = v_opt and label = 'Per transfer') then
+      insert into activity_option_prices (activity_option_id, label, amount_minor, currency, max_guests)
+      values (v_opt, 'Per transfer', r.amount_minor::int, 'EUR', r.max_guests::int);
+    end if;
+  end loop;
+end $$;
+
 -- 10) Configure the seeded airport-transfer activity as a bookable vehicle product (idempotent; runs LAST
 --     so it wins over the 20260617190000 per_group correction). min_advance_days = 0 so same-day flights
 --     book. Then directly materialize the open-ended day-slots (the materialize_availability function is
 --     staff/service-role gated and would raise if called from a plain SQL session, so inline the insert).
 update activities
-set is_airport_transfer = true,
+set status = 'published',
+    is_airport_transfer = true,
     pricing_mode = 'vehicle',
     min_advance_days = 0,
     region = coalesce(region, 'South'),
