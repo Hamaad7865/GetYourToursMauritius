@@ -540,7 +540,7 @@ type RegionZoneDistanceRow = {
 type RegionZoneDistanceInsert = RegionZoneDistanceRow;
 
 type AirportTransferFareRow = {
-  region: 'North' | 'South' | 'East' | 'West' | 'Central';
+  zone: 'zone1' | 'zone2';
   sedan_minor: number;
   suv_minor: number;
   family_minor: number;
@@ -549,7 +549,7 @@ type AirportTransferFareRow = {
   updated_at: string;
 };
 type AirportTransferFareInsert = Partial<AirportTransferFareRow> & {
-  region: 'North' | 'South' | 'East' | 'West' | 'Central';
+  zone: 'zone1' | 'zone2';
 };
 
 type AirportTransferConfigRow = { id: boolean; return_discount_pct: number; updated_at: string };
@@ -559,6 +559,7 @@ type AirportTransferHotelsRow = {
   slug: string;
   hotel_name: string;
   region: 'North' | 'South' | 'East' | 'West' | 'Central';
+  zone: 'zone1' | 'zone2';
 };
 type AirportTransferHotelsInsert = AirportTransferHotelsRow;
 

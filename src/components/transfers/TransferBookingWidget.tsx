@@ -10,8 +10,9 @@ import {
   AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
   airportTransferQuoteMinor,
   airportVehicleLabel,
+  airportZoneForSlug,
   centsToEur,
-  type AirportFareByRegion,
+  type AirportFareByZone,
   type TripType,
 } from '@/lib/services/pricing';
 import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconMinus, IconPin, IconPlus, IconUsers } from '@/components/ui/icons';
@@ -25,11 +26,12 @@ function ymd(d: Date): string {
 }
 
 /**
- * Bookable airport-transfer widget on each hotel page. The destination region is fixed by the hotel, so
- * the price is an instant region × vehicle (party-derived) fare, one-way or return. On "Book", it reserves
+ * Bookable airport-transfer widget on each hotel page. The destination zone is fixed by the hotel, so
+ * the price is an instant zone × vehicle (party-derived) fare, one-way or return. On "Book", it reserves
  * the day's availability and hands the selection to /checkout (where the traveller adds flight details and
- * pays). The server re-derives the region from the hotel slug and recomputes the fare — the client price
- * is only a display hint, reconciled before charging.
+ * pays). The server re-derives the zone from the hotel slug and recomputes the fare — the client price
+ * is only a display hint, reconciled before charging. `region` stays a prop for SEO/display use elsewhere
+ * but no longer drives pricing.
  */
 export function TransferBookingWidget({
   slug,
@@ -53,7 +55,7 @@ export function TransferBookingWidget({
   const [time, setTime] = useState('');
   const [returnDate, setReturnDate] = useState('');
   const [returnTime, setReturnTime] = useState('');
-  const [fares, setFares] = useState<AirportFareByRegion>(AIRPORT_FARE_DEFAULT);
+  const [fares, setFares] = useState<AirportFareByZone>(AIRPORT_FARE_DEFAULT);
   const [returnPct, setReturnPct] = useState(AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +65,7 @@ export function TransferBookingWidget({
   useEffect(() => {
     let active = true;
     fetch(`/api/v1/activities/${SLUG}`)
-      .then((r) => parseApiJson<{ airportFares?: AirportFareByRegion; returnDiscountPct?: number }>(r))
+      .then((r) => parseApiJson<{ airportFares?: AirportFareByZone; returnDiscountPct?: number }>(r))
       .then((body) => {
         if (!active || !body.ok) return;
         if (body.data?.airportFares) setFares(body.data.airportFares);
@@ -80,7 +82,9 @@ export function TransferBookingWidget({
   const suvEligible = party <= 4;
   const effectiveSuv = suv && suvEligible;
   const vehicle = airportVehicleLabel(party, effectiveSuv);
-  const totalMinor = airportTransferQuoteMinor(region, party, effectiveSuv, tripType, fares, returnPct);
+  // The destination zone is fixed by the hotel slug (the server re-derives it, zero-trust).
+  const zone = airportZoneForSlug(slug);
+  const totalMinor = airportTransferQuoteMinor(zone, party, effectiveSuv, tripType, fares, returnPct);
   const totalEur = centsToEur(totalMinor);
 
   async function book() {

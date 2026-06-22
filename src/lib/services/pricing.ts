@@ -278,34 +278,48 @@ export function transportFare(
   return centsToEur(transportFareMinor(pickupRegion, activityRegion, pax, suv, bands, distances));
 }
 
-// ── Airport transfers (region × vehicle fare matrix) ─────────────────────────
-// A FIXED transfer fare priced by the DESTINATION region (SSR airport is the fixed origin) × vehicle
+// ── Airport transfers (zone × vehicle fare matrix) ───────────────────────────
+// A FIXED transfer fare priced by the destination ZONE (SSR airport is the fixed origin) × vehicle
 // bracket (derived from party size + the ≤4 SUV upgrade), one-way or return (return = two legs minus a
-// configurable discount). The SQL (airport_transfer_fare_minor in 20260730000000 + the return-discount in
-// api_book) is AUTHORITATIVE; everything below mirrors it cent-for-cent for the hotel-page widget. All
-// amounts are integer minor units (EUR cents).
+// configurable discount). There are just TWO zones: Zone 2 is the near-airport south-east cluster
+// (Shandrani, Preskil, Blue Bay, Mahébourg, Pointe d'Esny, …); Zone 1 is everywhere else. The SQL
+// (airport_transfer_fare_minor in 20260731000000 + the return-discount in api_book) is AUTHORITATIVE;
+// everything below mirrors it cent-for-cent for the hotel-page widget. All amounts are integer minor
+// units (EUR cents).
 
 export type TripType = 'one_way' | 'return';
 
-/** One flat fare per vehicle bracket, for a single destination region (minor units / EUR cents). */
+/** One of the two airport-transfer pricing zones. */
+export type AirportZone = 'zone1' | 'zone2';
+
+/** Hotel slugs in Zone 2 (the near-airport south-east cluster). The DB (airport_transfer_hotels.zone) is
+ *  AUTHORITATIVE — api_book re-derives the zone from the slug. This mirror only feeds the client widget's
+ *  display quote; keep it in sync with the migration when hotels are added/reclassified. */
+export const AIRPORT_ZONE2_SLUGS: ReadonlySet<string> = new Set(['shandrani-beachcomber', 'preskil-island-resort']);
+
+/** The pricing zone for a hotel slug (Zone 2 for the near-airport cluster, else Zone 1). Display-only;
+ *  the server is authoritative. */
+export function airportZoneForSlug(slug: string | null | undefined): AirportZone {
+  return slug && AIRPORT_ZONE2_SLUGS.has(slug) ? 'zone2' : 'zone1';
+}
+
+/** One flat fare per vehicle bracket, for a single zone (minor units / EUR cents). */
 export interface AirportFare {
-  sedanMinor: number; // 1-4
+  sedanMinor: number; // 1-4 (Standard car)
   suvMinor: number; // 1-4 upgrade
-  familyMinor: number; // 5-6
-  vanMinor: number; // 7-14
+  familyMinor: number; // 5-6 (Family car)
+  vanMinor: number; // 7-14 (Minibus)
   coasterMinor: number; // 15-25 (×N coasters above 25)
 }
 
-/** Fares for every destination region (one row per region in airport_transfer_fare). */
-export type AirportFareByRegion = Record<string, AirportFare>;
+/** Fares for both zones (one row per zone in airport_transfer_fare). */
+export type AirportFareByZone = Record<string, AirportFare>;
 
-/** Defaults mirroring the migration seed — used as a fallback and by the unit tests. */
-export const AIRPORT_FARE_DEFAULT: AirportFareByRegion = {
-  South: { sedanMinor: 2500, suvMinor: 3500, familyMinor: 4000, vanMinor: 6500, coasterMinor: 11000 },
-  East: { sedanMinor: 3500, suvMinor: 4500, familyMinor: 5500, vanMinor: 8500, coasterMinor: 14000 },
-  Central: { sedanMinor: 3000, suvMinor: 4000, familyMinor: 4800, vanMinor: 7500, coasterMinor: 12500 },
-  West: { sedanMinor: 4000, suvMinor: 5200, familyMinor: 6500, vanMinor: 9500, coasterMinor: 16000 },
-  North: { sedanMinor: 5000, suvMinor: 6500, familyMinor: 8000, vanMinor: 12000, coasterMinor: 20000 },
+/** Defaults mirroring the migration seed — used as a fallback and by the unit tests. Zone 2 standard
+ *  car = €35 (confirmed); every other cell is an owner-tunable placeholder set in the admin screen. */
+export const AIRPORT_FARE_DEFAULT: AirportFareByZone = {
+  zone2: { sedanMinor: 3500, suvMinor: 4800, familyMinor: 5500, vanMinor: 8500, coasterMinor: 14500 },
+  zone1: { sedanMinor: 5500, suvMinor: 7000, familyMinor: 8000, vanMinor: 12000, coasterMinor: 20000 },
 };
 
 /** Default return-trip discount (%) — mirrors airport_transfer_config.return_discount_pct. */
@@ -321,18 +335,18 @@ export function airportVehicleLabel(pax: number, suv: boolean): string {
 
 /**
  * One-way airport-transfer fare in MINOR units for a party, mirroring airport_transfer_fare_minor() in
- * SQL cent-for-cent: region row -> vehicle bracket by party size (Sedan ≤4, Family ≤6, Van ≤14, Coaster
- * ≤25, ×ceil(pax/25) coasters above 25); SUV is the ≤4 upgrade. Returns 0 when the region/party is
+ * SQL cent-for-cent: zone row -> vehicle bracket by party size (Sedan ≤4, Family ≤6, Van ≤14, Coaster
+ * ≤25, ×ceil(pax/25) coasters above 25); SUV is the ≤4 upgrade. Returns 0 when the zone/party is
  * missing or unknown.
  */
 export function airportTransferFareMinor(
-  region: string | null,
+  zone: string | null,
   pax: number,
   suv: boolean,
-  fares: AirportFareByRegion,
+  fares: AirportFareByZone,
 ): number {
-  if (!region || !Number.isFinite(pax) || pax < 1) return 0;
-  const row = fares[region];
+  if (!zone || !Number.isFinite(pax) || pax < 1) return 0;
+  const row = fares[zone];
   if (!row) return 0;
   if (pax <= 4) return suv ? row.suvMinor : row.sedanMinor;
   if (pax <= 6) return row.familyMinor;
@@ -346,14 +360,14 @@ export function airportTransferFareMinor(
  * configured discount (rounded once to whole cents). Mirrors the return formula in api_book.
  */
 export function airportTransferQuoteMinor(
-  region: string | null,
+  zone: string | null,
   pax: number,
   suv: boolean,
   tripType: TripType,
-  fares: AirportFareByRegion,
+  fares: AirportFareByZone,
   returnDiscountPct: number,
 ): number {
-  const oneWay = airportTransferFareMinor(region, pax, suv, fares);
+  const oneWay = airportTransferFareMinor(zone, pax, suv, fares);
   if (oneWay <= 0) return 0;
   if (tripType !== 'return') return oneWay;
   const pct = Number.isFinite(returnDiscountPct) ? returnDiscountPct : 0;
@@ -362,12 +376,12 @@ export function airportTransferQuoteMinor(
 
 /** As {@link airportTransferQuoteMinor}, but in EUR — for the widget quote (`<Price>` takes EUR). */
 export function airportTransferQuote(
-  region: string | null,
+  zone: string | null,
   pax: number,
   suv: boolean,
   tripType: TripType,
-  fares: AirportFareByRegion,
+  fares: AirportFareByZone,
   returnDiscountPct: number,
 ): number {
-  return centsToEur(airportTransferQuoteMinor(region, pax, suv, tripType, fares, returnDiscountPct));
+  return centsToEur(airportTransferQuoteMinor(zone, pax, suv, tripType, fares, returnDiscountPct));
 }

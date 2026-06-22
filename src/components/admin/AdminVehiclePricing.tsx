@@ -15,6 +15,7 @@ import {
   updateAirportFare,
   loadAirportReturnDiscount,
   updateAirportReturnDiscount,
+  AIRPORT_ZONE_LABEL,
   type PlannerPricingInput,
   type SightseeingPricingInput,
   type TransportBandInput,
@@ -286,14 +287,16 @@ export function AdminVehiclePricing() {
       <section className="mt-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
         <h2 className="text-[15px] font-extrabold text-ink">Airport transfers</h2>
         <p className="mt-0.5 text-[13px] text-ink-muted">
-          Fixed transfer fare from SSR Airport, by the hotel’s region and the vehicle the party needs. The
-          return discount applies when a traveller books the return leg at the same time.
+          Fixed transfer fare from SSR Airport, by the hotel’s zone and the vehicle the party needs. Zone 2
+          is the near-airport south-east cluster; Zone 1 is everywhere else. The return discount applies
+          when a traveller books the return leg at the same time.
         </p>
+        {/* TODO(AT-3): redesign this as the proper 2-zone grid (zones as columns, vehicles as rows). */}
         {airFares ? (
           <div className="mt-4 max-w-md space-y-3">
             {airFares.map((f, i) => (
-              <div key={f.region} className="rounded-xl border border-[#EAEEF0] p-3">
-                <div className="text-[13px] font-bold text-ink">{f.region}</div>
+              <div key={f.zone} className="rounded-xl border border-[#EAEEF0] p-3">
+                <div className="text-[13px] font-bold text-ink">{AIRPORT_ZONE_LABEL[f.zone]}</div>
                 <EuroField label="Standard car" hint="1–4" value={f.sedanEur} onChange={(n) => patchFare(i, { sedanEur: n })} />
                 <EuroField label="SUV" hint="1–4 upgrade" value={f.suvEur} onChange={(n) => patchFare(i, { suvEur: n })} />
                 <EuroField label="Family car" hint="5–6" value={f.familyEur} onChange={(n) => patchFare(i, { familyEur: n })} />

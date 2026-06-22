@@ -163,12 +163,13 @@ export async function updateRegionDistance(regionA: string, regionB: string, ban
   if (error) throw error;
 }
 
-/* Airport transfers — the destination-region × vehicle fare matrix + the return-trip discount %. One
- * fare row per region (staff-editable via RLS) and a single-row config for the discount. */
-export type AirportRegion = 'North' | 'South' | 'East' | 'West' | 'Central';
+/* Airport transfers — the destination-ZONE × vehicle fare matrix + the return-trip discount %. Two
+ * fare rows (Zone 1 / Zone 2, staff-editable via RLS) and a single-row config for the discount. Zone 2 is
+ * the near-airport south-east cluster; Zone 1 is everywhere else. */
+export type AirportZone = 'zone1' | 'zone2';
 
 export interface AirportFareInput {
-  region: AirportRegion;
+  zone: AirportZone;
   sedanEur: number;
   suvEur: number;
   familyEur: number;
@@ -176,23 +177,29 @@ export interface AirportFareInput {
   coasterEur: number;
 }
 
-const AIRPORT_REGION_ORDER: AirportRegion[] = ['North', 'East', 'Central', 'West', 'South'];
+/** Human label for each zone, shown in the admin grid. */
+export const AIRPORT_ZONE_LABEL: Record<AirportZone, string> = {
+  zone2: 'Zone 2 — near airport (south-east cluster)',
+  zone1: 'Zone 1 — rest of island',
+};
+
+const AIRPORT_ZONE_ORDER: AirportZone[] = ['zone2', 'zone1'];
 
 export async function loadAirportFares(): Promise<AirportFareInput[]> {
   const { data, error } = await getBrowserSupabase()
     .from('airport_transfer_fare')
-    .select('region, sedan_minor, suv_minor, family_minor, van_minor, coaster_minor');
+    .select('zone, sedan_minor, suv_minor, family_minor, van_minor, coaster_minor');
   if (error) throw error;
   return (data ?? [])
     .map((r) => ({
-      region: r.region,
+      zone: r.zone,
       sedanEur: r.sedan_minor / 100,
       suvEur: r.suv_minor / 100,
       familyEur: r.family_minor / 100,
       vanEur: r.van_minor / 100,
       coasterEur: r.coaster_minor / 100,
     }))
-    .sort((a, b) => AIRPORT_REGION_ORDER.indexOf(a.region) - AIRPORT_REGION_ORDER.indexOf(b.region));
+    .sort((a, b) => AIRPORT_ZONE_ORDER.indexOf(a.zone) - AIRPORT_ZONE_ORDER.indexOf(b.zone));
 }
 
 export async function updateAirportFare(input: AirportFareInput): Promise<void> {
@@ -206,7 +213,7 @@ export async function updateAirportFare(input: AirportFareInput): Promise<void> 
       coaster_minor: eurToMinor(input.coasterEur),
       updated_at: new Date().toISOString(),
     })
-    .eq('region', input.region);
+    .eq('zone', input.zone);
   if (error) throw error;
 }
 

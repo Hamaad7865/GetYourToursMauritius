@@ -12,6 +12,7 @@ import {
   airportTransferFareMinor,
   airportTransferQuoteMinor,
   airportVehicleLabel,
+  airportZoneForSlug,
   AIRPORT_FARE_DEFAULT,
   AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
 } from '@/lib/services/pricing';
@@ -212,55 +213,72 @@ describe('transportFare (EUR)', () => {
 });
 
 // Airport transfers — must match airport_transfer_fare_minor() + the return discount in api_book.
+// Two zones: zone2 = near-airport south-east cluster (standard car €35); zone1 = rest of island.
 const AF = AIRPORT_FARE_DEFAULT;
 
 describe('airportTransferFareMinor', () => {
-  it('picks the vehicle bracket by party size, per destination region', () => {
-    // North: sedan 5000 / suv 6500 / family 8000 / van 12000 / coaster 20000
-    expect(airportTransferFareMinor('North', 1, false, AF)).toBe(5000);
-    expect(airportTransferFareMinor('North', 4, false, AF)).toBe(5000);
-    expect(airportTransferFareMinor('North', 4, true, AF)).toBe(6500); // SUV upgrade ≤4
-    expect(airportTransferFareMinor('North', 6, false, AF)).toBe(8000);
-    expect(airportTransferFareMinor('North', 14, false, AF)).toBe(12000);
-    expect(airportTransferFareMinor('North', 25, false, AF)).toBe(20000);
+  it('picks the vehicle bracket by party size, per zone', () => {
+    // zone1: sedan 5500 / suv 7000 / family 8000 / van 12000 / coaster 20000
+    expect(airportTransferFareMinor('zone1', 1, false, AF)).toBe(5500);
+    expect(airportTransferFareMinor('zone1', 4, false, AF)).toBe(5500);
+    expect(airportTransferFareMinor('zone1', 4, true, AF)).toBe(7000); // SUV upgrade ≤4
+    expect(airportTransferFareMinor('zone1', 6, false, AF)).toBe(8000);
+    expect(airportTransferFareMinor('zone1', 14, false, AF)).toBe(12000);
+    expect(airportTransferFareMinor('zone1', 25, false, AF)).toBe(20000);
+  });
+
+  it('seeds Zone 2 standard car at €35 and applies the SUV upgrade ≤4', () => {
+    expect(airportTransferFareMinor('zone2', 2, false, AF)).toBe(3500); // €35 standard car
+    expect(airportTransferFareMinor('zone2', 4, true, AF)).toBe(4800); // SUV upgrade
+    expect(airportTransferFareMinor('zone2', 6, false, AF)).toBe(5500); // family car
   });
 
   it('scales to multiple coasters above 25 and ignores SUV above 4', () => {
-    expect(airportTransferFareMinor('South', 5, true, AF)).toBe(4000); // suv ignored above 4 → family
-    expect(airportTransferFareMinor('North', 26, false, AF)).toBe(20000 * 2);
-    expect(airportTransferFareMinor('North', 51, false, AF)).toBe(20000 * 3);
+    expect(airportTransferFareMinor('zone2', 5, true, AF)).toBe(5500); // suv ignored above 4 → family
+    expect(airportTransferFareMinor('zone1', 26, false, AF)).toBe(20000 * 2);
+    expect(airportTransferFareMinor('zone1', 51, false, AF)).toBe(20000 * 3);
   });
 
-  it('varies by region (South nearest, North farthest)', () => {
-    expect(airportTransferFareMinor('South', 2, false, AF)).toBe(2500);
-    expect(airportTransferFareMinor('North', 2, false, AF)).toBe(5000);
+  it('varies by zone (Zone 2 near-airport is cheaper than Zone 1)', () => {
+    expect(airportTransferFareMinor('zone2', 2, false, AF)).toBe(3500);
+    expect(airportTransferFareMinor('zone1', 2, false, AF)).toBe(5500);
   });
 
-  it('returns 0 on a missing/unknown region or empty party', () => {
+  it('returns 0 on a missing/unknown zone or empty party', () => {
     expect(airportTransferFareMinor(null, 2, false, AF)).toBe(0);
-    expect(airportTransferFareMinor('Nowhere', 2, false, AF)).toBe(0);
-    expect(airportTransferFareMinor('North', 0, false, AF)).toBe(0);
+    expect(airportTransferFareMinor('nowhere', 2, false, AF)).toBe(0);
+    expect(airportTransferFareMinor('zone1', 0, false, AF)).toBe(0);
   });
 });
 
 describe('airportTransferQuoteMinor (one-way vs return)', () => {
   it('one-way is the matrix fare', () => {
-    expect(airportTransferQuoteMinor('North', 8, false, 'one_way', AF, 10)).toBe(12000);
+    expect(airportTransferQuoteMinor('zone1', 8, false, 'one_way', AF, 10)).toBe(12000);
   });
 
   it('return is two legs minus the discount, rounded once', () => {
-    // North van one-way 12000 → return = round(12000 * 2 * 0.9) = 21600
-    expect(airportTransferQuoteMinor('North', 8, false, 'return', AF, 10)).toBe(21600);
-    // West sedan 4000 → return @10% = round(4000*2*0.9) = 7200; @ default pct
+    // zone1 van one-way 12000 → return = round(12000 * 2 * 0.9) = 21600
+    expect(airportTransferQuoteMinor('zone1', 8, false, 'return', AF, 10)).toBe(21600);
+    // zone2 standard 3500 → return @10% = round(3500*2*0.9) = 6300; @ default pct
     expect(
-      airportTransferQuoteMinor('West', 2, false, 'return', AF, AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT),
-    ).toBe(7200);
+      airportTransferQuoteMinor('zone2', 2, false, 'return', AF, AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT),
+    ).toBe(6300);
     // 0% discount → exactly double
-    expect(airportTransferQuoteMinor('South', 2, false, 'return', AF, 0)).toBe(5000);
+    expect(airportTransferQuoteMinor('zone2', 2, false, 'return', AF, 0)).toBe(7000);
   });
 
   it('is 0 when the one-way fare is 0', () => {
     expect(airportTransferQuoteMinor(null, 2, false, 'return', AF, 10)).toBe(0);
+  });
+});
+
+describe('airportZoneForSlug', () => {
+  it('classifies the near-airport cluster as zone2, everything else as zone1', () => {
+    expect(airportZoneForSlug('shandrani-beachcomber')).toBe('zone2');
+    expect(airportZoneForSlug('preskil-island-resort')).toBe('zone2');
+    expect(airportZoneForSlug('lux-belle-mare')).toBe('zone1');
+    expect(airportZoneForSlug(null)).toBe('zone1');
+    expect(airportZoneForSlug(undefined)).toBe('zone1');
   });
 });
 

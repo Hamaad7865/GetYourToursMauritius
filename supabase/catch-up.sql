@@ -5170,31 +5170,10 @@ alter table bookings add column if not exists return_date date;
 alter table bookings add column if not exists return_time text;
 alter table bookings add column if not exists departure_flight_number text;
 
--- 3) airport_transfer_fare: ONE flat fare per (destination region × vehicle bracket). Public read (shown
---    on the hotel pages), staff edit (admin pricing screen). Seeded from the region "from" prices.
-create table if not exists airport_transfer_fare (
-  region        text primary key check (region in ('North', 'South', 'East', 'West', 'Central')),
-  sedan_minor   int not null,   -- 1-4
-  suv_minor     int not null,   -- 1-4 upgrade
-  family_minor  int not null,   -- 5-6
-  van_minor     int not null,   -- 7-14
-  coaster_minor int not null,   -- 15-25 (×N coasters above 25)
-  updated_at    timestamptz not null default now()
-);
-insert into airport_transfer_fare (region, sedan_minor, suv_minor, family_minor, van_minor, coaster_minor) values
-  ('South',   2500, 3500, 4000,  6500, 11000),  -- SSR sits in the south-east, so South is nearest
-  ('East',    3500, 4500, 5500,  8500, 14000),
-  ('Central', 3000, 4000, 4800,  7500, 12500),
-  ('West',    4000, 5200, 6500,  9500, 16000),
-  ('North',   5000, 6500, 8000, 12000, 20000)
-on conflict (region) do nothing;
-alter table airport_transfer_fare enable row level security;
-grant select on airport_transfer_fare to anon, authenticated, service_role;
-grant update on airport_transfer_fare to authenticated;
-drop policy if exists airport_transfer_fare_read on airport_transfer_fare;
-create policy airport_transfer_fare_read on airport_transfer_fare for select using (true);
-drop policy if exists airport_transfer_fare_staff on airport_transfer_fare;
-create policy airport_transfer_fare_staff on airport_transfer_fare for all using (is_staff()) with check (is_staff());
+-- 3) airport_transfer_fare: the ZONE × vehicle fare matrix is created further down (the
+--    20260731000000_airport_transfer_zones section); the original region-keyed table+seed has been
+--    superseded and removed from catch-up so a re-run never tries to seed a `region` column that the
+--    zone table no longer has.
 
 -- 4) airport_transfer_config: single-row config (the return-trip discount %). Mirrors planner_pricing.
 create table if not exists airport_transfer_config (
@@ -5274,10 +5253,49 @@ create policy airport_transfer_hotels_read on airport_transfer_hotels for select
 drop policy if exists airport_transfer_hotels_staff on airport_transfer_hotels;
 create policy airport_transfer_hotels_staff on airport_transfer_hotels for all using (is_staff()) with check (is_staff());
 
--- 6) airport_transfer_fare_minor(): region row -> vehicle bracket by party size (Sedan ≤4, Family ≤6,
+-- ==================== 20260731000000_airport_transfer_zones.sql ====================
+-- Re-key the airport fare matrix from destination REGION to a TWO-ZONE model (Zone 1 / Zone 2 × vehicle).
+-- Zone 2 = the near-airport south-east cluster (only shandrani-beachcomber + preskil-island-resort of the
+-- seeded hotels); Zone 1 = everywhere else. Zone 2 standard car = €35; all other cells owner-tunable.
+
+-- airport_transfer_hotels: add the ZONE column + classify the near-airport cluster (region stays harmless).
+alter table airport_transfer_hotels
+  add column if not exists zone text not null default 'zone1' check (zone in ('zone1', 'zone2'));
+update airport_transfer_hotels set zone = 'zone2'
+  where slug in ('shandrani-beachcomber', 'preskil-island-resort');
+update airport_transfer_hotels set zone = 'zone1'
+  where slug not in ('shandrani-beachcomber', 'preskil-island-resort');
+
+-- airport_transfer_fare: re-key region → zone. Drop + recreate keyed by zone (only owner config; no FK
+-- references it). Zone 2 standard = €35 (confirmed); every other cell is an owner-tunable placeholder.
+drop table if exists airport_transfer_fare;
+create table airport_transfer_fare (
+  zone          text primary key check (zone in ('zone1', 'zone2')),
+  sedan_minor   int not null,   -- Standard car 1-4
+  suv_minor     int not null,   -- 1-4 upgrade
+  family_minor  int not null,   -- Family car 5-6
+  van_minor     int not null,   -- Minibus 7-14
+  coaster_minor int not null,   -- Coaster 15-25 (×N coasters above 25)
+  updated_at    timestamptz not null default now()
+);
+insert into airport_transfer_fare (zone, sedan_minor, suv_minor, family_minor, van_minor, coaster_minor) values
+  ('zone2', 3500, 4800, 5500,  8500, 14500),
+  ('zone1', 5500, 7000, 8000, 12000, 20000)
+on conflict (zone) do nothing;
+alter table airport_transfer_fare enable row level security;
+grant select on airport_transfer_fare to anon, authenticated, service_role;
+grant update on airport_transfer_fare to authenticated;
+drop policy if exists airport_transfer_fare_read on airport_transfer_fare;
+create policy airport_transfer_fare_read on airport_transfer_fare for select using (true);
+drop policy if exists airport_transfer_fare_staff on airport_transfer_fare;
+create policy airport_transfer_fare_staff on airport_transfer_fare for all using (is_staff()) with check (is_staff());
+
+-- 6) airport_transfer_fare_minor(): ZONE row -> vehicle bracket by party size (Sedan ≤4, Family ≤6,
 --    Van ≤14, Coaster ≤25, ×ceil(pax/25) coasters above 25). SUV is the ≤4 upgrade. Mirrors
---    airportTransferFareMinor() in pricing.ts cent-for-cent. Returns 0 when inputs are missing.
-create or replace function airport_transfer_fare_minor(p_region text, p_pax int, p_suv boolean)
+--    airportTransferFareMinor() in pricing.ts cent-for-cent. Returns 0 when inputs are missing. The
+--    parameter is renamed region→zone, so drop the old function first (create-or-replace can't rename it).
+drop function if exists airport_transfer_fare_minor(text, int, boolean);
+create function airport_transfer_fare_minor(p_zone text, p_pax int, p_suv boolean)
 returns bigint
 language plpgsql
 stable
@@ -5285,10 +5303,10 @@ as $$
 declare
   v_row airport_transfer_fare;
 begin
-  if p_region is null or p_pax is null or p_pax < 1 then
+  if p_zone is null or p_pax is null or p_pax < 1 then
     return 0;
   end if;
-  select * into v_row from airport_transfer_fare where region = p_region;
+  select * into v_row from airport_transfer_fare where zone = p_zone;
   if not found then
     return 0;
   end if;
@@ -5341,7 +5359,7 @@ declare
   v_pickup_region text;
   v_transport bigint;
   v_is_airport boolean := false;
-  v_dropoff_region text;
+  v_dropoff_zone text;
   v_trip_type text;
   v_ret_pct int;
   v_fare bigint;
@@ -5439,16 +5457,16 @@ begin
     where id = v_booking.id and pickup_pending = false;
   end if;
 
-  -- Airport transfer (server-authoritative, zero-trust): the destination region comes from the hotel
-  -- SLUG via airport_transfer_hotels — never a client-sent region. The whole fare is the region × vehicle
+  -- Airport transfer (server-authoritative, zero-trust): the destination ZONE comes from the hotel
+  -- SLUG via airport_transfer_hotels — never a client-sent zone. The whole fare is the zone × vehicle
   -- matrix (vehicle derived from party size + the ≤4 SUV upgrade); a return trip is two legs minus the
   -- configured discount. We OVERRIDE the booking total + payout + the single line item so the receipt's
   -- item == total. Mirrors airportTransferQuoteMinor() in pricing.ts.
   if v_is_airport then
     v_trip_type := case when (p ->> 'tripType') = 'return' then 'return' else 'one_way' end;
-    select region into v_dropoff_region from airport_transfer_hotels
+    select zone into v_dropoff_zone from airport_transfer_hotels
       where slug = nullif(p ->> 'dropoffSlug', '');
-    v_fare := airport_transfer_fare_minor(v_dropoff_region, v_total_qty::int, v_suv);
+    v_fare := airport_transfer_fare_minor(v_dropoff_zone, v_total_qty::int, v_suv);
     if v_trip_type = 'return' then
       select coalesce(return_discount_pct, 0) into v_ret_pct from airport_transfer_config limit 1;
       v_fare := round(v_fare::numeric * 2 * (100 - coalesce(v_ret_pct, 0)) / 100)::bigint;
@@ -5568,7 +5586,7 @@ as $$
     'minAdvanceDays', coalesce(a.min_advance_days, 1),
     'isAirportTransfer', coalesce(a.is_airport_transfer, false),
     'airportFares', case when coalesce(a.is_airport_transfer, false) then (
-      select jsonb_object_agg(f.region, jsonb_build_object(
+      select jsonb_object_agg(f.zone, jsonb_build_object(
         'sedanMinor', f.sedan_minor, 'suvMinor', f.suv_minor, 'familyMinor', f.family_minor,
         'vanMinor', f.van_minor, 'coasterMinor', f.coaster_minor
       )) from airport_transfer_fare f
