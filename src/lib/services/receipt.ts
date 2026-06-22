@@ -41,6 +41,20 @@ const receiptSchema = z.object({
   dropoffLocation: z.string().nullable().optional(),
   childSeats: z.number().nullable().optional(),
   transportEur: z.number().nullable().optional(),
+  // Airport-transfer fields (null for non-transfer bookings) — surfaced on the voucher.
+  tripDirection: z.string().nullable().optional(),
+  roomOrCabin: z.string().nullable().optional(),
+  flightNumber: z.string().nullable().optional(),
+  arrivalTime: z.string().nullable().optional(),
+  returnDate: z.string().nullable().optional(),
+  returnTime: z.string().nullable().optional(),
+  departureFlightNumber: z.string().nullable().optional(),
+  luggageDetails: z.string().nullable().optional(),
+  childSeatAge: z.number().nullable().optional(),
+  travellerCountry: z.string().nullable().optional(),
+  travellerCompany: z.string().nullable().optional(),
+  travellerGender: z.string().nullable().optional(),
+  specialNotes: z.string().nullable().optional(),
   items: z.array(itemSchema),
   payment: paymentSchema,
 });
@@ -77,6 +91,24 @@ export async function loadBookingForReceipt(
     dropoffLocation: r.dropoffLocation ?? null,
     childSeats: r.childSeats ?? null,
     transportEur: r.transportEur ?? null,
+    // A transfer block only when there's transfer data (a direction means it's an airport transfer).
+    transfer: r.tripDirection
+      ? {
+          direction: r.tripDirection ?? null,
+          roomOrCabin: r.roomOrCabin ?? null,
+          flightNumber: r.flightNumber ?? null,
+          arrivalTime: r.arrivalTime ?? null,
+          returnDate: r.returnDate ?? null,
+          returnTime: r.returnTime ?? null,
+          departureFlightNumber: r.departureFlightNumber ?? null,
+          luggageDetails: r.luggageDetails ?? null,
+          childSeatAge: r.childSeatAge ?? null,
+          travellerCountry: r.travellerCountry ?? null,
+          travellerCompany: r.travellerCompany ?? null,
+          travellerGender: r.travellerGender ?? null,
+          specialNotes: r.specialNotes ?? null,
+        }
+      : null,
     items: r.items.map((i) => ({
       priceLabel: i.priceLabel,
       quantity: i.quantity,

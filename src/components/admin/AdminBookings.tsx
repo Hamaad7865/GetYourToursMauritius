@@ -647,6 +647,87 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
               </dl>
             </section>
 
+            {booking.transfer && (
+              <section className="rounded-xl border border-ink/10 p-4">
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Transfer details</h3>
+                <dl className="mt-2 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
+                  <dt className="font-semibold text-ink-muted">Trip</dt>
+                  <dd className="text-ink/80">
+                    {booking.transfer.direction === 'departure'
+                      ? 'Departure (hotel → airport)'
+                      : booking.transfer.direction === 'return'
+                        ? 'Return (both ways)'
+                        : 'Arrival (airport → hotel)'}
+                  </dd>
+                  {booking.transfer.roomOrCabin && (
+                    <>
+                      <dt className="font-semibold text-ink-muted">Room/cabin</dt>
+                      <dd className="text-ink/80">{booking.transfer.roomOrCabin}</dd>
+                    </>
+                  )}
+                  {(booking.transfer.flightNumber || booking.transfer.arrivalTime) && (
+                    <>
+                      <dt className="font-semibold text-ink-muted">Arrival</dt>
+                      <dd className="text-ink/80">
+                        {[booking.transfer.flightNumber, booking.transfer.arrivalTime].filter(Boolean).join(' · ')}
+                      </dd>
+                    </>
+                  )}
+                  {(booking.transfer.departureFlightNumber || booking.transfer.returnDate || booking.transfer.returnTime) && (
+                    <>
+                      <dt className="font-semibold text-ink-muted">Departure</dt>
+                      <dd className="text-ink/80">
+                        {[
+                          booking.transfer.departureFlightNumber,
+                          [booking.transfer.returnDate ? fmtDate(booking.transfer.returnDate) : null, booking.transfer.returnTime]
+                            .filter(Boolean)
+                            .join(' '),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </dd>
+                    </>
+                  )}
+                  {booking.transfer.luggageDetails && (
+                    <>
+                      <dt className="font-semibold text-ink-muted">Luggage</dt>
+                      <dd className="text-ink/80">{booking.transfer.luggageDetails}</dd>
+                    </>
+                  )}
+                  {booking.transfer.childSeatAge != null && (
+                    <>
+                      <dt className="font-semibold text-ink-muted">Child seat</dt>
+                      <dd className="text-ink/80">age {booking.transfer.childSeatAge}</dd>
+                    </>
+                  )}
+                  {booking.transfer.travellerCountry && (
+                    <>
+                      <dt className="font-semibold text-ink-muted">Country</dt>
+                      <dd className="text-ink/80">{booking.transfer.travellerCountry}</dd>
+                    </>
+                  )}
+                  {booking.transfer.travellerCompany && (
+                    <>
+                      <dt className="font-semibold text-ink-muted">Company</dt>
+                      <dd className="text-ink/80">{booking.transfer.travellerCompany}</dd>
+                    </>
+                  )}
+                  {booking.transfer.travellerGender && (
+                    <>
+                      <dt className="font-semibold text-ink-muted">Gender</dt>
+                      <dd className="text-ink/80 capitalize">{booking.transfer.travellerGender}</dd>
+                    </>
+                  )}
+                  {booking.transfer.specialNotes && (
+                    <>
+                      <dt className="font-semibold text-ink-muted">Notes</dt>
+                      <dd className="text-ink/80">{booking.transfer.specialNotes}</dd>
+                    </>
+                  )}
+                </dl>
+              </section>
+            )}
+
             {booking.childSeats > 0 && (
               <section className="rounded-xl border border-ink/10 p-4">
                 <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Baby &amp; child seats</h3>

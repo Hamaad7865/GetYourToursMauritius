@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -9,13 +9,14 @@ import { Price } from '@/components/site/Price';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
+import { transfers, type Transfer } from '@/lib/content/transfers';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { selectionHash, shouldRehydrateBooking } from '@/lib/checkout/selection';
 import { useCart } from '@/lib/cart/useCart';
 import { parseApiJson } from '@/lib/http/fetch-json';
-import { IconCalendar, IconCheck, IconClock, IconGlobe, IconPin, IconUsers } from '@/components/ui/icons';
+import { IconCalendar, IconCheck, IconClock, IconGlobe, IconPin, IconSearch, IconUsers } from '@/components/ui/icons';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 
@@ -25,9 +26,9 @@ const PICKUP_HINT_ID = 'checkout-pickup-hint';
 const PHONE_HINT_ID = 'checkout-phone-hint';
 
 // A short list of common visitor nationalities for the personal-details step. Mauritius is first
-// (the home market), then the largest source markets. Display/validation only — the booking schema
-// has no country field, so this isn't sent to the server; it just personalises the form. Real-world
-// country names are proper nouns and are not translated.
+// (the home market), then the largest source markets. The chosen country IS sent on the booking
+// (traveller_country) — required for airport transfers, captured for every booking. Real-world country
+// names are proper nouns and are not translated.
 const COUNTRIES = [
   'Mauritius',
   'United Kingdom',
@@ -180,8 +181,10 @@ export function Checkout() {
   // (no pickup map — pickup IS the airport). The server re-derives the destination region from
   // dropoffSlug and recomputes the fare; the URL `total` is only a display hint, reconciled before pay.
   const isAirport = params.get('transfer') === '1';
-  const dropoffSlug = (params.get('dropoffSlug') ?? '').slice(0, 120);
-  const tripType: 'one_way' | 'return' = params.get('tripType') === 'return' ? 'return' : 'one_way';
+  const dropoffSlugParam = (params.get('dropoffSlug') ?? '').slice(0, 120);
+  // Trip type (priced) is derived from the customer-facing direction below; the URL still carries the
+  // widget's one_way/return as a prefill hint for the direction.
+  const tripTypeParam: 'one_way' | 'return' = params.get('tripType') === 'return' ? 'return' : 'one_way';
   const returnDateParam = (params.get('retDate') ?? '').slice(0, 40);
 
   // The PRICE-RELEVANT selection, hashed from inputs that are STABLE across a Back/reload of this
@@ -257,8 +260,36 @@ export function Checkout() {
   const [flightNumber, setFlightNumber] = useState('');
   // Arrival + return times are captured in the booking widget and carried here (pre-filled, editable).
   const [arrivalTime, setArrivalTime] = useState(() => (params.get('arr') ?? '').slice(0, 40));
+  const [arrivalDate, setArrivalDate] = useState(() => (params.get('arrDate') ?? '').slice(0, 40));
   const [departureFlight, setDepartureFlight] = useState('');
+  const [departureDate, setDepartureDate] = useState(() => (returnDateParam || '').slice(0, 40));
   const [returnTime, setReturnTime] = useState(() => (params.get('retTime') ?? '').slice(0, 40));
+  // Customer-facing trip DIRECTION (arrival/departure/return). Prefilled from the widget's one_way/return:
+  // a return stays return; a one-way defaults to "arrival" (the most common — airport → hotel). The server
+  // derives the priced trip_type (return = both legs − discount; arrival/departure = one leg).
+  const [tripDirection, setTripDirection] = useState<'arrival' | 'departure' | 'return'>(
+    tripTypeParam === 'return' ? 'return' : 'arrival',
+  );
+  // Hotel / drop-off chosen from the transfer-hotel search. dropoffSlug sets the priced zone (server
+  // re-derives it). "My hotel isn't listed" switches to a free-text name + area → the server prices Zone 1
+  // unless the area is a Zone 2 area. Prefilled from the widget's deep-link (slug + name).
+  const widgetHotel = dropoffSlugParam ? transfers.find((tt) => tt.slug === dropoffSlugParam) ?? null : null;
+  const [dropoffSlug, setDropoffSlug] = useState(dropoffSlugParam);
+  const [dropoffName, setDropoffName] = useState(widgetHotel?.hotelName ?? dropoffParam);
+  const [dropoffArea, setDropoffArea] = useState(widgetHotel?.area ?? '');
+  const [hotelNotListed, setHotelNotListed] = useState(false);
+  const [hotelQuery, setHotelQuery] = useState(widgetHotel?.hotelName ?? dropoffParam);
+  // Trip extras (all optional). roomOrCabin = hotel room / cruise cabin; luggageDetails = free text;
+  // childSeat toggle + age (the age is the child-seat detail the operator needs to fit the right seat).
+  const [roomOrCabin, setRoomOrCabin] = useState('');
+  const [luggageDetails, setLuggageDetails] = useState('');
+  const [childSeatWanted, setChildSeatWanted] = useState(false);
+  const [childSeatAge, setChildSeatAge] = useState('');
+  // Lead-traveller extras captured on the airport form (gender/company optional; country required, set
+  // in the details step state below; special notes optional).
+  const [gender, setGender] = useState('');
+  const [company, setCompany] = useState('');
+  const [specialNotes, setSpecialNotes] = useState('');
   // Personal-details (step ②) form state. Name + phone seed from the profile once it loads (see the
   // effect below); country defaults to the home market. Email is the account email, shown read-only.
   const [name, setName] = useState('');
@@ -406,10 +437,19 @@ export function Checkout() {
   // A real hold has a server expiry only when expiresAt was stashed on Continue; the 30-min fallback is
   // cosmetic. Lock Pay only when a REAL hold ran out — cart checkouts (no hold) are never blocked.
   const expired = Boolean(expiresAt) && secs === 0;
+  // Airport transfer: a hotel/drop-off is always required (slug-selected or a free-text "not listed"
+  // name), plus the leg fields for the chosen direction — arrival needs the arrival flight + date + time;
+  // departure needs the departure date + time + flight; return needs both legs.
+  const hotelChosen = hotelNotListed ? dropoffName.trim().length > 0 : dropoffSlug.trim().length > 0;
+  const arrivalLegOk = flightNumber.trim().length > 0 && arrivalDate.trim().length > 0 && arrivalTime.trim().length > 0;
+  const departureLegOk =
+    departureFlight.trim().length > 0 && departureDate.trim().length > 0 && returnTime.trim().length > 0;
+  const airportLegsOk =
+    tripDirection === 'arrival' ? arrivalLegOk : tripDirection === 'departure' ? departureLegOk : arrivalLegOk && departureLegOk;
   // Step ① can advance unless pickup is wanted with no address and not "I don't know yet" — or, for an
-  // airport transfer, until the arrival flight number + time are entered.
+  // airport transfer, until the hotel + the required leg fields are entered.
   const canAdvance = isAirport
-    ? flightNumber.trim().length > 0 && arrivalTime.trim().length > 0
+    ? hotelChosen && airportLegsOk
     : canAdvanceStep1({ wantsPickup, address: pickupLoc, tbd });
   // Step ② (personal details): a phone is REQUIRED when the booking has a pickup — TBD still counts
   // as a pickup, since the driver needs to reach the customer to arrange it. An airport transfer always
@@ -503,8 +543,10 @@ export function Checkout() {
               : wantsPickup && !tbd && pickupLoc.trim()
                 ? pickupLoc.trim().slice(0, 200)
                 : null,
+            // Airport drop-off: the chosen hotel name (with its room/cabin appended for the driver) or the
+            // free-text "not listed" name. Otherwise the customer's distinct sightseeing drop-off.
             dropoffLocation: isAirport
-              ? dropoffParam || null
+              ? (dropoffName.trim() || dropoffParam || null)
               : wantsPickup && !tbd && !dropoffSame && dropoffText.trim()
                 ? dropoffText.trim().slice(0, 200)
                 : null,
@@ -514,22 +556,37 @@ export function Checkout() {
             // A TBD pickup — or an airport transfer (fixed origin) — sends no coords → no transport fee.
             pickupLat: !isAirport && wantsPickup && !tbd && pickupCoords ? pickupCoords.lat : null,
             pickupLng: !isAirport && wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
-            // Airport transfer: the SERVER looks up the destination region from dropoffSlug and recomputes
-            // the fare; the flight/trip fields are stored for the operator run sheet + receipt.
-            dropoffSlug: isAirport ? dropoffSlug || null : null,
-            tripType: isAirport ? tripType : undefined,
-            flightNumber: isAirport ? flightNumber.trim() || null : undefined,
-            arrivalTime: isAirport ? arrivalTime.trim() || null : undefined,
-            returnDate: isAirport && tripType === 'return' ? returnDateParam || null : undefined,
-            returnTime: isAirport && tripType === 'return' ? returnTime.trim() || null : undefined,
-            departureFlightNumber: isAirport && tripType === 'return' ? departureFlight.trim() || null : undefined,
+            // Airport transfer: the SERVER looks up the destination zone from dropoffSlug (or classifies
+            // it from the free-text area when the hotel isn't listed) and recomputes the fare; the
+            // flight/trip/traveller fields are stored for the operator run sheet + receipt. The leg fields
+            // are gated by the customer-facing direction (arrival/departure/return).
+            dropoffSlug: isAirport && !hotelNotListed ? dropoffSlug || null : null,
+            dropoffArea: isAirport ? dropoffArea.trim() || null : undefined,
+            tripDirection: isAirport ? tripDirection : undefined,
+            flightNumber: isAirport && tripDirection !== 'departure' ? flightNumber.trim() || null : undefined,
+            arrivalTime: isAirport && tripDirection !== 'departure' ? arrivalTime.trim() || null : undefined,
+            // Departure-leg fields (departure or return). returnDate carries the departure pickup date.
+            returnDate: isAirport && tripDirection !== 'arrival' ? departureDate.trim() || null : undefined,
+            returnTime: isAirport && tripDirection !== 'arrival' ? returnTime.trim() || null : undefined,
+            departureFlightNumber: isAirport && tripDirection !== 'arrival' ? departureFlight.trim() || null : undefined,
+            roomOrCabin: isAirport ? roomOrCabin.trim() || null : undefined,
+            luggageDetails: isAirport ? luggageDetails.trim() || null : undefined,
+            childSeatAge: isAirport && childSeatWanted && childSeatAge.trim() ? Number(childSeatAge) : undefined,
             customer: {
               // Name + phone come from the step-② details form (falling back to the profile);
-              // email is always the verified account email. Country is captured for UX only — the
-              // booking schema has no country field, so it isn't sent.
+              // email is always the verified account email. Country is required (sent on the booking);
+              // gender/company/special-notes are the optional airport-form extras.
               name: name.trim() || profile?.fullName || user?.email || 'Guest',
               email: user?.email,
               phone: phone.trim() || profile?.phone || null,
+              country: country || null,
+              ...(isAirport
+                ? {
+                    gender: gender.trim() || null,
+                    company: company.trim() || null,
+                    specialNotes: specialNotes.trim() || null,
+                  }
+                : {}),
             },
             source: 'web',
             idempotencyKey: idemKey,
@@ -674,45 +731,185 @@ export function Checkout() {
                 <div>
                   <h1 className="font-display text-2xl font-semibold text-ink">{t('Your airport transfer')}</h1>
                   <p className="mt-2 text-sm text-ink-muted">
-                    {t('Meet & greet at SSR International Airport arrivals, then a private transfer to {hotel}.', {
-                      hotel: dropoffParam || t('your hotel'),
-                    })}
+                    {t('Tell us your trip — we’ll meet you at SSR International Airport and take you door to door.')}
                   </p>
-                  <div className="mt-5 grid gap-4 sm:max-w-md">
-                    <div className="rounded-xl border border-ink/10 bg-teal/5 px-3.5 py-3 text-[13px] text-ink/85">
-                      <div>
-                        <span className="font-semibold">{t('Pickup')}:</span> {t('SSR International Airport (arrivals)')}
-                      </div>
-                      <div className="mt-1">
-                        <span className="font-semibold">{t('Drop-off')}:</span> {dropoffParam || t('your hotel')}
-                      </div>
-                      <div className="mt-1">
-                        <span className="font-semibold">{t('Trip')}:</span>{' '}
-                        {tripType === 'return' ? t('Return (airport ⇄ hotel)') : t('One-way (airport → hotel)')}
-                      </div>
+
+                  {/* ── Your trip ── */}
+                  <h2 className="mt-6 text-[12px] font-bold uppercase tracking-wide text-ink-muted">{t('Your trip')}</h2>
+
+                  {/* Trip direction */}
+                  <fieldset className="mt-3">
+                    <legend className="text-[13px] font-semibold text-ink">
+                      {t('Trip type')} <span className="text-coral-dark">*</span>
+                    </legend>
+                    <div role="radiogroup" aria-label={t('Trip type')} className="mt-2 grid gap-2 sm:grid-cols-3">
+                      {(
+                        [
+                          ['arrival', t('Arrival'), t('Airport → hotel')],
+                          ['departure', t('Departure'), t('Hotel → airport')],
+                          ['return', t('Return'), t('Both ways')],
+                        ] as Array<['arrival' | 'departure' | 'return', string, string]>
+                      ).map(([value, lbl, sub]) => (
+                        <button
+                          key={value}
+                          type="button"
+                          role="radio"
+                          aria-checked={tripDirection === value}
+                          onClick={() => setTripDirection(value)}
+                          className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                            tripDirection === value
+                              ? 'border-teal bg-teal/10'
+                              : 'border-ink/15 hover:border-ink/30'
+                          }`}
+                        >
+                          <span className="block text-[13.5px] font-bold text-ink">{lbl}</span>
+                          <span className="block text-[11.5px] text-ink-muted">{sub}</span>
+                        </button>
+                      ))}
                     </div>
+                  </fieldset>
+
+                  <div className="mt-4 grid gap-4 sm:max-w-md">
+                    {/* Hotel / drop-off search */}
+                    <div>
+                      <label htmlFor="checkout-hotel-search" className="block text-[13px] font-semibold text-ink">
+                        {t('Hotel / drop-off')} <span className="text-coral-dark">*</span>
+                      </label>
+                      {!hotelNotListed ? (
+                        <>
+                          <HotelSearch
+                            value={hotelQuery}
+                            selectedSlug={dropoffSlug}
+                            onSelect={(tt) => {
+                              setDropoffSlug(tt.slug);
+                              setDropoffName(tt.hotelName);
+                              setDropoffArea(tt.area);
+                              setHotelQuery(tt.hotelName);
+                            }}
+                            onChange={(q) => {
+                              setHotelQuery(q);
+                              // Typing after a selection clears it until the customer re-picks.
+                              if (dropoffSlug) {
+                                setDropoffSlug('');
+                                setDropoffName('');
+                              }
+                            }}
+                            placeholder={t('Search your hotel or resort…')}
+                            t={t}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHotelNotListed(true);
+                              setDropoffSlug('');
+                            }}
+                            className="mt-2 text-[12.5px] font-bold text-teal-dark hover:underline"
+                          >
+                            {t('My hotel isn’t listed')}
+                          </button>
+                        </>
+                      ) : (
+                        <div className="mt-1 grid gap-2">
+                          <input
+                            id="checkout-hotel-search"
+                            value={dropoffName}
+                            onChange={(e) => setDropoffName(e.target.value)}
+                            placeholder={t('Hotel / Airbnb name')}
+                            className="w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                          />
+                          <input
+                            value={dropoffArea}
+                            onChange={(e) => setDropoffArea(e.target.value)}
+                            placeholder={t('Area / village (e.g. Mahébourg, Grand Baie)')}
+                            className="w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHotelNotListed(false);
+                              setDropoffArea('');
+                            }}
+                            className="text-left text-[12.5px] font-bold text-teal-dark hover:underline"
+                          >
+                            {t('Search the hotel list instead')}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Room / cabin number (optional) */}
                     <label className="block text-[13px] font-semibold text-ink">
-                      {t('Arrival flight number')}
+                      {t('Room / cabin number')} <span className="font-normal text-ink-muted">({t('optional')})</span>
                       <input
-                        value={flightNumber}
-                        onChange={(e) => setFlightNumber(e.target.value)}
-                        placeholder="MK015 / BA2065"
+                        value={roomOrCabin}
+                        onChange={(e) => setRoomOrCabin(e.target.value)}
+                        placeholder={t('e.g. Room 214 or Cabin 8B')}
                         className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
                       />
                     </label>
-                    <label className="block text-[13px] font-semibold text-ink">
-                      {t('Arrival time (local)')}
-                      <input
-                        value={arrivalTime}
-                        onChange={(e) => setArrivalTime(e.target.value)}
-                        placeholder="14:30"
-                        className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
-                      />
-                    </label>
-                    {tripType === 'return' && (
-                      <>
-                        <label className="block text-[13px] font-semibold text-ink">
-                          {t('Departure flight number')}
+
+                    {/* Arrival leg (arrival + return) */}
+                    {tripDirection !== 'departure' && (
+                      <div className="rounded-xl border border-ink/10 bg-teal/[0.04] p-3.5">
+                        <p className="text-[12.5px] font-bold uppercase tracking-wide text-ink-muted">{t('Arrival flight')}</p>
+                        <label className="mt-2 block text-[13px] font-semibold text-ink">
+                          {t('Arrival flight number')} <span className="text-coral-dark">*</span>
+                          <input
+                            value={flightNumber}
+                            onChange={(e) => setFlightNumber(e.target.value)}
+                            placeholder="MK015 / BA2065"
+                            className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                          />
+                        </label>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <label className="block text-[13px] font-semibold text-ink">
+                            {t('Arrival date')} <span className="text-coral-dark">*</span>
+                            <input
+                              type="date"
+                              value={arrivalDate}
+                              onChange={(e) => setArrivalDate(e.target.value)}
+                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                            />
+                          </label>
+                          <label className="block text-[13px] font-semibold text-ink">
+                            {t('Arrival time (local)')} <span className="text-coral-dark">*</span>
+                            <input
+                              type="time"
+                              value={arrivalTime}
+                              onChange={(e) => setArrivalTime(e.target.value)}
+                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Departure leg (departure + return) */}
+                    {tripDirection !== 'arrival' && (
+                      <div className="rounded-xl border border-ink/10 bg-teal/[0.04] p-3.5">
+                        <p className="text-[12.5px] font-bold uppercase tracking-wide text-ink-muted">{t('Departure')}</p>
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          <label className="block text-[13px] font-semibold text-ink">
+                            {t('Pickup date')} <span className="text-coral-dark">*</span>
+                            <input
+                              type="date"
+                              value={departureDate}
+                              onChange={(e) => setDepartureDate(e.target.value)}
+                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                            />
+                          </label>
+                          <label className="block text-[13px] font-semibold text-ink">
+                            {t('Pickup time')} <span className="text-coral-dark">*</span>
+                            <input
+                              type="time"
+                              value={returnTime}
+                              onChange={(e) => setReturnTime(e.target.value)}
+                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                            />
+                          </label>
+                        </div>
+                        <label className="mt-2 block text-[13px] font-semibold text-ink">
+                          {t('Departure flight number')} <span className="text-coral-dark">*</span>
                           <input
                             value={departureFlight}
                             onChange={(e) => setDepartureFlight(e.target.value)}
@@ -720,17 +917,46 @@ export function Checkout() {
                             className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
                           />
                         </label>
-                        <label className="block text-[13px] font-semibold text-ink">
-                          {t('Airport pickup time (departure day)')}
+                      </div>
+                    )}
+
+                    {/* Luggage (optional) */}
+                    <label className="block text-[13px] font-semibold text-ink">
+                      {t('Luggage details')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      <input
+                        value={luggageDetails}
+                        onChange={(e) => setLuggageDetails(e.target.value)}
+                        placeholder={t('e.g. 3 large suitcases + a surfboard')}
+                        className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                      />
+                    </label>
+
+                    {/* Child seat (optional toggle + age) */}
+                    <div>
+                      <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
+                        <input
+                          type="checkbox"
+                          checked={childSeatWanted}
+                          onChange={(e) => setChildSeatWanted(e.target.checked)}
+                          className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
+                        />
+                        {t('I need a child seat')}
+                      </label>
+                      {childSeatWanted && (
+                        <label className="mt-2 block text-[13px] font-semibold text-ink">
+                          {t('Child’s age')}
                           <input
-                            value={returnTime}
-                            onChange={(e) => setReturnTime(e.target.value)}
-                            placeholder="10:00"
-                            className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                            type="number"
+                            min={0}
+                            max={17}
+                            value={childSeatAge}
+                            onChange={(e) => setChildSeatAge(e.target.value)}
+                            placeholder={t('e.g. 3')}
+                            className="mt-1 w-28 rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
                           />
                         </label>
-                      </>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -818,7 +1044,9 @@ export function Checkout() {
               <p id={PICKUP_HINT_ID} aria-live="polite" className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
                 {!canAdvance
                   ? isAirport
-                    ? t('Add your arrival flight number and time.')
+                    ? !hotelChosen
+                      ? t('Choose your hotel (or pick “My hotel isn’t listed”).')
+                      : t('Add the flight number, date and time for your trip.')
                     : t('Add your pickup address, or choose “I don’t know yet”.')
                   : ''}
               </p>
@@ -901,6 +1129,43 @@ export function Checkout() {
                     className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
                   />
                 </label>
+                {isAirport && (
+                  <>
+                    <label className="block text-[13px] font-semibold text-ink">
+                      {t('Gender')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      <select
+                        value={gender}
+                        onChange={(e) => setGender(e.target.value)}
+                        className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                      >
+                        <option value="">{t('Prefer not to say')}</option>
+                        <option value="female">{t('Female')}</option>
+                        <option value="male">{t('Male')}</option>
+                        <option value="other">{t('Other')}</option>
+                      </select>
+                    </label>
+                    <label className="block text-[13px] font-semibold text-ink">
+                      {t('Company')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      <input
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        autoComplete="organization"
+                        placeholder={t('For a company invoice')}
+                        className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                      />
+                    </label>
+                    <label className="block text-[13px] font-semibold text-ink">
+                      {t('Special notes / requests')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      <textarea
+                        value={specialNotes}
+                        onChange={(e) => setSpecialNotes(e.target.value)}
+                        rows={3}
+                        placeholder={t('Anything your driver should know')}
+                        className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                      />
+                    </label>
+                  </>
+                )}
               </div>
 
               <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-ink/80">
@@ -989,11 +1254,17 @@ export function Checkout() {
               <>
                 <div className="flex items-center gap-2">
                   <IconPin width={15} height={15} className="text-teal" />{' '}
-                  {t('SSR Airport → {hotel}', { hotel: dropoffParam || t('your hotel') })}
+                  {tripDirection === 'departure'
+                    ? t('{hotel} → SSR Airport', { hotel: dropoffName || dropoffParam || t('your hotel') })
+                    : t('SSR Airport → {hotel}', { hotel: dropoffName || dropoffParam || t('your hotel') })}
                 </div>
                 <div className="flex items-center gap-2">
                   <IconCheck width={15} height={15} className="text-teal" />{' '}
-                  {tripType === 'return' ? t('Return transfer') : t('One-way transfer')}
+                  {tripDirection === 'return'
+                    ? t('Return transfer')
+                    : tripDirection === 'departure'
+                      ? t('Departure transfer')
+                      : t('Arrival transfer')}
                 </div>
               </>
             )}
@@ -1119,6 +1390,129 @@ function PickRadio({
         {title}
       </span>
       {children}
+    </div>
+  );
+}
+
+/**
+ * Typeahead over the transfer-hotel list, reused at checkout so the traveller confirms the EXACT hotel
+ * (which sets the priced zone the server re-derives). Selecting a hotel calls onSelect with the full
+ * Transfer; typing calls onChange (the parent clears any prior selection). A green tick shows when a
+ * hotel is locked in. Mirrors TransferSearch's logic but emits the selection instead of navigating.
+ */
+function HotelSearch({
+  value,
+  selectedSlug,
+  onSelect,
+  onChange,
+  placeholder,
+  t,
+}: {
+  value: string;
+  selectedSlug: string;
+  onSelect: (t: Transfer) => void;
+  onChange: (q: string) => void;
+  placeholder: string;
+  t: (s: string) => string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const matches = useMemo<Transfer[]>(() => {
+    const s = value.trim().toLowerCase();
+    if (!s) return [];
+    return transfers
+      .filter((tt) => tt.hotelName.toLowerCase().includes(s) || tt.area.toLowerCase().includes(s))
+      .slice(0, 8);
+  }, [value]);
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!open || matches.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setActive((i) => Math.min(matches.length - 1, i + 1));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setActive((i) => Math.max(0, i - 1));
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      const pick = matches[active] ?? matches[0];
+      if (pick) {
+        onSelect(pick);
+        setOpen(false);
+      }
+    } else if (e.key === 'Escape') {
+      setOpen(false);
+    }
+  }
+
+  return (
+    <div className="relative mt-1">
+      <div className="flex items-center gap-2 rounded-xl border border-ink/15 px-3.5 py-2.5 focus-within:border-teal">
+        {selectedSlug ? (
+          <IconCheck width={16} height={16} className="shrink-0 text-teal" />
+        ) : (
+          <IconSearch width={16} height={16} className="shrink-0 text-ink-muted" />
+        )}
+        <input
+          id="checkout-hotel-search"
+          role="combobox"
+          aria-expanded={open && matches.length > 0}
+          aria-controls="checkout-hotel-list"
+          aria-autocomplete="list"
+          autoComplete="off"
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setOpen(true);
+            setActive(0);
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => {
+            blurTimer.current = setTimeout(() => setOpen(false), 120);
+          }}
+          onKeyDown={onKeyDown}
+          className="w-full bg-transparent text-sm font-normal text-ink outline-none"
+        />
+      </div>
+      {open && value.trim() !== '' && matches.length > 0 && (
+        <ul
+          id="checkout-hotel-list"
+          role="listbox"
+          className="absolute z-20 mt-1.5 max-h-72 w-full overflow-auto rounded-xl border border-ink/10 bg-white py-1 shadow-xl"
+        >
+          {matches.map((tt, i) => (
+            <li key={tt.slug} role="option" aria-selected={i === active}>
+              <button
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (blurTimer.current) clearTimeout(blurTimer.current);
+                  onSelect(tt);
+                  setOpen(false);
+                }}
+                onMouseEnter={() => setActive(i)}
+                className={`flex w-full items-center gap-2 px-3.5 py-2 text-left text-sm ${
+                  i === active ? 'bg-teal/10' : 'hover:bg-ink/[0.03]'
+                }`}
+              >
+                <IconPin width={14} height={14} className="shrink-0 text-coral" />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold text-ink">{tt.hotelName}</span>
+                  <span className="block text-[12px] text-ink-muted">{tt.area}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {open && value.trim() !== '' && matches.length === 0 && (
+        <p className="absolute z-20 mt-1.5 w-full rounded-xl border border-ink/10 bg-white px-3.5 py-2.5 text-[12.5px] text-ink-muted shadow-xl">
+          {t('No match — choose “My hotel isn’t listed”.')}
+        </p>
+      )}
     </div>
   );
 }

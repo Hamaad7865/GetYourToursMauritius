@@ -52,22 +52,38 @@ export const createBookingInputSchema = z.object({
   /** Number of child seats requested. First free, each additional €6 — the charge is computed
    *  server-side; the client value is only the count. Bounded so a tampered payload is a clean 400. */
   childSeats: z.number().int().min(0).max(25).optional(),
-  /** Airport transfer: the hotel page slug. The SERVER looks up the destination region from it and
-   *  recomputes the fare — it never trusts a client-sent region or price. */
+  /** Airport transfer: the hotel page slug. The SERVER looks up the destination zone from it and
+   *  recomputes the fare — it never trusts a client-sent zone or price. */
   dropoffSlug: z.string().trim().max(120).nullish(),
-  /** Airport transfer trip type. Return = two legs minus the configured discount (computed server-side). */
+  /** Airport transfer: the free-text drop-off AREA for the "my hotel isn't listed" path. The SERVER
+   *  classifies the zone from it (Zone 2 = near-airport south-east) — never a client-sent price. */
+  dropoffArea: z.string().trim().max(120).nullish(),
+  /** Airport transfer trip type (priced). Return = two legs minus the configured discount (server-side). */
   tripType: z.enum(['one_way', 'return']).optional(),
+  /** Airport transfer trip DIRECTION (customer-facing). arrival/departure = one leg, return = both. The
+   *  server derives the priced tripType from this. */
+  tripDirection: z.enum(['arrival', 'departure', 'return']).optional(),
   /** Airport transfer flight details (informational; bounded so a tampered payload is a clean 400). */
   flightNumber: z.string().trim().max(40).nullish(),
   arrivalTime: z.string().trim().max(40).nullish(),
-  /** Return-leg details (only meaningful when tripType === 'return'). returnDate is an ISO YYYY-MM-DD. */
+  /** Return-leg details (only meaningful when tripDirection === 'return'). returnDate is an ISO YYYY-MM-DD. */
   returnDate: z.string().trim().max(40).nullish(),
   returnTime: z.string().trim().max(40).nullish(),
   departureFlightNumber: z.string().trim().max(40).nullish(),
+  /** Airport-transfer trip extras (informational; bounded). roomOrCabin = hotel room or cruise cabin no.;
+   *  luggageDetails = free text; childSeatAge = the child's age when a child seat is requested. */
+  roomOrCabin: z.string().trim().max(60).nullish(),
+  luggageDetails: z.string().trim().max(300).nullish(),
+  childSeatAge: z.number().int().min(0).max(17).nullish(),
   customer: z.object({
     name: z.string().min(1).max(120),
     email: z.string().email(),
     phone: z.string().max(40).nullish(),
+    /** Lead-traveller details captured on the airport-transfer form (informational; bounded). */
+    gender: z.string().trim().max(20).nullish(),
+    company: z.string().trim().max(120).nullish(),
+    country: z.string().trim().max(80).nullish(),
+    specialNotes: z.string().trim().max(600).nullish(),
   }),
   source: bookingSourceSchema.optional(),
   /** Client-supplied idempotency key; the service generates one if absent. */
@@ -121,13 +137,22 @@ export const bookingSchema = z.object({
   transportEur: z.number().nonnegative().nullish(),
   /** Pickup region the transport fare was based on, or null/absent if no transport was added. */
   pickupRegion: z.string().nullish(),
-  /** Airport transfer: trip type + flight details (null/absent for non-transfer bookings). */
+  /** Airport transfer: trip type/direction + flight details (null/absent for non-transfer bookings). */
   tripType: z.string().nullish(),
+  tripDirection: z.string().nullish(),
   flightNumber: z.string().nullish(),
   arrivalTime: z.string().nullish(),
   returnDate: z.string().nullish(),
   returnTime: z.string().nullish(),
   departureFlightNumber: z.string().nullish(),
+  /** Airport transfer: trip extras + lead-traveller details (null/absent for non-transfer bookings). */
+  roomOrCabin: z.string().nullish(),
+  luggageDetails: z.string().nullish(),
+  childSeatAge: z.number().int().nullish(),
+  travellerGender: z.string().nullish(),
+  travellerCompany: z.string().nullish(),
+  travellerCountry: z.string().nullish(),
+  specialNotes: z.string().nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 

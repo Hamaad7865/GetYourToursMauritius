@@ -159,6 +159,9 @@ export function TransferBookingWidget({
         region,
         tripType,
       });
+      // Carry the chosen arrival date/time so the checkout's leg fields prefill (the customer confirms
+      // the exact hotel + flight numbers there). The server re-derives the price regardless.
+      if (date) q.set('arrDate', date);
       if (time) q.set('arr', time);
       if (tripType === 'return' && returnDate) q.set('retDate', returnDate);
       if (tripType === 'return' && returnTime) q.set('retTime', returnTime);

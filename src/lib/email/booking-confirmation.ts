@@ -69,12 +69,35 @@ export function renderConfirmationEmail(model: InvoiceModel): RenderedEmail {
               <td style="padding:4px 0;color:${INK};font-size:14px;">${value}</td>
             </tr>`;
 
+  const tr = model.booking.transfer;
+  const transferDirectionLabel = (d?: string | null): string =>
+    d === 'departure' ? 'Departure (hotel → airport)' : d === 'return' ? 'Return (both ways)' : 'Arrival (airport → hotel)';
+
   const detailRows = [
     detailRow('Booking ref', `<strong>${escapeHtml(ref)}</strong>`),
     detailRow('Activity', escapeHtml(activity)),
     when ? detailRow('Date', escapeHtml(when)) : '',
     model.booking.pickup ? detailRow('Pick-up', escapeHtml(model.booking.pickup)) : '',
     model.booking.dropoff ? detailRow('Drop-off', escapeHtml(model.booking.dropoff)) : '',
+    // Airport-transfer details block — the driver's run-sheet data.
+    tr ? detailRow('Trip', escapeHtml(transferDirectionLabel(tr.direction))) : '',
+    tr?.roomOrCabin ? detailRow('Room/cabin', escapeHtml(tr.roomOrCabin)) : '',
+    tr && (tr.flightNumber || tr.arrivalTime)
+      ? detailRow('Arrival flight', escapeHtml([tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' · ')))
+      : '',
+    tr && (tr.departureFlightNumber || tr.returnDate || tr.returnTime)
+      ? detailRow(
+          'Departure',
+          escapeHtml(
+            [tr.departureFlightNumber, [tr.returnDate, tr.returnTime].filter(Boolean).join(' ')]
+              .filter(Boolean)
+              .join(' · '),
+          ),
+        )
+      : '',
+    tr?.luggageDetails ? detailRow('Luggage', escapeHtml(tr.luggageDetails)) : '',
+    tr && typeof tr.childSeatAge === 'number' ? detailRow('Child seat (age)', escapeHtml(String(tr.childSeatAge))) : '',
+    tr?.specialNotes ? detailRow('Notes', escapeHtml(tr.specialNotes)) : '',
   ].join('');
 
   const supportEmail = escapeHtml(model.business.email);
@@ -148,6 +171,19 @@ export function renderConfirmationEmail(model: InvoiceModel): RenderedEmail {
   if (when) textLines.push(`Date: ${when}`);
   if (model.booking.pickup) textLines.push(`Pick-up: ${model.booking.pickup}`);
   if (model.booking.dropoff) textLines.push(`Drop-off: ${model.booking.dropoff}`);
+  if (tr) {
+    textLines.push(`Trip: ${transferDirectionLabel(tr.direction)}`);
+    if (tr.roomOrCabin) textLines.push(`Room/cabin: ${tr.roomOrCabin}`);
+    if (tr.flightNumber || tr.arrivalTime) textLines.push(`Arrival flight: ${[tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' · ')}`);
+    if (tr.departureFlightNumber || tr.returnDate || tr.returnTime) {
+      textLines.push(
+        `Departure: ${[tr.departureFlightNumber, [tr.returnDate, tr.returnTime].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}`,
+      );
+    }
+    if (tr.luggageDetails) textLines.push(`Luggage: ${tr.luggageDetails}`);
+    if (typeof tr.childSeatAge === 'number') textLines.push(`Child seat (age): ${tr.childSeatAge}`);
+    if (tr.specialNotes) textLines.push(`Notes: ${tr.specialNotes}`);
+  }
   textLines.push('');
   for (const line of model.lines) {
     textLines.push(`  - ${line.description}: ${money(model.currency, line.lineGrossEur)}`);

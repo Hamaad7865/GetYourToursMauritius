@@ -53,7 +53,27 @@ export interface InvoiceBookingInput {
   childSeats?: number | null;
   /** Region-based transport add-on in EUR (booking_json's `transportEur`), already inside totalEur. */
   transportEur?: number | null;
+  /** Airport-transfer details — present only for transfer bookings; surfaced as a "Transfer details"
+   *  block on the voucher/receipt so the driver has everything. All optional/nullable. */
+  transfer?: TransferDetails | null;
   items: InvoiceBookingItem[];
+}
+
+/** The airport-transfer fields the voucher shows (the driver's run-sheet data). All optional. */
+export interface TransferDetails {
+  direction?: string | null; // 'arrival' | 'departure' | 'return'
+  roomOrCabin?: string | null;
+  flightNumber?: string | null;
+  arrivalTime?: string | null;
+  returnDate?: string | null; // departure/pickup date for the departure leg
+  returnTime?: string | null;
+  departureFlightNumber?: string | null;
+  luggageDetails?: string | null;
+  childSeatAge?: number | null;
+  travellerCountry?: string | null;
+  travellerCompany?: string | null;
+  travellerGender?: string | null;
+  specialNotes?: string | null;
 }
 
 /**
@@ -101,6 +121,8 @@ export interface InvoiceModel {
     when: string;
     pickup?: string | null;
     dropoff?: string | null;
+    /** Airport-transfer details (null for non-transfer bookings) — shown as a "Transfer details" block. */
+    transfer?: TransferDetails | null;
   };
   lines: InvoiceLine[];
   subtotalNetEur: number;
@@ -190,6 +212,7 @@ export function buildInvoice(
       when: booking.when,
       pickup: booking.pickupLocation ?? null,
       dropoff: booking.dropoffLocation ?? null,
+      transfer: booking.transfer ?? null,
     },
     lines,
     subtotalNetEur,

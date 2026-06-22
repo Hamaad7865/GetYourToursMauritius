@@ -62,6 +62,25 @@ export interface BookingRow {
   pickupPending: boolean;
   /** Child seats on the booking (first free, €6 each extra; the charge is in the total). */
   childSeats: number;
+  /** Airport-transfer details (null for non-transfer bookings) — shown in the admin drawer + voucher. */
+  transfer: AdminTransferDetails | null;
+}
+
+/** Airport-transfer fields surfaced to staff/driver in the admin booking drawer. */
+export interface AdminTransferDetails {
+  direction: string | null; // 'arrival' | 'departure' | 'return'
+  roomOrCabin: string | null;
+  flightNumber: string | null;
+  arrivalTime: string | null;
+  returnDate: string | null;
+  returnTime: string | null;
+  departureFlightNumber: string | null;
+  luggageDetails: string | null;
+  childSeatAge: number | null;
+  travellerCountry: string | null;
+  travellerCompany: string | null;
+  travellerGender: string | null;
+  specialNotes: string | null;
 }
 
 export interface PaymentEventRow {
@@ -127,6 +146,19 @@ interface RawBooking {
   dropoff_location: string | null;
   pickup_pending: boolean | null;
   child_seats: number | null;
+  trip_direction: string | null;
+  room_or_cabin: string | null;
+  flight_number: string | null;
+  arrival_time: string | null;
+  return_date: string | null;
+  return_time: string | null;
+  departure_flight_number: string | null;
+  luggage_details: string | null;
+  child_seat_age: number | null;
+  traveller_country: string | null;
+  traveller_company: string | null;
+  traveller_gender: string | null;
+  special_notes: string | null;
   created_at: string;
   booking_items: RawItem[] | null;
   payments: RawPaymentLite[] | null;
@@ -134,7 +166,9 @@ interface RawBooking {
 
 const BOOKING_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
-  source, currency, total_minor, notes, custom_itinerary, pickup_location, dropoff_location, pickup_pending, child_seats, created_at,
+  source, currency, total_minor, notes, custom_itinerary, pickup_location, dropoff_location, pickup_pending, child_seats,
+  trip_direction, room_or_cabin, flight_number, arrival_time, return_date, return_time, departure_flight_number,
+  luggage_details, child_seat_age, traveller_country, traveller_company, traveller_gender, special_notes, created_at,
   booking_items (
     price_label, quantity, pax, unit_amount_minor, subtotal_minor,
     session_occurrences ( starts_at ),
@@ -189,6 +223,24 @@ function mapBooking(raw: RawBooking): BookingRow {
     dropoffLocation: raw.dropoff_location ?? null,
     pickupPending: raw.pickup_pending ?? false,
     childSeats: raw.child_seats ?? 0,
+    // Only build a transfer block when there's a direction (i.e. it's an airport transfer).
+    transfer: raw.trip_direction
+      ? {
+          direction: raw.trip_direction,
+          roomOrCabin: raw.room_or_cabin ?? null,
+          flightNumber: raw.flight_number ?? null,
+          arrivalTime: raw.arrival_time ?? null,
+          returnDate: raw.return_date ?? null,
+          returnTime: raw.return_time ?? null,
+          departureFlightNumber: raw.departure_flight_number ?? null,
+          luggageDetails: raw.luggage_details ?? null,
+          childSeatAge: raw.child_seat_age ?? null,
+          travellerCountry: raw.traveller_country ?? null,
+          travellerCompany: raw.traveller_company ?? null,
+          travellerGender: raw.traveller_gender ?? null,
+          specialNotes: raw.special_notes ?? null,
+        }
+      : null,
   };
 }
 

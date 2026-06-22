@@ -178,6 +178,45 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   }
   y -= 10;
 
+  // 4b. Transfer details block (airport transfers only) — the driver's run-sheet data.
+  const tr = trip.transfer;
+  if (tr) {
+    const directionLabel =
+      tr.direction === 'departure'
+        ? 'Departure (hotel to airport)'
+        : tr.direction === 'return'
+          ? 'Return (both ways)'
+          : 'Arrival (airport to hotel)';
+    const rows: string[] = [`Trip: ${directionLabel}`];
+    if (tr.roomOrCabin) rows.push(`Room/cabin: ${tr.roomOrCabin}`);
+    if (tr.flightNumber || tr.arrivalTime) {
+      rows.push(`Arrival: ${[tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' at ')}`);
+    }
+    if (tr.departureFlightNumber || tr.returnDate || tr.returnTime) {
+      const dep = [
+        tr.departureFlightNumber,
+        [tr.returnDate, tr.returnTime].filter(Boolean).join(' '),
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      rows.push(`Departure: ${dep}`);
+    }
+    if (tr.luggageDetails) rows.push(`Luggage: ${tr.luggageDetails}`);
+    if (typeof tr.childSeatAge === 'number') rows.push(`Child seat — age: ${tr.childSeatAge}`);
+    if (tr.travellerCountry) rows.push(`Country: ${tr.travellerCountry}`);
+    if (tr.travellerCompany) rows.push(`Company: ${tr.travellerCompany}`);
+    if (tr.travellerGender) rows.push(`Gender: ${tr.travellerGender}`);
+    if (tr.specialNotes) rows.push(`Notes: ${tr.specialNotes}`);
+
+    text('TRANSFER DETAILS', { size: 8, font: bold, color: MUTED });
+    y -= 14;
+    for (const row of rows) {
+      text(fitText(row, font, 10, CONTENT_RIGHT - MARGIN), { size: 10, color: MUTED });
+      y -= 13;
+    }
+    y -= 10;
+  }
+
   // 5. Line-item table header.
   text('Description', { size: 9, font: bold });
   textRight('Qty', COL_QTY_RIGHT, { size: 9, font: bold });

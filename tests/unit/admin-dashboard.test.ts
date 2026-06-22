@@ -26,6 +26,7 @@ function booking(over: Partial<BookingRow>): BookingRow {
     dropoffLocation: null,
     pickupPending: false,
     childSeats: 0,
+    transfer: null,
     ...over,
   };
 }

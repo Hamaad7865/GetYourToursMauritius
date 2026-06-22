@@ -303,6 +303,25 @@ export function airportZoneForSlug(slug: string | null | undefined): AirportZone
   return slug && AIRPORT_ZONE2_SLUGS.has(slug) ? 'zone2' : 'zone1';
 }
 
+/** Zone 2 AREAS (the near-airport south-east cluster) for the "my hotel isn't listed" free-text path.
+ *  Lower-cased, accent-stripped substrings — the guest may type "Mahebourg" or "Mahébourg". Mirrors
+ *  airport_transfer_area_zone() in SQL. */
+const AIRPORT_ZONE2_AREAS: readonly string[] = [
+  'mahebourg',
+  'blue bay',
+  "pointe d'esny",
+  'ferney',
+  'grand port',
+];
+
+/** Classify a free-text drop-off AREA to a pricing zone (Zone 2 = near-airport south-east, else Zone 1).
+ *  Used when the guest's hotel isn't in our list. Display-only; the server re-derives + enforces it. */
+export function airportAreaZone(area: string | null | undefined): AirportZone {
+  const v = (area ?? '').trim().toLowerCase().replace(/é/g, 'e');
+  if (!v) return 'zone1';
+  return AIRPORT_ZONE2_AREAS.some((a) => v.includes(a)) ? 'zone2' : 'zone1';
+}
+
 /** One flat fare per vehicle bracket, for a single zone (minor units / EUR cents). */
 export interface AirportFare {
   sedanMinor: number; // 1-4 (Standard car)

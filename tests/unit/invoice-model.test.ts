@@ -85,6 +85,7 @@ describe('buildInvoice', () => {
       when: '2026-08-09T06:00:00Z',
       pickup: null,
       dropoff: null,
+      transfer: null,
     });
   });
 
