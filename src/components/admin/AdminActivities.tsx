@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { deleteActivity } from '@/lib/admin/activity-write';
-import { IconPlus, IconCalendar, IconTag } from '@/components/ui/icons';
+import { IconPlus, IconCalendar, IconSearch, IconTag } from '@/components/ui/icons';
 
 interface Row {
   id: string;
@@ -31,6 +31,9 @@ export function AdminActivities() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [status, setStatus] = useState<'all' | 'published' | 'draft'>('all');
+  const [category, setCategory] = useState('all');
 
   const load = useCallback(async () => {
     const { data, error } = await getBrowserSupabase()
@@ -63,6 +66,21 @@ export function AdminActivities() {
 
   const published = (rows ?? []).filter((r) => r.status === 'published').length;
   const drafts = (rows ?? []).length - published;
+  const categories = useMemo(
+    () => Array.from(new Set((rows ?? []).map((r) => r.category).filter(Boolean))).sort(),
+    [rows],
+  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (rows ?? []).filter((r) => {
+      if (status === 'published' && r.status !== 'published') return false;
+      if (status === 'draft' && r.status === 'published') return false;
+      if (category !== 'all' && r.category !== category) return false;
+      if (q && !`${r.title} ${r.slug} ${r.category}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [rows, query, status, category]);
+  const filtering = query.trim() !== '' || status !== 'all' || category !== 'all';
 
   return (
     <div>
@@ -70,7 +88,11 @@ export function AdminActivities() {
         <div>
           <h1 className="font-display text-[30px] font-medium tracking-tight text-ink">Tours</h1>
           <p className="mt-1.5 text-sm text-ink-muted">
-            {rows ? `${published} published · ${drafts} ${drafts === 1 ? 'draft' : 'drafts'}` : 'Loading…'}
+            {rows
+              ? filtering
+                ? `${filtered.length} of ${rows.length} shown`
+                : `${published} published · ${drafts} ${drafts === 1 ? 'draft' : 'drafts'}`
+              : 'Loading…'}
           </p>
         </div>
         <Link
@@ -107,8 +129,68 @@ export function AdminActivities() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-[18px]">
-          {rows.map((row) => (
+        <>
+          <div className="mb-5 flex flex-wrap items-center gap-3">
+            <div className="relative min-w-[220px] flex-1 sm:max-w-sm">
+              <IconSearch
+                width={16}
+                height={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted"
+              />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search tours by name or slug…"
+                className="w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] py-2.5 pl-9 pr-3 text-sm text-ink outline-none focus:border-teal focus:bg-white"
+              />
+            </div>
+            <div className="flex overflow-hidden rounded-xl border border-[#E2E7EA]">
+              {(['all', 'published', 'draft'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setStatus(s)}
+                  className={`px-3.5 py-2 text-[12.5px] font-bold capitalize ${
+                    status === s ? 'bg-teal text-white' : 'bg-white text-ink-muted hover:bg-[#F7F8FA]'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              aria-label="Filter by category"
+              className="rounded-xl border border-[#E2E7EA] bg-white px-3 py-2.5 text-sm text-ink outline-none focus:border-teal"
+            >
+              <option value="all">All categories</option>
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="rounded-2xl border border-[#EAEEF0] bg-white px-6 py-16 text-center">
+              <div className="text-[15px] font-bold text-ink">No tours match your filters</div>
+              <button
+                type="button"
+                onClick={() => {
+                  setQuery('');
+                  setStatus('all');
+                  setCategory('all');
+                }}
+                className="mt-3 text-[13.5px] font-bold text-teal hover:text-teal-dark"
+              >
+                Clear filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-[18px]">
+              {filtered.map((row) => (
             <div
               key={row.id}
               className="flex flex-col overflow-hidden rounded-2xl border border-[#EAEEF0] bg-white shadow-[0_1px_2px_rgba(10,46,54,.04)] transition-shadow hover:shadow-[0_18px_34px_-20px_rgba(10,46,54,.34)]"
@@ -154,8 +236,10 @@ export function AdminActivities() {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
