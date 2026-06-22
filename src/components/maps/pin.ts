@@ -1,42 +1,54 @@
-/* Brand-coloured teardrop pin as a data-URI marker icon for the Google Maps JS API.
- * Called only after the API is ready (it references the `google` global at call time).
- * `hollow` renders an outline pin (white fill + coloured border + coloured dot) — used for
- * swappable "other" stops, so they read as secondary against the solid "main" stops. */
-export function pinIcon(color: string, opts?: { hollow?: boolean }): google.maps.Icon {
-  const hollow = opts?.hollow ?? false;
-  const svg = hollow
-    ? `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">` +
-      `<path d="M15 1.2C7.4 1.2 1.2 7.4 1.2 15c0 9.4 13.8 22 13.8 22s13.8-12.6 13.8-22C28.8 7.4 22.6 1.2 15 1.2z" fill="#ffffff" stroke="${color}" stroke-width="2.4"/>` +
-      `<circle cx="15" cy="15" r="5.5" fill="${color}"/></svg>`
-    : `<svg xmlns="http://www.w3.org/2000/svg" width="30" height="38" viewBox="0 0 30 38">` +
-      `<path d="M15 0C6.7 0 0 6.7 0 15c0 9.7 15 23 15 23s15-13.3 15-23C30 6.7 23.3 0 15 0z" fill="${color}"/>` +
-      `<circle cx="15" cy="15" r="11" fill="rgba(255,255,255,.22)"/></svg>`;
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new google.maps.Size(30, 38),
-    anchor: new google.maps.Point(15, 38),
-    labelOrigin: new google.maps.Point(15, 14),
-  };
+/* AdvancedMarkerElement content builders + a LatLng normaliser. Called only after the Maps JS API
+ * (with the `marker` library) is ready — they reference the `google` global at call time. */
+
+/**
+ * A brand-coloured map pin as AdvancedMarkerElement `content`, built with Google's PinElement.
+ * `glyph` is the centred number/letter; `hollow` renders a WHITE pin with a coloured glyph + border
+ * (used for swappable "other" stops, so they read as secondary against the solid "main" stops).
+ */
+export function pinElement(opts: {
+  color: string;
+  glyph?: string | number;
+  hollow?: boolean;
+}): HTMLElement {
+  const { color, glyph, hollow = false } = opts;
+  const pin = new google.maps.marker.PinElement({
+    background: hollow ? '#ffffff' : color,
+    borderColor: color,
+    glyphColor: hollow ? color : '#ffffff',
+    glyph: glyph != null ? String(glyph) : undefined,
+  });
+  return pin.element;
 }
 
-/** Label styling for a route marker — a stop number, or a glyph like "P"/"D" for the pickup and
- *  drop-off endpoints. `color` is the text colour — white on a solid pin, brand teal on a hollow
- *  (white) pin so it stays legible. */
-export function pinLabel(n: number | string, color = '#ffffff'): google.maps.MarkerLabel {
-  return { text: String(n), color, fontSize: '12px', fontWeight: '700' };
-}
-
-/** A small car marker (data-URI SVG) for animating along the route. `color` is the body + ring
- *  colour (default brand teal; the planner uses red so the moving car stands out from coral pins). */
-export function carIcon(color = '#0E8C92'): google.maps.Icon {
+/**
+ * A small car marker as AdvancedMarkerElement `content` (data-URI SVG <img>) for animating along the
+ * route. `color` is the body + ring colour (default brand teal; the planner uses red so the moving car
+ * stands out from coral pins). AdvancedMarkerElement anchors content by its bottom-centre, so the img
+ * is shifted down half its height to sit CENTRED on the route point.
+ */
+export function carContent(color = '#0E8C92'): HTMLElement {
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">` +
     `<circle cx="17" cy="17" r="16" fill="#fff" stroke="${color}" stroke-width="2"/>` +
     `<path d="M9 19.5c0-.4.1-.8.3-1.1l1.3-2.2c.3-.6.9-.9 1.6-.9h7.6c.7 0 1.3.3 1.6.9l1.3 2.2c.2.3.3.7.3 1.1V22a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-.5h-9V22a1 1 0 0 1-1 1h-1a1 1 0 0 1-1-1v-2.5z" fill="${color}"/>` +
     `<circle cx="12.5" cy="21.5" r="1.4" fill="#0A2E36"/><circle cx="21.5" cy="21.5" r="1.4" fill="#0A2E36"/></svg>`;
-  return {
-    url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`,
-    scaledSize: new google.maps.Size(28, 28),
-    anchor: new google.maps.Point(14, 14),
-  };
+  const img = document.createElement('img');
+  img.src = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  img.width = 28;
+  img.height = 28;
+  img.alt = '';
+  img.style.transform = 'translateY(50%)';
+  return img;
+}
+
+/** Normalise a marker position (LatLng | LatLngLiteral | null) to a plain literal. */
+export function toLatLng(
+  pos: google.maps.LatLng | google.maps.LatLngLiteral | null | undefined,
+): google.maps.LatLngLiteral | null {
+  if (!pos) return null;
+  const ll = pos as google.maps.LatLng;
+  if (typeof ll.lat === 'function') return { lat: ll.lat(), lng: ll.lng() };
+  const lit = pos as google.maps.LatLngLiteral;
+  return { lat: lit.lat, lng: lit.lng };
 }

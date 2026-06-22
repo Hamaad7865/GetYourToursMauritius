@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
-import { pinIcon, pinLabel } from './pin';
+import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
+import { pinElement, toLatLng } from './pin';
 
 /* Belle Mare, east-coast Mauritius — the default map centre when no pickup is chosen yet. */
 const BELLE_MARE = { lat: -20.1965, lng: 57.7669 };
@@ -50,8 +50,8 @@ export function PickupDropoffMap({
   const dropoffInputRef = useRef<HTMLInputElement>(null);
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const pickupMarkerRef = useRef<google.maps.Marker | null>(null);
-  const dropoffMarkerRef = useRef<google.maps.Marker | null>(null);
+  const pickupMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const dropoffMarkerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   // Whether the drop-off marker is currently shown — read inside the map's click handler (which is
   // bound once) so a click moves the right marker without re-running the setup effect.
   const showDropoffRef = useRef(showDropoff);
@@ -80,6 +80,7 @@ export function PickupDropoffMap({
     const map = new google.maps.Map(mapElRef.current, {
       center: BELLE_MARE,
       zoom: 11,
+      mapId: MAP_ID,
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
@@ -87,29 +88,31 @@ export function PickupDropoffMap({
     });
     mapRef.current = map;
 
-    const pickupMarker = new google.maps.Marker({
+    const pickupMarker = new google.maps.marker.AdvancedMarkerElement({
       map,
       position: BELLE_MARE,
-      draggable: true,
+      gmpDraggable: true,
       title: 'Pickup location',
-      icon: pinIcon(PICKUP_COLOR),
-      label: pinLabel('P'),
+      content: pinElement({ color: PICKUP_COLOR, glyph: 'P' }),
     });
     pickupMarkerRef.current = pickupMarker;
 
     // The drop-off marker is created up front but kept OFF the map until the toggle reveals it.
-    const dropoffMarker = new google.maps.Marker({
+    const dropoffMarker = new google.maps.marker.AdvancedMarkerElement({
       map: null,
       position: BELLE_MARE,
-      draggable: true,
+      gmpDraggable: true,
       title: 'Drop-off location',
-      icon: pinIcon(DROPOFF_COLOR),
-      label: pinLabel('D'),
+      content: pinElement({ color: DROPOFF_COLOR, glyph: 'D' }),
     });
     dropoffMarkerRef.current = dropoffMarker;
 
-    const moveMarker = (marker: google.maps.Marker, pos: google.maps.LatLngLiteral, zoom = 15) => {
-      marker.setPosition(pos);
+    const moveMarker = (
+      marker: google.maps.marker.AdvancedMarkerElement,
+      pos: google.maps.LatLngLiteral,
+      zoom = 15,
+    ) => {
+      marker.position = pos;
       map.panTo(pos);
       if (zoom) map.setZoom(zoom);
     };
@@ -118,7 +121,7 @@ export function PickupDropoffMap({
     // even if Places isn't enabled — the traveller can still drag a pin or type freely.
     const bindAutocomplete = (
       input: HTMLInputElement,
-      marker: google.maps.Marker,
+      marker: google.maps.marker.AdvancedMarkerElement,
       onChangeRef: React.MutableRefObject<(s: string) => void>,
       onCoordsRef: React.MutableRefObject<(c: { lat: number; lng: number } | null) => void>,
     ): google.maps.places.Autocomplete | null => {
@@ -133,7 +136,7 @@ export function PickupDropoffMap({
           if (p.geometry?.location) {
             const lat = p.geometry.location.lat();
             const lng = p.geometry.location.lng();
-            marker.setMap(map);
+            marker.map = map;
             moveMarker(marker, { lat, lng });
             onCoordsRef.current?.({ lat, lng });
             fitToMarkers();
@@ -149,11 +152,11 @@ export function PickupDropoffMap({
     // Fit the map to whichever markers are on it: both when drop-off is shown and placed, else
     // just centre on the pickup.
     const fitToMarkers = () => {
-      const positions: google.maps.LatLng[] = [];
-      const pp = pickupMarker.getPosition();
+      const positions: google.maps.LatLngLiteral[] = [];
+      const pp = toLatLng(pickupMarker.position);
       if (pp) positions.push(pp);
-      if (showDropoffRef.current && dropoffMarker.getMap()) {
-        const dp = dropoffMarker.getPosition();
+      if (showDropoffRef.current && dropoffMarker.map) {
+        const dp = toLatLng(dropoffMarker.position);
         if (dp) positions.push(dp);
       }
       if (positions.length >= 2) {
@@ -186,18 +189,18 @@ export function PickupDropoffMap({
 
     // Dragging a pin reports its coordinates (the typed address text is kept as-is).
     pickupMarker.addListener('dragend', () => {
-      const pos = pickupMarker.getPosition();
+      const pos = toLatLng(pickupMarker.position);
       if (pos) {
         clickTargetRef.current = 'pickup';
-        onPickupCoordsRef.current?.({ lat: pos.lat(), lng: pos.lng() });
+        onPickupCoordsRef.current?.(pos);
         fitToMarkers();
       }
     });
     dropoffMarker.addListener('dragend', () => {
-      const pos = dropoffMarker.getPosition();
+      const pos = toLatLng(dropoffMarker.position);
       if (pos) {
         clickTargetRef.current = 'dropoff';
-        onDropoffCoordsRef.current?.({ lat: pos.lat(), lng: pos.lng() });
+        onDropoffCoordsRef.current?.(pos);
         fitToMarkers();
       }
     });
@@ -209,11 +212,11 @@ export function PickupDropoffMap({
       const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
       const target = showDropoffRef.current ? clickTargetRef.current : 'pickup';
       if (target === 'dropoff') {
-        dropoffMarker.setMap(map);
-        dropoffMarker.setPosition(pos);
+        dropoffMarker.map = map;
+        dropoffMarker.position = pos;
         onDropoffCoordsRef.current?.(pos);
       } else {
-        pickupMarker.setPosition(pos);
+        pickupMarker.position = pos;
         onPickupCoordsRef.current?.(pos);
       }
       fitToMarkers();
@@ -228,8 +231,8 @@ export function PickupDropoffMap({
       google.maps.event.clearInstanceListeners(pickupMarker);
       google.maps.event.clearInstanceListeners(dropoffMarker);
       google.maps.event.clearInstanceListeners(map);
-      pickupMarker.setMap(null);
-      dropoffMarker.setMap(null);
+      pickupMarker.map = null;
+      dropoffMarker.map = null;
       mapRef.current = null;
       pickupMarkerRef.current = null;
       dropoffMarkerRef.current = null;
@@ -262,8 +265,8 @@ export function PickupDropoffMap({
             if (p.geometry?.location) {
               const lat = p.geometry.location.lat();
               const lng = p.geometry.location.lng();
-              dropoffMarker.setMap(map);
-              dropoffMarker.setPosition({ lat, lng });
+              dropoffMarker.map = map;
+              dropoffMarker.position = { lat, lng };
               map.panTo({ lat, lng });
               onDropoffCoordsRef.current?.({ lat, lng });
               fitRef.current?.();
@@ -279,12 +282,12 @@ export function PickupDropoffMap({
       }
       // Show the drop-off pin: reuse any saved drop-off position, else seed it near the pickup so
       // it's visible and draggable.
-      if (!dropoffMarker.getMap()) {
-        const pickupPos = pickupMarkerRef.current?.getPosition();
-        if (pickupPos && !dropoffMarker.getPosition()) {
-          dropoffMarker.setPosition(pickupPos);
+      if (!dropoffMarker.map) {
+        const pickupPos = toLatLng(pickupMarkerRef.current?.position);
+        if (pickupPos && !toLatLng(dropoffMarker.position)) {
+          dropoffMarker.position = pickupPos;
         }
-        dropoffMarker.setMap(map);
+        dropoffMarker.map = map;
       }
       fitRef.current?.();
     } else {
@@ -295,7 +298,7 @@ export function PickupDropoffMap({
         google.maps.event.clearInstanceListeners(dropoffAcRef.current);
         dropoffAcRef.current = null;
       }
-      dropoffMarker.setMap(null);
+      dropoffMarker.map = null;
       fitRef.current?.();
     }
   }, [showDropoff, status]);

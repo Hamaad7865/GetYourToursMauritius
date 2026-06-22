@@ -10,6 +10,13 @@ import { useEffect, useState } from 'react';
 
 export type MapsStatus = 'idle' | 'loading' | 'ready' | 'error';
 
+/**
+ * Map ID — REQUIRED by AdvancedMarkerElement (it only renders on a map created with a mapId, which
+ * also makes the map vector/WebGL). Set a real one per environment via NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
+ * (create it in Google Cloud → Map Management); `DEMO_MAP_ID` is Google's public id for dev/testing.
+ */
+export const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID';
+
 const CALLBACK = '__gytmGoogleMapsReady';
 let loadPromise: Promise<void> | null = null;
 let authFailed = false;
@@ -34,7 +41,7 @@ function loadMaps(apiKey: string): Promise<void> {
     const script = document.createElement('script');
     const params = new URLSearchParams({
       key: apiKey,
-      libraries: 'places',
+      libraries: 'places,marker',
       loading: 'async',
       callback: CALLBACK,
       v: 'weekly',

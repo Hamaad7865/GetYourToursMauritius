@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
+import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
+import { toLatLng } from './pin';
 
 /* Belle Mare, east-coast Mauritius — the default map centre when no pickup is chosen yet. */
 const BELLE_MARE = { lat: -20.1965, lng: 57.7669 };
@@ -29,7 +30,7 @@ export function PickupMap({
   const inputRef = useRef<HTMLInputElement>(null);
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   // Keep the latest callbacks without re-running the map-setup effect.
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
@@ -42,6 +43,7 @@ export function PickupMap({
     const map = new google.maps.Map(mapElRef.current, {
       center: BELLE_MARE,
       zoom: 11,
+      mapId: MAP_ID,
       mapTypeControl: false,
       streetViewControl: false,
       fullscreenControl: false,
@@ -49,16 +51,16 @@ export function PickupMap({
     });
     mapRef.current = map;
 
-    const marker = new google.maps.Marker({
+    const marker = new google.maps.marker.AdvancedMarkerElement({
       map,
       position: BELLE_MARE,
-      draggable: true,
+      gmpDraggable: true,
       title: 'Pickup location',
     });
     markerRef.current = marker;
 
     const place = (pos: google.maps.LatLngLiteral, zoom = 15) => {
-      marker.setPosition(pos);
+      marker.position = pos;
       map.panTo(pos);
       if (zoom) map.setZoom(zoom);
     };
@@ -88,10 +90,10 @@ export function PickupMap({
 
     // Dragging the pin reports its coordinates (the typed address text is kept as-is).
     marker.addListener('dragend', () => {
-      const pos = marker.getPosition();
+      const pos = toLatLng(marker.position);
       if (pos) {
         map.panTo(pos);
-        onCoordsRef.current?.({ lat: pos.lat(), lng: pos.lng() });
+        onCoordsRef.current?.(pos);
       }
     });
 
@@ -107,7 +109,7 @@ export function PickupMap({
       if (autocomplete) google.maps.event.clearInstanceListeners(autocomplete);
       google.maps.event.clearInstanceListeners(marker);
       google.maps.event.clearInstanceListeners(map);
-      marker.setMap(null);
+      marker.map = null;
       mapRef.current = null;
       markerRef.current = null;
     };

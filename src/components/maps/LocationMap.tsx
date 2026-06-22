@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
+import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
 import { geocode } from '@/lib/maps/geocode';
 import { mapsSearchUrl } from '@/lib/maps/urls';
 import { MapLinkCard } from './MapLinkCard';
-import { pinIcon } from './pin';
+import { pinElement } from './pin';
 import { IconPin } from '@/components/ui/icons';
 
 /**
@@ -31,12 +31,18 @@ export function LocationMap({ query, label }: { query: string; label?: string })
       const map = new google.maps.Map(elRef.current, {
         center: pos,
         zoom: 12,
+        mapId: MAP_ID,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
         clickableIcons: false,
       });
-      new google.maps.Marker({ map, position: pos, icon: pinIcon('#F76C5E'), title: label || query });
+      new google.maps.marker.AdvancedMarkerElement({
+        map,
+        position: pos,
+        content: pinElement({ color: '#F76C5E' }),
+        title: label || query,
+      });
     })();
     return () => {
       cancelled = true;

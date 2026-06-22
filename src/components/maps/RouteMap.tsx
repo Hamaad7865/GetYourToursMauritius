@@ -2,11 +2,11 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { ItineraryStop } from '@/lib/validation/tours';
-import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
+import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
 import { geocode } from '@/lib/maps/geocode';
 import { mapsDirectionsUrl } from '@/lib/maps/urls';
 import { MapLinkCard } from './MapLinkCard';
-import { carIcon, pinIcon, pinLabel } from './pin';
+import { carContent, pinElement } from './pin';
 
 /** Marker role per stop: the start/pickup (coral), a fixed main stop (solid teal), or a swappable
  *  "other" stop (hollow teal). */
@@ -57,8 +57,13 @@ function buildDrivePath(
  * of the session — every retry just re-spams the console. The straight-line fallback takes over. */
 let directionsDenied = false;
 
-/** Anything with `setMap` — markers, polylines, the directions renderer. */
-type MapOverlay = { setMap: (map: google.maps.Map | null) => void };
+/** Overlays added to the map: AdvancedMarkers (removed via `.map = null`) and the DirectionsRenderer
+ *  (removed via `setMap(null)`). */
+type MapOverlay = google.maps.marker.AdvancedMarkerElement | google.maps.DirectionsRenderer;
+function clearOverlay(o: MapOverlay): void {
+  if (o instanceof google.maps.marker.AdvancedMarkerElement) o.map = null;
+  else o.setMap(null);
+}
 
 /**
  * Itinerary route map. Draws the real DRIVING route along the roads (Google Directions) with numbered
@@ -106,6 +111,7 @@ export function RouteMap({
     const map =
       mapRef.current ??
       (mapRef.current = new google.maps.Map(elRef.current, {
+        mapId: MAP_ID,
         mapTypeControl: false,
         streetViewControl: false,
         fullscreenControl: false,
@@ -113,7 +119,7 @@ export function RouteMap({
       }));
 
     // Tear down the previous render's overlays + animation before redrawing.
-    overlaysRef.current.forEach((o) => o.setMap(null));
+    overlaysRef.current.forEach(clearOverlay);
     overlaysRef.current = [];
     setNoRoute(false);
     if (rafRef.current != null) {
@@ -150,11 +156,10 @@ export function RouteMap({
         const hollow = kind === 'other';
         const color = kind === 'start' ? '#F76C5E' : '#0E8C92';
         track(
-          new google.maps.Marker({
+          new google.maps.marker.AdvancedMarkerElement({
             map,
             position: pos,
-            icon: pinIcon(color, { hollow }),
-            label: pinLabel(labels?.[i] ?? i + 1, hollow ? '#0E8C92' : '#ffffff'),
+            content: pinElement({ color, hollow, glyph: labels?.[i] ?? i + 1 }),
             title,
           }),
         );
@@ -217,7 +222,14 @@ export function RouteMap({
 
       // The car: static at the start, or driving out and back along the route when animated and
       // motion is allowed.
-      const car = track(new google.maps.Marker({ map, position: drivePath[0]!, icon: carIcon(carColor), zIndex: 1000 }));
+      const car = track(
+        new google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: drivePath[0]!,
+          content: carContent(carColor),
+          zIndex: 1000,
+        }),
+      );
       const reduce =
         typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -229,7 +241,7 @@ export function RouteMap({
           if (cancelled) return;
           if (t - lastT >= STEP_MS) {
             i = (i + 1) % drivePath.length;
-            car.setPosition(drivePath[i]!);
+            car.position = drivePath[i]!;
             lastT = t;
           }
           rafRef.current = requestAnimationFrame(tick);
@@ -252,7 +264,7 @@ export function RouteMap({
     const overlays = overlaysRef;
     const mapHolder = mapRef;
     return () => {
-      overlays.current.forEach((o) => o.setMap(null));
+      overlays.current.forEach(clearOverlay);
       overlays.current = [];
       mapHolder.current = null;
     };
