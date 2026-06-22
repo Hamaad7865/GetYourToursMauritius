@@ -337,7 +337,10 @@ export default async function ActivityDetailPage({
                       <b className="text-ink">{t('Meeting point / pickup:')}</b> {activity.meetingPoint}
                     </p>
                   )}
-                  {(activity.location || activity.meetingPoint) && (
+                  {/* Sightseeing (vehicle) tours pick the customer up wherever they choose (set in the
+                      checkout flow), so a fixed meeting-point map is misleading/unnecessary here — the
+                      "pickup across Mauritius" line above already says it. Other activities keep the map. */}
+                  {activity.pricingMode !== 'vehicle' && (activity.location || activity.meetingPoint) && (
                     <div className="mb-4">
                       <LocationMap
                         query={activity.location || activity.meetingPoint || activity.title}
