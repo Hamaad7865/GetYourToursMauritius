@@ -13,6 +13,7 @@ export function InfoPage({
   intro,
   eyebrow,
   meta,
+  heroImage,
   children,
 }: {
   title: string;
@@ -20,6 +21,8 @@ export function InfoPage({
   eyebrow?: string;
   /** Optional small print under the intro (e.g. "Last updated 18 July 2026"). */
   meta?: ReactNode;
+  /** Optional photo behind the hero band; a teal overlay keeps the white title legible. */
+  heroImage?: string;
   children: ReactNode;
 }) {
   return (
@@ -27,6 +30,13 @@ export function InfoPage({
       <GygHeader />
       <main className="bg-white">
         <section className="relative overflow-hidden bg-[radial-gradient(120%_120%_at_50%_-20%,#13a0a6_0%,#0E8C92_42%,#0B5C63_100%)]">
+          {heroImage && (
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={heroImage} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-br from-[#0B5C63]/92 via-[#0E8C92]/82 to-[#0B5C63]/92" />
+            </>
+          )}
           <div className="relative mx-auto max-w-shell px-6 py-14 sm:py-20">
             {eyebrow && (
               <p className="mb-3 text-[12.5px] font-bold uppercase tracking-[0.16em] text-white/70">
