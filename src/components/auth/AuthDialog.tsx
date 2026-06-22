@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { Provider } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { useDialog } from '@/lib/a11y/useDialog';
@@ -47,6 +47,15 @@ function authCallbackUrl(): string {
   return url.toString();
 }
 
+/**
+ * Where Supabase's password-recovery email link should land. The browser client's
+ * `detectSessionInUrl` + PKCE auto-exchanges the `?code` into a session there and fires a
+ * `PASSWORD_RECOVERY` event, so the reset page only has to wait for that session.
+ */
+function resetRedirectUrl(): string {
+  return new URL('/auth/reset-password', window.location.origin).toString();
+}
+
 /** GetYourGuide-style sign in / sign up modal. Email+password plus social providers. */
 export function AuthDialog({
   mode,
@@ -58,6 +67,7 @@ export function AuthDialog({
   onSwitch: (mode: AuthMode) => void;
 }) {
   const t = useT();
+  const [view, setView] = useState<'auth' | 'forgot'>('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -71,6 +81,12 @@ export function AuthDialog({
   const dialogRef = useDialog(true, onClose, () => emailRef.current);
 
   const signup = mode === 'signup';
+
+  // Switching between sign in / sign up (or reopening into a fresh mode) drops the
+  // forgot-password sub-view so the modal always reopens clean on the chosen mode.
+  useEffect(() => {
+    setView('auth');
+  }, [mode]);
 
   async function submitEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -106,6 +122,29 @@ export function AuthDialog({
     }
   }
 
+  async function submitForgot(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    setNotice(null);
+    const sb = getBrowserSupabase();
+    try {
+      await sb.auth.resetPasswordForEmail(email, { redirectTo: resetRedirectUrl() });
+    } catch (err) {
+      // A genuine network/transport failure is worth surfacing; a "user not found" from
+      // Supabase would NOT throw here — it returns success-shaped — so this only catches
+      // real failures and never leaks whether the account exists.
+      if (err instanceof TypeError) {
+        setError(t('Something went wrong. Please try again.'));
+        setBusy(false);
+        return;
+      }
+    }
+    // No user enumeration: same neutral confirmation whether or not the email exists.
+    setNotice(t("If an account exists for that email, we've sent a password reset link. Check your inbox."));
+    setBusy(false);
+  }
+
   async function oauth(provider: Provider) {
     setBusy(true);
     setError(null);
@@ -128,7 +167,9 @@ export function AuthDialog({
       className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-sm"
       role="dialog"
       aria-modal="true"
-      aria-label={signup ? t('Create an account') : t('Sign in')}
+      aria-label={
+        view === 'forgot' ? t('Reset your password') : signup ? t('Create an account') : t('Sign in')
+      }
       onMouseDown={onClose}
     >
       <div
@@ -145,35 +186,99 @@ export function AuthDialog({
         </button>
 
         <h2 className="font-display text-2xl font-semibold text-ink">
-          {signup ? t('Create your account') : t('Welcome back')}
+          {view === 'forgot' ? t('Reset your password') : signup ? t('Create your account') : t('Welcome back')}
         </h2>
         <p className="mt-1 text-sm text-ink-muted">
-          {signup
-            ? t('Book direct with Belle Mare Tours and track every trip.')
-            : t('Sign in to manage your bookings.')}
+          {view === 'forgot'
+            ? t("Enter your email and we'll send you a link to reset your password.")
+            : signup
+              ? t('Book direct with Belle Mare Tours and track every trip.')
+              : t('Sign in to manage your bookings.')}
         </p>
 
-        <div className="mt-5 flex flex-col gap-2">
-          {OAUTH.map((o) => (
+        {view === 'auth' && (
+          <>
+            <div className="mt-5 flex flex-col gap-2">
+              {OAUTH.map((o) => (
+                <button
+                  key={o.provider}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => oauth(o.provider)}
+                  className="flex items-center justify-center gap-2.5 rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-cream disabled:opacity-60"
+                >
+                  {o.icon}
+                  {t(o.label)}
+                </button>
+              ))}
+            </div>
+
+            <div className="my-5 flex items-center gap-3 text-[12px] font-semibold uppercase tracking-wide text-ink-muted">
+              <span className="h-px flex-1 bg-ink/10" />
+              {t('or')}
+              <span className="h-px flex-1 bg-ink/10" />
+            </div>
+          </>
+        )}
+
+        {view === 'forgot' ? (
+          <form onSubmit={submitForgot} className="mt-5 flex flex-col gap-3">
+            <Field icon={<IconMail width={18} height={18} />}>
+              <input
+                ref={emailRef}
+                type="email"
+                required
+                aria-required="true"
+                aria-label={t('Email address')}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? 'auth-error' : undefined}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('Email address')}
+                autoComplete="email"
+                className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+              />
+            </Field>
+
+            {error && (
+              <p
+                id="auth-error"
+                role="alert"
+                aria-live="assertive"
+                className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral-dark"
+              >
+                {error}
+              </p>
+            )}
+            {notice && (
+              <p
+                role="status"
+                className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark"
+              >
+                {notice}
+              </p>
+            )}
+
             <button
-              key={o.provider}
-              type="button"
+              type="submit"
               disabled={busy}
-              onClick={() => oauth(o.provider)}
-              className="flex items-center justify-center gap-2.5 rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-cream disabled:opacity-60"
+              className="mt-1 rounded-xl bg-teal-dark px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
             >
-              {o.icon}
-              {t(o.label)}
+              {busy ? t('Please wait…') : t('Send reset link')}
             </button>
-          ))}
-        </div>
-
-        <div className="my-5 flex items-center gap-3 text-[12px] font-semibold uppercase tracking-wide text-ink-muted">
-          <span className="h-px flex-1 bg-ink/10" />
-          {t('or')}
-          <span className="h-px flex-1 bg-ink/10" />
-        </div>
-
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setNotice(null);
+                setView('auth');
+              }}
+              className="text-center text-sm font-bold text-teal-dark hover:text-teal-dark/80"
+            >
+              {t('Back to sign in')}
+            </button>
+          </form>
+        ) : (
         <form onSubmit={submitEmail} className="flex flex-col gap-3">
           {signup && (
             <Field icon={<IconUser width={18} height={18} />}>
@@ -232,6 +337,22 @@ export function AuthDialog({
             {t('Password must be at least 6 characters.')}
           </span>
 
+          {!signup && (
+            <div className="-mt-1 flex justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setError(null);
+                  setNotice(null);
+                  setView('forgot');
+                }}
+                className="text-[13px] font-semibold text-teal-dark hover:text-teal-dark/80"
+              >
+                {t('Forgot password?')}
+              </button>
+            </div>
+          )}
+
           {error && (
             <p
               id="auth-error"
@@ -259,21 +380,24 @@ export function AuthDialog({
             {busy ? t('Please wait…') : signup ? t('Create account') : t('Sign in')}
           </button>
         </form>
+        )}
 
-        <p className="mt-5 text-center text-sm text-ink-muted">
-          {signup ? t('Already have an account?') : t('New to Belle Mare Tours?')}{' '}
-          <button
-            type="button"
-            onClick={() => {
-              setError(null);
-              setNotice(null);
-              onSwitch(signup ? 'signin' : 'signup');
-            }}
-            className="font-bold text-teal-dark hover:text-teal-dark/80"
-          >
-            {signup ? t('Sign in') : t('Create one')}
-          </button>
-        </p>
+        {view === 'auth' && (
+          <p className="mt-5 text-center text-sm text-ink-muted">
+            {signup ? t('Already have an account?') : t('New to Belle Mare Tours?')}{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setError(null);
+                setNotice(null);
+                onSwitch(signup ? 'signin' : 'signup');
+              }}
+              className="font-bold text-teal-dark hover:text-teal-dark/80"
+            >
+              {signup ? t('Sign in') : t('Create one')}
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );
