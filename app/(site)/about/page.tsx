@@ -9,6 +9,7 @@ import { breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
 import { RevealOnScroll } from '@/components/about/RevealOnScroll';
+import { HeroSlideshow } from '@/components/about/HeroSlideshow';
 
 export const runtime = 'edge';
 
@@ -323,11 +324,13 @@ export default async function AboutPage() {
           className="relative flex items-end overflow-hidden"
           style={{ minHeight: 'clamp(580px, 90vh, 840px)' }}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/hero/islands/aerial-lagoon.jpg"
-            alt={t('An aerial view of a turquoise Mauritius lagoon meeting a pale sand beach under a clear sky')}
-            className="absolute inset-0 h-full w-full object-cover"
+          <HeroSlideshow
+            images={[
+              '/hero/islands/aerial-lagoon.jpg',
+              '/hero/islands/blue-lagoon.jpg',
+              '/hero/islands/marine-park.jpg',
+              '/hero/islands/ile-de-la-passe.jpg',
+            ]}
           />
           <div
             className="absolute inset-0"
