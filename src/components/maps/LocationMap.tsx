@@ -53,7 +53,9 @@ export function LocationMap({ query, label }: { query: string; label?: string })
   if (status === 'error' || failed) return <MapLinkCard href={mapsSearchUrl(query)} label={label || query} />;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-ink/10">
+    // `isolate` contains Google Maps' internal z-indexed layers so the map can't paint over
+    // popovers (e.g. the booking date picker) that overhang it from a neighbouring column.
+    <div className="isolate overflow-hidden rounded-2xl border border-ink/10">
       <div ref={elRef} className="h-[260px] w-full bg-ink/[0.04]" />
       {label && (
         <div className="flex items-center gap-2 bg-white px-4 py-3 text-[13.5px] text-ink/80">

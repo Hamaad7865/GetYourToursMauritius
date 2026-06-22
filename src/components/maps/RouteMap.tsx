@@ -283,7 +283,9 @@ export function RouteMap({
     <>
       <div
         ref={elRef}
-        className={className ?? 'h-[300px] w-full overflow-hidden rounded-2xl border border-ink/10 bg-ink/[0.04] lg:h-[360px]'}
+        // `isolate` keeps Google Maps' internal z-indexed layers from escaping above the page —
+        // without it the map paints over the booking widget's date/options popovers that overhang it.
+        className={`${className ?? 'h-[300px] w-full overflow-hidden rounded-2xl border border-ink/10 bg-ink/[0.04] lg:h-[360px]'} isolate`}
       />
       {/* Directions unavailable: the map shows the numbered markers; this link carries the full route.
           We never fall back to a dashed line. */}
