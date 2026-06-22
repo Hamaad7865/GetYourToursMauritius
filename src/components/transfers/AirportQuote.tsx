@@ -195,7 +195,7 @@ export function AirportQuote() {
     width: '100%',
     padding: '13px 40px 13px 14px',
     borderRadius: '12px',
-    border: '1.5px solid rgba(11,92,99,0.22)',
+    border: '1.5px solid rgba(17,32,31,0.14)',
     background: '#fff',
     fontSize: '15px',
     fontWeight: 600,
@@ -220,7 +220,7 @@ export function AirportQuote() {
   return (
     <div
       className="mx-auto max-w-[480px] rounded-[22px] border bg-white p-[clamp(22px,3vw,32px)]"
-      style={{ borderColor: 'rgba(11,92,99,0.10)', boxShadow: '0 30px 70px -24px rgba(11,32,31,0.32)', color: INK }}
+      style={{ borderColor: 'rgba(17,32,31,0.10)', boxShadow: '0 30px 70px -24px rgba(11,32,31,0.32)', color: INK }}
     >
       <div className="mb-[18px] flex items-center justify-between gap-3">
         <div className="text-[19px] font-bold tracking-[-0.01em]" style={displayFont}>
@@ -308,7 +308,7 @@ export function AirportQuote() {
       {/* Price + savings */}
       <div className="mb-1.5 flex items-end justify-between gap-3">
         <div>
-          <div className="mb-0.5 text-[13px] font-semibold" style={{ color: '#3a4a49' }}>
+          <div className="mb-0.5 text-[13px] font-semibold" style={{ color: 'rgba(17,32,31,0.62)' }}>
             {tripType === 'return' ? t('Fixed return price') : t('Fixed one-way price')}
           </div>
           <div className="text-[clamp(38px,6vw,46px)] font-extrabold leading-none" style={{ ...displayFont, color: TEAL_DARK }}>
@@ -317,7 +317,7 @@ export function AirportQuote() {
         </div>
         {savingsEur > 0 && (
           <div className="rounded-xl border px-3 py-2 text-right" style={{ background: 'rgba(247,108,94,0.12)', borderColor: 'rgba(247,108,94,0.30)' }}>
-            <div className="text-[12px] font-bold" style={{ color: '#c0392b' }}>
+            <div className="text-[12px] font-bold" style={{ color: 'rgb(178,58,32)' }}>
               {t('vs metered taxi')}
             </div>
             <div className="text-[18px] font-extrabold" style={{ color: CORAL }}>
@@ -327,7 +327,7 @@ export function AirportQuote() {
           </div>
         )}
       </div>
-      <div className="mb-[18px] text-[12.5px]" style={{ color: '#5a6a69' }}>
+      <div className="mb-[18px] text-[12.5px]" style={{ color: 'rgba(17,32,31,0.52)' }}>
         {t('Fixed, per vehicle · {vehicle} · includes meet & greet, name board & free waiting time.', { vehicle: vehicleName })}
       </div>
 

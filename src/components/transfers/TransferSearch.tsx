@@ -74,6 +74,7 @@ export function TransferSearch() {
               role="combobox"
               aria-expanded={open && matches.length > 0}
               aria-controls="transfer-hotel-list"
+              aria-activedescendant={open && matches.length > 0 ? `transfer-opt-${active}` : undefined}
               aria-autocomplete="list"
               autoComplete="off"
               value={q}
@@ -112,7 +113,7 @@ export function TransferSearch() {
                 </li>
               ) : (
                 matches.map((t, i) => (
-                  <li key={t.slug} role="option" aria-selected={i === active}>
+                  <li key={t.slug} id={`transfer-opt-${i}`} role="option" aria-selected={i === active}>
                     <button
                       type="button"
                       // onMouseDown (not onClick) so the navigation fires before the input's onBlur closes the list.
