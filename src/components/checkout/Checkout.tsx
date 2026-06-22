@@ -255,9 +255,10 @@ export function Checkout() {
   // Airport-transfer flight details (collected HERE so travellers "save time on arrival"). They don't
   // affect the fare, so they're captured at checkout rather than before the hold.
   const [flightNumber, setFlightNumber] = useState('');
-  const [arrivalTime, setArrivalTime] = useState('');
+  // Arrival + return times are captured in the booking widget and carried here (pre-filled, editable).
+  const [arrivalTime, setArrivalTime] = useState(() => (params.get('arr') ?? '').slice(0, 40));
   const [departureFlight, setDepartureFlight] = useState('');
-  const [returnTime, setReturnTime] = useState('');
+  const [returnTime, setReturnTime] = useState(() => (params.get('retTime') ?? '').slice(0, 40));
   // Personal-details (step ②) form state. Name + phone seed from the profile once it loads (see the
   // effect below); country defaults to the home market. Email is the account email, shown read-only.
   const [name, setName] = useState('');

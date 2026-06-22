@@ -50,7 +50,9 @@ export function TransferBookingWidget({
   const [suv, setSuv] = useState(false);
   const [tripType, setTripType] = useState<TripType>('one_way');
   const [date, setDate] = useState('');
+  const [time, setTime] = useState('');
   const [returnDate, setReturnDate] = useState('');
+  const [returnTime, setReturnTime] = useState('');
   const [fares, setFares] = useState<AirportFareByRegion>(AIRPORT_FARE_DEFAULT);
   const [returnPct, setReturnPct] = useState(AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT);
   const [busy, setBusy] = useState(false);
@@ -153,7 +155,9 @@ export function TransferBookingWidget({
         region,
         tripType,
       });
+      if (time) q.set('arr', time);
       if (tripType === 'return' && returnDate) q.set('retDate', returnDate);
+      if (tripType === 'return' && returnTime) q.set('retTime', returnTime);
       router.push(`/checkout?${q.toString()}`);
     } catch {
       setError(t("We couldn't start your booking just now. Please try again."));
@@ -247,33 +251,59 @@ export function TransferBookingWidget({
         </label>
       )}
 
-      {/* Dates */}
+      {/* Dates + times */}
       <div className="mt-4 grid gap-3">
-        <label className="block text-[13px] font-semibold text-ink">
-          <span className="flex items-center gap-1.5">
-            <IconCalendar width={15} height={15} className="text-teal" /> {t('Arrival date')}
-          </span>
-          <input
-            type="date"
-            value={date}
-            min={today}
-            onChange={(e) => setDate(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
-          />
-        </label>
-        {tripType === 'return' && (
+        <div className="grid grid-cols-2 gap-3">
           <label className="block text-[13px] font-semibold text-ink">
             <span className="flex items-center gap-1.5">
-              <IconCalendar width={15} height={15} className="text-teal" /> {t('Return date')}
+              <IconCalendar width={15} height={15} className="text-teal" /> {t('Arrival date')}
             </span>
             <input
               type="date"
-              value={returnDate}
-              min={date || today}
-              onChange={(e) => setReturnDate(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+              value={date}
+              min={today}
+              onChange={(e) => setDate(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
             />
           </label>
+          <label className="block text-[13px] font-semibold text-ink">
+            <span className="flex items-center gap-1.5">
+              <IconClock width={15} height={15} className="text-teal" /> {t('Arrival time')}
+            </span>
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+            />
+          </label>
+        </div>
+        {tripType === 'return' && (
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block text-[13px] font-semibold text-ink">
+              <span className="flex items-center gap-1.5">
+                <IconCalendar width={15} height={15} className="text-teal" /> {t('Return date')}
+              </span>
+              <input
+                type="date"
+                value={returnDate}
+                min={date || today}
+                onChange={(e) => setReturnDate(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+              />
+            </label>
+            <label className="block text-[13px] font-semibold text-ink">
+              <span className="flex items-center gap-1.5">
+                <IconClock width={15} height={15} className="text-teal" /> {t('Pickup time')}
+              </span>
+              <input
+                type="time"
+                value={returnTime}
+                onChange={(e) => setReturnTime(e.target.value)}
+                className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+              />
+            </label>
+          </div>
         )}
       </div>
 
