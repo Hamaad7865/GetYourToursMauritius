@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { InfoPage, InfoSection, FeatureList, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { organizationJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
+import { breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
 import {
@@ -113,7 +113,6 @@ export default async function AboutPage() {
 
   return (
     <>
-      <JsonLd data={organizationJsonLd()} />
       <JsonLd
         data={breadcrumbListJsonLd([
           { name: 'Home', path: '/' },
