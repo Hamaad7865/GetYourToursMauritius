@@ -24,7 +24,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'AI Trip Planner', href: '/ai-road-trip-planner' },
   { label: 'Rent', href: '/rent', menu: 'rent' },
   { label: 'Airport Transfers', href: '/airport-transfers' },
-  { label: 'Taxi', href: '/taxi' },
   { label: 'Contact us', href: '/contact' },
 ];
 

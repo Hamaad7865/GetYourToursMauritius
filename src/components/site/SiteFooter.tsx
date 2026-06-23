@@ -19,7 +19,6 @@ const COLUMNS = [
     title: 'Transport & rentals',
     links: [
       { label: 'Airport transfers', href: '/airport-transfers' },
-      { label: 'Taxi & private driver', href: '/taxi' },
       { label: 'Car & scooter rental', href: '/rent' },
     ],
   },
