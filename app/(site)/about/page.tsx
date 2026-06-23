@@ -42,7 +42,7 @@ const INK = '#11201F';
 const displayFont = { fontFamily: 'var(--font-about-display), sans-serif' } as const;
 
 const metaTitle = `About Belle Mare Tours — your local Mauritius tour operator | GetYourToursMauritius`;
-const metaDescription = `Belle Mare Tours Ltd is a licensed Mauritian tour & airport-transfer operator on the east coast, run by veteran driver-guides Noorani and Satar. Book direct for transparent fixed EUR prices, the same guide all day, and door-to-door pickup island-wide.`;
+const metaDescription = `Belle Mare Tours Ltd is a licensed Mauritian tour & airport-transfer operator on the east coast, run by veteran driver-guide Noorani. Book direct for transparent fixed EUR prices, the same guide all day, and door-to-door pickup island-wide.`;
 
 export const metadata: Metadata = {
   title: metaTitle,
@@ -278,7 +278,7 @@ export default async function AboutPage() {
   const faqs = [
     {
       q: t('Is Belle Mare Tours licensed?'),
-      a: t('Yes. Belle Mare Tours Ltd is approved and licensed by the Mauritius Tourism Authority, run by veteran local driver-guides Noorani and Satar, based in Belle Mare on the east coast.'),
+      a: t('Yes. Belle Mare Tours Ltd is approved and licensed by the Mauritius Tourism Authority, run by veteran local driver-guide Noorani, based in Belle Mare on the east coast.'),
     },
     {
       q: t('Which areas of Mauritius do you cover?'),
@@ -322,12 +322,12 @@ export default async function AboutPage() {
         <section
           id="top"
           className="relative flex items-end overflow-hidden"
-          style={{ minHeight: 'clamp(580px, 90vh, 840px)' }}
+          style={{ minHeight: 'clamp(500px, 82vh, 760px)' }}
         >
           <HeroWaves />
           <div
             className="relative z-[2] mx-auto w-full max-w-shell"
-            style={{ padding: 'clamp(40px,8vw,96px) clamp(18px,5vw,72px) clamp(120px,12vw,160px)' }}
+            style={{ padding: 'clamp(20px,3vw,40px) clamp(18px,5vw,72px) clamp(96px,9vw,116px)' }}
           >
             <div className="max-w-[760px]">
               <span
@@ -345,11 +345,11 @@ export default async function AboutPage() {
                 {t('About Belle Mare Tours')}
               </span>
               <h1
-                className="m-0 mt-[18px] font-extrabold text-white"
+                className="m-0 mt-[12px] font-extrabold text-white"
                 style={{
                   ...displayFont,
-                  fontSize: 'clamp(38px,7.2vw,82px)',
-                  lineHeight: 1.02,
+                  fontSize: 'clamp(33px,5.2vw,60px)',
+                  lineHeight: 1.04,
                   letterSpacing: '-0.02em',
                   textWrap: 'balance',
                 }}
@@ -357,12 +357,12 @@ export default async function AboutPage() {
                 {t('Mauritius, shown to you by the people who live here')}
               </h1>
               <p
-                className="mt-[22px] max-w-[620px] text-white/90"
+                className="mt-[16px] max-w-[620px] text-white/90"
                 style={{ fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.6, textWrap: 'pretty' }}
               >
-                {t('We’re Belle Mare Tours — a licensed east-coast operator run by veteran driver-guides Noorani & Satar. Book direct with the team that actually drives the roads, for fixed prices and a guide who stays with you all day.')}
+                {t('We’re Belle Mare Tours — a licensed east-coast operator run by veteran driver-guide Noorani. Book direct with the team that actually drives the roads, for fixed prices and a guide who stays with you all day.')}
               </p>
-              <div className="mt-[30px] flex flex-wrap gap-3">
+              <div className="mt-[24px] flex flex-wrap gap-3">
                 <Link
                   href="/activities"
                   className="inline-flex items-center gap-[9px] rounded-full px-7 py-[15px] text-base font-bold text-white no-underline transition hover:-translate-y-0.5"
@@ -440,7 +440,7 @@ export default async function AboutPage() {
                 {t('Two driver-guides, one island they know by heart')}
               </h2>
               <p className="mt-[22px]" style={{ fontSize: 'clamp(16px,1.7vw,18.5px)', lineHeight: 1.65, color: 'rgba(17,32,31,0.78)', textWrap: 'pretty' }}>
-                {t('Noorani and Satar have spent their lives on Mauritian roads — two of the island’s most experienced driver-guides, based where the day begins, in Belle Mare on the east coast.')}
+                {t('Noorani has spent his life on Mauritian roads — one of the island’s most experienced driver-guides, based where the day begins, in Belle Mare on the east coast.')}
               </p>
               <p className="mt-4" style={{ fontSize: 'clamp(16px,1.7vw,18.5px)', lineHeight: 1.65, color: 'rgba(17,32,31,0.78)', textWrap: 'pretty' }}>
                 {t('Over the years they grew a trusted local operation on one simple promise: the same driver-guide looks after you from morning pickup to evening drop-off. You’re never handed between taxis, never left waiting, never sold a detour you didn’t ask for.')}
@@ -860,7 +860,7 @@ export default async function AboutPage() {
               {t('Let’s plan your Mauritius, together')}
             </h2>
             <p className="mx-auto mt-[18px] max-w-[560px] text-white/85" style={{ fontSize: 'clamp(16px,1.9vw,19px)', lineHeight: 1.6 }}>
-              {t('Message Noorani & Satar directly, or browse fixed-price tours and book in minutes.')}
+              {t('Message Noorani directly, or browse fixed-price tours and book in minutes.')}
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3.5">
               <a

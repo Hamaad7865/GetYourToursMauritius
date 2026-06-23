@@ -358,14 +358,14 @@ export default function AirportTransfersPage() {
 
         {/* ============ INSTANT PRICE QUOTE ============ */}
         <section id="quote" className="scroll-mt-24" style={{ background: CREAM, borderTop: '1px solid rgba(17,32,31,0.06)' }}>
-          <div className="mx-auto max-w-[920px]" style={{ padding: 'clamp(64px,9vw,112px) ' + padX }}>
+          <div className="mx-auto max-w-[1040px]" style={{ padding: 'clamp(64px,9vw,112px) ' + padX }}>
             <div data-reveal className="mx-auto mb-[clamp(28px,4vw,42px)] max-w-[600px] text-center">
               <Eyebrow>Instant price</Eyebrow>
               <h2 className="m-0 mb-3.5 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em', textWrap: 'balance' }}>
                 Get your fixed fare in seconds.
               </h2>
               <p className="m-0" style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.55, color: INK_BODY }}>
-                Pick your area and vehicle — your transparent EUR price appears instantly, no waiting around for a quote.
+                Search your hotel and pick your vehicle — your transparent EUR price appears instantly, no waiting around for a quote.
               </p>
             </div>
             <div data-reveal>
@@ -716,7 +716,7 @@ export default function AirportTransfersPage() {
               Land, walk out, and there we are.
             </h2>
             <p className="mx-auto mb-[30px] max-w-[560px]" style={{ fontSize: 'clamp(16px,1.6vw,19px)', lineHeight: 1.5, color: 'rgba(251,247,239,0.85)' }}>
-              Get your fixed price in seconds — booked direct with Noorani, Satar and the team in Belle Mare.
+              Get your fixed price in seconds — booked direct with Noorani and the team in Belle Mare.
             </p>
             <div className="flex flex-wrap justify-center gap-3.5">
               <a
