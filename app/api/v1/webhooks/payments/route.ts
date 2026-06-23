@@ -12,34 +12,50 @@ export const runtime = 'edge';
 /**
  * POST /api/v1/webhooks/payments — the payment provider calls this when a checkout settles.
  *
- * ACK-FIRST: we reply 200 immediately (after only parsing the body — no network), then do the
- * authoritative work in `after()`, AFTER the response is sent. The provider's notification is just a
- * trigger: the background task re-queries the provider DIRECTLY for the verified status
- * (`getCheckoutStatus`) and appends it to the ledger via the shared reconcile path (which confirms the
- * booking on first full payment) — so a forged/unsigned body can never confirm anything, and it does
- * NOT depend on webhook HMAC signing.
+ * ACK-FIRST: we reply 200 immediately (after only parsing the body — no network), then verify + confirm
+ * in `after()`, AFTER the response is sent. A slow reply could be treated as a failed delivery, so the
+ * provider never waits on us. The background task is best-effort: if it's ever dropped, the customer's
+ * /payments/sync poll and the reconcile cron still confirm the booking — confirmation is never lost.
+ * We ALWAYS return 200 (any non-200 is treated by the provider as a failed delivery).
  *
- * Why ack-first: the verify+reconcile round-trip takes a few seconds (provider OAuth + status call + DB
- * writes). Doing it before responding made the provider wait, and a slow reply can be treated as a
- * delivery failure (and surfaced as a 5xx). Replying instantly removes response latency as a failure
- * mode. The background task is best-effort: if the platform ever drops it, the customer's
- * /payments/sync poll and the maintenance reconcile sweep still confirm the booking — confirmation is
- * never lost, only this one fast path. We ALWAYS return 200 (the provider treats any non-200 as a
- * failed delivery and retries / rejects the URL at registration).
+ * The notification is only a TRIGGER. We never trust its body to confirm a booking (it's unsigned and
+ * forgeable): we re-query the provider for the authoritative status and append THAT to the ledger.
+ * Crucially we re-query using the checkout id we STORED at create time — looked up by the booking ref
+ * the provider echoes back (`merchantTransactionId`) — NOT the id in the webhook body, which Peach sends
+ * in a form that 404s at /v2/checkout/{id}/status. This is the same id /payments/sync and the reconcile
+ * cron query successfully, so the webhook now confirms reliably.
  */
 export const POST = apiHandler(async (req) => {
   const rawBody = await req.text();
   const contentType = req.headers.get('content-type') ?? '';
-  const checkoutId = extractWebhookFields(rawBody, contentType).checkoutId;
+  const bookingRef = extractWebhookFields(rawBody, contentType).merchantTransactionId;
 
-  if (checkoutId) {
+  if (bookingRef) {
     try {
       after(async () => {
         try {
+          const admin = createServiceRoleClient();
+          // Resolve the booking + the checkout id we stored when we created the checkout.
+          const { data: booking } = await admin
+            .from('bookings')
+            .select('id')
+            .eq('ref', bookingRef)
+            .maybeSingle();
+          if (!booking) return; // unknown ref (not ours / not yet created) — nothing to do
+          const { data: payment } = await admin
+            .from('payments')
+            .select('provider_checkout_id')
+            .eq('booking_id', booking.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const checkoutId = payment?.provider_checkout_id;
+          if (!checkoutId) return;
+
           const event = await getPaymentProvider().getCheckoutStatus(checkoutId);
-          await reconcilePaymentEvent(createServiceRoleClient(), event);
+          await reconcilePaymentEvent(admin, event);
         } catch (err) {
-          // Provider unreachable / unknown checkout / transient DB error — the reconcile sweep retries.
+          // Provider unreachable / transient DB error — the /payments/sync poll + reconcile cron retry.
           console.warn('[webhook] background reconcile failed:', err instanceof Error ? err.message : err);
         }
       });
@@ -48,7 +64,7 @@ export const POST = apiHandler(async (req) => {
       console.warn('[webhook] could not schedule background reconcile:', err instanceof Error ? err.message : err);
     }
   } else {
-    console.warn('[webhook] payment notification without a checkout id; acknowledging');
+    console.warn('[webhook] notification without a merchantTransactionId; acknowledging');
   }
 
   return jsonOk({ received: true });
