@@ -9,7 +9,6 @@ import type {
 import { loadBookingForReceipt } from './receipt';
 import { buildInvoice } from '@/lib/invoice/model';
 import { renderInvoicePdf } from '@/lib/invoice/pdf';
-import { renderVoucherPdf } from '@/lib/invoice/voucher-pdf';
 import { renderConfirmationEmail } from '@/lib/email/booking-confirmation';
 import { INVOICE_BUSINESS } from '@/lib/invoice/business';
 import { SITE } from '@/lib/seo/site';
@@ -61,14 +60,17 @@ async function enrichBookingConfirmation(
   const issuedAt = payment.paidAt ?? ctx.now().toISOString();
   const model = buildInvoice(booking, { ...payment, issuedAt }, INVOICE_BUSINESS);
 
-  const email = renderConfirmationEmail(model);
+  const bookingUrl = `${SITE.url}/bookings/${model.booking.ref}`;
+  const email = renderConfirmationEmail(model, bookingUrl);
   message.subject = email.subject;
   message.html = email.html;
   message.text = email.text;
 
-  // PDFs are best-effort: never let a render error block the confirmation email. The tax receipt goes
-  // to every booking; the branded e-voucher (the driver run-sheet) is added only for airport transfers.
-  // Both ride this single already-deduped message, so there is no extra email and no double-send risk.
+  // The invoice/receipt rides as a PDF (best-effort; a render error never blocks the email). The airport-
+  // transfer e-voucher is deliberately NOT attached — it's offered as a secure LINK to the auth-gated
+  // booking page (see renderConfirmationEmail), so heuristic mail-scanners have no voucher PDF to false-
+  // positive on. The voucher is still generated on demand at /api/v1/bookings/:ref/voucher and is
+  // downloadable from that page.
   const attachments: NotificationAttachment[] = [];
   try {
     const bytes = await renderInvoicePdf(model);
@@ -82,21 +84,6 @@ async function enrichBookingConfirmation(
     console.error(
       `invoice PDF render failed: id=${message.id} ref=${model.invoiceNumber} reason=${reason}`,
     );
-  }
-  if (model.booking.transfer) {
-    try {
-      const bytes = await renderVoucherPdf(model, `${SITE.url}/bookings/${model.booking.ref}`);
-      attachments.push({
-        filename: `voucher-${model.booking.ref}.pdf`,
-        content: bytesToBase64(bytes),
-        contentType: 'application/pdf',
-      });
-    } catch (error) {
-      const reason = error instanceof Error ? error.message : 'pdf render failed';
-      console.error(
-        `voucher PDF render failed: id=${message.id} ref=${model.invoiceNumber} reason=${reason}`,
-      );
-    }
   }
   if (attachments.length) message.attachments = attachments;
 }

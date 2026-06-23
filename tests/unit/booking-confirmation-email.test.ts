@@ -103,4 +103,34 @@ describe('renderConfirmationEmail', () => {
     expect(text).toContain('BMT-1042');
     expect(text).toContain('EUR 191.00');
   });
+
+  it('links the e-voucher (not attach) for a transfer booking when a bookingUrl is given', () => {
+    const model = buildInvoice(
+      {
+        ref: 'BMT-TR1',
+        customerName: 'Ada',
+        customerEmail: 'ada@example.com',
+        currency: 'EUR',
+        totalEur: 35,
+        activityTitle: 'Airport transfer',
+        when: '2026-08-09T06:00:00Z',
+        pickupLocation: 'SSR International Airport',
+        dropoffLocation: 'Shandrani Beachcomber',
+        transfer: { direction: 'arrival', flightNumber: 'BA123', arrivalTime: '13:40' },
+        items: [{ priceLabel: 'Standard car', quantity: 1, pax: 2, subtotalEur: 35 }],
+      },
+      { chargedAmountMinor: 3850, chargedCurrency: 'USD', paidAt: '2026-06-20T10:00:00Z' },
+      business,
+    );
+    const url = 'https://getyourtoursmauritius.com/bookings/BMT-TR1';
+    const { html, text } = renderConfirmationEmail(model, url);
+    expect(html).toContain(url);
+    expect(html).toContain('e-voucher');
+    expect(text).toContain(url);
+  });
+
+  it('shows no e-voucher link for a non-transfer booking (or when no bookingUrl is given)', () => {
+    const { html } = renderConfirmationEmail(representativeModel(), 'https://example.com/bookings/BMT-1042');
+    expect(html).not.toContain('e-voucher');
+  });
 });

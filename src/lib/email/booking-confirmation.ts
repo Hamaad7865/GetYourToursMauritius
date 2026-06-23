@@ -40,7 +40,7 @@ export interface RenderedEmail {
   text: string;
 }
 
-export function renderConfirmationEmail(model: InvoiceModel): RenderedEmail {
+export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string): RenderedEmail {
   const operator = model.business.legalName;
   const ref = model.booking.ref;
   const activity = model.booking.activityTitle;
@@ -104,6 +104,23 @@ export function renderConfirmationEmail(model: InvoiceModel): RenderedEmail {
   const supportPhone = escapeHtml(model.business.phone);
   const vatPct = String(model.vatRatePct);
 
+  // Airport-transfer e-voucher: offered as a SECURE LINK to the (auth-gated) booking page, not attached —
+  // so mail-scanners have no PDF to false-positive on. A bulletproof, table-wrapped button for client support.
+  const voucherHtml =
+    tr && bookingUrl
+      ? `
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
+                <tr>
+                  <td style="border-radius:6px;background:${ACCENT};">
+                    <a href="${escapeHtml(bookingUrl)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:6px;">View &amp; download your e-voucher</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 20px 0;color:${INK};font-size:14px;line-height:1.5;">
+                Your airport-transfer e-voucher — the one to show your driver — is saved in your booking. Open it on your phone any time; there's no attachment to download from this email.
+              </p>`
+      : '';
+
   const html = `<!-- ${escapeHtml(operator)} booking confirmation -->
 <div style="margin:0;padding:0;background:#f3f4f6;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
@@ -136,7 +153,7 @@ export function renderConfirmationEmail(model: InvoiceModel): RenderedEmail {
                 </tr>
               </table>
               <p style="margin:4px 0 20px 0;color:${MUTED};font-size:12px;">(incl. ${escapeHtml(vatPct)}% VAT)</p>
-
+${voucherHtml}
               <p style="margin:0 0 20px 0;color:${INK};font-size:14px;line-height:1.5;">
                 Your invoice &amp; receipt are attached as a PDF.
               </p>
@@ -191,6 +208,11 @@ export function renderConfirmationEmail(model: InvoiceModel): RenderedEmail {
   textLines.push('');
   textLines.push(`Total: ${totalStr} (incl. ${vatPct}% VAT)`);
   textLines.push('');
+  if (tr && bookingUrl) {
+    textLines.push('Your airport-transfer e-voucher (show this to your driver) is in your booking:');
+    textLines.push(bookingUrl);
+    textLines.push('');
+  }
   textLines.push('Your invoice & receipt are attached as a PDF.');
   textLines.push('');
   textLines.push(`Questions? Contact us at ${model.business.email} or ${model.business.phone}.`);

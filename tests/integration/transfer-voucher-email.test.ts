@@ -8,10 +8,11 @@ import type { NotificationMessage, NotificationProvider } from '@/lib/notificati
 import { drainNotifications } from '@/lib/services/notifications';
 
 /**
- * Airport-transfer confirmation emails carry TWO PDFs: the tax receipt (every booking) plus the branded
- * e-voucher (the driver run-sheet, only for transfers). Both ride the single already-deduped message, so
- * there's no extra email. This books a Zone-2 transfer, pays + confirms it, drains the outbox, and asserts
- * the captured message has both an `invoice-*.pdf` and a `voucher-*.pdf`, each a real `%PDF`.
+ * Airport-transfer confirmation emails attach ONLY the tax receipt; the branded e-voucher is delivered as a
+ * secure LINK to the auth-gated booking page (not attached) so heuristic mail-scanners have no voucher PDF
+ * to false-positive on. This books a Zone-2 transfer, pays + confirms it, drains the outbox, and asserts the
+ * captured message has exactly one `invoice-*.pdf` (a real `%PDF`), NO `voucher-*.pdf`, and an e-voucher
+ * link to the booking page in the body.
  */
 const CUSTOMER = 'b8b8b8b8-b8b8-b8b8-b8b8-b8b8b8b8b8b8';
 
@@ -30,7 +31,7 @@ class CapturingProvider implements NotificationProvider {
 
 const decodeHead = (b64: string, n: number): string => atob(b64).slice(0, n);
 
-describe('transfer booking_confirmation drain → invoice + e-voucher attached', () => {
+describe('transfer booking_confirmation drain → receipt attached, e-voucher linked', () => {
   let db: TestDb;
   let ctx: ServiceContext;
 
@@ -118,21 +119,27 @@ describe('transfer booking_confirmation drain → invoice + e-voucher attached',
     await db.close();
   });
 
-  it('attaches both the tax receipt and the branded e-voucher (one email)', async () => {
+  it('attaches only the tax receipt and links the e-voucher (no voucher PDF in the email)', async () => {
     const provider = new CapturingProvider();
     const result = await drainNotifications(ctx, provider);
     expect(result).toEqual({ processed: 1, sent: 1, failed: 0 });
 
     const msg = provider.messages[0]!;
     expect(msg.template).toBe('booking_confirmation');
-    expect(msg.attachments).toHaveLength(2);
 
-    const names = msg.attachments!.map((a) => a.filename);
-    expect(names.some((n) => /^invoice-.*\.pdf$/.test(n))).toBe(true);
-    expect(names.some((n) => /^voucher-.*\.pdf$/.test(n))).toBe(true);
-    for (const att of msg.attachments!) {
-      expect(att.contentType).toBe('application/pdf');
-      expect(decodeHead(att.content, 4)).toBe('%PDF');
-    }
+    // Exactly one attachment — the tax receipt. The e-voucher is NOT attached (mail-scanners have no
+    // voucher PDF to false-positive on).
+    expect(msg.attachments).toHaveLength(1);
+    const inv = msg.attachments![0]!;
+    expect(inv.filename).toMatch(/^invoice-.*\.pdf$/);
+    expect(inv.contentType).toBe('application/pdf');
+    expect(decodeHead(inv.content, 4)).toBe('%PDF');
+    expect(msg.attachments!.some((a) => /voucher/.test(a.filename))).toBe(false);
+
+    // The e-voucher reaches the customer as a secure link to the auth-gated booking page, in both bodies.
+    const ref = String(msg.payload.ref);
+    expect(msg.html).toContain(`/bookings/${ref}`);
+    expect(msg.html).toContain('e-voucher');
+    expect(msg.text).toContain(`/bookings/${ref}`);
   });
 });
