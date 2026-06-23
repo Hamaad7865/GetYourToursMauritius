@@ -30,8 +30,9 @@ const COL_AMOUNT_RIGHT = CONTENT_RIGHT; // right edge of the Amount column
 const COL_DESC_MAX_WIDTH = COL_QTY_RIGHT - 70 - MARGIN; // description column width before Qty
 
 /** WinAnsi (the Helvetica encoding) can't represent every Unicode char; swap the common ones so
- * `drawText` never throws, then drop anything still outside the printable Latin-1 range. */
-function toWinAnsi(input: string): string {
+ * `drawText` never throws, then drop anything still outside the printable Latin-1 range.
+ * Exported so the sibling voucher renderer shares one encoding-safety pass. */
+export function toWinAnsi(input: string): string {
   const replaced = (input ?? '')
     .replace(/€/g, 'EUR') // € -> EUR (belt-and-braces; we already pass codes)
     .replace(/[‘’‚‹›]/g, "'") // curly/angle single quotes
@@ -43,8 +44,8 @@ function toWinAnsi(input: string): string {
   return replaced.replace(/[^\x20-\xFF]/g, '');
 }
 
-/** Truncate to fit `maxWidth` at `size`, appending an ellipsis when clipped. */
-function fitText(text: string, font: PDFFont, size: number, maxWidth: number): string {
+/** Truncate to fit `maxWidth` at `size`, appending an ellipsis when clipped. Exported for the voucher. */
+export function fitText(text: string, font: PDFFont, size: number, maxWidth: number): string {
   const clean = toWinAnsi(text);
   if (font.widthOfTextAtSize(clean, size) <= maxWidth) return clean;
   const ellipsis = '...';

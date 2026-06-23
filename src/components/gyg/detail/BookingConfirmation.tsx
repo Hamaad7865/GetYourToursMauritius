@@ -38,6 +38,21 @@ interface Booking {
   childSeats?: number | null;
   /** Region-based transport add-on (EUR), already inside totalEur — shown as its own breakdown line. */
   transportEur?: number | null;
+  // Airport-transfer run-sheet — present only for transfer bookings (a truthy tripDirection marks one).
+  // These already arrive on the wire DTO; the block below renders them and unlocks the e-voucher download.
+  tripDirection?: string | null;
+  flightNumber?: string | null;
+  arrivalTime?: string | null;
+  returnDate?: string | null;
+  returnTime?: string | null;
+  departureFlightNumber?: string | null;
+  roomOrCabin?: string | null;
+  luggageDetails?: string | null;
+  childSeatAge?: number | null;
+  travellerCountry?: string | null;
+  travellerCompany?: string | null;
+  travellerGender?: string | null;
+  specialNotes?: string | null;
 }
 
 /** VAT is included in the booking total at this rate (matches the invoice/receipt). */
@@ -195,6 +210,43 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
     }
   }, [bookingRef, session, t]);
 
+  // Download the airport-transfer e-voucher PDF (driver run-sheet + QR). Same owner-scoped fetch pattern
+  // as the invoice; only shown for transfer bookings.
+  const [downloadingVoucher, setDownloadingVoucher] = useState(false);
+  const downloadVoucher = useCallback(async () => {
+    if (!session) return;
+    setDownloadingVoucher(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/v1/bookings/${bookingRef}/voucher`, {
+        headers: { authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) {
+        let msg = t('Could not download the e-voucher. Please try again.');
+        try {
+          const body = (await res.json()) as { error?: { message?: string } };
+          if (body?.error?.message) msg = body.error.message;
+        } catch {
+          /* non-JSON (e.g. a gateway error) — keep the generic message */
+        }
+        throw new Error(msg);
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `voucher-${bookingRef}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('Could not download the e-voucher. Please try again.'));
+    } finally {
+      setDownloadingVoucher(false);
+    }
+  }, [bookingRef, session, t]);
+
   async function completeStubPayment() {
     setPaying(true);
     setError(null);
@@ -318,6 +370,50 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           </div>
         )}
 
+        {/* Airport-transfer run-sheet — flight, room, luggage etc. Labels are translated; the values are
+            DB/free-text content shown verbatim, never passed through t(). */}
+        {booking.tripDirection && (
+          <div className="mt-5 border-t border-ink/10 pt-4">
+            <div className="text-[13px] font-bold text-ink">{t('Your transfer')}</div>
+            <dl className="mt-2 flex flex-col gap-1.5 text-[13px]">
+              {(() => {
+                const dir =
+                  booking.tripDirection === 'departure'
+                    ? t('Departure (hotel to airport)')
+                    : booking.tripDirection === 'return'
+                      ? t('Return (both directions)')
+                      : t('Arrival (airport to hotel)');
+                const rows: Array<{ label: string; value: string }> = [{ label: t('Direction'), value: dir }];
+                if (booking.roomOrCabin) rows.push({ label: t('Room or cabin'), value: booking.roomOrCabin });
+                const arr = [booking.flightNumber, booking.arrivalTime].filter(Boolean).join(' · ');
+                if (arr) rows.push({ label: t('Arrival flight'), value: arr });
+                const dep = [
+                  booking.departureFlightNumber,
+                  [booking.returnDate, booking.returnTime].filter(Boolean).join(' '),
+                ]
+                  .filter(Boolean)
+                  .join(' · ');
+                if (dep) rows.push({ label: t('Return flight'), value: dep });
+                if (booking.luggageDetails) rows.push({ label: t('Luggage'), value: booking.luggageDetails });
+                if (booking.childSeatAge != null) rows.push({ label: t('Child seat age'), value: String(booking.childSeatAge) });
+                if (booking.travellerCountry) rows.push({ label: t('Country'), value: booking.travellerCountry });
+                if (booking.specialNotes) rows.push({ label: t('Special requests'), value: booking.specialNotes });
+                return rows.map((r) => (
+                  <div key={r.label} className="flex justify-between gap-4">
+                    <dt className="text-ink-muted">{r.label}</dt>
+                    <dd className="text-right font-medium text-ink">{r.value}</dd>
+                  </div>
+                ));
+              })()}
+            </dl>
+            {paid && (
+              <p className="mt-2 text-[12px] text-ink-muted">
+                {t('Your e-voucher with the meeting-point details and a QR is attached to your confirmation email.')}
+              </p>
+            )}
+          </div>
+        )}
+
         {booking.childSeats != null && booking.childSeats > 0 && (
           <div className="mt-5 border-t border-ink/10 pt-4">
             <div className="text-[13px] font-bold text-ink">{t('Baby & child seats')}</div>
@@ -355,15 +451,30 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             <p className="rounded-xl bg-teal/10 px-4 py-3 text-sm font-medium text-teal-dark">
               {t('Payment received — we’ve emailed your confirmation. See it any time in your bookings.')}
             </p>
-            <button
-              type="button"
-              onClick={() => void downloadInvoice()}
-              disabled={downloading}
-              className="mt-3 inline-flex items-center gap-2 rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal hover:bg-teal/5 disabled:opacity-60"
-            >
-              <IconDownload width={15} height={15} />
-              {downloading ? t('Preparing…') : t('Download invoice (PDF)')}
-            </button>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => void downloadInvoice()}
+                disabled={downloading}
+                aria-busy={downloading}
+                className="inline-flex items-center gap-2 rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal hover:bg-teal/5 disabled:opacity-60"
+              >
+                <IconDownload width={15} height={15} />
+                {downloading ? t('Preparing…') : t('Download invoice (PDF)')}
+              </button>
+              {booking.tripDirection && (
+                <button
+                  type="button"
+                  onClick={() => void downloadVoucher()}
+                  disabled={downloadingVoucher}
+                  aria-busy={downloadingVoucher}
+                  className="inline-flex items-center gap-2 rounded-full border border-teal/40 px-4 py-2 text-[13px] font-bold text-teal hover:bg-teal/5 disabled:opacity-60"
+                >
+                  <IconDownload width={15} height={15} />
+                  {downloadingVoucher ? t('Preparing…') : t('Download e-voucher (PDF)')}
+                </button>
+              )}
+            </div>
           </div>
         ) : awaitingPayment && confirming ? (
           // Interim state: payment just completed and we're polling for confirmation. Never a cold

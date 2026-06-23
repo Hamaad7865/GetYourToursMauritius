@@ -46,6 +46,18 @@ const CORE_FLOW_STRINGS = {
     'Same as pickup',
     'Drop-off',
     'Reference',
+    'Your transfer',
+    'Direction',
+    'Room or cabin',
+    'Return flight',
+    'Luggage',
+    'Child seat age',
+    'Special requests',
+    'Arrival (airport to hotel)',
+    'Departure (hotel to airport)',
+    'Return (both directions)',
+    'Download e-voucher (PDF)',
+    'Your e-voucher with the meeting-point details and a QR is attached to your confirmation email.',
   ],
 } as const;
 

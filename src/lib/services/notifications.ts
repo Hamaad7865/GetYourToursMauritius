@@ -1,12 +1,18 @@
 import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
-import type { NotificationMessage, NotificationProvider } from '@/lib/notifications/types';
+import type {
+  NotificationAttachment,
+  NotificationMessage,
+  NotificationProvider,
+} from '@/lib/notifications/types';
 import { loadBookingForReceipt } from './receipt';
 import { buildInvoice } from '@/lib/invoice/model';
 import { renderInvoicePdf } from '@/lib/invoice/pdf';
+import { renderVoucherPdf } from '@/lib/invoice/voucher-pdf';
 import { renderConfirmationEmail } from '@/lib/email/booking-confirmation';
 import { INVOICE_BUSINESS } from '@/lib/invoice/business';
+import { SITE } from '@/lib/seo/site';
 
 const claimedSchema = z.array(
   z.object({
@@ -60,23 +66,39 @@ async function enrichBookingConfirmation(
   message.html = email.html;
   message.text = email.text;
 
-  // PDF is best-effort: never let a render error block the confirmation email.
+  // PDFs are best-effort: never let a render error block the confirmation email. The tax receipt goes
+  // to every booking; the branded e-voucher (the driver run-sheet) is added only for airport transfers.
+  // Both ride this single already-deduped message, so there is no extra email and no double-send risk.
+  const attachments: NotificationAttachment[] = [];
   try {
     const bytes = await renderInvoicePdf(model);
-    message.attachments = [
-      {
-        filename: `invoice-${model.invoiceNumber}.pdf`,
-        content: bytesToBase64(bytes),
-        contentType: 'application/pdf',
-      },
-    ];
+    attachments.push({
+      filename: `invoice-${model.invoiceNumber}.pdf`,
+      content: bytesToBase64(bytes),
+      contentType: 'application/pdf',
+    });
   } catch (error) {
     const reason = error instanceof Error ? error.message : 'pdf render failed';
     console.error(
       `invoice PDF render failed: id=${message.id} ref=${model.invoiceNumber} reason=${reason}`,
     );
-    // Send HTML-only — no attachment.
   }
+  if (model.booking.transfer) {
+    try {
+      const bytes = await renderVoucherPdf(model, `${SITE.url}/bookings/${model.booking.ref}`);
+      attachments.push({
+        filename: `voucher-${model.booking.ref}.pdf`,
+        content: bytesToBase64(bytes),
+        contentType: 'application/pdf',
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'pdf render failed';
+      console.error(
+        `voucher PDF render failed: id=${message.id} ref=${model.invoiceNumber} reason=${reason}`,
+      );
+    }
+  }
+  if (attachments.length) message.attachments = attachments;
 }
 
 export interface DrainResult {
