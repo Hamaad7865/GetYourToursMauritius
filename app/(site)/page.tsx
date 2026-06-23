@@ -6,6 +6,7 @@ import { HomeShowcaseProvider } from '@/components/gyg/HomeShowcaseContext';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { TrustStrip } from '@/components/site/TrustStrip';
 import { FeaturedReviews } from '@/components/site/FeaturedReviews';
+import { PopularSearches } from '@/components/site/PopularSearches';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
 import type { TourSummary } from '@/lib/validation/tours';
@@ -13,7 +14,9 @@ import type { TourSummary } from '@/lib/validation/tours';
 export const runtime = 'edge';
 
 export const metadata: Metadata = {
-  title: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi',
+  // `absolute` so the root layout's "%s | GetYourToursMauritius" template doesn't push the homepage
+  // title past a sensible SERP length.
+  title: { absolute: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi' },
   description:
     'Book Mauritius tours, activities and excursions direct with Belle Mare Tours: catamaran cruises, dolphin swims, island day tours, private sightseeing and airport taxi transfers. Transparent pricing, instant confirmation, no reseller markup.',
   keywords: [
@@ -59,6 +62,7 @@ export default async function HomePage() {
       <main className="bg-white pb-14">
         <HomeShowcase activities={activities} />
         <FeaturedReviews />
+        <PopularSearches />
       </main>
       <SiteFooter />
     </HomeShowcaseProvider>

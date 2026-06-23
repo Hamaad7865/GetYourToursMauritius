@@ -41,12 +41,21 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const params = parseBrowseParams(await searchParams);
   const t = await getT();
-  const title = `${heading(params, t)} | ${SITE.operator}`;
+  // The unfiltered catalogue is the page that should rank for "Mauritius activities" — give it a
+  // purpose-built title/description. Filtered views keep their dynamic heading. `absolute` in both
+  // cases so the root "%s | GetYourToursMauritius" template doesn't double-brand an already-branded title.
+  const isBase = !params.q && !params.category && params.type === undefined;
+  const title = isBase
+    ? 'Mauritius Activities & Tours — Book Online | Belle Mare Tours'
+    : `${heading(params, t)} | ${SITE.operator}`;
+  const description = isBase
+    ? 'Browse and book Mauritius activities and tours direct with Belle Mare Tours — catamaran cruises, dolphin swims, Île aux Cerfs trips, sea walks and private island day tours. Instant confirmation, no reseller markup.'
+    : SITE.description;
   return {
-    title,
-    description: SITE.description,
+    title: { absolute: title },
+    description,
     alternates: { canonical: '/activities' },
-    openGraph: { type: 'website', title, description: SITE.description, locale: 'en_GB' },
+    openGraph: { type: 'website', title, description, locale: 'en_GB' },
   };
 }
 

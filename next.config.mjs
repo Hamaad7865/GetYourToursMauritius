@@ -16,6 +16,19 @@ const nextConfig = {
     // Cloudflare Pages does not run Next's default image optimizer on the edge.
     unoptimized: true,
   },
+  // Permanent (308) redirects. Keyword-synonym URLs are consolidated onto the canonical page that
+  // ALREADY targets that phrase, so ranking signals concentrate on one strong page instead of being
+  // split across near-duplicate "doorway" pages. The last rule retires the thin legacy singular
+  // /airport-transfer page in favour of the full /airport-transfers hub. (Source paths are exact —
+  // `/airport-transfer` does NOT match the `/activities/airport-transfer` product or its API route.)
+  async redirects() {
+    return [
+      { source: '/mauritius-airport-transfers', destination: '/airport-transfers', permanent: true },
+      { source: '/mauritius-activities', destination: '/activities', permanent: true },
+      { source: '/things-to-do-in-mauritius', destination: '/attractions', permanent: true },
+      { source: '/airport-transfer', destination: '/airport-transfers', permanent: true },
+    ];
+  },
   // Security + edge-caching headers.
   //
   // Caching (anonymous, non-personalised) shields Postgres under load: a cached page is served from the
@@ -61,6 +74,12 @@ const nextConfig = {
       // Listings (the activity DETAIL path /activities/:slug* is deliberately NOT cached — see above).
       { source: '/', headers: cc(cache) },
       { source: '/activities', headers: cc(cache) },
+      // SEO landing pages list live tours like /activities, so they take the shorter listing cache.
+      { source: '/mauritius-tours', headers: cc(cache) },
+      { source: '/belle-mare-tours', headers: cc(cache) },
+      { source: '/ile-aux-cerfs-tours', headers: cc(cache) },
+      { source: '/mauritius-catamaran-cruise', headers: cc(cache) },
+      { source: '/dolphin-swim-mauritius', headers: cc(cache) },
       // Static / code-generated content trees (build-fixed slug set; a redeploy busts the cache).
       { source: '/attractions', headers: cc(cacheLong) },
       { source: '/airport-transfers', headers: cc(cacheLong) },

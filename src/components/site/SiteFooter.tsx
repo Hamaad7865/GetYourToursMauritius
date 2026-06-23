@@ -8,12 +8,13 @@ const COLUMNS = [
   {
     title: 'Activities',
     links: [
-      'Catamaran cruises',
-      'Île aux Cerfs',
-      'Dolphin swims',
-      'Sea walks & diving',
-      'Sightseeing tours',
-    ].map((c) => ({ label: c, href: `/activities?category=${encodeURIComponent(c)}` })),
+      { label: 'Mauritius tours', href: '/mauritius-tours' },
+      { label: 'Catamaran cruises', href: '/mauritius-catamaran-cruise' },
+      { label: 'Île aux Cerfs', href: '/ile-aux-cerfs-tours' },
+      { label: 'Dolphin swims', href: '/dolphin-swim-mauritius' },
+      { label: 'Sea walks & diving', href: `/activities?category=${encodeURIComponent('Sea walks & diving')}` },
+      { label: 'Sightseeing tours', href: `/activities?category=${encodeURIComponent('Sightseeing tours')}` },
+    ],
   },
   {
     title: 'Transport & rentals',
@@ -29,6 +30,7 @@ const COLUMNS = [
       { label: 'Mauritius destinations', href: '/destinations' },
       { label: 'Things to do in Mauritius', href: '/attractions' },
       { label: 'Mauritius travel blog', href: '/blog' },
+      { label: 'Belle Mare Tours', href: '/belle-mare-tours' },
       { label: 'About Belle Mare Tours', href: '/about' },
       { label: 'Contact & pickups', href: '/contact' },
     ],
