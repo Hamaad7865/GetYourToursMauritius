@@ -319,5 +319,18 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     color: MUTED,
   });
 
-  return pdf.save();
+  // Complete metadata + a CLASSIC cross-reference table (no compressed object streams). pdf-lib's default
+  // /ObjStm + /XRef stream structure on a freshly-generated, zero-reputation file is a heuristic-AV
+  // false-positive trigger; the receipt has no active content, so the plain structure scans cleanly.
+  // Dates pinned to the issue date keep the bytes reproducible (no wall clock). See voucher-pdf.ts.
+  const issued = new Date(model.issuedAt || 0);
+  pdf.setTitle(`Invoice ${model.invoiceNumber}`);
+  pdf.setAuthor(b.legalName);
+  pdf.setSubject('Tax invoice / receipt');
+  pdf.setProducer('GetYourToursMauritius');
+  pdf.setCreator('GetYourToursMauritius');
+  pdf.setCreationDate(issued);
+  pdf.setModificationDate(issued);
+
+  return pdf.save({ useObjectStreams: false });
 }

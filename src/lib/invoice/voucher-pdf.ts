@@ -242,16 +242,22 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
     .join('     ');
   draw(fitText(footer, font, 8.5, CONTENT_RIGHT - MARGIN), footY, { size: 8.5, color: MUTED });
 
-  // Deterministic document metadata — pinned to the booking, never the wall clock. pdf-lib's create()
-  // stamps CreationDate/ModDate from `new Date()`; overwriting them from model.issuedAt is what makes the
-  // saved bytes reproducible (this pdf-lib version's save() serializes these and does not re-stamp).
-  const stamp = new Date(model.issuedAt || 0);
+  // Complete, deterministic document metadata — pinned to the booking, never the wall clock. pdf-lib's
+  // create() stamps CreationDate/ModDate from `new Date()`; overwriting them from model.issuedAt is what
+  // keeps the saved bytes reproducible (this pdf-lib version's save() serializes these, doesn't re-stamp).
+  const stamp = new Date(model.issuedAt || model.booking.when || 0);
   pdf.setTitle(`E-Voucher ${model.booking.ref}`);
+  pdf.setAuthor(b.legalName);
   pdf.setSubject(model.booking.when ? `Transfer ${formatMauritiusDateTime(model.booking.when)}` : 'Airport transfer');
+  pdf.setKeywords(['airport transfer', 'e-voucher', model.booking.ref]);
   pdf.setProducer('GetYourToursMauritius');
   pdf.setCreator('GetYourToursMauritius');
   pdf.setCreationDate(stamp);
   pdf.setModificationDate(stamp);
 
-  return pdf.save();
+  // Emit a CLASSIC cross-reference table (no compressed object streams). pdf-lib's default packs the
+  // document into a /ObjStm + /XRef stream; that compressed structure on a brand-new, zero-reputation file
+  // is a notorious heuristic-AV false-positive trigger (e.g. McAfee). The voucher has NO active content —
+  // no JavaScript, no embedded files, no OpenAction — so a plain, uncompressed structure scans cleanly.
+  return pdf.save({ useObjectStreams: false });
 }
