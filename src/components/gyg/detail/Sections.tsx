@@ -1,6 +1,6 @@
 import type { ActivityExtra, ItineraryStop } from '@/lib/validation/tours';
-import { ItineraryTimeline, type TimelineNode } from './ItineraryTimeline';
-import { ItineraryMap } from '@/components/maps/ItineraryMap';
+import type { TimelineNode } from './ItineraryTimeline';
+import { RoutedItinerary } from './RoutedItinerary';
 import type { StopKind } from '@/components/maps/RouteMap';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { getT } from '@/lib/i18n/server';
@@ -259,11 +259,10 @@ export async function Itinerary({
     : stops;
   const mapKinds: StopKind[] = mapStops.map((_, i) => (meetingPoint && i === 0 ? 'start' : 'main'));
 
+  // Render the list + map through RoutedItinerary so both are drawn in ONE proximity-optimised order:
+  // the route never zig-zags, and the numbered list, the pins and the route always agree.
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_1.1fr]">
-      <ItineraryTimeline nodes={nodes} collapseAt={meetingPoint ? 4 : 3} />
-      <ItineraryMap stops={mapStops} kinds={mapKinds} />
-    </div>
+    <RoutedItinerary nodes={nodes} stops={mapStops} kinds={mapKinds} collapseAt={meetingPoint ? 4 : 3} />
   );
 }
 
