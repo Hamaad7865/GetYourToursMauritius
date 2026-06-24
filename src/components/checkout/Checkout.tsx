@@ -1226,7 +1226,7 @@ export function Checkout() {
                 )}
               </button>
               {displayTotalNum != null && (
-                <p className="mt-2 text-[12px] text-ink-muted">{t('Your card will be charged in USD')}</p>
+                <p className="mt-2 text-[12px] text-ink-muted">{t('You will be charged in EUR')}</p>
               )}
               <p className="mt-2 text-[12px] text-ink-muted">
                 {t('You’ll confirm the payment on the next screen.')}

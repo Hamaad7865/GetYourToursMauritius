@@ -1,7 +1,6 @@
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import { paymentCreateResultSchema, type PaymentLink } from '@/lib/validation/booking';
-import { getUsdRate } from '@/lib/money/fx';
 
 export interface CreatePaymentLinkInput {
   bookingRef: string;
@@ -26,12 +25,12 @@ export async function createPaymentLink(
   });
   const payment = paymentCreateResultSchema.parse(data);
 
-  // The Mauritius card acquirer settles in USD (not EUR/MUR), so convert the EUR booking total to
-  // USD at charge time — whole dollars, matching the on-site USD display. The ledger stays in EUR:
-  // a successful full settlement confirms the EUR-denominated payment.
-  const chargeCurrency = 'USD';
-  const rate = await getUsdRate();
-  const chargeAmount = Math.round((payment.amountMinor / 100) * rate);
+  // Peach now accepts EUR on the card (enabled 2026-06-24), so we charge the EUR booking total directly
+  // — no FX conversion, and the card statement matches the price shown. The ledger is already EUR, so a
+  // successful full settlement confirms it cleanly. (Alt methods like MCB Juice / Maucus are MUR-only and
+  // aren't offered here.)
+  const chargeCurrency = 'EUR';
+  const chargeAmount = payment.amountMinor / 100;
   const session = await ctx.payments.createCheckout({
     bookingRef: payment.bookingRef,
     amount: chargeAmount,
@@ -41,9 +40,10 @@ export async function createPaymentLink(
     returnUrl: input.returnUrl,
   });
 
-  // Persist what the card was actually charged (USD, minor units) so the receipt/invoice can show
-  // the real billed amount rather than the EUR ledger figure. Best-effort: the checkout already
-  // succeeded, so a failure here must never strand the customer — log and continue.
+  // Persist what the card was actually charged (EUR, minor units) for the receipt/invoice. Now that we
+  // charge EUR it equals the ledger total, but recording it keeps the receipt accurate if the charge
+  // currency ever changes again. Best-effort: the checkout already succeeded, so a failure here must
+  // never strand the customer — log and continue.
   try {
     await callRpc(ctx, 'api_record_payment_charge', {
       paymentId: payment.paymentId,

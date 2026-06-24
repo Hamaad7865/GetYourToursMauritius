@@ -12,36 +12,59 @@ export const runtime = 'edge';
 /**
  * POST /api/v1/webhooks/payments — the payment provider calls this when a checkout settles.
  *
- * ACK-FIRST: we reply 200 immediately (after only parsing the body — no network), then verify + confirm
- * in `after()`, AFTER the response is sent. A slow reply could be treated as a failed delivery, so the
- * provider never waits on us. The background task is best-effort: if it's ever dropped, the customer's
+ * ACK-FIRST: reply 200 immediately (after only parsing the body — no network), then verify + confirm in
+ * `after()`, AFTER the response is sent, so the provider never waits on us (a slow reply can be treated
+ * as a failed delivery). The background task is best-effort: if it's ever dropped, the customer's
  * /payments/sync poll and the reconcile cron still confirm the booking — confirmation is never lost.
  * We ALWAYS return 200 (any non-200 is treated by the provider as a failed delivery).
  *
- * The notification is only a TRIGGER. We never trust its body to confirm a booking (it's unsigned and
- * forgeable): we re-query the provider for the authoritative status and append THAT to the ledger.
- * Crucially we re-query using the checkout id we STORED at create time — looked up by the booking ref
- * the provider echoes back (`merchantTransactionId`) — NOT the id in the webhook body, which Peach sends
- * in a form that 404s at /v2/checkout/{id}/status. This is the same id /payments/sync and the reconcile
- * cron query successfully, so the webhook now confirms reliably.
+ * Confirmation, in order of preference:
+ *  1. HMAC fast-path — if the webhook is signed and PEACH_WEBHOOK_SECRET + PEACH_WEBHOOK_URL are set, the
+ *     body is authenticated, so we trust it and reconcile directly (no extra Peach round-trip).
+ *  2. Re-query fallback — otherwise we look up the booking by the echoed merchantTransactionId and
+ *     re-query its STORED checkout id (the id /payments/sync + the cron use), which never trusts the body.
+ * Either way a forged/unsigned body can't confirm a booking.
  */
 export const POST = apiHandler(async (req) => {
   const rawBody = await req.text();
-  const contentType = req.headers.get('content-type') ?? '';
-  const bookingRef = extractWebhookFields(rawBody, contentType).merchantTransactionId;
+  const headers: Record<string, string> = {};
+  req.headers.forEach((value, key) => {
+    headers[key.toLowerCase()] = value;
+  });
+  const bookingRef = extractWebhookFields(rawBody, headers['content-type'] ?? '').merchantTransactionId;
 
-  if (bookingRef) {
+  if (bookingRef || headers['x-webhook-signature']) {
     try {
       after(async () => {
+        const admin = createServiceRoleClient();
+        const provider = getPaymentProvider();
+
+        // 1) HMAC fast-path: a verified signature authenticates the body — confirm straight from it.
         try {
-          const admin = createServiceRoleClient();
-          // Resolve the booking + the checkout id we stored when we created the checkout.
-          const { data: booking } = await admin
-            .from('bookings')
-            .select('id')
-            .eq('ref', bookingRef)
-            .maybeSingle();
-          if (!booking) return; // unknown ref (not ours / not yet created) — nothing to do
+          const event = await provider.verifyWebhook({
+            rawBody,
+            signature: headers['x-webhook-signature'] ?? null,
+            headers,
+          });
+          await reconcilePaymentEvent(admin, event);
+          return;
+        } catch (hmacErr) {
+          // Only worth a log when a signature WAS present (HMAC was attempted and failed → likely a
+          // PEACH_WEBHOOK_SECRET / PEACH_WEBHOOK_URL mismatch). An unsigned webhook just uses path 2.
+          if (headers['x-webhook-signature']) {
+            console.warn(
+              '[webhook] HMAC verify failed, falling back to re-query:',
+              hmacErr instanceof Error ? hmacErr.message : hmacErr,
+            );
+          }
+        }
+
+        // 2) Re-query fallback (works without HMAC). The id in the webhook body 404s at the status
+        //    endpoint, so we use the checkout id we stored at create time, found by the booking ref.
+        try {
+          if (!bookingRef) return;
+          const { data: booking } = await admin.from('bookings').select('id').eq('ref', bookingRef).maybeSingle();
+          if (!booking) return;
           const { data: payment } = await admin
             .from('payments')
             .select('provider_checkout_id')
@@ -52,15 +75,13 @@ export const POST = apiHandler(async (req) => {
           const checkoutId = payment?.provider_checkout_id;
           if (!checkoutId) return;
 
-          const event = await getPaymentProvider().getCheckoutStatus(checkoutId);
+          const event = await provider.getCheckoutStatus(checkoutId);
           await reconcilePaymentEvent(admin, event);
         } catch (err) {
-          // Provider unreachable / transient DB error — the /payments/sync poll + reconcile cron retry.
           console.warn('[webhook] background reconcile failed:', err instanceof Error ? err.message : err);
         }
       });
     } catch (err) {
-      // after() unavailable in this runtime — fall back to the sync poll + reconcile sweep, still 200.
       console.warn('[webhook] could not schedule background reconcile:', err instanceof Error ? err.message : err);
     }
   } else {
