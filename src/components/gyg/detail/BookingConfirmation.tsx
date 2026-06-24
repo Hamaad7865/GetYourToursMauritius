@@ -10,6 +10,7 @@ import { Confetti } from '@/components/site/Confetti';
 import { IconDownload } from '@/components/ui/icons';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
+import { whatsappUrl } from '@/lib/seo/site';
 import {
   CONFIRM_POLL_INTERVAL_MS,
   CONFIRM_POLL_MAX_MS,
@@ -53,6 +54,8 @@ interface Booking {
   travellerCompany?: string | null;
   travellerGender?: string | null;
   specialNotes?: string | null;
+  /** True when the customer may self-cancel for a refund (confirmed + paid + the trip is >24h away). */
+  cancellable?: boolean | null;
 }
 
 /** VAT is included in the booking total at this rate (matches the invoice/receipt). */
@@ -63,6 +66,7 @@ const STATUS_COPY: Record<string, { title: string; tone: string }> = {
   completed: { title: 'Trip completed', tone: 'text-teal-dark' },
   payment_pending: { title: 'Almost there — complete your payment', tone: 'text-ink' },
   cancelled: { title: 'Booking cancelled', tone: 'text-coral' },
+  refund_pending: { title: 'Cancelled — refund on its way', tone: 'text-ink' },
   refunded: { title: 'Booking refunded', tone: 'text-ink-muted' },
 };
 
@@ -247,6 +251,38 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
     }
   }, [bookingRef, session, t]);
 
+  // Customer self-service cancel → refund. POSTs the cancel; on success re-fetches so the status flips to
+  // refund_pending and the card switches to the "refund on its way" state. The server enforces the window.
+  const [cancelling, setCancelling] = useState(false);
+  const [confirmingCancel, setConfirmingCancel] = useState(false);
+  const cancelBookingAction = useCallback(async () => {
+    if (!session) return;
+    setCancelling(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/v1/bookings/${bookingRef}/cancel`, {
+        method: 'POST',
+        headers: { authorization: `Bearer ${session.access_token}` },
+      });
+      if (!res.ok) {
+        let msg = t('Could not cancel the booking. Please try again.');
+        try {
+          const body = (await res.json()) as { error?: { message?: string } };
+          if (body?.error?.message) msg = body.error.message;
+        } catch {
+          /* non-JSON — keep the generic message */
+        }
+        throw new Error(msg);
+      }
+      setConfirmingCancel(false);
+      await fetchBooking(); // status is now refund_pending
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('Could not cancel the booking. Please try again.'));
+    } finally {
+      setCancelling(false);
+    }
+  }, [bookingRef, session, t, fetchBooking]);
+
   async function completeStubPayment() {
     setPaying(true);
     setError(null);
@@ -296,6 +332,7 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
     tone: 'text-ink',
   };
   const awaitingPayment = !paid && booking.status === 'payment_pending';
+  const isRefundFlow = booking.status === 'refund_pending' || booking.status === 'refunded';
 
   return (
     <div className="mx-auto max-w-xl py-10">
@@ -446,7 +483,13 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           </p>
         )}
 
-        {paid ? (
+        {isRefundFlow ? (
+          <div role="status" className="mt-6 rounded-xl bg-teal/10 px-4 py-3 text-sm text-teal-dark">
+            {booking.status === 'refunded'
+              ? t('Your refund has been processed. Please allow a few days for it to appear on your statement.')
+              : t('Your cancellation is confirmed and your refund is being processed. We’ll email you once it’s done.')}
+          </div>
+        ) : paid ? (
           <div className="mt-6">
             <p className="rounded-xl bg-teal/10 px-4 py-3 text-sm font-medium text-teal-dark">
               {t('Payment received — we’ve emailed your confirmation. See it any time in your bookings.')}
@@ -475,6 +518,58 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                 </button>
               )}
             </div>
+            {booking.cancellable ? (
+              confirmingCancel ? (
+                <div
+                  role="group"
+                  aria-label={t('Confirm cancellation')}
+                  className="mt-4 rounded-xl border border-coral/30 bg-coral/[0.06] p-4"
+                >
+                  <p className="text-[13px] text-ink">
+                    {t('Cancel this booking and claim a refund? Your refund is processed back to your card within a few business days.')}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => void cancelBookingAction()}
+                      disabled={cancelling}
+                      aria-busy={cancelling}
+                      className="rounded-full bg-coral px-4 py-2 text-[13px] font-bold text-white hover:bg-coral/90 disabled:opacity-60"
+                    >
+                      {cancelling ? t('Cancelling…') : t('Yes, cancel & claim refund')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingCancel(false)}
+                      disabled={cancelling}
+                      className="rounded-full border border-ink/20 px-4 py-2 text-[13px] font-bold text-ink hover:bg-ink/5 disabled:opacity-60"
+                    >
+                      {t('Keep my booking')}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmingCancel(true)}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full border border-coral/50 px-4 py-2 text-[13px] font-bold text-coral hover:bg-coral/5"
+                >
+                  {t('Cancel activity & claim refund')}
+                </button>
+              )
+            ) : booking.status === 'confirmed' ? (
+              <p className="mt-4 text-[13px] text-ink-muted">
+                {t('Free cancellation has passed.')}{' '}
+                <a
+                  href={whatsappUrl(t('Hi Belle Mare Tours! I need to cancel my booking {ref}.', { ref: booking.ref }))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-bold text-teal hover:text-teal-dark"
+                >
+                  {t('Message us to cancel')}
+                </a>
+              </p>
+            ) : null}
           </div>
         ) : awaitingPayment && confirming ? (
           // Interim state: payment just completed and we're polling for confirmation. Never a cold

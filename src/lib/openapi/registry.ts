@@ -172,6 +172,25 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/bookings/{ref}/cancel': {
+    post: {
+      operationId: 'cancelBooking',
+      summary: 'Customer cancels their own confirmed + paid booking (>24h before the trip) and starts a refund',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      responses: {
+        '200': okJson(
+          z.object({ ref: z.string(), status: z.string(), alreadyCancelled: z.boolean().optional() }),
+          'Cancellation result',
+        ),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Not your booking'),
+        '404': errorResponse('Booking not found'),
+        '409': errorResponse('Outside the free-cancellation window, or not cancellable'),
+      },
+    },
+  },
   '/payments': {
     post: {
       operationId: 'createPayment',

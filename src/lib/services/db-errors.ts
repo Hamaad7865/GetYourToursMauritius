@@ -44,6 +44,13 @@ export function mapDbError(error: unknown): never {
   if (/\brate_limited\b/.test(message)) {
     throw new RateLimitError();
   }
+  // Customer self-cancel guards (api_cancel_booking) → friendly 409s.
+  if (/\bcancellation_window_passed\b/.test(message)) {
+    throw new ConflictError('Free cancellation has passed — please message us to cancel.');
+  }
+  if (/\bnot_cancellable\b/.test(message)) {
+    throw new ConflictError('This booking can no longer be cancelled online.');
+  }
   if (/\bforbidden\b/.test(message)) {
     throw new ForbiddenError();
   }

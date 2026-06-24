@@ -21,6 +21,16 @@ function render(message: NotificationMessage): { subject: string; text: string }
       text: `Hi ${name},\n\nYour booking ${ref} has been refunded. Please allow a few days for it to appear on your statement.\n\nBelle Mare Tours`,
     };
   }
+  // Owner-facing alert: the customer self-cancelled; the owner must process the refund in Peach.
+  if (message.template === 'booking_cancellation') {
+    const currency = typeof p.currency === 'string' ? p.currency : 'EUR';
+    const total =
+      typeof p.totalMinor === 'number' ? ` (${currency} ${(p.totalMinor / 100).toFixed(2)})` : '';
+    return {
+      subject: `Action needed: booking ${ref} cancelled — refund to process`,
+      text: `${name} cancelled booking ${ref}${total}. It is now refund_pending and the seat has been released.\n\nRefund it in the Peach dashboard, then mark it refunded in admin.\n\nBelle Mare Tours (internal alert)`,
+    };
+  }
   return { subject: `Belle Mare Tours — ${message.template}`, text: `Reference: ${ref}` };
 }
 

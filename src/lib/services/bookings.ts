@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import { NotFoundError } from './errors';
@@ -57,4 +58,22 @@ export async function getBookingStatus(ctx: ServiceContext, ref: string): Promis
     throw new NotFoundError(`Booking "${ref}" not found`);
   }
   return bookingSchema.parse(data);
+}
+
+const cancelResultSchema = z.object({
+  ref: z.string(),
+  status: z.string(),
+  alreadyCancelled: z.boolean().optional(),
+});
+export type CancelResult = z.infer<typeof cancelResultSchema>;
+
+/**
+ * Customer self-service cancel → refund. Routes the booking to `refund_pending` (frees the seat, notifies
+ * the owner) when it's the caller's own confirmed + paid booking and the trip is more than 24h away.
+ * `api_cancel_booking` enforces ownership + the 24h window server-side (zero-trust); its typed errors map
+ * via `mapDbError` to a friendly 409 (`cancellation_window_passed` / `not_cancellable`). Idempotent.
+ */
+export async function cancelBooking(ctx: ServiceContext, ref: string): Promise<CancelResult> {
+  const data = await callRpc(ctx, 'api_cancel_booking', { ref });
+  return cancelResultSchema.parse(data);
 }

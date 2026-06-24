@@ -58,6 +58,20 @@ const CORE_FLOW_STRINGS = {
     'Return (both directions)',
     'Download e-voucher (PDF)',
     'Your e-voucher with the meeting-point details and a QR is attached to your confirmation email.',
+    // Customer self-service cancel → refund
+    'Cancelled — refund on its way',
+    'Your cancellation is confirmed and your refund is being processed. We’ll email you once it’s done.',
+    'Your refund has been processed. Please allow a few days for it to appear on your statement.',
+    'Cancel activity & claim refund',
+    'Confirm cancellation',
+    'Cancel this booking and claim a refund? Your refund is processed back to your card within a few business days.',
+    'Yes, cancel & claim refund',
+    'Cancelling…',
+    'Keep my booking',
+    'Free cancellation has passed.',
+    'Message us to cancel',
+    'Hi Belle Mare Tours! I need to cancel my booking {ref}.',
+    'Could not cancel the booking. Please try again.',
   ],
 } as const;
 

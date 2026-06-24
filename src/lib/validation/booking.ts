@@ -153,6 +153,8 @@ export const bookingSchema = z.object({
   travellerCompany: z.string().nullish(),
   travellerCountry: z.string().nullish(),
   specialNotes: z.string().nullish(),
+  /** True when the customer may self-cancel for a refund (confirmed + paid + the trip is >24h away). */
+  cancellable: z.boolean().nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
 
