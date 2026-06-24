@@ -8,7 +8,7 @@ import {
   markHeld as markHeldItems,
   markUnavailable as markUnavailableItems,
 } from './cart-holds';
-import { getHoldStatus, releaseHoldRequest } from './holdClient';
+import { getHoldStatus, releaseHoldRequest, fetchMyPendingBookings, type PendingBooking } from './holdClient';
 import { pushNotification } from '@/lib/notifications/inbox';
 
 const KEY = 'gytm:cart';
@@ -110,8 +110,12 @@ function write(items: CartItem[]): void {
  * held lines expire by their server `expiresAt`. The cart is a planning basket — the real
  * inventory hold + payment happen at checkout.
  */
-export function useCart() {
+export function useCart(opts?: { withPending?: boolean }) {
+  // The header instance fetches pending bookings once (mount + focus) for the badge; the cart page opts
+  // in to a 30s poll so its "Awaiting payment" list stays fresh while open.
+  const withPending = opts?.withPending ?? false;
   const [items, setItems] = useState<CartItem[]>([]);
+  const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
 
   // Drop expired holds + unavailable lines from the store, notifying for each. Saved lines survive.
   // Pure helper does the partition; we only persist `kept` and fire the per-line notes.
@@ -167,6 +171,31 @@ export function useCart() {
       cancelled = true;
     };
   }, []);
+
+  // Pending bookings (server): the signed-in user's payment_pending reservations, shown in the cart's
+  // "Awaiting payment" section and counted in the badge. Fetched on mount + on focus/visibility (catches
+  // the return from the Peach redirect and a just-created booking). `withPending` adds a 30s poll while
+  // the cart page is open; the per-row mm:ss countdown ticks locally off holdExpiresAt, so the list
+  // itself rarely needs re-fetching. NOT tied to the 15s localStorage tick — this hook is mounted
+  // site-wide via the header, so a 15s server poll would be far too chatty.
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      const rows = await fetchMyPendingBookings();
+      if (!cancelled) setPendingBookings(rows);
+    };
+    void load();
+    const onWake = () => void load();
+    window.addEventListener('focus', onWake);
+    document.addEventListener('visibilitychange', onWake);
+    const poll = withPending ? window.setInterval(() => void load(), 30_000) : undefined;
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', onWake);
+      document.removeEventListener('visibilitychange', onWake);
+      if (poll) window.clearInterval(poll);
+    };
+  }, [withPending]);
 
   const add = useCallback((item: Omit<CartItem, 'addedAt' | 'status' | 'idemKey'>) => {
     const current = read().filter((i) => i.id !== item.id);
@@ -239,7 +268,9 @@ export function useCart() {
     markHeld,
     markUnavailable,
     reconcile,
-    count: items.length,
+    pendingBookings,
+    pendingCount: pendingBookings.length,
+    count: items.length + pendingBookings.length,
     subtotal,
   };
 }

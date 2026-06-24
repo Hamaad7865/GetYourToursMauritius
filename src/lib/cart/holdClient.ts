@@ -1,6 +1,9 @@
 'use client';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import type { CartItem } from './useCart';
+import type { PendingBooking } from '@/lib/services/bookings';
+
+export type { PendingBooking };
 
 async function authHeaders(): Promise<Record<string, string>> {
   const { data } = await getBrowserSupabase().auth.getSession();
@@ -58,4 +61,20 @@ export async function releaseHoldRequest(holdId: string): Promise<void> {
     method: 'POST',
     headers: await authHeaders(),
   }).catch(() => {});
+}
+
+/**
+ * The signed-in user's payment_pending bookings (for the cart's "Awaiting payment" section + the badge).
+ * Returns [] for an anonymous visitor (the endpoint 401s) or any transient failure — never throws, so a
+ * flaky network or a logged-out cart simply shows no pending rows.
+ */
+export async function fetchMyPendingBookings(): Promise<PendingBooking[]> {
+  try {
+    const res = await fetch('/api/v1/bookings/pending', { headers: await authHeaders() }).then((r) =>
+      r.json(),
+    );
+    return res.ok && Array.isArray(res.data) ? (res.data as PendingBooking[]) : [];
+  } catch {
+    return [];
+  }
 }
