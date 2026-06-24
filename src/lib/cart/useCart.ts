@@ -13,6 +13,12 @@ import { pushNotification } from '@/lib/notifications/inbox';
 
 const KEY = 'gytm:cart';
 const EVENT = 'gytm:cart';
+/** Fired when the module-shared pending-bookings cache changes, so every useCart() instance in the tab
+ *  (header badge + cart page) re-reads the SAME list — one fetch updates them all, mirroring how
+ *  localStorage + the gytm:cart event already share the cart items. Client-only (populated from a
+ *  useEffect), so SSR never touches it. */
+const PENDING_EVENT = 'gytm:pending';
+let pendingCache: PendingBooking[] = [];
 /** @deprecated Kept for reference only — expiry is now driven by server hold expiresAt, not addedAt.
  *  Saved lines (no hold) persist indefinitely in the cart. */
 export const CART_TTL_MS = 30 * 60 * 1000;
@@ -115,7 +121,7 @@ export function useCart(opts?: { withPending?: boolean }) {
   // in to a 30s poll so its "Awaiting payment" list stays fresh while open.
   const withPending = opts?.withPending ?? false;
   const [items, setItems] = useState<CartItem[]>([]);
-  const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>([]);
+  const [pendingBookings, setPendingBookings] = useState<PendingBooking[]>(() => pendingCache);
 
   // Drop expired holds + unavailable lines from the store, notifying for each. Saved lines survive.
   // Pure helper does the partition; we only persist `kept` and fire the per-line notes.
@@ -172,30 +178,46 @@ export function useCart(opts?: { withPending?: boolean }) {
     };
   }, []);
 
-  // Pending bookings (server): the signed-in user's payment_pending reservations, shown in the cart's
-  // "Awaiting payment" section and counted in the badge. Fetched on mount + on focus/visibility (catches
-  // the return from the Peach redirect and a just-created booking). `withPending` adds a 30s poll while
-  // the cart page is open; the per-row mm:ss countdown ticks locally off holdExpiresAt, so the list
-  // itself rarely needs re-fetching. NOT tied to the 15s localStorage tick — this hook is mounted
-  // site-wide via the header, so a 15s server poll would be far too chatty.
+  // Fetch the signed-in user's payment_pending bookings, write them to the shared cache, and broadcast
+  // so every other useCart() instance re-reads the same list (header badge ↔ cart page never diverge).
+  const refreshPending = useCallback(async () => {
+    const rows = await fetchMyPendingBookings();
+    pendingCache = rows;
+    window.dispatchEvent(new Event(PENDING_EVENT));
+    setPendingBookings(rows);
+  }, []);
+
+  // Pending bookings (server): shown in the cart's "Awaiting payment" section and counted in the badge.
+  // Refreshed on mount, on focus/visibility, on a PENDING_EVENT from a sibling instance (no re-fetch —
+  // just adopt the cache), and on a gytm:cart change (catches the checkout that just turned a cart line
+  // into a booking). NOT tied to the 15s localStorage tick — this hook is mounted site-wide via the
+  // header, so a 15s server poll would be far too chatty.
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const rows = await fetchMyPendingBookings();
-      if (!cancelled) setPendingBookings(rows);
-    };
-    void load();
-    const onWake = () => void load();
+    const sync = () => setPendingBookings(pendingCache);
+    sync(); // adopt whatever a sibling instance already fetched
+    void refreshPending();
+    const onWake = () => void refreshPending();
+    window.addEventListener(PENDING_EVENT, sync);
     window.addEventListener('focus', onWake);
     document.addEventListener('visibilitychange', onWake);
-    const poll = withPending ? window.setInterval(() => void load(), 30_000) : undefined;
+    window.addEventListener(EVENT, onWake);
     return () => {
-      cancelled = true;
+      window.removeEventListener(PENDING_EVENT, sync);
       window.removeEventListener('focus', onWake);
       document.removeEventListener('visibilitychange', onWake);
-      if (poll) window.clearInterval(poll);
+      window.removeEventListener(EVENT, onWake);
     };
-  }, [withPending]);
+  }, [refreshPending]);
+
+  // Poll every 30s WHILE there's a pending booking to watch — so the badge self-heals within 30s once it
+  // confirms or expires (same-tab navigation back from the embedded Peach payment fires no focus event) —
+  // or while the cart page explicitly opts in. No pending booking + not the cart page → no polling, so
+  // the site-wide header instance stays quiet until a reservation actually exists.
+  useEffect(() => {
+    if (!withPending && pendingBookings.length === 0) return;
+    const id = window.setInterval(() => void refreshPending(), 30_000);
+    return () => window.clearInterval(id);
+  }, [withPending, pendingBookings.length, refreshPending]);
 
   const add = useCallback((item: Omit<CartItem, 'addedAt' | 'status' | 'idemKey'>) => {
     const current = read().filter((i) => i.id !== item.id);
