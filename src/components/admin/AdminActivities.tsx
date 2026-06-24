@@ -58,7 +58,15 @@ export function AdminActivities() {
       await deleteActivity(row.id);
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not delete.');
+      // Supabase errors are plain PostgrestError objects (not Error instances), so read the fields
+      // directly. A foreign-key violation (23503) means the tour has bookings/availability and can't be
+      // deleted — guide the user to Draft instead of showing the opaque DB message.
+      const e = err as { code?: string; message?: string } | null;
+      setError(
+        e?.code === '23503'
+          ? 'This tour has bookings or availability, so it can’t be deleted. Set it to Draft instead to hide it from the site.'
+          : e?.message || (err instanceof Error ? err.message : 'Could not delete.'),
+      );
     } finally {
       setBusy(null);
     }

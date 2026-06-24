@@ -5716,9 +5716,12 @@ end $$;
 --     so it wins over the 20260617190000 per_group correction). min_advance_days = 0 so same-day flights
 --     book. Then directly materialize the open-ended day-slots (the materialize_availability function is
 --     staff/service-role gated and would raise if called from a plain SQL session, so inline the insert).
+--     NOTE: this does NOT touch status — the seed INSERT (9b) publishes it on FIRST creation, and on later
+--     re-runs we must respect a deliberate Draft set in admin (forcing 'published' here re-published it
+--     on every catch-up run, clobbering the owner's choice). A Draft just won't materialize slots, which
+--     is exactly what "hidden / not bookable" should mean.
 update activities
-set status = 'published',
-    is_airport_transfer = true,
+set is_airport_transfer = true,
     pricing_mode = 'vehicle',
     min_advance_days = 0,
     region = coalesce(region, 'South'),
