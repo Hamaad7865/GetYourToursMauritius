@@ -290,7 +290,7 @@ export default function AirportTransfersPage() {
         {/* ============ HERO (animated ocean + hotel search) ============ */}
         {/* No overflow-hidden here: HeroWaves clips itself, and the search dropdown must be free to
             overflow the hero. z-20 keeps that dropdown painting above the section below. */}
-        <section id="top" className="relative z-30 flex scroll-mt-24 items-center text-white" style={{ minHeight: 'clamp(600px,88vh,820px)' }}>
+        <section id="top" className="relative z-30 flex scroll-mt-24 items-center text-white" style={{ minHeight: 'clamp(480px,76vh,680px)' }}>
           <HeroWaves />
           {/* Localized left scrim — lifts the white + gold hero text over WCAG AA against the lighter
               upper teal, while the waves and the gold sun-glow stay visible on the right. */}
@@ -299,10 +299,10 @@ export default function AirportTransfersPage() {
             className="absolute inset-0 z-[1]"
             style={{ background: 'linear-gradient(101deg, rgba(3,22,26,0.74) 0%, rgba(3,22,26,0.58) 44%, rgba(3,22,26,0.26) 66%, rgba(3,22,26,0) 86%)' }}
           />
-          <div className="relative z-[2] mx-auto w-full max-w-shell" style={{ padding: 'clamp(56px,8vw,96px) ' + padX }}>
+          <div className="relative z-[2] mx-auto w-full max-w-shell" style={{ padding: 'clamp(32px,5vw,64px) ' + padX }}>
             <div className="max-w-[680px]">
               <div
-                className="mb-[22px] inline-flex items-center gap-2.5 rounded-full border px-3.5 py-[7px] text-[13px] font-semibold"
+                className="mb-4 inline-flex items-center gap-2.5 rounded-full border px-3.5 py-[7px] text-[13px] font-semibold"
                 style={{ background: 'rgba(4,28,32,0.5)', borderColor: 'rgba(233,185,73,0.5)', color: GOLD }}
               >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -312,16 +312,16 @@ export default function AirportTransfersPage() {
                 Licensed by the Mauritius Tourism Authority
               </div>
               <h1
-                className="m-0 mb-5 font-extrabold"
-                style={{ ...displayFont, fontSize: 'clamp(36px,6vw,68px)', lineHeight: 1.02, letterSpacing: '-0.025em', textWrap: 'balance' }}
+                className="m-0 mb-4 font-extrabold"
+                style={{ ...displayFont, fontSize: 'clamp(30px,4.6vw,54px)', lineHeight: 1.04, letterSpacing: '-0.025em', textWrap: 'balance' }}
               >
                 Land in Mauritius to a driver who’s already waiting — at a <span style={{ color: GOLD }}>fixed price.</span>
               </h1>
-              <p className="m-0 mb-[26px] max-w-[560px]" style={{ fontSize: 'clamp(16px,1.6vw,20px)', lineHeight: 1.5, color: 'rgba(251,247,239,0.92)' }}>
+              <p className="m-0 mb-5 max-w-[560px]" style={{ fontSize: 'clamp(15px,1.5vw,18px)', lineHeight: 1.5, color: 'rgba(251,247,239,0.92)' }}>
                 Private door-to-door transfers between SSR Airport (MRU) and any hotel, Airbnb or cruise port — up to 40% less than metered
                 airport taxis. <strong className="font-bold text-white">Booked direct with the operator, no reseller markup.</strong>
               </p>
-              <div className="mb-[clamp(26px,4vw,38px)] flex flex-wrap items-center gap-x-[26px] gap-y-[14px] text-[15px] font-semibold">
+              <div className="mb-[clamp(16px,3vw,26px)] flex flex-wrap items-center gap-x-[26px] gap-y-[14px] text-[15px] font-semibold">
                 <span className="inline-flex items-center gap-2">
                   <span className="text-[17px] tracking-[1px]" style={{ color: GOLD }}>★★★★★</span> 4.8 · 1,000+ reviews
                 </span>
