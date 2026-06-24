@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCart, itemTotal, lineCap, type CartItem } from '@/lib/cart/useCart';
-import { createHoldsForLines } from '@/lib/cart/holdClient';
+import { createHoldsForLines, type PendingBooking } from '@/lib/cart/holdClient';
+import { ResumePaymentButton } from '@/components/checkout/ResumePaymentButton';
 import { pushNotification } from '@/lib/notifications/inbox';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
@@ -138,9 +139,62 @@ function Stepper({
   );
 }
 
+/** A booked-but-unpaid reservation (server) shown in the cart's "Awaiting payment" section. Its own
+ *  mm:ss countdown ticks off the real hold expiry; at zero it shows "expired — rebook" and the row drops
+ *  on the next pending-bookings fetch (or the 5-min maintenance sweep flips it to expired server-side). */
+function PendingRow({ pb }: { pb: PendingBooking }) {
+  const t = useT();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  const expMs = pb.holdExpiresAt ? new Date(pb.holdExpiresAt).getTime() : NaN;
+  const left = Number.isFinite(expMs) ? Math.max(0, Math.floor((expMs - now) / 1000)) : 0;
+  const expired = Number.isFinite(expMs) && left === 0;
+  const mm = String(Math.floor(left / 60)).padStart(2, '0');
+  const ss = String(left % 60).padStart(2, '0');
+  const date = pb.startsAt
+    ? new Date(pb.startsAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    : '';
+  return (
+    <li className="flex flex-col gap-3 rounded-2xl border border-coral/30 bg-coral/[0.03] p-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <Link href={`/bookings/${pb.ref}`} className="font-bold leading-snug text-ink hover:text-teal">
+          {pb.title}
+        </Link>
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-ink-muted">
+          {date && (
+            <span className="inline-flex items-center gap-1">
+              <IconCalendar width={13} height={13} className="text-teal" /> {date}
+            </span>
+          )}
+          <span className="font-mono">{pb.ref}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="text-right">
+          <div className="text-[16px] font-extrabold text-ink">
+            <Price eur={pb.totalMinor / 100} />
+          </div>
+          {expired ? (
+            <span className="text-[12px] font-semibold text-coral">{t('Reservation expired — rebook')}</span>
+          ) : (
+            <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-coral">
+              <IconClock width={12} height={12} /> {t('Pay within {time}', { time: `${mm}:${ss}` })}
+            </span>
+          )}
+        </div>
+        {!expired && <ResumePaymentButton bookingRef={pb.ref} />}
+      </div>
+    </li>
+  );
+}
+
 export function CartView() {
   const t = useT();
-  const { items, removeHeld, setGuests, subtotal, markHeld, markUnavailable } = useCart();
+  const { items, pendingBookings, removeHeld, setGuests, subtotal, markHeld, markUnavailable } =
+    useCart({ withPending: true });
   const [mounted, setMounted] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -216,7 +270,7 @@ export function CartView() {
   }, [items]);
 
   if (!mounted) return <div className="min-h-[55vh]" />;
-  if (items.length === 0) return <EmptyCart />;
+  if (items.length === 0 && pendingBookings.length === 0) return <EmptyCart />;
 
   return (
     <div className="pb-28 pt-10 lg:pb-10">
@@ -224,6 +278,23 @@ export function CartView() {
         <h1 className="font-display text-[26px] font-semibold text-ink">{t('Your cart')}</h1>
       </div>
 
+      {pendingBookings.length > 0 && (
+        <section className="mt-6">
+          <h2 className="font-display text-[20px] font-semibold text-ink">{t('Awaiting payment')}</h2>
+          <p className="mt-1 text-[13px] text-ink-muted">
+            {t(
+              'Finish paying before the timer runs out, or your seats are released and you’ll need to book again.',
+            )}
+          </p>
+          <ul className="mt-4 flex flex-col gap-4">
+            {pendingBookings.map((pb) => (
+              <PendingRow key={pb.ref} pb={pb} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {items.length > 0 && (
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_320px]">
         <ul className="flex flex-col gap-4">
           {items.map((i) => (
@@ -351,9 +422,12 @@ export function CartView() {
           </p>
         </aside>
       </div>
+      )}
 
       {/* Mobile sticky checkout bar. Single item → straight to checkout; multiple → jump to the
-          per-item list (each books separately). */}
+          per-item list (each books separately). Only for saved/held cart lines — pending bookings pay
+          from their own row above. */}
+      {items.length > 0 && (
       <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">
         <div className="min-w-0">
           <div className="text-[11px] font-medium text-ink-muted">
@@ -384,6 +458,7 @@ export function CartView() {
           </button>
         )}
       </div>
+      )}
     </div>
   );
 }

@@ -25,23 +25,42 @@ export const POST = apiHandler(async (req) => {
     return jsonError(401, 'unauthorized', 'Invalid task secret');
 
   const ctx = serviceRoleServiceContext();
-  const result = await runBookingMaintenance(ctx);
-  // Roll the open-ended availability window forward (now that the read path no longer fills it).
-  const slotsCreated = await materializeAvailability(ctx);
-  // Webhook-less safety net: re-query the provider for stuck `payment_pending` bookings and confirm the
-  // ones that paid. Isolated so a sweep failure (e.g. the provider is briefly unreachable) never blocks
-  // the holds/availability work above — it just re-runs next cron tick.
-  let payments: Awaited<ReturnType<typeof reconcilePaymentsPending>> | { errored: true } = {
-    errored: true,
-  };
+
+  // Order matters for money-safety: the payment reconcile (confirm-paid) runs BEFORE the booking-expiry
+  // sweep, so a booking that paid at ~minute 29 but isn't yet webhook-confirmed is confirmed first and
+  // then excluded from the expire predicate — it can never be wrongly auto-cancelled. Each step is
+  // isolated in its own try/catch so one failure (e.g. the provider is briefly unreachable) never blocks
+  // the others; the failed step simply re-runs on the next cron tick.
+  const log = (step: string, err: unknown) =>
+    console.error(`[maintenance] ${step} failed:`, err instanceof Error ? err.message : 'unknown error');
+
+  // 1) Webhook-less safety net: re-query the provider for stuck `payment_pending` bookings and confirm
+  //    the ones that paid (idempotent via append_payment_event) — FIRST, so the next step can't expire them.
+  let payments: Awaited<ReturnType<typeof reconcilePaymentsPending>> | { errored: true } = { errored: true };
   try {
     payments = await reconcilePaymentsPending(ctx);
   } catch (err) {
-    console.error(
-      '[maintenance] payment reconcile sweep failed:',
-      err instanceof Error ? err.message : 'unknown error',
-    );
+    log('payment reconcile sweep', err);
   }
+
+  // 2) Sweep stale holds + expire genuinely-abandoned bookings (now that any real payment is confirmed).
+  let result: Awaited<ReturnType<typeof runBookingMaintenance>> | { errored: true } = { errored: true };
+  try {
+    result = await runBookingMaintenance(ctx);
+  } catch (err) {
+    log('booking maintenance sweep', err);
+  }
+
+  // 3) Roll the open-ended availability window forward (now that the read path no longer fills it).
+  let slotsCreated: Awaited<ReturnType<typeof materializeAvailability>> | { errored: true } = {
+    errored: true,
+  };
+  try {
+    slotsCreated = await materializeAvailability(ctx);
+  } catch (err) {
+    log('availability materialize', err);
+  }
+
   return jsonOk({ ...result, slotsCreated, payments });
 });
 
