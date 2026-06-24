@@ -14,6 +14,7 @@ const ALLOWED = new Set([
   'api_mark_refunded',
   'api_erase_user',
   'api_get_booking',
+  'api_my_pending_bookings',
   'api_booking_receipt',
   'api_capture_lead',
   'api_rate_limit',

@@ -22,6 +22,7 @@ const { POST: bookingsPost } = await import('../../app/api/v1/bookings/route');
 const { GET: bookingGet } = await import('../../app/api/v1/bookings/[ref]/route');
 const { POST: leadsPost } = await import('../../app/api/v1/leads/route');
 const { GET: healthGet } = await import('../../app/api/v1/health/route');
+const { GET: pendingGet } = await import('../../app/api/v1/bookings/pending/route');
 
 const catalogue = catalogueSchema.parse(
   JSON.parse(readFileSync(join(process.cwd(), 'seed', 'catalogue.json'), 'utf8')),
@@ -62,6 +63,11 @@ describe('/api/v1 routes', () => {
   afterAll(async () => {
     setRouteContext(null);
     await db.close();
+  });
+
+  it('GET /bookings/pending requires a signed-in user (401 without a token)', async () => {
+    const res = await pendingGet(new Request('http://localhost/api/v1/bookings/pending'));
+    expect(res.status).toBe(401);
   });
 
   it('GET /activities is public and returns a paginated envelope', async () => {

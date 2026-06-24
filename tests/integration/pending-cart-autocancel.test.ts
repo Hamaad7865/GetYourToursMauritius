@@ -5,6 +5,7 @@ import type { ServiceContext } from '@/lib/services/context';
 import { StubPaymentProvider } from '@/lib/payments/stub';
 import { createStubAiProvider } from '@/lib/ai/stub';
 import { runBookingMaintenance } from '@/lib/services/maintenance';
+import { listMyPendingBookings } from '@/lib/services/bookings';
 
 const ALICE = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const BOB = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
@@ -86,6 +87,11 @@ describe('pending bookings in cart + safe auto-cancel', () => {
     expect(list[0]!.status).toBe('payment_pending');
     expect(list[0]!.title).toBe('Pending Tour');
     expect(list[0]!.holdExpiresAt).toBeTruthy(); // joined from the live hold → drives the cart countdown
+
+    // Same result via the service layer — proves the zod schema matches the RPC's jsonb output.
+    const viaService = await listMyPendingBookings(ctx);
+    expect(viaService.map((b) => b.ref)).toEqual([aliceRef]);
+    expect(viaService[0]!.holdExpiresAt).toBeTruthy();
   });
 
   it('excludes confirmed bookings and refuses a caller with no user id', async () => {

@@ -4,6 +4,27 @@ import { callRpc } from './rpc';
 import { NotFoundError } from './errors';
 import { bookingSchema, type Booking, type CreateBookingInput } from '@/lib/validation/booking';
 
+/** A payment_pending booking surfaced in the cart's "Awaiting payment" section. `holdExpiresAt` is the
+ *  live hold's expiry (drives the countdown); null once the seat hold has lapsed. */
+export const pendingBookingSchema = z.object({
+  ref: z.string(),
+  status: z.string(),
+  paymentState: z.string(),
+  totalMinor: z.number(),
+  currency: z.string(),
+  createdAt: z.string(),
+  holdExpiresAt: z.string().nullable(),
+  title: z.string(),
+  startsAt: z.string().nullable(),
+});
+export type PendingBooking = z.infer<typeof pendingBookingSchema>;
+
+/** The caller's own payment_pending bookings + each one's live hold expiry (owner-scoped RPC). */
+export async function listMyPendingBookings(ctx: ServiceContext): Promise<PendingBooking[]> {
+  const data = await callRpc(ctx, 'api_my_pending_bookings', {});
+  return z.array(pendingBookingSchema).parse(data ?? []);
+}
+
 /**
  * Create a booking: atomically holds capacity and creates a payment_pending
  * booking via the api_book RPC (prices computed from the DB, never the client).
