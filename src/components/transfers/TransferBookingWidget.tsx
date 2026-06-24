@@ -151,15 +151,46 @@ export function TransferBookingWidget({
         month: 'short',
         year: 'numeric',
       });
+      const transferTitle =
+        tripType === 'return'
+          ? `Return airport transfer · ${hotelName}`
+          : `Airport transfer to ${hotelName}`;
+      // Mirror the held transfer into the cart (same shape as Add-to-cart / the tour Book-now path), keyed
+      // by occurrence, so leaving checkout keeps the held spot visible with its countdown. Checkout reads
+      // gytm:cartline:{occ} on mount and upserts it as a held line; the cart's timer + reconcile + expiry
+      // bell own it after. Vehicle pricing → the flat fare is the unit price and the party is fixed.
+      try {
+        window.sessionStorage.setItem(
+          `gytm:cartline:${occ}`,
+          JSON.stringify({
+            id: `${occ}:transfer`,
+            slug: SLUG,
+            title: transferTitle,
+            image: null,
+            occurrenceId: occ,
+            dateLabel: tripType === 'return' ? `${dateText} (+ return)` : dateText,
+            lang: 'en',
+            priceLabel: 'Transfer',
+            guests: party,
+            unitEur: totalEur,
+            pricingMode: 'vehicle',
+            suv: effectiveSuv,
+            childSeats: 0,
+            maxGuests: null,
+            seatsLeft: slot.seatsLeft ?? party,
+            unit: 'per transfer',
+            idemKey: idem,
+          }),
+        );
+      } catch {
+        /* sessionStorage unavailable — the cart line just won't appear; checkout still works */
+      }
       const q = new URLSearchParams({
         occ,
         slug: SLUG,
         label: 'Transfer',
         qty: String(party),
-        title:
-          tripType === 'return'
-            ? `Return airport transfer · ${hotelName}`
-            : `Airport transfer to ${hotelName}`,
+        title: transferTitle,
         lang: 'en',
         total: String(totalEur),
         when: tripType === 'return' ? `${dateText} (+ return)` : dateText,
