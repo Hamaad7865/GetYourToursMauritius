@@ -38,6 +38,7 @@ interface PeachCheckoutStatic {
   initiate: (opts: {
     key: string;
     checkoutId: string;
+    options?: { paymentMethods?: { include?: string[]; exclude?: string[] } };
     events?: {
       onCompleted?: (event: unknown) => void;
       onCancelled?: (event: unknown) => void;
@@ -132,6 +133,11 @@ export function EmbeddedCheckout({
         const instance = Checkout.initiate({
           key: entityId,
           checkoutId,
+          // Card-only: render just the card form. Peach stacks the Apple Pay / wallet express button above
+          // the card form with a large, unconfigurable gap (no spacing option exists), and two separate
+          // widgets would need two checkout sessions. `include: ['CARD']` keeps it to one compact form,
+          // robust to whatever else the merchant account enables.
+          options: { paymentMethods: { include: ['CARD'] } },
           events: {
             onCompleted: () => {
               void confirmThenReturn();
@@ -202,9 +208,10 @@ export function EmbeddedCheckout({
 }
 
 // One floor height shared by the target, Peach's wrapper div and its iframe, so none of them collapse
-// before/while the widget loads — but nothing is pinned, so there's no stretched gap. If the expanded
-// card form ever needs a touch more room than this, raise the single number below.
-const MIN_WIDGET_HEIGHT = 600;
+// to the 150px iframe default before the widget loads — but nothing is pinned, so the card form sizes to
+// its own content with no stretched gap. Tuned for the card-only form; nudge this single number if the
+// live widget ends up slightly short (scroll) or slightly tall (a little dead space).
+const MIN_WIDGET_HEIGHT = 480;
 const PEACH_WIDGET_CSS = `
 #payment-form, #payment-form > div { min-height: ${MIN_WIDGET_HEIGHT}px; overflow: visible !important; }
 #payment-form iframe { display: block; width: 100% !important; min-height: ${MIN_WIDGET_HEIGHT}px; border: 0; }`;
