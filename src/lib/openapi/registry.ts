@@ -21,6 +21,7 @@ import {
   syncPaymentInputSchema,
 } from '@/lib/validation/booking';
 import { clientErrorReportSchema } from '@/lib/validation/telemetry';
+import { pendingBookingSchema } from '@/lib/services/bookings';
 
 const errorResponse = (description: string): ZodOpenApiResponseObject => ({
   description,
@@ -125,6 +126,18 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '201': okJson(bookingSchema, 'Booking created'),
         '400': errorResponse('Invalid request'),
         '409': errorResponse('Not enough availability'),
+      },
+    },
+  },
+  '/bookings/pending': {
+    get: {
+      operationId: 'listMyPendingBookings',
+      summary: 'List the signed-in user’s payment_pending bookings (for the cart)',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(z.array(pendingBookingSchema)),
+        '401': errorResponse('Authentication required'),
       },
     },
   },
