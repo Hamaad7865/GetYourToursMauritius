@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import {
   loadBookings,
@@ -193,6 +194,9 @@ function exportCsv(rows: BookingRow[]): void {
 export function AdminBookings() {
   const { profile } = useAuth();
   const isAdmin = profile?.role === 'admin' || profile?.role === 'staff';
+  // The global top-bar search (AdminShell) routes here as /admin/bookings?q=… — seed the filter from it
+  // on arrival, and re-sync if the bar pushes a new query while this screen is already open.
+  const searchParams = useSearchParams();
 
   const [rows, setRows] = useState<BookingRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -200,7 +204,7 @@ export function AdminBookings() {
   const [pay, setPay] = useState<'all' | PaymentState>('all');
   const [tour, setTour] = useState('all');
   const [dateF, setDateF] = useState<DateFilter>('all');
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -218,6 +222,12 @@ export function AdminBookings() {
   useEffect(() => {
     if (isAdmin) void load();
   }, [isAdmin, load]);
+
+  // Re-sync the search box when the global bar pushes a new ?q= while we're already on this screen.
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (q !== null) setQuery(q);
+  }, [searchParams]);
 
   const tourOptions = useMemo(() => {
     const set = new Set<string>();

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { avatar } from '@/lib/admin/dashboard';
 import {
@@ -48,8 +48,19 @@ function isActive(pathname: string, item: NavItem): boolean {
  *  drawer + bottom nav on mobile. Renders the active screen as `children`. */
 export function AdminShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { user, profile, signOut } = useAuth();
   const [drawer, setDrawer] = useState(false);
+  const [search, setSearch] = useState('');
+
+  // Global search → the Bookings screen (which filters by ref / name / email and seeds from ?q=).
+  // Customers live on bookings too, so this covers "bookings & customers"; Tours has its own on-page search.
+  const submitSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const q = search.trim();
+    if (!q) return;
+    router.push(`/admin/bookings?q=${encodeURIComponent(q)}`);
+  };
 
   const name = profile?.fullName || user?.email?.split('@')[0] || 'Staff';
   const role = profile?.role ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : 'Staff';
@@ -141,16 +152,20 @@ export function AdminShell({ children }: { children: ReactNode }) {
           >
             <IconMenu width={19} height={19} />
           </button>
-          <div className="relative hidden max-w-md flex-1 sm:block">
+          <form onSubmit={submitSearch} role="search" className="relative hidden max-w-md flex-1 sm:block">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted">
               <IconSearch width={17} height={17} />
             </span>
             <input
-              aria-label="Search bookings, customers, tours"
-              placeholder="Search bookings, customers, tours…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              type="search"
+              enterKeyHint="search"
+              aria-label="Search bookings and customers"
+              placeholder="Search bookings, customers…"
               className="w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] py-2.5 pl-10 pr-3 text-sm text-ink outline-none focus:border-teal focus:bg-white"
             />
-          </div>
+          </form>
           <div className="ml-auto flex items-center gap-2.5">
             <Link
               href="/admin/activities/new"
