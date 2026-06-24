@@ -3,9 +3,10 @@
 import { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCategories } from '@/lib/categories/useCategories';
-import { IconPlus, IconX } from '@/components/ui/icons';
+import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
 import { BADGE_ICONS, badgeIcon } from '@/components/ui/badge-icons';
 import type { BadgeInput } from '@/lib/catalogue/badges';
+import { moveItem } from '@/lib/admin/reorder';
 import {
   EMPTY_ACTIVITY,
   createActivity,
@@ -245,7 +246,10 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         </div>
       </Section>
 
-      <Section title="Photos" hint="Upload files or paste image URLs. The first photo is the cover.">
+      <Section
+        title="Photos"
+        hint="Upload files or paste image URLs. Use the arrows to reorder — the first photo is the cover and the first five fill the detail-page gallery."
+      >
         <ImagesEditor images={v.images} slug={v.slug} onChange={(x) => set('images', x)} />
       </Section>
 
@@ -439,8 +443,37 @@ function ImagesEditor({
     <div className="flex flex-col gap-3">
       {images.map((img, i) => (
         <div key={i} className="flex items-center gap-3 rounded-xl border border-ink/10 p-2">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={img.url} alt={img.alt || 'preview'} className="h-14 w-20 shrink-0 rounded-lg object-cover" />
+          <div className="flex shrink-0 flex-col">
+            <button
+              type="button"
+              aria-label={`Move photo ${i + 1} up`}
+              disabled={i === 0}
+              onClick={() => onChange(moveItem(images, i, i - 1))}
+              className="grid h-6 w-6 place-items-center rounded text-ink-muted hover:text-teal disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <IconChevron width={16} height={16} className="rotate-180" />
+            </button>
+            <button
+              type="button"
+              aria-label={`Move photo ${i + 1} down`}
+              disabled={i === images.length - 1}
+              onClick={() => onChange(moveItem(images, i, i + 1))}
+              className="grid h-6 w-6 place-items-center rounded text-ink-muted hover:text-teal disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              <IconChevron width={16} height={16} />
+            </button>
+          </div>
+          <div className="relative shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.url} alt={img.alt || 'preview'} className="h-14 w-20 rounded-lg object-cover" />
+            <span
+              className={`absolute left-1 top-1 grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold ${
+                i < 5 ? 'bg-teal text-white' : 'bg-ink/55 text-white'
+              }`}
+            >
+              {i + 1}
+            </span>
+          </div>
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <input
               className={inputClass}
