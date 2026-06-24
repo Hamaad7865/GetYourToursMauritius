@@ -1,5 +1,7 @@
 'use client';
 
+/* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
+
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -14,6 +16,8 @@ interface Row {
   category: string;
   type: string;
   status: string;
+  /** The tour's first gallery photo (lowest `position`), or null if it has none yet. */
+  imageUrl: string | null;
 }
 
 /** A deterministic teal→ink gradient per card, so the grid reads like the mockup even before
@@ -36,13 +40,22 @@ export function AdminActivities() {
   const [category, setCategory] = useState('all');
 
   const load = useCallback(async () => {
+    // Pull each tour's gallery photos alongside the row so the card can show the first one as its
+    // thumbnail. We only need url + position; the lowest position is the gallery's lead image.
     const { data, error } = await getBrowserSupabase()
       .from('activities')
-      .select('id, slug, title, category, type, status')
+      .select('id, slug, title, category, type, status, activity_images(url, position)')
       .order('created_at', { ascending: false })
-      .returns<Row[]>();
+      .returns<Array<Omit<Row, 'imageUrl'> & { activity_images: { url: string; position: number }[] | null }>>();
     if (error) setError(error.message);
-    else setRows(data ?? []);
+    else
+      setRows(
+        (data ?? []).map(({ activity_images, ...rest }) => ({
+          ...rest,
+          imageUrl:
+            (activity_images ?? []).slice().sort((a, b) => a.position - b.position)[0]?.url ?? null,
+        })),
+      );
   }, []);
 
   useEffect(() => {
@@ -203,8 +216,20 @@ export function AdminActivities() {
               key={row.id}
               className="flex flex-col overflow-hidden rounded-2xl border border-[#EAEEF0] bg-white shadow-[0_1px_2px_rgba(10,46,54,.04)] transition-shadow hover:shadow-[0_18px_34px_-20px_rgba(10,46,54,.34)]"
             >
-              <div className="relative flex aspect-[16/10] items-center justify-center" style={{ background: grad(row.category) }}>
-                <IconTag width={30} height={30} className="text-white/90" />
+              <div className="relative aspect-[16/10] overflow-hidden" style={{ background: grad(row.category) }}>
+                {row.imageUrl ? (
+                  <img
+                    src={row.imageUrl}
+                    alt=""
+                    loading="lazy"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  // No photo yet — keep the branded gradient + icon placeholder.
+                  <div className="flex h-full w-full items-center justify-center">
+                    <IconTag width={30} height={30} className="text-white/90" />
+                  </div>
+                )}
                 <span
                   className={`absolute left-3 top-3 rounded-md px-2 py-1 text-[11px] font-bold ${
                     row.status === 'published' ? 'bg-white/95 text-emerald-700' : 'bg-white/95 text-amber-700'
