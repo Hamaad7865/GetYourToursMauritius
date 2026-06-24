@@ -50,6 +50,8 @@ export async function createBooking(
     childSeats: input.childSeats ?? 0,
     dropoffSlug: input.dropoffSlug ?? null,
     dropoffArea: input.dropoffArea ?? null,
+    pickupSlug: input.pickupSlug ?? null,
+    pickupArea: input.pickupArea ?? null,
     tripType: input.tripType ?? null,
     tripDirection: input.tripDirection ?? null,
     flightNumber: input.flightNumber ?? null,

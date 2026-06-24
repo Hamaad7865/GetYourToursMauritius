@@ -58,6 +58,12 @@ export const createBookingInputSchema = z.object({
   /** Airport transfer: the free-text drop-off AREA for the "my hotel isn't listed" path. The SERVER
    *  classifies the zone from it (Zone 2 = near-airport south-east) — never a client-sent price. */
   dropoffArea: z.string().trim().max(120).nullish(),
+  /** Hotel-to-hotel transfer: the PICKUP hotel page slug. The SERVER looks up the pickup region from it
+   *  and recomputes the band fare — it never trusts a client-sent region or price. */
+  pickupSlug: z.string().trim().max(120).nullish(),
+  /** Hotel-to-hotel transfer: the free-text PICKUP area for an unlisted pickup. The SERVER classifies
+   *  the region from it (area_region) — never a client-sent price. */
+  pickupArea: z.string().trim().max(120).nullish(),
   /** Airport transfer trip type (priced). Return = two legs minus the configured discount (server-side). */
   tripType: z.enum(['one_way', 'return']).optional(),
   /** Airport transfer trip DIRECTION (customer-facing). arrival/departure = one leg, return = both. The
