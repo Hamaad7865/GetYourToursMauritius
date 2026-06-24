@@ -10,6 +10,14 @@ export const metadata: Metadata = {
   description:
     'Rent a car or scooter on Mauritius with Belle Mare Tours. Free delivery to your hotel on the east coast, full insurance, and local support throughout your stay.',
   alternates: { canonical: '/rent' },
+  openGraph: {
+    type: 'website',
+    url: `${SITE.url}/rent`,
+    title: `Car & Scooter Rental in Mauritius | ${SITE.operator}`,
+    description:
+      'Rent a car or scooter on Mauritius with Belle Mare Tours — free hotel delivery, full insurance and local support throughout your stay.',
+    locale: 'en_GB',
+  },
 };
 
 export default async function RentPage() {

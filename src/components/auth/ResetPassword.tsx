@@ -105,7 +105,7 @@ export function ResetPassword() {
             {t('This reset link is invalid or has expired. Please request a new one.')}
           </p>
           <Link href="/" className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark">
-            {t('Back to sign in')}
+            {t('Back to home')}
           </Link>
         </div>
       </div>

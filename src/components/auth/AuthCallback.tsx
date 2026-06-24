@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 
@@ -93,9 +94,9 @@ export function AuthCallback() {
       {error ? (
         <div>
           <p className="text-sm font-medium text-coral">{error}</p>
-          <a href="/account" className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark">
-            Back to sign in
-          </a>
+          <Link href="/" className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark">
+            Back to home
+          </Link>
         </div>
       ) : (
         <p className="text-sm font-medium text-ink-muted">Signing you in…</p>

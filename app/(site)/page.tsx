@@ -9,6 +9,7 @@ import { FeaturedReviews } from '@/components/site/FeaturedReviews';
 import { PopularSearches } from '@/components/site/PopularSearches';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
+import { SITE } from '@/lib/seo/site';
 import type { TourSummary } from '@/lib/validation/tours';
 
 export const runtime = 'edge';
@@ -33,6 +34,7 @@ export const metadata: Metadata = {
   alternates: { canonical: '/' },
   openGraph: {
     type: 'website',
+    url: `${SITE.url}/`,
     title: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi',
     description:
       'Book Mauritius tours, activities, sightseeing and airport taxi transfers direct with Belle Mare Tours — transparent pricing, instant confirmation, no reseller markup.',
