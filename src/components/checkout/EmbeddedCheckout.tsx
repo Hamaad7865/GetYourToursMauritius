@@ -187,20 +187,24 @@ export function EmbeddedCheckout({
     );
   }
 
-  // Peach's widget injects an iframe into #payment-form. Give the target an explicit height (inline,
-  // so it can't be purged or overridden) and force the iframe to fill it — otherwise the card fields
-  // and Pay button get squeezed into a short inner scroll area.
+  // Peach's checkout.js injects an iframe into #payment-form. We give the target (and the iframe) a
+  // comfortable MINIMUM height — enough so it never collapses to the 150px iframe default that squeezed
+  // the card form into a tiny inner scroll — but we DON'T pin a fixed height. A hard height kept the
+  // widget's "Secured by Peach" footer anchored to the bottom, ballooning a big empty gap between Apple
+  // Pay and the card form (the "scroll down too much" symptom). With a floor instead, the iframe sizes
+  // to its own content (and grows when the card accordion expands), so it stays snug.
   return (
     <>
       <style>{PEACH_WIDGET_CSS}</style>
-      <div id="payment-form" className="w-full" style={{ height: 1000 }} />
+      <div id="payment-form" className="w-full" style={{ minHeight: MIN_WIDGET_HEIGHT }} />
     </>
   );
 }
 
-// Peach's widget has no auto-resize: it fills its target via height:100%. So the target must be tall
-// enough for the WHOLE card + billing form, else the form gets its own inner scrollbar on top of the
-// page's. We size the target and let every wrapper fill it (one chain, one page scrollbar).
+// One floor height shared by the target, Peach's wrapper div and its iframe, so none of them collapse
+// before/while the widget loads — but nothing is pinned, so there's no stretched gap. If the expanded
+// card form ever needs a touch more room than this, raise the single number below.
+const MIN_WIDGET_HEIGHT = 600;
 const PEACH_WIDGET_CSS = `
-#payment-form > div { height: 1000px !important; overflow: visible !important; }
-#payment-form iframe { display: block; width: 100% !important; height: 1000px !important; border: 0; }`;
+#payment-form, #payment-form > div { min-height: ${MIN_WIDGET_HEIGHT}px; overflow: visible !important; }
+#payment-form iframe { display: block; width: 100% !important; min-height: ${MIN_WIDGET_HEIGHT}px; border: 0; }`;
