@@ -234,3 +234,73 @@ export async function updateAirportReturnDiscount(pct: number): Promise<void> {
     .eq('id', true);
   if (error) throw error;
 }
+
+/* Hotel-to-hotel transfers — the distance-BAND × vehicle fare matrix + its own return-trip discount %.
+ * Three fare rows (Same / Near / Far, staff-editable via RLS) keyed on band, plus a single-row config.
+ * These are full-transfer prices and are tuned independently of the airport matrix and the per-tour
+ * transport add-on. The same shape as `airport_transfer_fare`, keyed on band instead of zone. */
+export interface HotelTransferFareInput {
+  band: ZoneBand;
+  sedanEur: number;
+  suvEur: number;
+  familyEur: number;
+  vanEur: number;
+  coasterEur: number;
+}
+
+/** Human label for each distance band, shown in the admin grid. */
+export const HOTEL_BAND_LABEL: Record<ZoneBand, string> = {
+  same: 'Same area — short hop',
+  near: 'Nearby coast',
+  far: 'Across the island',
+};
+
+export async function loadHotelTransferFares(): Promise<HotelTransferFareInput[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('hotel_transfer_fare')
+    .select('band, sedan_minor, suv_minor, family_minor, van_minor, coaster_minor');
+  if (error) throw error;
+  return (data ?? [])
+    .map((r) => ({
+      band: r.band,
+      sedanEur: r.sedan_minor / 100,
+      suvEur: r.suv_minor / 100,
+      familyEur: r.family_minor / 100,
+      vanEur: r.van_minor / 100,
+      coasterEur: r.coaster_minor / 100,
+    }))
+    .sort((a, b) => BAND_ORDER.indexOf(a.band) - BAND_ORDER.indexOf(b.band));
+}
+
+export async function updateHotelTransferFare(input: HotelTransferFareInput): Promise<void> {
+  const { error } = await getBrowserSupabase()
+    .from('hotel_transfer_fare')
+    .update({
+      sedan_minor: eurToMinor(input.sedanEur),
+      suv_minor: eurToMinor(input.suvEur),
+      family_minor: eurToMinor(input.familyEur),
+      van_minor: eurToMinor(input.vanEur),
+      coaster_minor: eurToMinor(input.coasterEur),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('band', input.band);
+  if (error) throw error;
+}
+
+export async function loadHotelTransferReturnDiscount(): Promise<number> {
+  const { data, error } = await getBrowserSupabase()
+    .from('hotel_transfer_config')
+    .select('return_discount_pct')
+    .eq('id', true)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.return_discount_pct ?? 10;
+}
+
+export async function updateHotelTransferReturnDiscount(pct: number): Promise<void> {
+  const { error } = await getBrowserSupabase()
+    .from('hotel_transfer_config')
+    .update({ return_discount_pct: Math.max(0, Math.min(90, Math.round(pct))), updated_at: new Date().toISOString() })
+    .eq('id', true);
+  if (error) throw error;
+}

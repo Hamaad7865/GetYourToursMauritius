@@ -16,12 +16,18 @@ import {
   loadAirportReturnDiscount,
   updateAirportReturnDiscount,
   AIRPORT_ZONE_LABEL,
+  loadHotelTransferFares,
+  updateHotelTransferFare,
+  loadHotelTransferReturnDiscount,
+  updateHotelTransferReturnDiscount,
+  HOTEL_BAND_LABEL,
   type PlannerPricingInput,
   type SightseeingPricingInput,
   type TransportBandInput,
   type RegionPairInput,
   type ZoneBand,
   type AirportFareInput,
+  type HotelTransferFareInput,
 } from '@/lib/admin/vehicle-pricing';
 import { AdminHeading, AdminError, BTN_PRIMARY } from '@/components/admin/ui';
 
@@ -83,19 +89,23 @@ export function AdminVehiclePricing() {
   const [pairs, setPairs] = useState<RegionPairInput[] | null>(null);
   const [airFares, setAirFares] = useState<AirportFareInput[] | null>(null);
   const [airReturnPct, setAirReturnPct] = useState<number | null>(null);
+  const [hotelFares, setHotelFares] = useState<HotelTransferFareInput[] | null>(null);
+  const [hotelReturnPct, setHotelReturnPct] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [s, p, tb, rd, af, rp] = await Promise.all([
+      const [s, p, tb, rd, af, rp, hf, hrp] = await Promise.all([
         loadSightseeingPricing(),
         loadPlannerPricing(),
         loadTransportBands(),
         loadRegionDistances(),
         loadAirportFares(),
         loadAirportReturnDiscount(),
+        loadHotelTransferFares(),
+        loadHotelTransferReturnDiscount(),
       ]);
       setSight(s);
       setPlanner(p);
@@ -103,6 +113,8 @@ export function AdminVehiclePricing() {
       setPairs(rd);
       setAirFares(af);
       setAirReturnPct(rp);
+      setHotelFares(hf);
+      setHotelReturnPct(hrp);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load pricing.');
@@ -121,6 +133,9 @@ export function AdminVehiclePricing() {
   }
   function patchFare(i: number, patch: Partial<AirportFareInput>) {
     setAirFares((cur) => cur && cur.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
+  }
+  function patchHotelFare(i: number, patch: Partial<HotelTransferFareInput>) {
+    setHotelFares((cur) => cur && cur.map((f, idx) => (idx === i ? { ...f, ...patch } : f)));
   }
 
   async function run(which: string, fn: () => Promise<void>) {
@@ -383,6 +398,103 @@ export function AdminVehiclePricing() {
                 {busy ? 'Saving…' : 'Save transfer fares'}
               </button>
               {saved === 'airport' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 text-sm text-ink-muted">Loading…</p>
+        )}
+      </section>
+
+      {/* Hotel-to-hotel transfers */}
+      <section className="mt-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
+        <h2 className="text-[15px] font-extrabold text-ink">Hotel-to-hotel transfers</h2>
+        <p className="mt-0.5 text-[13px] text-ink-muted">
+          Fixed private transfer between two hotels, priced by how far apart the two coasts are (Same /
+          Nearby / Across the island) and the vehicle the party needs. The return discount applies when a
+          traveller books the return leg at the same time. Independent of the airport matrix above.
+        </p>
+        {hotelFares ? (
+          <div className="mt-4">
+            <p className="mb-3 max-w-2xl text-[12px] text-ink-muted">
+              The band is derived from the two hotels’ regions using the same Region distances set in the
+              transport add-on above. Prices are per vehicle, fixed, in EUR.
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-sm">
+                <caption className="sr-only">Hotel-to-hotel transfer fares by distance band and vehicle, in euros</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60">
+                      Distance
+                    </th>
+                    {AIRPORT_VEHICLES.map((v) => (
+                      <th key={v.key} scope="col" className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60">
+                        {v.label}
+                        <span className="block font-medium text-ink-muted">{v.hint}</span>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {hotelFares.map((f, i) => (
+                    <tr key={f.band} className="border-t border-[#EAEEF0]">
+                      <th scope="row" className="px-2 py-2.5 text-left align-middle text-[13px] font-bold text-ink">
+                        {HOTEL_BAND_LABEL[f.band]}
+                      </th>
+                      {AIRPORT_VEHICLES.map((v) => (
+                        <td key={v.key} className="px-2 py-2.5 align-middle">
+                          <span className="flex items-center gap-1">
+                            <span className="text-sm text-ink-muted">€</span>
+                            <input
+                              type="number"
+                              min={0}
+                              step="1"
+                              className={inputClass}
+                              aria-label={`${HOTEL_BAND_LABEL[f.band]} — ${v.label} fare in euros`}
+                              value={Number.isFinite(f[v.key]) ? f[v.key] : ''}
+                              onChange={(e) => patchHotelFare(i, { [v.key]: e.target.value ? Number(e.target.value) : 0 })}
+                            />
+                          </span>
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <label className="mt-4 flex max-w-md items-center justify-between gap-3 py-1.5">
+              <span className="text-sm text-ink">
+                Return discount <span className="text-ink-muted">· % off the two legs</span>
+              </span>
+              <span className="flex items-center gap-1">
+                <input
+                  type="number"
+                  min={0}
+                  max={90}
+                  step="1"
+                  className={inputClass}
+                  aria-label="Hotel-to-hotel return discount percentage off the two legs"
+                  value={hotelReturnPct ?? 0}
+                  onChange={(e) => setHotelReturnPct(e.target.value ? Number(e.target.value) : 0)}
+                />
+                <span className="text-sm text-ink-muted">%</span>
+              </span>
+            </label>
+            <div className="mt-4 flex items-center gap-3">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run('hotel', async () => {
+                    for (const f of hotelFares) await updateHotelTransferFare(f);
+                    if (hotelReturnPct != null) await updateHotelTransferReturnDiscount(hotelReturnPct);
+                  })
+                }
+                className={BTN_PRIMARY}
+              >
+                {busy ? 'Saving…' : 'Save hotel-to-hotel fares'}
+              </button>
+              {saved === 'hotel' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
             </div>
           </div>
         ) : (

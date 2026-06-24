@@ -10,7 +10,7 @@ import { RevealOnScroll } from '@/components/about/RevealOnScroll';
 import { HeroWaves } from '@/components/about/HeroWaves';
 import { TransferSearch } from '@/components/transfers/TransferSearch';
 import { HotelMap } from '@/components/transfers/HotelMap';
-import { AirportQuote } from '@/components/transfers/AirportQuote';
+import { TransferModeSwitch } from '@/components/transfers/TransferModeSwitch';
 import { TransferReviews } from '@/components/transfers/TransferReviews';
 import {
   AIRPORT_FARE_DEFAULT,
@@ -365,11 +365,11 @@ export default function AirportTransfersPage() {
                 Get your fixed fare in seconds.
               </h2>
               <p className="m-0" style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.55, color: INK_BODY }}>
-                Search your hotel and pick your vehicle — your transparent EUR price appears instantly, no waiting around for a quote.
+                Pick your route and vehicle — airport-to-hotel or hotel-to-hotel — and your transparent EUR price appears instantly, no waiting around for a quote.
               </p>
             </div>
             <div data-reveal>
-              <AirportQuote />
+              <TransferModeSwitch />
             </div>
           </div>
         </section>
