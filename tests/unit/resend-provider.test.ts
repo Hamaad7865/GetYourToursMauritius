@@ -120,4 +120,23 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
     expect(body.subject).toBe('Pre-rendered subject');
     expect(body.text).toBe('Pre-rendered text');
   });
+
+  it('renders the booking_expired template with the ref + customer name', async () => {
+    const { calls } = mockFetch();
+
+    const message: NotificationMessage = {
+      id: 'n4',
+      channel: 'email',
+      recipient: 'guest@example.com',
+      template: 'booking_expired',
+      payload: { ref: 'BMT-42', customerName: 'Noor' },
+    };
+
+    await new ResendNotificationProvider(CONFIG).send(message);
+
+    const { body } = onlyCall(calls);
+    expect(String(body.subject)).toContain('BMT-42');
+    expect(String(body.subject).toLowerCase()).toContain('expired');
+    expect(String(body.text)).toContain('Noor');
+  });
 });

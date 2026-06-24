@@ -31,6 +31,12 @@ function render(message: NotificationMessage): { subject: string; text: string }
       text: `${name} cancelled booking ${ref}${total}. It is now refund_pending and the seat has been released.\n\nRefund it in the Peach dashboard, then mark it refunded in admin.\n\nBelle Mare Tours (internal alert)`,
     };
   }
+  if (message.template === 'booking_expired') {
+    return {
+      subject: `Your Belle Mare Tours reservation ${ref} has expired`,
+      text: `Hi ${name},\n\nYour reservation ${ref} wasn't paid in time, so we've released the seats. If you'd still like to go, just book again on our website — it only takes a minute.\n\nBelle Mare Tours`,
+    };
+  }
   return { subject: `Belle Mare Tours — ${message.template}`, text: `Reference: ${ref}` };
 }
 
