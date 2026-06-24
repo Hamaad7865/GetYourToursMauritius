@@ -34,6 +34,7 @@ export function ItineraryPanel({
   route,
   quote,
   onAddPlaces,
+  dayFull,
   onRemove,
   onMove,
   onQuote,
@@ -52,6 +53,8 @@ export function ItineraryPanel({
   route: PlannerRouteCalc;
   quote: PlannerQuote | null;
   onAddPlaces: () => void;
+  /** True when the day is at the 6-stop cap — disables "Add places". */
+  dayFull: boolean;
   onRemove: (id: string) => void;
   onMove: (from: number, to: number) => void;
   onQuote: () => void;
@@ -76,9 +79,15 @@ export function ItineraryPanel({
         <button
           type="button"
           onClick={onAddPlaces}
-          className="cursor-pointer rounded-[10px] border border-[#E3EEEC] bg-teal-tint px-3 py-2 text-[12.5px] font-bold text-teal-dark"
+          disabled={dayFull}
+          aria-label={dayFull ? t('Your day is full') : undefined}
+          className={`rounded-[10px] border px-3 py-2 text-[12.5px] font-bold ${
+            dayFull
+              ? 'cursor-default border-[#EEF1F0] bg-[#F4F8F7] text-ink-muted'
+              : 'cursor-pointer border-[#E3EEEC] bg-teal-tint text-teal-dark'
+          }`}
         >
-          {t('+ Add places')}
+          {dayFull ? t('Day full') : t('+ Add places')}
         </button>
       </div>
 

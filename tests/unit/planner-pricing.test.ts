@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  PLANNER_DEFAULT,
-  placeCountWarning,
-  plannerQuote,
-  type PlannerPricing,
-} from '@/lib/planner/pricing';
+import { PLANNER_DEFAULT, plannerQuote, type PlannerPricing } from '@/lib/planner/pricing';
 
 /**
  * The planner's flat per-vehicle pricing is a PARALLEL path to sightseeing pricing — its own
@@ -38,15 +33,5 @@ describe('plannerQuote', () => {
   it('rejects a party outside 1..maxParty', () => {
     expect(() => plannerQuote(0, false, CFG)).toThrow();
     expect(() => plannerQuote(23, false, CFG)).toThrow();
-  });
-});
-
-describe('placeCountWarning', () => {
-  it('is null for five or fewer stops', () => {
-    expect(placeCountWarning(0)).toBeNull();
-    expect(placeCountWarning(5)).toBeNull();
-  });
-  it('warns at six or more stops', () => {
-    expect(placeCountWarning(6)).toMatch(/more than 5 places/i);
   });
 });

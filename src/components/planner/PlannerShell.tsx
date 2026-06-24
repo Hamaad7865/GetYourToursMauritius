@@ -16,7 +16,8 @@ import { TrustSection } from './TrustSection';
 import { FaqSection } from './FaqSection';
 import { PICKUPS, PRESETS, fmtDur, type PlannerPoint } from './planner-constants';
 import { computePlannerRoute } from '@/lib/planner/route';
-import { plannerQuote, placeCountWarning, type PlannerQuote } from '@/lib/planner/pricing';
+import { plannerQuote, type PlannerQuote } from '@/lib/planner/pricing';
+import { addBlockReason, dayRegionLabel, MAX_STOPS } from '@/lib/planner/constraints';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { stopsToParam } from '@/lib/planner/share';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
@@ -85,6 +86,21 @@ export function PlannerShell() {
     [stopIds, catalog],
   );
   const stopIndex = useMemo(() => new Map(stops.map((p, i) => [p.id, i])), [stops]);
+  // Region guardrail inputs: the regions currently in the day, and whether the day is at the 6-stop cap.
+  const dayRegions = useMemo(() => stops.map((s) => s.region), [stops]);
+  const dayFull = stops.length >= MAX_STOPS;
+  const blockedMessage = useCallback(
+    (reason: 'full' | 'far-region', name: string) => {
+      const region = dayRegionLabel(dayRegions);
+      return reason === 'full'
+        ? t('Your day is full at {max} stops — remove one to add {name}.', { max: MAX_STOPS, name })
+        : t('{name} is too far from your {region} day — that would be a separate trip. Try somewhere closer.', {
+            name,
+            region: region ?? t('current'),
+          });
+    },
+    [dayRegions, t],
+  );
   // The day ends back at the pickup unless the customer chose a distinct drop-off (one-way).
   const dropoffDiffers = !!dropoff && dropoff.id !== pickup.id;
   const route = useMemo(
@@ -288,16 +304,36 @@ export function PlannerShell() {
   }, [stopIds]);
 
   // ── stop ops ──
-  const addStopId = useCallback((id: string) => {
+  // Raw committer (no guards) — used by the guarded user/AI-driven adds below and trusted REPLACE paths.
+  const commitStopId = useCallback((id: string) => {
     setStopIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
     setHasBuilt(true);
   }, []);
+  // ChatCopilot "+ Add" on a place card. Guarded by the 6-stop cap + region rule; explains if blocked.
+  const addStopId = useCallback(
+    (id: string) => {
+      const place = catalog.get(id);
+      const reason = addBlockReason(place?.region ?? null, dayRegions);
+      if (reason) {
+        setChat((c) => [...c, { role: 'assistant', kind: 'text', text: blockedMessage(reason, place?.name ?? t('that place')) }]);
+        return;
+      }
+      commitStopId(id);
+    },
+    [catalog, dayRegions, blockedMessage, commitStopId, t],
+  );
+  // PlacesDrawer "+ Add". Same guard, using the place's own region/name.
   const addPlace = useCallback(
     (place: PlannerPlace) => {
+      const reason = addBlockReason(place.region, dayRegions);
+      if (reason) {
+        setChat((c) => [...c, { role: 'assistant', kind: 'text', text: blockedMessage(reason, place.name) }]);
+        return;
+      }
       addToCatalog([place]);
-      addStopId(place.id);
+      commitStopId(place.id);
     },
-    [addToCatalog, addStopId],
+    [addToCatalog, commitStopId, dayRegions, blockedMessage],
   );
   const removeStop = useCallback((id: string) => setStopIds((prev) => prev.filter((x) => x !== id)), []);
   const moveStop = useCallback((from: number, to: number) => {
@@ -351,13 +387,19 @@ export function PlannerShell() {
       const res = await fetch('/api/ai/trip-planner', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ messages: [...history, { role: 'user', content: trimmed }].slice(-40) }),
+        body: JSON.stringify({
+          messages: [...history, { role: 'user', content: trimmed }].slice(-12),
+          // The current day, so ZilAi keeps/modifies it (e.g. "add a beach") rather than replacing it.
+          itinerary: stops,
+        }),
       }).then((r) => r.json());
       setTyping(false);
       if (res.ok) {
         const reply: string = res.data.reply;
+        // Server already enforced the 6-stop cap + region rule; `places` is the coherent committed day
+        // (empty when the model refused a far request, in which case we leave the day untouched). The
+        // model's reply explains any rejected/dropped stops, so there's no separate warning to show.
         const places: PlannerPlace[] = Array.isArray(res.data.places) ? res.data.places : [];
-        const warning: string | null = res.data.warning ?? null;
         if (places.length) {
           addToCatalog(places);
           const ids = places.map((p) => p.id);
@@ -372,7 +414,6 @@ export function PlannerShell() {
         } else {
           setChat((c) => [...c, { role: 'assistant', kind: 'text', text: reply }]);
         }
-        if (warning) setChat((c) => [...c, { role: 'assistant', kind: 'text', text: warning }]);
       } else {
         setChat((c) => [...c, { role: 'assistant', kind: 'text', text: t("Sorry — I couldn't reach ZilAi just now. Browse places on the left and I'll keep the price live.") }]);
       }
@@ -500,7 +541,6 @@ export function PlannerShell() {
     ...stops.map((_, i) => i + 1),
     ...(dropoffDiffers ? ['D'] : []),
   ];
-  const warning = placeCountWarning(stops.length);
 
   const itinerary = (
     <ItineraryPanel
@@ -514,6 +554,7 @@ export function PlannerShell() {
       route={route}
       quote={quote}
       onAddPlaces={() => setDrawerOpen(true)}
+      dayFull={dayFull}
       onRemove={removeStop}
       onMove={moveStop}
       onQuote={() => setQuoteOpen(true)}
@@ -539,6 +580,7 @@ export function PlannerShell() {
       onBrowse={() => setDrawerOpen(true)}
       onQuote={() => setQuoteOpen(true)}
       onAddPlace={addStopId}
+      addReasonById={(id) => addBlockReason(catalog.get(id)?.region ?? null, dayRegions)}
     />
   );
   const map = (
@@ -551,7 +593,15 @@ export function PlannerShell() {
       className="h-full w-full"
     />
   );
-  const drawer = <PlacesDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} selectedIds={stopIds} onAdd={addPlace} />;
+  const drawer = (
+    <PlacesDrawer
+      open={drawerOpen}
+      onClose={() => setDrawerOpen(false)}
+      selectedIds={stopIds}
+      onAdd={addPlace}
+      addReason={(region) => addBlockReason(region, dayRegions)}
+    />
+  );
 
   return (
     <main className="min-h-screen bg-white">
@@ -619,17 +669,6 @@ export function PlannerShell() {
               </div>
               <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">{map}</div>
             </div>
-          </div>
-        )}
-
-        {warning && (
-          <div className="mx-auto max-w-shell px-[22px] pb-1 pt-3">
-            <p className="flex items-start gap-2 rounded-[12px] bg-gold/15 px-3 py-2 text-sm text-ink">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0" aria-hidden>
-                <path d="M12 9v4m0 3h.01M10.3 4l-7 12a2 2 0 0 0 1.7 3h14a2 2 0 0 0 1.7-3l-7-12a2 2 0 0 0-3.4 0Z" stroke="#C98A12" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              {warning}
-            </p>
           </div>
         )}
 

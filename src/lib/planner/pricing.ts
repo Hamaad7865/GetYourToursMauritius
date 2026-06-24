@@ -48,11 +48,3 @@ export function plannerQuote(people: number, suv: boolean, cfg: PlannerPricing):
   if (people <= 14) return { vehicle: 'Van', totalEur: cfg.vanEur };
   return { vehicle: 'Coach', totalEur: cfg.coachEur };
 }
-
-const MAX_COMFORTABLE_STOPS = 5;
-
-/** Soft warning when a day has too many stops; null within limits (adding is still allowed). */
-export function placeCountWarning(stopCount: number): string | null {
-  if (stopCount <= MAX_COMFORTABLE_STOPS) return null;
-  return "More than 5 places in one day is extremely hard — you won't have time to explore each site well.";
-}

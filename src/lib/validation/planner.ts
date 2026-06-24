@@ -32,6 +32,9 @@ export const plannerChatMessageSchema = z.object({
  *  inflates the billed Gemini token count per call. */
 export const plannerChatInputSchema = z.object({
   messages: z.array(plannerChatMessageSchema).min(1).max(12),
+  // The day the visitor currently has on screen (preloaded tour / preset / built earlier). Sent so the
+  // co-pilot can keep and modify it instead of rebuilding from scratch (which drops loaded stops).
+  itinerary: z.array(plannerPlaceSchema).max(12).optional(),
 });
 export type PlannerChatInput = z.infer<typeof plannerChatInputSchema>;
 

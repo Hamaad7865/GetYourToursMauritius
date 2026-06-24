@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
+import type { AddBlockReason } from '@/lib/planner/constraints';
 import { PLACE_CATEGORIES, PLACE_REGIONS, ratingFor } from './planner-constants';
 import { Thumb } from './Thumb';
 import { useT } from '@/components/site/PreferencesProvider';
@@ -13,11 +14,14 @@ export function PlacesDrawer({
   onClose,
   selectedIds,
   onAdd,
+  addReason,
 }: {
   open: boolean;
   onClose: () => void;
   selectedIds: string[];
   onAdd: (place: PlannerPlace) => void;
+  /** Why a place can't be added right now (day full / too far), or null when it can. */
+  addReason: (region: string | null) => AddBlockReason;
 }) {
   const t = useT();
   const [search, setSearch] = useState('');
@@ -146,6 +150,11 @@ export function PlacesDrawer({
         ) : (
           results.map((p) => {
             const added = selected.has(p.id);
+            const reason = added ? null : addReason(p.region);
+            const blocked = reason !== null;
+            const label = added ? t('✓ Added') : reason === 'full' ? t('Day full') : reason === 'far-region' ? t('Too far') : t('+ Add');
+            const ariaLabel =
+              reason === 'full' ? t('Your day is full') : reason === 'far-region' ? t('{name} is too far from your day', { name: p.name }) : t('Add {name}', { name: p.name });
             return (
               <div key={p.id} className="flex gap-3 rounded-[14px] border border-[#EAF2F1] bg-white p-2.5 shadow-[0_3px_10px_rgba(10,46,54,.04)]">
                 <Thumb place={p} size={64} />
@@ -173,13 +182,13 @@ export function PlacesDrawer({
                 <button
                   type="button"
                   onClick={() => onAdd(p)}
-                  disabled={added}
-                  aria-label={t('Add {name}', { name: p.name })}
+                  disabled={added || blocked}
+                  aria-label={ariaLabel}
                   className={`shrink-0 self-center rounded-[10px] px-3.5 py-[9px] text-[13px] font-bold ${
-                    added ? 'cursor-default bg-[#EAF2F1] text-ink-muted' : 'cursor-pointer bg-coral text-white'
+                    added || blocked ? 'cursor-default bg-[#EAF2F1] text-ink-muted' : 'cursor-pointer bg-coral text-white'
                   }`}
                 >
-                  {added ? t('✓ Added') : t('+ Add')}
+                  {label}
                 </button>
               </div>
             );

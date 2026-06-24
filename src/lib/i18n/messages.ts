@@ -318,6 +318,16 @@ export const fr: Record<string, string> = {
   "{n} stops planned": "{n} arrêts prévus",
   "No stops yet": "Aucun arrêt pour l’instant",
   "+ Add places": "+ Ajouter des lieux",
+  "Day full": "Journée complète",
+  "Too far": "Trop loin",
+  "Your day is full": "Votre journée est complète",
+  "{name} is too far from your day": "{name} est trop loin de votre journée",
+  "Your day is full at {max} stops — remove one to add {name}.":
+    "Votre journée est complète à {max} arrêts — retirez-en un pour ajouter {name}.",
+  "{name} is too far from your {region} day — that would be a separate trip. Try somewhere closer.":
+    "{name} est trop loin de votre journée dans le {region} — ce serait une excursion à part. Essayez un lieu plus proche.",
+  "current": "actuelle",
+  "that place": "ce lieu",
   "Pick-up": "Prise en charge",
   "Drop-off": "Dépose",
   "Same as pick-up": "Identique à la prise en charge",

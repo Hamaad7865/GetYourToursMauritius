@@ -81,17 +81,34 @@ describe('resolveItinerary', () => {
     expect(r.unknownIds).toEqual(['missing']);
   });
 
-  it('warns past five stops', async () => {
+  it('rejects a far-region stop while keeping the existing day, routing only the kept places', async () => {
+    const f = vi.fn();
+    vi.stubGlobal('fetch', f);
+    const south = place('s1', -20.45, 57.31); // region South
+    const north: PlannerPlace = { ...place('n1', -20.0, 57.6), region: 'North' };
+    const discovered = new Map([
+      ['s1', south],
+      ['n1', north],
+    ]);
+    const r = await resolveItinerary(['s1', 'n1'], discovered, null, [south]);
+    expect(r.places.map((p) => p.id)).toEqual(['s1']);
+    expect(r.rejectedFarRegion.map((p) => p.id)).toEqual(['n1']);
+    expect(r.droppedOverCap).toEqual([]);
+    expect(r.route.legs).toHaveLength(0); // single kept stop → no driving legs
+    expect(f).not.toHaveBeenCalled(); // no key → no fetch
+  });
+
+  it('drops stops over the 6-stop cap', async () => {
     vi.stubGlobal('fetch', vi.fn());
     const discovered = new Map<string, PlannerPlace>();
     const ids: string[] = [];
-    for (let i = 0; i < 6; i += 1) {
+    for (let i = 0; i < 7; i += 1) {
       const id = `s${i}`;
       ids.push(id);
-      discovered.set(id, place(id, -20.4 - i * 0.01, 57.3 + i * 0.01));
+      discovered.set(id, place(id, -20.45 - i * 0.001, 57.3 + i * 0.001)); // all South
     }
     const r = await resolveItinerary(ids, discovered, null);
     expect(r.places).toHaveLength(6);
-    expect(r.warning).toMatch(/more than 5 places/i);
+    expect(r.droppedOverCap.map((p) => p.id)).toEqual(['s6']);
   });
 });

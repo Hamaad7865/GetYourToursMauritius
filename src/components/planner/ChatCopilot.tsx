@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import type { PlannerPlace } from '@/lib/validation/planner';
+import type { AddBlockReason } from '@/lib/planner/constraints';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
 import type { ChatMsg, Boost } from './types';
@@ -43,6 +44,7 @@ export function ChatCopilot({
   onBrowse,
   onQuote,
   onAddPlace,
+  addReasonById,
 }: {
   messages: ChatMsg[];
   typing: boolean;
@@ -60,6 +62,8 @@ export function ChatCopilot({
   onBrowse: () => void;
   onQuote: () => void;
   onAddPlace: (id: string) => void;
+  /** Why a suggested place can't be added right now (day full / too far), or null when it can. */
+  addReasonById: (id: string) => AddBlockReason;
 }) {
   const t = useT();
   const [draft, setDraft] = useState('');
@@ -107,9 +111,18 @@ export function ChatCopilot({
           {added ? (
             <span className="text-xs font-bold text-teal">{t('✓ Added')}</span>
           ) : (
-            <button type="button" onClick={() => onAddPlace(id)} className="cursor-pointer rounded-[9px] bg-coral px-[13px] py-[7px] text-[12.5px] font-bold text-white">
-              {t('+ Add')}
-            </button>
+            (() => {
+              const reason = addReasonById(id);
+              if (reason)
+                return (
+                  <span className="text-xs font-bold text-ink-muted">{reason === 'full' ? t('Day full') : t('Too far')}</span>
+                );
+              return (
+                <button type="button" onClick={() => onAddPlace(id)} className="cursor-pointer rounded-[9px] bg-coral px-[13px] py-[7px] text-[12.5px] font-bold text-white">
+                  {t('+ Add')}
+                </button>
+              );
+            })()
           )}
         </div>
       </div>
