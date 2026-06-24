@@ -6785,8 +6785,9 @@ begin
 end;
 $$;
 
--- 8) booking_json: re-applied from its WINNING body (20260732000000) VERBATIM, plus pickupHotelSlug so the
---    run sheet / confirmation / admin drawer can show the hotel-to-hotel pickup.
+-- 8) booking_json: re-applied from its WINNING body (20260733000000_cancel_booking — keeping its
+--    `cancellable` field) VERBATIM, plus pickupHotelSlug so the run sheet / confirmation / admin drawer
+--    can show the hotel-to-hotel pickup. (Rebase drift guard — do NOT drop `cancellable`.)
 create or replace function booking_json(p_booking_id uuid)
 returns jsonb
 language sql
@@ -6821,6 +6822,15 @@ as $$
     'travellerCompany', b.traveller_company,
     'travellerCountry', b.traveller_country,
     'specialNotes', b.special_notes,
+    'cancellable', (
+      b.status = 'confirmed' and b.payment_state = 'paid'
+      and coalesce((
+        select min(so.starts_at)
+          from booking_items bi
+          join session_occurrences so on so.id = bi.session_occurrence_id
+         where bi.booking_id = b.id
+      ), 'epoch'::timestamptz) > now() + interval '24 hours'
+    ),
     'items', coalesce((
       select jsonb_agg(jsonb_build_object(
         'priceLabel', bi.price_label, 'quantity', bi.quantity, 'pax', bi.pax,
