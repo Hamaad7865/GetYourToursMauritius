@@ -192,7 +192,7 @@ export const fr: Record<string, string> = {
   "Breadcrumb": "Fil d’Ariane",
   "Activity provider:": "Prestataire de l’activité :",
   "Itinerary": "Itinéraire",
-  "Make this tour your own": "Composez votre propre excursion",
+  "Customize your own tour": "Composez votre propre excursion",
   "AI Planner": "Planificateur IA",
   "Send these stops to the AI Trip Planner — add, drop or reorder them, then get a live quote.": "Envoyez ces étapes au planificateur de voyage IA — ajoutez, retirez ou réorganisez-les, puis obtenez un devis en direct.",
   "For reference only. Itineraries are subject to change.": "À titre indicatif uniquement. Les itinéraires sont susceptibles d’être modifiés.",

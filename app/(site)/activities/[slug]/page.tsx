@@ -255,7 +255,7 @@ export default async function ActivityDetailPage({
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
-                          <b className="text-[15px] text-ink">{t('Make this tour your own')}</b>
+                          <b className="text-[15px] text-ink">{t('Customize your own tour')}</b>
                           <span className="rounded-full bg-coral/15 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-coral">
                             {t('AI Planner')}
                           </span>
