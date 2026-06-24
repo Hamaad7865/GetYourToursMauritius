@@ -404,3 +404,81 @@ export function airportTransferQuote(
 ): number {
   return centsToEur(airportTransferQuoteMinor(zone, pax, suv, tripType, fares, returnDiscountPct));
 }
+
+// ── Hotel-to-hotel transfers (region-pair distance band × vehicle) ────────────
+// A FIXED point-to-point transfer between two hotels, priced by the DISTANCE BAND between their regions
+// (same / near / far) × vehicle bracket, one-way or return. Reuses regionDistanceBand() + the vehicle
+// brackets. The SQL (hotel_transfer_fare_minor + region_distance_band + the return discount in api_book)
+// is AUTHORITATIVE; everything below mirrors it cent-for-cent for the quote console. Hotel-to-hotel has
+// its OWN owner-tunable fare table (full-transfer prices), distinct from the cheaper per-tour add-on
+// TRANSPORT_BANDS_DEFAULT. All amounts are integer minor units (EUR cents).
+
+/** Hotel-to-hotel band fares (one row per band) — same shape as the transport bands, different values. */
+export type HotelTransferFareByBand = Record<string, TransportBandFare>;
+
+/** Defaults mirroring the migration seed — fallback + unit tests. Placeholders until the owner sets the
+ *  real Same/Near/Far rates in the admin screen. */
+export const HOTEL_TRANSFER_FARE_DEFAULT: HotelTransferFareByBand = {
+  same: { sedanMinor: 2500, suvMinor: 3500, familyMinor: 4000, vanMinor: 6500, coasterMinor: 11000 },
+  near: { sedanMinor: 4000, suvMinor: 5200, familyMinor: 6000, vanMinor: 9500, coasterMinor: 16000 },
+  far: { sedanMinor: 6000, suvMinor: 7500, familyMinor: 8500, vanMinor: 13000, coasterMinor: 22000 },
+};
+
+/** Default return-trip discount (%) — mirrors hotel_transfer_config.return_discount_pct. */
+export const HOTEL_TRANSFER_RETURN_DISCOUNT_PCT_DEFAULT = 10;
+
+/** One-way hotel-transfer fare in MINOR units for an already-classified band, mirroring
+ *  hotel_transfer_fare_minor() cent-for-cent (Sedan ≤4 / Family ≤6 / Van ≤14 / Coaster ≤25, ×ceil above
+ *  25; SUV is the ≤4 upgrade). Returns 0 when the band/party is missing. */
+export function hotelTransferFareMinor(
+  band: string | null,
+  pax: number,
+  suv: boolean,
+  fares: HotelTransferFareByBand,
+): number {
+  if (!band || !Number.isFinite(pax) || pax < 1) return 0;
+  const row = fares[band];
+  if (!row) return 0;
+  if (pax <= 4) return suv ? row.suvMinor : row.sedanMinor;
+  if (pax <= 6) return row.familyMinor;
+  if (pax <= 14) return row.vanMinor;
+  if (pax <= 25) return row.coasterMinor;
+  return row.coasterMinor * Math.ceil(pax / 25);
+}
+
+/** Total hotel-to-hotel fare in MINOR units from the two regions: classify the band
+ *  (regionDistanceBand), price band × vehicle; return = two legs minus the configured discount (rounded
+ *  once). Mirrors the hotel branch of api_book. */
+export function hotelTransferQuoteMinor(
+  pickupRegion: string | null,
+  dropoffRegion: string | null,
+  pax: number,
+  suv: boolean,
+  tripType: TripType,
+  fares: HotelTransferFareByBand,
+  distances: RegionDistanceMap,
+  returnDiscountPct: number,
+): number {
+  const band = regionDistanceBand(pickupRegion, dropoffRegion, distances);
+  const oneWay = hotelTransferFareMinor(band, pax, suv, fares);
+  if (oneWay <= 0) return 0;
+  if (tripType !== 'return') return oneWay;
+  const pct = Number.isFinite(returnDiscountPct) ? returnDiscountPct : 0;
+  return Math.round((oneWay * 2 * (100 - pct)) / 100);
+}
+
+/** As {@link hotelTransferQuoteMinor}, but in EUR — for the quote console (`<Price>` takes EUR). */
+export function hotelTransferQuote(
+  pickupRegion: string | null,
+  dropoffRegion: string | null,
+  pax: number,
+  suv: boolean,
+  tripType: TripType,
+  fares: HotelTransferFareByBand,
+  distances: RegionDistanceMap,
+  returnDiscountPct: number,
+): number {
+  return centsToEur(
+    hotelTransferQuoteMinor(pickupRegion, dropoffRegion, pax, suv, tripType, fares, distances, returnDiscountPct),
+  );
+}
