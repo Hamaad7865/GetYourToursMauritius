@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { pgliteRpc } from '../db/rpc';
 import { catalogueSchema } from '@/lib/seed/schema';
@@ -12,20 +12,17 @@ import { createBooking } from '@/lib/services/bookings';
 import { createPaymentLink } from '@/lib/services/payments';
 
 /**
- * The booking ledger is EUR, but the Mauritius acquirer settles in USD: createPaymentLink converts the
- * EUR total to whole-dollar USD at charge time. For the receipt/invoice to show what the card was
- * actually billed, that charge (amount + currency) must be persisted on the payment row. This proves
- * createPaymentLink records it via api_record_payment_charge.
- *
- * getUsdRate() hits Frankfurter; we stub fetch to a deterministic rate so the asserted charge is exact
- * and offline. With €110 × 1.10 = $121 → charged_amount_minor = 12100, charged_currency = 'USD'.
+ * Peach now settles the card in EUR (enabled 2026-06-24), so createPaymentLink charges the EUR booking
+ * total directly — no FX conversion, and the card statement matches the price shown. For the receipt /
+ * invoice to show what the card was actually billed, that charge (amount + currency) is persisted on the
+ * payment row. This proves createPaymentLink records it via api_record_payment_charge: €110 →
+ * charged_amount_minor = 11000, charged_currency = 'EUR' (equal to the ledger total, no conversion).
  */
 const catalogue = catalogueSchema.parse(
   JSON.parse(readFileSync(join(process.cwd(), 'seed', 'catalogue.json'), 'utf8')),
 );
 
 const USER = 'b8b8b8b8-b8b8-b8b8-b8b8-b8b8b8b8b8b8';
-const RATE = 1.1;
 
 describe('createPaymentLink persists the charged amount + currency', () => {
   let db: TestDb;
@@ -53,21 +50,11 @@ describe('createPaymentLink persists the charged amount + currency', () => {
     await db.as({ sub: USER, role: 'authenticated' });
   });
 
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   afterAll(async () => {
     await db.close();
   });
 
-  it('writes charged_amount_minor (USD, round(eur×rate)×100) and charged_currency on the payment row', async () => {
-    // Pin the EUR→USD rate so the persisted charge is deterministic (no network in tests).
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response(JSON.stringify({ rates: { USD: RATE } }), { status: 200 })),
-    );
-
+  it('writes charged_amount_minor and charged_currency (EUR, = ledger total) on the payment row', async () => {
     const booking = await createBooking(ctx, {
       occurrenceId,
       party: { 'Private group': 2 },
@@ -94,9 +81,8 @@ describe('createPaymentLink persists the charged amount + currency', () => {
     ).rows[0]!;
     await db.as({ sub: USER, role: 'authenticated' });
 
-    const expectedUsd = Math.round(110 * RATE); // 121 whole dollars
-    expect(row.charged_currency).toBe('USD');
-    expect(row.charged_amount_minor).toBe(expectedUsd * 100); // 12100 minor units
+    expect(row.charged_currency).toBe('EUR');
+    expect(row.charged_amount_minor).toBe(11000); // €110 in minor units — equal to the ledger total
   });
 });
 
