@@ -10,8 +10,9 @@ import type { PlannerQuote } from '@/lib/planner/pricing';
 import type { ChatMsg, Boost } from './types';
 import { fmtDur } from './planner-constants';
 import { Thumb } from './Thumb';
+import { useVoiceInput } from './useVoiceInput';
 import { Price } from '@/components/site/Price';
-import { useT } from '@/components/site/PreferencesProvider';
+import { usePreferences, useT } from '@/components/site/PreferencesProvider';
 
 const REPLY_CHIPS = ['Add a beach', 'Add a viewpoint', 'Make it shorter'];
 
@@ -65,9 +66,12 @@ export function ChatCopilot({
   /** Why a suggested place can't be added right now (day full / too far), or null when it can. */
   addReasonById: (id: string) => AddBlockReason;
 }) {
-  const t = useT();
+  const { t, language } = usePreferences();
   const [draft, setDraft] = useState('');
   const bodyRef = useRef<HTMLDivElement>(null);
+  // Voice dictation into the message field (Web Speech API, client-only). Recognise in the user's
+  // chosen language; appends to whatever they've typed so they can review before sending.
+  const voice = useVoiceInput({ lang: language === 'fr' ? 'fr-FR' : 'en-GB', value: draft, onChange: setDraft });
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight });
@@ -288,12 +292,22 @@ export function ChatCopilot({
             aria-label={t('Message ZilAi')}
             className="min-w-0 flex-1 border-none bg-transparent text-sm text-ink outline-none"
           />
-          <button type="button" aria-label={t('Voice input')} className="grid cursor-pointer place-items-center p-1.5">
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z" stroke="#51666B" strokeWidth={1.8} />
-              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="#51666B" strokeWidth={1.8} strokeLinecap="round" />
-            </svg>
-          </button>
+          {voice.supported && (
+            <button
+              type="button"
+              onClick={voice.toggle}
+              aria-pressed={voice.listening}
+              aria-label={voice.listening ? t('Stop voice input') : t('Voice input')}
+              className={`grid cursor-pointer place-items-center rounded-full p-1.5 transition ${
+                voice.listening ? 'animate-pulse bg-coral/15 text-coral' : 'text-ink-muted hover:text-teal'
+              }`}
+            >
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z" stroke="currentColor" strokeWidth={1.8} />
+                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" />
+              </svg>
+            </button>
+          )}
           <button
             type="submit"
             aria-label={t('Send message')}

@@ -420,6 +420,7 @@ export const fr: Record<string, string> = {
   "Add a beach": "Ajouter une plage",
   "Add a viewpoint": "Ajouter un point de vue",
   "Make it shorter": "Raccourcir",  "Voice input": "Saisie vocale",
+  "Stop voice input": "Arrêter la saisie vocale",
   "Send message": "Envoyer le message",
   "Add places": "Ajouter des lieux",
   "searching…": "recherche…",
