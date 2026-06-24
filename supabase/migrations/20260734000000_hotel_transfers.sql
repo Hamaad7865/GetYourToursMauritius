@@ -578,3 +578,94 @@ as $$
   from activities a
   where a.slug = p ->> 'slug';
 $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- 12) Seed the bookable hotel-transfer (point-to-point) activity + rolling availability — mirrors the
+--     airport-transfer bookable seed (20260730000000) so on-site booking works the moment this is applied:
+--     availability -> hold -> /checkout against expectedSlug='hotel-transfer', NO separate publish step.
+--     Idempotent. In the pglite test DB there is no 'belle-mare-tours' operator at apply time, so the
+--     INSERT...SELECT is a clean no-op (the integration test seeds its own activity); on prod the operator
+--     exists, so the activity is created + configured + day-slots materialized.
+insert into activities (
+  operator_id, slug, type, title, summary, description, category, location, duration_minutes,
+  meeting_point, pickup_available, languages, inclusions, exclusions, highlights, status, pricing_mode
+)
+select o.id, 'hotel-transfer', 'transport',
+  'Private Transfer',
+  'Private fixed-price transfer between any two points in Mauritius — hotels, resorts or towns, door to door.',
+  null, 'Airport transfers', 'Island-wide', null,
+  null, true, array['en', 'fr']::text[],
+  array['Private driver', 'Door to door', 'Luggage assistance']::text[], '{}'::text[],
+  array['Fixed price', 'Door to door', 'Any two locations']::text[], 'published', 'vehicle'
+from operators o
+where o.slug = 'belle-mare-tours'
+on conflict (slug) do nothing;
+
+insert into activity_translations (activity_id, locale, title, summary)
+select a.id, 'en', 'Private Transfer',
+  'Private fixed-price transfer between any two points in Mauritius — hotels, resorts or towns, door to door.'
+from activities a where a.slug = 'hotel-transfer'
+on conflict (activity_id, locale) do nothing;
+
+insert into activity_translations (activity_id, locale, title, summary)
+select a.id, 'fr', 'Transfert privé',
+  'Transfert privé à prix fixe entre deux points de l''île Maurice — hôtels, complexes ou villes, de porte à porte.'
+from activities a where a.slug = 'hotel-transfer'
+on conflict (activity_id, locale) do nothing;
+
+-- ONE vehicle slot-holder option. In pricing_mode='vehicle' the booking reserves one slot and api_book
+-- OVERRIDES the price with the region-band fare, so this placeholder amount is never charged. Guarded so
+-- a re-run doesn't duplicate it (activity_options has no unique key on name).
+insert into activity_options (activity_id, name)
+select a.id, 'Per transfer'
+from activities a
+where a.slug = 'hotel-transfer'
+  and not exists (
+    select 1 from activity_options o2 where o2.activity_id = a.id and o2.name = 'Per transfer'
+  );
+
+insert into activity_option_prices (activity_option_id, label, amount_minor, currency, max_guests)
+select o.id, 'Per transfer', 4000, 'EUR', null
+from activity_options o
+join activities a on a.id = o.activity_id
+where a.slug = 'hotel-transfer' and o.name = 'Per transfer'
+  and not exists (
+    select 1 from activity_option_prices pr where pr.activity_option_id = o.id
+  );
+
+-- Configure it as a bookable vehicle product (idempotent; flags a freshly-inserted OR pre-existing row).
+-- min_advance_days = 0 so same-day transfers book.
+update activities
+set is_hotel_transfer = true,
+    pricing_mode = 'vehicle',
+    min_advance_days = 0,
+    daily_capacity = coalesce(daily_capacity, 40)
+where slug = 'hotel-transfer';
+
+-- Materialize open-ended day-slots (one per day for ~6 months), exactly like the airport seed. The
+-- materialize_availability function is staff/service-role gated and would raise from a plain SQL session,
+-- so the insert is inlined here.
+insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
+select o.id,
+       a.operator_id,
+       (d::date + time '12:00') at time zone 'Indian/Mauritius',
+       ((d::date + time '12:00') at time zone 'Indian/Mauritius') + make_interval(mins => coalesce(a.duration_minutes, 120)),
+       a.daily_capacity,
+       'open'
+from activities a
+join activity_options o on o.activity_id = a.id
+cross join generate_series(
+  (now() at time zone 'Indian/Mauritius')::date,
+  (now() at time zone 'Indian/Mauritius')::date + 185,
+  interval '1 day'
+) d
+where a.slug = 'hotel-transfer'
+  and a.status = 'published'
+  and coalesce(a.daily_capacity, 0) > 0
+  and exists (select 1 from activity_option_prices pr where pr.activity_option_id = o.id)
+  and not exists (
+    select 1 from session_occurrences x
+    where x.activity_option_id = o.id
+      and (x.starts_at at time zone 'Indian/Mauritius')::date = d::date
+  )
+on conflict (activity_option_id, starts_at) do nothing;

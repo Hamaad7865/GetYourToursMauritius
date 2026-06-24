@@ -482,3 +482,44 @@ export function hotelTransferQuote(
     hotelTransferQuoteMinor(pickupRegion, dropoffRegion, pax, suv, tripType, fares, distances, returnDiscountPct),
   );
 }
+
+/**
+ * Classify a free-text Mauritius place name to one of the five pricing regions, mirroring the SQL
+ * `area_region()` (20260734000000_hotel_transfers.sql) cent-for-cent so the client display quote for an
+ * unlisted "location" matches what the server charges. Case/space-insensitive, accent- and
+ * apostrophe-light. Unknown -> null, which `regionDistanceBand` then treats as 'far' (fail safe to the
+ * higher fare — never under-prices). A LISTED hotel takes its region directly from the content; this is
+ * only for a typed-in area. Keep IN SYNC with the SQL whenever places are added/reclassified.
+ */
+export function areaRegion(area: string | null | undefined): string | null {
+  const v = (area ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[éèê]/g, 'e')
+    .replace(/['’`]/g, '');
+  if (!v) return null;
+  const has = (...subs: string[]) => subs.some((s) => v.includes(s));
+  if (
+    has(
+      'grand baie', 'grand bay', 'pereybere', 'cap malheureux', 'trou aux biches', 'mont choisy',
+      'canonniers', 'balaclava', 'pointe aux piments', 'calodyne', 'grand gaube', 'port louis',
+    )
+  )
+    return 'North';
+  if (has('belle mare', 'trou deau douce', 'palmar', 'poste lafayette', 'roches noires', 'flacq', 'bel air'))
+    return 'East';
+  if (
+    has('mahebourg', 'blue bay', 'pointe desny', 'bel ombre', 'souillac', 'chamarel', 'ferney', 'grand port')
+  )
+    return 'South';
+  if (
+    has(
+      'flic en flac', 'flic-en-flac', 'tamarin', 'riviere noire', 'black river', 'le morne', 'wolmar',
+      'albion', 'la gaulette',
+    )
+  )
+    return 'West';
+  if (has('curepipe', 'quatre bornes', 'moka', 'vacoas', 'ebene', 'floreal', 'rose hill', 'phoenix'))
+    return 'Central';
+  return null;
+}

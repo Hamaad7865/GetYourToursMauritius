@@ -9,8 +9,9 @@ const INK = '#11201F';
 
 /**
  * Segmented toggle in the page's #quote slot: Airport ↔ Hotel (the existing AirportQuote) or
- * Hotel ↔ Hotel (the new point-to-point console). A client island so the rest of the page — its hero,
- * JSON-LD, canonical and metadata — stays a server component and the airport SEO is untouched.
+ * Location ↔ Location (the new point-to-point console — any two hotels/towns). A client island so the
+ * rest of the page — its hero, JSON-LD, canonical and metadata — stays a server component and the
+ * airport SEO is untouched.
  */
 export function TransferModeSwitch() {
   const [mode, setMode] = useState<'airport' | 'hotel'>('airport');
@@ -24,7 +25,7 @@ export function TransferModeSwitch() {
         {(
           [
             ['airport', 'Airport ↔ Hotel'],
-            ['hotel', 'Hotel ↔ Hotel'],
+            ['hotel', 'Location ↔ Location'],
           ] as const
         ).map(([m, label]) => (
           <button
