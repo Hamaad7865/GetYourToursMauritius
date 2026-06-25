@@ -46,7 +46,18 @@ export const transferQuoteQuerySchema = z
       .optional(),
     tripType: z.enum(['one_way', 'return']).default('one_way'),
   })
-  .strict();
+  .strict()
+  // A destination is required so a quote can never silently fall back to a Zone-1 fare.
+  .refine((q) => q.transferSlug !== 'airport-transfer' || Boolean(q.dropoffSlug || q.dropoffArea), {
+    message: 'airport-transfer requires dropoffSlug or dropoffArea',
+    path: ['dropoffArea'],
+  })
+  .refine(
+    (q) =>
+      q.transferSlug !== 'hotel-transfer' ||
+      (Boolean(q.pickupSlug || q.pickupArea) && Boolean(q.dropoffSlug || q.dropoffArea)),
+    { message: 'hotel-transfer requires both a pickup and a dropoff (slug or area)', path: ['dropoffArea'] },
+  );
 export type TransferQuoteQuery = z.infer<typeof transferQuoteQuerySchema>;
 
 /** The transfer fare estimate — equal to what api_book charges for the same inputs. */

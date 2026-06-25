@@ -40,8 +40,8 @@ end;
 $$;
 
 -- T2: curated point-to-point areas with server-authoritative classification. The names mirror
--- src/lib/content/transfer-locations.ts; `region` is the curated value (kept in sync with area_region),
--- `zone` is derived via the SAME helper api_book uses so the picker's pricing can't drift.
+-- src/lib/content/transfer-locations.ts; BOTH `region` (via area_region) and `zone` (via
+-- airport_transfer_area_zone) are derived from the SAME helpers api_book uses, so the picker can't drift.
 create or replace function api_list_transfer_areas(p jsonb default '{}'::jsonb)
 returns jsonb
 language sql
@@ -51,9 +51,9 @@ set search_path = public
 as $$
   select coalesce(jsonb_agg(jsonb_build_object(
     'name', t.label,
-    'region', t.region,
+    'region', area_region(t.label),
     'zone', airport_transfer_area_zone(t.label)
-  ) order by t.region, t.label), '[]'::jsonb)
+  ) order by area_region(t.label), t.label), '[]'::jsonb)
   from (values
     ('Grand Baie', 'North'), ('Pereybère', 'North'), ('Cap Malheureux', 'North'),
     ('Trou aux Biches', 'North'), ('Mont Choisy', 'North'), ('Pointe aux Canonniers', 'North'),

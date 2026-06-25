@@ -131,6 +131,19 @@ describe('transfers (read endpoints)', () => {
     expect(bad.status).toBe(400);
   });
 
+  it('route: GET /transfers/quote requires a destination per transfer kind (400)', async () => {
+    const noDropoff = await quoteGet(
+      new Request('http://localhost/api/v1/transfers/quote?transferSlug=airport-transfer&pax=2'),
+    );
+    expect(noDropoff.status).toBe(400);
+    const hotelNoDropoff = await quoteGet(
+      new Request(
+        'http://localhost/api/v1/transfers/quote?transferSlug=hotel-transfer&pickupSlug=lux-belle-mare&pax=2',
+      ),
+    );
+    expect(hotelNoDropoff.status).toBe(400);
+  });
+
   // The acceptance criterion: a quote must equal the api_book charge for the same inputs, cent-for-cent.
   describe('quote == api_book charge (parity)', () => {
     let bookSeq = 0;
@@ -150,8 +163,10 @@ describe('transfers (read endpoints)', () => {
       await db.asOwner();
       return b.totalEur;
     }
+    // Drive the quote through the PRODUCTION path: the /transfers/quote route sends scalar `pax`
+    // (never a party object), so parity must hold for scalar pax vs api_book's party of the same count.
     const quote = (params: Record<string, unknown>) =>
-      call<{ totalEur: number }>(db, 'api_transfer_quote', { party: { Transfer: 2 }, ...params });
+      call<{ totalEur: number }>(db, 'api_transfer_quote', { pax: 2, ...params });
 
     it('airport one-way Zone 2 (slug)', async () => {
       const charged = await bookCharge(airportOccurrenceId, 'airport-transfer', {
@@ -231,6 +246,20 @@ describe('transfers (read endpoints)', () => {
       });
       expect(q.totalEur).toBe(charged);
       expect(charged).toBe(72);
+    });
+
+    it('quote is symmetric: scalar pax == party object of the same count', async () => {
+      const viaPax = await call<{ totalEur: number }>(db, 'api_transfer_quote', {
+        transferSlug: 'airport-transfer',
+        dropoffSlug: 'shandrani-beachcomber',
+        pax: 3,
+      });
+      const viaParty = await call<{ totalEur: number }>(db, 'api_transfer_quote', {
+        transferSlug: 'airport-transfer',
+        dropoffSlug: 'shandrani-beachcomber',
+        party: { Adult: 2, Child: 1 },
+      });
+      expect(viaParty.totalEur).toBe(viaPax.totalEur);
     });
   });
 });

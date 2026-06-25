@@ -7546,9 +7546,9 @@ set search_path = public
 as $$
   select coalesce(jsonb_agg(jsonb_build_object(
     'name', t.label,
-    'region', t.region,
+    'region', area_region(t.label),
     'zone', airport_transfer_area_zone(t.label)
-  ) order by t.region, t.label), '[]'::jsonb)
+  ) order by area_region(t.label), t.label), '[]'::jsonb)
   from (values
     ('Grand Baie', 'North'), ('Pereybère', 'North'), ('Cap Malheureux', 'North'),
     ('Trou aux Biches', 'North'), ('Mont Choisy', 'North'), ('Pointe aux Canonniers', 'North'),
