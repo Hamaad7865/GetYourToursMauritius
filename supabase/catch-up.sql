@@ -6147,7 +6147,7 @@ begin
   -- authoritative work-list). The idempotency key stops a double-cancel enqueuing twice.
   insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
   values (
-    'email', 'admin@getyourtoursmauritius.com', 'booking_cancellation',
+    'email', 'bookings@getyourtoursmauritius.com', 'booking_cancellation',
     jsonb_build_object(
       'ref', v_booking.ref, 'customerName', v_booking.customer_name,
       'totalMinor', v_booking.total_minor, 'currency', v_booking.currency
