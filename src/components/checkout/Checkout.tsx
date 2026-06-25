@@ -243,6 +243,11 @@ export function Checkout() {
   const [wantsPickup, setWantsPickup] = useState(true);
   // "I don't know yet" — a pickup is wanted but no address can be given now (server charges no fee).
   const [tbd, setTbd] = useState(false);
+  // A private sightseeing tour is vehicle-priced: the operator's own vehicle ALWAYS collects the
+  // customer (door to door), so pickup is mandatory and "make my own way" / a fixed meeting point
+  // doesn't apply. Seeded synchronously from the URL `unit` (no flash) and confirmed from the
+  // activity's pricingMode by the fetch below.
+  const [isVehicleTour, setIsVehicleTour] = useState(unit === 'per vehicle');
   const [pickupLoc, setPickupLoc] = useState(pickupParam);
   // Resolved pickup coordinates — drive the region-based transport fee the server charges. Prefilled
   // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
@@ -396,10 +401,12 @@ export function Checkout() {
     if (!slug) return;
     let active = true;
     fetch(`/api/v1/activities/${slug}`)
-      .then((r) => parseApiJson<{ region?: string; transportBands?: TransportBands; regionDistances?: RegionDistances }>(r))
+      .then((r) => parseApiJson<{ pricingMode?: string; region?: string; transportBands?: TransportBands; regionDistances?: RegionDistances }>(r))
       .then((body) => {
         if (!active || !body.ok) return;
         const a = body.data;
+        // Authoritative pickup-mandatory signal: a vehicle-priced tour is collected door to door.
+        if (a?.pricingMode) setIsVehicleTour(a.pricingMode === 'vehicle');
         if (a?.region && a?.transportBands && a?.regionDistances) {
           setFares({ region: a.region, bands: a.transportBands, distances: a.regionDistances });
         }
@@ -732,6 +739,55 @@ export function Checkout() {
       setBusy(false);
     }
   }
+
+  // The pickup map + drop-off toggle + "I don't know yet" controls. Shared by the normal "Do you want
+  // pickup?" radio (inside its Yes option) and the vehicle-tour layout (shown directly, with no
+  // "make my own way" alternative — a private vehicle always collects the customer).
+  const pickupFields = (
+    <div className="mt-1">
+      {!tbd && (
+        <>
+          <PickupDropoffMap
+            pickupValue={pickupLoc}
+            onPickupChange={setPickupLoc}
+            onPickupCoords={setPickupCoords}
+            showDropoff={!dropoffSame}
+            dropoffValue={dropoffText}
+            onDropoffChange={setDropoffText}
+            onDropoffCoords={setDropoffCoords}
+            pickupPlaceholder={t('Hotel name or address')}
+            dropoffPlaceholder={t('Drop-off location')}
+            pickupDescribedBy={!canAdvance ? PICKUP_HINT_ID : undefined}
+          />
+          {/* Toggle below the map — same point as the pickup by default. Unchecking reveals the
+              drop-off input + a second pin on the SAME map above. */}
+          <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
+            <input
+              type="checkbox"
+              checked={dropoffSame}
+              onChange={(e) => setDropoffSame(e.target.checked)}
+              className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
+            />
+            {t('Drop-off — same as pickup')}
+          </label>
+        </>
+      )}
+      <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
+        <input
+          type="checkbox"
+          checked={tbd}
+          onChange={(e) => setTbd(e.target.checked)}
+          className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
+        />
+        {t('I don’t know yet')}
+      </label>
+      {tbd && (
+        <span role="status" className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
+          {t('Add your pickup location 24 hours before your activity (ideally sooner) so your provider can accommodate you.')}
+        </span>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-white">
@@ -1103,6 +1159,14 @@ export function Checkout() {
                     </label>
                   </div>
                 </div>
+              ) : isVehicleTour ? (
+              <>
+              <h1 className="font-display text-2xl font-semibold text-ink">{t('Where should we pick you up?')}</h1>
+              <p className="mt-2 text-sm text-ink-muted">
+                {t('Your private vehicle collects you and brings you back at the end — just tell us where.')}
+              </p>
+              <div className="mt-5">{pickupFields}</div>
+              </>
               ) : (
               <>
               <h1 className="font-display text-2xl font-semibold text-ink">{t('Do you want pickup?')}</h1>
@@ -1112,53 +1176,7 @@ export function Checkout() {
                   onClick={() => setWantsPickup(true)}
                   title={t('Yes, pick me up')}
                 >
-                  {wantsPickup && (
-                    <div className="mt-1">
-                      {!tbd && (
-                        <>
-                          <PickupDropoffMap
-                            pickupValue={pickupLoc}
-                            onPickupChange={setPickupLoc}
-                            onPickupCoords={setPickupCoords}
-                            showDropoff={!dropoffSame}
-                            dropoffValue={dropoffText}
-                            onDropoffChange={setDropoffText}
-                            onDropoffCoords={setDropoffCoords}
-                            pickupPlaceholder={t('Hotel name or address')}
-                            dropoffPlaceholder={t('Drop-off location')}
-                            // Point the pickup input at the gate hint below so a screen-reader user
-                            // learns WHY Next is disabled (a pickup address is required to advance).
-                            pickupDescribedBy={!canAdvance ? PICKUP_HINT_ID : undefined}
-                          />
-                          {/* Toggle below the map — same point as the pickup by default. Unchecking
-                              reveals the drop-off input + a second pin on the SAME map above. */}
-                          <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
-                            <input
-                              type="checkbox"
-                              checked={dropoffSame}
-                              onChange={(e) => setDropoffSame(e.target.checked)}
-                              className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
-                            />
-                            {t('Drop-off — same as pickup')}
-                          </label>
-                        </>
-                      )}
-                      <label className="mt-3 flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink">
-                        <input
-                          type="checkbox"
-                          checked={tbd}
-                          onChange={(e) => setTbd(e.target.checked)}
-                          className="h-4 w-4 rounded border-ink/30 text-teal focus:ring-teal"
-                        />
-                        {t('I don’t know yet')}
-                      </label>
-                      {tbd && (
-                        <span role="status" className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-                          {t('Add your pickup location 24 hours before your activity (ideally sooner) so your provider can accommodate you.')}
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  {wantsPickup && pickupFields}
                 </PickRadio>
                 <PickRadio
                   checked={!wantsPickup}

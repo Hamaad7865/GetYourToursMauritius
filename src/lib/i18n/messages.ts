@@ -493,6 +493,8 @@ export const fr: Record<string, string> = {
   "Payment": "Paiement",
   "We’ll hold your spot for {time} minutes.": "Nous vous réservons votre place pendant {time} minutes.",
   "Do you want pickup?": "Souhaitez-vous être pris en charge ?",
+  "Where should we pick you up?": "Où devons-nous venir vous chercher ?",
+  "Your private vehicle collects you and brings you back at the end — just tell us where.": "Votre véhicule privé vient vous chercher et vous ramène à la fin — indiquez-nous simplement où.",
   "Yes, pick me up": "Oui, venez me chercher",
   "No, I’ll make my own way": "Non, je viendrai par mes propres moyens",
   "Drop-off location": "Lieu de dépose",
