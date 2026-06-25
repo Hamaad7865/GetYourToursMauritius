@@ -9,7 +9,9 @@ import {
   tourSummarySchema,
 } from '@/lib/validation/tours';
 import {
+  bookingHistoryQuerySchema,
   bookingSchema,
+  bookingSummarySchema,
   captureLeadInputSchema,
   createBookingInputSchema,
   createHoldInputSchema,
@@ -21,6 +23,17 @@ import {
   syncPaymentInputSchema,
 } from '@/lib/validation/booking';
 import { clientErrorReportSchema } from '@/lib/validation/telemetry';
+import {
+  wishlistAddResultSchema,
+  wishlistInputSchema,
+  wishlistRemoveResultSchema,
+} from '@/lib/validation/wishlist';
+import {
+  markAllReadResultSchema,
+  markReadResultSchema,
+  notificationSchema,
+  notificationsQuerySchema,
+} from '@/lib/validation/notifications';
 import { pendingBookingSchema } from '@/lib/services/bookings';
 
 const errorResponse = (description: string): ZodOpenApiResponseObject => ({
@@ -117,6 +130,18 @@ export const apiPaths: ZodOpenApiPathsObject = {
     },
   },
   '/bookings': {
+    get: {
+      operationId: 'listMyBookings',
+      summary: 'List the signed-in user’s booking history ("My Trips"), newest first',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { query: bookingHistoryQuerySchema },
+      responses: {
+        '200': okJson(z.array(bookingSummarySchema), 'Paginated booking history'),
+        '400': errorResponse('Invalid query parameters'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
     post: {
       operationId: 'createBooking',
       summary: 'Create a payment_pending booking (prices come from the DB)',
@@ -229,6 +254,86 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '403': errorResponse('Not the booking owner'),
         '404': errorResponse('Booking not found'),
+      },
+    },
+  },
+  '/wishlist': {
+    get: {
+      operationId: 'listWishlist',
+      summary: 'List the signed-in user’s saved activities (full TourSummary cards), newest first',
+      tags: ['Wishlist'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(z.array(tourSummarySchema), 'Saved activities'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+    post: {
+      operationId: 'addToWishlist',
+      summary: 'Save an activity to the wishlist by slug (idempotent)',
+      tags: ['Wishlist'],
+      security: [{ bearerAuth: [] }],
+      requestBody: jsonBody(wishlistInputSchema),
+      responses: {
+        '200': okJson(wishlistAddResultSchema, 'Already saved'),
+        '201': okJson(wishlistAddResultSchema, 'Saved'),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '404': errorResponse('Activity not found'),
+      },
+    },
+  },
+  '/wishlist/{slug}': {
+    delete: {
+      operationId: 'removeFromWishlist',
+      summary: 'Remove a saved activity by slug (idempotent)',
+      tags: ['Wishlist'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: slugParam },
+      responses: {
+        '200': okJson(wishlistRemoveResultSchema, 'Removed (or was not saved)'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/notifications': {
+    get: {
+      operationId: 'listNotifications',
+      summary: 'List the signed-in user’s notifications, newest first',
+      tags: ['Notifications'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { query: notificationsQuerySchema },
+      responses: {
+        '200': okJson(z.array(notificationSchema), 'Paginated notifications'),
+        '400': errorResponse('Invalid query parameters'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/notifications/{id}/read': {
+    post: {
+      operationId: 'markNotificationRead',
+      summary: 'Mark a notification as read (owner-scoped)',
+      tags: ['Notifications'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: idParam },
+      responses: {
+        '200': okJson(markReadResultSchema, 'Marked read'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Not your notification'),
+        '404': errorResponse('Notification not found'),
+      },
+    },
+  },
+  '/notifications/read-all': {
+    post: {
+      operationId: 'markAllNotificationsRead',
+      summary: 'Mark all of the caller’s notifications as read',
+      tags: ['Notifications'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(markAllReadResultSchema, 'Marked all read'),
+        '401': errorResponse('Authentication required'),
       },
     },
   },

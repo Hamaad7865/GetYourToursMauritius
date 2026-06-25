@@ -54,7 +54,7 @@ export function mapDbError(error: unknown): never {
   if (/\bforbidden\b/.test(message)) {
     throw new ForbiddenError();
   }
-  if (/\b(booking_not_found|payment_not_found)\b/.test(message)) {
+  if (/\b(booking_not_found|payment_not_found|activity_not_found|notification_not_found)\b/.test(message)) {
     throw new NotFoundError('Not found');
   }
 
