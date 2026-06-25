@@ -14,6 +14,7 @@ vi.mock('@/lib/http/context', async () => {
 const { GET: notificationsGet } = await import('../../app/api/v1/notifications/route');
 const { POST: readPost } = await import('../../app/api/v1/notifications/[id]/read/route');
 const { POST: readAllPost } = await import('../../app/api/v1/notifications/read-all/route');
+const { GET: unreadCountGet } = await import('../../app/api/v1/notifications/unread-count/route');
 
 const USER_A = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const USER_B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
@@ -185,6 +186,35 @@ describe('notifications feed', () => {
     );
     expect(rows[0]!.data.updated).toBe(1);
     expect((await listRpc(db, { unreadOnly: true })).total).toBe(0);
+  });
+
+  it('unread-count is owner-scoped (RPC) and 401s anon (route)', async () => {
+    // After read-all, USER_A has 0 unread; USER_B still has its one (b1) unread.
+    await db.as({ sub: USER_A, role: 'authenticated' });
+    const a = await db.pg.query<{ data: { count: number } }>(
+      `select api_notifications_unread_count($1::jsonb) as data`,
+      [JSON.stringify({})],
+    );
+    expect(a.rows[0]!.data.count).toBe(0);
+
+    await db.as({ sub: USER_B, role: 'authenticated' });
+    const b = await db.pg.query<{ data: { count: number } }>(
+      `select api_notifications_unread_count($1::jsonb) as data`,
+      [JSON.stringify({})],
+    );
+    expect(b.rows[0]!.data.count).toBe(1);
+
+    const token = await mintToken(USER_B);
+    const ok = await unreadCountGet(
+      new Request('http://localhost/api/v1/notifications/unread-count', {
+        headers: { authorization: `Bearer ${token}` },
+      }),
+    );
+    expect(ok.status).toBe(200);
+    expect((await ok.json()).data).toEqual({ count: 1 });
+
+    const anon = await unreadCountGet(new Request('http://localhost/api/v1/notifications/unread-count'));
+    expect(anon.status).toBe(401);
   });
 
   it('route: GET returns the {ok,data,meta} envelope', async () => {

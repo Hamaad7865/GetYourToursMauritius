@@ -1,0 +1,61 @@
+import { z } from 'zod';
+import { paginationQuerySchema } from './common';
+
+/** GET /transfers/hotels query — typeahead `q` + pagination. */
+export const transferHotelsQuerySchema = paginationQuerySchema.extend({
+  q: z.string().trim().min(1).max(120).optional(),
+});
+export type TransferHotelsQuery = z.infer<typeof transferHotelsQuerySchema>;
+
+/** A bookable airport-transfer hotel: DB-authoritative slug/name/region/zone, enriched with display
+ *  extras (area/coords/duration/from-price) from generated content (null when no content exists). */
+export const transferHotelSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  region: z.string(),
+  zone: z.string(),
+  area: z.string().nullable(),
+  lat: z.number().nullable(),
+  lng: z.number().nullable(),
+  durationMin: z.number().int().nullable(),
+  fromPriceEur: z.number().nonnegative().nullable(),
+});
+export type TransferHotel = z.infer<typeof transferHotelSchema>;
+
+/** A curated point-to-point area, with server-authoritative region + airport zone. */
+export const transferAreaSchema = z.object({
+  name: z.string(),
+  region: z.string(),
+  zone: z.string(),
+});
+export type TransferArea = z.infer<typeof transferAreaSchema>;
+
+/** GET /transfers/quote query. Transfers price by TOTAL passenger count (`pax`); `suv` upgrades the
+ *  ≤4-pax bracket; `tripType=return` applies the configured discount. */
+export const transferQuoteQuerySchema = z
+  .object({
+    transferSlug: z.enum(['airport-transfer', 'hotel-transfer']),
+    dropoffSlug: z.string().trim().max(120).optional(),
+    dropoffArea: z.string().trim().max(120).optional(),
+    pickupSlug: z.string().trim().max(120).optional(),
+    pickupArea: z.string().trim().max(120).optional(),
+    pax: z.coerce.number().int().min(1).max(1000).default(1),
+    suv: z
+      .enum(['true', 'false'])
+      .transform((v) => v === 'true')
+      .optional(),
+    tripType: z.enum(['one_way', 'return']).default('one_way'),
+  })
+  .strict();
+export type TransferQuoteQuery = z.infer<typeof transferQuoteQuerySchema>;
+
+/** The transfer fare estimate — equal to what api_book charges for the same inputs. */
+export const transferQuoteSchema = z.object({
+  totalEur: z.number().nonnegative(),
+  vehicle: z.string(),
+  zoneOrBand: z.string(),
+  tripType: z.string(),
+  oneWayEur: z.number().nonnegative(),
+  returnDiscountPct: z.number().int(),
+});
+export type TransferQuote = z.infer<typeof transferQuoteSchema>;

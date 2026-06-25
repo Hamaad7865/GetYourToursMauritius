@@ -29,3 +29,6 @@ export const markReadResultSchema = z.object({ id: z.string(), readAt: z.string(
 
 /** POST /notifications/read-all result — how many were flipped from unread to read. */
 export const markAllReadResultSchema = z.object({ updated: z.number().int() });
+
+/** GET /notifications/unread-count result — the bell-badge count of unread notifications. */
+export const unreadCountResultSchema = z.object({ count: z.number().int() });

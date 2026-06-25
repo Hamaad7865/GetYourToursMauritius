@@ -5,6 +5,7 @@ import {
   markAllReadResultSchema,
   markReadResultSchema,
   notificationSchema,
+  unreadCountResultSchema,
   type Notification,
   type NotificationsQuery,
 } from '@/lib/validation/notifications';
@@ -47,4 +48,12 @@ export async function markAllNotificationsRead(
 ): Promise<z.infer<typeof markAllReadResultSchema>> {
   const data = await callRpc(ctx, 'api_mark_all_notifications_read', {});
   return markAllReadResultSchema.parse(data);
+}
+
+/** The caller's unread-notification count, for the bell badge. */
+export async function getUnreadCount(
+  ctx: ServiceContext,
+): Promise<z.infer<typeof unreadCountResultSchema>> {
+  const data = await callRpc(ctx, 'api_notifications_unread_count', {});
+  return unreadCountResultSchema.parse(data);
 }

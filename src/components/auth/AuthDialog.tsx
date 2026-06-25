@@ -6,10 +6,8 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { useT } from '@/components/site/PreferencesProvider';
 import {
-  IconApple,
   IconEye,
   IconEyeOff,
-  IconFacebook,
   IconGoogle,
   IconLock,
   IconMail,
@@ -20,8 +18,6 @@ import type { AuthMode } from './AuthProvider';
 
 const OAUTH: Array<{ provider: Provider; label: string; icon: React.ReactNode }> = [
   { provider: 'google', label: 'Continue with Google', icon: <IconGoogle /> },
-  { provider: 'apple', label: 'Continue with Apple', icon: <IconApple width={16} height={16} /> },
-  { provider: 'facebook', label: 'Continue with Facebook', icon: <IconFacebook /> },
 ];
 
 /**
