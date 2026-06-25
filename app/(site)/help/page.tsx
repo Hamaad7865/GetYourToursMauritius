@@ -85,7 +85,7 @@ export default function HelpPage() {
             <FaqItem q="How do I cancel or change my booking?">
               Message us on WhatsApp, call{' '}
               <a href={`tel:${SITE.phone.replace(/\s+/g, '')}`}>{SITE.phone}</a>, or email{' '}
-              <a href={`mailto:${SITE.email}`}>{SITE.email}</a> with your <strong>BMT-</strong>{' '}
+              <a href={`mailto:${SITE.email}`}>{SITE.email}</a> with your <strong>BMT</strong>{' '}
               reference, before the cut-off. Changes are subject to availability on the new date.
             </FaqItem>
             <FaqItem q="What if you cancel because of the weather?">

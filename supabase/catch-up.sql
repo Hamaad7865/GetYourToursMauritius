@@ -7095,3 +7095,9 @@ as $$
   )
   from bookings b where b.id = p_booking_id;
 $$;
+
+-- ---- 20260736000000_peach_safe_booking_ref ----------------------------------
+-- Peach caps merchantTransactionId at 16 alphanumeric chars + strips dashes, mangling the old `BMT-` +
+-- 16-hex ref. Make new refs Peach-safe (16-char alnum, `BMT` + 13 hex, no dash) so admin ↔ Peach match
+-- and the webhook reconcile-by-ref works. Existing rows keep their refs.
+alter table bookings alter column ref set default ('BMT' || upper(substr(md5(gen_random_uuid()::text), 1, 13)));

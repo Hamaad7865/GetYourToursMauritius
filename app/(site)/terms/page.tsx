@@ -100,7 +100,7 @@ export default function TermsPage() {
         <LegalSection id="voucher" title="Vouchers & check-in">
           <P>
             After payment we send a confirmation e-voucher by email with your booking reference
-            (starting <strong>BMT-</strong>), the meeting point or pickup details, and the time to be
+            (starting <strong>BMT</strong>), the meeting point or pickup details, and the time to be
             ready. Please have it available — on your phone is fine — at check-in.
           </P>
           <P>

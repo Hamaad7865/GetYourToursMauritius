@@ -2395,7 +2395,7 @@ $$;
 -- booking up by ref). 32 bits is brute-forceable; 64 is not. Existing refs stay valid (still
 -- unique) — only newly generated refs use the wider space.
 alter table bookings
-  alter column ref set default ('BMT-' || upper(substr(md5(gen_random_uuid()::text), 1, 16)));
+  alter column ref set default ('BMT' || upper(substr(md5(gen_random_uuid()::text), 1, 13)));
 
 -- ==================== 20260616140000_rename_island_to_sightseeing.sql ====================
 -- Owner request: rename the "Island tours" category to "Sightseeing tours".

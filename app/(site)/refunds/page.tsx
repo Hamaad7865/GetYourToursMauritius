@@ -75,7 +75,7 @@ export default function RefundsPage() {
               <>
                 <strong>WhatsApp or call</strong> us on{' '}
                 <a href={`tel:${SITE.phone.replace(/\s+/g, '')}`}>{SITE.phone}</a> with your booking
-                reference (it starts with <strong>BMT-</strong>).
+                reference (it starts with <strong>BMT</strong>).
               </>,
               <>
                 <strong>Email</strong> <a href={`mailto:${SITE.email}`}>{SITE.email}</a> from the
