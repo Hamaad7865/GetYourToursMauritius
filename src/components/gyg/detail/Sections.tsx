@@ -26,7 +26,9 @@ import {
 export async function LovedBanner({ ratingAvg, ratingCount }: { ratingAvg: number; ratingCount: number }) {
   const t = await getT();
   return (
-    <div className="mb-6 flex items-center gap-3.5 rounded-2xl border border-ink/10 bg-white px-4 py-3.5">
+    // mt-6 so the card never butts up against the highlights box above when the option card (which
+    // normally sits between them) is collapsed; margins collapse cleanly when it is expanded.
+    <div className="mb-6 mt-6 flex items-center gap-3.5 rounded-2xl border border-ink/10 bg-white px-4 py-3.5">
       <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-coral/10 text-coral">
         <IconTrophy width={22} height={22} />
       </span>
