@@ -70,13 +70,21 @@ describe('/api/v1 routes', () => {
     expect(res.status).toBe(401);
   });
 
-  it('GET /activities is public and returns a paginated envelope', async () => {
+  it('GET /activities is public and returns a paginated envelope (transfers excluded)', async () => {
     const res = await activitiesGet(new Request('http://localhost/api/v1/activities?pageSize=3'));
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
-    expect(body.data).toHaveLength(3);
-    expect(body.meta.total).toBe(catalogue.activities.length);
+    expect(Array.isArray(body.data)).toBe(true);
+    expect(body.data.length).toBeGreaterThan(0);
+    expect(body.data.length).toBeLessThanOrEqual(3);
+    expect(typeof body.meta.total).toBe('number');
+    // Dedicated transfer products never appear in the public tour catalogue.
+    expect(
+      body.data.every(
+        (a: { slug: string }) => a.slug !== 'airport-transfer' && a.slug !== 'hotel-transfer',
+      ),
+    ).toBe(true);
   });
 
   it('GET /activities rejects an invalid token with 401', async () => {

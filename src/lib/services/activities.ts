@@ -15,6 +15,13 @@ export interface Paginated<T> {
   total: number;
 }
 
+/** Dedicated transfer products are booked via the /airport-transfers flow, not the tour catalogue, so
+ *  they must never appear as catalogue activities. Excluded from every catalogue surface (home rails,
+ *  browse, search, related, sitemap) at the searchActivities chokepoint; the now-empty "Airport
+ *  transfers" category then drops out of the home showcase on its own. (Rentals are a separate concern
+ *  and stay.) */
+export const CATALOGUE_HIDDEN_SLUGS = ['airport-transfer', 'hotel-transfer'];
+
 const searchResultSchema = z.object({
   items: z.array(tourSummarySchema),
   total: z.number().int(),
@@ -34,7 +41,11 @@ export async function searchActivities(
     pageSize: query.pageSize,
   });
   const result = searchResultSchema.parse(data);
-  return { items: result.items, total: result.total };
+  // Drop the dedicated transfer products (see CATALOGUE_HIDDEN_SLUGS) from every catalogue surface, and
+  // decrement the count by however many were removed from this page (exact for the single-page fetches
+  // the home/related/sitemap use).
+  const items = result.items.filter((i) => !CATALOGUE_HIDDEN_SLUGS.includes(i.slug));
+  return { items, total: result.total - (result.items.length - items.length) };
 }
 
 export async function getActivity(ctx: ServiceContext, slug: string): Promise<TourDetail> {

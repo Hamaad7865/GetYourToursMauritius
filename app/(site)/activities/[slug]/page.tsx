@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { Rail } from '@/components/gyg/Rail';
 import { PlaceCard } from '@/components/gyg/PlaceCard';
@@ -29,7 +29,7 @@ import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getT } from '@/lib/i18n/server';
 import { publicServiceContext } from '@/lib/http/context';
-import { getActivity, searchActivities } from '@/lib/services/activities';
+import { getActivity, searchActivities, CATALOGUE_HIDDEN_SLUGS } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
 import { breadcrumbJsonLd, breadcrumbTrail, buildFaq, relatedActivities } from '@/lib/catalogue/detail';
 import { productJsonLd } from '@/lib/seo/jsonld';
@@ -103,6 +103,9 @@ export default async function ActivityDetailPage({
   const { slug } = await params;
   const activity = await loadActivity(slug);
   if (!activity) notFound();
+  // Transfers are a separate product line — the generic activity detail page must never render one.
+  // Send any /activities/<transfer> hit to the dedicated transfer flow instead.
+  if (CATALOGUE_HIDDEN_SLUGS.includes(activity.slug)) redirect('/airport-transfers');
 
   const t = await getT();
   const related = await loadRelated(activity);

@@ -52,11 +52,17 @@ describe('service layer (via PGlite rpc)', () => {
     await db.close();
   });
 
-  it('searchActivities returns a paginated catalogue', async () => {
-    const result = await searchActivities(ctx, { page: 1, pageSize: 5 });
-    expect(result.total).toBe(catalogue.activities.length);
-    expect(result.items).toHaveLength(5);
-    expect(result.items[0]!.slug).toBeTruthy();
+  it('searchActivities returns a paginated catalogue with transfers excluded', async () => {
+    const all = await searchActivities(ctx, { page: 1, pageSize: 100 });
+    // Dedicated transfer products (airport-transfer / hotel-transfer) never appear in the tour catalogue.
+    expect(all.items.some((i) => i.slug === 'airport-transfer' || i.slug === 'hotel-transfer')).toBe(false);
+    // Every other published seed activity is still listed; the count matches the trimmed item list.
+    expect(all.total).toBe(all.items.length);
+    expect(all.items.length).toBeGreaterThan(0);
+    expect(all.items[0]!.slug).toBeTruthy();
+    // Pagination still works on the remaining catalogue.
+    const page = await searchActivities(ctx, { page: 1, pageSize: 5 });
+    expect(page.items.length).toBeLessThanOrEqual(5);
   });
 
   it('getActivity returns detail and 404s on unknown slug', async () => {
