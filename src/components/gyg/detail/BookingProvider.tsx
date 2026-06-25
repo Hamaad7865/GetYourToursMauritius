@@ -30,6 +30,8 @@ export interface BookingActivity {
   vehiclePricing: VehiclePricing | null;
   durationMinutes: number | null;
   pickupAvailable: boolean;
+  /** Free-cancellation policy text, if the activity offers one (drives the card's reassurance strip). */
+  cancellationPolicy: string | null;
   /** Minimum advance booking (lead time) in days — the earliest bookable day is today + this. */
   minAdvanceDays: number;
   image: string | null;

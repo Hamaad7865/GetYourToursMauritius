@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useBooking } from './BookingProvider';
 import { usePreferences, useT } from '@/components/site/PreferencesProvider';
@@ -208,6 +208,25 @@ export function BookingWidget() {
     'flex w-full items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-3 text-left hover:border-teal';
   const seatsForDate = date ? (days?.get(date)?.seatsLeft ?? 0) : 0;
 
+  // "Likely to sell out" is an honest scarcity nudge — show it only when the next bookable date is
+  // genuinely low (≤ 5 seats/vehicles left), not on every activity. Use the selected date when one is
+  // picked, otherwise the soonest available day (day keys are 'YYYY-MM-DD', so the lexicographic min
+  // is the earliest day).
+  const scarceSeats = useMemo(() => {
+    if (!days || days.size === 0) return null;
+    if (date && days.has(date)) return days.get(date)!.seatsLeft;
+    let soonest: string | null = null;
+    for (const [key, info] of days) {
+      if (info.seatsLeft > 0 && (soonest === null || key < soonest)) soonest = key;
+    }
+    return soonest ? (days.get(soonest)?.seatsLeft ?? null) : null;
+  }, [days, date]);
+  const showSellOut = !isTransport && scarceSeats != null && scarceSeats > 0 && scarceSeats <= 5;
+  // Private sightseeing (vehicle) tours and transfers always offer free cancellation up to 24h (the
+  // cancel-&-refund flow), even when the activity record carries no cancellationPolicy text — so the
+  // non-scarce strip reassures rather than repeating the footer's "Instant confirmation".
+  const freeCancellation = Boolean(activity.cancellationPolicy) || isVehicle;
+
   return (
     <div
       ref={rootRef}
@@ -215,16 +234,20 @@ export function BookingWidget() {
     >
       <div
         className={`flex items-center gap-2 rounded-t-2xl px-5 py-2.5 text-[12.5px] font-bold text-white ${
-          isTransport ? 'bg-teal' : 'bg-gradient-to-r from-coral to-[#e8584a]'
+          showSellOut ? 'bg-gradient-to-r from-coral to-[#e8584a]' : 'bg-teal'
         }`}
       >
-        {isTransport ? (
+        {showSellOut ? (
+          <>
+            <IconBolt width={15} height={15} /> {t('Likely to sell out')}
+          </>
+        ) : freeCancellation || isTransport ? (
           <>
             <IconShield width={15} height={15} /> {t('Free cancellation up to 24h')}
           </>
         ) : (
           <>
-            <IconBolt width={15} height={15} /> {t('Likely to sell out')}
+            <IconBolt width={15} height={15} /> {t('Instant confirmation')}
           </>
         )}
       </div>

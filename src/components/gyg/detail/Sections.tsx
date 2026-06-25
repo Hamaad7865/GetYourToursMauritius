@@ -19,15 +19,33 @@ import {
   IconX,
 } from '@/components/ui/icons';
 
-/** Two-column "at a glance" facts grid + a "loved by travellers" banner, GetYourGuide style. */
+/** "Loved by travellers" social-proof banner. Rendered by the detail page above the facts grid — for
+ *  every private sightseeing tour (using the operator aggregate when the tour has no reviews of its
+ *  own) and for any other activity whose own rating clears 4.5. Kept separate from QuickFacts so the
+ *  custom-badges branch can't hide it. */
+export async function LovedBanner({ ratingAvg, ratingCount }: { ratingAvg: number; ratingCount: number }) {
+  const t = await getT();
+  return (
+    <div className="mb-6 flex items-center gap-3.5 rounded-2xl border border-ink/10 bg-white px-4 py-3.5">
+      <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-coral/10 text-coral">
+        <IconTrophy width={22} height={22} />
+      </span>
+      <p className="m-0 text-[14px] leading-snug text-ink/80">
+        <b className="text-ink">{t('Loved by travellers')}</b>{' — '}
+        {t('rated {avg}★ by {n} guests', { avg: ratingAvg.toFixed(1), n: ratingCount })}
+      </p>
+    </div>
+  );
+}
+
+/** Two-column "at a glance" facts grid, GetYourGuide style. (The "Loved by travellers" banner is a
+ *  sibling — see LovedBanner — so it renders consistently regardless of the badges branch below.) */
 export async function QuickFacts({
   durationMinutes,
   languages,
   pickupAvailable,
   type,
   cancellationPolicy,
-  ratingAvg,
-  ratingCount,
   startWindow,
   badges,
 }: {
@@ -36,16 +54,13 @@ export async function QuickFacts({
   pickupAvailable: boolean;
   type: 'activity' | 'transport';
   cancellationPolicy: string | null;
-  ratingAvg: number | null;
-  ratingCount: number;
   startWindow?: string | null;
   badges?: { icon: string; title: string; subtitle: string }[];
 }) {
   const t = await getT();
 
   // When the activity has admin-authored custom badges, render exactly those in the
-  // same visual layout as the derived strip below (the "Loved by travellers" banner
-  // stays default-strip-only — see report). Otherwise fall through to the derived facts.
+  // same visual layout as the derived strip below. Otherwise fall through to the derived facts.
   if (badges && badges.length > 0) {
     return (
       <div className="border-t border-ink/10 pt-6">
@@ -124,21 +139,8 @@ export async function QuickFacts({
     sub: t('E-voucher sent straight to your inbox'),
   });
 
-  const loved = ratingAvg != null && ratingAvg >= 4.5 && ratingCount > 0;
-
   return (
     <div className="border-t border-ink/10 pt-6">
-      {loved && (
-        <div className="mb-6 flex items-center gap-3.5 rounded-2xl border border-ink/10 bg-white px-4 py-3.5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-coral/10 text-coral">
-            <IconTrophy width={22} height={22} />
-          </span>
-          <p className="m-0 text-[14px] leading-snug text-ink/80">
-            <b className="text-ink">{t('Loved by travellers')}</b>{' — '}
-            {t('rated {avg}★ by {n} guests', { avg: ratingAvg.toFixed(1), n: ratingCount })}
-          </p>
-        </div>
-      )}
       <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
         {facts.map((f) => (
           <div key={f.title} className="flex items-start gap-3.5">

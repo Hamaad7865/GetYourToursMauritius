@@ -17,6 +17,7 @@ import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
 import {
   QuickFacts,
+  LovedBanner,
   SightseeingHighlights,
   Overview,
   Itinerary,
@@ -24,6 +25,12 @@ import {
 } from '@/components/gyg/detail/Sections';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { ReviewList } from '@/components/catalogue/ReviewList';
+import {
+  SIGHTSEEING_HIGHLIGHTS,
+  SIGHTSEEING_IMPORTANT_INFO,
+  SIGHTSEEING_FALLBACK_RATING,
+  sightseeingReviews,
+} from '@/lib/content/sightseeing';
 import { Faq } from '@/components/catalogue/Faq';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -116,8 +123,31 @@ export default async function ActivityDetailPage({
     .map((p) => p.trim())
     .filter(Boolean);
   const itinerary = activity.extra.itinerary ?? [];
-  const importantInfo = activity.extra.importantInfo ?? [];
   const badges = activity.extra.badges ?? [];
+
+  // A "private sightseeing tour" is a vehicle-priced activity. Every one of them shows the same
+  // premium highlights, the same know-before-you-go notes (incl. the "bring cash for entrance fees"
+  // reminder) and genuine social proof — so the whole range stays consistent regardless of what each
+  // tour's admin record happens to carry.
+  const isSightseeing = activity.pricingMode === 'vehicle';
+  const highlights = isSightseeing ? SIGHTSEEING_HIGHLIGHTS : activity.highlights;
+  const importantInfo = isSightseeing
+    ? [
+        ...SIGHTSEEING_IMPORTANT_INFO,
+        ...(activity.extra.importantInfo ?? []).filter((i) => !SIGHTSEEING_IMPORTANT_INFO.includes(i)),
+      ]
+    : (activity.extra.importantInfo ?? []);
+
+  // Reviews + rating: use the tour's own when it has them; otherwise (sightseeing only) fall back to
+  // the operator-wide aggregate + curated real reviews so every sightseeing tour shows social proof.
+  // The per-product JSON-LD still reads the tour's REAL own rating (productJsonLd), so this visual
+  // fallback never inflates the structured aggregateRating.
+  const hasOwnReviews = activity.ratingCount > 0;
+  const reviewsFallback = isSightseeing && !hasOwnReviews;
+  const reviews = reviewsFallback ? sightseeingReviews(9) : activity.reviews;
+  const ratingAvg = reviewsFallback ? SIGHTSEEING_FALLBACK_RATING.avg : activity.ratingAvg;
+  const ratingCount = reviewsFallback ? SIGHTSEEING_FALLBACK_RATING.count : activity.ratingCount;
+  const showLoved = ratingAvg != null && ratingAvg >= 4.5 && ratingCount > 0;
 
   return (
     <>
@@ -151,12 +181,12 @@ export default async function ActivityDetailPage({
                 {activity.title}
               </h1>
               <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-                {activity.ratingCount > 0 ? (
+                {ratingCount > 0 ? (
                   <span className="flex items-center gap-1.5 text-ink">
                     <IconStar width={16} height={16} className="text-gold-light" />
-                    <b>{activity.ratingAvg?.toFixed(1)}</b>
+                    <b>{ratingAvg?.toFixed(1)}</b>
                     <a href="#reviews" className="font-semibold text-teal underline underline-offset-2">
-                      {t('{n} reviews', { n: activity.ratingCount })}
+                      {t('{n} reviews', { n: ratingCount })}
                     </a>
                   </span>
                 ) : (
@@ -191,6 +221,7 @@ export default async function ActivityDetailPage({
               vehiclePricing: activity.vehiclePricing ?? null,
               durationMinutes: activity.durationMinutes,
               pickupAvailable: activity.pickupAvailable,
+              cancellationPolicy: activity.cancellationPolicy,
               minAdvanceDays: activity.minAdvanceDays,
               image: activity.heroImage?.url ?? activity.images[0]?.url ?? null,
               region: activity.region ?? null,
@@ -224,14 +255,14 @@ export default async function ActivityDetailPage({
 
               <BookingOptionCard />
 
+              {showLoved && <LovedBanner ratingAvg={ratingAvg} ratingCount={ratingCount} />}
+
               <QuickFacts
                 durationMinutes={activity.durationMinutes}
                 languages={activity.languages}
                 pickupAvailable={activity.pickupAvailable}
                 type={activity.type}
                 cancellationPolicy={activity.cancellationPolicy}
-                ratingAvg={activity.ratingAvg}
-                ratingCount={activity.ratingCount}
                 startWindow={activity.extra.startWindow}
                 badges={badges}
               />
@@ -296,11 +327,11 @@ export default async function ActivityDetailPage({
                 </section>
               )}
 
-              {activity.highlights.length > 0 && (
+              {highlights.length > 0 && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
                   <SectionTitle>{t('Highlights')}</SectionTitle>
                   <ul className="m-0 flex list-none flex-col gap-3 p-0">
-                    {activity.highlights.map((h) => (
+                    {highlights.map((h) => (
                       <li key={h} className="flex items-start gap-3 text-[15px] leading-snug text-ink/85">
                         <IconStar width={17} height={17} className="mt-0.5 shrink-0 text-gold-light" />
                         {h}
@@ -369,11 +400,12 @@ export default async function ActivityDetailPage({
 
               <section id="reviews" className="mt-8 scroll-mt-24 border-t border-ink/10 pt-7">
                 <SectionTitle>{t('Guest reviews')}</SectionTitle>
-                <ReviewList
-                  ratingAvg={activity.ratingAvg}
-                  ratingCount={activity.ratingCount}
-                  reviews={activity.reviews}
-                />
+                {reviewsFallback && (
+                  <p className="m-0 mb-4 text-[13.5px] text-ink-muted">
+                    {t('Reviews from guests across our private tours and transfers.')}
+                  </p>
+                )}
+                <ReviewList ratingAvg={ratingAvg} ratingCount={ratingCount} reviews={reviews} />
               </section>
 
               <section className="mt-8 border-t border-ink/10 pt-7">

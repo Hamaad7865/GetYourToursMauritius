@@ -221,6 +221,7 @@ export const fr: Record<string, string> = {
   "E-voucher sent straight to your inbox": "Bon électronique envoyé directement dans votre boîte mail",
   "Loved by travellers": "Plébiscité par les voyageurs",
   "rated {avg}★ by {n} guests": "noté {avg}★ par {n} voyageurs",
+  "Reviews from guests across our private tours and transfers.": "Avis de voyageurs sur l’ensemble de nos excursions privées et transferts.",
   "Duration & availability": "Durée et disponibilité",
   "Approx {d} · available daily": "Env. {d} · disponible tous les jours",
   "Available daily": "Disponible tous les jours",
