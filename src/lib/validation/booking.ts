@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { bookingSourceSchema, bookingStatusSchema, paymentStateSchema } from './common';
+import { bookingSourceSchema, bookingStatusSchema, paginationQuerySchema, paymentStateSchema } from './common';
+import { tourImageSchema } from './tours';
 
 /** Latitude in degrees: finite (rejects NaN/Infinity) and within the valid -90..90 range. */
 const latSchema = z.number().finite().min(-90).max(90);
@@ -165,6 +166,32 @@ export const bookingSchema = z.object({
   serviceDate: z.string().nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
+
+// --- Booking history ("My Trips") -------------------------------------------
+/** One row in the signed-in customer's booking history. A thin summary — full detail stays at
+ *  GET /bookings/{ref}. `totalEur` is EUR major units (consistent with the detail endpoint), NOT
+ *  the `*Minor` the cart's pending list uses. Reuses the catalogue `heroImage` shape. */
+export const bookingSummarySchema = z.object({
+  ref: z.string(),
+  title: z.string(),
+  status: bookingStatusSchema,
+  paymentState: paymentStateSchema,
+  totalEur: z.number().nonnegative(),
+  currency: z.string(),
+  startsAt: z.string().nullable(),
+  heroImage: tourImageSchema.nullable(),
+  createdAt: z.string(),
+});
+export type BookingSummary = z.infer<typeof bookingSummarySchema>;
+
+/** GET /bookings query: optional booking-status + trip-date window, offset pagination (like /activities). */
+export const bookingHistoryQuerySchema = paginationQuerySchema.extend({
+  status: bookingStatusSchema.optional(),
+  /** Inclusive trip-date window (ISO YYYY-MM-DD), matched against the booking's occurrence date. */
+  from: z.string().date().optional(),
+  to: z.string().date().optional(),
+});
+export type BookingHistoryQuery = z.infer<typeof bookingHistoryQuerySchema>;
 
 // --- Hold (reserve the spot on Continue) ------------------------------------
 export const createHoldInputSchema = z.object({

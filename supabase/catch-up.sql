@@ -6328,7 +6328,8 @@ $$;
 revoke execute on function run_booking_maintenance(jsonb) from public;
 grant execute on function run_booking_maintenance(jsonb) to service_role;
 
--- enqueue_booking_notification: + booking_expired branch (payment_pending -> expired) for the expiry email.
+-- enqueue_booking_notification: email outbox (confirmed/refunded/expired) + per-user in-app feed rows
+-- (confirmed/cancelled/refunded, owner only, idempotent). Mirrors 20260739000000_notifications_feed.sql.
 create or replace function enqueue_booking_notification()
 returns trigger
 language plpgsql
@@ -6347,6 +6348,29 @@ begin
       new.id, 'booking_confirmation:' || new.id
     )
     on conflict (idempotency_key) do nothing;
+    if new.user_id is not null then
+      insert into notifications (user_id, type, title, body, data)
+      select new.user_id, 'booking_confirmed', 'Booking confirmed',
+             'Your booking ' || new.ref || ' is confirmed.',
+             jsonb_build_object('ref', new.ref, 'bookingId', new.id)
+      where not exists (
+        select 1 from notifications n
+        where n.user_id = new.user_id and n.type = 'booking_confirmed'
+          and n.data ->> 'bookingId' = new.id::text
+      );
+    end if;
+  elsif new.status = 'cancelled' and old.status is distinct from 'cancelled' then
+    if new.user_id is not null then
+      insert into notifications (user_id, type, title, body, data)
+      select new.user_id, 'booking_cancelled', 'Booking cancelled',
+             'Your booking ' || new.ref || ' has been cancelled.',
+             jsonb_build_object('ref', new.ref, 'bookingId', new.id)
+      where not exists (
+        select 1 from notifications n
+        where n.user_id = new.user_id and n.type = 'booking_cancelled'
+          and n.data ->> 'bookingId' = new.id::text
+      );
+    end if;
   elsif new.status = 'refunded' and old.status is distinct from 'refunded' then
     insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
     values (
@@ -6355,6 +6379,17 @@ begin
       new.id, 'booking_refunded:' || new.id
     )
     on conflict (idempotency_key) do nothing;
+    if new.user_id is not null then
+      insert into notifications (user_id, type, title, body, data)
+      select new.user_id, 'booking_refunded', 'Refund issued',
+             'Your booking ' || new.ref || ' has been refunded.',
+             jsonb_build_object('ref', new.ref, 'bookingId', new.id)
+      where not exists (
+        select 1 from notifications n
+        where n.user_id = new.user_id and n.type = 'booking_refunded'
+          and n.data ->> 'bookingId' = new.id::text
+      );
+    end if;
   elsif new.status = 'expired' and old.status = 'payment_pending' then
     insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
     values (
@@ -7101,3 +7136,345 @@ $$;
 -- 16-hex ref. Make new refs Peach-safe (16-char alnum, `BMT` + 13 hex, no dash) so admin ↔ Peach match
 -- and the webhook reconcile-by-ref works. Existing rows keep their refs.
 alter table bookings alter column ref set default ('BMT' || upper(substr(md5(gen_random_uuid()::text), 1, 13)));
+
+-- ---- 20260737000000_booking_history -----------------------------------------
+-- Owner-scoped "My Trips" list backing GET /api/v1/bookings. Newest-first, paginated, optional
+-- status + trip-date filters; totalEur in EUR major units. Same RLS-safe SECURITY DEFINER seam as
+-- api_my_pending_bookings. Idempotent create-or-replace.
+create or replace function api_my_bookings(p jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_status text := nullif(p ->> 'status', '');
+  v_from date := nullif(p ->> 'from', '')::date;
+  v_to date := nullif(p ->> 'to', '')::date;
+  v_page int := greatest(coalesce((p ->> 'page')::int, 1), 1);
+  v_page_size int := least(greatest(coalesce((p ->> 'pageSize')::int, 20), 1), 100);
+  v_total int;
+  v_items jsonb;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+
+  with mine as (
+    select
+      b.id, b.ref, b.status, b.payment_state, b.total_minor, b.currency, b.created_at,
+      a.id as activity_id, coalesce(a.title, 'Your booking') as title, occ.starts_at
+    from bookings b
+    left join lateral (
+      select bi.session_occurrence_id, bi.activity_option_id from booking_items bi
+      where bi.booking_id = b.id
+      order by bi.created_at
+      limit 1
+    ) item on true
+    left join session_occurrences occ on occ.id = item.session_occurrence_id
+    left join activity_options ao on ao.id = item.activity_option_id
+    left join activities a on a.id = ao.activity_id
+    where b.user_id = v_uid
+      and (v_status is null or b.status::text = v_status)
+      and (v_from is null or occ.starts_at >= v_from)
+      and (v_to is null or occ.starts_at < (v_to + 1))
+  )
+  select
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'ref', m.ref,
+        'title', m.title,
+        'status', m.status,
+        'paymentState', m.payment_state,
+        'totalEur', m.total_minor::float / 100,
+        'currency', m.currency,
+        'startsAt', m.starts_at,
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = m.activity_id order by img.position limit 1
+        ),
+        'createdAt', m.created_at
+      ) order by m.created_at desc)
+      from (
+        select * from mine
+        order by created_at desc
+        limit v_page_size
+        offset (v_page - 1) * v_page_size
+      ) m
+    ), '[]'::jsonb),
+    (select count(*)::int from mine)
+  into v_items, v_total;
+
+  return jsonb_build_object('items', v_items, 'total', v_total);
+end;
+$$;
+
+revoke execute on function api_my_bookings(jsonb) from public;
+grant execute on function api_my_bookings(jsonb) to authenticated;
+
+-- ---- 20260738000000_wishlists -----------------------------------------------
+-- Cross-device saved activities. Owner-scoped in RLS + the api_* seam; unique(user_id, activity_id)
+-- makes re-adding idempotent. Idempotent DDL so this applies on top of a live DB.
+create table if not exists wishlists (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  activity_id uuid not null references activities (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique (user_id, activity_id)
+);
+create index if not exists wishlists_user_idx on wishlists (user_id, created_at desc);
+grant select, insert, delete on wishlists to authenticated;
+alter table wishlists enable row level security;
+drop policy if exists wishlists_select on wishlists;
+drop policy if exists wishlists_insert on wishlists;
+drop policy if exists wishlists_delete on wishlists;
+drop policy if exists wishlists_staff on wishlists;
+create policy wishlists_select on wishlists for select using (user_id = auth.uid());
+create policy wishlists_insert on wishlists for insert with check (user_id = auth.uid());
+create policy wishlists_delete on wishlists for delete using (user_id = auth.uid());
+create policy wishlists_staff on wishlists for all using (is_staff()) with check (is_staff());
+
+create or replace function api_my_wishlist(p jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_items jsonb;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  select coalesce(jsonb_agg(t.item order by t.saved_at desc), '[]'::jsonb) into v_items
+  from (
+    select w.created_at as saved_at, jsonb_build_object(
+      'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+      'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+      'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count, 'pricingMode', x.pricing_mode,
+      'minAdvanceDays', coalesce(x.min_advance_days, 1),
+      'fromPriceEur', case
+        when x.pricing_mode = 'vehicle'
+          then (select sedan_minor from sightseeing_pricing limit 1)::float / 100
+        else (
+          select min(pr.amount_minor)::float / 100
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+        )
+      end,
+      'fromPriceMaxGuests', case when x.pricing_mode = 'vehicle' then null else (
+        select pr.max_guests
+        from activity_option_prices pr
+        join activity_options o on o.id = pr.activity_option_id
+        where o.activity_id = x.id
+        order by pr.amount_minor asc nulls last
+        limit 1
+      ) end,
+      'heroImage', (
+        select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+        from activity_images img where img.activity_id = x.id order by img.position limit 1
+      ),
+      'images', coalesce((
+        select jsonb_agg(
+          jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          order by img.position
+        )
+        from activity_images img where img.activity_id = x.id
+      ), '[]'::jsonb)
+    ) as item
+    from wishlists w
+    join activities x on x.id = w.activity_id and x.status = 'published'
+    where w.user_id = v_uid
+  ) t;
+  return v_items;
+end;
+$$;
+
+create or replace function api_add_wishlist(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_slug text := nullif(p ->> 'slug', '');
+  v_activity_id uuid;
+  v_created boolean;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  if v_slug is null then
+    raise exception 'invalid_request: slug is required';
+  end if;
+  select id into v_activity_id from activities where slug = v_slug and status = 'published';
+  if v_activity_id is null then
+    raise exception 'activity_not_found';
+  end if;
+  with ins as (
+    insert into wishlists (user_id, activity_id)
+    values (v_uid, v_activity_id)
+    on conflict (user_id, activity_id) do nothing
+    returning 1
+  )
+  select exists (select 1 from ins) into v_created;
+  return jsonb_build_object('slug', v_slug, 'saved', true, 'created', v_created);
+end;
+$$;
+
+create or replace function api_remove_wishlist(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_slug text := nullif(p ->> 'slug', '');
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  delete from wishlists w
+   using activities a
+   where w.activity_id = a.id and a.slug = v_slug and w.user_id = v_uid;
+  return jsonb_build_object('slug', v_slug, 'saved', false);
+end;
+$$;
+
+revoke execute on function api_my_wishlist(jsonb) from public;
+revoke execute on function api_add_wishlist(jsonb) from public;
+revoke execute on function api_remove_wishlist(jsonb) from public;
+grant execute on function api_my_wishlist(jsonb) to authenticated;
+grant execute on function api_add_wishlist(jsonb) to authenticated;
+grant execute on function api_remove_wishlist(jsonb) to authenticated;
+
+-- ---- 20260739000000_notifications_feed --------------------------------------
+-- Per-user in-app notification feed (distinct from notification_outbox). Owner-scoped RLS + DEFINER
+-- read/mark RPCs. The enqueue_booking_notification trigger that populates it is updated in-place above.
+-- Idempotent DDL so this applies on top of a live DB.
+create table if not exists notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  type text not null,
+  title text not null,
+  body text not null,
+  data jsonb,
+  created_at timestamptz not null default now(),
+  read_at timestamptz
+);
+create index if not exists notifications_user_idx on notifications (user_id, created_at desc);
+grant select, update on notifications to authenticated;
+alter table notifications enable row level security;
+drop policy if exists notifications_select on notifications;
+drop policy if exists notifications_update on notifications;
+drop policy if exists notifications_staff on notifications;
+create policy notifications_select on notifications for select using (user_id = auth.uid());
+create policy notifications_update on notifications for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy notifications_staff on notifications for all using (is_staff()) with check (is_staff());
+
+create or replace function api_my_notifications(p jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_unread_only boolean := coalesce((p ->> 'unreadOnly')::boolean, false);
+  v_page int := greatest(coalesce((p ->> 'page')::int, 1), 1);
+  v_page_size int := least(greatest(coalesce((p ->> 'pageSize')::int, 20), 1), 100);
+  v_total int;
+  v_items jsonb;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  with mine as (
+    select * from notifications
+    where user_id = v_uid and (not v_unread_only or read_at is null)
+  )
+  select
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', n.id, 'type', n.type, 'title', n.title, 'body', n.body,
+        'data', n.data, 'createdAt', n.created_at, 'readAt', n.read_at
+      ) order by n.created_at desc)
+      from (
+        select * from mine order by created_at desc limit v_page_size offset (v_page - 1) * v_page_size
+      ) n
+    ), '[]'::jsonb),
+    (select count(*)::int from mine)
+  into v_items, v_total;
+  return jsonb_build_object('items', v_items, 'total', v_total);
+end;
+$$;
+
+create or replace function api_mark_notification_read(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_id uuid := nullif(p ->> 'id', '')::uuid;
+  v_owner uuid;
+  v_read_at timestamptz;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  if v_id is null then
+    raise exception 'invalid_request: id is required';
+  end if;
+  select user_id into v_owner from notifications where id = v_id;
+  if v_owner is null then
+    raise exception 'notification_not_found';
+  end if;
+  if v_owner <> v_uid then
+    raise exception 'forbidden';
+  end if;
+  update notifications set read_at = coalesce(read_at, now())
+   where id = v_id
+   returning read_at into v_read_at;
+  return jsonb_build_object('id', v_id, 'readAt', v_read_at);
+end;
+$$;
+
+create or replace function api_mark_all_notifications_read(p jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_updated int;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  with upd as (
+    update notifications set read_at = now()
+     where user_id = v_uid and read_at is null
+    returning 1
+  )
+  select count(*)::int from upd into v_updated;
+  return jsonb_build_object('updated', v_updated);
+end;
+$$;
+
+revoke execute on function api_my_notifications(jsonb) from public;
+revoke execute on function api_mark_notification_read(jsonb) from public;
+revoke execute on function api_mark_all_notifications_read(jsonb) from public;
+grant execute on function api_my_notifications(jsonb) to authenticated;
+grant execute on function api_mark_notification_read(jsonb) to authenticated;
+grant execute on function api_mark_all_notifications_read(jsonb) to authenticated;

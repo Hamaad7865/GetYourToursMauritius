@@ -29,6 +29,8 @@ export function buildOpenApiDocument() {
       { name: 'Catalogue', description: 'Activity search, detail and availability' },
       { name: 'Bookings', description: 'Create and track bookings' },
       { name: 'Payments', description: 'Hosted checkout links' },
+      { name: 'Wishlist', description: 'Saved activities, synced across devices' },
+      { name: 'Notifications', description: 'Per-user notification feed' },
       { name: 'Leads', description: 'Sales lead capture' },
       { name: 'Meta', description: 'Specification and service metadata' },
     ],

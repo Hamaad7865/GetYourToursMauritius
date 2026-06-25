@@ -2,7 +2,14 @@ import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import { NotFoundError } from './errors';
-import { bookingSchema, type Booking, type CreateBookingInput } from '@/lib/validation/booking';
+import {
+  bookingSchema,
+  bookingSummarySchema,
+  type Booking,
+  type BookingHistoryQuery,
+  type BookingSummary,
+  type CreateBookingInput,
+} from '@/lib/validation/booking';
 
 /** A payment_pending booking surfaced in the cart's "Awaiting payment" section. `holdExpiresAt` is the
  *  live hold's expiry (drives the countdown); null once the seat hold has lapsed. */
@@ -23,6 +30,30 @@ export type PendingBooking = z.infer<typeof pendingBookingSchema>;
 export async function listMyPendingBookings(ctx: ServiceContext): Promise<PendingBooking[]> {
   const data = await callRpc(ctx, 'api_my_pending_bookings', {});
   return z.array(pendingBookingSchema).parse(data ?? []);
+}
+
+const bookingHistorySchema = z.object({
+  items: z.array(bookingSummarySchema),
+  total: z.number().int(),
+});
+
+/**
+ * The caller's own bookings (any status) for "My Trips", newest first, with offset pagination and
+ * optional status + trip-date filters. Owner-scoped by api_my_bookings (auth.uid()); `totalEur` is
+ * EUR major units (matching GET /bookings/{ref}), never the cart's `*Minor`.
+ */
+export async function listMyBookings(
+  ctx: ServiceContext,
+  query: BookingHistoryQuery,
+): Promise<{ items: BookingSummary[]; total: number }> {
+  const data = await callRpc(ctx, 'api_my_bookings', {
+    status: query.status ?? null,
+    from: query.from ?? null,
+    to: query.to ?? null,
+    page: query.page,
+    pageSize: query.pageSize,
+  });
+  return bookingHistorySchema.parse(data ?? { items: [], total: 0 });
 }
 
 /**
