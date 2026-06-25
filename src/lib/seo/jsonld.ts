@@ -167,6 +167,27 @@ export function transferServiceJsonLd(opts: {
   };
 }
 
+/** Generic Service entity (car rental, private taxi, …) tied to the site operator. `serviceType` is the
+ *  schema.org free-text label that broadens semantic coverage for the query the page serves. */
+export function serviceJsonLd(opts: {
+  serviceType: string;
+  name: string;
+  description: string;
+  path: string;
+  areaServed?: string;
+}): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Service',
+    serviceType: opts.serviceType,
+    name: opts.name,
+    description: opts.description,
+    url: `${SITE.url}${opts.path}`,
+    provider: { '@type': 'TravelAgency', name: SITE.operator, '@id': `${SITE.url}/#operator` },
+    areaServed: { '@type': 'Place', name: opts.areaServed ?? 'Mauritius' },
+  };
+}
+
 /** BlogPosting for a blog article. */
 export function articleJsonLd(opts: {
   title: string;

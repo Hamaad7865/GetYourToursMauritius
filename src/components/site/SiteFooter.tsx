@@ -8,6 +8,7 @@ const COLUMNS = [
   {
     title: 'Activities',
     links: [
+      { label: 'Mauritius activities', href: '/activities' },
       { label: 'Mauritius tours', href: '/mauritius-tours' },
       { label: 'Catamaran cruises', href: '/mauritius-catamaran-cruise' },
       { label: 'Île aux Cerfs', href: '/ile-aux-cerfs-tours' },

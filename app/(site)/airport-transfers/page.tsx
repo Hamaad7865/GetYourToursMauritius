@@ -4,7 +4,7 @@ import { Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { breadcrumbListJsonLd, faqPageJsonLd, transferServiceJsonLd } from '@/lib/seo/jsonld';
+import { breadcrumbListJsonLd, faqPageJsonLd, serviceJsonLd, transferServiceJsonLd } from '@/lib/seo/jsonld';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { RevealOnScroll } from '@/components/about/RevealOnScroll';
 import { HeroWaves } from '@/components/about/HeroWaves';
@@ -51,7 +51,7 @@ const INK_FAINT = 'rgba(17,32,31,0.52)';
 
 const displayFont = { fontFamily: 'var(--font-at-display), sans-serif' } as const;
 
-const TITLE = 'Mauritius Airport Transfers — Fixed-Price Private Taxi (SSR / MRU)';
+const TITLE = 'Mauritius Airport Transfers — Fixed-Price Private Taxi Service (SSR / MRU)';
 const DESCRIPTION =
   'Private airport transfers in Mauritius at a fixed EUR price — up to 40% less than metered airport & hotel taxis. Door-to-door between SSR International Airport (MRU) and every hotel, Airbnb and cruise port. Meet & greet, flight tracking, free waiting time and a free child seat. Booked direct with licensed local operator Belle Mare Tours — no reseller markup.';
 
@@ -60,11 +60,15 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   keywords: [
     'Mauritius airport transfer',
+    'taxi service Mauritius',
+    'Mauritius taxi',
+    'private taxi Mauritius',
+    'airport taxi Mauritius',
     'SSR airport taxi',
     'MRU airport transfer',
     'airport transfer Mauritius fixed price',
     'private transfer Mauritius',
-    'airport to hotel Mauritius',
+    'hotel to hotel taxi Mauritius',
     'Belle Mare Tours',
   ],
   alternates: { canonical: '/airport-transfers' },
@@ -132,6 +136,14 @@ export default function AirportTransfersPage() {
     {
       q: 'Do you cover my hotel?',
       a: 'Almost certainly — we provide door-to-door pickup from every hotel, Airbnb and cruise port across Mauritius, island-wide. Search your hotel above, or just enter your address when you book.',
+    },
+    {
+      q: 'Is this a taxi service? Can I book a taxi between two hotels?',
+      a: 'Yes. As well as airport transfers, we run a fixed-price private taxi service between any two points in Mauritius — hotel to hotel, hotel to a restaurant or marina, port to resort. Switch to “Location ↔ Location” in the price tool above to get an instant fare for any route.',
+    },
+    {
+      q: 'How is this better than a metered street taxi?',
+      a: 'Your price is fixed and agreed before you travel — no meter, no night surcharge, no negotiation and no language barrier. It’s the same licensed, English- and French-speaking driver-guide door to door, booked direct so there’s no reseller markup.',
     },
   ];
 
@@ -269,6 +281,16 @@ export default function AirportTransfersPage() {
     fromPriceEur: centsToEur(zone2Fare.sedanMinor),
   });
   const faqJson = faqPageJsonLd(faqs);
+  // Second Service entity broadening the page's semantic coverage to the point-to-point taxi product
+  // (the "Location ↔ Location" mode), so it can also surface for taxi-service queries.
+  const taxiService = serviceJsonLd({
+    serviceType: 'Taxi service',
+    name: 'Mauritius private taxi & point-to-point transfers',
+    description:
+      'Fixed-price private taxi service across Mauritius — hotel to hotel, hotel to restaurant or marina, port to resort. Licensed driver-guide, booked direct with no reseller markup.',
+    path: '/airport-transfers',
+    areaServed: 'Mauritius',
+  });
 
   // Section rhythm — aligned to the About page (generous vertical, 72px max horizontal inset).
   const sectionPad = 'clamp(72px,10vw,128px) clamp(18px,5vw,72px)';
@@ -281,6 +303,7 @@ export default function AirportTransfersPage() {
     >
       <JsonLd data={breadcrumb} />
       <JsonLd data={service} />
+      <JsonLd data={taxiService} />
       <JsonLd data={faqJson} />
       <RevealOnScroll />
 
@@ -370,6 +393,32 @@ export default function AirportTransfersPage() {
             </div>
             <div data-reveal>
               <TransferModeSwitch />
+            </div>
+          </div>
+        </section>
+
+        {/* ============ ISLAND-WIDE TAXI SERVICE ============ */}
+        <section id="taxi" className="mx-auto max-w-shell scroll-mt-24" style={{ padding: sectionPad }}>
+          <div data-reveal className="mx-auto max-w-[780px] text-center">
+            <Eyebrow>Island-wide taxi service</Eyebrow>
+            <h2 className="m-0 mb-4 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em', textWrap: 'balance' }}>
+              A fixed-price taxi anywhere in Mauritius — not just the airport.
+            </h2>
+            <p className="m-0" style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.6, color: INK_BODY }}>
+              Need a taxi between two hotels, from your villa to a restaurant, or from the cruise port to your
+              resort? Our private taxi service runs island-wide on the same fixed-price, book-direct basis as our
+              airport transfers. Pick <strong style={{ color: INK }}>Location&nbsp;↔&nbsp;Location</strong> in the
+              price tool above, choose your two points, and your transparent EUR fare appears in seconds — no
+              meter, no haggling, the same trusted licensed driver-guide door to door.
+            </p>
+            <div className="mt-6">
+              <a
+                href="#quote"
+                className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[15px] font-extrabold text-white no-underline"
+                style={{ background: CORAL, boxShadow: '0 12px 26px -10px rgba(247,108,94,0.6)' }}
+              >
+                Get a fixed taxi fare
+              </a>
             </div>
           </div>
         </section>

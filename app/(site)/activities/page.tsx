@@ -17,8 +17,31 @@ import {
   type BrowseParams,
 } from '@/lib/catalogue/browse';
 import { SITE } from '@/lib/seo/site';
+import { JsonLd } from '@/components/seo/JsonLd';
+import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
+import { FaqAccordion } from '@/components/seo/LandingSections';
 import { getT } from '@/lib/i18n/server';
 import type { TourSummary } from '@/lib/validation/tours';
+
+// Raw English so the visible accordion answers match the FAQPage JSON-LD exactly (rich-result eligible).
+const ACTIVITIES_FAQS: { q: string; a: string }[] = [
+  {
+    q: 'What activities can I book in Mauritius?',
+    a: 'Catamaran cruises, dolphin swims, Île aux Cerfs day trips, sea (undersea) walks, private sightseeing and island day tours, plus airport transfers — all bookable online with instant confirmation.',
+  },
+  {
+    q: 'How do I book a Mauritius activity online?',
+    a: 'Pick an activity, choose your date and party size, and pay securely by card. You get an instant e-voucher by email — no reseller in the middle and no markup.',
+  },
+  {
+    q: 'Are the activities run by a local operator?',
+    a: 'Yes. Every activity is operated direct by Belle Mare Tours, a licensed Mauritian operator on the east coast — so you book with the people running the trip, not an overseas reseller.',
+  },
+  {
+    q: 'Can I be picked up from my hotel?',
+    a: 'Most activities include or offer door-to-door hotel pickup. The pickup option and any transport fee are shown on each activity before you book.',
+  },
+];
 
 export const runtime = 'edge';
 
@@ -31,7 +54,8 @@ function heading(params: BrowseParams, t: Translate): string {
   if (params.category) return params.category;
   if (params.type === 'transport') return t('Airport transfers & transport');
   if (params.type === 'activity') return t('Things to do');
-  return t('All activities & transfers');
+  // Base (unfiltered) view: keyword-forward H1 — this is the page that should rank for "Mauritius activities".
+  return t('Mauritius Activities & Tours');
 }
 
 export async function generateMetadata({
@@ -88,9 +112,20 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
     redirect(`/activities${browseQueryString({ ...params, page: totalPages })}`);
   }
   const page = Math.min(params.page, totalPages);
+  const isBase = !params.q && !params.category && params.type === undefined;
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbListJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Mauritius Activities', path: '/activities' },
+        ])}
+      />
+      {isBase && <JsonLd data={faqPageJsonLd(ACTIVITIES_FAQS)} />}
+      {isBase && page === 1 && items.length > 0 && (
+        <JsonLd data={itemListJsonLd(items.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })))} />
+      )}
       <GygHeader showSearch={false} />
       <main className="bg-cream">
         <div className="mx-auto max-w-shell px-6 pb-16 pt-6">
@@ -106,6 +141,13 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
                 : t('Experiences')}{' '}
               {t('operated by {operator} · East-coast Mauritius', { operator: SITE.operator })}
             </p>
+            {isBase && (
+              <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-ink/70">
+                Browse and book the full range of Mauritius activities and tours direct with Belle Mare Tours —
+                catamaran cruises, dolphin swims, Île aux Cerfs trips, sea walks and private island day tours,
+                all with instant confirmation and no reseller markup.
+              </p>
+            )}
           </div>
 
           <CategoryChips active={params.category} />
@@ -158,6 +200,17 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
                 </span>
               )}
             </nav>
+          )}
+
+          {isBase && (
+            <section className="mt-14 border-t border-ink/10 pt-10">
+              <h2 className="text-2xl font-extrabold tracking-tight text-ink">
+                Mauritius activities — frequently asked questions
+              </h2>
+              <div className="mt-5 max-w-3xl">
+                <FaqAccordion items={ACTIVITIES_FAQS} />
+              </div>
+            </section>
           )}
         </div>
       </main>
