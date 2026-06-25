@@ -1,4 +1,4 @@
-import type { Review } from '@/lib/validation/tours';
+import type { Review, TourSummary } from '@/lib/validation/tours';
 import { reviewStats, topReviews, type FeaturedReview } from './reviews';
 
 /**
@@ -54,4 +54,21 @@ function toReview(r: FeaturedReview): Review {
  *  same set is used for every such tour, which is exactly the consistency we want. */
 export function sightseeingReviews(n: number): Review[] {
   return topReviews(n).map(toReview);
+}
+
+/** The rating to show on a listing/summary card: the tour's own when it has reviews, otherwise — for
+ *  private sightseeing (vehicle) tours only — the operator-wide scraped aggregate (4.8 / 1,076), so
+ *  every sightseeing card shows real social proof instead of "— (0)". Returns null for any other
+ *  activity with no reviews (the card keeps its own "New activity" / empty state). Mirrors the
+ *  detail-page fallback, so the card and the page agree. */
+export function effectiveCardRating(
+  activity: Pick<TourSummary, 'pricingMode' | 'ratingAvg' | 'ratingCount'>,
+): { avg: number; count: number } | null {
+  if (activity.ratingCount > 0 && activity.ratingAvg != null) {
+    return { avg: activity.ratingAvg, count: activity.ratingCount };
+  }
+  if (activity.pricingMode === 'vehicle') {
+    return { avg: SIGHTSEEING_FALLBACK_RATING.avg, count: SIGHTSEEING_FALLBACK_RATING.count };
+  }
+  return null;
 }
