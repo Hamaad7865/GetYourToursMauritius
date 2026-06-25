@@ -27,10 +27,13 @@ export function buildOpenApiDocument() {
     },
     tags: [
       { name: 'Catalogue', description: 'Activity search, detail and availability' },
+      { name: 'Transfers', description: 'Airport & hotel transfer hotels, areas and fare quotes' },
       { name: 'Bookings', description: 'Create and track bookings' },
       { name: 'Payments', description: 'Hosted checkout links' },
       { name: 'Wishlist', description: 'Saved activities, synced across devices' },
       { name: 'Notifications', description: 'Per-user notification feed' },
+      { name: 'Reviews', description: 'Activity reviews (booking-gated submission)' },
+      { name: 'Account', description: 'Profile, privacy export and account deletion' },
       { name: 'Leads', description: 'Sales lead capture' },
       { name: 'Meta', description: 'Specification and service metadata' },
     ],

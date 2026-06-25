@@ -7478,3 +7478,516 @@ revoke execute on function api_mark_all_notifications_read(jsonb) from public;
 grant execute on function api_my_notifications(jsonb) to authenticated;
 grant execute on function api_mark_notification_read(jsonb) to authenticated;
 grant execute on function api_mark_all_notifications_read(jsonb) to authenticated;
+
+-- ---- 20260740000000_notifications_unread_count ------------------------------
+create or replace function api_notifications_unread_count(p jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_count int;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  select count(*)::int into v_count
+  from notifications
+  where user_id = v_uid and read_at is null;
+  return jsonb_build_object('count', v_count);
+end;
+$$;
+
+revoke execute on function api_notifications_unread_count(jsonb) from public;
+grant execute on function api_notifications_unread_count(jsonb) to authenticated;
+
+-- ---- 20260741000000_transfers_read ------------------------------------------
+create or replace function api_search_transfer_hotels(p jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_q text := nullif(btrim(p ->> 'q'), '');
+  v_page int := greatest(coalesce((p ->> 'page')::int, 1), 1);
+  v_page_size int := least(greatest(coalesce((p ->> 'pageSize')::int, 20), 1), 100);
+  v_items jsonb;
+  v_total int;
+begin
+  with filtered as (
+    select slug, hotel_name, region, zone
+    from airport_transfer_hotels
+    where v_q is null or hotel_name ilike '%' || v_q || '%'
+  )
+  select
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'slug', f.slug, 'name', f.hotel_name, 'region', f.region, 'zone', f.zone
+      ) order by f.hotel_name)
+      from (select * from filtered order by hotel_name limit v_page_size offset (v_page - 1) * v_page_size) f
+    ), '[]'::jsonb),
+    (select count(*)::int from filtered)
+  into v_items, v_total;
+  return jsonb_build_object('items', v_items, 'total', v_total);
+end;
+$$;
+
+create or replace function api_list_transfer_areas(p jsonb default '{}'::jsonb)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'name', t.label,
+    'region', t.region,
+    'zone', airport_transfer_area_zone(t.label)
+  ) order by t.region, t.label), '[]'::jsonb)
+  from (values
+    ('Grand Baie', 'North'), ('Pereybère', 'North'), ('Cap Malheureux', 'North'),
+    ('Trou aux Biches', 'North'), ('Mont Choisy', 'North'), ('Pointe aux Canonniers', 'North'),
+    ('Balaclava', 'North'), ('Pointe aux Piments', 'North'), ('Grand Gaube', 'North'), ('Port Louis', 'North'),
+    ('Belle Mare', 'East'), ('Trou d''Eau Douce', 'East'), ('Palmar', 'East'), ('Poste Lafayette', 'East'),
+    ('Roches Noires', 'East'), ('Centre de Flacq', 'East'),
+    ('Mahébourg', 'South'), ('Blue Bay', 'South'), ('Pointe d''Esny', 'South'), ('Bel Ombre', 'South'),
+    ('Souillac', 'South'), ('Chamarel', 'South'), ('Grand Port', 'South'),
+    ('Flic en Flac', 'West'), ('Tamarin', 'West'), ('Rivière Noire (Black River)', 'West'),
+    ('Le Morne', 'West'), ('Wolmar', 'West'), ('Albion', 'West'), ('La Gaulette', 'West'),
+    ('Curepipe', 'Central'), ('Quatre Bornes', 'Central'), ('Moka', 'Central'),
+    ('Vacoas', 'Central'), ('Ébène', 'Central'), ('Rose Hill', 'Central')
+  ) as t(label, region);
+$$;
+
+create or replace function api_transfer_quote(p jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_kind text := p ->> 'transferSlug';
+  v_pax int := 0;
+  v_suv boolean := coalesce((p ->> 'suv')::boolean, false);
+  v_trip_type text := case when (p ->> 'tripType') = 'return' then 'return' else 'one_way' end;
+  v_zone text;
+  v_band text;
+  v_pickup_region text;
+  v_dropoff_region text;
+  v_one_way bigint;
+  v_ret_pct int;
+  v_total bigint;
+  v_zone_or_band text;
+  v_vehicle text;
+begin
+  if v_kind not in ('airport-transfer', 'hotel-transfer') then
+    raise exception 'invalid_request: unknown transferSlug';
+  end if;
+  if jsonb_typeof(p -> 'party') = 'object' then
+    select coalesce(sum(value::int), 0) into v_pax from jsonb_each_text(p -> 'party');
+  end if;
+  if v_pax < 1 then
+    v_pax := greatest(coalesce(nullif(p ->> 'pax', '')::int, 1), 1);
+  end if;
+  if v_kind = 'airport-transfer' then
+    v_zone := coalesce(
+      (select zone from airport_transfer_hotels where slug = nullif(p ->> 'dropoffSlug', '')),
+      airport_transfer_area_zone(p ->> 'dropoffArea'));
+    v_one_way := airport_transfer_fare_minor(v_zone, v_pax, v_suv);
+    select coalesce(return_discount_pct, 0) into v_ret_pct from airport_transfer_config limit 1;
+    v_zone_or_band := v_zone;
+  else
+    v_pickup_region := coalesce(
+      (select region from airport_transfer_hotels where slug = nullif(p ->> 'pickupSlug', '')),
+      area_region(p ->> 'pickupArea'));
+    v_dropoff_region := coalesce(
+      (select region from airport_transfer_hotels where slug = nullif(p ->> 'dropoffSlug', '')),
+      area_region(p ->> 'dropoffArea'));
+    v_band := region_distance_band(v_pickup_region, v_dropoff_region);
+    v_one_way := hotel_transfer_fare_minor(v_band, v_pax, v_suv);
+    select coalesce(return_discount_pct, 0) into v_ret_pct from hotel_transfer_config limit 1;
+    v_zone_or_band := v_band;
+  end if;
+  v_ret_pct := coalesce(v_ret_pct, 0);
+  v_total := case when v_trip_type = 'return'
+    then round(v_one_way::numeric * 2 * (100 - v_ret_pct) / 100)::bigint
+    else v_one_way end;
+  v_vehicle := case
+    when v_pax <= 4 then case when v_suv then 'SUV' else 'Sedan' end
+    when v_pax <= 6 then 'Family'
+    when v_pax <= 14 then 'Van'
+    when v_pax <= 25 then 'Coaster'
+    else 'Coaster x' || ceil(v_pax::numeric / 25)::int
+  end;
+  return jsonb_build_object(
+    'totalEur', v_total::float / 100,
+    'vehicle', v_vehicle,
+    'zoneOrBand', v_zone_or_band,
+    'tripType', v_trip_type,
+    'oneWayEur', v_one_way::float / 100,
+    'returnDiscountPct', v_ret_pct
+  );
+end;
+$$;
+
+grant execute on function api_search_transfer_hotels(jsonb) to anon, authenticated, service_role;
+grant execute on function api_list_transfer_areas(jsonb) to anon, authenticated, service_role;
+grant execute on function api_transfer_quote(jsonb) to anon, authenticated, service_role;
+
+-- ---- 20260742000000_reviews -------------------------------------------------
+alter table reviews add column if not exists user_id uuid references auth.users (id) on delete set null;
+create index if not exists reviews_user_idx on reviews (user_id);
+create unique index if not exists reviews_user_activity_uniq
+  on reviews (activity_id, user_id) where user_id is not null;
+-- Keep reviews_insert DROPPED (F12): inserts go only through the SECURITY DEFINER api_submit_review,
+-- which enforces the booking gate. A direct-insert policy would re-open review forgery.
+drop policy if exists reviews_insert on reviews;
+
+create or replace function api_submit_review(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_slug text := nullif(p ->> 'slug', '');
+  v_rating int := (p ->> 'rating')::int;
+  v_text text := nullif(btrim(p ->> 'text'), '');
+  v_activity_id uuid;
+  v_author text;
+  v_review reviews;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  if v_slug is null then
+    raise exception 'invalid_request: slug is required';
+  end if;
+  if v_rating is null or v_rating < 1 or v_rating > 5 then
+    raise exception 'invalid_request: rating must be 1..5';
+  end if;
+  select id into v_activity_id from activities where slug = v_slug;
+  if v_activity_id is null then
+    raise exception 'activity_not_found';
+  end if;
+  if not exists (
+    select 1
+    from bookings b
+    join booking_items bi on bi.booking_id = b.id
+    join activity_options ao on ao.id = bi.activity_option_id
+    where b.user_id = v_uid
+      and ao.activity_id = v_activity_id
+      and b.status in ('confirmed', 'completed')
+  ) then
+    raise exception 'forbidden';
+  end if;
+  select coalesce(nullif(btrim(full_name), ''), 'Traveller') into v_author from profiles where id = v_uid;
+  v_author := coalesce(v_author, 'Traveller');
+  insert into reviews (activity_id, user_id, author, rating, text)
+  values (v_activity_id, v_uid, v_author, v_rating, v_text)
+  on conflict (activity_id, user_id) where user_id is not null
+  do update set rating = excluded.rating, text = excluded.text, author = excluded.author, created_at = now()
+  returning * into v_review;
+  update activities a
+  set rating_count = sub.cnt,
+      rating_avg = case when sub.cnt = 0 then null else round(sub.avg, 1) end
+  from (select count(*)::int cnt, avg(rating)::numeric avg from reviews where activity_id = v_activity_id) sub
+  where a.id = v_activity_id;
+  return jsonb_build_object(
+    'id', v_review.id, 'author', v_review.author, 'rating', v_review.rating,
+    'text', v_review.text, 'createdAt', v_review.created_at
+  );
+end;
+$$;
+
+create or replace function api_my_reviews(p jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_page int := greatest(coalesce((p ->> 'page')::int, 1), 1);
+  v_page_size int := least(greatest(coalesce((p ->> 'pageSize')::int, 20), 1), 100);
+  v_items jsonb;
+  v_total int;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  with mine as (
+    select r.id, r.rating, r.text, r.created_at, a.slug as activity_slug, a.title as activity_title
+    from reviews r
+    join activities a on a.id = r.activity_id
+    where r.user_id = v_uid
+  )
+  select
+    coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', m.id, 'activitySlug', m.activity_slug, 'activityTitle', m.activity_title,
+        'rating', m.rating, 'text', m.text, 'createdAt', m.created_at
+      ) order by m.created_at desc)
+      from (select * from mine order by created_at desc limit v_page_size offset (v_page - 1) * v_page_size) m
+    ), '[]'::jsonb),
+    (select count(*)::int from mine)
+  into v_items, v_total;
+  return jsonb_build_object('items', v_items, 'total', v_total);
+end;
+$$;
+
+revoke execute on function api_submit_review(jsonb) from public;
+revoke execute on function api_my_reviews(jsonb) from public;
+grant execute on function api_submit_review(jsonb) to authenticated;
+grant execute on function api_my_reviews(jsonb) to authenticated;
+
+-- ---- 20260743000000_activity_filters ----------------------------------------
+create or replace function api_search_facets(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with scoped as (
+    select a.duration_minutes,
+      case
+        when a.pricing_mode = 'vehicle'
+          then (select sedan_minor from sightseeing_pricing limit 1)
+        else (
+          select min(pr.amount_minor)
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = a.id
+        )
+      end as from_price_minor
+    from activities a
+    where a.status = 'published'
+      and coalesce(a.is_custom_planner, false) = false
+      and a.slug <> all (array['airport-transfer', 'hotel-transfer'])
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+  )
+  select jsonb_build_object(
+    'priceMinEur', (select min(from_price_minor)::float / 100 from scoped),
+    'priceMaxEur', (select max(from_price_minor)::float / 100 from scoped),
+    'durationMin', (select min(duration_minutes) from scoped),
+    'durationMax', (select max(duration_minutes) from scoped)
+  );
+$$;
+
+create or replace function api_list_categories(p jsonb default '{}'::jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'name', c.name, 'slug', c.slug, 'imageUrl', c.image_url
+  ) order by c.position, c.name), '[]'::jsonb)
+  from categories c
+  where c.status = 'active';
+$$;
+
+grant execute on function api_search_facets(jsonb) to anon, authenticated, service_role;
+grant execute on function api_list_categories(jsonb) to anon, authenticated, service_role;
+
+-- api_search_activities — extended with price/duration/rating filters. Defined LAST so this body wins
+-- over the earlier copies in this file (keeps catch-up in parity with 20260743000000_activity_filters).
+create or replace function api_search_activities(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  with filtered as (
+    select a.*,
+      case
+        when a.pricing_mode = 'vehicle'
+          then (select sedan_minor from sightseeing_pricing limit 1)
+        else (
+          select min(pr.amount_minor)
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = a.id
+        )
+      end as from_price_minor
+    from activities a
+    where a.status = 'published'
+      and coalesce(a.is_custom_planner, false) = false
+      and (p ->> 'category' is null or a.category::text = p ->> 'category')
+      and (p ->> 'type' is null or a.type::text = p ->> 'type')
+      and (
+        p ->> 'q' is null
+        or a.title ilike '%' || (p ->> 'q') || '%'
+        or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+      )
+      and (p ->> 'durationMin' is null or coalesce(a.duration_minutes, 0) >= (p ->> 'durationMin')::int)
+      and (p ->> 'durationMax' is null or coalesce(a.duration_minutes, 0) <= (p ->> 'durationMax')::int)
+      and (p ->> 'minRating' is null or coalesce(a.rating_avg, 0) >= (p ->> 'minRating')::numeric)
+  ),
+  priced as (
+    select * from filtered
+    where (p ->> 'priceMin' is null or from_price_minor >= (p ->> 'priceMin')::numeric * 100)
+      and (p ->> 'priceMax' is null or from_price_minor <= (p ->> 'priceMax')::numeric * 100)
+  ),
+  paged as (
+    select * from priced
+    order by rating_count desc, title
+    limit coalesce((p ->> 'pageSize')::int, 20)
+    offset (coalesce((p ->> 'page')::int, 1) - 1) * coalesce((p ->> 'pageSize')::int, 20)
+  )
+  select jsonb_build_object(
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', x.id, 'slug', x.slug, 'type', x.type, 'title', x.title, 'summary', x.summary,
+        'category', x.category, 'location', x.location, 'durationMinutes', x.duration_minutes,
+        'ratingAvg', x.rating_avg, 'ratingCount', x.rating_count, 'pricingMode', x.pricing_mode,
+        'minAdvanceDays', coalesce(x.min_advance_days, 1),
+        'fromPriceEur', x.from_price_minor::float / 100,
+        'fromPriceMaxGuests', case when x.pricing_mode = 'vehicle' then null else (
+          select pr.max_guests
+          from activity_option_prices pr
+          join activity_options o on o.id = pr.activity_option_id
+          where o.activity_id = x.id
+          order by pr.amount_minor asc nulls last
+          limit 1
+        ) end,
+        'heroImage', (
+          select jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+          from activity_images img where img.activity_id = x.id order by img.position limit 1
+        ),
+        'images', coalesce((
+          select jsonb_agg(
+            jsonb_build_object('id', img.id, 'url', img.url, 'alt', img.alt, 'position', img.position)
+            order by img.position
+          )
+          from activity_images img where img.activity_id = x.id
+        ), '[]'::jsonb)
+      ))
+      from paged x
+    ), '[]'::jsonb),
+    'total', (select count(*)::int from priced),
+    'page', coalesce((p ->> 'page')::int, 1),
+    'pageSize', coalesce((p ->> 'pageSize')::int, 20)
+  );
+$$;
+
+-- ---- 20260744000000_account_profile -----------------------------------------
+create or replace function api_get_profile(p jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_row profiles;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  insert into profiles (id) values (v_uid) on conflict (id) do nothing;
+  select * into v_row from profiles where id = v_uid;
+  return jsonb_build_object(
+    'id', v_row.id, 'fullName', v_row.full_name, 'phone', v_row.phone,
+    'dateOfBirth', v_row.date_of_birth, 'role', v_row.role, 'memberSince', v_row.created_at
+  );
+end;
+$$;
+
+create or replace function api_update_profile(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_row profiles;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  insert into profiles (id) values (v_uid) on conflict (id) do nothing;
+  update profiles set
+    full_name = case when p ? 'fullName' then nullif(btrim(p ->> 'fullName'), '') else full_name end,
+    phone = case when p ? 'phone' then nullif(btrim(p ->> 'phone'), '') else phone end,
+    date_of_birth = case when p ? 'dateOfBirth' then nullif(p ->> 'dateOfBirth', '')::date else date_of_birth end
+  where id = v_uid
+  returning * into v_row;
+  return jsonb_build_object(
+    'id', v_row.id, 'fullName', v_row.full_name, 'phone', v_row.phone,
+    'dateOfBirth', v_row.date_of_birth, 'role', v_row.role, 'memberSince', v_row.created_at
+  );
+end;
+$$;
+
+create or replace function api_export_user(p jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_email text;
+  v_profile profiles;
+begin
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+  select email into v_email from auth.users where id = v_uid;
+  select * into v_profile from profiles where id = v_uid;
+  return jsonb_build_object(
+    'profile', jsonb_build_object(
+      'fullName', v_profile.full_name, 'phone', v_profile.phone,
+      'email', v_email, 'dateOfBirth', v_profile.date_of_birth
+    ),
+    'bookings', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'ref', b.ref, 'status', b.status,
+        'date', coalesce(
+          (select min(so.starts_at) from booking_items bi
+             join session_occurrences so on so.id = bi.session_occurrence_id
+            where bi.booking_id = b.id),
+          b.created_at),
+        'totalEur', b.total_minor::float / 100, 'currency', b.currency,
+        'items', coalesce((
+          select jsonb_agg(jsonb_build_object('label', bi.price_label, 'qty', bi.quantity))
+          from booking_items bi where bi.booking_id = b.id
+        ), '[]'::jsonb),
+        'pickup', b.pickup_location, 'dropoff', b.dropoff_location,
+        'gender', b.traveller_gender, 'company', b.traveller_company, 'country', b.traveller_country,
+        'specialNotes', b.special_notes, 'roomOrCabin', b.room_or_cabin, 'luggageDetails', b.luggage_details,
+        'childSeatAge', b.child_seat_age, 'flightNumber', b.flight_number, 'arrivalTime', b.arrival_time,
+        'returnDate', b.return_date, 'returnTime', b.return_time, 'departureFlightNumber', b.departure_flight_number
+      ) order by b.created_at desc)
+      from bookings b where b.user_id = v_uid
+    ), '[]'::jsonb)
+  );
+end;
+$$;
+
+revoke execute on function api_get_profile(jsonb) from public;
+revoke execute on function api_update_profile(jsonb) from public;
+revoke execute on function api_export_user(jsonb) from public;
+grant execute on function api_get_profile(jsonb) to authenticated;
+grant execute on function api_update_profile(jsonb) to authenticated;
+grant execute on function api_export_user(jsonb) to authenticated;

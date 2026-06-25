@@ -194,8 +194,41 @@ export const searchToursQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().min(1).max(120).optional(),
   category: categorySchema.optional(),
   type: tourTypeSchema.optional(),
+  /** "From" price range in EUR (matched against the displayed fromPriceEur). */
+  priceMin: z.coerce.number().nonnegative().optional(),
+  priceMax: z.coerce.number().nonnegative().optional(),
+  /** Duration range in minutes. */
+  durationMin: z.coerce.number().int().nonnegative().optional(),
+  durationMax: z.coerce.number().int().nonnegative().optional(),
+  /** Minimum average rating (0–5). */
+  minRating: z.coerce.number().min(0).max(5).optional(),
 });
 export type SearchToursQuery = z.infer<typeof searchToursQuerySchema>;
+
+/** GET /activities/facets query — the q/category/type scope to compute slider bounds for. */
+export const facetsQuerySchema = z.object({
+  q: z.string().trim().min(1).max(120).optional(),
+  category: categorySchema.optional(),
+  type: tourTypeSchema.optional(),
+});
+export type FacetsQuery = z.infer<typeof facetsQuerySchema>;
+
+/** Filter-slider bounds for the current scope. Null when the scope is empty. */
+export const facetsSchema = z.object({
+  priceMinEur: z.number().nullable(),
+  priceMaxEur: z.number().nullable(),
+  durationMin: z.number().int().nullable(),
+  durationMax: z.number().int().nullable(),
+});
+export type Facets = z.infer<typeof facetsSchema>;
+
+/** A browse category (mirror of the public `categories` read). */
+export const categorySummarySchema = z.object({
+  name: z.string(),
+  slug: z.string(),
+  imageUrl: z.string().nullable(),
+});
+export type CategorySummary = z.infer<typeof categorySummarySchema>;
 
 export const availabilityQuerySchema = z.object({
   from: z.string().date().optional(),

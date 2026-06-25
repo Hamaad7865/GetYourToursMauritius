@@ -3,8 +3,13 @@ import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import { NotFoundError } from './errors';
 import {
+  categorySummarySchema,
+  facetsSchema,
   tourDetailSchema,
   tourSummarySchema,
+  type CategorySummary,
+  type Facets,
+  type FacetsQuery,
   type SearchToursQuery,
   type TourDetail,
   type TourSummary,
@@ -37,6 +42,11 @@ export async function searchActivities(
     q: query.q ?? null,
     category: query.category ?? null,
     type: query.type ?? null,
+    priceMin: query.priceMin ?? null,
+    priceMax: query.priceMax ?? null,
+    durationMin: query.durationMin ?? null,
+    durationMax: query.durationMax ?? null,
+    minRating: query.minRating ?? null,
     page: query.page,
     pageSize: query.pageSize,
   });
@@ -54,4 +64,20 @@ export async function getActivity(ctx: ServiceContext, slug: string): Promise<To
     throw new NotFoundError(`Activity "${slug}" not found`);
   }
   return tourDetailSchema.parse(data);
+}
+
+/** Filter-slider bounds (price/duration) for the current q/category/type scope. */
+export async function searchFacets(ctx: ServiceContext, query: FacetsQuery): Promise<Facets> {
+  const data = await callRpc(ctx, 'api_search_facets', {
+    q: query.q ?? null,
+    category: query.category ?? null,
+    type: query.type ?? null,
+  });
+  return facetsSchema.parse(data);
+}
+
+/** The active browse categories. */
+export async function listCategories(ctx: ServiceContext): Promise<CategorySummary[]> {
+  const data = await callRpc(ctx, 'api_list_categories', {});
+  return z.array(categorySummarySchema).parse(data ?? []);
 }

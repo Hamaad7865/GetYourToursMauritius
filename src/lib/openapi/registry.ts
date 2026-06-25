@@ -1,13 +1,24 @@
 import { z } from 'zod';
 import type { ZodOpenApiPathsObject, ZodOpenApiResponseObject } from 'zod-openapi';
-import { errorEnvelopeSchema, successEnvelopeSchema } from '@/lib/validation/common';
+import { errorEnvelopeSchema, paginationQuerySchema, successEnvelopeSchema } from '@/lib/validation/common';
 import {
   availabilityQuerySchema,
   availabilitySlotSchema,
+  categorySummarySchema,
+  facetsQuerySchema,
+  facetsSchema,
+  reviewSchema,
   searchToursQuerySchema,
   tourDetailSchema,
   tourSummarySchema,
 } from '@/lib/validation/tours';
+import { myReviewSchema, reviewInputSchema } from '@/lib/validation/reviews';
+import {
+  accountExportSchema,
+  deleteAccountResultSchema,
+  profileSchema,
+  profileUpdateSchema,
+} from '@/lib/validation/account';
 import {
   bookingHistoryQuerySchema,
   bookingSchema,
@@ -33,7 +44,15 @@ import {
   markReadResultSchema,
   notificationSchema,
   notificationsQuerySchema,
+  unreadCountResultSchema,
 } from '@/lib/validation/notifications';
+import {
+  transferAreaSchema,
+  transferHotelSchema,
+  transferHotelsQuerySchema,
+  transferQuoteQuerySchema,
+  transferQuoteSchema,
+} from '@/lib/validation/transfers';
 import { pendingBookingSchema } from '@/lib/services/bookings';
 
 const errorResponse = (description: string): ZodOpenApiResponseObject => ({
@@ -78,6 +97,15 @@ export const apiPaths: ZodOpenApiPathsObject = {
       responses: { '200': okJson(tourDetailSchema), '404': errorResponse('Activity not found') },
     },
   },
+  '/activities/facets': {
+    get: {
+      operationId: 'getActivityFacets',
+      summary: 'Price/duration slider bounds for the current catalogue scope',
+      tags: ['Catalogue'],
+      requestParams: { query: facetsQuerySchema },
+      responses: { '200': okJson(facetsSchema, 'Filter bounds') },
+    },
+  },
   '/activities/{slug}/availability': {
     get: {
       operationId: 'listAvailability',
@@ -85,6 +113,124 @@ export const apiPaths: ZodOpenApiPathsObject = {
       tags: ['Catalogue'],
       requestParams: { path: slugParam, query: availabilityQuerySchema },
       responses: { '200': okJson(z.array(availabilitySlotSchema)) },
+    },
+  },
+  '/activities/{slug}/reviews': {
+    post: {
+      operationId: 'submitReview',
+      summary: 'Submit/update the caller’s review for an activity (booking-gated)',
+      tags: ['Reviews'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: slugParam },
+      requestBody: jsonBody(reviewInputSchema),
+      responses: {
+        '201': okJson(reviewSchema, 'Review saved'),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('No confirmed booking for this activity'),
+        '404': errorResponse('Activity not found'),
+      },
+    },
+  },
+  '/categories': {
+    get: {
+      operationId: 'listCategories',
+      summary: 'The active browse categories',
+      tags: ['Catalogue'],
+      responses: { '200': okJson(z.array(categorySummarySchema), 'Categories') },
+    },
+  },
+  '/account/reviews': {
+    get: {
+      operationId: 'listMyReviews',
+      summary: 'The caller’s own reviews ("My reviews"), newest first',
+      tags: ['Account'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { query: paginationQuerySchema },
+      responses: {
+        '200': okJson(z.array(myReviewSchema), 'Paginated reviews'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/account/profile': {
+    get: {
+      operationId: 'getProfile',
+      summary: 'The caller’s profile (created if missing)',
+      tags: ['Account'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(profileSchema, 'Profile'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+    patch: {
+      operationId: 'updateProfile',
+      summary: 'Update the caller’s profile (fullName/phone/dateOfBirth)',
+      tags: ['Account'],
+      security: [{ bearerAuth: [] }],
+      requestBody: jsonBody(profileUpdateSchema),
+      responses: {
+        '200': okJson(profileSchema, 'Updated profile'),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/account/export': {
+    get: {
+      operationId: 'exportAccount',
+      summary: 'The caller’s GDPR data export (profile + bookings)',
+      tags: ['Account'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(accountExportSchema, 'Data export'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/account/delete': {
+    post: {
+      operationId: 'deleteAccount',
+      summary: 'Permanently delete the caller’s account (data + auth user)',
+      tags: ['Account'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(deleteAccountResultSchema, 'Deleted'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/transfers/hotels': {
+    get: {
+      operationId: 'searchTransferHotels',
+      summary: 'Typeahead over the bookable airport-transfer hotels',
+      tags: ['Transfers'],
+      requestParams: { query: transferHotelsQuerySchema },
+      responses: {
+        '200': okJson(z.array(transferHotelSchema), 'Paginated hotels'),
+        '400': errorResponse('Invalid query parameters'),
+      },
+    },
+  },
+  '/transfers/areas': {
+    get: {
+      operationId: 'listTransferAreas',
+      summary: 'Curated point-to-point areas with region + airport zone',
+      tags: ['Transfers'],
+      responses: { '200': okJson(z.array(transferAreaSchema), 'Areas') },
+    },
+  },
+  '/transfers/quote': {
+    get: {
+      operationId: 'quoteTransfer',
+      summary: 'Read-only fare estimate (equals the booked charge for the same inputs)',
+      tags: ['Transfers'],
+      requestParams: { query: transferQuoteQuerySchema },
+      responses: {
+        '200': okJson(transferQuoteSchema, 'Fare estimate'),
+        '400': errorResponse('Invalid query parameters'),
+      },
     },
   },
   '/holds': {
@@ -333,6 +479,18 @@ export const apiPaths: ZodOpenApiPathsObject = {
       security: [{ bearerAuth: [] }],
       responses: {
         '200': okJson(markAllReadResultSchema, 'Marked all read'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/notifications/unread-count': {
+    get: {
+      operationId: 'getUnreadNotificationCount',
+      summary: 'The caller’s unread-notification count (bell badge)',
+      tags: ['Notifications'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(unreadCountResultSchema, 'Unread count'),
         '401': errorResponse('Authentication required'),
       },
     },
