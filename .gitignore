@@ -58,3 +58,6 @@ Activity Pictures/
 
 # Codex / MCP tool config (local, not project code)
 .codex/
+
+# graphify knowledge-graph output (generated tooling artifacts, not project code)
+graphify-out/

@@ -17,9 +17,10 @@ export interface PeachConfig {
   /** Channel/entity id — keys both the create-checkout body and the browser widget. */
   entityId: string;
   /**
-   * HMAC-SHA256 secret Peach signs webhook notifications with. Optional: HMAC webhook security is
-   * activated by Peach support (not a dashboard toggle), so it may not exist yet. When absent,
-   * verifyWebhook fails closed (no confirmation) — confirmation then relies on the status re-query.
+   * HMAC-SHA256 secret Peach signs webhook notifications with. HMAC is ENABLED in production (Peach
+   * activated it on 2026-06-25; the secret is set in the Pages env), so the signed fast-path is the
+   * primary confirmation route. Still typed optional: dev/CI run the stub provider, and verifyWebhook
+   * fails closed when it's absent (confirmation then relies on the status re-query / sync / cron).
    */
   webhookSecret?: string;
   /** Auth service base, e.g. https://sandbox-... (POST {authBaseUrl}/api/oauth/token). */
@@ -29,8 +30,9 @@ export interface PeachConfig {
   /**
    * The publicly-reachable URL Peach calls with settlement notifications. Peach signs the HMAC over
    * this exact URL, so verifyWebhook needs it to recompute the signature. Sent as `notificationUrl`
-   * on each checkout so it works without dashboard webhook config (e.g. a local tunnel). Optional so
-   * createCheckout can run before the webhook is wired, but verifyWebhook fails closed without it.
+   * on each checkout so it works without dashboard webhook config (e.g. a local tunnel). Set in
+   * production alongside the HMAC secret; typed optional only so dev/CI (stub provider) build —
+   * verifyWebhook fails closed without it.
    */
   webhookUrl?: string;
   environment: 'test' | 'live';
@@ -137,7 +139,8 @@ export class PeachPaymentProvider implements PaymentProvider {
       throw new ProviderError('PEACH_WEBHOOK_URL is not configured — cannot verify the signature');
     }
     if (!this.config.webhookSecret) {
-      // Fail closed: HMAC isn't enabled yet (Peach activates it on request), so we can't verify.
+      // Fail closed: no HMAC secret in this env (dev/CI, or a prod misconfig). HMAC is enabled in
+      // production, so reaching here on the live site means PEACH_WEBHOOK_SECRET is unset/not redeployed.
       throw new ProviderError('Peach webhook HMAC secret not configured — cannot verify the signature');
     }
 

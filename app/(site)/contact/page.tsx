@@ -27,8 +27,8 @@ export default async function ContactPage() {
     {
       icon: <IconMail width={20} height={20} />,
       label: t('Email'),
-      value: 'boodoo.sheik786@gmail.com',
-      href: 'mailto:boodoo.sheik786@gmail.com',
+      value: 'bookings@getyourtoursmauritius.com',
+      href: 'mailto:bookings@getyourtoursmauritius.com',
       note: t('We reply within a day'),
     },
     {

@@ -12,9 +12,10 @@ export * from './types';
  * the OAuth credentials (clientId/clientSecret/merchantId), the entity id, and the checkout base URL.
  * PEACH_AUTH_BASE_URL is optional — Peach serves the OAuth token endpoint and the checkout API on the
  * same host in most environments, so it defaults to the checkout base URL (override only if your
- * account splits them). PEACH_WEBHOOK_SECRET + PEACH_WEBHOOK_URL are optional (createCheckout works
- * without them) — they're only needed for HMAC webhook verification, which fails closed until both
- * exist (HMAC is activated by Peach support, not a dashboard toggle).
+ * account splits them). PEACH_WEBHOOK_SECRET + PEACH_WEBHOOK_URL drive HMAC
+ * webhook verification, which is ENABLED in production (set in the Pages env since 2026-06-25) and is
+ * the primary settlement-confirmation path. They stay optional in code so dev/CI build on the stub;
+ * when absent, verifyWebhook fails closed and confirmation falls back to the status re-query.
  */
 function peachConfigFromEnv(env: ServerEnv): PeachConfig | null {
   if (
