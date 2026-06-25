@@ -7030,3 +7030,68 @@ where a.slug = 'hotel-transfer'
       and (x.starts_at at time zone 'Indian/Mauritius')::date = d::date
   )
 on conflict (activity_option_id, starts_at) do nothing;
+
+-- ---- 20260735000000_transfer_service_date -----------------------------------
+-- booking_json gains `serviceDate` (the booking's occurrence date) so the confirmation page can show the
+-- transfer's arrival date. Re-applied from the winning hotel_transfers body (KEEPS pickupHotelSlug +
+-- cancellable; drift guard) — see [[gytm-migration-revert-drift]].
+create or replace function booking_json(p_booking_id uuid)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select jsonb_build_object(
+    'id', b.id, 'ref', b.ref, 'status', b.status, 'paymentState', b.payment_state,
+    'customerName', b.customer_name, 'customerEmail', b.customer_email,
+    'totalEur', b.total_minor::float / 100, 'currency', b.currency, 'source', b.source,
+    'createdAt', b.created_at,
+    'customItinerary', b.custom_itinerary,
+    'pickupLocation', b.pickup_location,
+    'dropoffLocation', b.dropoff_location,
+    'pickupPending', b.pickup_pending,
+    'pickupHotelSlug', b.pickup_hotel_slug,
+    'childSeats', b.child_seats,
+    'transportEur', b.transport_minor::float / 100,
+    'pickupRegion', b.pickup_region,
+    'tripType', b.trip_type,
+    'tripDirection', b.trip_direction,
+    'flightNumber', b.flight_number,
+    'arrivalTime', b.arrival_time,
+    'returnDate', b.return_date,
+    'returnTime', b.return_time,
+    'departureFlightNumber', b.departure_flight_number,
+    'roomOrCabin', b.room_or_cabin,
+    'luggageDetails', b.luggage_details,
+    'childSeatAge', b.child_seat_age,
+    'travellerGender', b.traveller_gender,
+    'travellerCompany', b.traveller_company,
+    'travellerCountry', b.traveller_country,
+    'specialNotes', b.special_notes,
+    'cancellable', (
+      b.status = 'confirmed' and b.payment_state = 'paid'
+      and coalesce((
+        select min(so.starts_at)
+          from booking_items bi
+          join session_occurrences so on so.id = bi.session_occurrence_id
+         where bi.booking_id = b.id
+      ), 'epoch'::timestamptz) > now() + interval '24 hours'
+    ),
+    'serviceDate', (
+      select min(so.starts_at)
+        from booking_items bi
+        join session_occurrences so on so.id = bi.session_occurrence_id
+       where bi.booking_id = b.id
+    ),
+    'items', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'priceLabel', bi.price_label, 'quantity', bi.quantity, 'pax', bi.pax,
+        'unitAmountEur', bi.unit_amount_minor::float / 100, 'subtotalEur', bi.subtotal_minor::float / 100,
+        'occurrenceId', bi.session_occurrence_id
+      ))
+      from booking_items bi where bi.booking_id = b.id
+    ), '[]'::jsonb)
+  )
+  from bookings b where b.id = p_booking_id;
+$$;

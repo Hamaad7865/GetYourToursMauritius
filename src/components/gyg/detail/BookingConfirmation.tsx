@@ -11,6 +11,7 @@ import { IconDownload } from '@/components/ui/icons';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { whatsappUrl } from '@/lib/seo/site';
+import { transferLegs } from '@/lib/transfers/leg-times';
 import {
   CONFIRM_POLL_INTERVAL_MS,
   CONFIRM_POLL_MAX_MS,
@@ -56,6 +57,8 @@ interface Booking {
   specialNotes?: string | null;
   /** True when the customer may self-cancel for a refund (confirmed + paid + the trip is >24h away). */
   cancellable?: boolean | null;
+  /** The booking's occurrence date (ISO) — the transfer's arrival/service date, for the run-sheet. */
+  serviceDate?: string | null;
 }
 
 /** VAT is included in the booking total at this rate (matches the invoice/receipt). */
@@ -422,15 +425,49 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                       : t('Arrival (airport to hotel)');
                 const rows: Array<{ label: string; value: string }> = [{ label: t('Direction'), value: dir }];
                 if (booking.roomOrCabin) rows.push({ label: t('Room or cabin'), value: booking.roomOrCabin });
-                const arr = [booking.flightNumber, booking.arrivalTime].filter(Boolean).join(' · ');
-                if (arr) rows.push({ label: t('Arrival flight'), value: arr });
-                const dep = [
-                  booking.departureFlightNumber,
-                  [booking.returnDate, booking.returnTime].filter(Boolean).join(' '),
-                ]
-                  .filter(Boolean)
-                  .join(' · ');
-                if (dep) rows.push({ label: t('Return flight'), value: dep });
+                // Each leg: pickup date·time (with the flight no.) + an APPROX drop-off (pickup + the ~60-min
+                // drive). The hotel drop-off time isn't booked, so it's always shown with a "~" and "approx".
+                const fmtDate = (ymd: string) =>
+                  new Date(`${ymd}T00:00:00`).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  });
+                const legs = transferLegs({
+                  direction: booking.tripDirection,
+                  serviceDateIso: booking.serviceDate,
+                  arrivalTime: booking.arrivalTime,
+                  returnDate: booking.returnDate,
+                  returnTime: booking.returnTime,
+                });
+                if (legs.length) {
+                  for (const leg of legs) {
+                    const flight = leg.kind === 'arrival' ? booking.flightNumber : booking.departureFlightNumber;
+                    rows.push({
+                      label: leg.kind === 'arrival' ? t('Arrival') : t('Departure'),
+                      value: [`${fmtDate(leg.pickupYmd)} · ${leg.pickupTime}`, flight ? `${t('flight')} ${flight}` : '']
+                        .filter(Boolean)
+                        .join(' · '),
+                    });
+                    if (leg.dropoffYmd && leg.dropoffTime) {
+                      rows.push({
+                        label: t('Drop-off (approx.)'),
+                        value: `${fmtDate(leg.dropoffYmd)} · ~${leg.dropoffTime}`,
+                      });
+                    }
+                  }
+                } else {
+                  // No service date (older booking) — fall back to the flight numbers + times only.
+                  const arr = [booking.flightNumber, booking.arrivalTime].filter(Boolean).join(' · ');
+                  if (arr) rows.push({ label: t('Arrival flight'), value: arr });
+                  const dep = [
+                    booking.departureFlightNumber,
+                    [booking.returnDate, booking.returnTime].filter(Boolean).join(' '),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ');
+                  if (dep) rows.push({ label: t('Return flight'), value: dep });
+                }
                 if (booking.luggageDetails) rows.push({ label: t('Luggage'), value: booking.luggageDetails });
                 if (booking.childSeatAge != null) rows.push({ label: t('Child seat age'), value: String(booking.childSeatAge) });
                 if (booking.travellerCountry) rows.push({ label: t('Country'), value: booking.travellerCountry });

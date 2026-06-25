@@ -3,6 +3,7 @@ import qrcode from 'qrcode-generator';
 import type { InvoiceModel } from './model';
 import { formatMauritiusDate, formatMauritiusDateTime } from './mauritius-time';
 import { toWinAnsi, fitText } from './pdf';
+import { transferLegs } from '@/lib/transfers/leg-times';
 
 /**
  * Edge-safe airport-transfer E-VOUCHER renderer (pdf-lib, pure JS — no headless browser, no Node fs),
@@ -38,6 +39,16 @@ function directionLabel(d?: string | null): string {
   if (d === 'departure') return 'Departure — hotel to airport';
   if (d === 'return') return 'Return — both directions';
   return 'Arrival — airport to hotel';
+}
+
+/** "2026-06-28" → "28 Jun 2026". UTC-pinned so the rendered PDF stays deterministic across servers. */
+function fmtLegDate(ymd: string): string {
+  return new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
 }
 
 /** Greedy word-wrap to fit `maxWidth`, returning the lines (each already WinAnsi-safe). */
@@ -183,12 +194,36 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
   if (model.booking.dropoff) field('Drop-off', model.booking.dropoff);
   if (tr?.roomOrCabin) field('Room / cabin', tr.roomOrCabin);
 
-  const arrival = [tr?.flightNumber, tr?.arrivalTime].filter(Boolean).join(' at ');
-  if (arrival) field('Arrival flight', arrival);
-  const departure = [tr?.departureFlightNumber, [tr?.returnDate, tr?.returnTime].filter(Boolean).join(' ')]
-    .filter(Boolean)
-    .join(' - ');
-  if (departure) field('Departure flight', departure);
+  // Each leg as pickup date·time (+ flight) and an APPROX drop-off (pickup + the ~60-min drive). The hotel
+  // drop-off time isn't booked, hence the "~" / "approx". The arrival/inbound date comes from booking.when.
+  const legs = transferLegs({
+    direction: tr?.direction,
+    serviceDateIso: model.booking.when,
+    arrivalTime: tr?.arrivalTime,
+    returnDate: tr?.returnDate,
+    returnTime: tr?.returnTime,
+  });
+  if (legs.length) {
+    for (const leg of legs) {
+      const flight = leg.kind === 'arrival' ? tr?.flightNumber : tr?.departureFlightNumber;
+      field(
+        leg.kind === 'arrival' ? 'Arrival' : 'Departure',
+        [`${fmtLegDate(leg.pickupYmd)} at ${leg.pickupTime}`, flight ? `flight ${flight}` : '']
+          .filter(Boolean)
+          .join('  -  '),
+      );
+      if (leg.dropoffYmd && leg.dropoffTime) {
+        field('Drop-off (approx.)', `${fmtLegDate(leg.dropoffYmd)} at ~${leg.dropoffTime}`);
+      }
+    }
+  } else {
+    const arrival = [tr?.flightNumber, tr?.arrivalTime].filter(Boolean).join(' at ');
+    if (arrival) field('Arrival flight', arrival);
+    const departure = [tr?.departureFlightNumber, [tr?.returnDate, tr?.returnTime].filter(Boolean).join(' ')]
+      .filter(Boolean)
+      .join(' - ');
+    if (departure) field('Departure flight', departure);
+  }
 
   if (tr?.luggageDetails) field('Luggage', tr.luggageDetails, 2);
   if (typeof tr?.childSeatAge === 'number') field('Child seat', `1 seat - age ${tr.childSeatAge}`);

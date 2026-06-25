@@ -507,6 +507,8 @@ export const fr: Record<string, string> = {
   "Your trip": "Votre trajet",
   "Arrival": "Arrivée",
   "Departure": "Départ",
+  "Drop-off (approx.)": "Dépose (approx.)",
+  "flight": "vol",
   "Airport → hotel": "Aéroport → hôtel",
   "Hotel → airport": "Hôtel → aéroport",
   "Both ways": "Aller-retour",
