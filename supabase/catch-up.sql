@@ -6540,6 +6540,32 @@ end;
 $$;
 grant execute on function area_region(text) to anon, authenticated, service_role;
 
+-- 6b) hotel_end_region(): resolve ONE end of a hotel-to-hotel transfer to its pricing region, zero-trust.
+--    Precedence: a listed hotel SLUG (airport_transfer_hotels) → the COORDS of a free Google Places pick
+--    (region_from_coords) → the free-text AREA (area_region). NULL when nothing resolves, which
+--    region_distance_band() treats as the far band (fail safe — never under-prices).
+create or replace function hotel_end_region(p_slug text, p_lat double precision, p_lng double precision, p_area text)
+returns text
+language plpgsql
+stable
+set search_path = public
+as $$
+declare
+  v_region text;
+begin
+  if nullif(p_slug, '') is not null then
+    select region into v_region from airport_transfer_hotels where slug = nullif(p_slug, '');
+    if v_region is not null then return v_region; end if;
+  end if;
+  if p_lat is not null and p_lng is not null then
+    v_region := region_from_coords(p_lat, p_lng);
+    if v_region is not null then return v_region; end if;
+  end if;
+  return area_region(p_area);
+end;
+$$;
+grant execute on function hotel_end_region(text, double precision, double precision, text) to anon, authenticated, service_role;
+
 -- 7) api_book: re-applied from its WINNING body (20260732000000_airport_transfer_booking_fields) VERBATIM,
 --    adding ONLY the hotel-to-hotel branch (after the airport branch): derive both regions from the slugs
 --    (or area_region for a free-text end), reject same pickup==dropoff, classify the band, price band ×
@@ -6740,20 +6766,16 @@ begin
       raise exception 'same_hotel';
     end if;
     v_trip_type := case when (p ->> 'tripType') = 'return' then 'return' else 'one_way' end;
-    if nullif(p ->> 'pickupSlug', '') is not null then
-      select region into v_hotel_pickup_region from airport_transfer_hotels
-        where slug = nullif(p ->> 'pickupSlug', '');
-    end if;
-    if v_hotel_pickup_region is null then
-      v_hotel_pickup_region := area_region(p ->> 'pickupArea');
-    end if;
-    if nullif(p ->> 'dropoffSlug', '') is not null then
-      select region into v_hotel_dropoff_region from airport_transfer_hotels
-        where slug = nullif(p ->> 'dropoffSlug', '');
-    end if;
-    if v_hotel_dropoff_region is null then
-      v_hotel_dropoff_region := area_region(p ->> 'dropoffArea');
-    end if;
+    v_hotel_pickup_region := hotel_end_region(
+      p ->> 'pickupSlug',
+      nullif(p ->> 'pickupLat', '')::double precision,
+      nullif(p ->> 'pickupLng', '')::double precision,
+      p ->> 'pickupArea');
+    v_hotel_dropoff_region := hotel_end_region(
+      p ->> 'dropoffSlug',
+      nullif(p ->> 'dropoffLat', '')::double precision,
+      nullif(p ->> 'dropoffLng', '')::double precision,
+      p ->> 'dropoffArea');
     v_band := region_distance_band(v_hotel_pickup_region, v_hotel_dropoff_region);
     v_fare := hotel_transfer_fare_minor(v_band, v_total_qty::int, v_suv);
     if v_trip_type = 'return' then

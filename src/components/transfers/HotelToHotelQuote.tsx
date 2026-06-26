@@ -14,10 +14,12 @@ import {
   areaRegion,
   hotelTransferQuote,
   regionDistanceBand,
+  regionFromCoords,
   type HotelTransferFareByBand,
   type RegionDistanceMap,
   type TripType,
 } from '@/lib/services/pricing';
+import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 
 const SLUG = 'hotel-transfer';
 const MAX_PARTY = 25;
@@ -31,16 +33,25 @@ const displayFont = { fontFamily: 'var(--font-at-display), sans-serif' } as cons
 
 const BAND_LABEL: Record<string, string> = { same: 'Same area', near: 'Nearby coast', far: 'Across the island' };
 
-/** A picked point: a listed hotel (priced by its known region) or a free-text/curated area (priced by the
- *  region classifier). `region` may be null for an unrecognised free-text place → priced at the far band. */
+/** A picked point: a listed hotel (priced by its known region), a Google Places pick (priced by the
+ *  region of its coordinates), or a free-text/curated area (priced by the region classifier). `region`
+ *  may be null for an unrecognised free-text place → priced at the far band. When `lat`/`lng` are set
+ *  (a Google pick), the server re-derives the region from them (region_from_coords, zero-trust). */
 interface LocPick {
   kind: 'hotel' | 'area';
   label: string;
   region: string | null;
   slug?: string;
+  lat?: number;
+  lng?: number;
 }
 
-const keyOf = (p: LocPick): string => (p.kind === 'hotel' ? `h:${p.slug}` : `a:${p.label.toLowerCase()}`);
+const keyOf = (p: LocPick): string =>
+  p.kind === 'hotel'
+    ? `h:${p.slug}`
+    : p.lat != null && p.lng != null
+      ? `c:${p.lat.toFixed(4)},${p.lng.toFixed(4)}`
+      : `a:${p.label.toLowerCase()}`;
 
 /** Friendly vehicle class for a party size (+ the ≤4 SUV upgrade) — mirrors the band fare brackets. */
 function vehicleLabel(party: number, suv: boolean): string {
@@ -56,10 +67,92 @@ function ymd(d: Date): string {
 }
 
 /**
- * A location typeahead matching BOTH listed hotels AND well-known Mauritius places, with a free-text
- * fallback. Reports the picked point back (does not navigate). Reused for pickup + drop-off.
+ * Live Google Places autocomplete (restricted to Mauritius). The user types any hotel, resort, beach,
+ * town or address; on pick we capture its coordinates + a clean label and derive the pricing region
+ * from the coords (regionFromCoords) — the server re-derives the same region zero-trust at booking.
  */
-function LocationField({
+function PlacesField({
+  id,
+  label,
+  value,
+  onSelect,
+}: {
+  id: string;
+  label: string;
+  value: LocPick | null;
+  onSelect: (p: LocPick) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+
+  useEffect(() => {
+    const input = inputRef.current;
+    if (!input) return;
+    let ac: google.maps.places.Autocomplete | null = null;
+    try {
+      ac = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'mu' },
+        fields: ['name', 'formatted_address', 'geometry'],
+      });
+      ac.addListener('place_changed', () => {
+        const p = ac!.getPlace();
+        const loc = p.geometry?.location;
+        if (!loc) return;
+        const lat = loc.lat();
+        const lng = loc.lng();
+        const lbl = p.name || p.formatted_address || input.value || '';
+        onSelectRef.current({ kind: 'area', label: lbl, region: regionFromCoords(lat, lng), lat, lng });
+      });
+    } catch {
+      /* Places unavailable — the typeahead fallback (shown when Maps isn't ready) covers it */
+    }
+    return () => {
+      if (ac) google.maps.event.clearInstanceListeners(ac);
+    };
+  }, []);
+
+  return (
+    <div className="relative">
+      <label htmlFor={id} className="text-[12px] font-bold uppercase tracking-wide" style={{ color: INK_SOFT }}>
+        {label}
+      </label>
+      <input
+        id={id}
+        ref={inputRef}
+        defaultValue={value?.label ?? ''}
+        autoComplete="off"
+        placeholder="Hotel, resort, beach or town…"
+        className="mt-1 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal"
+        style={{ borderColor: 'rgba(17,32,31,0.15)' }}
+      />
+    </div>
+  );
+}
+
+/**
+ * The From/To field: live Google Places autocomplete when Maps is ready (any place in Mauritius), with
+ * the curated hotel/town typeahead as a graceful fallback when it isn't. Reports the picked point back.
+ */
+function LocationField(props: {
+  id: string;
+  label: string;
+  value: LocPick | null;
+  onSelect: (p: LocPick) => void;
+  excludeKey?: string;
+}) {
+  const status = useGoogleMaps();
+  if (status === 'ready') {
+    return <PlacesField id={props.id} label={props.label} value={props.value} onSelect={props.onSelect} />;
+  }
+  return <TypeaheadField {...props} />;
+}
+
+/**
+ * Curated typeahead matching listed hotels + well-known Mauritius places, with a free-text fallback.
+ * Used when the Google Places script can't load, so the console always works. Reused for pickup + drop-off.
+ */
+function TypeaheadField({
   id,
   label,
   value,
@@ -330,6 +423,16 @@ export function HotelToHotelQuote() {
       else q.set('pickupArea', pickup.label);
       if (dropoff.kind === 'hotel' && dropoff.slug) q.set('dropoffSlug', dropoff.slug);
       else q.set('dropoffArea', dropoff.label);
+      // A Google Places pick carries coordinates → the server derives that end's region from them
+      // (region_from_coords, zero-trust), more precisely than the keyword area classifier.
+      if (pickup.lat != null && pickup.lng != null) {
+        q.set('pickupLat', String(pickup.lat));
+        q.set('pickupLng', String(pickup.lng));
+      }
+      if (dropoff.lat != null && dropoff.lng != null) {
+        q.set('dropoffLat', String(dropoff.lat));
+        q.set('dropoffLng', String(dropoff.lng));
+      }
       if (date) q.set('arrDate', date);
       if (time) q.set('arr', time);
       if (tripType === 'return' && returnDate) q.set('retDate', returnDate);

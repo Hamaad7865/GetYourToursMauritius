@@ -124,6 +124,28 @@ describe('hotel-to-hotel transfer booking: band pricing + zero-trust', () => {
     expect(booking.totalEur).toBe(40); // East→North = near, Sedan
   });
 
+  it('prices a free Google Places pair by COORDINATES (East→West) → far = €60, coords beat an unknown area', async () => {
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const booking = await book(
+      {
+        // "Casuarina" isn't a known area (area_region → null), but the coords resolve the region: an
+        // East-coast pickup (Belle Mare) and a West-coast drop-off (Flic en Flac) → far band, Sedan.
+        pickupArea: 'Casuarina',
+        pickupLat: -20.2,
+        pickupLng: 57.77,
+        dropoffArea: 'Nowhere in the list',
+        dropoffLat: -20.3,
+        dropoffLng: 57.37,
+        tripType: 'one_way',
+      },
+      'h2h-coords-0001',
+    );
+    expect(booking.totalEur).toBe(60); // East→West = far, Sedan — derived from coords, not the area text
+
+    const got = await call<Record<string, unknown>>(db, 'api_get_booking', { ref: booking.ref });
+    expect(got.pickupRegion).toBe('East'); // region_from_coords(pickup), not area_region('Casuarina')
+  });
+
   it('exposes the live hotel band fares + region distances on the activity DTO', async () => {
     const act = await call<{
       isHotelTransfer: boolean;

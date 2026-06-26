@@ -190,6 +190,16 @@ export function Checkout() {
   const pickupSlugParam = (params.get('pickupSlug') ?? '').slice(0, 120);
   const pickupAreaParam = (params.get('pickupArea') ?? '').slice(0, 120);
   const dropoffAreaParam = (params.get('dropoffArea') ?? '').slice(0, 120);
+  // Hotel-to-hotel free Google Places ends carry coordinates; the server derives each region from them
+  // (region_from_coords, zero-trust) when the end isn't a listed hotel slug. A finite number or null.
+  const coordNum = (s: string | null): number | null => {
+    const n = Number(s);
+    return s && Number.isFinite(n) ? n : null;
+  };
+  const pickupLatParam = coordNum(params.get('pickupLat'));
+  const pickupLngParam = coordNum(params.get('pickupLng'));
+  const dropoffLatParam = coordNum(params.get('dropoffLat'));
+  const dropoffLngParam = coordNum(params.get('dropoffLng'));
   // Trip type (priced) is derived from the customer-facing direction below; the URL still carries the
   // widget's one_way/return as a prefill hint for the direction.
   const tripTypeParam: 'one_way' | 'return' = params.get('tripType') === 'return' ? 'return' : 'one_way';
@@ -580,8 +590,13 @@ export function Checkout() {
             // Pickup coordinates → the server re-derives the region and adds the transport fare (only
             // for per_person/per_group activities with pickup; ignored otherwise). Never a client price.
             // A TBD pickup — or either transfer product (fixed band fare) — sends no coords → no transport fee.
-            pickupLat: !isAirport && !isHotelTransfer && wantsPickup && !tbd && pickupCoords ? pickupCoords.lat : null,
-            pickupLng: !isAirport && !isHotelTransfer && wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
+            // Hotel-to-hotel carries the pickup-end coords from its Google Places pick; otherwise it's the
+            // per_person/per_group transport pickup. Airport sends none (its fare is zone, not region).
+            pickupLat: isHotelTransfer ? pickupLatParam : !isAirport && wantsPickup && !tbd && pickupCoords ? pickupCoords.lat : null,
+            pickupLng: isHotelTransfer ? pickupLngParam : !isAirport && wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
+            // Hotel-to-hotel drop-off-end coords (the server derives its region from them, zero-trust).
+            dropoffLat: isHotelTransfer ? dropoffLatParam : undefined,
+            dropoffLng: isHotelTransfer ? dropoffLngParam : undefined,
             // Transfers: the SERVER re-derives the region(s) and recomputes the fare — airport from
             // dropoffSlug (or its free-text area); hotel-to-hotel from BOTH ends' slugs (or area_region for
             // a free-text end). These are zero-trust inputs, never a client price. The flight/trip/traveller

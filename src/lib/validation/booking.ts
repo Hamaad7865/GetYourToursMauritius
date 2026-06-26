@@ -45,11 +45,16 @@ export const createBookingInputSchema = z.object({
   /** "Pickup to be arranged" (TBD) — distinct from no pickup. Lets admin see a pending pickup that
    *  has no address yet. */
   pickupPending: z.boolean().optional(),
-  /** Pickup coordinates (per_person / per_group activities with pickup). The SERVER re-derives the
-   *  region from these and computes the region-based transport fare — they never carry a price.
-   *  nullish like pickupLocation (the checkout sends explicit null when there's no pickup). */
+  /** Pickup coordinates. For per_person / per_group activities with pickup the SERVER re-derives the
+   *  region from these and computes the region-based transport fare; for a hotel-to-hotel transfer they
+   *  give the PICKUP region (region_from_coords) when the end is a free Google Places pick. Never a
+   *  client-sent price. nullish like pickupLocation (the checkout sends explicit null when there's none). */
   pickupLat: latSchema.nullish(),
   pickupLng: lngSchema.nullish(),
+  /** Hotel-to-hotel transfer: DROP-OFF coordinates from a free Google Places pick. The SERVER derives the
+   *  drop-off region from these via region_from_coords — never a client-sent region or price. */
+  dropoffLat: latSchema.nullish(),
+  dropoffLng: lngSchema.nullish(),
   /** Number of child seats requested. First free, each additional €6 — the charge is computed
    *  server-side; the client value is only the count. Bounded so a tampered payload is a clean 400. */
   childSeats: z.number().int().min(0).max(25).optional(),
