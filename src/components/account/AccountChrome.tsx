@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useT } from '@/components/site/PreferencesProvider';
 import { IconBell, IconBookings, IconShield, IconUser, IconWallet } from '@/components/ui/icons';
@@ -52,20 +53,39 @@ const TABS = [
   { href: '/account/privacy', label: 'Data & privacy', icon: IconShield },
 ];
 
-/** Left-rail tabs for the account area. */
+/** Account-area tabs: a vertical left rail on sm+; a horizontally-scrollable, edge-to-edge tab strip on
+ *  mobile (the five tabs don't fit a phone row, so they'd otherwise clip). The active tab is centred in
+ *  the strip on mount/route change so it's always visible. */
 export function AccountNav() {
   const t = useT();
   const pathname = usePathname();
+  const navRef = useRef<HTMLElement>(null);
+  const activeRef = useRef<HTMLAnchorElement>(null);
+
+  // Centre the active tab within the mobile scroll strip (sets the nav's OWN scrollLeft only — never the
+  // window). A no-op on sm+ where the rail is vertical and has no horizontal overflow.
+  useEffect(() => {
+    const nav = navRef.current;
+    const el = activeRef.current;
+    if (!nav || !el) return;
+    nav.scrollLeft = el.offsetLeft - (nav.clientWidth - el.clientWidth) / 2;
+  }, [pathname]);
+
   return (
-    <nav className="flex gap-1 sm:flex-col">
+    <nav
+      ref={navRef}
+      className="flex gap-1 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] sm:flex-col sm:overflow-visible [&::-webkit-scrollbar]:hidden"
+    >
       {TABS.map((tab) => {
         const active = pathname === tab.href;
         const Icon = tab.icon;
         return (
           <Link
             key={tab.href}
+            ref={active ? activeRef : undefined}
             href={tab.href}
-            className={`flex items-center gap-2.5 rounded-xl px-3.5 py-2.5 text-sm font-bold transition ${
+            aria-current={active ? 'page' : undefined}
+            className={`flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-xl px-3.5 py-2.5 text-sm font-bold transition ${
               active ? 'bg-teal/10 text-teal-dark' : 'text-ink-muted hover:bg-cream hover:text-ink'
             }`}
           >

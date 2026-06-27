@@ -8,11 +8,13 @@ export default function AccountLayout({ children }: { children: ReactNode }) {
     <>
       <GygHeader sticky showSearch={false} />
       <main className="bg-white">
-        <div className="mx-auto grid max-w-shell gap-8 px-6 py-10 sm:grid-cols-[200px_1fr]">
-          <aside className="sm:pt-1">
+        {/* grid-cols-1 (= minmax(0,1fr)) + min-w-0 let the columns SHRINK below their content so the
+            mobile nav's overflow-x-auto can scroll instead of expanding the page (grid min-width:auto trap). */}
+        <div className="mx-auto grid max-w-shell grid-cols-1 gap-8 px-6 py-10 sm:grid-cols-[200px_1fr]">
+          <aside className="min-w-0 sm:pt-1">
             <AccountNav />
           </aside>
-          <section>{children}</section>
+          <section className="min-w-0">{children}</section>
         </div>
       </main>
       <SiteFooter />
