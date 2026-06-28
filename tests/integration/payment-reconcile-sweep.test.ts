@@ -9,6 +9,7 @@ import type { PaymentEvent, PaymentProvider } from '@/lib/payments/types';
 import { StubPaymentProvider } from '@/lib/payments/stub';
 import { createStubAiProvider } from '@/lib/ai/stub';
 import { reconcilePaymentsPending } from '@/lib/services/maintenance';
+import { reconcilePaymentEvent } from '@/lib/payments/reconcile';
 
 /**
  * The webhook-less safety net: the maintenance cron re-queries Peach for recent `payment_pending`
@@ -185,5 +186,44 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
     await db.asOwner();
     expect(await statusOf(a.ref)).toEqual({ status: 'confirmed', payment_state: 'paid' });
     expect(await paidEventCount(a.paymentId)).toBe(1); // no second paid event — the append deduped
+  });
+
+  it('does NOT confirm a short/underpaid "paid" settlement — only the full amount confirms', async () => {
+    // Booking total = 2 × €50 = 10000 minor. A success-code event must credit what was ACTUALLY settled,
+    // so a half-amount capture leaves the booking pending (the underpayment guard), while a full one confirms.
+    const short = await seedPending('underpay-short', null);
+    const full = await seedPending('underpay-full', null);
+
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+
+    const shortResult = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: short.ref,
+      providerReference: 'peach_short',
+      amountMinor: 5000, // half the €100 total
+      raw: {},
+    });
+    expect(shortResult.confirmed).toBe(false);
+
+    const fullResult = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: full.ref,
+      providerReference: 'peach_full',
+      amountMinor: 10000, // the full total
+      raw: {},
+    });
+    expect(fullResult.confirmed).toBe(true);
+
+    await db.asOwner();
+    const statusOf = async (ref: string): Promise<{ status: string; payment_state: string }> =>
+      (
+        await db.pg.query<{ status: string; payment_state: string }>(
+          `select status, payment_state from bookings where ref = $1`,
+          [ref],
+        )
+      ).rows[0]!;
+    expect((await statusOf(short.ref)).status).toBe('payment_pending'); // underpaid → not confirmed
+    expect(await statusOf(full.ref)).toEqual({ status: 'confirmed', payment_state: 'paid' });
   });
 });

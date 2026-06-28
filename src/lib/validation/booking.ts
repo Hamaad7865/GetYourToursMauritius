@@ -15,8 +15,12 @@ export const createBookingInputSchema = z.object({
    *  activity's slot). Optional for backward compatibility. */
   expectedSlug: z.string().min(1).max(120).optional(),
   /** Quantity per price-tier label, e.g. { "Adult": 2, "Child": 1 }. Bounded so an absurd or
-   *  overflowing quantity is a clean validation error rather than a DB int overflow. */
-  party: z.record(z.string().min(1).max(80), z.number().int().min(0).max(1000)),
+   *  overflowing quantity is a clean validation error rather than a DB int overflow. The key count is
+   *  capped too (20 ≫ any real activity's tier count) so a padded payload can't make the RPC parse +
+   *  loop over an oversized JSONB. */
+  party: z
+    .record(z.string().min(1).max(80), z.number().int().min(0).max(1000))
+    .refine((p) => Object.keys(p).length <= 20, { message: 'Too many price tiers' }),
   /** Sightseeing vehicle mode only: the customer chose the SUV upgrade (flat price, parties ≤4).
    *  Ignored by every other pricing mode and for parties over the SUV tier. */
   suv: z.boolean().optional(),

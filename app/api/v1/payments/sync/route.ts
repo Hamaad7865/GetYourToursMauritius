@@ -3,6 +3,7 @@ import { jsonOk, jsonError } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { requireUser } from '@/lib/http/auth';
 import { buildServiceContext } from '@/lib/http/context';
+import { rateLimit } from '@/lib/http/rate-limit';
 import { syncPaymentInputSchema } from '@/lib/validation/booking';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { reconcilePaymentEvent } from '@/lib/payments/reconcile';
@@ -21,8 +22,11 @@ export const runtime = 'edge';
  */
 export const POST = apiHandler(async (req) => {
   const user = await requireUser(req);
-  const { checkoutId } = await parseJsonBody(req, syncPaymentInputSchema);
   const ctx = buildServiceContext(req);
+  // Throttle BEFORE the billed Peach round-trip below: a valid login otherwise lets a caller force
+  // unbounded provider status queries for arbitrary checkout ids (cost / merchant rate-limit pressure).
+  await rateLimit(req, ctx, 'payments:sync', 20);
+  const { checkoutId } = await parseJsonBody(req, syncPaymentInputSchema);
 
   const event = await ctx.payments.getCheckoutStatus(checkoutId);
   if (!event.bookingRef) {

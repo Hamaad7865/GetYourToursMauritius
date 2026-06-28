@@ -614,7 +614,13 @@ export function Checkout() {
             tripType: isHotelTransfer ? tripTypeParam : undefined,
             tripDirection: isAirport ? tripDirection : undefined,
             flightNumber: isAirport && tripDirection !== 'departure' ? flightNumber.trim() || null : undefined,
-            arrivalTime: isAirport && tripDirection !== 'departure' ? arrivalTime.trim() || null : undefined,
+            // The pickup/arrival time: airport (arrival/return legs) AND hotel-to-hotel both collect it
+            // in step ①; without the htransfer case the point-to-point pickup time the customer enters
+            // is silently dropped (no run-sheet/voucher/receipt time → mis-timed pickups).
+            arrivalTime:
+              (isAirport && tripDirection !== 'departure') || isHotelTransfer
+                ? arrivalTime.trim() || null
+                : undefined,
             // Departure-leg fields (departure or return). returnDate carries the departure pickup date.
             // Hotel-to-hotel carries the chosen return date/time when it's a return trip.
             returnDate: isAirport

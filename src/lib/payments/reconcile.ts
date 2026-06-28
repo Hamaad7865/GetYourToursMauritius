@@ -17,10 +17,12 @@ export interface ReconcileResult {
  * status re-query, so confirmation behaves identically however the signal arrives. Idempotent at the
  * ledger (duplicate provider events are ignored).
  *
- * Currency note: the ledger is EUR (the catalogue/booking currency) while cards are charged in USD.
- * A successful full settlement therefore confirms against the EUR booking total — we do NOT push the
- * USD-denominated reported amount into the EUR ledger. The raw provider payload (with the real USD
- * amount) is stored on the event for audit.
+ * Amount verification: the card is charged in EUR (== the ledger), so a 'paid' event credits the
+ * amount the provider ACTUALLY settled (`event.amountMinor`), not the expected booking total. That
+ * makes `append_payment_event`'s underpayment guard meaningful: a short/partial capture credits less
+ * than the total, so `v_paid < amount_minor` leaves the booking PENDING (manual review) instead of
+ * confirming it as fully paid. When the provider reports no amount (`amountMinor` null) we fall back
+ * to the booking total per the PaymentEvent contract. The raw payload is stored on the event for audit.
  */
 export async function reconcilePaymentEvent(
   admin: SupabaseClient<Database>,
@@ -46,9 +48,15 @@ export async function reconcilePaymentEvent(
   if (paymentErr) throw new Error(paymentErr.message);
   if (!payment) return { found: false, confirmed: false, outcome: event.outcome };
 
-  // A successful full charge satisfies the EUR total in full; a refund reverses the same amount.
+  // Credit what the provider actually settled (paid/refunded), falling back to the booking total only
+  // when the provider reports no amount. A short 'paid' amount is recorded truthfully, so the ledger's
+  // `v_paid >= amount_minor` guard leaves the booking pending rather than confirming an underpayment.
   const settled = event.outcome === 'paid' || event.outcome === 'refunded';
-  const amountMinor = settled ? payment.amount_minor : 0;
+  const amountMinor = settled ? (event.amountMinor ?? payment.amount_minor) : 0;
+  // Whether THIS event fully satisfies the total (drives the caller's response flag; the DB confirm
+  // is decided independently by append_payment_event summing credited amounts).
+  const fullyPaid =
+    event.outcome === 'paid' && (event.amountMinor == null || event.amountMinor >= payment.amount_minor);
 
   const { error: rpcErr } = await admin.rpc('append_payment_event', {
     p_payment_id: payment.id,
@@ -60,5 +68,5 @@ export async function reconcilePaymentEvent(
   });
   if (rpcErr) throw new Error(rpcErr.message);
 
-  return { found: true, confirmed: event.outcome === 'paid', outcome: event.outcome };
+  return { found: true, confirmed: fullyPaid, outcome: event.outcome };
 }

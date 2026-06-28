@@ -137,6 +137,7 @@ describe('hotel-to-hotel transfer booking: band pricing + zero-trust', () => {
         dropoffLat: -20.3,
         dropoffLng: 57.37,
         tripType: 'one_way',
+        arrivalTime: '14:30', // the pickup time — must persist for htransfer, not only airport
       },
       'h2h-coords-0001',
     );
@@ -144,6 +145,26 @@ describe('hotel-to-hotel transfer booking: band pricing + zero-trust', () => {
 
     const got = await call<Record<string, unknown>>(db, 'api_get_booking', { ref: booking.ref });
     expect(got.pickupRegion).toBe('East'); // region_from_coords(pickup), not area_region('Casuarina')
+    expect(got.arrivalTime).toBe('14:30'); // htransfer pickup time is stored (was previously dropped)
+  });
+
+  it('api_transfer_quote prices by coordinates too — equals the api_book charge for a free Google-Places pair', async () => {
+    // East pickup + North drop-off via coords, with area labels area_region() cannot classify. Coords
+    // resolve East→North = near (€40); before the fix the quote over-quoted at far (€60). This proves the
+    // public quote == the booked charge for coordinate-based ends.
+    const quote = await call<{ totalEur: number; zoneOrBand: string }>(db, 'api_transfer_quote', {
+      transferSlug: 'hotel-transfer',
+      pickupArea: 'Casuarina',
+      pickupLat: -20.2,
+      pickupLng: 57.77, // East
+      dropoffArea: 'Somewhere unlisted',
+      dropoffLat: -20.0,
+      dropoffLng: 57.58, // North (lat ≥ -20.08)
+      pax: 2,
+      tripType: 'one_way',
+    });
+    expect(quote.zoneOrBand).toBe('near'); // East→North = near, from coords (was 'far' via NULL area_region)
+    expect(quote.totalEur).toBe(40); // near · Sedan — matches the api_book charge
   });
 
   it('exposes the live hotel band fares + region distances on the activity DTO', async () => {

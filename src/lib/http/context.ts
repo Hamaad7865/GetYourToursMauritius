@@ -60,6 +60,15 @@ export function buildServiceContext(req: Request): ServiceContext {
   return makeContext(selectDb(getBearerToken(req)));
 }
 
+/**
+ * User-scoped ServiceContext built from an already-verified access token (for Server Actions that hold
+ * the token rather than the Request). RLS runs as that user — needed so a SECURITY DEFINER function's
+ * `auth.uid()` self-guard (e.g. api_erase_user) sees the caller and not a NULL service-role subject.
+ */
+export function userServiceContext(token: string): ServiceContext {
+  return makeContext(selectDb(token));
+}
+
 /** Anonymous context for public server components (RLS shows published only). */
 export function publicServiceContext(): ServiceContext {
   return makeContext(selectDb(null));

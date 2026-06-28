@@ -6792,6 +6792,7 @@ begin
     end if;
     update bookings set
         trip_type = v_trip_type,
+        arrival_time = left(nullif(btrim(p ->> 'arrivalTime'), ''), 40),
         pickup_hotel_slug = left(nullif(btrim(p ->> 'pickupSlug'), ''), 120),
         pickup_region = v_hotel_pickup_region,
         return_date = nullif(p ->> 'returnDate', '')::date,
@@ -7625,12 +7626,18 @@ begin
     select coalesce(return_discount_pct, 0) into v_ret_pct from airport_transfer_config limit 1;
     v_zone_or_band := v_zone;
   else
-    v_pickup_region := coalesce(
-      (select region from airport_transfer_hotels where slug = nullif(p ->> 'pickupSlug', '')),
-      area_region(p ->> 'pickupArea'));
-    v_dropoff_region := coalesce(
-      (select region from airport_transfer_hotels where slug = nullif(p ->> 'dropoffSlug', '')),
-      area_region(p ->> 'dropoffArea'));
+    -- Resolve each end exactly as api_book does (slug -> coords -> area_region) so the quote equals the
+    -- booked charge for free Google-Places picks, not just listed hotels/known areas.
+    v_pickup_region := hotel_end_region(
+      p ->> 'pickupSlug',
+      nullif(p ->> 'pickupLat', '')::double precision,
+      nullif(p ->> 'pickupLng', '')::double precision,
+      p ->> 'pickupArea');
+    v_dropoff_region := hotel_end_region(
+      p ->> 'dropoffSlug',
+      nullif(p ->> 'dropoffLat', '')::double precision,
+      nullif(p ->> 'dropoffLng', '')::double precision,
+      p ->> 'dropoffArea');
     v_band := region_distance_band(v_pickup_region, v_dropoff_region);
     v_one_way := hotel_transfer_fare_minor(v_band, v_pax, v_suv);
     select coalesce(return_discount_pct, 0) into v_ret_pct from hotel_transfer_config limit 1;

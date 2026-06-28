@@ -2,6 +2,8 @@
 
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { verifyAccessToken } from '@/lib/http/auth';
+import { userServiceContext } from '@/lib/http/context';
+import { eraseAccountData } from '@/lib/services/account';
 
 export interface DeleteAccountResult {
   ok: boolean;
@@ -18,13 +20,14 @@ export interface DeleteAccountResult {
  * only ever erase themselves; `verifyAccessToken` rejects a forged or expired token.
  *
  * Order matters:
- *  1. `api_erase_user` (the SECURITY DEFINER engine) anonymizes-with-retention FIRST. Called with the
- *     service-role client it runs with staff privileges, but we pass the caller's OWN verified
- *     userId+email, and the RPC scopes to `user_id = userId OR email`, so the blast radius is exactly
- *     this user's rows. If it errors, we return and do NOT touch the auth user — nothing is lost.
- *  2. Only after the DB step succeeds do we delete the Supabase auth user. If THAT fails, the data is
- *     already anonymized/deleted, so we log a non-PII note and still return success — the orphaned
- *     auth record is a staff cleanup item, not a data leak.
+ *  1. `api_erase_user` (the SECURITY DEFINER engine) anonymizes-with-retention FIRST. It is run on a
+ *     USER-SCOPED client carrying the caller's verified token, so the RPC's `auth.uid()` self-guard
+ *     sees the caller (a service-role client has a NULL subject and is rejected as `forbidden`). The
+ *     RPC also forces the email to the JWT identity, so the blast radius is exactly this user's rows.
+ *     If it errors, we return and do NOT touch the auth user — nothing is lost.
+ *  2. Only after the DB step succeeds do we delete the Supabase auth user (Admin API, service-role).
+ *     If THAT fails, the data is already anonymized/deleted, so we log a non-PII note and still return
+ *     success — the orphaned auth record is a staff cleanup item, not a data leak.
  */
 export async function deleteMyAccount(accessToken: string): Promise<DeleteAccountResult> {
   let userId: string;
@@ -37,20 +40,19 @@ export async function deleteMyAccount(accessToken: string): Promise<DeleteAccoun
     return { ok: false, error: 'unauthenticated' };
   }
 
-  const admin = createServiceRoleClient();
-
-  // DB erasure FIRST — anonymize-with-retention. On failure, abort before deleting the auth user.
-  const { error: eraseError } = await admin.rpc('api_erase_user', {
-    p: { userId, email },
-  });
-  if (eraseError) {
+  // DB erasure FIRST — anonymize-with-retention. Run user-scoped so api_erase_user's auth.uid()
+  // self-guard passes. On failure, abort before deleting the auth user.
+  try {
+    await eraseAccountData(userServiceContext(accessToken), userId, email);
+  } catch (eraseError) {
     // Non-PII: log the code/message only, never the user's email.
-    console.error('gdpr_erase_failed', eraseError.message);
+    console.error('gdpr_erase_failed', eraseError instanceof Error ? eraseError.message : String(eraseError));
     return { ok: false, error: 'erase_failed' };
   }
 
-  // Auth user removal. The data is already erased; a failure here is a cleanup item, not a leak.
-  const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
+  // Auth user removal (service-role Admin API). The data is already erased; a failure here is a
+  // cleanup item, not a leak.
+  const { error: deleteError } = await createServiceRoleClient().auth.admin.deleteUser(userId);
   if (deleteError) {
     console.error('gdpr_auth_delete_failed', deleteError.message);
     // Intentionally still a success: erasure (the data-protection obligation) is complete.

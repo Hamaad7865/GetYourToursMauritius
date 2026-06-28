@@ -39,6 +39,12 @@ export const transferQuoteQuerySchema = z
     dropoffArea: z.string().trim().max(120).optional(),
     pickupSlug: z.string().trim().max(120).optional(),
     pickupArea: z.string().trim().max(120).optional(),
+    // Coordinates of a free Google-Places end — the server derives the region from them (hotel_end_region,
+    // slug→coords→area) exactly as api_book does, so the quote equals the booked charge.
+    pickupLat: z.coerce.number().min(-90).max(90).optional(),
+    pickupLng: z.coerce.number().min(-180).max(180).optional(),
+    dropoffLat: z.coerce.number().min(-90).max(90).optional(),
+    dropoffLng: z.coerce.number().min(-180).max(180).optional(),
     pax: z.coerce.number().int().min(1).max(1000).default(1),
     suv: z
       .enum(['true', 'false'])
