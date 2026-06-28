@@ -71,6 +71,9 @@ export function AuthDialog({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // On a successful email sign-in / sign-up-with-session, swap the card to a brief success animation
+  // (checkmark) before the modal closes — instead of it just vanishing. Holds the heading to show.
+  const [done, setDone] = useState<string | null>(null);
   const emailRef = useRef<HTMLInputElement>(null);
   // APG modal behaviour: scroll-lock, Escape, focus the email field on open, trap Tab, and
   // restore focus to the trigger on close.
@@ -91,6 +94,13 @@ export function AuthDialog({
     if (viewMounted.current) emailRef.current?.focus();
     else viewMounted.current = true;
   }, [view]);
+
+  // Let the success checkmark play, then close the modal (returning the user to where they were).
+  useEffect(() => {
+    if (!done) return;
+    const id = window.setTimeout(onClose, 1300);
+    return () => window.clearTimeout(id);
+  }, [done, onClose]);
 
   async function submitEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -118,7 +128,8 @@ export function AuthDialog({
         const { error } = await sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      onClose();
+      // Success → play the checkmark animation; the effect above closes the modal once it has run.
+      setDone(signup ? t('Welcome aboard!') : t('You’re in!'));
     } catch (err) {
       setError(err instanceof Error ? err.message : t('Something went wrong. Please try again.'));
     } finally {
@@ -177,7 +188,7 @@ export function AuthDialog({
       onMouseDown={onClose}
     >
       <div
-        className="relative w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
+        className="animate-float-in relative w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-2xl sm:p-8"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <button
@@ -189,6 +200,30 @@ export function AuthDialog({
           <IconX width={18} height={18} />
         </button>
 
+        {done ? (
+          <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
+            <span className="relative grid h-20 w-20 place-items-center">
+              <span aria-hidden className="animate-ring-echo absolute h-16 w-16 rounded-full bg-teal/25" />
+              <span className="animate-pop grid h-20 w-20 place-items-center rounded-full bg-teal text-white shadow-[0_16px_34px_-12px_rgba(14,140,146,0.75)]">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    className="animate-draw-check"
+                    d="M5 12.8l4.2 4.2L19 7.2"
+                    stroke="currentColor"
+                    strokeWidth="2.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
+            </span>
+            <h2 role="status" aria-live="polite" className="animate-float-in mt-5 font-display text-2xl font-semibold text-ink">
+              {done}
+            </h2>
+            <p className="animate-float-in mt-1 text-sm text-ink-muted">{t('Taking you back…')}</p>
+          </div>
+        ) : (
+        <>
         <h2 className="font-display text-2xl font-semibold text-ink">
           {view === 'forgot' ? t('Reset your password') : signup ? t('Create your account') : t('Welcome back')}
         </h2>
@@ -268,7 +303,14 @@ export function AuthDialog({
               disabled={busy}
               className="mt-1 rounded-xl bg-teal-dark px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
             >
-              {busy ? t('Please wait…') : t('Send reset link')}
+              {busy ? (
+                <span className="inline-flex items-center justify-center gap-2">
+                  <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                  {t('Sending…')}
+                </span>
+              ) : (
+                t('Send reset link')
+              )}
             </button>
             <button
               type="button"
@@ -381,7 +423,16 @@ export function AuthDialog({
             disabled={busy}
             className="mt-1 rounded-xl bg-teal-dark px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
           >
-            {busy ? t('Please wait…') : signup ? t('Create account') : t('Sign in')}
+            {busy ? (
+              <span className="inline-flex items-center justify-center gap-2">
+                <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                {signup ? t('Creating your account…') : t('Signing you in…')}
+              </span>
+            ) : signup ? (
+              t('Create account')
+            ) : (
+              t('Sign in')
+            )}
           </button>
         </form>
         )}
@@ -401,6 +452,8 @@ export function AuthDialog({
               {signup ? t('Sign in') : t('Create one')}
             </button>
           </p>
+        )}
+        </>
         )}
       </div>
     </div>

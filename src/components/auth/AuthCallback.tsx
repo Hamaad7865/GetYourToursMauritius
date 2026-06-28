@@ -99,7 +99,15 @@ export function AuthCallback() {
           </Link>
         </div>
       ) : (
-        <p className="text-sm font-medium text-ink-muted">Signing you in…</p>
+        <div className="flex flex-col items-center gap-4">
+          <span
+            aria-hidden
+            className="h-10 w-10 animate-spin rounded-full border-[3px] border-teal/25 border-t-teal"
+          />
+          <p role="status" aria-live="polite" className="text-sm font-medium text-ink-muted">
+            Signing you in…
+          </p>
+        </div>
       )}
     </div>
   );
