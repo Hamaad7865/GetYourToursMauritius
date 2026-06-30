@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   // `absolute` so the root "%s | GetYourToursMauritius" template doesn't double-brand the title.
   title: { absolute: 'Car & Scooter Rental in Belle Mare, Mauritius | Belle Mare Tours' },
   description:
-    'Self-drive car and scooter rental in Belle Mare, Mauritius. Free delivery to your east-coast hotel or Airbnb, full insurance, unlimited mileage and 24/7 local support — from compact cars to family SUVs and scooters.',
+    'Self-drive car and scooter rental for guests staying in the Belle Mare area, Mauritius. Free delivery to your hotel or Airbnb in the Belle Mare vicinity, full insurance, unlimited mileage and 24/7 local support — from compact cars to family SUVs and scooters.',
   alternates: { canonical: '/rent' },
   keywords: [
     'Belle Mare rental',
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     url: `${SITE.url}/rent`,
     title: 'Car & Scooter Rental in Belle Mare, Mauritius | Belle Mare Tours',
     description:
-      'Self-drive car & scooter rental in Belle Mare — free east-coast delivery, full insurance, unlimited mileage and 24/7 local support.',
+      'Self-drive car & scooter rental for guests in the Belle Mare area — free local delivery, full insurance, unlimited mileage and 24/7 local support.',
     locale: 'en_GB',
     images: [OG_IMAGE],
   },
@@ -41,8 +41,8 @@ export const metadata: Metadata = {
 // Raw English so the visible answers match the FAQPage JSON-LD exactly (rich-result eligible).
 const FAQS: { q: string; a: string }[] = [
   {
-    q: 'Do you deliver the rental to my hotel in Belle Mare?',
-    a: 'Yes. Delivery and collection are free at any hotel or Airbnb on the east coast — Belle Mare, Trou d’Eau Douce, Palmar, Poste Lafayette and around. We hand the vehicle over fuelled and ready, and meet you again at the end to collect it.',
+    q: 'Who can rent, and do you deliver to my hotel?',
+    a: 'We rent to visitors staying in the Belle Mare area — Belle Mare, Trou d’Eau Douce, Palmar, Poste Lafayette and nearby — and delivery and collection there are free. We hand the vehicle over fuelled and ready, and meet you again at the end to collect it. If you’re staying elsewhere on the island, message us and we’ll let you know what we can do.',
   },
   {
     q: 'What’s included in the rental price?',
@@ -54,11 +54,11 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Can I rent for a single day or for the whole week?',
-    a: 'Both. We offer daily and weekly rates — weekly is the better value if you’re exploring beyond the east coast. Message us with your dates for a fixed quote.',
+    a: 'Both. We offer daily and weekly rates — weekly is the better value if you’re exploring the island over several days. Message us with your dates for a fixed quote.',
   },
   {
     q: 'Why rent from Belle Mare Tours instead of an airport chain?',
-    a: 'Free door-to-door delivery on the east coast, a fixed all-in price with no hidden airport surcharges, and a local team one WhatsApp message away the whole trip. You skip the airport rental desk queue entirely.',
+    a: 'Free door-to-door delivery in the Belle Mare area, a fixed all-in price with no hidden airport surcharges, and a local team one WhatsApp message away the whole trip. You skip the airport rental desk queue entirely.',
   },
 ];
 
@@ -85,16 +85,16 @@ export default async function RentPage() {
           serviceType: 'Car rental',
           name: 'Car & scooter rental in Belle Mare, Mauritius',
           description:
-            'Self-drive car and scooter rental with free east-coast delivery, full insurance, unlimited mileage and 24/7 local support.',
+            'Self-drive car and scooter rental for guests staying in the Belle Mare area, with free local delivery, full insurance, unlimited mileage and 24/7 local support.',
           path: '/rent',
-          areaServed: 'Belle Mare, Mauritius',
+          areaServed: 'Belle Mare and vicinity, Mauritius',
         })}
       />
 
       <InfoPage
         eyebrow={t('Car & scooter rental')}
         title={t('Rent a car or scooter in Belle Mare, Mauritius')}
-        intro={t('Self-drive is the best way to see Mauritius beyond the resort. We’re based in Belle Mare on the east coast — we deliver to your hotel or Airbnb, hand over a clean, insured vehicle, and stay one message away the whole trip.')}
+        intro={t('Self-drive is the best way to see Mauritius beyond the resort. We’re based in Belle Mare and rent to guests staying in the Belle Mare area — we deliver to your hotel or Airbnb nearby, hand over a clean, insured vehicle, and stay one message away the whole trip.')}
         heroArt={<CarHero />}
       >
         {fleet.length > 0 && (
@@ -103,7 +103,7 @@ export default async function RentPage() {
               {t('Choose your car or scooter')}
             </h2>
             <p className="mt-2 mb-5 max-w-2xl text-[15px] leading-relaxed text-ink/80">
-              {t('Pick a vehicle and your dates for an instant price, then book in one tap on WhatsApp — no online payment, no airport-desk queue. We deliver free to your east-coast hotel or Airbnb.')}
+              {t('Pick a vehicle and your dates for an instant price, then book in one tap on WhatsApp — no online payment, no airport-desk queue. We rent to guests staying in the Belle Mare area and deliver free to your hotel or Airbnb there.')}
             </p>
             <RentalWidget vehicles={fleet} />
           </section>
@@ -119,8 +119,9 @@ export default async function RentPage() {
             your holiday actually starts.
           </p>
           <p>
-            We deliver across the east coast for free and talk you through the route options for wherever you
-            want to go — from a lazy coastal loop to a full island day trip.
+            We rent to guests staying in the Belle Mare area and deliver there for free — then talk you
+            through the route options for wherever you want to drive, from a lazy coastal loop to a full
+            island day trip.
           </p>
         </ContentSection>
 
@@ -130,9 +131,9 @@ export default async function RentPage() {
           </p>
           <FeatureList
             items={[
-              'Free delivery & collection at your east-coast hotel or Airbnb',
+              'Free delivery & collection at your hotel or Airbnb in the Belle Mare area',
               'Full insurance and 24/7 roadside support included',
-              'Unlimited mileage — the whole island is yours',
+              'Unlimited mileage — drive the whole island',
               'Baby seats and extra drivers available on request',
             ]}
           />

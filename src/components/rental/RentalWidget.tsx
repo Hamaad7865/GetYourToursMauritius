@@ -147,7 +147,7 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
           `Hi Belle Mare Tours! I'd like to rent the ${vehicle.name}`,
           `(${categoryLabel(vehicle)}, ${vehicle.seats} seats) from ${pickup} to ${ret}`,
           `— ${days} day${days > 1 ? 's' : ''}, about ${euro(total)}.`,
-          delivery.trim() ? `Deliver to: ${delivery.trim()}.` : 'Delivery: east coast (free).',
+          delivery.trim() ? `Deliver to: ${delivery.trim()}.` : 'Delivery: Belle Mare area (free).',
           'My name: ',
         ]
           .filter(Boolean)
@@ -233,10 +233,13 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
           <input
             type="text"
             className={fieldClass}
-            placeholder="Your hotel or address (e.g. Lux Belle Mare)"
+            placeholder="Your hotel in the Belle Mare area (e.g. Lux Belle Mare)"
             value={delivery}
             onChange={(e) => setDelivery(e.target.value)}
           />
+          <span className="mt-1 block text-[11.5px] font-normal text-ink-muted">
+            We rent to guests staying in the Belle Mare area — free delivery &amp; collection there.
+          </span>
         </label>
 
         {/* Price summary */}
@@ -251,7 +254,7 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
               </div>
               <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-ink-muted">
                 <IconCheck width={13} height={13} className="mt-0.5 shrink-0 text-teal" />
-                Free delivery &amp; collection on the east coast.
+                Free delivery &amp; collection in the Belle Mare area.
                 {vehicle.depositEur > 0
                   ? ` Refundable ${euro(vehicle.depositEur)} deposit at handover.`
                   : ' Deposit (if any) confirmed on WhatsApp.'}
