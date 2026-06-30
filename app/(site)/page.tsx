@@ -9,7 +9,7 @@ import { FeaturedReviews } from '@/components/site/FeaturedReviews';
 import { PopularSearches } from '@/components/site/PopularSearches';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import type { TourSummary } from '@/lib/validation/tours';
 
 export const runtime = 'edge';
@@ -40,6 +40,7 @@ export const metadata: Metadata = {
       'Book Mauritius tours, activities, sightseeing and airport taxi transfers direct with Belle Mare Tours — transparent pricing, instant confirmation, no reseller markup.',
     locale: 'en_GB',
     alternateLocale: 'fr_FR',
+    images: [OG_IMAGE],
   },
 };
 

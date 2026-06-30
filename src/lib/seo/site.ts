@@ -24,6 +24,15 @@ export const SITE = {
   languages: ['en', 'fr'] as const,
 } as const;
 
+/** Default Open Graph / Twitter share image. A page that sets its OWN `openGraph` must re-include this —
+ *  Next.js does NOT merge parent `openGraph.images` into a child that defines `openGraph`. */
+export const OG_IMAGE = {
+  url: '/hero-mauritius.jpg',
+  width: 1200,
+  height: 630,
+  alt: 'Belle Mare Tours — Mauritius',
+} as const;
+
 export const CATEGORIES = [
   'Catamaran cruises',
   'Île aux Cerfs',

@@ -42,5 +42,11 @@ export function areaMetaTitle(a: Area): string {
 }
 
 export function areaMetaDescription(a: Area): string {
-  return `${a.intro}`.slice(0, 300);
+  // Keep within Google's ~160-char snippet window and cut on a word boundary (not mid-word) so the
+  // snippet reads cleanly instead of being rewritten.
+  const text = a.intro.trim();
+  if (text.length <= 155) return text;
+  const cut = text.slice(0, 155);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 120 ? cut.slice(0, lastSpace) : cut).replace(/[\s.,;:–—-]+$/, '')}…`;
 }

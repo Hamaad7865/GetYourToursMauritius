@@ -128,7 +128,11 @@ export default async function AttractionDetailPage({
         {img && (
           <figure className="mb-8 overflow-hidden rounded-2xl border border-ink/10">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={attractionImageSrc(img.url)} alt={place.name} className="aspect-[16/9] w-full object-cover" />
+            <img
+              src={attractionImageSrc(img.url)}
+              alt={`${place.name} — ${place.category} in ${place.region} Mauritius`}
+              className="aspect-[16/9] w-full object-cover"
+            />
             {/(wikimedia|wikipedia)\.org/.test(img.source) && (
               <figcaption className="px-4 py-2 text-[11px] text-ink-muted">
                 Photo via{' '}

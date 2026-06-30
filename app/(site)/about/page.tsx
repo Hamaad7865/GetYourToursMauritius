@@ -45,7 +45,8 @@ const metaTitle = `About Belle Mare Tours — your local Mauritius tour operator
 const metaDescription = `Belle Mare Tours Ltd is a licensed Mauritian tour & airport-transfer operator on the east coast, run by veteran driver-guide Noorani. Book direct for transparent fixed EUR prices, the same guide all day, and door-to-door pickup island-wide.`;
 
 export const metadata: Metadata = {
-  title: metaTitle,
+  // absolute: metaTitle already ends in the brand — stop the root template appending a second one.
+  title: { absolute: metaTitle },
   description: metaDescription,
   alternates: { canonical: '/about' },
   openGraph: {

@@ -4,7 +4,7 @@ import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { areas, AREA_REGION_ORDER, type Area } from '@/lib/content/areas';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   keywords: ['Mauritius destinations', 'where to stay in Mauritius', 'Mauritius areas', 'Grand Baie', 'Flic-en-Flac', 'Belle Mare'],
   alternates: { canonical: '/destinations' },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}/destinations`, locale: 'en_GB' },
+  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}/destinations`, locale: 'en_GB', images: [OG_IMAGE] },
 };
 
 function AreaCard({ a }: { a: Area }) {

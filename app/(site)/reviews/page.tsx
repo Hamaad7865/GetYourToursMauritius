@@ -4,7 +4,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { ReviewCard } from '@/components/site/ReviewCard';
 import { featuredReviews, reviewStats } from '@/lib/content/reviews';
 import { breadcrumbListJsonLd, reviewsPageJsonLd } from '@/lib/seo/jsonld';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { IconStar } from '@/components/ui/icons';
 
 export const runtime = 'edge';
@@ -17,11 +17,11 @@ const DESCRIPTION =
   'Read real reviews of Belle Mare Tours from TripAdvisor and Google — rated 4.8 out of 5 from more than 1,000 guests for catamaran cruises, dolphin swims, island day tours, sightseeing and airport transfers in Mauritius.';
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: { absolute: TITLE },
   description: DESCRIPTION,
   keywords: ['Belle Mare Tours reviews', 'Mauritius tour reviews', 'Belle Mare Tours TripAdvisor', 'Mauritius taxi reviews'],
   alternates: { canonical: '/reviews' },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}/reviews`, locale: 'en_GB' },
+  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}/reviews`, locale: 'en_GB', images: [OG_IMAGE] },
 };
 
 function Bar({ stars, count, total }: { stars: number; count: number; total: number }) {
@@ -48,7 +48,7 @@ export default function ReviewsPage() {
       <JsonLd data={breadcrumbListJsonLd([{ name: 'Home', path: '/' }, { name: 'Reviews', path: '/reviews' }])} />
       <JsonLd data={jsonld} />
 
-      <InfoPage eyebrow="Guest reviews" title="What our guests say" intro={DESCRIPTION}>
+      <InfoPage eyebrow="Guest reviews" title="Belle Mare Tours reviews" intro={DESCRIPTION}>
         {/* Summary */}
         <div className="grid gap-6 rounded-2xl border border-ink/10 bg-cream/50 p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-10">
           <div className="text-center">

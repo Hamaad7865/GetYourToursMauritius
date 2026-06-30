@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
@@ -26,7 +26,7 @@ export const metadata: Metadata = {
     'Belle Mare Tours',
   ],
   alternates: { canonical: PATH },
-  openGraph: { type: 'article', title: TITLE, description: DESCRIPTION, url: `${SITE.url}${PATH}`, locale: 'en_GB', publishedTime: PUBLISHED },
+  openGraph: { type: 'article', title: TITLE, description: DESCRIPTION, url: `${SITE.url}${PATH}`, locale: 'en_GB', publishedTime: PUBLISHED, images: [OG_IMAGE] },
 };
 
 const A = ({ href, children }: { href: string; children: ReactNode }) => (

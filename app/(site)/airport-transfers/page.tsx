@@ -56,7 +56,8 @@ const DESCRIPTION =
   'Private airport transfers in Mauritius at a fixed EUR price — up to 40% less than metered airport & hotel taxis. Door-to-door between SSR International Airport (MRU) and every hotel, Airbnb and cruise port. Meet & greet, flight tracking, free waiting time and a free child seat. Booked direct with licensed local operator Belle Mare Tours — no reseller markup.';
 
 export const metadata: Metadata = {
-  title: TITLE,
+  // Trimmed + absolute so the key terms aren't truncated and the brand isn't appended twice.
+  title: { absolute: 'Mauritius Airport Transfers (SSR/MRU) — Fixed-Price Taxi' },
   description: DESCRIPTION,
   keywords: [
     'Mauritius airport transfer',

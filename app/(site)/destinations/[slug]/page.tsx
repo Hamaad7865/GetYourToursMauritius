@@ -5,7 +5,7 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getArea, areaMetaTitle, areaMetaDescription } from '@/lib/content/areas';
 import { destinationJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
@@ -23,7 +23,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical: a.path },
-    openGraph: { type: 'article', title, description, url: `${SITE.url}${a.path}`, locale: 'en_GB' },
+    openGraph: { type: 'article', title, description, url: `${SITE.url}${a.path}`, locale: 'en_GB', images: [OG_IMAGE] },
   };
 }
 

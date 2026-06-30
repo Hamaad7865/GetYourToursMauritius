@@ -68,7 +68,16 @@ export function HeroGallery() {
           }}
         >
           {[...ISLAND_PHOTOS, ISLAND_PHOTOS[0]!].map((src, i) => (
-            <img key={`${src}-${i}`} src={src} alt="" className="h-full w-full shrink-0 object-cover" />
+            // Only the first slide is eager; the rest lazy so this lg-only decorative carousel doesn't
+            // fetch ~1MB of off-screen photos (it's display:none below lg and never the LCP).
+            <img
+              key={`${src}-${i}`}
+              src={src}
+              alt=""
+              loading={i === 0 ? 'eager' : 'lazy'}
+              decoding="async"
+              className="h-full w-full shrink-0 object-cover"
+            />
           ))}
         </div>
 

@@ -10,6 +10,17 @@ export function serializeJsonLd(data: Record<string, unknown>): string {
   return JSON.stringify(data).replace(/</g, '\\u003c');
 }
 
+/** Absolutize a possibly-relative image/URL against the site origin — schema.org wants absolute URLs. */
+function absoluteUrl(u: string): string {
+  if (u.startsWith('http')) return u;
+  return `${SITE.url}${u.startsWith('/') ? '' : '/'}${u}`;
+}
+
+/** A rolling ~1-year `priceValidUntil` (YYYY-MM-DD) so Offer rich results don't warn on a missing field. */
+function priceValidUntil(): string {
+  return new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 /** Site-wide TravelAgency / LocalBusiness entity for Belle Mare Tours. */
 export function organizationJsonLd(): Record<string, unknown> {
   return {
@@ -33,13 +44,9 @@ export function organizationJsonLd(): Record<string, unknown> {
       addressCountry: SITE.country,
     },
     geo: { '@type': 'GeoCoordinates', latitude: SITE.geo.lat, longitude: SITE.geo.lng },
-    // Genuine operator rating (TripAdvisor 4.8/959 + Google 4.7/117). Surface the real social proof.
-    aggregateRating: {
-      '@type': 'AggregateRating',
-      ratingValue: '4.8',
-      reviewCount: '1076',
-      bestRating: '5',
-    },
+    // NOTE: no site-wide aggregateRating here. A self-serving Organization rating injected on every page
+    // (with no review on the page) is a Google review-snippet policy violation. The real 4.8/1,076 lives
+    // on /reviews via reviewsPageJsonLd, where it's paired with the actual displayed reviews.
   };
 }
 
@@ -54,6 +61,9 @@ export function productJsonLd(activity: TourDetail | TourSummary): Record<string
     category: activity.category,
     brand: { '@type': 'Brand', name: SITE.operator },
   };
+  // image is required for the Product/Offer rich result (price + rating snippet). Absolutize it.
+  const img = activity.heroImage?.url ?? activity.images?.[0]?.url ?? null;
+  if (img) json.image = absoluteUrl(img);
   const desc = description ?? summary;
   if (desc) json.description = desc;
   if (activity.fromPriceEur != null) {
@@ -62,6 +72,7 @@ export function productJsonLd(activity: TourDetail | TourSummary): Record<string
       price: String(activity.fromPriceEur),
       priceCurrency: 'EUR',
       availability: 'https://schema.org/InStock',
+      priceValidUntil: priceValidUntil(),
       url: `${SITE.url}/activities/${activity.slug}`,
     };
   }
@@ -163,6 +174,7 @@ export function transferServiceJsonLd(opts: {
       price: String(opts.fromPriceEur),
       url: `${SITE.url}${opts.path}`,
       availability: 'https://schema.org/InStock',
+      priceValidUntil: priceValidUntil(),
     },
   };
 }

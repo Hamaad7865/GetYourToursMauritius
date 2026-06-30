@@ -1,5 +1,5 @@
 import type { Review, TourSummary } from '@/lib/validation/tours';
-import { reviewStats, topReviews, type FeaturedReview } from './reviews';
+import { reviewStats, topReviews, featuredReviews, type FeaturedReview } from './reviews';
 
 /**
  * Canonical content shared by EVERY private sightseeing (vehicle) tour, so the whole range presents
@@ -49,11 +49,22 @@ function toReview(r: FeaturedReview): Review {
   };
 }
 
+/** Stable per-tour rotation offset so each sightseeing tour shows a DIFFERENT (but deterministic)
+ *  slice of the curated pool — avoids byte-identical review blocks across every sightseeing URL. */
+function seedOffset(seed: string, mod: number): number {
+  let h = 0;
+  for (let i = 0; i < seed.length; i += 1) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return mod > 0 ? h % mod : 0;
+}
+
 /** Curated operator reviews (real TripAdvisor / Google) in the catalogue `Review` shape, so a
- *  sightseeing tour with no reviews of its own still shows genuine, consistent social proof. The
- *  same set is used for every such tour, which is exactly the consistency we want. */
-export function sightseeingReviews(n: number): Review[] {
-  return topReviews(n).map(toReview);
+ *  sightseeing tour with no reviews of its own still shows genuine social proof. Pass the tour `seed`
+ *  (its slug) to rotate the pool per tour so the blocks aren't identical across sightseeing pages. */
+export function sightseeingReviews(n: number, seed?: string): Review[] {
+  const pool = featuredReviews;
+  if (!seed || pool.length <= n) return topReviews(n).map(toReview);
+  const offset = seedOffset(seed, pool.length);
+  return [...pool.slice(offset), ...pool.slice(0, offset)].slice(0, n).map(toReview);
 }
 
 /** The rating to show on a listing/summary card: the tour's own when it has reviews, otherwise — for

@@ -55,14 +55,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  let activityRoutes: MetadataRoute.Sitemap = [];
+  const activityRoutes: MetadataRoute.Sitemap = [];
   try {
-    const { items } = await searchActivities(publicServiceContext(), { page: 1, pageSize: 100 });
-    activityRoutes = items.map((activity) => ({
-      url: `${base}/activities/${activity.slug}`,
-      changeFrequency: 'weekly',
-      priority: 0.8,
-    }));
+    // Page through the whole catalogue (the old single page-1/100 silently dropped tour #101+ once the
+    // catalogue grows). Cap at 50 pages (5,000 tours) as a runaway guard.
+    const pageSize = 100;
+    for (let page = 1; page <= 50; page += 1) {
+      const { items } = await searchActivities(publicServiceContext(), { page, pageSize });
+      for (const activity of items) {
+        activityRoutes.push({
+          url: `${base}/activities/${activity.slug}`,
+          changeFrequency: 'weekly',
+          priority: 0.8,
+        });
+      }
+      if (items.length < pageSize) break;
+    }
   } catch (error) {
     console.error('[sitemap] catalogue fetch failed', error);
   }

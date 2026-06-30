@@ -6,7 +6,7 @@ import { AttractionCard } from '@/components/attractions/AttractionCard';
 import { loadPlaces } from '@/lib/catalogue/places';
 import { REGION_ORDER, REGION_INTRO, attractionPath } from '@/lib/content/attractions';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
@@ -15,7 +15,7 @@ const DESCRIPTION =
   'A local guide to the best places to visit in Mauritius — beaches, waterfalls, viewpoints, nature parks and cultural sites, organised by region. Visit any of them with Belle Mare Tours: private day tours, sightseeing and airport taxi transfers, booked online with transparent pricing.';
 
 export const metadata: Metadata = {
-  title: TITLE,
+  title: { absolute: TITLE },
   description: DESCRIPTION,
   keywords: [
     'things to do in Mauritius',
@@ -32,6 +32,7 @@ export const metadata: Metadata = {
     description: DESCRIPTION,
     url: `${SITE.url}/attractions`,
     locale: 'en_GB',
+    images: [OG_IMAGE],
   },
 };
 

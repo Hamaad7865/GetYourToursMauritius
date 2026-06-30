@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { PlannerShell } from '@/components/planner/PlannerShell';
+import { OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
@@ -16,6 +17,7 @@ export const metadata: Metadata = {
     description:
       'Build your own day across Mauritius with ZilAi, a grounded AI trip planner. Real route, instant price, one tap to book.',
     locale: 'en_GB',
+    images: [OG_IMAGE],
   },
 };
 

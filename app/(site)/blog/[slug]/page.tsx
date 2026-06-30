@@ -6,7 +6,7 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getPost, relatedPosts, formatPostDate } from '@/lib/content/blog';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
@@ -52,6 +52,7 @@ export async function generateMetadata({
       url: `${SITE.url}${p.path}`,
       locale: 'en_GB',
       publishedTime: p.datePublished,
+      images: [OG_IMAGE],
     },
   };
 }

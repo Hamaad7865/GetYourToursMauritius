@@ -12,7 +12,7 @@ import {
 } from '@/components/seo/LandingSections';
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { featuredActivities } from '@/lib/seo/landing';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     'Ile aux Cerfs Mauritius',
   ],
   alternates: { canonical: PATH },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}${PATH}`, locale: 'en_GB' },
+  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}${PATH}`, locale: 'en_GB', images: [OG_IMAGE] },
 };
 
 const FAQS = [

@@ -12,7 +12,7 @@ import {
   breadcrumbListJsonLd,
   faqPageJsonLd,
 } from '@/lib/seo/jsonld';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
@@ -31,7 +31,7 @@ export async function generateMetadata({
     title,
     description,
     alternates: { canonical },
-    openGraph: { type: 'website', title, description, url: `${SITE.url}${canonical}`, locale: 'en_GB' },
+    openGraph: { type: 'website', title, description, url: `${SITE.url}${canonical}`, locale: 'en_GB', images: [OG_IMAGE] },
   };
 }
 

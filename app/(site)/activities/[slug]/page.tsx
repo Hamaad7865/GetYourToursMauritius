@@ -39,7 +39,7 @@ import { publicServiceContext } from '@/lib/http/context';
 import { getActivity, searchActivities, CATALOGUE_HIDDEN_SLUGS } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
 import { breadcrumbJsonLd, breadcrumbTrail, buildFaq, relatedActivities } from '@/lib/catalogue/detail';
-import { productJsonLd } from '@/lib/seo/jsonld';
+import { productJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
 import { IconStar } from '@/components/ui/icons';
@@ -84,7 +84,9 @@ export async function generateMetadata({
   const canonical = `/activities/${activity.slug}`;
   const image = activity.heroImage?.url;
   return {
-    title,
+    // `absolute` so the root template doesn't append a SECOND brand (the title already ends in the
+    // operator) — that double-brand was pushing tour keywords past SERP truncation.
+    title: { absolute: title },
     description,
     alternates: { canonical },
     openGraph: {
@@ -144,7 +146,7 @@ export default async function ActivityDetailPage({
   // fallback never inflates the structured aggregateRating.
   const hasOwnReviews = activity.ratingCount > 0;
   const reviewsFallback = isSightseeing && !hasOwnReviews;
-  const reviews = reviewsFallback ? sightseeingReviews(9) : activity.reviews;
+  const reviews = reviewsFallback ? sightseeingReviews(9, activity.slug) : activity.reviews;
   const ratingAvg = reviewsFallback ? SIGHTSEEING_FALLBACK_RATING.avg : activity.ratingAvg;
   const ratingCount = reviewsFallback ? SIGHTSEEING_FALLBACK_RATING.count : activity.ratingCount;
   const showLoved = ratingAvg != null && ratingAvg >= 4.5 && ratingCount > 0;
@@ -153,6 +155,7 @@ export default async function ActivityDetailPage({
     <>
       <JsonLd data={productJsonLd(activity)} />
       <JsonLd data={breadcrumbJsonLd(activity)} />
+      {faqs.length > 0 && <JsonLd data={faqPageJsonLd(faqs)} />}
       <RecordView slug={activity.slug} />
       <GygHeader sticky={false} />
 

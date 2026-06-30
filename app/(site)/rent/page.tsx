@@ -3,7 +3,7 @@ import { InfoPage, InfoSection, FeatureList, EnquireRow } from '@/components/sit
 import { ContentSection, InlineLink, FaqAccordion, RelatedLinks } from '@/components/seo/LandingSections';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { breadcrumbListJsonLd, faqPageJsonLd, serviceJsonLd } from '@/lib/seo/jsonld';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     description:
       'Self-drive car & scooter rental in Belle Mare — free east-coast delivery, full insurance, unlimited mileage and 24/7 local support.',
     locale: 'en_GB',
+    images: [OG_IMAGE],
   },
 };
 

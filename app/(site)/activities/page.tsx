@@ -16,7 +16,7 @@ import {
   parseBrowseParams,
   type BrowseParams,
 } from '@/lib/catalogue/browse';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { FaqAccordion } from '@/components/seo/LandingSections';
@@ -79,7 +79,7 @@ export async function generateMetadata({
     title: { absolute: title },
     description,
     alternates: { canonical: '/activities' },
-    openGraph: { type: 'website', title, description, locale: 'en_GB' },
+    openGraph: { type: 'website', title, description, locale: 'en_GB', images: [OG_IMAGE] },
   };
 }
 

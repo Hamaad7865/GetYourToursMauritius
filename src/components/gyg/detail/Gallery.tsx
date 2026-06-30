@@ -10,11 +10,17 @@ import { useT } from '@/components/site/PreferencesProvider';
 function Tile({
   image,
   title,
+  position,
+  priority = false,
   onOpen,
   rounded,
 }: {
   image: TourImage;
   title: string;
+  /** 1-based photo number — gives each tile a distinct, descriptive alt (not the same tour title). */
+  position: number;
+  /** The large lead tile is the page's LCP — load it eagerly + high priority; the rest lazy. */
+  priority?: boolean;
   onOpen: () => void;
   rounded: string;
 }) {
@@ -26,7 +32,10 @@ function Tile({
     >
       <img
         src={image.url}
-        alt={image.alt ?? title}
+        alt={image.alt ?? `${title} — photo ${position}`}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : undefined}
+        decoding="async"
         className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
       />
     </button>
@@ -80,7 +89,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
   return (
     <div className="mb-6">
       <div className="relative grid h-[240px] gap-2 sm:h-[360px] sm:grid-cols-[1.6fr_1fr]">
-        <Tile image={grid[0]!} title={title} onOpen={() => openAt(0)} rounded="rounded-2xl" />
+        <Tile image={grid[0]!} title={title} position={1} priority onOpen={() => openAt(0)} rounded="rounded-2xl" />
         {grid.length > 1 && (
           <div className="hidden grid-cols-2 grid-rows-2 gap-2 sm:grid">
             {grid.slice(1, 5).map((img, i) => (
@@ -88,6 +97,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
                 key={img.id}
                 image={img}
                 title={title}
+                position={i + 2}
                 onOpen={() => openAt(i + 1)}
                 rounded="rounded-xl"
               />

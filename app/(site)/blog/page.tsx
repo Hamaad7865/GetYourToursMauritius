@@ -4,7 +4,7 @@ import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { posts, formatPostDate, type Post } from '@/lib/content/blog';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
-import { SITE } from '@/lib/seo/site';
+import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description: DESCRIPTION,
   keywords: ['Mauritius travel blog', 'Mauritius travel guide', 'things to do in Mauritius', 'Mauritius tips', 'Belle Mare Tours'],
   alternates: { canonical: '/blog' },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}/blog`, locale: 'en_GB' },
+  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}/blog`, locale: 'en_GB', images: [OG_IMAGE] },
 };
 
 function PostCard({ p }: { p: Post }) {
