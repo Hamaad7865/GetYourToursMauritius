@@ -523,3 +523,24 @@ export function areaRegion(area: string | null | undefined): string | null {
     return 'Central';
   return null;
 }
+
+/* Car & scooter rental — flat per-day pricing for the WhatsApp handoff on /rent. There is no online
+ * charge: the /rent widget and the pre-filled WhatsApp message both price from these two helpers, so the
+ * number the customer sees equals the number they send. */
+
+/** Whole rental days between two ISO dates (yyyy-mm-dd), minimum 1. A same-day return — or a return on or
+ *  before the pickup, or unparseable input — counts as one day. */
+export function rentalDays(pickup: string, ret: string): number {
+  const a = Date.parse(`${pickup}T00:00:00Z`);
+  const b = Date.parse(`${ret}T00:00:00Z`);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return 1;
+  const diff = Math.round((b - a) / 86_400_000);
+  return Math.max(1, diff);
+}
+
+/** Total rental price in EUR = daily rate × days (days >= 1). Rounded to the cent so a fractional admin
+ *  rate still yields a clean total. */
+export function rentalTotalEur(dailyEur: number, days: number): number {
+  const d = Math.max(1, Math.round(days));
+  return Math.round(dailyEur * d * 100) / 100;
+}

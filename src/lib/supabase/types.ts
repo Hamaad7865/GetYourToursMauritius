@@ -639,6 +639,35 @@ type PlannerPlacesInsert = {
 type PlacesCacheRow = { key: string; data: Json; expires_at: string; created_at: string };
 type PlacesCacheInsert = { key: string; data: Json; expires_at: string };
 
+type RentalVehiclesRow = {
+  slug: string;
+  name: string;
+  category: string;
+  seats: number;
+  transmission: string | null;
+  air_con: boolean;
+  image_url: string | null;
+  daily_rate_minor: number;
+  deposit_minor: number;
+  sort: number;
+  active: boolean;
+  updated_at: string;
+};
+type RentalVehiclesInsert = {
+  slug: string;
+  name: string;
+  category?: string;
+  seats?: number;
+  transmission?: string | null;
+  air_con?: boolean;
+  image_url?: string | null;
+  daily_rate_minor: number;
+  deposit_minor?: number;
+  sort?: number;
+  active?: boolean;
+  updated_at?: string;
+};
+
 type TableDef<Row, Insert> = { Row: Row; Insert: Insert; Update: Partial<Insert>; Relationships: [] };
 
 export interface Database {
@@ -675,6 +704,7 @@ export interface Database {
       hotel_transfer_config: TableDef<HotelTransferConfigRow, HotelTransferConfigInsert>;
       planner_places: TableDef<PlannerPlacesRow, PlannerPlacesInsert>;
       places_cache: TableDef<PlacesCacheRow, PlacesCacheInsert>;
+      rental_vehicles: TableDef<RentalVehiclesRow, RentalVehiclesInsert>;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -717,6 +747,7 @@ export interface Database {
       api_erase_user: { Args: { p: Json }; Returns: Json };
       set_daily_capacity_atomic: { Args: { p: Json }; Returns: undefined };
       stop_availability_atomic: { Args: { p: Json }; Returns: undefined };
+      api_list_rental_vehicles: { Args: { p: Json }; Returns: Json };
     };
     Enums: {
       user_role: 'customer' | 'staff' | 'admin';

@@ -15,6 +15,8 @@ import {
   airportZoneForSlug,
   AIRPORT_FARE_DEFAULT,
   AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
+  rentalDays,
+  rentalTotalEur,
 } from '@/lib/services/pricing';
 import { ServiceError } from '@/lib/services/errors';
 
@@ -289,5 +291,25 @@ describe('airportVehicleLabel', () => {
     expect(airportVehicleLabel(6, false)).toBe('Family car');
     expect(airportVehicleLabel(14, false)).toBe('Minibus');
     expect(airportVehicleLabel(20, false)).toBe('Coaster');
+  });
+});
+
+describe('rentalDays', () => {
+  it('counts whole days, minimum one', () => {
+    expect(rentalDays('2026-07-01', '2026-07-01')).toBe(1); // same day
+    expect(rentalDays('2026-07-01', '2026-07-02')).toBe(1); // one night
+    expect(rentalDays('2026-07-01', '2026-07-03')).toBe(2); // two nights
+    expect(rentalDays('2026-07-01', '2026-07-08')).toBe(7); // a week
+    expect(rentalDays('2026-07-05', '2026-07-01')).toBe(1); // return before pickup -> floor 1
+    expect(rentalDays('', 'nonsense')).toBe(1); // unparseable -> 1
+  });
+});
+
+describe('rentalTotalEur', () => {
+  it('multiplies the daily rate by the day count', () => {
+    expect(rentalTotalEur(36, 3)).toBe(108); // car, 3 days
+    expect(rentalTotalEur(20, 1)).toBe(20); // scooter, 1 day
+    expect(rentalTotalEur(36, 0)).toBe(36); // days floored to 1
+    expect(rentalTotalEur(35.5, 2)).toBe(71); // fractional rate rounds clean
   });
 });

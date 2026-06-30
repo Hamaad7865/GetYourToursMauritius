@@ -5,6 +5,10 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { breadcrumbListJsonLd, faqPageJsonLd, serviceJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
+import { listRentalVehicles } from '@/lib/services/rental';
+import { publicServiceContext } from '@/lib/http/context';
+import { RentalWidget } from '@/components/rental/RentalWidget';
+import type { RentalVehicle } from '@/lib/validation/rental';
 
 export const runtime = 'edge';
 
@@ -59,6 +63,13 @@ const FAQS: { q: string; a: string }[] = [
 
 export default async function RentPage() {
   const t = await getT();
+  let fleet: RentalVehicle[] = [];
+  try {
+    fleet = await listRentalVehicles(publicServiceContext());
+  } catch {
+    // The fleet picker is an enhancement — if the read fails, the SEO content + WhatsApp CTA still render.
+    fleet = [];
+  }
   return (
     <>
       <JsonLd
@@ -84,6 +95,18 @@ export default async function RentPage() {
         title={t('Rent a car or scooter in Belle Mare, Mauritius')}
         intro={t('Self-drive is the best way to see Mauritius beyond the resort. We’re based in Belle Mare on the east coast — we deliver to your hotel or Airbnb, hand over a clean, insured vehicle, and stay one message away the whole trip.')}
       >
+        {fleet.length > 0 && (
+          <section id="fleet" className="scroll-mt-28 pb-9">
+            <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+              {t('Choose your car or scooter')}
+            </h2>
+            <p className="mt-2 mb-5 max-w-2xl text-[15px] leading-relaxed text-ink/80">
+              {t('Pick a vehicle and your dates for an instant price, then book in one tap on WhatsApp — no online payment, no airport-desk queue. We deliver free to your east-coast hotel or Airbnb.')}
+            </p>
+            <RentalWidget vehicles={fleet} />
+          </section>
+        )}
+
         <ContentSection id="belle-mare" title="Why base your rental in Belle Mare">
           <p>
             Belle Mare sits on Mauritius’ quieter east coast, which makes it an ideal base for a self-drive

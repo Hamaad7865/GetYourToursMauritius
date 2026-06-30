@@ -11,6 +11,7 @@ import {
   IconTag,
   IconSliders,
   IconWallet,
+  IconCar,
   IconPin,
   IconUsers,
   IconSearch,
@@ -34,6 +35,7 @@ const NAV: NavItem[] = [
   { href: '/admin/activities', label: 'Tours', icon: IconTag },
   { href: '/admin/categories', label: 'Categories', icon: IconSliders },
   { href: '/admin/vehicle-pricing', label: 'Pricing', icon: IconWallet },
+  { href: '/admin/rental', label: 'Rental', icon: IconCar },
   { href: '/admin/planner-places', label: 'Places', icon: IconPin },
   { href: '/admin/leads', label: 'Leads', icon: IconUsers },
 ];

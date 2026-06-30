@@ -67,6 +67,15 @@ export const IconBolt = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+export const IconCar = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M5 13l1.5-4.5A2 2 0 0 1 8.4 7h7.2a2 2 0 0 1 1.9 1.5L19 13" />
+    <path d="M3 13h18v4a1 1 0 0 1-1 1h-1M6 18H4a1 1 0 0 1-1-1v-4" />
+    <circle cx="7.5" cy="18" r="1.5" />
+    <circle cx="16.5" cy="18" r="1.5" />
+  </Svg>
+);
+
 export const IconCalendar = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p}>
     <rect x="3" y="4" width="18" height="18" rx="2" />
