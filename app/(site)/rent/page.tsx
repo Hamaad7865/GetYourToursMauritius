@@ -8,6 +8,7 @@ import { getT } from '@/lib/i18n/server';
 import { listRentalVehicles } from '@/lib/services/rental';
 import { publicServiceContext } from '@/lib/http/context';
 import { RentalWidget } from '@/components/rental/RentalWidget';
+import { CarHero } from '@/components/rental/CarHero';
 import type { RentalVehicle } from '@/lib/validation/rental';
 
 export const runtime = 'edge';
@@ -94,6 +95,7 @@ export default async function RentPage() {
         eyebrow={t('Car & scooter rental')}
         title={t('Rent a car or scooter in Belle Mare, Mauritius')}
         intro={t('Self-drive is the best way to see Mauritius beyond the resort. We’re based in Belle Mare on the east coast — we deliver to your hotel or Airbnb, hand over a clean, insured vehicle, and stay one message away the whole trip.')}
+        heroArt={<CarHero />}
       >
         {fleet.length > 0 && (
           <section id="fleet" className="scroll-mt-28 pb-9">

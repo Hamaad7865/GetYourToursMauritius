@@ -14,6 +14,7 @@ export function InfoPage({
   eyebrow,
   meta,
   heroImage,
+  heroArt,
   children,
 }: {
   title: string;
@@ -23,6 +24,9 @@ export function InfoPage({
   meta?: ReactNode;
   /** Optional photo behind the hero band; a teal overlay keeps the white title legible. */
   heroImage?: string;
+  /** Optional decorative animation layered behind the hero text (e.g. the /rent car scene). Gets extra
+   *  bottom room in the hero so it never collides with the title/intro. */
+  heroArt?: ReactNode;
   children: ReactNode;
 }) {
   return (
@@ -37,7 +41,12 @@ export function InfoPage({
               <div className="absolute inset-0 bg-gradient-to-tr from-[#03262b]/95 via-[#0a4953]/88 to-[#0E8C92]/55" />
             </>
           )}
-          <div className="relative mx-auto max-w-shell px-6 py-14 sm:py-20">
+          {heroArt}
+          <div
+            className={`relative mx-auto max-w-shell px-6 pt-14 sm:pt-20 ${
+              heroArt ? 'pb-40 sm:pb-44' : 'pb-14 sm:pb-20'
+            }`}
+          >
             {eyebrow && (
               <p className="mb-3 text-[12.5px] font-bold uppercase tracking-[0.16em] text-white/70">
                 {eyebrow}
