@@ -44,7 +44,7 @@ export function InfoPage({
           {heroArt}
           <div
             className={`relative mx-auto max-w-shell px-6 pt-14 sm:pt-20 ${
-              heroArt ? 'pb-40 sm:pb-44' : 'pb-14 sm:pb-20'
+              heroArt ? 'pb-16 sm:pb-28' : 'pb-14 sm:pb-20'
             }`}
           >
             {eyebrow && (
