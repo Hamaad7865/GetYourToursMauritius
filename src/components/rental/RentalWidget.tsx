@@ -119,8 +119,6 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
   const [pickup, setPickup] = useState('');
   const [ret, setRet] = useState('');
   const [delivery, setDelivery] = useState('');
-  const [babySeat, setBabySeat] = useState(false);
-  const [extraDriver, setExtraDriver] = useState(false);
   const [today, setToday] = useState('');
 
   // Default the dates client-side (avoids an SSR/CSR hydration mismatch from rendering "today" on the server).
@@ -150,8 +148,6 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
           `(${categoryLabel(vehicle)}, ${vehicle.seats} seats) from ${pickup} to ${ret}`,
           `— ${days} day${days > 1 ? 's' : ''}, about ${euro(total)}.`,
           delivery.trim() ? `Deliver to: ${delivery.trim()}.` : 'Delivery: east coast (free).',
-          babySeat ? 'Please add a baby seat.' : '',
-          extraDriver ? 'Please add an extra driver.' : '',
           'My name: ',
         ]
           .filter(Boolean)
@@ -242,17 +238,6 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
             onChange={(e) => setDelivery(e.target.value)}
           />
         </label>
-
-        <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-0.5">
-          <label className="flex items-center gap-2 text-[13px] text-ink">
-            <input type="checkbox" checked={babySeat} onChange={(e) => setBabySeat(e.target.checked)} className="h-4 w-4 accent-teal" />
-            Baby seat
-          </label>
-          <label className="flex items-center gap-2 text-[13px] text-ink">
-            <input type="checkbox" checked={extraDriver} onChange={(e) => setExtraDriver(e.target.checked)} className="h-4 w-4 accent-teal" />
-            Extra driver
-          </label>
-        </div>
 
         {/* Price summary */}
         <div className="mt-1 rounded-xl border border-ink/10 bg-white p-3 text-sm">

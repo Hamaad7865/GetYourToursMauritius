@@ -8,28 +8,23 @@ import { IconChevron } from '@/components/ui/icons';
 
 /**
  * GetYourGuide-style primary nav row. Every item carries a coral underline that grows from
- * its centre outward on hover/focus. Two items open a hover/focus mega-menu: "Activities"
- * lists the categories, "Rent" offers car vs scooter. The rest are plain links.
+ * its centre outward on hover/focus. "Activities" opens a hover/focus mega-menu listing the
+ * categories; the rest — including "Rent" — are plain links.
  */
 
 interface NavItem {
   label: string;
   href: string;
-  menu?: 'categories' | 'rent';
+  menu?: 'categories';
 }
 
 const NAV_ITEMS: NavItem[] = [
   { label: 'About Us', href: '/about' },
   { label: 'Activities', href: '/activities', menu: 'categories' },
   { label: 'AI Trip Planner', href: '/ai-road-trip-planner' },
-  { label: 'Rent', href: '/rent', menu: 'rent' },
+  { label: 'Rent', href: '/rent' },
   { label: 'Airport Transfers', href: '/airport-transfers' },
   { label: 'Contact us', href: '/contact' },
-];
-
-const RENT_LINKS = [
-  { label: 'Rent a car', href: '/rent#car', desc: 'Self-drive across the island' },
-  { label: 'Rent a scooter', href: '/rent#scooter', desc: 'Zip around the east coast' },
 ];
 
 /** Label with the centre-out coral underline. The parent must be a `group`. */
@@ -73,20 +68,6 @@ function CategoriesMenu() {
   );
 }
 
-function RentMenu() {
-  const t = useT();
-  return (
-    <div className="invisible absolute left-0 top-full z-50 w-72 -translate-y-1 rounded-2xl border border-ink/10 bg-white p-2 opacity-0 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)] transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
-      {RENT_LINKS.map((link) => (
-        <Link key={link.href} href={link.href} className="block rounded-xl px-3 py-2.5 hover:bg-cream">
-          <span className="block text-sm font-bold text-ink">{t(link.label)}</span>
-          <span className="block text-[12px] text-ink-muted">{t(link.desc)}</span>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
 export function MainNav({ light }: { light: boolean }) {
   const showcase = useHomeShowcase();
   const t = useT();
@@ -114,7 +95,6 @@ export function MainNav({ light }: { light: boolean }) {
               </Link>
             )}
             {item.menu === 'categories' && <CategoriesMenu />}
-            {item.menu === 'rent' && <RentMenu />}
           </div>
         );
       })}
