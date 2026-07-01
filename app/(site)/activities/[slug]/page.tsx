@@ -31,6 +31,7 @@ import {
   SIGHTSEEING_FALLBACK_RATING,
   sightseeingReviews,
 } from '@/lib/content/sightseeing';
+import { CATAMARAN_WHAT_TO_BRING, CATAMARAN_KNOW_BEFORE, isCatamaranCruise } from '@/lib/content/catamaran';
 import { Faq } from '@/components/catalogue/Faq';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -133,12 +134,21 @@ export default async function ActivityDetailPage({
   // tour's admin record happens to carry.
   const isSightseeing = activity.pricingMode === 'vehicle';
   const highlights = isSightseeing ? SIGHTSEEING_HIGHLIGHTS : activity.highlights;
+  // Every catamaran cruise shares the same what-to-bring checklist + know-before-you-go notes, so the
+  // whole range is consistent (any admin-added notes still merge in, deduped). Mirrors sightseeing.
+  const isCatamaran = isCatamaranCruise(activity.category);
   const importantInfo = isSightseeing
     ? [
         ...SIGHTSEEING_IMPORTANT_INFO,
         ...(activity.extra.importantInfo ?? []).filter((i) => !SIGHTSEEING_IMPORTANT_INFO.includes(i)),
       ]
-    : (activity.extra.importantInfo ?? []);
+    : isCatamaran
+      ? [
+          ...CATAMARAN_KNOW_BEFORE,
+          ...(activity.extra.importantInfo ?? []).filter((i) => !CATAMARAN_KNOW_BEFORE.includes(i)),
+        ]
+      : (activity.extra.importantInfo ?? []);
+  const whatToBring = isCatamaran ? CATAMARAN_WHAT_TO_BRING : [];
 
   // Reviews + rating: use the tour's own when it has them; otherwise (sightseeing only) fall back to
   // the operator-wide aggregate + curated real reviews so every sightseeing tour shows social proof.
@@ -366,7 +376,7 @@ export default async function ActivityDetailPage({
                 </section>
               )}
 
-              {(activity.meetingPoint || importantInfo.length > 0) && (
+              {(activity.meetingPoint || importantInfo.length > 0 || whatToBring.length > 0) && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
                   <SectionTitle>{t('Important information')}</SectionTitle>
                   {activity.meetingPoint && (
@@ -383,6 +393,21 @@ export default async function ActivityDetailPage({
                         query={activity.location || activity.meetingPoint || activity.title}
                         label={activity.meetingPoint || activity.location || undefined}
                       />
+                    </div>
+                  )}
+                  {whatToBring.length > 0 && (
+                    <div className="mb-5">
+                      <SeeMore>
+                        <div className="text-[14px] font-bold text-ink">{t('What to bring')}</div>
+                        <ul className="m-0 mt-2 flex list-none flex-col gap-2.5 p-0">
+                          {whatToBring.map((item) => (
+                            <li key={item} className="flex items-start gap-2.5 text-[14px] leading-snug text-ink/80">
+                              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-gold" />
+                              {t(item)}
+                            </li>
+                          ))}
+                        </ul>
+                      </SeeMore>
                     </div>
                   )}
                   {importantInfo.length > 0 && (
