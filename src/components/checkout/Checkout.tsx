@@ -9,6 +9,7 @@ import { Price } from '@/components/site/Price';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
+import { decodeParty } from '@/lib/services/party';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
@@ -91,6 +92,9 @@ export function Checkout() {
   const occ = params.get('occ') ?? '';
   const label = params.get('label') ?? '';
   const qty = Math.max(1, Number(params.get('qty') ?? '1'));
+  // Age-banded booking: the per-tier party map (Adult/Child/Infant). When present it's what the server
+  // prices; `label`/`qty` remain for the single-tier path + display (qty already equals the total heads).
+  const partyMap = decodeParty(params.get('party'));
   const slug = params.get('slug') ?? '';
   const title = params.get('title') ?? 'Your booking';
   const lang = params.get('lang') ?? 'English';
@@ -557,7 +561,7 @@ export function Checkout() {
           body: JSON.stringify({
             occurrenceId: occ,
             expectedSlug: slug,
-            party: { [label]: qty },
+            party: partyMap ?? { [label]: qty },
             suv,
             childSeats,
             holdId: holdId || undefined,

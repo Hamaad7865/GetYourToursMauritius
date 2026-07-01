@@ -72,11 +72,13 @@ export function BookingOptionCard() {
       // The real tier label (or vehicle name) — shared with Continue. NOT a hardcoded 'Adult', which
       // the server rejects (unknown_price_tier) for tours whose tier is e.g. 'Private group'.
       priceLabel: b.priceLabel,
-      guests: b.participants,
+      guests: b.totalGuests,
       // Per-unit price (the cart multiplies it by the party for per-head/per-group); the child-seat
-      // add-on is carried separately so it isn't multiplied.
+      // add-on is carried separately so it isn't multiplied. Age-banded lines carry the whole party price
+      // as a flat unit + the per-band map, so the cart + server price each band correctly.
       unitEur: b.unitPriceEur,
       pricingMode: b.activity.pricingMode,
+      party: b.isAgeBanded ? b.party : undefined,
       suv: showSuv && b.suv,
       maxGuests: b.groupSize,
       seatsLeft: b.seatsLeft,

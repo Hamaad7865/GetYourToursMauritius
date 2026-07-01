@@ -17,6 +17,7 @@ import {
   AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
   rentalDays,
   rentalTotalEur,
+  ageBandLabel,
 } from '@/lib/services/pricing';
 import { ServiceError } from '@/lib/services/errors';
 
@@ -311,5 +312,30 @@ describe('rentalTotalEur', () => {
     expect(rentalTotalEur(20, 1)).toBe(20); // scooter, 1 day
     expect(rentalTotalEur(36, 0)).toBe(36); // days floored to 1
     expect(rentalTotalEur(35.5, 2)).toBe(71); // fractional rate rounds clean
+  });
+});
+
+describe('ageBandLabel', () => {
+  it('formats the age range for the party selector', () => {
+    expect(ageBandLabel(11, null)).toBe('Age 11+'); // adult (open-ended)
+    expect(ageBandLabel(3, 10)).toBe('Age 3–10'); // child
+    expect(ageBandLabel(0, 3)).toBe('Age 0–3'); // infant
+    expect(ageBandLabel(null, 3)).toBe('Age 0–3'); // max only → from 0
+    expect(ageBandLabel(null, null)).toBe(''); // non-age tier
+    expect(ageBandLabel(undefined, undefined)).toBe('');
+  });
+});
+
+describe('age-band party quote (infant free but takes a seat)', () => {
+  const BANDS = [
+    { label: 'Adult', amountEur: 56, maxGuests: null },
+    { label: 'Child', amountEur: 28, maxGuests: null },
+    { label: 'Infant', amountEur: 0, maxGuests: null },
+  ];
+  it('prices each band and counts the free infant as a guest', () => {
+    const quote = quoteTotal(BANDS, { Adult: 2, Child: 1, Infant: 1 });
+    expect(quote.totalEur).toBe(140); // 2*56 + 1*28 + 1*0
+    expect(quote.totalGuests).toBe(4); // infant still occupies a seat
+    expect(quote.lines).toContainEqual({ label: 'Infant', unitAmountEur: 0, quantity: 1, subtotalEur: 0 });
   });
 });

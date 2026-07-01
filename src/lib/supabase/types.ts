@@ -181,6 +181,8 @@ type ActivityOptionPricesRow = {
   amount_minor: number;
   currency: string;
   max_guests: number | null;
+  min_age: number | null;
+  max_age: number | null;
   position: number;
 };
 type ActivityOptionPricesInsert = {
@@ -190,6 +192,8 @@ type ActivityOptionPricesInsert = {
   amount_minor: number;
   currency?: string;
   max_guests?: number | null;
+  min_age?: number | null;
+  max_age?: number | null;
   position?: number;
 };
 

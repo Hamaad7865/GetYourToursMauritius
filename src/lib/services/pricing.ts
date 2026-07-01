@@ -544,3 +544,18 @@ export function rentalTotalEur(dailyEur: number, days: number): number {
   const d = Math.max(1, Math.round(days));
   return Math.round(dailyEur * d * 100) / 100;
 }
+
+/* Age-band pricing — display helper for the GetYourGuide-style party selector. A price tier is an "age
+ * band" when it carries a min and/or max age; the pricing itself rides the existing per-tier `quoteTotal`
+ * (absolute prices, free = €0), so this is presentation only. */
+
+/** Human age-range label for a price tier, e.g. "Age 3–10", "Age 11+", "Age 0–3". Empty string when the
+ *  tier has no age metadata (a normal, non-age tier). */
+export function ageBandLabel(minAge: number | null | undefined, maxAge: number | null | undefined): string {
+  const min = minAge ?? null;
+  const max = maxAge ?? null;
+  if (min == null && max == null) return '';
+  if (min != null && max != null) return `Age ${min}–${max}`;
+  if (min != null) return `Age ${min}+`;
+  return `Age 0–${max}`;
+}

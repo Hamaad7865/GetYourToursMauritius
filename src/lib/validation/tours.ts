@@ -13,6 +13,10 @@ export const tourPriceSchema = z.object({
   label: z.string(),
   amountEur: z.number().nonnegative(),
   maxGuests: z.number().int().positive().nullable(),
+  // Age band (admin-set) for the GetYourGuide-style party selector. Null on non-age tiers. `.nullish().catch`
+  // so a payload from a DB without the age columns still parses (degrades to a non-age tier).
+  minAge: z.number().int().nonnegative().nullish().catch(null),
+  maxAge: z.number().int().nonnegative().nullish().catch(null),
 });
 export type TourPrice = z.infer<typeof tourPriceSchema>;
 

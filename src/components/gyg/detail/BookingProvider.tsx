@@ -13,11 +13,13 @@ import type {
 import {
   sightseeingQuote,
   childSeatsCost,
+  quoteTotal,
   SIGHTSEEING_DEFAULT,
   SIGHTSEEING_SUV_MAX,
 } from '@/lib/services/pricing';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
 import { defaultOptionId, cheapestTier } from '@/lib/catalogue/options';
+import { encodeParty, partyGuests } from '@/lib/services/party';
 
 export interface BookingActivity {
   slug: string;
@@ -60,6 +62,19 @@ interface BookingState {
   activity: BookingActivity;
   participants: number;
   setParticipants: (n: number) => void;
+  /** True when the selected option is age-band priced (per_person with ≥2 age tiers) — the widget shows
+   *  one stepper per band (Adult / Child / Infant) instead of a single participants count. */
+  isAgeBanded: boolean;
+  /** The price tiers to render as age bands (the selected option's tiers) when isAgeBanded. */
+  bandTiers: TourOption['prices'];
+  /** Per-band head counts (age-banded mode). */
+  bandCounts: Record<string, number>;
+  /** Set one band's count (clamped to capacity + the band's own max_guests). */
+  setBand: (label: string, n: number) => void;
+  /** Total headcount: participants (single) or the sum of the band counts (age-banded). */
+  totalGuests: number;
+  /** Price-tier → count map posted to the server (age-banded bands, else { priceLabel: qty }). */
+  party: Record<string, number>;
   date: string; // 'YYYY-MM-DD'
   setDate: (d: string) => void;
   lang: string;
@@ -132,6 +147,7 @@ export function BookingProvider({
 }) {
   const router = useRouter();
   const [participants, setParticipants] = useState(2);
+  const [bandCounts, setBandCounts] = useState<Record<string, number>>({});
   const [date, setDate] = useState('');
   const [lang, setLang] = useState(activity.languages[0] ?? 'English');
   const [suv, setSuv] = useState(false);
@@ -182,6 +198,26 @@ export function BookingProvider({
     [selectedOption],
   );
   const bookingOptionId = selectedOption?.id ?? null;
+
+  // Age-band pricing: a per_person option with ≥2 tiers carrying age metadata is shown as a
+  // GetYourGuide-style set of per-band steppers (Adult / Child / Infant), each priced from its OWN DB
+  // tier. The server re-derives the total from the posted band map (zero-trust) — see api_book.
+  const bandTiers = useMemo(() => selectedOption?.prices ?? [], [selectedOption]);
+  const isAgeBanded =
+    activity.pricingMode === 'per_person' &&
+    bandTiers.length >= 2 &&
+    bandTiers.some((t) => t.minAge != null || t.maxAge != null);
+  // The full-price band (highest €) is the "adult" — it seeds the default count and the price label.
+  const primaryLabel = useMemo(() => {
+    if (!bandTiers.length) return null;
+    return bandTiers.reduce((a, b) => (b.amountEur > a.amountEur ? b : a)).label;
+  }, [bandTiers]);
+  // Reset the band counts to one primary (adult) guest whenever the option (its tiers) changes.
+  useEffect(() => {
+    if (isAgeBanded && primaryLabel) setBandCounts({ [primaryLabel]: 1 });
+    else setBandCounts({});
+  }, [selectedOptionId, isAgeBanded, primaryLabel]);
+  const totalGuests = isAgeBanded ? partyGuests(bandCounts) : participants;
 
   const today = useMemo(() => {
     const d = new Date();
@@ -235,36 +271,84 @@ export function BookingProvider({
         : 'per person';
   const suvActive = isVehicle && suv && participants <= SIGHTSEEING_SUV_MAX;
 
+  const setBand = useCallback(
+    (lbl: string, n: number) => {
+      setBandCounts((cur) => {
+        const tier = bandTiers.find((t) => t.label === lbl);
+        const wanted = Math.max(0, Math.round(n));
+        if (lbl === primaryLabel && wanted < 1) return cur; // always keep ≥1 adult (no €0 / infant-only)
+        const next = { ...cur, [lbl]: wanted };
+        if (tier?.maxGuests && wanted > tier.maxGuests) return cur;
+        if (partyGuests(next) > maxParticipants) return cur; // never exceed the seat cap
+        return next;
+      });
+      touch();
+    },
+    [bandTiers, maxParticipants, primaryLabel, touch],
+  );
+
   // Clamp the party down when the cap drops (e.g. switching to a date with fewer seats), so an
   // over-capacity selection never reaches Check availability / checkout.
   useEffect(() => {
-    if (participants > maxParticipants) setParticipants(maxParticipants);
-  }, [participants, maxParticipants]);
+    if (!isAgeBanded && participants > maxParticipants) setParticipants(maxParticipants);
+  }, [isAgeBanded, participants, maxParticipants]);
+  // Age-banded equivalent: trim extra band guests (keeping ≥1 primary) if the seat cap drops below the total.
+  useEffect(() => {
+    if (!isAgeBanded || partyGuests(bandCounts) <= maxParticipants) return;
+    setBandCounts((cur) => {
+      let over = partyGuests(cur) - maxParticipants;
+      const next = { ...cur };
+      for (const lbl of Object.keys(next)) {
+        if (over <= 0) break;
+        if (lbl === primaryLabel) continue;
+        const take = Math.min(next[lbl] ?? 0, over);
+        next[lbl] = (next[lbl] ?? 0) - take;
+        over -= take;
+      }
+      if (over > 0 && primaryLabel) next[primaryLabel] = Math.max(1, (next[primaryLabel] ?? 1) - over);
+      return next;
+    });
+  }, [isAgeBanded, bandCounts, maxParticipants, primaryLabel]);
   // Reset the SUV upgrade once the party grows past the entry tier, so dropping back to ≤ 4 starts
   // from Sedan instead of silently snapping the price back to the SUV rate. Applies to both the
   // sightseeing vehicle and the per-person transport add-on (which share the `suv` flag).
   useEffect(() => {
     if (suv && participants > SIGHTSEEING_SUV_MAX) setSuv(false);
   }, [suv, participants]);
-  // Can't request more child seats than passengers.
+  // Can't request more child seats than passengers (total headcount, incl. every age band).
   useEffect(() => {
-    if (childSeats > participants) setChildSeats(participants);
-  }, [childSeats, participants]);
+    if (childSeats > totalGuests) setChildSeats(totalGuests);
+  }, [childSeats, totalGuests]);
   const vehicleQuote = isVehicle
     ? sightseeingQuote(Math.min(Math.max(participants, 1), vehicleCfg.maxParty), suvActive, vehicleCfg)
     : null;
+  // Age-banded: sum each band's count × its own DB price (infant €0 still counts a head). Wrapped so an
+  // over-cap transient never throws into render — falls back to null (Continue stays disabled).
+  const bandQuote = useMemo(() => {
+    if (!isAgeBanded || totalGuests < 1) return null;
+    try {
+      return quoteTotal(
+        bandTiers.map((t) => ({ label: t.label, amountEur: t.amountEur, maxGuests: t.maxGuests })),
+        bandCounts,
+      );
+    } catch {
+      return null;
+    }
+  }, [isAgeBanded, bandTiers, bandCounts, totalGuests]);
   const baseTotal = isVehicle
     ? (vehicleQuote?.totalEur ?? null)
-    : selectedTier == null
-      ? null
-      : activity.pricingMode === 'per_group'
-        ? // One flat price per group of `groupSize`. If the group size is missing (a per_group tier
-          // saved without a cap), the server prices PER HEAD — so fall back to per head here too, so
-          // Continue, the cart line and the actual charge all agree (never a single under-stated group).
-          groupSize
-          ? selectedTier.amountEur * Math.ceil(participants / groupSize)
-          : selectedTier.amountEur * participants
-        : selectedTier.amountEur * participants;
+    : isAgeBanded
+      ? (bandQuote?.totalEur ?? null)
+      : selectedTier == null
+        ? null
+        : activity.pricingMode === 'per_group'
+          ? // One flat price per group of `groupSize`. If the group size is missing (a per_group tier
+            // saved without a cap), the server prices PER HEAD — so fall back to per head here too, so
+            // Continue, the cart line and the actual charge all agree (never a single under-stated group).
+            groupSize
+            ? selectedTier.amountEur * Math.ceil(participants / groupSize)
+            : selectedTier.amountEur * participants
+          : selectedTier.amountEur * participants;
   const childSeatsExtra = childSeatsCost(childSeats);
 
   // Region-based transport is no longer chosen here — pickup + the distance-based transport fee are
@@ -273,12 +357,24 @@ export function BookingProvider({
   const total = baseTotal == null ? null : baseTotal + childSeatsExtra;
   // Per-unit price for the cart: a vehicle is one flat unit (its whole price); per-group / per-person
   // is the tier's unit price (the cart multiplies it by the party). Never includes the child add-on.
-  const unitPriceEur = isVehicle ? (baseTotal ?? 0) : (selectedTier?.amountEur ?? 0);
+  // Age-banded lines carry the WHOLE party price as a flat unit (like vehicle mode) since there's no single
+  // per-head number; the cart treats a line with a `party` map as flat (see itemTotal).
+  const unitPriceEur = isVehicle || isAgeBanded ? (baseTotal ?? 0) : (selectedTier?.amountEur ?? 0);
   const vehicleName = vehicleQuote?.vehicle ?? null;
   // Single source of the price-tier label for BOTH Continue and Add-to-cart. They used to diverge:
   // Add-to-cart hardcoded 'Adult', which the server rejects (unknown_price_tier) for any tour whose
   // cheapest tier isn't labelled 'Adult'.
-  const priceLabel = isVehicle ? (vehicleName ?? 'Vehicle') : (selectedTier?.label ?? '');
+  const priceLabel = isVehicle
+    ? (vehicleName ?? 'Vehicle')
+    : isAgeBanded
+      ? (primaryLabel ?? selectedTier?.label ?? '')
+      : (selectedTier?.label ?? '');
+  // The price-tier → count map posted to the server. Age-banded: the chosen bands; else the single tier.
+  const party: Record<string, number> = isAgeBanded
+    ? Object.fromEntries(Object.entries(bandCounts).filter(([, n]) => n > 0))
+    : priceLabel
+      ? { [priceLabel]: participants }
+      : {};
 
   async function continueToCheckout() {
     const occ = date ? days?.get(date)?.occurrenceId : undefined;
@@ -294,7 +390,7 @@ export function BookingProvider({
         body: JSON.stringify({
           occurrenceId: occ,
           expectedSlug: activity.slug,
-          people: participants,
+          people: totalGuests,
           idempotencyKey: idem,
         }),
       }).then((r) => r.json());
@@ -334,9 +430,10 @@ export function BookingProvider({
           dateLabel: dateText,
           lang,
           priceLabel,
-          guests: participants,
+          guests: totalGuests,
           unitEur: unitPriceEur,
           pricingMode: activity.pricingMode,
+          party: isAgeBanded ? party : undefined,
           suv: suvActive,
           childSeats,
           maxGuests: groupSize,
@@ -351,13 +448,16 @@ export function BookingProvider({
     const q = new URLSearchParams({
       occ,
       label: priceLabel,
-      qty: String(participants),
+      qty: String(totalGuests),
+      // Age-banded: the full per-band map so the server prices each band; `label`/`qty` stay for the
+      // single-tier back-compat path + display. Empty for a normal single-tier booking.
+      party: isAgeBanded ? encodeParty(party) : '',
       slug: activity.slug,
       title: activity.title,
       lang,
       total: total != null ? String(total) : '',
       when: dateText,
-      guests: String(participants),
+      guests: String(totalGuests),
       unit: unitLabel,
       suv: suvActive ? '1' : '0',
       childSeats: String(childSeats),
@@ -377,6 +477,12 @@ export function BookingProvider({
     activity,
     participants,
     setParticipants,
+    isAgeBanded,
+    bandTiers,
+    bandCounts,
+    setBand,
+    totalGuests,
+    party,
     date,
     setDate,
     lang,

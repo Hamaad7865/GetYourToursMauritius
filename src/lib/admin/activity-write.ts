@@ -13,6 +13,9 @@ export interface PriceInput {
   label: string;
   amountEur: number | null;
   maxGuests: number | null;
+  /** Age band (GetYourGuide-style party selector). Null on a normal, non-age tier. */
+  minAge?: number | null;
+  maxAge?: number | null;
 }
 export interface OptionInput {
   /** Present for options loaded from an existing activity; absent for newly-added ones. Used to
@@ -213,6 +216,8 @@ async function replacePrices(optionId: string, prices: PriceInput[]): Promise<vo
       label: p.label.trim(),
       amount_minor: Math.round((p.amountEur ?? 0) * 100),
       max_guests: p.maxGuests,
+      min_age: p.minAge ?? null,
+      max_age: p.maxAge ?? null,
       position,
     }));
   if (rows.length) {
@@ -384,10 +389,19 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
   const { data: prices } = optionIds.length
     ? await sb
         .from('activity_option_prices')
-        .select('activity_option_id, label, amount_minor, max_guests, position')
+        .select('activity_option_id, label, amount_minor, max_guests, min_age, max_age, position')
         .in('activity_option_id', optionIds)
         .order('position')
-    : { data: [] as Array<{ activity_option_id: string; label: string; amount_minor: number; max_guests: number | null }> };
+    : {
+        data: [] as Array<{
+          activity_option_id: string;
+          label: string;
+          amount_minor: number;
+          max_guests: number | null;
+          min_age: number | null;
+          max_age: number | null;
+        }>,
+      };
 
   const extra = (act.extra ?? {}) as ExtraShape;
 
@@ -417,7 +431,13 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       name: o.name,
       prices: (prices ?? [])
         .filter((p) => p.activity_option_id === o.id)
-        .map((p) => ({ label: p.label, amountEur: p.amount_minor / 100, maxGuests: p.max_guests })),
+        .map((p) => ({
+          label: p.label,
+          amountEur: p.amount_minor / 100,
+          maxGuests: p.max_guests,
+          minAge: p.min_age,
+          maxAge: p.max_age,
+        })),
     })),
     itinerary: (extra.itinerary ?? []).map((s) => ({
       title: s.title ?? '',

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCart, itemTotal, lineCap, type CartItem } from '@/lib/cart/useCart';
+import { encodeParty } from '@/lib/services/party';
 import { createHoldsForLines, type PendingBooking } from '@/lib/cart/holdClient';
 import { ResumePaymentButton } from '@/components/checkout/ResumePaymentButton';
 import { pushNotification } from '@/lib/notifications/inbox';
@@ -33,6 +34,8 @@ function checkoutHref(i: CartItem): string {
     // proceed() is handed to checkout via sessionStorage so its tokens don't leak via Referer/history.)
     ...(i.suv ? { suv: '1' } : {}),
     ...(i.childSeats ? { childSeats: String(i.childSeats) } : {}),
+    // Age-banded line: carry the per-band map so the server prices each band (Adult/Child/Infant).
+    ...(i.party ? { party: encodeParty(i.party) } : {}),
     // Signal checkout this is a CART line: read this line's captured route AND reuse the hold proceed()
     // reserved for this occurrence (both staged to sessionStorage by occurrence). Always present — NOT
     // `from=widget` (a distinct stash + price hints) — so the cart hold is reused instead of re-minted.
@@ -333,9 +336,9 @@ export function CartView() {
                 )}
                 <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
                   <div>
-                    {i.pricingMode === 'vehicle' ? (
-                      // The vehicle (and its flat price) is fixed at the size chosen on the activity
-                      // page — changing it would change the vehicle, so it's not editable here.
+                    {i.pricingMode === 'vehicle' || i.party ? (
+                      // Vehicle (flat price) OR an age-banded party — both are fixed at what was chosen on
+                      // the activity page (changing the mix re-prices per band), so they're not editable here.
                       <div className="text-sm font-bold text-ink">{t('{n} passengers', { n: i.guests })}</div>
                     ) : (
                       <Stepper

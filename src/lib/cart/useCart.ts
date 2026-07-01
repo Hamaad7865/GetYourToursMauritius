@@ -35,11 +35,14 @@ export interface CartItem {
   dateLabel: string;
   lang: string;
   priceLabel: string;
-  /** Number of people. */
+  /** Number of people (total headcount across every age band). */
   guests: number;
-  /** Per-person, per-group, or (vehicle) the flat price of the chosen vehicle — in EUR. */
+  /** Per-person, per-group, or (vehicle / age-banded) the flat price of the whole line — in EUR. */
   unitEur: number;
   pricingMode: PricingMode;
+  /** Age-band bookings: the price-tier → count map (Adult/Child/Infant). When present, `unitEur` is the
+   *  whole party's flat price and the line is NOT re-multiplied by `guests`. Posted to the server as-is. */
+  party?: Record<string, number>;
   /** Vehicle mode: the SUV upgrade was chosen (display only; price is already in unitEur). */
   suv?: boolean;
   /** Child seats chosen (first free, €6 each extra; the charge is already in unitEur). */
@@ -68,8 +71,9 @@ export interface CartItem {
  *  on top (it is not multiplied by the party). `unitEur` is the PER-UNIT price (per vehicle / per
  *  group / per head), never the already-multiplied total. */
 export function itemTotal(i: CartItem): number {
-  if (i.pricingMode === 'vehicle') {
-    return Math.round((i.unitEur + childSeatsCost(i.childSeats ?? 0)) * 100) / 100;
+  // Age-banded (and vehicle) lines carry the whole price in `unitEur` — a flat line, never ×guests.
+  if (i.pricingMode === 'vehicle' || i.party) {
+    return Math.round((i.unitEur + childSeatsCost(Math.min(i.childSeats ?? 0, i.guests))) * 100) / 100;
   }
   // A child seat only makes sense per traveller, so the add-on can never exceed the party size —
   // important when guests are lowered on a cart line without re-touching the seat count.
