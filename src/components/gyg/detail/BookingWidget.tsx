@@ -356,7 +356,12 @@ export function BookingWidget() {
           </div>
 
           {/* Date */}
-          <div className="relative">
+          <div>
+            {/* The inner wrapper is the calendar popover's offset parent — it holds ONLY the trigger + the
+                calendar. The lead-time notice is kept OUTSIDE it, because a notice in normal flow inside
+                this box inflated its height, so the popover's `top: 100%` resolved to below the notice and
+                the calendar rendered detached far down the page, overlapping the content beside it. */}
+            <div className="relative">
             <button
               ref={dateTriggerRef}
               type="button"
@@ -438,7 +443,9 @@ export function BookingWidget() {
                 </div>
               </div>
             )}
-            {/* Lead-time notice: explains why the nearest days aren't selectable for planning-heavy trips. */}
+            </div>
+            {/* Lead-time notice: explains why the nearest days aren't selectable for planning-heavy trips.
+                Sits OUTSIDE the popover's offset parent (see note above) so it can't push the calendar down. */}
             {activity.minAdvanceDays > 1 && (
               <p className="mt-2 flex items-start gap-1.5 text-[12px] font-medium text-ink-muted">
                 <IconCalendar width={13} height={13} className="mt-px shrink-0 text-teal" />
