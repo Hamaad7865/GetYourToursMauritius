@@ -18,7 +18,7 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
   // 1,076) instead of "— (0)", mirroring the detail page. Other activities keep their own/empty state.
   const rating = effectiveCardRating(activity);
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-card border border-ink/[0.08] bg-white shadow-sm transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)]">
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-card border border-ink/[0.08] bg-white shadow-sm transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)]">
       <div className="relative aspect-[4/3] overflow-hidden">
         {activity.heroImage ? (
           <img

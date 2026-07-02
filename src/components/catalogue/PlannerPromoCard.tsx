@@ -21,7 +21,7 @@ export function PlannerPromoCard({
   const t = useT();
   return (
     <div
-      className={`group relative flex flex-col overflow-hidden rounded-2xl border-2 border-teal/40 bg-white shadow-sm transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)] ${
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border-2 border-teal/40 bg-white shadow-sm transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)] ${
         rail ? 'w-[300px] shrink-0' : ''
       } ${className}`}
     >

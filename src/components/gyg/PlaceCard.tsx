@@ -69,7 +69,7 @@ export function PlaceCard({
 
   return (
     <div
-      className={`group relative flex flex-col overflow-hidden rounded-2xl border border-ink/[0.08] bg-white text-left shadow-[0_1px_3px_rgba(10,46,54,0.06)] transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)] ${
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-ink/[0.08] bg-white text-left shadow-[0_1px_3px_rgba(10,46,54,0.06)] transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)] ${
         rail ? `${compact ? 'w-[228px]' : 'w-[300px]'} shrink-0` : ''
       } ${className}`}
     >
