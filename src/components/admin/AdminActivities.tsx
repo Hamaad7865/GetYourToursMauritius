@@ -2,12 +2,13 @@
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { deleteActivity } from '@/lib/admin/activity-write';
-import { IconPlus, IconCalendar, IconSearch, IconTag } from '@/components/ui/icons';
+import { reorderActivities } from '@/lib/admin/activity-order';
+import { IconPlus, IconCalendar, IconSearch, IconTag, IconMenu } from '@/components/ui/icons';
 
 interface Row {
   id: string;
@@ -16,6 +17,8 @@ interface Row {
   category: string;
   type: string;
   status: string;
+  /** Display order within the category (drives the public card order; admin drag-reorders it). */
+  sort: number;
   /** The tour's first gallery photo (lowest `position`), or null if it has none yet. */
   imageUrl: string | null;
 }
@@ -44,7 +47,9 @@ export function AdminActivities() {
     // thumbnail. We only need url + position; the lowest position is the gallery's lead image.
     const { data, error } = await getBrowserSupabase()
       .from('activities')
-      .select('id, slug, title, category, type, status, activity_images(url, position)')
+      .select('id, slug, title, category, type, status, sort, activity_images(url, position)')
+      // Show cards in their public order (sort within a category) so drag-reorder is WYSIWYG.
+      .order('sort', { ascending: true })
       .order('created_at', { ascending: false })
       .returns<Array<Omit<Row, 'imageUrl'> & { activity_images: { url: string; position: number }[] | null }>>();
     if (error) setError(error.message);
@@ -102,6 +107,45 @@ export function AdminActivities() {
     });
   }, [rows, query, status, category]);
   const filtering = query.trim() !== '' || status !== 'all' || category !== 'all';
+
+  // Drag-reorder only when the visible list == a WHOLE category (no other filter narrowing it), so the
+  // persisted order covers exactly that category's cards. Cross-category drag is meaningless (sort is
+  // per-category), so it's off in the "all" view.
+  const canReorder = category !== 'all' && status === 'all' && query.trim() === '';
+  const rowsRef = useRef<Row[] | null>(null);
+  useEffect(() => {
+    rowsRef.current = rows;
+  }, [rows]);
+  const [dragId, setDragId] = useState<string | null>(null);
+
+  function onDragOverRow(e: React.DragEvent, overId: string) {
+    if (!canReorder || !dragId || dragId === overId) return;
+    e.preventDefault(); // allow the drop + live-reorder as you hover
+    setRows((cur) => {
+      if (!cur) return cur;
+      const from = cur.findIndex((r) => r.id === dragId);
+      const to = cur.findIndex((r) => r.id === overId);
+      if (from < 0 || to < 0) return cur;
+      const next = cur.slice();
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved!);
+      return next;
+    });
+  }
+  async function onDragEndRow() {
+    const id = dragId;
+    setDragId(null);
+    if (!id || !canReorder) return;
+    // Persist THIS category's ids in their new order (server sets sort = array index).
+    const ids = (rowsRef.current ?? []).filter((r) => r.category === category).map((r) => r.id);
+    try {
+      setError(null);
+      await reorderActivities(ids);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the new order.');
+      await load(); // revert to the server's truth
+    }
+  }
 
   return (
     <div>
@@ -210,11 +254,28 @@ export function AdminActivities() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-[18px]">
+            <>
+              {canReorder ? (
+                <p className="mb-3 flex items-center gap-1.5 text-[12.5px] font-semibold text-teal">
+                  <IconMenu width={14} height={14} /> Drag the cards to set their order — it shows on the site for this category.
+                </p>
+              ) : category !== 'all' ? (
+                <p className="mb-3 text-[12.5px] text-ink-muted">Clear the search &amp; status filters to drag-reorder this category.</p>
+              ) : (
+                <p className="mb-3 text-[12.5px] text-ink-muted">Pick a single category (and clear other filters) to drag-reorder its cards.</p>
+              )}
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-[18px]">
               {filtered.map((row) => (
             <div
               key={row.id}
-              className="flex flex-col overflow-hidden rounded-2xl border border-[#EAEEF0] bg-white shadow-[0_1px_2px_rgba(10,46,54,.04)] transition-shadow hover:shadow-[0_18px_34px_-20px_rgba(10,46,54,.34)]"
+              draggable={canReorder}
+              onDragStart={() => canReorder && setDragId(row.id)}
+              onDragOver={(e) => onDragOverRow(e, row.id)}
+              onDrop={(e) => e.preventDefault()}
+              onDragEnd={onDragEndRow}
+              className={`flex flex-col overflow-hidden rounded-2xl border bg-white shadow-[0_1px_2px_rgba(10,46,54,.04)] transition-shadow hover:shadow-[0_18px_34px_-20px_rgba(10,46,54,.34)] ${
+                canReorder ? 'cursor-move border-teal/30' : 'border-[#EAEEF0]'
+              } ${dragId === row.id ? 'opacity-40 ring-2 ring-teal' : ''}`}
             >
               <div className="relative aspect-[16/10] overflow-hidden" style={{ background: grad(row.category) }}>
                 {row.imageUrl ? (
@@ -270,7 +331,8 @@ export function AdminActivities() {
               </div>
             </div>
               ))}
-            </div>
+              </div>
+            </>
           )}
         </>
       )}
