@@ -48,15 +48,25 @@ describe('age-band pricing on api_book / api_get_activity', () => {
   });
 
   it('api_get_activity ships each tier with its age range', async () => {
-    const data = await call<{ options: Array<{ prices: Array<{ label: string; amountEur: number; minAge: number | null; maxAge: number | null }> }> }>(
-      db,
-      'api_get_activity',
-      { slug },
-    );
+    const data = await call<{
+      fromPriceEur: number;
+      options: Array<{ prices: Array<{ label: string; amountEur: number; minAge: number | null; maxAge: number | null }> }>;
+    }>(db, 'api_get_activity', { slug });
     const prices = data.options[0]!.prices;
     expect(prices.find((p) => p.label === 'Adult')).toMatchObject({ amountEur: 56, minAge: 11, maxAge: null });
     expect(prices.find((p) => p.label === 'Child')).toMatchObject({ amountEur: 28, minAge: 3, maxAge: 10 });
     expect(prices.find((p) => p.label === 'Infant')).toMatchObject({ amountEur: 0, minAge: 0, maxAge: 3 });
+    // "From" price must be the cheapest PAID tier (Child €28), NOT the free infant €0.
+    expect(data.fromPriceEur).toBe(28);
+  });
+
+  it('api_search_activities shows the cheapest PAID from-price (not the free infant)', async () => {
+    await db.asOwner();
+    const res = await call<{ items: Array<{ slug: string; fromPriceEur: number }> }>(db, 'api_search_activities', {
+      pageSize: 50,
+    });
+    const item = res.items.find((i) => i.slug === slug);
+    expect(item?.fromPriceEur).toBe(28);
   });
 
   it('api_book prices each band from its own tier; the free infant still takes a seat', async () => {
