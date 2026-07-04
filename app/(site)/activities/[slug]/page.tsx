@@ -251,7 +251,9 @@ export default async function ActivityDetailPage({
               )}
             </div>
 
-            <aside id="book" className="mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
+            {/* relative z-30 gives the booking column its OWN stacking context above the content column, so
+                the calendar popover (which floats left over the description) is never painted underneath it. */}
+            <aside id="book" className="relative z-30 mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
               <BookingWidget />
             </aside>
 
