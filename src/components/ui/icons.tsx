@@ -131,6 +131,15 @@ export const IconX = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+// Six-dot drag handle. Dots are filled (the base Svg is stroke-only, so each circle sets its own fill).
+export const IconGrip = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p} strokeWidth={1}>
+    {[6, 12, 18].flatMap((cy) =>
+      [9, 15].map((cx) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={1.4} fill="currentColor" />),
+    )}
+  </Svg>
+);
+
 export const IconClock = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p}>
     <circle cx="12" cy="12" r="9" />

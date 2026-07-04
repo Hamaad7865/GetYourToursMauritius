@@ -3,7 +3,7 @@
 import { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCategories } from '@/lib/categories/useCategories';
-import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
+import { IconChevron, IconGrip, IconPlus, IconX } from '@/components/ui/icons';
 import { BADGE_ICONS, badgeIcon } from '@/components/ui/badge-icons';
 import type { BadgeInput } from '@/lib/catalogue/badges';
 import { moveItem } from '@/lib/admin/reorder';
@@ -269,7 +269,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
 
       <Section
         title="Photos"
-        hint="Upload files or paste image URLs. Use the arrows to reorder — the first photo is the cover and the first five fill the detail-page gallery."
+        hint="Upload files or paste image URLs. Drag a photo by its handle to reorder (or use the arrows) — the first photo is the cover and the first five fill the detail-page gallery."
       >
         <ImagesEditor images={v.images} slug={v.slug} onChange={(x) => set('images', x)} />
       </Section>
@@ -437,9 +437,18 @@ function ImagesEditor({
 }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
 
   function update(i: number, patch: Partial<ImageInput>) {
     onChange(images.map((img, idx) => (idx === i ? { ...img, ...patch } : img)));
+  }
+
+  // Live-reorder as the dragged photo hovers over another row (same pattern as the Tours card reorder).
+  function onDragOverRow(e: React.DragEvent, overIndex: number) {
+    if (dragIndex === null || dragIndex === overIndex) return;
+    e.preventDefault();
+    onChange(moveItem(images, dragIndex, overIndex));
+    setDragIndex(overIndex);
   }
 
   async function onFiles(files: FileList | null) {
@@ -463,7 +472,24 @@ function ImagesEditor({
   return (
     <div className="flex flex-col gap-3">
       {images.map((img, i) => (
-        <div key={i} className="flex items-center gap-3 rounded-xl border border-ink/10 p-2">
+        <div
+          key={i}
+          onDragOver={(e) => onDragOverRow(e, i)}
+          onDrop={(e) => e.preventDefault()}
+          className={`flex items-center gap-2 rounded-xl border border-ink/10 p-2 transition-opacity ${
+            dragIndex === i ? 'opacity-40' : ''
+          }`}
+        >
+          <div
+            draggable
+            onDragStart={() => setDragIndex(i)}
+            onDragEnd={() => setDragIndex(null)}
+            aria-label={`Drag to reorder photo ${i + 1}`}
+            title="Drag to reorder"
+            className="grid h-9 w-6 shrink-0 cursor-grab touch-none place-items-center rounded text-ink-muted hover:text-teal active:cursor-grabbing"
+          >
+            <IconGrip width={16} height={16} />
+          </div>
           <div className="flex shrink-0 flex-col">
             <button
               type="button"
