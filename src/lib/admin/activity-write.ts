@@ -47,6 +47,11 @@ export interface ActivityFormValues {
   description: string;
   meetingPoint: string;
   pickupAvailable: boolean;
+  /** Real departure/start time shown in the quick facts (e.g. "09:00" or "07:30–09:30"); '' shows
+   *  the generic "Check availability for start times". */
+  startWindow: string;
+  /** Private/exclusive to the booker's party — drives the "Private group" quick-fact. Not assumed. */
+  isPrivate: boolean;
   /** Home/boarding region (North/South/East/West/Central), or '' to auto-derive from coords. Drives the
    *  region-based transport add-on for per_person / per_group activities with pickup. */
   region: string;
@@ -77,6 +82,8 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   description: '',
   meetingPoint: '',
   pickupAvailable: false,
+  startWindow: '',
+  isPrivate: false,
   region: '',
   pricingMode: 'per_person',
   cancellationPolicy: 'Free cancellation up to 24 hours before your activity for a full refund.',
@@ -131,6 +138,8 @@ function buildExtra(v: ActivityFormValues) {
   const out: Record<string, unknown> = {};
   if (itinerary.length) out.itinerary = itinerary;
   if (badges.length) out.badges = badges;
+  if (v.startWindow.trim()) out.startWindow = v.startWindow.trim();
+  if (v.isPrivate) out.isPrivate = true;
   return out;
 }
 
@@ -366,6 +375,8 @@ interface ExtraShape {
     options?: Array<{ title?: string; area?: string | null }>;
   }>;
   badges?: Array<{ icon?: string; title?: string; subtitle?: string }>;
+  startWindow?: string | null;
+  isPrivate?: boolean;
 }
 
 /** Load an existing activity into the editable form shape. */
@@ -417,6 +428,8 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     description: act.description ?? '',
     meetingPoint: act.meeting_point ?? '',
     pickupAvailable: act.pickup_available,
+    startWindow: extra.startWindow ?? '',
+    isPrivate: extra.isPrivate ?? false,
     region: act.region ?? '',
     pricingMode: (act.pricing_mode ?? 'per_person') as PricingMode,
     cancellationPolicy: act.cancellation_policy ?? '',

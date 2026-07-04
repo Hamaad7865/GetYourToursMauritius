@@ -5,7 +5,6 @@ import type { StopKind } from '@/components/maps/RouteMap';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { getT } from '@/lib/i18n/server';
 import { badgeIcon } from '@/components/ui/badge-icons';
-import { activityFlavorFacts } from '@/lib/content/activity-facts';
 import {
   IconBolt,
   IconCalendar,
@@ -48,7 +47,7 @@ export async function QuickFacts({
   languages,
   pickupAvailable,
   type,
-  category,
+  isPrivate,
   cancellationPolicy,
   startWindow,
   badges,
@@ -57,8 +56,9 @@ export async function QuickFacts({
   languages: string[];
   pickupAvailable: boolean;
   type: 'activity' | 'transport';
-  /** Drives the category-specific "experience" facts (catamaran / speedboat / sightseeing / …). */
-  category: string;
+  /** Whether the activity is private/exclusive to the booker's party — drives the "Private group" fact.
+   *  Not assumed; set per activity in admin. */
+  isPrivate: boolean;
   cancellationPolicy: string | null;
   startWindow?: string | null;
   badges?: { icon: string; title: string; subtitle: string }[];
@@ -134,14 +134,12 @@ export async function QuickFacts({
           sub: t('Shared on your voucher'),
         },
   );
-  // Category-specific "experience" facts (catamaran / speedboat / private sightseeing / …) — this is the
-  // part that now differs per category instead of the one generic "Private group" card.
-  for (const f of activityFlavorFacts(category, type)) {
-    const Icon = badgeIcon(f.icon);
+  // Private group — ONLY when the activity is actually marked private (never assumed).
+  if (isPrivate) {
     facts.push({
-      icon: Icon ? <Icon width={22} height={22} /> : <IconUsers width={22} height={22} />,
-      title: t(f.title),
-      sub: t(f.sub),
+      icon: <IconUsers width={22} height={22} />,
+      title: type === 'transport' ? t('Private transfer') : t('Private group'),
+      sub: t('Only your party — no strangers'),
     });
   }
   facts.push({

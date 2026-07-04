@@ -142,6 +142,8 @@ export const activityExtraSchema = z.object({
   startWindow: z.string().nullable().optional(),
   returnWindow: z.string().nullable().optional(),
   badges: z.array(activityBadgeSchema).optional(),
+  /** Marks the activity as private/exclusive (drives the "Private group" quick-fact). Not assumed. */
+  isPrivate: z.boolean().optional(),
 });
 export type ActivityExtra = z.infer<typeof activityExtraSchema>;
 

@@ -204,6 +204,27 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             />
             Hotel pickup available
           </label>
+          <label className="flex items-center gap-2.5 text-sm font-medium text-ink">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-teal"
+              checked={v.isPrivate}
+              onChange={(e) => set('isPrivate', e.target.checked)}
+            />
+            Private — exclusive to the booker’s party
+          </label>
+          <Field label="Start time / departure">
+            <input
+              className={inputClass}
+              value={v.startWindow}
+              onChange={(e) => set('startWindow', e.target.value)}
+              placeholder="e.g. 09:00 or 07:30–09:30"
+            />
+            <p className="mt-1.5 text-[12px] text-ink-muted">
+              Shown in the “at a glance” facts as the departure time. Leave blank to show “Check availability
+              for start times”.
+            </p>
+          </Field>
           <Field label="Home region (transport add-on)">
             <select className={inputClass} value={v.region} onChange={(e) => set('region', e.target.value)}>
               <option value="">Auto (from map coordinates)</option>
