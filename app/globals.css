@@ -172,10 +172,12 @@
   .gyt-car-float { animation: gytCarFloat 3.6s ease-in-out infinite; will-change: transform; }
   .gyt-car-shadow { animation: gytCarShadow 3.6s ease-in-out infinite; transform-origin: center; will-change: transform, opacity; }
 
-  /* /airport-transfers hero — the car eases in from the right once (pulls up to arrivals), decelerating
-     like it's stopping, then hands off to the float above. transform/opacity only; no reflow. */
-  @keyframes gytTaxiIn { from { transform: translateX(120%); opacity: 0; } 55% { opacity: 1; } to { transform: translateX(0); opacity: 1; } }
-  .gyt-taxi-in { animation: gytTaxiIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+  /* /airport-transfers hero — the "arriving passenger" photo panel fades + rises into place on load,
+     then drifts through a very slow Ken Burns zoom for ambient life. transform/opacity only; no reflow. */
+  @keyframes gytArrivalIn { from { opacity: 0; transform: translateY(18px) scale(0.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  .gyt-arrival-in { animation: gytArrivalIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
+  @keyframes gytArrivalZoom { from { transform: scale(1); } to { transform: scale(1.06); } }
+  .gyt-arrival-zoom { animation: gytArrivalZoom 18s ease-in-out 0.7s alternate infinite; will-change: transform; }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -207,10 +209,11 @@
   .lagoon-wave {
     animation: none !important;
   }
-  /* Freeze the /rent car-hero + the /airport-transfers taxi to a parked still (final resting position). */
+  /* Freeze the /rent car-hero + the /airport-transfers arrival photo to a still (final resting position). */
   .gyt-car-float,
   .gyt-car-shadow,
-  .gyt-taxi-in {
+  .gyt-arrival-in,
+  .gyt-arrival-zoom {
     animation: none !important;
   }
 }

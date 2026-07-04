@@ -8,7 +8,7 @@ import { breadcrumbListJsonLd, faqPageJsonLd, serviceJsonLd, transferServiceJson
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { RevealOnScroll } from '@/components/about/RevealOnScroll';
 import { HeroWaves } from '@/components/about/HeroWaves';
-import { AirportTaxi } from '@/components/transfers/AirportTaxi';
+import { AirportArrival } from '@/components/transfers/AirportArrival';
 import { TransferSearch } from '@/components/transfers/TransferSearch';
 import { HotelMap } from '@/components/transfers/HotelMap';
 import { TransferModeSwitch } from '@/components/transfers/TransferModeSwitch';
@@ -324,7 +324,7 @@ export default function AirportTransfersPage() {
             className="absolute inset-0 z-[1]"
             style={{ background: 'linear-gradient(101deg, rgba(3,22,26,0.74) 0%, rgba(3,22,26,0.58) 44%, rgba(3,22,26,0.26) 66%, rgba(3,22,26,0) 86%)' }}
           />
-          <AirportTaxi />
+          <AirportArrival />
           <div className="relative z-[2] mx-auto w-full max-w-shell" style={{ padding: 'clamp(32px,5vw,64px) ' + padX }}>
             <div className="max-w-[680px]">
               <div
