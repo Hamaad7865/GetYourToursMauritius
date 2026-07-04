@@ -171,6 +171,11 @@
   @keyframes gytCarShadow { 0%, 100% { transform: scaleX(1); opacity: 0.32; } 50% { transform: scaleX(0.9); opacity: 0.2; } }
   .gyt-car-float { animation: gytCarFloat 3.6s ease-in-out infinite; will-change: transform; }
   .gyt-car-shadow { animation: gytCarShadow 3.6s ease-in-out infinite; transform-origin: center; will-change: transform, opacity; }
+
+  /* /airport-transfers hero — the car eases in from the right once (pulls up to arrivals), decelerating
+     like it's stopping, then hands off to the float above. transform/opacity only; no reflow. */
+  @keyframes gytTaxiIn { from { transform: translateX(120%); opacity: 0; } 55% { opacity: 1; } to { transform: translateX(0); opacity: 1; } }
+  .gyt-taxi-in { animation: gytTaxiIn 0.85s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -202,9 +207,10 @@
   .lagoon-wave {
     animation: none !important;
   }
-  /* Freeze the /rent car-hero to a parked still. */
+  /* Freeze the /rent car-hero + the /airport-transfers taxi to a parked still (final resting position). */
   .gyt-car-float,
-  .gyt-car-shadow {
+  .gyt-car-shadow,
+  .gyt-taxi-in {
     animation: none !important;
   }
 }
