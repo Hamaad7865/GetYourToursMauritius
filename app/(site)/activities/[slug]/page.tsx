@@ -275,6 +275,7 @@ export default async function ActivityDetailPage({
                 languages={activity.languages}
                 pickupAvailable={activity.pickupAvailable}
                 type={activity.type}
+                category={activity.category}
                 cancellationPolicy={activity.cancellationPolicy}
                 startWindow={activity.extra.startWindow}
                 badges={badges}

@@ -5,6 +5,7 @@ import type { StopKind } from '@/components/maps/RouteMap';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { getT } from '@/lib/i18n/server';
 import { badgeIcon } from '@/components/ui/badge-icons';
+import { activityFlavorFacts } from '@/lib/content/activity-facts';
 import {
   IconBolt,
   IconCalendar,
@@ -47,6 +48,7 @@ export async function QuickFacts({
   languages,
   pickupAvailable,
   type,
+  category,
   cancellationPolicy,
   startWindow,
   badges,
@@ -55,6 +57,8 @@ export async function QuickFacts({
   languages: string[];
   pickupAvailable: boolean;
   type: 'activity' | 'transport';
+  /** Drives the category-specific "experience" facts (catamaran / speedboat / sightseeing / …). */
+  category: string;
   cancellationPolicy: string | null;
   startWindow?: string | null;
   badges?: { icon: string; title: string; subtitle: string }[];
@@ -130,11 +134,16 @@ export async function QuickFacts({
           sub: t('Shared on your voucher'),
         },
   );
-  facts.push({
-    icon: <IconUsers width={22} height={22} />,
-    title: type === 'transport' ? t('Private transfer') : t('Private group'),
-    sub: t('Only your party — no strangers'),
-  });
+  // Category-specific "experience" facts (catamaran / speedboat / private sightseeing / …) — this is the
+  // part that now differs per category instead of the one generic "Private group" card.
+  for (const f of activityFlavorFacts(category, type)) {
+    const Icon = badgeIcon(f.icon);
+    facts.push({
+      icon: Icon ? <Icon width={22} height={22} /> : <IconUsers width={22} height={22} />,
+      title: t(f.title),
+      sub: t(f.sub),
+    });
+  }
   facts.push({
     icon: <IconBolt width={22} height={22} />,
     title: t('Instant confirmation'),
