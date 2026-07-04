@@ -3,7 +3,8 @@
 import { useBooking } from './BookingProvider';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { optionCardSummary } from '@/lib/catalogue/options';
-import { IconCheck, IconUsers } from '@/components/ui/icons';
+import { durationLabel } from '@/lib/catalogue/detail';
+import { IconCheck, IconClock, IconUsers } from '@/components/ui/icons';
 
 /**
  * GetYourGuide-style selectable option picker. Shown ONLY when the activity has 2+ options; a
@@ -65,6 +66,12 @@ export function OptionSelector() {
                   </div>
                   {option.description && (
                     <div className="mt-0.5 line-clamp-2 text-[12px] text-ink-muted">{option.description}</div>
+                  )}
+                  {(option.durationMinutes != null || option.startWindow) && (
+                    <div className="mt-1 flex items-center gap-1.5 text-[12px] text-ink/70">
+                      <IconClock width={13} height={13} className="text-teal" />
+                      {[durationLabel(option.durationMinutes ?? null), option.startWindow].filter(Boolean).join(' · ')}
+                    </div>
                   )}
                   {summary.maxGuests != null && (
                     <div className="mt-1 flex items-center gap-1.5 text-[12px] text-ink/70">

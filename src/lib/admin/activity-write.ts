@@ -22,6 +22,9 @@ export interface OptionInput {
    *  reconcile options in place on edit so a booked option keeps its identity. */
   id?: string;
   name: string;
+  /** Per-option time (Half day / Full day etc.) — falls back to the activity's on the detail page. */
+  durationMinutes?: number | null;
+  startWindow?: string;
   prices: PriceInput[];
 }
 export interface ItineraryStopInput {
@@ -262,7 +265,13 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
     if (isNew || !optionId) {
       const { data: opt, error } = await sb
         .from('activity_options')
-        .insert({ activity_id: activityId, name: option.name.trim(), position })
+        .insert({
+          activity_id: activityId,
+          name: option.name.trim(),
+          duration_minutes: option.durationMinutes ?? null,
+          start_window: option.startWindow?.trim() || null,
+          position,
+        })
         .select('id')
         .single();
       if (error) throw error;
@@ -270,7 +279,12 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
     } else {
       const { error } = await sb
         .from('activity_options')
-        .update({ name: option.name.trim(), position })
+        .update({
+          name: option.name.trim(),
+          duration_minutes: option.durationMinutes ?? null,
+          start_window: option.startWindow?.trim() || null,
+          position,
+        })
         .eq('id', optionId);
       if (error) throw error;
     }
@@ -393,7 +407,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     .order('position');
   const { data: options } = await sb
     .from('activity_options')
-    .select('id, name, position')
+    .select('id, name, duration_minutes, start_window, position')
     .eq('activity_id', id)
     .order('position');
   const optionIds = (options ?? []).map((o) => o.id);
@@ -442,6 +456,8 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     options: (options ?? []).map((o) => ({
       id: o.id,
       name: o.name,
+      durationMinutes: o.duration_minutes,
+      startWindow: o.start_window ?? '',
       prices: (prices ?? [])
         .filter((p) => p.activity_option_id === o.id)
         .map((p) => ({

@@ -583,6 +583,28 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                 <IconX width={18} height={18} />
               </button>
             </div>
+            {/* Per-option time — Half day vs Full day differ here. Blank falls back to the activity's. */}
+            <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[12px] text-ink-muted">
+              <span className="font-semibold">This option:</span>
+              <input
+                type="number"
+                min={0}
+                className="w-20 rounded-lg border border-ink/15 px-2 py-1.5 text-ink outline-none"
+                value={opt.durationMinutes ?? ''}
+                placeholder="mins"
+                aria-label="Option duration in minutes"
+                onChange={(e) => update(i, { durationMinutes: e.target.value ? Number(e.target.value) : null })}
+              />
+              <span>min ·</span>
+              <input
+                className="w-44 rounded-lg border border-ink/15 px-2 py-1.5 text-ink outline-none"
+                value={opt.startWindow ?? ''}
+                placeholder="start time (e.g. 06:00)"
+                aria-label="Option start time"
+                onChange={(e) => update(i, { startWindow: e.target.value })}
+              />
+              <span className="text-ink-muted/70">blank = use the activity’s duration / start time</span>
+            </div>
             <div className="mt-3 flex flex-col gap-2">
               {opt.prices.map((p, pi) => (
                 <div key={pi} className="rounded-lg border border-ink/10 p-2.5">
@@ -683,7 +705,12 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
       })}
       <button
         type="button"
-        onClick={() => onChange([...options, { name: '', prices: [{ label: '', amountEur: null, maxGuests: null }] }])}
+        onClick={() =>
+          onChange([
+            ...options,
+            { name: '', durationMinutes: null, startWindow: '', prices: [{ label: '', amountEur: null, maxGuests: null }] },
+          ])
+        }
         className="self-start rounded-full border border-ink/15 px-4 py-2 text-sm font-bold text-ink hover:border-teal hover:text-teal"
       >
         Add option

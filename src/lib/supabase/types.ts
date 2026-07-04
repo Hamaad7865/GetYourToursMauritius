@@ -163,6 +163,8 @@ type ActivityOptionsRow = {
   name: string;
   description: string | null;
   status: string;
+  duration_minutes: number | null;
+  start_window: string | null;
   position: number;
   created_at: string;
 };
@@ -172,6 +174,8 @@ type ActivityOptionsInsert = {
   name: string;
   description?: string | null;
   status?: string;
+  duration_minutes?: number | null;
+  start_window?: string | null;
   position?: number;
   created_at?: string;
 };

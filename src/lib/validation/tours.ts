@@ -86,6 +86,9 @@ export const tourOptionSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().nullable(),
+  // Per-option time (Half day / Full day etc.). `.nullish().catch` so an old-shaped payload still parses.
+  durationMinutes: z.number().int().nullish().catch(null),
+  startWindow: z.string().nullish().catch(null),
   prices: z.array(tourPriceSchema),
 });
 export type TourOption = z.infer<typeof tourOptionSchema>;

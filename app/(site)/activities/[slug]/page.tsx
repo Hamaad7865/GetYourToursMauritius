@@ -16,13 +16,13 @@ import { ItineraryBuilder } from '@/components/gyg/detail/ItineraryBuilder';
 import { SeeMore } from '@/components/gyg/detail/SeeMore';
 import { ShareButton } from '@/components/gyg/detail/ShareButton';
 import {
-  QuickFacts,
   LovedBanner,
   SightseeingHighlights,
   Overview,
   Itinerary,
   Includes,
 } from '@/components/gyg/detail/Sections';
+import { QuickFacts } from '@/components/gyg/detail/QuickFacts';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { ReviewList } from '@/components/catalogue/ReviewList';
 import {
