@@ -245,20 +245,25 @@ export default async function ActivityDetailPage({
               regionDistances: activity.regionDistances ?? null,
             }}
           >
-          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">
-            <div className="lg:col-start-1 lg:row-start-1">
-              {activity.images.length > 0 && (
-                <Gallery images={activity.images} title={activity.title} />
-              )}
-            </div>
-
-            {/* relative z-30 gives the booking column its OWN stacking context above the content column, so
-                the calendar popover (which floats left over the description) is never painted underneath it. */}
-            <aside id="book" className="relative z-30 mb-8 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mb-0 lg:sticky lg:top-6">
+          <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">
+            {/* Booking column — first in the DOM, a sibling of the gallery+content column. relative z-30 gives
+                it its own stacking context so the calendar popover (floating left over the description) paints
+                above the content. On mobile it's ordered LAST (after the content); the sticky MobileBookBar
+                carries the mobile CTA. */}
+            <aside
+              id="book"
+              className="relative z-30 order-last mt-8 lg:order-none lg:col-start-2 lg:row-start-1 lg:mb-0 lg:mt-0 lg:sticky lg:top-6"
+            >
               <BookingWidget />
             </aside>
 
-            <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+            {/* Gallery + ALL content share ONE normal-flow column so the description can NEVER overlap the
+                gallery — there is no grid-row boundary between them (that boundary rounded into an overlap on
+                some browsers / display scalings). The sticky booking column above spans this column's height. */}
+            <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+              {activity.images.length > 0 && (
+                <Gallery images={activity.images} title={activity.title} />
+              )}
               {activity.summary && (
                 <p className="m-0 mb-6 text-[15px] leading-relaxed text-ink/80">
                   {activity.summary}
