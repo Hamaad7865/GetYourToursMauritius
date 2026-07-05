@@ -214,6 +214,15 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             />
             Private — exclusive to the booker’s party
           </label>
+          <label className="flex items-center gap-2.5 text-sm font-medium text-ink">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-teal"
+              checked={v.adultsOnly}
+              onChange={(e) => set('adultsOnly', e.target.checked)}
+            />
+            Adults only (18+) — no children; hides the baby &amp; child seats add-on
+          </label>
           <Field label="Start time / departure">
             <input
               className={inputClass}

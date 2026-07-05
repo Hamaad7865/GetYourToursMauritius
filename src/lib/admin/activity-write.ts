@@ -55,6 +55,8 @@ export interface ActivityFormValues {
   startWindow: string;
   /** Private/exclusive to the booker's party — drives the "Private group" quick-fact. Not assumed. */
   isPrivate: boolean;
+  /** Adults only (18+) — hides the baby/child-seats add-on and shows an "18+" note. E.g. hiking. */
+  adultsOnly: boolean;
   /** Home/boarding region (North/South/East/West/Central), or '' to auto-derive from coords. Drives the
    *  region-based transport add-on for per_person / per_group activities with pickup. */
   region: string;
@@ -91,6 +93,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   pickupAvailable: false,
   startWindow: '',
   isPrivate: false,
+  adultsOnly: false,
   region: '',
   pricingMode: 'per_person',
   cancellationPolicy: 'Free cancellation up to 24 hours before your activity for a full refund.',
@@ -149,6 +152,7 @@ function buildExtra(v: ActivityFormValues) {
   if (badges.length) out.badges = badges;
   if (v.startWindow.trim()) out.startWindow = v.startWindow.trim();
   if (v.isPrivate) out.isPrivate = true;
+  if (v.adultsOnly) out.adultsOnly = true;
   if (v.priceListUrl.trim()) {
     out.priceList = v.priceListLabel.trim()
       ? { url: v.priceListUrl.trim(), label: v.priceListLabel.trim() }
@@ -415,6 +419,7 @@ interface ExtraShape {
   badges?: Array<{ icon?: string; title?: string; subtitle?: string }>;
   startWindow?: string | null;
   isPrivate?: boolean;
+  adultsOnly?: boolean;
   priceList?: { url?: string; label?: string } | null;
 }
 
@@ -469,6 +474,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     pickupAvailable: act.pickup_available,
     startWindow: extra.startWindow ?? '',
     isPrivate: extra.isPrivate ?? false,
+    adultsOnly: extra.adultsOnly ?? false,
     region: act.region ?? '',
     pricingMode: (act.pricing_mode ?? 'per_person') as PricingMode,
     cancellationPolicy: act.cancellation_policy ?? '',

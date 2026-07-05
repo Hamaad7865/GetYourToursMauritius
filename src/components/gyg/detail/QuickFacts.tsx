@@ -33,7 +33,7 @@ export function QuickFacts({
   badges?: { icon: string; title: string; subtitle: string }[];
 }) {
   const t = useT();
-  const { selectedOption } = useBooking();
+  const { selectedOption, activity } = useBooking();
   // Per-option time (Half day vs Full day) overrides the activity default when the option sets it.
   const effDuration = selectedOption?.durationMinutes ?? durationMinutes;
   const effStartWindow = selectedOption?.startWindow ?? startWindow ?? null;
@@ -112,6 +112,14 @@ export function QuickFacts({
       icon: <IconUsers width={22} height={22} />,
       title: type === 'transport' ? t('Private transfer') : t('Private group'),
       sub: t('Only your party — no strangers'),
+    });
+  }
+  // Adults only — set per activity in admin (e.g. hiking). Also hides the child-seats add-on.
+  if (activity.adultsOnly) {
+    facts.push({
+      icon: <IconUsers width={22} height={22} />,
+      title: t('Adults only'),
+      sub: t('Minimum age 18 — no children'),
     });
   }
   facts.push({

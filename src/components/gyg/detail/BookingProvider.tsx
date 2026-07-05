@@ -32,6 +32,8 @@ export interface BookingActivity {
   vehiclePricing: VehiclePricing | null;
   durationMinutes: number | null;
   pickupAvailable: boolean;
+  /** Adults-only activity (e.g. hiking) — hides the baby/child-seats add-on + drives the "18+" quick-fact. */
+  adultsOnly: boolean;
   /** Free-cancellation policy text, if the activity offers one (drives the card's reassurance strip). */
   cancellationPolicy: string | null;
   /** Minimum advance booking (lead time) in days — the earliest bookable day is today + this. */
@@ -460,7 +462,7 @@ export function BookingProvider({
       guests: String(totalGuests),
       unit: unitLabel,
       suv: suvActive ? '1' : '0',
-      childSeats: String(childSeats),
+      childSeats: String(activity.adultsOnly ? 0 : childSeats),
       // Pickup CAPABILITY: seeds checkout step ①'s "want pickup?" default to Yes for a pickup-capable
       // (per_person/per_group with pickup) activity. The pickup itself + the transport fee are chosen
       // and priced AT CHECKOUT now, not here.

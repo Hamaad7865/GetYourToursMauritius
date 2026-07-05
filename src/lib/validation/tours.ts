@@ -147,6 +147,8 @@ export const activityExtraSchema = z.object({
   badges: z.array(activityBadgeSchema).optional(),
   /** Marks the activity as private/exclusive (drives the "Private group" quick-fact). Not assumed. */
   isPrivate: z.boolean().optional(),
+  /** Adults-only activity (e.g. hiking) — hides the baby/child-seats add-on and shows an "18+" note. */
+  adultsOnly: z.boolean().optional(),
   /** Optional per-activity price-list PDF (uploaded in admin) → the "Price list" section. */
   priceList: z.object({ url: z.string(), label: z.string().optional() }).nullable().optional(),
 });

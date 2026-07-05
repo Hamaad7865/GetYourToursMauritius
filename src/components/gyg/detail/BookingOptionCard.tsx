@@ -169,7 +169,9 @@ export function BookingOptionCard() {
           </div>
         )}
 
-        {/* Baby/child seats — first free, €6 each extra. Editable; capped at the party size. */}
+        {/* Baby/child seats — first free, €6 each extra. Editable; capped at the party size.
+            Hidden for adults-only activities (e.g. hiking — no children allowed). */}
+        {!b.activity.adultsOnly && (
         <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-ink/10 px-3 py-2.5">
           <div className="min-w-0">
             <div className="text-[13px] font-bold text-ink">{t('Baby & child seats')}</div>
@@ -214,6 +216,7 @@ export function BookingOptionCard() {
             </button>
           </div>
         </div>
+        )}
 
         <div className="mt-4 flex items-end justify-between gap-3 border-t border-ink/10 pt-4">
           <div>

@@ -235,6 +235,7 @@ export default async function ActivityDetailPage({
               vehiclePricing: activity.vehiclePricing ?? null,
               durationMinutes: activity.durationMinutes,
               pickupAvailable: activity.pickupAvailable,
+              adultsOnly: activity.extra.adultsOnly ?? false,
               cancellationPolicy: activity.cancellationPolicy,
               minAdvanceDays: activity.minAdvanceDays,
               image: activity.heroImage?.url ?? activity.images[0]?.url ?? null,
