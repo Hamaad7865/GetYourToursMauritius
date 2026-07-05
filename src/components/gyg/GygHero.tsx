@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react';
 import { IconShield, IconBolt, IconCheck, IconUsers } from '@/components/ui/icons';
 import { getT } from '@/lib/i18n/server';
-import { HeroGallery } from './HeroGallery';
 
 /**
  * Hero — "Explore Mauritius your way."
@@ -90,6 +89,22 @@ export async function GygHero({ children }: { children?: ReactNode }) {
           }}
         />
       </div>
+      {/* L3 — the owner's single lagoon photo, bled into the right of the hero. It sits ABOVE the light
+          mesh and BELOW the legibility scrims + shore wave (all -z-10), so those existing treatments melt
+          it into the teal; a left-edge mask feathers its inner edge into the water. Its palette already
+          matches the lagoon, so it reads as part of the backdrop, not a pasted card. Hidden below lg. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-y-0 right-0 -z-10 hidden w-[62%] lg:block"
+        style={{
+          WebkitMaskImage: 'linear-gradient(to right, transparent 0%, #000 40%)',
+          maskImage: 'linear-gradient(to right, transparent 0%, #000 40%)',
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- CF Pages serves images unoptimized. */}
+        <img src="/hero/hero-blue.jpg" alt="" fetchPriority="high" decoding="async" className="h-full w-full object-cover" />
+      </div>
+
       {/* L4 — legibility scrims (no blend mode), so the white content's contrast is unchanged. */}
       <div
         aria-hidden
@@ -159,8 +174,6 @@ export async function GygHero({ children }: { children?: ReactNode }) {
           </ul>
         </div>
       </div>
-
-      <HeroGallery />
 
       {children && <div className="relative pb-8">{children}</div>}
     </section>
