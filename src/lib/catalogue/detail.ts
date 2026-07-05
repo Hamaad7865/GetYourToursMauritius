@@ -83,12 +83,23 @@ export function buildFaq(activity: TourDetail): Faq[] {
     a: 'Your booking is confirmed instantly and a voucher is emailed to you. Show it on the day — printed or on your phone.',
   });
   if (activity.pickupAvailable) {
-    faqs.push({
-      q: 'Is hotel pickup included?',
-      a: `Yes. ${
-        activity.meetingPoint ? `${activity.meetingPoint}. ` : ''
-      }Add your pickup details after booking, up to 24 hours before you go.`,
-    });
+    // Sightseeing (flat per-vehicle price) includes transport; per-person / per-group price hotel
+    // pickup as a region-based add-on at checkout — so don't answer a flat "yes, included" there.
+    faqs.push(
+      activity.pricingMode === 'vehicle'
+        ? {
+            q: 'Is hotel pickup included?',
+            a: `Yes — hotel pickup and drop-off are included in the price. ${
+              activity.meetingPoint ? `${activity.meetingPoint}. ` : ''
+            }Add your pickup details after booking, up to 24 hours before you go.`,
+          }
+        : {
+            q: 'Is hotel pickup available?',
+            a: `Yes — hotel pickup and drop-off are available at an additional cost, calculated from your pickup area at checkout. ${
+              activity.meetingPoint ? `${activity.meetingPoint}. ` : ''
+            }Add your pickup details after booking, up to 24 hours before you go.`,
+          },
+    );
   } else if (activity.meetingPoint) {
     faqs.push({ q: 'Where do we meet?', a: activity.meetingPoint });
   }

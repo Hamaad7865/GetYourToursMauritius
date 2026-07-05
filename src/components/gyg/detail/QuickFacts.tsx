@@ -93,19 +93,30 @@ export function QuickFacts({
       sub: languages.join(', '),
     });
   }
-  facts.push(
-    pickupAvailable
-      ? {
-          icon: <IconPin width={22} height={22} />,
-          title: t('Pickup included'),
-          sub: t('Hotel or port pickup & drop-off'),
-        }
-      : {
-          icon: <IconPin width={22} height={22} />,
-          title: t('Meeting point'),
-          sub: t('Shared on your voucher'),
-        },
-  );
+  if (pickupAvailable) {
+    // Sightseeing tours (flat per-vehicle price) genuinely INCLUDE transport. Per-person / per-group
+    // activities charge a region-based pickup add-on at checkout, so never say "included" there — it
+    // reads as if the displayed price covers pickup, then checkout is higher.
+    facts.push(
+      activity.pricingMode === 'vehicle'
+        ? {
+            icon: <IconPin width={22} height={22} />,
+            title: t('Pickup included'),
+            sub: t('Hotel or port pickup & drop-off'),
+          }
+        : {
+            icon: <IconPin width={22} height={22} />,
+            title: t('Hotel pickup & drop-off'),
+            sub: t('Available at additional cost'),
+          },
+    );
+  } else {
+    facts.push({
+      icon: <IconPin width={22} height={22} />,
+      title: t('Meeting point'),
+      sub: t('Shared on your voucher'),
+    });
+  }
   // Private group — ONLY when the activity is actually marked private (never assumed).
   if (isPrivate) {
     facts.push({

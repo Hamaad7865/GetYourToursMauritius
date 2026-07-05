@@ -213,6 +213,7 @@ export const fr: Record<string, string> = {
   "Live tour guide": "Guide accompagnateur",
   "Pickup included": "Prise en charge incluse",
   "Hotel or port pickup & drop-off": "Prise en charge et dépose à l’hôtel ou au port",
+  "Available at additional cost": "Disponible en supplément",
   "Meeting point": "Point de rendez-vous",
   "Shared on your voucher": "Indiqué sur votre bon de réservation",
   "Private transfer": "Transfert privé",
