@@ -337,11 +337,11 @@ export default async function ActivityDetailPage({
                     <ItineraryBuilder
                       slug={activity.slug}
                       stops={itinerary}
-                      meetingPoint={activity.meetingPoint}
+                      meetingPoint={activity.pricingMode === 'vehicle' ? null : activity.meetingPoint}
                     />
                   ) : (
                     <>
-                      <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
+                      <Itinerary stops={itinerary} meetingPoint={activity.pricingMode === 'vehicle' ? null : activity.meetingPoint} />
                       <p className="mt-3 text-[12.5px] text-ink-muted">
                         {t('For reference only. Itineraries are subject to change.')}
                       </p>
