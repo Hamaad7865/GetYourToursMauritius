@@ -23,7 +23,7 @@ import {
   Includes,
 } from '@/components/gyg/detail/Sections';
 import { QuickFacts } from '@/components/gyg/detail/QuickFacts';
-import { IconDocument } from '@/components/ui/icons';
+import { PriceListViewer } from '@/components/gyg/detail/PriceListViewer';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { ReviewList } from '@/components/catalogue/ReviewList';
 import {
@@ -376,30 +376,10 @@ export default async function ActivityDetailPage({
               {activity.extra.priceList?.url?.startsWith('http') && (
                 <section className="mt-8 border-t border-ink/10 pt-7">
                   <SectionTitle>{t('Price list')}</SectionTitle>
-                  {activity.extra.priceList.label && (
-                    <p className="m-0 mb-3.5 text-[15px] leading-relaxed text-ink/80">
-                      {activity.extra.priceList.label}
-                    </p>
-                  )}
-                  {/* Desktop: embedded viewer. Hidden below lg because inline PDF rendering is unreliable
-                      on phones + in-app (WhatsApp/Instagram) browsers — the button below is the reliable path. */}
-                  <div className="hidden overflow-hidden rounded-2xl border border-ink/12 bg-ink/[0.02] shadow-sm lg:block">
-                    <iframe
-                      src={`${activity.extra.priceList.url}#view=FitH`}
-                      title={t('Price list')}
-                      loading="lazy"
-                      className="h-[78vh] w-full"
-                    />
-                  </div>
-                  <a
-                    href={activity.extra.priceList.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3.5 inline-flex items-center gap-2.5 rounded-xl border border-teal/25 bg-teal/[0.06] px-4 py-3 text-[15px] font-bold text-teal transition hover:bg-teal/[0.1]"
-                  >
-                    <IconDocument width={18} height={18} />
-                    {t('Open / download price list (PDF)')}
-                  </a>
+                  <PriceListViewer
+                    url={activity.extra.priceList.url}
+                    label={activity.extra.priceList.label ?? null}
+                  />
                 </section>
               )}
 
