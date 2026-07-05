@@ -71,6 +71,10 @@ export interface ActivityFormValues {
   options: OptionInput[];
   itinerary: ItineraryStopInput[];
   badges: BadgeInput[];
+  /** Public Storage URL of a price-list PDF; '' hides the "Price list" section on the activity page. */
+  priceListUrl: string;
+  /** Optional label shown above the price-list PDF (e.g. "Casela park entry prices"). */
+  priceListLabel: string;
 }
 
 export const EMPTY_ACTIVITY: ActivityFormValues = {
@@ -99,6 +103,8 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   options: [],
   itinerary: [],
   badges: [],
+  priceListUrl: '',
+  priceListLabel: '',
 };
 
 export function slugify(input: string): string {
@@ -143,6 +149,11 @@ function buildExtra(v: ActivityFormValues) {
   if (badges.length) out.badges = badges;
   if (v.startWindow.trim()) out.startWindow = v.startWindow.trim();
   if (v.isPrivate) out.isPrivate = true;
+  if (v.priceListUrl.trim()) {
+    out.priceList = v.priceListLabel.trim()
+      ? { url: v.priceListUrl.trim(), label: v.priceListLabel.trim() }
+      : { url: v.priceListUrl.trim() };
+  }
   return out;
 }
 
@@ -380,6 +391,19 @@ export async function uploadActivityImage(file: File, slug: string): Promise<str
   return sb.storage.from('activity-images').getPublicUrl(path).data.publicUrl;
 }
 
+/** Upload a PDF (e.g. a price list) and return its public URL. Reuses the activity-images bucket
+ *  (public read, staff-write, no content-type restriction) — the file just carries a .pdf path. */
+export async function uploadActivityPdf(file: File, slug: string): Promise<string> {
+  const sb = getBrowserSupabase();
+  const ext = (file.name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const path = `${slugify(slug) || 'activity'}/pricelist-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await sb.storage
+    .from('activity-images')
+    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type || 'application/pdf' });
+  if (error) throw error;
+  return sb.storage.from('activity-images').getPublicUrl(path).data.publicUrl;
+}
+
 interface ExtraShape {
   itinerary?: Array<{
     title?: string;
@@ -391,6 +415,7 @@ interface ExtraShape {
   badges?: Array<{ icon?: string; title?: string; subtitle?: string }>;
   startWindow?: string | null;
   isPrivate?: boolean;
+  priceList?: { url?: string; label?: string } | null;
 }
 
 /** Load an existing activity into the editable form shape. */
@@ -476,5 +501,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       options: (s.options ?? []).map((o) => ({ title: o.title ?? '', area: o.area ?? '' })),
     })),
     badges: (extra.badges ?? []).map((b) => ({ icon: b.icon ?? '', title: b.title ?? '', subtitle: b.subtitle ?? '' })),
+    priceListUrl: extra.priceList?.url ?? '',
+    priceListLabel: extra.priceList?.label ?? '',
   };
 }

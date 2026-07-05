@@ -131,6 +131,15 @@ export const IconX = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+// Document / PDF glyph (folded corner + text lines) — used for the price-list section + admin uploader.
+export const IconDocument = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M14 3v5h5" />
+    <path d="M6 3h8l5 5v11a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" />
+    <path d="M9 13h6M9 17h5" />
+  </Svg>
+);
+
 // Six-dot drag handle. Dots are filled (the base Svg is stroke-only, so each circle sets its own fill).
 export const IconGrip = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p} strokeWidth={1}>
