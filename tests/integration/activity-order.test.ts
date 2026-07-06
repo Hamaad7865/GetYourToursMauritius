@@ -52,9 +52,22 @@ describe('activity card ordering', () => {
   it('staff reorder drives the public order', async () => {
     const desired = [ids[2]!, ids[0]!, ids[1]!]; // c, a, b
     await db.as({ sub: STAFF, role: 'authenticated' });
-    await call(db, 'api_reorder_activities', { ids: desired });
+    // The reorder is category-scoped server-side now (a stray cross-category id can't be renumbered),
+    // so the caller passes the category alongside the ids.
+    await call(db, 'api_reorder_activities', { ids: desired, category: 'Catamaran cruises' });
     await db.asOwner();
     expect(await catamaranOrder()).toEqual(desired);
+  });
+
+  it('ignores ids outside the given category (server-scoped)', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    // Reorder under a DIFFERENT category: none of these Catamaran ids belong to it, so nothing is
+    // renumbered — the previous order is preserved (no cross-category scramble).
+    const before = await (async () => { await db.asOwner(); return catamaranOrder(); })();
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await call(db, 'api_reorder_activities', { ids: [ids[0]!, ids[1]!, ids[2]!], category: 'Sightseeing tours' });
+    await db.asOwner();
+    expect(await catamaranOrder()).toEqual(before);
   });
 
   it('rejects a non-staff reorder', async () => {

@@ -259,6 +259,9 @@ export const paymentCreateResultSchema = z.object({
   amountMinor: z.coerce.number().int(),
   bookingRef: z.string(),
   customerEmail: z.string(),
+  /** A still-fresh Peach checkout already recorded for this pending payment (a back/reload retry). When
+   *  set, the service reuses it instead of minting a SECOND session — closing the double-charge window. */
+  existingCheckoutId: z.string().nullish(),
 });
 
 // --- Lead -------------------------------------------------------------------

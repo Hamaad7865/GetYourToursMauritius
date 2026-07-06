@@ -25,6 +25,18 @@ export async function createPaymentLink(
   });
   const payment = paymentCreateResultSchema.parse(data);
 
+  // Double-charge guard: if the DB already has a still-fresh checkout for this pending payment (the
+  // customer hit back/reload and is paying again before the webhook confirmed), REUSE that same Peach
+  // session instead of minting a second one. A completed session can't be re-charged, so this prevents
+  // charging the card twice. api_create_payment only surfaces a recent (<25 min) checkout id.
+  if (payment.existingCheckoutId) {
+    return {
+      sessionId: payment.existingCheckoutId,
+      checkoutId: payment.existingCheckoutId,
+      provider: ctx.payments.name,
+    };
+  }
+
   // Peach now accepts EUR on the card (enabled 2026-06-24), so we charge the EUR booking total directly
   // — no FX conversion, and the card statement matches the price shown. The ledger is already EUR, so a
   // successful full settlement confirms it cleanly. (Alt methods like MCB Juice / Maucus are MUR-only and

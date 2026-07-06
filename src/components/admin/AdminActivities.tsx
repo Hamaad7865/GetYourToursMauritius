@@ -140,7 +140,7 @@ export function AdminActivities() {
     const ids = (rowsRef.current ?? []).filter((r) => r.category === category).map((r) => r.id);
     try {
       setError(null);
-      await reorderActivities(ids);
+      await reorderActivities(ids, category);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the new order.');
       await load(); // revert to the server's truth

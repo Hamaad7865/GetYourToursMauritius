@@ -8300,7 +8300,10 @@ begin
       select value::uuid as id, (ordinality - 1)::int as ord
       from jsonb_array_elements_text(p -> 'ids') with ordinality
     ) t
-   where a.id = t.id;
+   where a.id = t.id
+     -- Server-enforce the client's "one category at a time" rule (was client-only): an id from another
+     -- category won't match, so a bad/multi-category id list can't scramble cross-category order.
+     and a.category = (p ->> 'category');
 end;
 $$;
 grant execute on function api_reorder_activities(jsonb) to authenticated;
@@ -8795,4 +8798,93 @@ as $$
   )
   from activities a
   where a.slug = p ->> 'slug';
+$$;
+
+-- ---- 20260615121000_security_integrity_fixes (profiles role guard) ----------
+-- SECURITY (bug sweep 2026-07-06): fold in the profile role-escalation guard that
+-- was present in the migrations/setup/bootstrap but MISSING from catch-up.sql. RLS
+-- on profiles is row-level only (no column restriction on `role`) and `authenticated`
+-- holds a blanket UPDATE grant, so WITHOUT this trigger a normal user could
+-- PATCH their own profile with {"role":"admin"} and self-promote. Verbatim from
+-- migration 20260615121000 so re-running catch-up.sql self-heals a DB that lost it.
+create or replace function enforce_profile_role()
+returns trigger
+language plpgsql
+security invoker
+set search_path = public
+as $$
+begin
+  if current_user not in ('anon', 'authenticated') then
+    return new; -- service_role / owner / superuser
+  end if;
+  if is_staff() then
+    return new; -- staff & admin may assign roles
+  end if;
+  if tg_op = 'INSERT' then
+    new.role := 'customer';
+  else
+    new.role := old.role; -- self-update cannot change role
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists profiles_role_guard on profiles;
+create trigger profiles_role_guard
+  before insert or update on profiles
+  for each row execute function enforce_profile_role();
+
+-- ---- bug sweep 2026-07-06: api_create_payment double-charge guard -----------
+-- Winning body of api_create_payment (verbatim) + one ADDITIVE return field: a still-fresh checkout
+-- already recorded for this pending payment is surfaced as `existingCheckoutId` so the service reuses
+-- that Peach session instead of minting a SECOND one (a back/reload/retry before the webhook confirms
+-- could otherwise charge the card twice). No existing logic changed; only the returned object grows.
+create or replace function api_create_payment(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_booking bookings;
+  v_payment payments;
+begin
+  select * into v_booking from bookings where ref = p ->> 'bookingRef';
+  if not found then
+    raise exception 'booking_not_found';
+  end if;
+  if v_booking.status in ('confirmed', 'completed', 'cancelled', 'expired', 'refund_pending', 'refunded', 'failed')
+     or v_booking.payment_state in ('paid', 'partially_refunded', 'refunded') then
+    raise exception 'booking_not_payable' using detail = v_booking.status::text;
+  end if;
+  if not (is_staff() or (auth.uid() is not null and v_booking.user_id = auth.uid())) then
+    raise exception 'forbidden';
+  end if;
+
+  select * into v_payment from payments
+  where booking_id = v_booking.id and status <> 'failed'
+  order by created_at desc
+  limit 1;
+
+  if not found then
+    select * into v_payment from payments where idempotency_key = p ->> 'idempotencyKey';
+  end if;
+
+  if not found then
+    insert into payments (booking_id, idempotency_key, amount_minor)
+    values (v_booking.id, p ->> 'idempotencyKey', v_booking.total_minor)
+    returning * into v_payment;
+    insert into payment_events (payment_id, type, amount_minor)
+    values (v_payment.id, 'intent', v_booking.total_minor);
+  end if;
+
+  return jsonb_build_object(
+    'paymentId', v_payment.id, 'amountMinor', v_payment.amount_minor,
+    'bookingRef', v_booking.ref, 'customerEmail', v_booking.customer_email,
+    'existingCheckoutId', case
+       when v_payment.provider_checkout_id is not null
+            and v_payment.updated_at > now() - interval '25 minutes'
+       then v_payment.provider_checkout_id else null end
+  );
+end;
 $$;
