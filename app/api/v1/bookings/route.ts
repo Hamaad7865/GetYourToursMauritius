@@ -4,6 +4,7 @@ import { paginationMeta } from '@/lib/http/pagination';
 import { preflightResponse } from '@/lib/http/cors';
 import { authenticateOptional, requireUser } from '@/lib/http/auth';
 import { buildServiceContext } from '@/lib/http/context';
+import { rateLimit } from '@/lib/http/rate-limit';
 import { bookingHistoryQuerySchema, createBookingInputSchema } from '@/lib/validation/booking';
 import { createBooking, listMyBookings } from '@/lib/services/bookings';
 
@@ -22,11 +23,13 @@ export const GET = apiHandler(async (req) => {
   return jsonOk(items, { meta: paginationMeta(query.page, query.pageSize, total) });
 });
 
-/** POST /api/v1/bookings — create a payment_pending booking (guest or authenticated). */
+/** POST /api/v1/bookings — create a payment_pending booking (guest or authenticated). Per-IP
+ *  rate-limited so anonymous booking-row creation can't be scripted to exhaust inventory. */
 export const POST = apiHandler(async (req) => {
   await authenticateOptional(req);
-  const input = await parseJsonBody(req, createBookingInputSchema);
   const ctx = buildServiceContext(req);
+  await rateLimit(req, ctx, 'bookings:create', 15);
+  const input = await parseJsonBody(req, createBookingInputSchema);
   const booking = await createBooking(ctx, input);
   return jsonOk(booking, { status: 201 });
 });

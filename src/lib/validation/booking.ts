@@ -20,7 +20,11 @@ export const createBookingInputSchema = z.object({
    *  loop over an oversized JSONB. */
   party: z
     .record(z.string().min(1).max(80), z.number().int().min(0).max(1000))
-    .refine((p) => Object.keys(p).length <= 20, { message: 'Too many price tiers' }),
+    .refine((p) => Object.keys(p).length <= 20, { message: 'Too many price tiers' })
+    // Cap the TOTAL head-count too (well above any real single booking): the per-tier + tier-count
+    // caps still allow 20 × 1000 = 20,000 heads, which × a high tier price can overflow the int
+    // total_minor column (a clean 400 here beats an ungraceful DB 500).
+    .refine((p) => Object.values(p).reduce((s, n) => s + n, 0) <= 500, { message: 'Party too large' }),
   /** Sightseeing vehicle mode only: the customer chose the SUV upgrade (flat price, parties ≤4).
    *  Ignored by every other pricing mode and for parties over the SUV tier. */
   suv: z.boolean().optional(),

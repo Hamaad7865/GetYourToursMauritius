@@ -91,7 +91,10 @@ export function Checkout() {
 
   const occ = params.get('occ') ?? '';
   const label = params.get('label') ?? '';
-  const qty = Math.max(1, Number(params.get('qty') ?? '1'));
+  // Guard a tampered/malformed `?qty=` — `Math.max(1, Number('abc'))` is NaN, which would otherwise
+  // flow into the child-seat clamp and the booking POST body. Mirror the `total` param's finite guard.
+  const qtyRaw = Number(params.get('qty') ?? '1');
+  const qty = Number.isFinite(qtyRaw) && qtyRaw >= 1 ? Math.floor(qtyRaw) : 1;
   // Age-banded booking: the per-tier party map (Adult/Child/Infant). When present it's what the server
   // prices; `label`/`qty` remain for the single-tier path + display (qty already equals the total heads).
   const partyMap = decodeParty(params.get('party'));

@@ -57,10 +57,23 @@ export async function createCategory(input: CategoryInput): Promise<void> {
 }
 
 export async function updateCategory(id: string, input: CategoryInput): Promise<void> {
-  const { error } = await getBrowserSupabase()
+  const sb = getBrowserSupabase();
+  const newName = input.name.trim();
+  // Activities store their category as the free-text NAME (there is no FK from activities.category to
+  // categories), so a rename MUST re-point them or every tour in the old-named category silently drops
+  // out of its menu, filter and home rail. Re-point FIRST, then rename the category row — that ordering
+  // self-heals on retry if the second write fails (a rename-first partial failure would not, because a
+  // retry would read the already-renamed name and skip the re-point).
+  const { data: existing } = await sb.from('categories').select('name').eq('id', id).maybeSingle();
+  const oldName = existing?.name ?? null;
+  if (oldName && oldName !== newName) {
+    const { error: repointErr } = await sb.from('activities').update({ category: newName }).eq('category', oldName);
+    if (repointErr) throw repointErr;
+  }
+  const { error } = await sb
     .from('categories')
     .update({
-      name: input.name.trim(),
+      name: newName,
       slug: slugify(input.name),
       image_url: input.imageUrl?.trim() || null,
       status: input.status,

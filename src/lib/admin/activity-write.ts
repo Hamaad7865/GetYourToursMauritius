@@ -207,15 +207,30 @@ export function planOptionReconcile(
   return { toUpsert, removedIds };
 }
 
-/** Images have no downstream FK (booking_items snapshots, never references them) — replace wholesale. */
+/**
+ * Images have no downstream FK (booking_items snapshots, never references them). INSERT the new rows
+ * BEFORE deleting the old ones (same reasoning as replacePrices — the browser client has no transaction,
+ * so a delete-then-insert whose insert fails / the user navigating away would strand the tour with ZERO
+ * photos, blanking its cover + gallery on the live site). Insert-first leaves the old photos intact on
+ * failure. Safe because activity_images has no (activity_id, position) uniqueness — only a PK on id.
+ */
 async function replaceImages(activityId: string, images: ImageInput[]): Promise<void> {
   const sb = getBrowserSupabase();
-  await sb.from('activity_images').delete().eq('activity_id', activityId);
+  const { data: old, error: readErr } = await sb
+    .from('activity_images')
+    .select('id')
+    .eq('activity_id', activityId);
+  if (readErr) throw readErr;
   const rows = images
     .filter((i) => i.url.trim())
     .map((img, position) => ({ activity_id: activityId, url: img.url.trim(), alt: img.alt.trim() || null, position }));
   if (rows.length) {
     const { error } = await sb.from('activity_images').insert(rows);
+    if (error) throw error;
+  }
+  const oldIds = (old ?? []).map((o) => o.id);
+  if (oldIds.length) {
+    const { error } = await sb.from('activity_images').delete().in('id', oldIds);
     if (error) throw error;
   }
 }
@@ -354,12 +369,31 @@ function assertPricingValid(v: ActivityFormValues): void {
   }
 }
 
+/** Append a new activity to the END of its category's card order. `activities.sort` defaults to 0, so
+ *  without this every new tour ties with the category's first card and gets bumped up by the
+ *  (rating_count, title) tiebreaker — jumping ahead of the owner's arranged order. */
+async function nextSortForCategory(category: string): Promise<number> {
+  const { data } = await getBrowserSupabase()
+    .from('activities')
+    .select('sort')
+    .eq('category', category)
+    .order('sort', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return ((data?.sort as number | null) ?? -1) + 1;
+}
+
 /** Create a new activity (+ images/options/prices). Returns the new id. */
 export async function createActivity(v: ActivityFormValues): Promise<string> {
   assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
-  const { data, error } = await sb.from('activities').insert(activityRow(v, opId)).select('id').single();
+  const sort = await nextSortForCategory(v.category);
+  const { data, error } = await sb
+    .from('activities')
+    .insert({ ...activityRow(v, opId), sort })
+    .select('id')
+    .single();
   if (error) throw error;
   await replaceImages(data.id, v.images);
   await reconcileOptions(data.id, v.options);

@@ -196,20 +196,20 @@ export function BookingOptionCard() {
               type="number"
               inputMode="numeric"
               min={0}
-              max={b.participants}
+              max={b.totalGuests}
               value={b.childSeats}
               aria-label={t('Number of child seats')}
               onChange={(e) => {
                 const n = parseInt(e.target.value, 10);
-                if (!Number.isNaN(n)) b.setChildSeats(Math.max(0, Math.min(b.participants, n)));
+                if (!Number.isNaN(n)) b.setChildSeats(Math.max(0, Math.min(b.totalGuests, n)));
               }}
               className="h-8 w-12 rounded-lg border border-ink/15 text-center text-[14px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
             />
             <button
               type="button"
               aria-label={t('Add child seat')}
-              onClick={() => b.setChildSeats(Math.min(b.participants, b.childSeats + 1))}
-              disabled={b.childSeats >= b.participants}
+              onClick={() => b.setChildSeats(Math.min(b.totalGuests, b.childSeats + 1))}
+              disabled={b.childSeats >= b.totalGuests}
               className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
             >
               <IconPlus width={14} height={14} />
