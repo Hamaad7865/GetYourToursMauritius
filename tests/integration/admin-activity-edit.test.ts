@@ -191,4 +191,44 @@ describe('updateActivity preserves option ids on edit', () => {
     expect(opts.map((o) => o.id)).toEqual([optionId]);
     expect(opts.some((o) => o.id === removableId), 'the removed unbooked option is gone').toBe(false);
   });
+
+  it('removing an option that has availability occurrences (but no bookings) deletes it — occurrences cascade', async () => {
+    // The reported bug: an option with only auto-materialised availability (no bookings) kept coming back
+    // on save. session_occurrences is ON DELETE CASCADE, so removing the option must take its slots with it.
+    const { activityId, optionId } = await seedActivity('removable-with-availability');
+    const removableId = (
+      await db.pg.query<{ id: string }>(
+        `insert into activity_options (activity_id, name, position) values ($1, 'Standard', 1) returning id`,
+        [activityId],
+      )
+    ).rows[0]!.id;
+    const removableOcc = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() + interval '12 days', now() + interval '12 days' + interval '5 hours', 10)
+         returning id`,
+        [removableId, operatorId],
+      )
+    ).rows[0]!.id;
+
+    const form = {
+      ...EMPTY_ACTIVITY,
+      slug: 'removable-with-availability',
+      title: 'Trimmed',
+      options: [{ id: optionId, name: 'Private group', prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }] }],
+    };
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await updateActivity(activityId, form);
+
+    await db.asOwner();
+    const opts = (
+      await db.pg.query<{ id: string }>(`select id from activity_options where activity_id = $1`, [activityId])
+    ).rows;
+    expect(opts.some((o) => o.id === removableId), 'the removed option (availability only) is gone').toBe(false);
+    const occ = (
+      await db.pg.query(`select id from session_occurrences where id = $1`, [removableOcc])
+    ).rows;
+    expect(occ, 'its availability occurrences cascade-deleted with the option').toHaveLength(0);
+  });
 });

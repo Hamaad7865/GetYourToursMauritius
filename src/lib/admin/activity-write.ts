@@ -261,8 +261,9 @@ async function replacePrices(optionId: string, prices: PriceInput[]): Promise<vo
 /**
  * Reconcile options IN PLACE rather than delete-and-recreate. Updating in place keeps each option's
  * id, which session_occurrences and booking_items reference — so editing a booked activity no longer
- * breaks it. A removed option is deleted only when nothing depends on it (no booking_items, no
- * occurrences); a booked option that staff removed is left intact (you can't un-sell a seat).
+ * breaks it. A removed option is deleted unless real bookings reference it (booking_items) — its prices
+ * and availability occurrences cascade; a booked option that staff removed is left intact (you can't
+ * un-sell a seat).
  */
 async function reconcileOptions(activityId: string, formOptions: OptionInput[]): Promise<void> {
   const sb = getBrowserSupabase();
@@ -307,19 +308,18 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
   }
 
   for (const optionId of removedIds) {
+    // Delete a removed option UNLESS real bookings reference it. `booking_items` is ON DELETE RESTRICT
+    // (you can't un-sell a seat), so a booked option is kept. Its prices AND auto-materialised availability
+    // (`session_occurrences`) are both ON DELETE CASCADE, so an option that only has availability — no
+    // bookings — is removed cleanly. (Previously the occurrence check wrongly kept it, so a staff deletion
+    // never persisted: the option reappeared on reload.)
     const { count: items } = await sb
       .from('booking_items')
       .select('id', { count: 'exact', head: true })
       .eq('activity_option_id', optionId);
-    const { count: occ } = await sb
-      .from('session_occurrences')
-      .select('id', { count: 'exact', head: true })
-      .eq('activity_option_id', optionId);
-    if ((items ?? 0) === 0 && (occ ?? 0) === 0) {
-      const { error } = await sb.from('activity_options').delete().eq('id', optionId);
-      if (error) throw error;
-    }
-    // else: keep it — an option with bookings/occurrences must not be deleted.
+    if ((items ?? 0) > 0) continue; // has real bookings — keep it
+    const { error } = await sb.from('activity_options').delete().eq('id', optionId);
+    if (error) throw error;
   }
 }
 
