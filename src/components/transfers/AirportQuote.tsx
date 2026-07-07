@@ -323,6 +323,9 @@ export function AirportQuote() {
             // + its own dropdown; the place_changed effect snaps to the nearest listed hotel and rewrites
             // the field to it. defaultValue seeds the opening hotel so the price is instant on load.
             <input
+              // Distinct keys on the two branches: without them React reuses the same DOM node when
+              // Maps becomes ready and warns "changing a controlled input to be uncontrolled".
+              key="at-hotel-places"
               id="at-hotel"
               ref={atInputRef}
               autoComplete="off"
@@ -333,6 +336,7 @@ export function AirportQuote() {
             />
           ) : (
             <input
+              key="at-hotel-typeahead"
               id="at-hotel"
               role="combobox"
               aria-expanded={open && matches.length > 0}
