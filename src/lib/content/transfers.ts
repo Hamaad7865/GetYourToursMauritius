@@ -53,6 +53,27 @@ export function getTransfer(slug: string): Transfer | null {
   return transfers.find((t) => t.slug === slug) ?? null;
 }
 
+/**
+ * The listed hotel geographically CLOSEST to a picked point (e.g. a Google Places selection that isn't
+ * one of our 45 hotels). Airport transfers are priced by a coarse zone (near-airport vs the rest), so the
+ * nearest listed hotel shares the picked place's zone — we snap to it for pricing + its bookable page.
+ * Squared-degree distance is fine over an island this small. Falls back to the first hotel if none carry
+ * coordinates yet.
+ */
+export function nearestTransfer(lat: number, lng: number): Transfer {
+  let best: Transfer = transfers[0]!;
+  let bestDist = Infinity;
+  for (const t of transfers) {
+    if (t.lat == null || t.lng == null) continue;
+    const dist = (t.lat - lat) ** 2 + (t.lng - lng) ** 2;
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = t;
+    }
+  }
+  return best;
+}
+
 export const TRANSFER_REGION_ORDER: TransferRegion[] = ['North', 'East', 'South', 'West', 'Central'];
 
 export function transferMetaTitle(t: Transfer): string {

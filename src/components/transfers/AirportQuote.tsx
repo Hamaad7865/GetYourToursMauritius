@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
 import { parseApiJson } from '@/lib/http/fetch-json';
-import { transfers, type Transfer } from '@/lib/content/transfers';
+import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
+import { transfers, nearestTransfer, type Transfer } from '@/lib/content/transfers';
 import {
   AIRPORT_FARE_DEFAULT,
   AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
@@ -127,6 +128,12 @@ export function AirportQuote() {
   const [tripType, setTripType] = useState<TripType>('one_way');
   const [showMap, setShowMap] = useState(false);
 
+  // When Google Maps is ready the hotel field becomes a live Places autocomplete (any hotel in Mauritius);
+  // a picked place is snapped to the nearest listed hotel so the zone/price stays exact. Until then, the
+  // curated typeahead over our covered resorts is used.
+  const placesReady = useGoogleMaps() === 'ready';
+  const atInputRef = useRef<HTMLInputElement>(null);
+
   const [fares, setFares] = useState<AirportFareByZone>(AIRPORT_FARE_DEFAULT);
   const [returnPct, setReturnPct] = useState(AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT);
 
@@ -157,6 +164,37 @@ export function AirportQuote() {
   useEffect(() => () => {
     if (blurTimer.current) clearTimeout(blurTimer.current);
   }, []);
+
+  // Google Places autocomplete on the hotel field (when Maps is ready). The traveller can type ANY hotel;
+  // on selection we snap to the geographically nearest listed hotel (same airport zone → same fixed price)
+  // and reflect it in the field, so the priced/booked hotel always matches what's shown.
+  useEffect(() => {
+    if (!placesReady) return;
+    const input = atInputRef.current;
+    if (!input) return;
+    let ac: google.maps.places.Autocomplete | null = null;
+    try {
+      ac = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'mu' },
+        fields: ['name', 'geometry'],
+      });
+      ac.addListener('place_changed', () => {
+        const loc = ac!.getPlace().geometry?.location;
+        if (!loc) return;
+        const n = nearestTransfer(loc.lat(), loc.lng());
+        setHotel(n);
+        setQuery(n.hotelName);
+        setOpen(false);
+        // Snap the field text to the priced hotel (the price ribbon + CTA all follow `hotel`).
+        if (atInputRef.current) atInputRef.current.value = n.hotelName;
+      });
+    } catch {
+      /* Places unavailable — the typeahead fallback covers it */
+    }
+    return () => {
+      if (ac) google.maps.event.clearInstanceListeners(ac);
+    };
+  }, [placesReady]);
 
   // Typeahead over the covered hotels (name or area). Empty query → no list (the field already shows the
   // current selection). The lists are static, so this is cheap to recompute per keystroke.
@@ -280,39 +318,54 @@ export function AirportQuote() {
           <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
             <SearchIcon color={TEAL_DARK} />
           </span>
-          <input
-            id="at-hotel"
-            role="combobox"
-            aria-expanded={open && matches.length > 0}
-            aria-controls={open && matches.length > 0 ? 'at-hotel-list' : undefined}
-            aria-activedescendant={open && matches.length > 0 ? `at-hotel-opt-${active}` : undefined}
-            aria-autocomplete="list"
-            autoComplete="off"
-            value={query}
-            placeholder={t('Search your hotel or resort…')}
-            onChange={(e) => {
-              setQuery(e.target.value);
-              setOpen(true);
-              setActive(0);
-            }}
-            onFocus={(e) => {
-              setOpen(true);
-              e.target.select();
-            }}
-            onBlur={() => {
-              // Snap the field back to the current selection if they typed without picking — the price
-              // never goes blank, and the input always reflects what's being priced.
-              blurTimer.current = setTimeout(() => {
-                setOpen(false);
-                setQuery(hotel.hotelName);
-              }, 130);
-            }}
-            onKeyDown={onKeyDown}
-            className="w-full rounded-[13px] border bg-white py-[13px] pl-11 pr-3.5 text-[15px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
-            style={{ borderColor: 'rgba(17,32,31,0.14)', color: INK, outlineColor: TEAL_DARK }}
-          />
+          {placesReady ? (
+            // Google Places autocomplete (any hotel in Mauritius). Uncontrolled — Google manages the text
+            // + its own dropdown; the place_changed effect snaps to the nearest listed hotel and rewrites
+            // the field to it. defaultValue seeds the opening hotel so the price is instant on load.
+            <input
+              id="at-hotel"
+              ref={atInputRef}
+              autoComplete="off"
+              defaultValue={hotel.hotelName}
+              placeholder={t('Search your hotel or resort…')}
+              className="w-full rounded-[13px] border bg-white py-[13px] pl-11 pr-3.5 text-[15px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{ borderColor: 'rgba(17,32,31,0.14)', color: INK, outlineColor: TEAL_DARK }}
+            />
+          ) : (
+            <input
+              id="at-hotel"
+              role="combobox"
+              aria-expanded={open && matches.length > 0}
+              aria-controls={open && matches.length > 0 ? 'at-hotel-list' : undefined}
+              aria-activedescendant={open && matches.length > 0 ? `at-hotel-opt-${active}` : undefined}
+              aria-autocomplete="list"
+              autoComplete="off"
+              value={query}
+              placeholder={t('Search your hotel or resort…')}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setOpen(true);
+                setActive(0);
+              }}
+              onFocus={(e) => {
+                setOpen(true);
+                e.target.select();
+              }}
+              onBlur={() => {
+                // Snap the field back to the current selection if they typed without picking — the price
+                // never goes blank, and the input always reflects what's being priced.
+                blurTimer.current = setTimeout(() => {
+                  setOpen(false);
+                  setQuery(hotel.hotelName);
+                }, 130);
+              }}
+              onKeyDown={onKeyDown}
+              className="w-full rounded-[13px] border bg-white py-[13px] pl-11 pr-3.5 text-[15px] font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              style={{ borderColor: 'rgba(17,32,31,0.14)', color: INK, outlineColor: TEAL_DARK }}
+            />
+          )}
 
-          {open && matches.length > 0 && (
+          {!placesReady && open && matches.length > 0 && (
             <ul
               id="at-hotel-list"
               role="listbox"
@@ -348,7 +401,7 @@ export function AirportQuote() {
               ))}
             </ul>
           )}
-          {open && matches.length === 0 && query.trim() !== '' && query.trim().toLowerCase() !== hotel.hotelName.toLowerCase() && (
+          {!placesReady && open && matches.length === 0 && query.trim() !== '' && query.trim().toLowerCase() !== hotel.hotelName.toLowerCase() && (
             <div
               className="absolute z-30 mt-2 w-full rounded-[14px] border bg-white px-4 py-3 text-[13px]"
               style={{ borderColor: 'rgba(17,32,31,0.10)', boxShadow: '0 24px 50px -20px rgba(11,32,31,0.45)', color: 'rgba(17,32,31,0.6)' }}
