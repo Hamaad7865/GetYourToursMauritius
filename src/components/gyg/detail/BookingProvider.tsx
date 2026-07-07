@@ -14,11 +14,12 @@ import {
   sightseeingQuote,
   childSeatsCost,
   quoteTotal,
+  privateQuote,
   SIGHTSEEING_DEFAULT,
   SIGHTSEEING_SUV_MAX,
 } from '@/lib/services/pricing';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
-import { defaultOptionId, cheapestTier } from '@/lib/catalogue/options';
+import { defaultOptionId, cheapestTier, privateConfig, type PrivateConfig } from '@/lib/catalogue/options';
 import { encodeParty, partyGuests } from '@/lib/services/party';
 
 export interface BookingActivity {
@@ -67,6 +68,10 @@ interface BookingState {
   /** True when the selected option is age-band priced (per_person with ≥2 age tiers) — the widget shows
    *  one stepper per band (Adult / Child / Infant) instead of a single participants count. */
   isAgeBanded: boolean;
+  /** The selected option's private-trip config (flat base + per-extra-head, own trips/day pool), or
+   *  null for a normal option. When set: one party stepper, seatsLeft counts TRIPS (never people),
+   *  and the whole party rides ONE capacity unit. */
+  privateCfg: PrivateConfig | null;
   /** The price tiers to render as age bands (the selected option's tiers) when isAgeBanded. */
   bandTiers: TourOption['prices'];
   /** Per-band head counts (age-banded mode). */
@@ -201,6 +206,13 @@ export function BookingProvider({
   );
   const bookingOptionId = selectedOption?.id ?? null;
 
+  // Private option: flat base covers the first `included` guests, `extraEur` per additional head; the
+  // pool counts TRIPS/day (a booking consumes ONE unit, any group size — the server coerces the hold).
+  const privateCfg = useMemo(
+    () => (selectedOption ? privateConfig(selectedOption) : null),
+    [selectedOption],
+  );
+
   // Age-band pricing: a per_person option with ≥2 tiers carrying age metadata is shown as a
   // GetYourGuide-style set of per-band steppers (Adult / Child / Infant), each priced from its OWN DB
   // tier. The server re-derives the total from the posted band map (zero-trust) — see api_book.
@@ -261,16 +273,22 @@ export function BookingProvider({
   const groupSize = activity.pricingMode === 'per_group' ? (selectedTier?.maxGuests ?? null) : null;
   const seatsLeft = (date ? days?.get(date)?.seatsLeft : undefined) ?? 0;
   const tierCap = activity.pricingMode === 'per_person' && selectedTier?.maxGuests ? selectedTier.maxGuests : Infinity;
-  const maxParticipants = isVehicle
-    ? Math.max(1, vehicleCfg.maxParty)
-    : Math.max(1, Math.min(16, tierCap, date ? seatsLeft : 16));
-  const unitLabel = isVehicle
-    ? 'per vehicle'
-    : groupSize
-      ? `per group up to ${groupSize}`
-      : activity.type === 'transport'
-        ? 'per vehicle'
-        : 'per person';
+  // A private party is capped by its own max group size ONLY — seatsLeft counts trips, not people,
+  // so a 1-trip day must still accept a party of 6.
+  const maxParticipants = privateCfg
+    ? Math.max(1, privateCfg.maxGuests)
+    : isVehicle
+      ? Math.max(1, vehicleCfg.maxParty)
+      : Math.max(1, Math.min(16, tierCap, date ? seatsLeft : 16));
+  const unitLabel = privateCfg
+    ? 'per private trip'
+    : isVehicle
+      ? 'per vehicle'
+      : groupSize
+        ? `per group up to ${groupSize}`
+        : activity.type === 'transport'
+          ? 'per vehicle'
+          : 'per person';
   const suvActive = isVehicle && suv && participants <= SIGHTSEEING_SUV_MAX;
 
   const setBand = useCallback(
@@ -337,20 +355,32 @@ export function BookingProvider({
       return null;
     }
   }, [isAgeBanded, bandTiers, bandCounts, totalGuests]);
-  const baseTotal = isVehicle
-    ? (vehicleQuote?.totalEur ?? null)
-    : isAgeBanded
-      ? (bandQuote?.totalEur ?? null)
-      : selectedTier == null
-        ? null
-        : activity.pricingMode === 'per_group'
-          ? // One flat price per group of `groupSize`. If the group size is missing (a per_group tier
-            // saved without a cap), the server prices PER HEAD — so fall back to per head here too, so
-            // Continue, the cart line and the actual charge all agree (never a single under-stated group).
-            groupSize
-            ? selectedTier.amountEur * Math.ceil(participants / groupSize)
-            : selectedTier.amountEur * participants
-          : selectedTier.amountEur * participants;
+  // Private: base + per-extra-head, mirroring create_booking's private branch cent-for-cent. Wrapped so
+  // an over-cap transient never throws into render — falls back to null (Continue stays disabled).
+  const privateTotal = useMemo(() => {
+    if (!privateCfg || participants < 1) return null;
+    try {
+      return privateQuote(privateCfg.baseEur, privateCfg.included, privateCfg.extraEur, participants, privateCfg.maxGuests);
+    } catch {
+      return null;
+    }
+  }, [privateCfg, participants]);
+  const baseTotal = privateCfg
+    ? privateTotal
+    : isVehicle
+      ? (vehicleQuote?.totalEur ?? null)
+      : isAgeBanded
+        ? (bandQuote?.totalEur ?? null)
+        : selectedTier == null
+          ? null
+          : activity.pricingMode === 'per_group'
+            ? // One flat price per group of `groupSize`. If the group size is missing (a per_group tier
+              // saved without a cap), the server prices PER HEAD — so fall back to per head here too, so
+              // Continue, the cart line and the actual charge all agree (never a single under-stated group).
+              groupSize
+              ? selectedTier.amountEur * Math.ceil(participants / groupSize)
+              : selectedTier.amountEur * participants
+            : selectedTier.amountEur * participants;
   const childSeatsExtra = childSeatsCost(childSeats);
 
   // Region-based transport is no longer chosen here — pickup + the distance-based transport fee are
@@ -361,17 +391,23 @@ export function BookingProvider({
   // is the tier's unit price (the cart multiplies it by the party). Never includes the child add-on.
   // Age-banded lines carry the WHOLE party price as a flat unit (like vehicle mode) since there's no single
   // per-head number; the cart treats a line with a `party` map as flat (see itemTotal).
-  const unitPriceEur = isVehicle || isAgeBanded ? (baseTotal ?? 0) : (selectedTier?.amountEur ?? 0);
+  const unitPriceEur =
+    isVehicle || isAgeBanded || privateCfg ? (baseTotal ?? 0) : (selectedTier?.amountEur ?? 0);
   const vehicleName = vehicleQuote?.vehicle ?? null;
   // Single source of the price-tier label for BOTH Continue and Add-to-cart. They used to diverge:
   // Add-to-cart hardcoded 'Adult', which the server rejects (unknown_price_tier) for any tour whose
-  // cheapest tier isn't labelled 'Adult'.
-  const priceLabel = isVehicle
-    ? (vehicleName ?? 'Vehicle')
-    : isAgeBanded
-      ? (primaryLabel ?? selectedTier?.label ?? '')
-      : (selectedTier?.label ?? '');
-  // The price-tier → count map posted to the server. Age-banded: the chosen bands; else the single tier.
+  // cheapest tier isn't labelled 'Adult'. A private option has NO tiers — the server prices from the
+  // option's own config and ignores the label (it writes the option name on the line item), so the
+  // option name is used here purely for display.
+  const priceLabel = privateCfg
+    ? (selectedOption?.name ?? 'Private')
+    : isVehicle
+      ? (vehicleName ?? 'Vehicle')
+      : isAgeBanded
+        ? (primaryLabel ?? selectedTier?.label ?? '')
+        : (selectedTier?.label ?? '');
+  // The price-tier → count map posted to the server. Age-banded: the chosen bands; else the single tier
+  // (for a private option the map carries the HEADCOUNT — the server prices base + per-extra-head from it).
   const party: Record<string, number> = isAgeBanded
     ? Object.fromEntries(Object.entries(bandCounts).filter(([, n]) => n > 0))
     : priceLabel
@@ -435,7 +471,9 @@ export function BookingProvider({
           guests: totalGuests,
           unitEur: unitPriceEur,
           pricingMode: activity.pricingMode,
-          party: isAgeBanded ? party : undefined,
+          // A party map marks the line's unitEur as the WHOLE flat price (see itemTotal): the age bands,
+          // or the private trip (whose base+extras total never re-multiplies by the guest count).
+          party: isAgeBanded || privateCfg ? party : undefined,
           suv: suvActive,
           childSeats,
           maxGuests: groupSize,
@@ -480,6 +518,7 @@ export function BookingProvider({
     participants,
     setParticipants,
     isAgeBanded,
+    privateCfg,
     bandTiers,
     bandCounts,
     setBand,

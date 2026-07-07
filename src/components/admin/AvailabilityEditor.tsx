@@ -3,10 +3,12 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
+  clearOptionCapacity,
   loadActivityOptions,
   loadAvailabilityState,
   setDailyCapacity,
   stopAvailability,
+  type OptionRow,
 } from '@/lib/admin/availability-write';
 import { IconChevron } from '@/components/ui/icons';
 import { AdminHeading, BTN_PRIMARY } from '@/components/admin/ui';
@@ -24,10 +26,12 @@ function errMessage(err: unknown, fallback: string): string {
 
 export function AvailabilityEditor({ activityId }: { activityId: string }) {
   const [title, setTitle] = useState('');
-  const [hasOptions, setHasOptions] = useState(true);
+  const [options, setOptions] = useState<OptionRow[]>([]);
   const [pricingMode, setPricingMode] = useState('per_person');
   const [open, setOpen] = useState(false);
   const [capacity, setCapacity] = useState(10);
+  // Per-option override inputs, keyed by option id ('' = no override → uses the activity number).
+  const [optCaps, setOptCaps] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -37,6 +41,9 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
     const { capacity: cap } = await loadAvailabilityState(activityId);
     setOpen(cap != null);
     if (cap != null) setCapacity(cap);
+    const meta = await loadActivityOptions(activityId);
+    setOptions(meta.options);
+    setOptCaps(Object.fromEntries(meta.options.map((o) => [o.id, o.dailyCapacity != null ? String(o.dailyCapacity) : ''])));
   }
 
   useEffect(() => {
@@ -46,7 +53,6 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
         const meta = await loadActivityOptions(activityId);
         if (!active) return;
         setTitle(meta.title);
-        setHasOptions(meta.options.length > 0);
         setPricingMode(meta.pricingMode);
         await refresh();
       } catch (err) {
@@ -76,6 +82,12 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
     }
   }
 
+  /** Unit copy for a capacity number: trips for a private option, vehicles for vehicle mode, else guests. */
+  const unitNoun = (opt?: OptionRow) =>
+    opt?.isPrivate ? 'trips' : pricingMode === 'vehicle' ? 'bookings (vehicles)' : 'guests';
+
+  const hasOptionRows = options.length > 1;
+
   return (
     <div>
       <Link
@@ -88,7 +100,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
 
       {loading ? (
         <p className="text-sm text-ink-muted">Loading…</p>
-      ) : !hasOptions ? (
+      ) : options.length === 0 ? (
         <div className="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-ink">
           This activity has no booking options yet. Add an option with a price in{' '}
           <Link href={`/admin/activities/${activityId}/edit`} className="font-bold text-teal hover:text-teal-dark">
@@ -97,15 +109,15 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
           first.
         </div>
       ) : (
-        <div className="max-w-md rounded-2xl border border-[#EAEEF0] bg-white p-6">
+        <div className="max-w-xl rounded-2xl border border-[#EAEEF0] bg-white p-6">
           <div className="flex items-center gap-2.5">
             <span className={`h-2.5 w-2.5 rounded-full ${open ? 'bg-emerald-500' : 'bg-ink/25'}`} aria-hidden />
             <h2 className="text-[15px] font-extrabold text-ink">{open ? 'Bookable every day' : 'Not bookable yet'}</h2>
           </div>
           <p className="mt-1.5 text-[13px] text-ink-muted">
             {open
-              ? `Customers can book any day, up to ${capacity} ${pricingMode === 'vehicle' ? 'bookings' : 'guests'} per day.`
-              : `Set how many ${pricingMode === 'vehicle' ? 'bookings' : 'guests'} can book per day, then turn it on. It stays open until you stop it.`}
+              ? `Customers can book any day, up to ${capacity} ${unitNoun()} per day.`
+              : `Set how many ${unitNoun()} can book per day, then turn it on. It stays open until you stop it.`}
           </p>
 
           <label className="mt-5 block">
@@ -144,10 +156,76 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
 
           {open && (
             <p className="mt-4 text-[12px] text-ink-muted">
-              Bookable on every future date — a day fills up once {capacity}{' '}
-              {pricingMode === 'vehicle' ? 'bookings' : 'guests'} have booked it.
+              Bookable on every future date — a day fills up once {capacity} {unitNoun()} have booked it.
             </p>
           )}
+
+          {/* Per-option pools: each option can carry its OWN daily number (a private option counts
+              TRIPS per day — e.g. 1 = one charter bookable per day). Blank = uses the activity number. */}
+          {hasOptionRows && open && (
+            <div className="mt-6 border-t border-ink/10 pt-5">
+              <h3 className="text-[13.5px] font-extrabold text-ink">Per-option capacity</h3>
+              <p className="mt-1 text-[12px] text-ink-muted">
+                Each option can have its own daily number. Leave blank to use the activity capacity ({capacity}).
+              </p>
+              <div className="mt-3 flex flex-col gap-2.5">
+                {options.map((o) => {
+                  const val = optCaps[o.id] ?? '';
+                  const overridden = o.dailyCapacity != null;
+                  return (
+                    <div key={o.id} className="flex flex-wrap items-center gap-2.5 rounded-xl border border-ink/10 px-3 py-2.5">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] font-bold text-ink">
+                          {o.name}
+                          {o.isPrivate && (
+                            <span className="ml-1.5 rounded-full bg-teal/10 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-teal-dark">
+                              Private
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11.5px] text-ink-muted">
+                          {overridden ? `${o.dailyCapacity} ${unitNoun(o)} per day` : `Uses activity capacity · ${unitNoun(o)}`}
+                        </div>
+                      </div>
+                      <input
+                        type="number"
+                        min={0}
+                        value={val}
+                        placeholder={String(capacity)}
+                        aria-label={`${o.name} — ${unitNoun(o)} per day`}
+                        onChange={(e) => setOptCaps((cur) => ({ ...cur, [o.id]: e.target.value }))}
+                        className="w-24 rounded-lg border border-[#E2E7EA] bg-[#F7F8FA] px-2.5 py-2 text-sm text-ink outline-none focus:border-teal focus:bg-white"
+                      />
+                      <button
+                        type="button"
+                        disabled={busy || val === ''}
+                        onClick={() =>
+                          run(
+                            () => setDailyCapacity(activityId, Math.max(0, Number(val) || 0), o.id),
+                            `${o.name}: capacity updated.`,
+                          )
+                        }
+                        className="rounded-lg bg-teal-dark px-3 py-2 text-[12.5px] font-bold text-white hover:bg-teal-dark/90 disabled:opacity-50"
+                      >
+                        Save
+                      </button>
+                      {overridden && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => run(() => clearOptionCapacity(activityId, o.id), `${o.name}: uses the activity capacity again.`)}
+                          className="rounded-lg border border-ink/15 px-3 py-2 text-[12.5px] font-bold text-ink hover:border-teal hover:text-teal disabled:opacity-50"
+                        >
+                          Use default
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {notice && <p className="mt-3 text-[13px] font-medium text-emerald-700">{notice}</p>}
           {error && (
             <p role="alert" className="mt-3 text-[13px] font-medium text-coral">

@@ -1,19 +1,17 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 
-/* Admin availability writes — staff RLS permits direct writes to session_occurrences. */
+/* Admin availability writes — staff RLS permits direct writes to session_occurrences.
+ * (The old per-occurrence helpers — loadOccurrences/addOccurrences/deleteOccurrence — were dead code
+ * with zero callers and inserted slots that bypassed the per-option effective-capacity rules; removed
+ * when option-scoped capacity landed.) */
 
 export interface OptionRow {
   id: string;
   name: string;
-}
-export interface OccurrenceRow {
-  id: string;
-  activityOptionId: string;
-  optionName: string;
-  startsAt: string;
-  endsAt: string;
-  capacity: number;
-  status: string;
+  /** Per-option daily capacity override (null = uses the activity's number). */
+  dailyCapacity: number | null;
+  /** True for a private option — its pool counts TRIPS per day, not guests. */
+  isPrivate: boolean;
 }
 
 export async function loadActivityOptions(activityId: string): Promise<{
@@ -33,7 +31,7 @@ export async function loadActivityOptions(activityId: string): Promise<{
   if (!act) throw new Error('Activity not found.');
   const { data: opts } = await sb
     .from('activity_options')
-    .select('id, name')
+    .select('id, name, daily_capacity, private_base_minor')
     .eq('activity_id', activityId)
     .order('position');
   return {
@@ -41,78 +39,13 @@ export async function loadActivityOptions(activityId: string): Promise<{
     durationMinutes: act.duration_minutes,
     title: act.title,
     pricingMode: act.pricing_mode ?? 'per_person',
-    options: opts ?? [],
+    options: (opts ?? []).map((o) => ({
+      id: o.id,
+      name: o.name,
+      dailyCapacity: o.daily_capacity,
+      isPrivate: o.private_base_minor != null,
+    })),
   };
-}
-
-export async function loadOccurrences(activityId: string): Promise<OccurrenceRow[]> {
-  const sb = getBrowserSupabase();
-  const { data: opts } = await sb.from('activity_options').select('id, name').eq('activity_id', activityId);
-  const optionIds = (opts ?? []).map((o) => o.id);
-  if (optionIds.length === 0) return [];
-  const names = new Map((opts ?? []).map((o) => [o.id, o.name]));
-  const { data, error } = await sb
-    .from('session_occurrences')
-    .select('id, activity_option_id, starts_at, ends_at, capacity, status')
-    .in('activity_option_id', optionIds)
-    .gte('starts_at', new Date().toISOString())
-    .order('starts_at');
-  if (error) throw error;
-  return (data ?? []).map((o) => ({
-    id: o.id,
-    activityOptionId: o.activity_option_id,
-    optionName: names.get(o.activity_option_id) ?? '',
-    startsAt: o.starts_at,
-    endsAt: o.ends_at,
-    capacity: o.capacity,
-    status: o.status,
-  }));
-}
-
-/** Add one or more daily slots for an option, starting on `date` at `time` (local). */
-export async function addOccurrences(input: {
-  activityOptionId: string;
-  operatorId: string;
-  date: string;
-  time: string;
-  capacity: number;
-  durationMinutes: number;
-  repeatDays: number;
-}): Promise<number> {
-  const sb = getBrowserSupabase();
-  const targets: Date[] = [];
-  for (let i = 0; i < Math.max(1, input.repeatDays); i += 1) {
-    const start = new Date(`${input.date}T${input.time}:00`);
-    start.setDate(start.getDate() + i);
-    targets.push(start);
-  }
-  // Skip slots that already exist for this option (app-level idempotency — no reliance on a
-  // unique constraint / ON CONFLICT target the database might be missing).
-  const minIso = new Date(Math.min(...targets.map((d) => d.getTime()))).toISOString();
-  const { data: existing } = await sb
-    .from('session_occurrences')
-    .select('starts_at')
-    .eq('activity_option_id', input.activityOptionId)
-    .gte('starts_at', minIso);
-  const have = new Set((existing ?? []).map((o) => new Date(o.starts_at).getTime()));
-  const rows = targets
-    .filter((start) => !have.has(start.getTime()))
-    .map((start) => ({
-      activity_option_id: input.activityOptionId,
-      operator_id: input.operatorId,
-      starts_at: start.toISOString(),
-      ends_at: new Date(start.getTime() + input.durationMinutes * 60_000).toISOString(),
-      capacity: input.capacity,
-    }));
-  if (rows.length === 0) return 0;
-  const { error } = await sb.from('session_occurrences').insert(rows);
-  if (error) throw error;
-  return rows.length;
-}
-
-export async function deleteOccurrence(id: string): Promise<void> {
-  const { error } = await getBrowserSupabase().from('session_occurrences').delete().eq('id', id);
-  if (error) throw error;
 }
 
 /** Open-ended availability state: the activity's daily capacity (null = not bookable). */
@@ -131,13 +64,25 @@ export async function loadAvailabilityState(activityId: string): Promise<{ capac
  * the customer calendar materialises the day slots it needs on demand, so there's no annual
  * re-enable. A day is full once its bookings reach the capacity. Re-running just changes the
  * number — and propagates it to any upcoming days already materialised.
+ *
+ * With `optionId`, the capacity applies to THAT OPTION only (its own pool — e.g. a private
+ * option's trips/day), leaving the other options on the activity's number. The activity-wide
+ * form never overwrites an option that has its own pool.
  */
-export async function setDailyCapacity(activityId: string, capacity: number): Promise<void> {
-  // One atomic RPC: update the activity, propagate the capacity to upcoming slots, and materialize
-  // the window. Doing this in a single transaction avoids the partial state the old three-call
-  // sequence could leave (capacity set but slots un-propagated, or no days materialized).
+export async function setDailyCapacity(activityId: string, capacity: number, optionId?: string): Promise<void> {
+  // One atomic RPC: update the activity/option, propagate the capacity to upcoming slots, and
+  // materialize the window. Doing this in a single transaction avoids the partial state the old
+  // three-call sequence could leave (capacity set but slots un-propagated, or no days materialized).
   const { error } = await getBrowserSupabase().rpc('set_daily_capacity_atomic', {
-    p: { activityId, capacity },
+    p: optionId ? { activityId, capacity, optionId } : { activityId, capacity },
+  });
+  if (error) throw error;
+}
+
+/** Clear an option's capacity override — it falls back to the activity's daily number. */
+export async function clearOptionCapacity(activityId: string, optionId: string): Promise<void> {
+  const { error } = await getBrowserSupabase().rpc('set_daily_capacity_atomic', {
+    p: { activityId, optionId, inherit: true },
   });
   if (error) throw error;
 }

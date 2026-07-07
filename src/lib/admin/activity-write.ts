@@ -25,6 +25,14 @@ export interface OptionInput {
   /** Per-option time (Half day / Full day etc.) — falls back to the activity's on the detail page. */
   durationMinutes?: number | null;
   startWindow?: string;
+  /** Private option (own trips-per-day pool): a flat base price covers the first `privateIncluded`
+   *  guests, `privateExtraEur` per additional head, `privateMaxGuests` cap. When `isPrivateOption`
+   *  the option carries NO price tiers — the four fields below are its whole pricing. */
+  isPrivateOption?: boolean;
+  privateBaseEur?: number | null;
+  privateIncluded?: number | null;
+  privateExtraEur?: number | null;
+  privateMaxGuests?: number | null;
   prices: PriceInput[];
 }
 export interface ItineraryStopInput {
@@ -292,6 +300,15 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
   const { toUpsert, removedIds } = planOptionReconcile((existing ?? []).map((o) => o.id), formOptions);
 
   for (const { option, position, isNew } of toUpsert) {
+    // Private option: the four private_* columns ARE its pricing (all-null when the toggle is off,
+    // which also clears them if the toggle is turned back off). Euro fields round to integer cents.
+    const isPriv = Boolean(option.isPrivateOption) && option.privateBaseEur != null;
+    const privateCols = {
+      private_base_minor: isPriv ? Math.round((option.privateBaseEur ?? 0) * 100) : null,
+      private_included: isPriv ? (option.privateIncluded ?? 4) : null,
+      private_extra_minor: isPriv ? Math.round((option.privateExtraEur ?? 0) * 100) : null,
+      private_max_guests: isPriv ? (option.privateMaxGuests ?? option.privateIncluded ?? 4) : null,
+    };
     let optionId = option.id;
     if (isNew || !optionId) {
       const { data: opt, error } = await sb
@@ -302,6 +319,7 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
           duration_minutes: option.durationMinutes ?? null,
           start_window: option.startWindow?.trim() || null,
           position,
+          ...privateCols,
         })
         .select('id')
         .single();
@@ -315,11 +333,14 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
           duration_minutes: option.durationMinutes ?? null,
           start_window: option.startWindow?.trim() || null,
           position,
+          ...privateCols,
         })
         .eq('id', optionId);
       if (error) throw error;
     }
-    await replacePrices(optionId, option.prices);
+    // A private option carries NO price tiers (its pricing is the private_* columns) — clearing them
+    // here also removes stale tiers when an existing option is switched to private.
+    await replacePrices(optionId, isPriv ? [] : option.prices);
   }
 
   for (const optionId of removedIds) {
@@ -358,6 +379,33 @@ async function materializeActivity(activityId: string): Promise<void> {
  * diverges the displayed total from the per-head charge). Reject at save time with a clear message.
  */
 function assertPricingValid(v: ActivityFormValues): void {
+  // Private options (own trips-per-day pool, base + per-extra-head pricing) ride per_person/per_group
+  // activities only — the vehicle flows and transfer/planner widgets aren't option-aware.
+  for (const o of v.options) {
+    if (!o.isPrivateOption) continue;
+    // (vehicle_custom is the planner's mode and never appears in this form's PricingMode.)
+    if (v.pricingMode === 'vehicle') {
+      throw new Error(
+        'A private option isn’t available on vehicle-priced tours — the whole tour is already private per vehicle.',
+      );
+    }
+    if (o.privateBaseEur == null || o.privateBaseEur <= 0) {
+      throw new Error(`Private option "${o.name || 'unnamed'}": set a base price (must be more than €0).`);
+    }
+    const included = o.privateIncluded ?? 0;
+    const max = o.privateMaxGuests ?? 0;
+    if (included < 1) {
+      throw new Error(`Private option "${o.name}": "base covers up to N guests" must be at least 1.`);
+    }
+    if ((o.privateExtraEur ?? -1) < 0) {
+      throw new Error(`Private option "${o.name}": set the price per extra guest (€0 is fine).`);
+    }
+    if (max < included) {
+      throw new Error(
+        `Private option "${o.name}": max group size (${max}) can’t be below the guests the base covers (${included}).`,
+      );
+    }
+  }
   if (v.pricingMode !== 'per_group') return;
   const uncapped = v.options.some((o) =>
     o.prices.some((p) => p.label.trim() && p.amountEur != null && (p.maxGuests == null || p.maxGuests <= 0)),
@@ -471,7 +519,9 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     .order('position');
   const { data: options } = await sb
     .from('activity_options')
-    .select('id, name, duration_minutes, start_window, position')
+    .select(
+      'id, name, duration_minutes, start_window, private_base_minor, private_included, private_extra_minor, private_max_guests, position',
+    )
     .eq('activity_id', id)
     .order('position');
   const optionIds = (options ?? []).map((o) => o.id);
@@ -523,6 +573,11 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       name: o.name,
       durationMinutes: o.duration_minutes,
       startWindow: o.start_window ?? '',
+      isPrivateOption: o.private_base_minor != null,
+      privateBaseEur: o.private_base_minor != null ? o.private_base_minor / 100 : null,
+      privateIncluded: o.private_included,
+      privateExtraEur: o.private_extra_minor != null ? o.private_extra_minor / 100 : null,
+      privateMaxGuests: o.private_max_guests,
       prices: (prices ?? [])
         .filter((p) => p.activity_option_id === o.id)
         .map((p) => ({

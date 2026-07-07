@@ -48,3 +48,35 @@ export async function seedOccurrence(db: TestDb, capacity: number): Promise<Seed
 
   return { operatorId, activityId, optionId, occurrenceId: occ[0]!.id };
 }
+
+export interface PrivateSeedResult {
+  optionId: string;
+  occurrenceId: string;
+}
+
+/**
+ * Adds a PRIVATE option (base+per-head pricing, trips-counted pool) to an already-seeded
+ * activity, with its own occurrence on the same day as the shared one. No price tiers —
+ * the private config lives in the option columns.
+ */
+export async function seedPrivateOption(
+  db: TestDb,
+  seeded: SeedResult,
+  cfg: { baseMinor: number; included: number; extraMinor: number; maxGuests: number; tripsPerDay: number },
+): Promise<PrivateSeedResult> {
+  const { rows: opt } = await db.pg.query<{ id: string }>(
+    `insert into activity_options
+       (activity_id, name, private_base_minor, private_included, private_extra_minor, private_max_guests, daily_capacity)
+     values ($1, 'Private charter', $2, $3, $4, $5, $6) returning id`,
+    [seeded.activityId, cfg.baseMinor, cfg.included, cfg.extraMinor, cfg.maxGuests, cfg.tripsPerDay],
+  );
+  const optionId = opt[0]!.id;
+
+  const { rows: occ } = await db.pg.query<{ id: string }>(
+    `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+     values ($1, $2, now() + interval '2 days', now() + interval '2 days 4 hours', $3) returning id`,
+    [optionId, seeded.operatorId, cfg.tripsPerDay],
+  );
+
+  return { optionId, occurrenceId: occ[0]!.id };
+}

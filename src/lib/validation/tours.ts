@@ -89,6 +89,13 @@ export const tourOptionSchema = z.object({
   // Per-option time (Half day / Full day etc.). `.nullish().catch` so an old-shaped payload still parses.
   durationMinutes: z.number().int().nullish().catch(null),
   startWindow: z.string().nullish().catch(null),
+  // Private option (own trips-per-day pool): a flat base covers the first `privateIncluded` guests,
+  // `privateExtraEur` per additional head, capped at `privateMaxGuests`. Non-null base ⇒ private.
+  // `.nullish().catch` so a payload from a DB without the private columns degrades to a normal option.
+  privateBaseEur: z.number().nonnegative().nullish().catch(null),
+  privateIncluded: z.number().int().positive().nullish().catch(null),
+  privateExtraEur: z.number().nonnegative().nullish().catch(null),
+  privateMaxGuests: z.number().int().positive().nullish().catch(null),
   prices: z.array(tourPriceSchema),
 });
 export type TourOption = z.infer<typeof tourOptionSchema>;

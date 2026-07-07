@@ -35,11 +35,31 @@ export function defaultOptionId(options: TourOption[], isVehicle: boolean): stri
   return bestId ?? first.id;
 }
 
+export interface PrivateConfig {
+  baseEur: number;
+  included: number;
+  extraEur: number;
+  maxGuests: number;
+}
+
+/** The option's private-trip config (base covers `included` guests, `extraEur` per additional head,
+ *  `maxGuests` cap), or null for a normal option. Non-null base ⇒ private — the DB constraint
+ *  guarantees the other fields come with it, but degrade to null if a partial payload slips through. */
+export function privateConfig(option: TourOption): PrivateConfig | null {
+  if (option.privateBaseEur == null) return null;
+  const included = option.privateIncluded ?? null;
+  const extraEur = option.privateExtraEur ?? null;
+  const maxGuests = option.privateMaxGuests ?? null;
+  if (included == null || extraEur == null || maxGuests == null) return null;
+  return { baseEur: option.privateBaseEur, included, extraEur, maxGuests };
+}
+
 export interface OptionCardSummary {
   name: string;
   fromPriceEur: number | null;
   maxGuests: number | null;
   unitNote: string;
+  isPrivate: boolean;
 }
 
 /** Display fields for one option card. unitNote follows the pricing mode/type, mirroring the widget's unitLabel. */
@@ -48,6 +68,17 @@ export function optionCardSummary(
   mode: PricingMode,
   type: TourType,
 ): OptionCardSummary {
+  const priv = privateConfig(option);
+  if (priv) {
+    // Private trip: flat base for up to `included` guests; the card shows the base as the from-price.
+    return {
+      name: option.name,
+      fromPriceEur: priv.baseEur,
+      maxGuests: priv.maxGuests,
+      unitNote: 'per private trip',
+      isPrivate: true,
+    };
+  }
   const t = cheapestTier(option);
   const maxGuests = t?.maxGuests ?? null;
   const unitNote =
@@ -60,5 +91,5 @@ export function optionCardSummary(
         : type === 'transport'
           ? 'per vehicle'
           : 'per person';
-  return { name: option.name, fromPriceEur: t?.amountEur ?? null, maxGuests, unitNote };
+  return { name: option.name, fromPriceEur: t?.amountEur ?? null, maxGuests, unitNote, isPrivate: false };
 }

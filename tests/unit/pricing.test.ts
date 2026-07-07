@@ -18,6 +18,8 @@ import {
   rentalDays,
   rentalTotalEur,
   ageBandLabel,
+  privateQuote,
+  privateQuoteMinor,
 } from '@/lib/services/pricing';
 import { ServiceError } from '@/lib/services/errors';
 
@@ -337,5 +339,31 @@ describe('age-band party quote (infant free but takes a seat)', () => {
     expect(quote.totalEur).toBe(140); // 2*56 + 1*28 + 1*0
     expect(quote.totalGuests).toBe(4); // infant still occupies a seat
     expect(quote.lines).toContainEqual({ label: 'Infant', unitAmountEur: 0, quantity: 1, subtotalEur: 0 });
+  });
+});
+
+describe('privateQuote (private option: base covers N, per-extra-head above)', () => {
+  // MUST mirror create_booking's private branch cent-for-cent:
+  //   total = private_base_minor + private_extra_minor * greatest(0, guests - private_included)
+  // The same €90/4-included/€25-extra/max-8 config as tests/integration/private-option.test.ts, so a
+  // divergence between this mirror and the SQL shows up as disagreeing expectations across the suites.
+  it('charges the full base below and at the included count', () => {
+    expect(privateQuote(90, 4, 25, 1, 8)).toBe(90);
+    expect(privateQuote(90, 4, 25, 4, 8)).toBe(90);
+  });
+  it('adds the per-head extra above the included count, up to the max', () => {
+    expect(privateQuote(90, 4, 25, 5, 8)).toBe(115);
+    expect(privateQuote(90, 4, 25, 6, 8)).toBe(140);
+    expect(privateQuote(90, 4, 25, 8, 8)).toBe(190);
+  });
+  it('rejects a party outside 1..maxGuests', () => {
+    expect(() => privateQuote(90, 4, 25, 0, 8)).toThrow(ServiceError);
+    expect(() => privateQuote(90, 4, 25, 9, 8)).toThrow(ServiceError);
+    expect(() => privateQuote(90, 4, 25, 2.5, 8)).toThrow(ServiceError);
+  });
+  it('stays exact in cents for fractional euro rates', () => {
+    // €99.99 base + €12.50/extra — integer-cent arithmetic, no floating drift.
+    expect(privateQuoteMinor(9999, 4, 1250, 6, 10)).toBe(9999 + 2 * 1250);
+    expect(privateQuote(99.99, 4, 12.5, 6, 10)).toBe(124.99);
   });
 });

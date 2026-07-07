@@ -165,6 +165,14 @@ type ActivityOptionsRow = {
   status: string;
   duration_minutes: number | null;
   start_window: string | null;
+  // Private option (own trips-per-day pool): non-null base ⇒ private; base covers `private_included`
+  // guests, `private_extra_minor` per additional head, `private_max_guests` cap.
+  private_base_minor: number | null;
+  private_included: number | null;
+  private_extra_minor: number | null;
+  private_max_guests: number | null;
+  /** Per-option daily capacity (null = inherit the activity's). Trips/day for a private option. */
+  daily_capacity: number | null;
   position: number;
   created_at: string;
 };
@@ -176,6 +184,11 @@ type ActivityOptionsInsert = {
   status?: string;
   duration_minutes?: number | null;
   start_window?: string | null;
+  private_base_minor?: number | null;
+  private_included?: number | null;
+  private_extra_minor?: number | null;
+  private_max_guests?: number | null;
+  daily_capacity?: number | null;
   position?: number;
   created_at?: string;
 };

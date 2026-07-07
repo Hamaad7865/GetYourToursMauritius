@@ -2,7 +2,7 @@
 
 import { useBooking } from './BookingProvider';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
-import { optionCardSummary } from '@/lib/catalogue/options';
+import { optionCardSummary, privateConfig } from '@/lib/catalogue/options';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { IconCheck, IconClock, IconUsers } from '@/components/ui/icons';
 
@@ -31,6 +31,7 @@ export function OptionSelector() {
       <div role="radiogroup" aria-label={t('Choose your option')} className="flex flex-col gap-2">
         {activity.options.map((option) => {
           const summary = optionCardSummary(option, activity.pricingMode, activity.type);
+          const priv = privateConfig(option);
           const selected = option.id === selectedOptionId;
           // The unitNote stays English in the helper (mirrors the provider's unitLabel for cart/checkout);
           // translate it for display. The per-group form carries a number, so interpolate it.
@@ -63,6 +64,11 @@ export function OptionSelector() {
                   <div className="flex items-center gap-1.5 text-[14px] font-bold text-ink">
                     {selected && <IconCheck width={15} height={15} className="shrink-0 text-teal" />}
                     {option.name}
+                    {summary.isPrivate && (
+                      <span className="shrink-0 rounded-full bg-teal/10 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-teal-dark">
+                        {t('Private')}
+                      </span>
+                    )}
                   </div>
                   {option.description && (
                     <div className="mt-0.5 line-clamp-2 text-[12px] text-ink-muted">{option.description}</div>
@@ -85,7 +91,20 @@ export function OptionSelector() {
                     <div className="text-[15px] font-extrabold tracking-tight text-ink">
                       {money(summary.fromPriceEur)}
                     </div>
-                    <div className="text-[11px] text-ink-muted">{unitNoteText}</div>
+                    {priv ? (
+                      // Honest private pricing: the base covers `included` guests; extras cost per head.
+                      <div className="text-[11px] text-ink-muted">
+                        {t('for up to {n} guests', { n: priv.included })}
+                        {priv.extraEur > 0 && (
+                          <>
+                            <br />
+                            {t('+{price} per extra guest', { price: money(priv.extraEur) })}
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-ink-muted">{unitNoteText}</div>
+                    )}
                   </div>
                 )}
               </div>

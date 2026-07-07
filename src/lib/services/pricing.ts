@@ -559,3 +559,33 @@ export function ageBandLabel(minAge: number | null | undefined, maxAge: number |
   if (min != null) return `Age ${min}+`;
   return `Age 0–${max}`;
 }
+
+/* Private option (own trips-per-day pool) — a flat base covers the first `included` guests, `extraEur`
+ * per additional head, capped at `maxGuests`. The SQL (create_booking's private branch, keyed on the
+ * OPTION's private_* columns) is AUTHORITATIVE; this mirrors it cent-for-cent for the widget/checkout
+ * quote. The pool itself counts TRIPS: a private booking consumes ONE capacity unit regardless of n. */
+
+/** Private-trip price in minor units: base + extra × max(0, guests − included). Throws outside 1..maxGuests. */
+export function privateQuoteMinor(
+  baseMinor: number,
+  included: number,
+  extraMinor: number,
+  guests: number,
+  maxGuests: number,
+): number {
+  if (!Number.isInteger(guests) || guests < 1 || guests > maxGuests) {
+    throw new ValidationError(`Invalid private party size: ${guests} (max ${maxGuests})`);
+  }
+  return Math.round(baseMinor) + Math.round(extraMinor) * Math.max(0, guests - included);
+}
+
+/** As {@link privateQuoteMinor}, but in EUR — for the widget quote (`<Price>` takes EUR). */
+export function privateQuote(
+  baseEur: number,
+  included: number,
+  extraEur: number,
+  guests: number,
+  maxGuests: number,
+): number {
+  return centsToEur(privateQuoteMinor(eurToCents(baseEur), included, eurToCents(extraEur), guests, maxGuests));
+}

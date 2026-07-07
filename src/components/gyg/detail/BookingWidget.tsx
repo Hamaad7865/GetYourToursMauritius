@@ -231,7 +231,10 @@ export function BookingWidget() {
     }
     return soonest ? (days.get(soonest)?.seatsLeft ?? null) : null;
   }, [days, date]);
-  const showSellOut = !isTransport && scarceSeats != null && scarceSeats > 0 && scarceSeats <= 5;
+  // A private option's pool counts TRIPS (often 1/day) — "1 left" is its NORMAL state, so the scarcity
+  // banner would be permanent false urgency there. The calendar hiding full days is the honest signal.
+  const showSellOut =
+    !isTransport && !b.privateCfg && scarceSeats != null && scarceSeats > 0 && scarceSeats <= 5;
   // Private sightseeing (vehicle) tours and transfers always offer free cancellation up to 24h (the
   // cancel-&-refund flow), even when the activity record carries no cancellationPolicy text — so the
   // non-scarce strip reassures rather than repeating the footer's "Instant confirmation".
@@ -588,7 +591,9 @@ export function BookingWidget() {
 
         <button
           type="button"
-          disabled={!date || seatsForDate <= 0 || (!isVehicle && seatsForDate < participants)}
+          // seatsLeft counts PEOPLE for per-person options but whole UNITS for vehicle/private (one
+          // booking = one vehicle/trip) — so a 1-left day must still accept a party of 6 there.
+          disabled={!date || seatsForDate <= 0 || (!isVehicle && !b.privateCfg && seatsForDate < participants)}
           onClick={checkAvailability}
           className="mt-4 flex w-full items-center justify-center rounded-xl bg-teal-dark px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(11,92,99,0.7)] hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
         >
@@ -596,7 +601,7 @@ export function BookingWidget() {
         </button>
         {/* aria-live so a screen reader hears the low-availability warning when it appears/updates. */}
         <div aria-live="polite">
-          {date && !isVehicle && seatsForDate > 0 && seatsForDate < participants && (
+          {date && !isVehicle && !b.privateCfg && seatsForDate > 0 && seatsForDate < participants && (
             <p className="mt-2 text-center text-[12px] font-medium text-coral-dark">
               {t('Only {n} {noun} left on this date.', {
                 n: seatsForDate,

@@ -731,7 +731,88 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
               />
               <span className="text-ink-muted/70">blank = use the activity’s duration / start time</span>
             </div>
-            <div className="mt-3 flex flex-col gap-2">
+            {/* Private option: its own trips-per-day pool + base-covers-N + per-extra-head pricing.
+                Replaces the price tiers entirely (the private fields ARE the pricing). */}
+            <label className="mt-3 flex items-start gap-2.5 rounded-lg border border-ink/10 bg-cream/40 px-3 py-2.5">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-teal"
+                checked={Boolean(opt.isPrivateOption)}
+                onChange={(e) =>
+                  update(
+                    i,
+                    e.target.checked
+                      ? {
+                          isPrivateOption: true,
+                          privateIncluded: opt.privateIncluded ?? 4,
+                          privateExtraEur: opt.privateExtraEur ?? 25,
+                        }
+                      : { isPrivateOption: false },
+                  )
+                }
+              />
+              <span className="text-[12.5px] text-ink">
+                <span className="font-bold">Private option</span> — one booking takes the whole trip
+                (own <span className="font-semibold">trips-per-day</span> pool, set in Availability). A flat
+                base price covers the first N guests; extra guests pay per head.
+              </span>
+            </label>
+            {opt.isPrivateOption && (
+              <div className="mt-2.5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                <label className="text-[12px] font-semibold text-ink-muted">
+                  Base price €
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="mt-1 w-full rounded-lg border border-ink/15 px-2.5 py-2 text-sm text-ink outline-none"
+                    value={opt.privateBaseEur ?? ''}
+                    placeholder="90"
+                    onChange={(e) => update(i, { privateBaseEur: e.target.value ? Number(e.target.value) : null })}
+                  />
+                </label>
+                <label className="text-[12px] font-semibold text-ink-muted">
+                  Covers up to (guests)
+                  <input
+                    type="number"
+                    min={1}
+                    className="mt-1 w-full rounded-lg border border-ink/15 px-2.5 py-2 text-sm text-ink outline-none"
+                    value={opt.privateIncluded ?? ''}
+                    placeholder="4"
+                    onChange={(e) => update(i, { privateIncluded: e.target.value ? Number(e.target.value) : null })}
+                  />
+                </label>
+                <label className="text-[12px] font-semibold text-ink-muted">
+                  € per extra guest
+                  <input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="mt-1 w-full rounded-lg border border-ink/15 px-2.5 py-2 text-sm text-ink outline-none"
+                    value={opt.privateExtraEur ?? ''}
+                    placeholder="25"
+                    onChange={(e) => update(i, { privateExtraEur: e.target.value ? Number(e.target.value) : null })}
+                  />
+                </label>
+                <label className="text-[12px] font-semibold text-ink-muted">
+                  Max group size
+                  <input
+                    type="number"
+                    min={1}
+                    className="mt-1 w-full rounded-lg border border-ink/15 px-2.5 py-2 text-sm text-ink outline-none"
+                    value={opt.privateMaxGuests ?? ''}
+                    placeholder="8"
+                    onChange={(e) => update(i, { privateMaxGuests: e.target.value ? Number(e.target.value) : null })}
+                  />
+                </label>
+                <p className="col-span-2 text-[11.5px] text-ink-muted sm:col-span-4">
+                  Example: €90 covers 1–4 guests, €25 per extra guest, max 8 → a party of 6 pays €140. Each
+                  booking uses <span className="font-semibold">1 trip</span> for the day — set how many trips
+                  you run per day on the Availability screen.
+                </p>
+              </div>
+            )}
+            <div className={`mt-3 flex flex-col gap-2 ${opt.isPrivateOption ? 'hidden' : ''}`}>
               {opt.prices.map((p, pi) => (
                 <div key={pi} className="rounded-lg border border-ink/10 p-2.5">
                   <div className="flex items-center gap-2">

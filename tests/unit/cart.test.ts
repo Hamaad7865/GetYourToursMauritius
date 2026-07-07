@@ -64,3 +64,32 @@ describe("setGuests clamp logic (pure mirror — the localStorage-backed hook is
     expect(clamp({ ...base, guests: 1, childSeats: 1 }, 4)).toEqual({ guests: 4, childSeats: 1 });
   });
 });
+
+describe('private cart line (party map, trips-counted seatsLeft)', () => {
+  it('lineCap keeps a private line at its own size — never clamped by the 1-trip seatsLeft', () => {
+    const line = {
+      id: 'p1',
+      slug: 's',
+      title: 'T',
+      image: null,
+      occurrenceId: 'o',
+      dateLabel: 'd',
+      lang: 'English',
+      priceLabel: 'Private charter',
+      guests: 6,
+      unitEur: 140, // whole flat price (base €90 + 2 × €25)
+      pricingMode: 'per_person',
+      party: { 'Private charter': 6 },
+      childSeats: 0,
+      maxGuests: null,
+      seatsLeft: 1, // 1 TRIP left — not 1 person
+      unit: 'per private trip',
+      status: 'held',
+      addedAt: 0,
+      idemKey: 'k',
+    } as unknown as Parameters<typeof lineCap>[0];
+    expect(lineCap(line)).toBe(6);
+    // …and the flat price is never re-multiplied by the guest count.
+    expect(itemTotal(line)).toBe(140);
+  });
+});

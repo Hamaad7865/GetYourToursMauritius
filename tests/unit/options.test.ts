@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cheapestTier, defaultOptionId, optionCardSummary } from '@/lib/catalogue/options';
+import { cheapestTier, defaultOptionId, optionCardSummary, privateConfig } from '@/lib/catalogue/options';
 import type { TourOption } from '@/lib/validation/tours';
 
 const half: TourOption = {
@@ -54,5 +54,43 @@ describe('optionCardSummary', () => {
   });
   it('per_group: surfaces maxGuests', () => {
     expect(optionCardSummary(tiered, 'per_group', 'activity').maxGuests).toBe(8);
+  });
+});
+
+describe('private option helpers', () => {
+  const priv: TourOption = {
+    id: 'p',
+    name: 'Private charter',
+    description: null,
+    privateBaseEur: 90,
+    privateIncluded: 4,
+    privateExtraEur: 25,
+    privateMaxGuests: 8,
+    prices: [],
+  };
+
+  it('privateConfig reads the option config; null for a normal option', () => {
+    expect(privateConfig(priv)).toEqual({ baseEur: 90, included: 4, extraEur: 25, maxGuests: 8 });
+    expect(privateConfig(tiered)).toBeNull();
+  });
+
+  it('privateConfig degrades to null on a partial payload (never half-prices)', () => {
+    expect(privateConfig({ ...priv, privateMaxGuests: null })).toBeNull();
+  });
+
+  it('optionCardSummary: base as from-price, max group, per-private-trip unit', () => {
+    const s = optionCardSummary(priv, 'per_person', 'activity');
+    expect(s).toEqual({
+      name: 'Private charter',
+      fromPriceEur: 90,
+      maxGuests: 8,
+      unitNote: 'per private trip',
+      isPrivate: true,
+    });
+    expect(optionCardSummary(tiered, 'per_person', 'activity').isPrivate).toBe(false);
+  });
+
+  it('defaultOptionId still prefers the standard option (a private option has no tiers)', () => {
+    expect(defaultOptionId([priv, tiered], false)).toBe('c');
   });
 });

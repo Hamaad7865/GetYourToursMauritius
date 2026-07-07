@@ -86,7 +86,9 @@ export function itemTotal(i: CartItem): number {
  *  per-person tier's max_guests is a hard cap). Vehicle parties are fixed at add-time (changing the
  *  size changes the vehicle + price, which is done on the activity page), so they don't grow here. */
 export function lineCap(i: CartItem): number {
-  if (i.pricingMode === 'vehicle') return i.guests;
+  // A party-map line (age bands / private trip) is fixed at add-time too — and for a PRIVATE line,
+  // seatsLeft counts trips (often 1), so clamping guests by it would squash a party of 6 to 1.
+  if (i.pricingMode === 'vehicle' || i.party) return i.guests;
   // seatsLeft is the remaining capacity at add-time. >0 caps the stepper there; 0 means the slot
   // filled after this line was added, so hold at the current size (never widen, never force below
   // what's already configured — `i.seatsLeft && …` previously read 0 as falsy and returned Infinity,
