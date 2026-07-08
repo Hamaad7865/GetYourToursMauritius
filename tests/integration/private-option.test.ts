@@ -85,6 +85,32 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     expect(data.fromPriceEur).toBe(75);
   });
 
+  it('api_search_activities shows a private-only activity’s base as fromPrice (not "On request")', async () => {
+    await db.asOwner();
+    const seed = await seedOccurrence(db, 10);
+    await seedPrivateOption(db, seed, CFG);
+    // Make it private-only: drop the shared option's tier so only the private base remains.
+    await db.pg.query(`delete from activity_option_prices where activity_option_id = $1`, [seed.optionId]);
+    const slug = await activitySlug(db, seed.activityId);
+    const res = await call<{ items: Array<{ slug: string; fromPriceEur: number | null }> }>(db, 'api_search_activities', {
+      category: 'Catamaran cruises',
+      pageSize: 200,
+    });
+    expect(res.items.find((i) => i.slug === slug)?.fromPriceEur).toBe(90); // the €90 base, not null
+  });
+
+  it('api_search_activities keeps the shared tier as fromPrice when a standard option also exists', async () => {
+    await db.asOwner();
+    const seed = await seedOccurrence(db, 10); // Shared 'Adult' €75
+    await seedPrivateOption(db, seed, CFG); // + Private base €90
+    const slug = await activitySlug(db, seed.activityId);
+    const res = await call<{ items: Array<{ slug: string; fromPriceEur: number | null }> }>(db, 'api_search_activities', {
+      category: 'Catamaran cruises',
+      pageSize: 200,
+    });
+    expect(res.items.find((i) => i.slug === slug)?.fromPriceEur).toBe(75); // per-person entry wins, not €90
+  });
+
   it('prices the base for 1..included guests and adds the per-head extra above it', async () => {
     await db.asOwner();
     const seed = await seedOccurrence(db, 10);
