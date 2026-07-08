@@ -260,6 +260,7 @@ export const fr: Record<string, string> = {
   "{count} options": "{count} options",
   "fits up to {n}": "jusqu’à {n} personnes",
   "per private trip": "par sortie privée",
+  "up to {n} people": "jusqu’à {n} personnes",
   "Private": "Privé",
   "for up to {n} guests": "pour jusqu’à {n} personnes",
   "+{price} per extra guest": "+{price} par personne supplémentaire",

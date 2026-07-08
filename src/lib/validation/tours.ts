@@ -69,6 +69,9 @@ export const tourSummarySchema = z.object({
   // max_guests of the cheapest tier. For per_group it's the group size ("up to N"); for vehicle
   // it's the smallest vehicle's capacity. Nullish so older summaries still parse.
   fromPriceMaxGuests: z.number().int().positive().nullish(),
+  // For a PRIVATE-only activity, how many guests the flat base price (fromPriceEur) covers — drives the
+  // card's "up to N" line. Non-null only when the from-price is a private base; null otherwise.
+  fromPriceIncluded: z.number().int().positive().nullish(),
   // How fromPriceEur is billed: per_person (× people), per_group (× ceil(people / size)), or
   // vehicle (one flat price for the vehicle that fits the party). Defaults so older DBs parse.
   pricingMode: pricingModeSchema.default('per_person'),

@@ -63,13 +63,20 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
             <b>{rating ? rating.avg.toFixed(1) : '—'}</b>
             <span className="font-medium text-ink-muted">({rating ? rating.count : 0})</span>
           </span>
-          <span className="text-[13px] text-ink-muted">
-            {activity.fromPriceEur != null ? (
-              <>
-                {t('from')} <Price eur={activity.fromPriceEur} className="text-[19px] font-bold text-ink" />
-              </>
-            ) : (
-              <b className="text-ink">{t('On request')}</b>
+          <span className="flex flex-col items-end text-[13px] text-ink-muted">
+            <span>
+              {activity.fromPriceEur != null ? (
+                <>
+                  {t('from')} <Price eur={activity.fromPriceEur} className="text-[19px] font-bold text-ink" />
+                </>
+              ) : (
+                <b className="text-ink">{t('On request')}</b>
+              )}
+            </span>
+            {activity.fromPriceIncluded != null && (
+              <span className="text-[11.5px] leading-tight">
+                {t('up to {n} people', { n: activity.fromPriceIncluded })}
+              </span>
             )}
           </span>
         </div>

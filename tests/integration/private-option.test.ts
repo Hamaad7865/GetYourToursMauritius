@@ -92,11 +92,12 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     // Make it private-only: drop the shared option's tier so only the private base remains.
     await db.pg.query(`delete from activity_option_prices where activity_option_id = $1`, [seed.optionId]);
     const slug = await activitySlug(db, seed.activityId);
-    const res = await call<{ items: Array<{ slug: string; fromPriceEur: number | null }> }>(db, 'api_search_activities', {
-      category: 'Catamaran cruises',
-      pageSize: 200,
-    });
-    expect(res.items.find((i) => i.slug === slug)?.fromPriceEur).toBe(90); // the €90 base, not null
+    const res = await call<{
+      items: Array<{ slug: string; fromPriceEur: number | null; fromPriceIncluded: number | null }>;
+    }>(db, 'api_search_activities', { category: 'Catamaran cruises', pageSize: 200 });
+    const card = res.items.find((i) => i.slug === slug);
+    expect(card?.fromPriceEur).toBe(90); // the €90 base, not null
+    expect(card?.fromPriceIncluded).toBe(4); // "up to 4" — the private base's included count
   });
 
   it('api_search_activities keeps the shared tier as fromPrice when a standard option also exists', async () => {
@@ -104,11 +105,12 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     const seed = await seedOccurrence(db, 10); // Shared 'Adult' €75
     await seedPrivateOption(db, seed, CFG); // + Private base €90
     const slug = await activitySlug(db, seed.activityId);
-    const res = await call<{ items: Array<{ slug: string; fromPriceEur: number | null }> }>(db, 'api_search_activities', {
-      category: 'Catamaran cruises',
-      pageSize: 200,
-    });
-    expect(res.items.find((i) => i.slug === slug)?.fromPriceEur).toBe(75); // per-person entry wins, not €90
+    const res = await call<{
+      items: Array<{ slug: string; fromPriceEur: number | null; fromPriceIncluded: number | null }>;
+    }>(db, 'api_search_activities', { category: 'Catamaran cruises', pageSize: 200 });
+    const card = res.items.find((i) => i.slug === slug);
+    expect(card?.fromPriceEur).toBe(75); // per-person entry wins, not €90
+    expect(card?.fromPriceIncluded).toBeNull(); // not a private from-price → no "up to N"
   });
 
   it('prices the base for 1..included guests and adds the per-head extra above it', async () => {
