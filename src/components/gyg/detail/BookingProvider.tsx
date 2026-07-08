@@ -153,7 +153,12 @@ export function BookingProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [participants, setParticipants] = useState(2);
+  // Resolve the option the widget opens on up-front, so the initial party can default to a private
+  // option's covered count (`included`) with no flash from the generic default of 2.
+  const initialOptionId = defaultOptionId(activity.options, activity.pricingMode === 'vehicle');
+  const initialOption = activity.options.find((o) => o.id === initialOptionId) ?? activity.options[0] ?? null;
+  const initialPrivate = initialOption ? privateConfig(initialOption) : null;
+  const [participants, setParticipants] = useState(initialPrivate ? initialPrivate.included : 2);
   const [bandCounts, setBandCounts] = useState<Record<string, number>>({});
   const [date, setDate] = useState('');
   const [lang, setLang] = useState(activity.languages[0] ?? 'English');
@@ -186,9 +191,7 @@ export function BookingProvider({
 
   // The SELECTED option drives price + availability. Defaults to today's behaviour: options[0] for
   // vehicle mode, else the option holding the globally cheapest tier (matching the old `cheapest` scan).
-  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(
-    () => defaultOptionId(activity.options, activity.pricingMode === 'vehicle'),
-  );
+  const [selectedOptionId, setSelectedOptionId] = useState<string | null>(initialOptionId);
   const selectedOption = useMemo(
     () => activity.options.find((o) => o.id === selectedOptionId) ?? activity.options[0] ?? null,
     [activity.options, selectedOptionId],
@@ -212,6 +215,13 @@ export function BookingProvider({
     () => (selectedOption ? privateConfig(selectedOption) : null),
     [selectedOption],
   );
+
+  // Switching TO a private option resets the party to what the base price covers (`included`) — the
+  // natural starting point. Keyed on privateCfg identity (stable per option), so a manual change within
+  // the same option sticks; redundant on first mount where the initial state already set it.
+  useEffect(() => {
+    if (privateCfg) setParticipants(privateCfg.included);
+  }, [privateCfg]);
 
   // Age-band pricing: a per_person option with ≥2 tiers carrying age metadata is shown as a
   // GetYourGuide-style set of per-band steppers (Adult / Child / Infant), each priced from its OWN DB

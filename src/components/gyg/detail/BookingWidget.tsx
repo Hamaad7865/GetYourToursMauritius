@@ -276,7 +276,10 @@ export function BookingWidget() {
             {headlineFrom != null ? <Price eur={headlineFrom} /> : t('On request')}
           </span>
         </div>
-        <div className="text-[13px] text-ink-muted">{unitLabelText}</div>
+        <div className="text-[13px] text-ink-muted">
+          {unitLabelText}
+          {b.privateCfg != null && <> · {t('up to {n} people', { n: b.privateCfg.included })}</>}
+        </div>
 
         <div className="mt-4 flex flex-col gap-2.5">
           {/* Participants */}
