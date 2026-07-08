@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { IconBoat, IconCar, IconFlag, IconPin, IconWalk } from '@/components/ui/icons';
 
 export type StopVariant = 'pickup' | 'main' | 'other';
 
 export interface TimelineNode {
   title: string;
   area?: string | null;
+  /** What happens at the stop — rendered muted under the title (GYG-style, e.g. "Sightseeing (20 minutes)"). */
+  description?: string | null;
   tags?: string[];
   /** Marker style: coral pickup, solid "main" stop, or hollow swappable "other" stop. */
   variant?: StopVariant;
@@ -14,30 +17,47 @@ export interface TimelineNode {
   action?: React.ReactNode;
 }
 
-/** Brand teardrop marker matching the map pins: coral pickup, solid teal main, hollow teal other. */
-function StopMarker({ variant }: { variant: StopVariant }) {
-  const color = variant === 'pickup' ? '#F76C5E' : '#0E8C92';
+type Glyph = 'car' | 'boat' | 'walk' | 'pin';
+
+/** Infer the medallion glyph from the stop's own words: transport legs ("Speedboat (20 min)",
+ *  "Car transfer") get their vehicle, walks get the walker, everything else is a place pin. */
+function glyphFor(title: string): Glyph {
+  const s = title.toLowerCase();
+  if (/\b(car|taxi|van|minibus|bus|drive|driving|transfer|voiture)\b/.test(s)) return 'car';
+  if (/\b(speed ?boat|boat|catamaran|ferry|cruise|kayak|bateau|croisi[eè]re)\b/.test(s)) return 'boat';
+  if (/\b(walk|walking|hike|hiking|trek|trekking|marche|randonn[eé]e)\b/.test(s)) return 'walk';
+  return 'pin';
+}
+
+const GLYPHS: Record<Glyph, (p: React.SVGProps<SVGSVGElement>) => React.ReactNode> = {
+  car: IconCar,
+  boat: IconBoat,
+  walk: IconWalk,
+  pin: IconPin,
+};
+
+/** GYG-style circular medallion: filled coral start node, white ringed circles for stops
+ *  (dark pin or an inferred transport glyph), dashed teal ring for swappable "other" stops. */
+function NodeBadge({ variant, title }: { variant: StopVariant; title: string }) {
+  if (variant === 'pickup') {
+    return (
+      <span className="gyt-itin-badge relative z-[1] grid h-9 w-9 shrink-0 place-items-center rounded-full bg-coral text-white shadow-[0_8px_16px_-8px_rgba(247,108,94,0.9)]">
+        <IconFlag width={17} height={17} />
+      </span>
+    );
+  }
+  const Icon = GLYPHS[glyphFor(title)];
   if (variant === 'other') {
     return (
-      <svg width="18" height="23" viewBox="0 0 30 38" className="mt-0.5 shrink-0" aria-hidden>
-        <path
-          d="M15 1.2C7.4 1.2 1.2 7.4 1.2 15c0 9.4 13.8 22 13.8 22s13.8-12.6 13.8-22C28.8 7.4 22.6 1.2 15 1.2z"
-          fill="#fff"
-          stroke={color}
-          strokeWidth="2.4"
-        />
-        <circle cx="15" cy="15" r="5.5" fill={color} />
-      </svg>
+      <span className="gyt-itin-badge relative z-[1] grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-dashed border-teal bg-white text-teal">
+        <Icon width={17} height={17} />
+      </span>
     );
   }
   return (
-    <svg width="18" height="23" viewBox="0 0 30 38" className="mt-0.5 shrink-0" aria-hidden>
-      <path
-        d="M15 0C6.7 0 0 6.7 0 15c0 9.7 15 23 15 23s15-13.3 15-23C30 6.7 23.3 0 15 0z"
-        fill={color}
-      />
-      <circle cx="15" cy="15" r="6" fill="#fff" />
-    </svg>
+    <span className="gyt-itin-badge relative z-[1] grid h-9 w-9 shrink-0 place-items-center rounded-full border border-ink/15 bg-white text-ink/75 shadow-[0_5px_12px_-8px_rgba(10,46,54,0.5)]">
+      <Icon width={17} height={17} />
+    </span>
   );
 }
 
@@ -55,20 +75,74 @@ export function ItineraryTimeline({
   const visible = collapsible && !expanded ? nodes.slice(0, collapseAt) : nodes;
   const hidden = nodes.length - visible.length;
 
+  // Scroll-reveal: once the list scrolls into view, each stop rises in with a small stagger.
+  // `armed` only flips when JS is live AND motion is allowed, so SSR/no-JS/reduced-motion render
+  // the plain, fully visible list (no flash, nothing hidden).
+  const listRef = useRef<HTMLOListElement | null>(null);
+  const [armed, setArmed] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const el = listRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return;
+    setArmed(true);
+    // A healthy observer ALWAYS delivers an initial callback right after observe(). If none arrives
+    // (zero-height embeds, broken IO), the watchdog force-reveals — the animation is decorative and
+    // must never be able to leave the content hidden.
+    let sawCallback = false;
+    const io = new IntersectionObserver(
+      (entries) => {
+        sawCallback = true;
+        if (entries.some((e) => e.isIntersecting)) {
+          setRevealed(true);
+          io.disconnect();
+        }
+      },
+      { threshold: 0.12 },
+    );
+    io.observe(el);
+    const watchdog = setTimeout(() => {
+      if (!sawCallback) setRevealed(true);
+    }, 1200);
+    return () => {
+      io.disconnect();
+      clearTimeout(watchdog);
+    };
+  }, []);
+
   return (
     <div>
-      <ol className="relative m-0 list-none p-0">
+      <ol ref={listRef} className="relative m-0 list-none p-0">
         {visible.map((stop, i) => (
           // Index key (the list is fixed-length, never reordered) so a node keeps its identity when
           // its chosen title changes — preserving the chooser's focus/refs across a swap.
-          <li key={i} className="relative flex gap-3.5 pb-6 last:pb-0">
+          <li
+            key={i}
+            className={`relative flex gap-3.5 pb-7 last:pb-0 ${armed && !revealed ? 'opacity-0' : ''} ${
+              revealed ? 'gyt-itin-in' : ''
+            }`}
+            style={{ '--itin-d': `${Math.min(i, 8) * 90}ms` } as CSSProperties}
+          >
             {i < visible.length - 1 && (
-              <span className="absolute left-[8px] top-[22px] h-full w-0.5 bg-teal/25" aria-hidden />
+              // Dotted route thread (GYG-style): a column of coral dots from this medallion to the next.
+              <span
+                aria-hidden
+                className="absolute bottom-1 left-4 top-[42px] w-1"
+                style={{
+                  backgroundImage: 'radial-gradient(circle, #F76C5E 1.6px, transparent 1.7px)',
+                  backgroundSize: '4px 9px',
+                  backgroundPosition: 'top center',
+                  backgroundRepeat: 'repeat-y',
+                }}
+              />
             )}
-            <StopMarker variant={stop.variant ?? 'main'} />
-            <div className="min-w-0 flex-1">
-              <div className="text-[15px] font-bold text-ink">{stop.title}</div>
-              {stop.area && <div className="text-[13px] text-ink-muted">{stop.area}</div>}
+            <NodeBadge variant={stop.variant ?? 'main'} title={stop.title} />
+            <div className="min-w-0 flex-1 pt-1.5">
+              <div className="text-[15px] font-bold leading-snug text-ink">{stop.title}</div>
+              {stop.area && <div className="mt-0.5 text-[13px] text-ink-muted">{stop.area}</div>}
+              {stop.description && (
+                <div className="mt-0.5 text-[13.5px] leading-snug text-ink/70">{stop.description}</div>
+              )}
               {stop.tags && stop.tags.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {stop.tags.map((tag) => (

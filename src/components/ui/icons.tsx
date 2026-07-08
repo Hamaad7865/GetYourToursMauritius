@@ -76,6 +76,35 @@ export const IconCar = (p: SVGProps<SVGSVGElement>) => (
   </Svg>
 );
 
+/** Boat on waves (Lucide "ship") — itinerary boat/cruise legs. */
+export const IconBoat = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M12 10.2V14" />
+    <path d="M12 2v3" />
+    <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6" />
+    <path d="M19.4 20A11.6 11.6 0 0 0 21 14l-8.2-3.6a2 2 0 0 0-1.6 0L3 14a11.6 11.6 0 0 0 1.6 6" />
+    <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" />
+  </Svg>
+);
+
+/** Start flag — the itinerary's departure node. */
+export const IconFlag = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+    <path d="M4 22v-7" />
+  </Svg>
+);
+
+/** Walking figure — itinerary walking/hiking legs. */
+export const IconWalk = (p: SVGProps<SVGSVGElement>) => (
+  <Svg {...p}>
+    <circle cx="13" cy="4" r="1.4" fill="currentColor" stroke="none" />
+    <path d="m7 21 3-4" />
+    <path d="m16 21-2-4-3-3 1-6" />
+    <path d="m6 12 2-3 4-1 3 3 3 1" />
+  </Svg>
+);
+
 export const IconCalendar = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p}>
     <rect x="3" y="4" width="18" height="18" rx="2" />

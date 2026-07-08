@@ -178,6 +178,13 @@
   .gyt-arrival-in { animation: gytArrivalIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; will-change: transform, opacity; }
   @keyframes gytArrivalZoom { from { transform: scale(1); } to { transform: scale(1.06); } }
   .gyt-arrival-zoom { animation: gytArrivalZoom 18s ease-in-out 0.7s alternate infinite; will-change: transform; }
+
+  /* Activity itinerary — GYG-style reveal: as the section scrolls into view each stop rises in and
+     its icon medallion pops, sharing one stagger (--itin-d set per row). transform/opacity only. */
+  @keyframes gytItinRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes gytItinPop { 0% { transform: scale(0.55); } 70% { transform: scale(1.07); } 100% { transform: scale(1); } }
+  .gyt-itin-in { animation: gytItinRise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: var(--itin-d, 0ms); }
+  .gyt-itin-in .gyt-itin-badge { animation: gytItinPop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both; animation-delay: var(--itin-d, 0ms); }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -214,6 +221,11 @@
   .gyt-car-shadow,
   .gyt-arrival-in,
   .gyt-arrival-zoom {
+    animation: none !important;
+  }
+  /* Itinerary reveal is JS-gated on reduced motion too; this is the belt-and-braces CSS kill. */
+  .gyt-itin-in,
+  .gyt-itin-in .gyt-itin-badge {
     animation: none !important;
   }
 }

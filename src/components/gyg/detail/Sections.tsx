@@ -130,7 +130,13 @@ export async function Itinerary({
     ...(meetingPoint
       ? [{ title: t('Pickup location'), area: meetingPoint, variant: 'pickup' as const }]
       : []),
-    ...stops.map((s) => ({ title: s.title, area: s.area, tags: s.tags, variant: 'main' as const })),
+    ...stops.map((s) => ({
+      title: s.title,
+      area: s.area,
+      description: s.description,
+      tags: s.tags,
+      variant: 'main' as const,
+    })),
   ];
   // Map: the meeting point as the coral start pin (when set) + the stops as solid "main" pins.
   const mapStops: ItineraryStop[] = meetingPoint
