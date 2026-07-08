@@ -147,6 +147,9 @@ export type ActivityBadge = z.infer<typeof activityBadgeSchema>;
 /** GetYourGuide-style presentational extras (itinerary, know-before-you-go, overview). */
 export const activityExtraSchema = z.object({
   itinerary: z.array(itineraryStopSchema).optional(),
+  /** "What to bring" packing checklist shown under Important information. */
+  whatToBring: z.array(z.string()).optional(),
+  /** "Know before you go" notes shown under Important information. */
   importantInfo: z.array(z.string()).optional(),
   availability: z.string().nullable().optional(),
   startWindow: z.string().nullable().optional(),

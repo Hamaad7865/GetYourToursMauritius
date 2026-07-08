@@ -149,7 +149,12 @@ export default async function ActivityDetailPage({
           ...(activity.extra.importantInfo ?? []).filter((i) => !CATAMARAN_KNOW_BEFORE.includes(i)),
         ]
       : (activity.extra.importantInfo ?? []);
-  const whatToBring = isCatamaran ? CATAMARAN_WHAT_TO_BRING : [];
+  const whatToBring = isCatamaran
+    ? [
+        ...CATAMARAN_WHAT_TO_BRING,
+        ...(activity.extra.whatToBring ?? []).filter((i) => !CATAMARAN_WHAT_TO_BRING.includes(i)),
+      ]
+    : (activity.extra.whatToBring ?? []);
 
   // Reviews + rating: use the tour's own when it has them; otherwise (sightseeing only) fall back to
   // the operator-wide aggregate + curated real reviews so every sightseeing tour shows social proof.

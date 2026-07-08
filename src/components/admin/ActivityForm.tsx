@@ -320,6 +320,16 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
       </Section>
 
       <Section
+        title="Important information"
+        hint="Two lists shown in the “Important information” block on the activity page. “What to bring” is a packing checklist; “Know before you go” holds notes like the infant policy, halal food, or parking. For catamaran & sightseeing tours these merge with the shared defaults (duplicates are removed)."
+      >
+        <div className="grid gap-5 sm:grid-cols-2">
+          <StringList label="What to bring" items={v.whatToBring} onChange={(x) => set('whatToBring', x)} />
+          <StringList label="Know before you go" items={v.importantInfo} onChange={(x) => set('importantInfo', x)} />
+        </div>
+      </Section>
+
+      <Section
         title="Custom badges"
         hint="Custom badges replace the default highlights strip on the activity page. Leave empty to keep the defaults."
       >

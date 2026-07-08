@@ -77,6 +77,10 @@ export interface ActivityFormValues {
   highlights: string[];
   inclusions: string[];
   exclusions: string[];
+  /** "What to bring" packing checklist (Important information section). */
+  whatToBring: string[];
+  /** "Know before you go" notes (Important information section). */
+  importantInfo: string[];
   images: ImageInput[];
   options: OptionInput[];
   itinerary: ItineraryStopInput[];
@@ -110,6 +114,8 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   highlights: [],
   inclusions: [],
   exclusions: [],
+  whatToBring: [],
+  importantInfo: [],
   images: [],
   options: [],
   itinerary: [],
@@ -155,8 +161,12 @@ function buildExtra(v: ActivityFormValues) {
       return options.length ? { ...base, options } : base;
     });
   const badges = normalizeBadges(v.badges);
+  const whatToBring = v.whatToBring.map((s) => s.trim()).filter(Boolean);
+  const importantInfo = v.importantInfo.map((s) => s.trim()).filter(Boolean);
   const out: Record<string, unknown> = {};
   if (itinerary.length) out.itinerary = itinerary;
+  if (whatToBring.length) out.whatToBring = whatToBring;
+  if (importantInfo.length) out.importantInfo = importantInfo;
   if (badges.length) out.badges = badges;
   if (v.startWindow.trim()) out.startWindow = v.startWindow.trim();
   if (v.isPrivate) out.isPrivate = true;
@@ -499,6 +509,8 @@ interface ExtraShape {
     options?: Array<{ title?: string; area?: string | null }>;
   }>;
   badges?: Array<{ icon?: string; title?: string; subtitle?: string }>;
+  whatToBring?: string[];
+  importantInfo?: string[];
   startWindow?: string | null;
   isPrivate?: boolean;
   adultsOnly?: boolean;
@@ -565,6 +577,8 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     status: act.status,
     languages: act.languages.length ? act.languages : ['English'],
     highlights: act.highlights,
+    whatToBring: extra.whatToBring ?? [],
+    importantInfo: extra.importantInfo ?? [],
     inclusions: act.inclusions,
     exclusions: act.exclusions,
     images: (images ?? []).map((i) => ({ url: i.url, alt: i.alt ?? '' })),
