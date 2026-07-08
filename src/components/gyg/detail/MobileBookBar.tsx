@@ -3,6 +3,7 @@
 import { useBooking } from './BookingProvider';
 import { useT } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
+import { activityFromPriceEur } from '@/lib/catalogue/options';
 
 /**
  * Mobile-only sticky bottom bar (phones/tablets) carrying the "From" price + a "Check availability"
@@ -11,7 +12,7 @@ import { Price } from '@/components/site/Price';
 export function MobileBookBar() {
   const t = useT();
   const b = useBooking();
-  const price = b.activity.fromPriceEur;
+  const price = activityFromPriceEur(b.activity);
   const unitLabelText = b.groupSize != null
     ? t('per group up to {n}', { n: b.groupSize })
     : t(b.unitLabel);

@@ -8,6 +8,7 @@ import { formatLocaleDate } from '@/lib/i18n/format';
 import type { Locale } from '@/lib/i18n/config';
 import { Price } from '@/components/site/Price';
 import { ageBandLabel } from '@/lib/services/pricing';
+import { activityFromPriceEur } from '@/lib/catalogue/options';
 import {
   IconBolt,
   IconCalendar,
@@ -139,6 +140,9 @@ export function BookingWidget() {
   const isTransport = activity.type === 'transport';
   const isVehicle = activity.pricingMode === 'vehicle';
   const isGroup = b.groupSize != null;
+  // "From" headline: falls back to a private option's base when the activity has no tier prices
+  // (private-only), so it reads "From €X per private trip" instead of "On request".
+  const headlineFrom = activityFromPriceEur(activity);
   // The full-price (adult) age band — kept ≥1 so a party is never all-free / infant-only.
   const primaryBandLabel = bandTiers.length
     ? bandTiers.reduce((a, t2) => (t2.amountEur > a.amountEur ? t2 : a)).label
@@ -269,7 +273,7 @@ export function BookingWidget() {
         <div className="flex items-baseline gap-2">
           <span className="text-[13px] text-ink-muted">{t('From')}</span>
           <span className="text-[30px] font-extrabold tracking-tight text-ink">
-            {activity.fromPriceEur != null ? <Price eur={activity.fromPriceEur} /> : t('On request')}
+            {headlineFrom != null ? <Price eur={headlineFrom} /> : t('On request')}
           </span>
         </div>
         <div className="text-[13px] text-ink-muted">{unitLabelText}</div>

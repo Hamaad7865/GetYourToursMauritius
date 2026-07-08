@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { cheapestTier, defaultOptionId, optionCardSummary, privateConfig } from '@/lib/catalogue/options';
+import {
+  activityFromPriceEur,
+  cheapestTier,
+  defaultOptionId,
+  optionCardSummary,
+  privateConfig,
+} from '@/lib/catalogue/options';
 import type { TourOption } from '@/lib/validation/tours';
 
 const half: TourOption = {
@@ -92,5 +98,19 @@ describe('private option helpers', () => {
 
   it('defaultOptionId still prefers the standard option (a private option has no tiers)', () => {
     expect(defaultOptionId([priv, tiered], false)).toBe('c');
+  });
+
+  describe('activityFromPriceEur', () => {
+    it("uses the server's fromPriceEur when present", () => {
+      expect(activityFromPriceEur({ fromPriceEur: 60, options: [tiered, priv] })).toBe(60);
+    });
+    it('falls back to the cheapest private base for a private-only activity', () => {
+      const priv2: TourOption = { ...priv, id: 'p2', privateBaseEur: 120 };
+      expect(activityFromPriceEur({ fromPriceEur: null, options: [priv, priv2] })).toBe(90);
+    });
+    it('returns null when there is nothing priceable', () => {
+      const bare: TourOption = { id: 'z', name: 'Z', description: null, prices: [] };
+      expect(activityFromPriceEur({ fromPriceEur: null, options: [bare] })).toBeNull();
+    });
   });
 });

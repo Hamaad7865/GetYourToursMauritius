@@ -54,6 +54,21 @@ export function privateConfig(option: TourOption): PrivateConfig | null {
   return { baseEur: option.privateBaseEur, included, extraEur, maxGuests };
 }
 
+/** The "From" headline price for an activity. Prefers the server's `fromPriceEur` (the min across
+ *  per-person / tier prices); when that's null — a PRIVATE-ONLY activity has no tier rows, so the
+ *  server can't derive one — it falls back to the cheapest private option's base, so the card reads
+ *  "From €X per private trip" instead of "On request". */
+export function activityFromPriceEur(activity: {
+  fromPriceEur: number | null;
+  options: TourOption[];
+}): number | null {
+  if (activity.fromPriceEur != null) return activity.fromPriceEur;
+  const bases = activity.options
+    .map((o) => privateConfig(o)?.baseEur)
+    .filter((n): n is number => typeof n === 'number');
+  return bases.length ? Math.min(...bases) : null;
+}
+
 export interface OptionCardSummary {
   name: string;
   fromPriceEur: number | null;
