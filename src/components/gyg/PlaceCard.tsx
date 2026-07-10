@@ -5,7 +5,7 @@ import type { TourSummary } from '@/lib/validation/tours';
 import { WishHeart } from './WishHeart';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
-import { effectiveCardRating } from '@/lib/content/sightseeing';
+import { activityRating } from '@/lib/content/activity-reviews';
 import { IconCalendar, IconStar } from '@/components/ui/icons';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
@@ -45,10 +45,11 @@ export function PlaceCard({
   const image = activity.heroImage ?? activity.images[0] ?? null;
 
   const topRated = activity.ratingAvg != null && activity.ratingAvg >= 4.7;
-  // Sightseeing tours with no reviews of their own fall back to the operator's real scraped rating
-  // (4.8 / 1,076); other review-less activities stay on the "New activity" pill below. The Top-rated
-  // badge stays keyed on the tour's OWN rating so the fallback doesn't badge every sightseeing card.
-  const rating = effectiveCardRating(activity);
+  // An activity with no reviews of its own shows the aggregate of the operator's reviews relevant to
+  // it, so every card carries real social proof (the "New activity" pill it used to show instead now
+  // only appears on the detail page). The Top-rated badge stays keyed on the tour's OWN rating, so the
+  // fallback never badges a card that hasn't earned it.
+  const rating = activityRating(activity);
   // Price unit follows what staff set: a transfer or a vehicle-priced sightseeing tour reads "per
   // vehicle"; per-group reads "per group up to N"; otherwise it's per person.
   const groupSize = activity.fromPriceMaxGuests;
@@ -122,17 +123,11 @@ export function PlaceCard({
         )}
 
         <div className={`mt-auto flex items-end justify-between ${compact ? 'pt-2' : 'pt-3'}`}>
-          {rating ? (
-            <span className="flex items-center gap-1 text-[13px] text-ink">
-              <IconStar width={14} height={14} className="text-gold-light" />
-              <b>{rating.avg.toFixed(1)}</b>
-              <span className="font-medium text-ink-muted">({rating.count})</span>
-            </span>
-          ) : (
-            <span className="rounded bg-teal/10 px-1.5 py-0.5 text-[11px] font-bold text-teal">
-              {t('New activity')}
-            </span>
-          )}
+          <span className="flex items-center gap-1 text-[13px] text-ink">
+            <IconStar width={14} height={14} className="text-gold-light" />
+            <b>{rating.avg.toFixed(1)}</b>
+            <span className="font-medium text-ink-muted">({rating.count})</span>
+          </span>
           <span className="text-right text-[12.5px] text-ink-muted">
             {activity.fromPriceEur != null ? (
               <>

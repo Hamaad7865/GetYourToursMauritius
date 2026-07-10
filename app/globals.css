@@ -185,6 +185,22 @@
   @keyframes gytItinPop { 0% { transform: scale(0.55); } 70% { transform: scale(1.07); } 100% { transform: scale(1); } }
   .gyt-itin-in { animation: gytItinRise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: var(--itin-d, 0ms); }
   .gyt-itin-in .gyt-itin-badge { animation: gytItinPop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both; animation-delay: var(--itin-d, 0ms); }
+
+  /* Reveal group (guest reviews): the group's direct children fade + rise in sequence once the group
+     scrolls into view. `.gyt-reveal` is only added by JS when motion is allowed, so no-JS renders the
+     list visible; `.is-in` then plays it. Stagger is pure CSS — one observer, no per-child state. */
+  @keyframes gytRevealIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .gyt-reveal > * { opacity: 0; }
+  .gyt-reveal.is-in > * { animation: gytRevealIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+  .gyt-reveal.is-in > *:nth-child(1) { animation-delay: 0ms; }
+  .gyt-reveal.is-in > *:nth-child(2) { animation-delay: 70ms; }
+  .gyt-reveal.is-in > *:nth-child(3) { animation-delay: 140ms; }
+  .gyt-reveal.is-in > *:nth-child(4) { animation-delay: 210ms; }
+  .gyt-reveal.is-in > *:nth-child(5) { animation-delay: 280ms; }
+  .gyt-reveal.is-in > *:nth-child(6) { animation-delay: 350ms; }
+  .gyt-reveal.is-in > *:nth-child(7) { animation-delay: 420ms; }
+  .gyt-reveal.is-in > *:nth-child(8) { animation-delay: 490ms; }
+  .gyt-reveal.is-in > *:nth-child(n + 9) { animation-delay: 560ms; }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -227,5 +243,11 @@
   .gyt-itin-in,
   .gyt-itin-in .gyt-itin-badge {
     animation: none !important;
+  }
+  /* Same for the review reveal — and crucially un-hide the children, whose resting state is opacity:0. */
+  .gyt-reveal > *,
+  .gyt-reveal.is-in > * {
+    animation: none !important;
+    opacity: 1 !important;
   }
 }

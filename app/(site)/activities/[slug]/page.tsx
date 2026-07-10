@@ -26,12 +26,9 @@ import { QuickFacts } from '@/components/gyg/detail/QuickFacts';
 import { PriceListViewer } from '@/components/gyg/detail/PriceListViewer';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { ReviewList } from '@/components/catalogue/ReviewList';
-import {
-  SIGHTSEEING_HIGHLIGHTS,
-  SIGHTSEEING_IMPORTANT_INFO,
-  SIGHTSEEING_FALLBACK_RATING,
-  sightseeingReviews,
-} from '@/lib/content/sightseeing';
+import { SIGHTSEEING_HIGHLIGHTS, SIGHTSEEING_IMPORTANT_INFO } from '@/lib/content/sightseeing';
+import { activityRating } from '@/lib/content/activity-reviews';
+import { activityReviews } from '@/lib/content/activity-reviews-pool';
 import { CATAMARAN_WHAT_TO_BRING, CATAMARAN_KNOW_BEFORE, isCatamaranCruise } from '@/lib/content/catamaran';
 import { Faq } from '@/components/catalogue/Faq';
 import { SiteFooter } from '@/components/site/SiteFooter';
@@ -156,15 +153,17 @@ export default async function ActivityDetailPage({
       ]
     : (activity.extra.whatToBring ?? []);
 
-  // Reviews + rating: use the tour's own when it has them; otherwise (sightseeing only) fall back to
-  // the operator-wide aggregate + curated real reviews so every sightseeing tour shows social proof.
-  // The per-product JSON-LD still reads the tour's REAL own rating (productJsonLd), so this visual
-  // fallback never inflates the structured aggregateRating.
+  // Reviews + rating: use the tour's own when it has them; otherwise fall back to the operator's real
+  // TripAdvisor/Google reviews, picking the ones whose text is RELEVANT to this activity (a catamaran
+  // review on a catamaran tour) and the honest aggregate for that topic. The block is labelled as
+  // operator-wide reviews below, and the per-product JSON-LD still reads the tour's REAL own rating
+  // (productJsonLd), so this visual fallback never inflates the structured aggregateRating.
   const hasOwnReviews = activity.ratingCount > 0;
-  const reviewsFallback = isSightseeing && !hasOwnReviews;
-  const reviews = reviewsFallback ? sightseeingReviews(9, activity.slug) : activity.reviews;
-  const ratingAvg = reviewsFallback ? SIGHTSEEING_FALLBACK_RATING.avg : activity.ratingAvg;
-  const ratingCount = reviewsFallback ? SIGHTSEEING_FALLBACK_RATING.count : activity.ratingCount;
+  const reviewsFallback = !hasOwnReviews;
+  const fallbackRating = activityRating(activity);
+  const reviews = reviewsFallback ? activityReviews(activity, 9) : activity.reviews;
+  const ratingAvg = reviewsFallback ? fallbackRating.avg : activity.ratingAvg;
+  const ratingCount = reviewsFallback ? fallbackRating.count : activity.ratingCount;
   const showLoved = ratingAvg != null && ratingAvg >= 4.5 && ratingCount > 0;
 
   return (

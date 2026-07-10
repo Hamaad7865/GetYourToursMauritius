@@ -7,16 +7,17 @@ import { IconCalendar, IconPin, IconStar } from '@/components/ui/icons';
 import { WishHeart } from '@/components/gyg/WishHeart';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
-import { effectiveCardRating } from '@/lib/content/sightseeing';
+import { activityRating } from '@/lib/content/activity-reviews';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
 export function ActivityCard({ activity }: { activity: TourSummary }) {
   const t = useT();
   const duration = durationLabel(activity.durationMinutes);
-  // Sightseeing tours with no reviews of their own show the operator's real scraped rating (4.8 /
-  // 1,076) instead of "— (0)", mirroring the detail page. Other activities keep their own/empty state.
-  const rating = effectiveCardRating(activity);
+  // An activity with no reviews of its own shows the aggregate of the operator's real reviews that are
+  // RELEVANT to it (e.g. catamaran reviews on a catamaran tour), so the card matches its detail page
+  // instead of reading "— (0)". Its own rating always wins once it has one.
+  const rating = activityRating(activity);
   return (
     <div className="group relative flex h-full flex-col overflow-hidden rounded-card border border-ink/[0.08] bg-white shadow-sm transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)]">
       <div className="relative aspect-[4/3] overflow-hidden">
@@ -60,8 +61,8 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
         <div className="mt-auto flex items-center justify-between border-t border-ink/[0.07] pt-3.5">
           <span className="flex items-center gap-1.5 text-sm text-ink">
             <IconStar width={15} height={15} className="text-gold-light" />
-            <b>{rating ? rating.avg.toFixed(1) : '—'}</b>
-            <span className="font-medium text-ink-muted">({rating ? rating.count : 0})</span>
+            <b>{rating.avg.toFixed(1)}</b>
+            <span className="font-medium text-ink-muted">({rating.count})</span>
           </span>
           <span className="flex flex-col items-end text-[13px] text-ink-muted">
             <span>

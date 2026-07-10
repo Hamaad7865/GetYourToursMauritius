@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { ReviewCard } from '@/components/site/ReviewCard';
+import { RevealGroup } from '@/components/site/RevealGroup';
 import { featuredReviews, reviewStats } from '@/lib/content/reviews';
 import { breadcrumbListJsonLd, reviewsPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
@@ -83,11 +84,11 @@ export default function ReviewsPage() {
         </p>
 
         {/* Reviews grid */}
-        <div className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <RevealGroup className="mt-7 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {featuredReviews.map((r) => (
             <ReviewCard key={r.id} review={r} />
           ))}
-        </div>
+        </RevealGroup>
       </InfoPage>
     </>
   );

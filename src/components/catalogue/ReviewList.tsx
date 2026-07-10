@@ -4,6 +4,7 @@ import { getLocale, getT } from '@/lib/i18n/server';
 import { formatLocaleDate } from '@/lib/i18n/format';
 import type { Locale } from '@/lib/i18n/config';
 import { IconStar } from '@/components/ui/icons';
+import { RevealGroup } from '@/components/site/RevealGroup';
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string;
 
@@ -83,7 +84,7 @@ export async function ReviewList({
       </div>
 
       {reviews.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <RevealGroup className="flex flex-col gap-4">
           {reviews.map((review) => (
             <article
               key={review.id}
@@ -104,7 +105,7 @@ export async function ReviewList({
               )}
             </article>
           ))}
-        </div>
+        </RevealGroup>
       )}
     </div>
   );

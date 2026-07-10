@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { topReviews, reviewStats } from '@/lib/content/reviews';
 import { ReviewCard } from './ReviewCard';
+import { RevealGroup } from './RevealGroup';
 
 /** "What our guests say" — a strip of real reviews on the homepage. */
 export function FeaturedReviews() {
@@ -21,11 +22,11 @@ export function FeaturedReviews() {
           Read all reviews →
         </Link>
       </div>
-      <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <RevealGroup className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {reviews.map((r) => (
           <ReviewCard key={r.id} review={r} />
         ))}
-      </div>
+      </RevealGroup>
     </section>
   );
 }

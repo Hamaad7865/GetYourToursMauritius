@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ReviewCard } from '@/components/site/ReviewCard';
+import { RevealGroup } from '@/components/site/RevealGroup';
 import { reviewStats, transferReviews } from '@/lib/content/reviews';
 import { IconStar } from '@/components/ui/icons';
 
@@ -27,11 +28,11 @@ export function TransferReviews({ count = 6 }: { count?: number }) {
           Read all reviews →
         </Link>
       </div>
-      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <RevealGroup className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {reviews.map((r) => (
           <ReviewCard key={r.id} review={r} />
         ))}
-      </div>
+      </RevealGroup>
     </section>
   );
 }
