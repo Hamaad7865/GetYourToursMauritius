@@ -1,3 +1,7 @@
+// Owner alerts ride the same drain: resolve the WhatsApp sentinel so all confirmation-time rows
+// send here (the unconfigured fail-loud path is covered by booking-flow.test.ts).
+process.env.OWNER_WHATSAPP_TO = '23057729919';
+
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { pgliteRpc } from '../db/rpc';
@@ -138,10 +142,10 @@ describe('booking_confirmation drain → invoice + receipt email', () => {
   it('sends a pre-rendered HTML email with the invoice/receipt PDF attached', async () => {
     const provider = new CapturingProvider();
     const result = await drainNotifications(ctx, provider);
-    expect(result).toEqual({ processed: 1, sent: 1, failed: 0 });
+    expect(result).toEqual({ processed: 3, sent: 3, failed: 0 });
 
-    const msg = provider.messages[0]!;
-    expect(msg.template).toBe('booking_confirmation');
+    const msg = provider.messages.find((m) => m.template === 'booking_confirmation')!;
+    expect(msg).toBeTruthy();
 
     // HTML body carries the booking ref + the EUR total (2×€70 + €6 child seat = €146).
     expect(msg.html).toBeTruthy();

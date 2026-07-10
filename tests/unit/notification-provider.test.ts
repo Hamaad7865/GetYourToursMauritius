@@ -34,7 +34,7 @@ describe('getNotificationProvider — fail-closed', () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     process.env.PEACH_ENVIRONMENT = 'test';
     resetServerEnvCache();
-    expect(getNotificationProvider().name).toBe('stub');
+    expect(getNotificationProvider().name).toBe('email:stub whatsapp:stub');
   });
 
   it('the stub send() resolves (so dev / CI / tests run the drain end-to-end offline)', async () => {
@@ -52,7 +52,7 @@ describe('getNotificationProvider — fail-closed', () => {
     resetServerEnvCache();
 
     const provider = getNotificationProvider();
-    expect(provider.name).toBe('fail-closed');
+    expect(provider.name).toBe('email:fail-closed whatsapp:fail-closed');
     // A throwing send() is what makes the drain mark the row 'failed' (NOT 'sent') and retry it.
     await expect(provider.send(sampleMessage)).rejects.toThrow(/notifications_not_configured/);
   });
@@ -63,7 +63,7 @@ describe('getNotificationProvider — fail-closed', () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     process.env.PEACH_ENVIRONMENT = 'live';
     resetServerEnvCache();
-    expect(getNotificationProvider().name).toBe('fail-closed');
+    expect(getNotificationProvider().name).toBe('email:fail-closed whatsapp:fail-closed');
   });
 
   it('uses the real Resend provider when RESEND_API_KEY + RESEND_FROM are set (even in production)', () => {
@@ -71,6 +71,6 @@ describe('getNotificationProvider — fail-closed', () => {
     process.env.RESEND_FROM = 'bookings@example.com';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key-present';
     resetServerEnvCache();
-    expect(getNotificationProvider().name).toBe('resend');
+    expect(getNotificationProvider().name).toBe('email:resend whatsapp:fail-closed');
   });
 });

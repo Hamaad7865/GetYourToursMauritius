@@ -170,7 +170,7 @@ const DATE_FILTERS = [
   { value: 'past', label: 'Past' },
 ] as const;
 type DateFilter = (typeof DATE_FILTERS)[number]['value'];
-type SortKey = 'ref' | 'customer' | 'date' | 'total';
+type SortKey = 'ref' | 'customer' | 'date' | 'booked' | 'total';
 
 const SELECT_CLS =
   'rounded-xl border border-[#E2E7EA] bg-white px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-teal cursor-pointer';
@@ -205,7 +205,7 @@ export function AdminBookings() {
   const [tour, setTour] = useState('all');
   const [dateF, setDateF] = useState<DateFilter>('all');
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
-  const [sortKey, setSortKey] = useState<SortKey>('date');
+  const [sortKey, setSortKey] = useState<SortKey>('booked');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
@@ -274,6 +274,7 @@ export function AdminBookings() {
       if (sortKey === 'customer') [av, bv] = [a.customerName.toLowerCase(), b.customerName.toLowerCase()];
       else if (sortKey === 'total') [av, bv] = [a.totalEur, b.totalEur];
       else if (sortKey === 'ref') [av, bv] = [a.ref, b.ref];
+      else if (sortKey === 'booked') [av, bv] = [a.createdAt, b.createdAt];
       else [av, bv] = [a.startsAt ?? a.createdAt, b.startsAt ?? b.createdAt];
       return av < bv ? -dir : av > bv ? dir : 0;
     });
@@ -283,7 +284,7 @@ export function AdminBookings() {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else {
       setSortKey(key);
-      setSortDir(key === 'total' || key === 'date' ? 'desc' : 'asc');
+      setSortDir(key === 'total' || key === 'date' || key === 'booked' ? 'desc' : 'asc');
     }
   };
   const sortArrow = (key: SortKey) => (sortKey === key ? (sortDir === 'asc' ? '↑' : '↓') : '');
@@ -396,6 +397,7 @@ export function AdminBookings() {
                 <TH label="Customer" sort="customer" />
                 <TH label="Tour" />
                 <TH label="Date" sort="date" />
+                <TH label="Booked" sort="booked" />
                 <TH label="Guests" />
                 <TH label="Total" sort="total" />
                 <TH label="Payment" />
@@ -425,6 +427,9 @@ export function AdminBookings() {
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
                       {b.startsAt ? `${dateShortFmt.format(new Date(b.startsAt))} · ${timeFmt.format(new Date(b.startsAt))}` : '—'}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
+                      {`${dateShortFmt.format(new Date(b.createdAt))} · ${timeFmt.format(new Date(b.createdAt))}`}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">{b.guests}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-right text-[13.5px] font-extrabold text-ink">{euroInt(b.totalEur)}</td>

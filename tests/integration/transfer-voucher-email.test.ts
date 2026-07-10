@@ -1,3 +1,7 @@
+// Owner alerts ride the same drain: resolve the WhatsApp sentinel so all confirmation-time rows
+// send here (the unconfigured fail-loud path is covered by booking-flow.test.ts).
+process.env.OWNER_WHATSAPP_TO = '23057729919';
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { pgliteRpc } from '../db/rpc';
@@ -122,10 +126,10 @@ describe('transfer booking_confirmation drain → receipt attached, e-voucher li
   it('attaches only the tax receipt and links the e-voucher (no voucher PDF in the email)', async () => {
     const provider = new CapturingProvider();
     const result = await drainNotifications(ctx, provider);
-    expect(result).toEqual({ processed: 1, sent: 1, failed: 0 });
+    expect(result).toEqual({ processed: 3, sent: 3, failed: 0 });
 
-    const msg = provider.messages[0]!;
-    expect(msg.template).toBe('booking_confirmation');
+    const msg = provider.messages.find((m) => m.template === 'booking_confirmation')!;
+    expect(msg).toBeTruthy();
 
     // Exactly one attachment — the tax receipt. The e-voucher is NOT attached (mail-scanners have no
     // voucher PDF to false-positive on).

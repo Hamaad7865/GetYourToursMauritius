@@ -84,6 +84,15 @@ const ServerEnvSchema = z.object({
   // Transactional email (Resend). Without both, notifications fall back to the no-op stub.
   RESEND_API_KEY: z.string().min(1).optional(),
   RESEND_FROM: z.string().min(1).optional(),
+  // Owner alerts: where the "new booking" notifications land. Email defaults to SITE.email when unset.
+  OWNER_NOTIFY_EMAIL: z.string().min(1).optional(),
+  // WhatsApp owner alerts via the Meta WhatsApp Cloud API. All three are required for delivery:
+  // a permanent access token, the business phone-number id, and the owner's number in E.164 digits
+  // (e.g. 23057729919). Optional template name for out-of-session delivery (one {{1}} body param).
+  WHATSAPP_ACCESS_TOKEN: z.string().min(1).optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
+  OWNER_WHATSAPP_TO: z.string().min(1).optional(),
+  WHATSAPP_TEMPLATE_NAME: z.string().min(1).optional(),
   // Shared secret guarding the internal worker endpoints (notification drain, hold sweep). Use a
   // long random value; the endpoints are 503 until it is set.
   INTERNAL_TASK_SECRET: z.string().min(1).optional(),

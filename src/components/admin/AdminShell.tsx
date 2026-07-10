@@ -4,6 +4,7 @@ import { useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { AdminBell } from '@/components/admin/AdminBell';
 import { avatar } from '@/lib/admin/dashboard';
 import {
   IconGrid,
@@ -169,6 +170,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             />
           </form>
           <div className="ml-auto flex items-center gap-2.5">
+            <AdminBell />
             <Link
               href="/admin/activities/new"
               className="hidden items-center gap-1.5 rounded-xl bg-teal px-4 py-2.5 text-[13.5px] font-bold text-white hover:bg-teal-dark sm:flex"

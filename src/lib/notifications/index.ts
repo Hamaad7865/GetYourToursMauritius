@@ -1,29 +1,62 @@
 import { getServerEnv } from '@/lib/config/env';
 import { isProductionLikeRuntime } from '@/lib/config/runtime';
-import type { NotificationProvider } from './types';
+import type { NotificationMessage, NotificationProvider } from './types';
 import { StubNotificationProvider } from './stub';
 import { FailClosedNotificationProvider } from './fail-closed';
 import { ResendNotificationProvider } from './resend';
+import { WhatsAppNotificationProvider } from './whatsapp';
 
 export * from './types';
 
+/** Routes each message to its channel's provider, so email and WhatsApp configure independently.
+ *  The name spells out both routes (e.g. `email:resend whatsapp:fail-closed`) for logs and tests. */
+class ChannelRouterProvider implements NotificationProvider {
+  readonly name: string;
+
+  constructor(
+    private readonly channels: { email: NotificationProvider; whatsapp: NotificationProvider },
+  ) {
+    this.name = `email:${channels.email.name} whatsapp:${channels.whatsapp.name}`;
+  }
+
+  send(message: NotificationMessage): Promise<void> {
+    return this.channels[message.channel].send(message);
+  }
+}
+
 /**
- * Selects the notification provider from the environment.
+ * Selects the notification provider from the environment, per channel.
  *
+ * Email:
  * - Resend when `RESEND_API_KEY` + `RESEND_FROM` are set (the real provider).
  * - Otherwise FAIL CLOSED on a production-like runtime: the stub's `send()` resolves doing nothing,
  *   so the drain would mark every booking email `sent` and silently black-hole it. On a real
  *   deployment we instead return a provider whose `send()` throws, so the drain marks the row
  *   `failed` (retried once a key is set) and the outbox row stays visible.
  * - Otherwise the no-op stub (local dev / CI / tests run end-to-end with no email account).
+ *
+ * WhatsApp (owner alerts): the Meta Cloud API provider when `WHATSAPP_ACCESS_TOKEN` +
+ * `WHATSAPP_PHONE_NUMBER_ID` are set; the same fail-closed / stub split otherwise, so an
+ * unconfigured WhatsApp row is a VISIBLE `failed` on production — never a silent success.
  */
 export function getNotificationProvider(): NotificationProvider {
   const env = getServerEnv();
-  if (env.RESEND_API_KEY && env.RESEND_FROM) {
-    return new ResendNotificationProvider({ apiKey: env.RESEND_API_KEY, from: env.RESEND_FROM });
-  }
-  if (isProductionLikeRuntime(env)) {
-    return new FailClosedNotificationProvider();
-  }
-  return new StubNotificationProvider();
+  const fallback = isProductionLikeRuntime(env)
+    ? new FailClosedNotificationProvider()
+    : new StubNotificationProvider();
+
+  const email =
+    env.RESEND_API_KEY && env.RESEND_FROM
+      ? new ResendNotificationProvider({ apiKey: env.RESEND_API_KEY, from: env.RESEND_FROM })
+      : fallback;
+  const whatsapp =
+    env.WHATSAPP_ACCESS_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID
+      ? new WhatsAppNotificationProvider({
+          accessToken: env.WHATSAPP_ACCESS_TOKEN,
+          phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
+          templateName: env.WHATSAPP_TEMPLATE_NAME,
+        })
+      : fallback;
+
+  return new ChannelRouterProvider({ email, whatsapp });
 }

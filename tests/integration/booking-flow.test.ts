@@ -1,3 +1,7 @@
+// getServerEnv caches on its first call in this file's module registry, so clear the shared
+// worker env BEFORE anything can read it — this suite asserts the UNCONFIGURED WhatsApp path.
+delete process.env.OWNER_WHATSAPP_TO;
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { pgliteRpc } from '../db/rpc';
@@ -402,10 +406,10 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(after.paid_minor).toBe(before.paid_minor); // unchanged — not double-credited
   });
 
-  it('confirming a booking enqueues a confirmation, and the drain marks it sent', async () => {
+  it('confirming a booking enqueues the customer confirmation + both owner alerts', async () => {
     await db.asOwner();
-    // The first test confirmed the booking → the AFTER-UPDATE trigger enqueued exactly one row
-    // (the idempotent re-append did not re-fire, since the status did not change again).
+    // The first test confirmed the booking → the AFTER-UPDATE trigger enqueued exactly one customer
+    // confirmation (idempotent — the status did not change again) plus the two owner-alert rows.
     const enqueued = (
       await db.pg.query<{ status: string; recipient: string }>(
         `select status, recipient from notification_outbox where template = 'booking_confirmation'`,
@@ -414,8 +418,22 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(enqueued).toHaveLength(1);
     expect(enqueued[0]!.status).toBe('pending');
     expect(enqueued[0]!.recipient).toBe('test@example.com');
+    const ownerRows = (
+      await db.pg.query<{ channel: string; recipient: string }>(
+        `select channel, recipient from notification_outbox where template = 'owner_new_booking' order by channel`,
+      )
+    ).rows;
+    // Owner rows carry the 'owner' sentinel — the drain resolves the real address from env at send time.
+    expect(ownerRows).toEqual([
+      { channel: 'email', recipient: 'owner' },
+      { channel: 'whatsapp', recipient: 'owner' },
+    ]);
 
-    // Drain with the no-op stub provider → the row is marked sent.
+    // Force the unconfigured state: process.env is shared across test files within a vitest worker,
+    // so another suite may have set the number before this file ran.
+    delete process.env.OWNER_WHATSAPP_TO;
+    // Drain with the no-op stub provider. OWNER_WHATSAPP_TO is unset here, so the WhatsApp alert FAILS
+    // LOUDLY (visible in the outbox) instead of silently messaging nobody; both emails send.
     const ctx: ServiceContext = {
       db: pgliteRpc(db.pg),
       payments: new StubPaymentProvider(),
@@ -423,7 +441,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       now: () => new Date(),
     };
     const result = await drainNotifications(ctx, new StubNotificationProvider());
-    expect(result).toEqual({ processed: 1, sent: 1, failed: 0 });
+    expect(result).toEqual({ processed: 3, sent: 2, failed: 1 });
 
     const sent = (
       await db.pg.query<{ status: string; sent_at: string | null }>(
@@ -432,5 +450,12 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     ).rows[0]!;
     expect(sent.status).toBe('sent');
     expect(sent.sent_at).not.toBeNull();
+    const wa = (
+      await db.pg.query<{ status: string; last_error: string | null }>(
+        `select status, last_error from notification_outbox where template = 'owner_new_booking' and channel = 'whatsapp'`,
+      )
+    ).rows[0]!;
+    expect(wa.status).not.toBe('sent');
+    expect(wa.last_error).toMatch(/OWNER_WHATSAPP_TO/);
   });
 });

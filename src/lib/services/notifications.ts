@@ -12,6 +12,7 @@ import { renderInvoicePdf } from '@/lib/invoice/pdf';
 import { renderConfirmationEmail } from '@/lib/email/booking-confirmation';
 import { INVOICE_BUSINESS } from '@/lib/invoice/business';
 import { SITE } from '@/lib/seo/site';
+import { getServerEnv } from '@/lib/config/env';
 
 const claimedSchema = z.array(
   z.object({
@@ -88,6 +89,69 @@ async function enrichBookingConfirmation(
   if (attachments.length) message.attachments = attachments;
 }
 
+/**
+ * Owner-alert rows are enqueued with the literal recipient sentinel 'owner' (the DB never stores the
+ * owner's personal contact detail). Resolve it here at send time: email falls back to the site inbox,
+ * WhatsApp has no safe fallback so an unset number FAILS LOUDLY (visible in the outbox) instead of
+ * silently messaging nobody.
+ */
+function resolveOwnerRecipient(message: NotificationMessage): void {
+  if (message.recipient !== 'owner') return;
+  const env = getServerEnv();
+  if (message.channel === 'email') {
+    message.recipient = env.OWNER_NOTIFY_EMAIL ?? SITE.email;
+  } else {
+    if (!env.OWNER_WHATSAPP_TO) {
+      throw new Error('owner whatsapp number not configured (set OWNER_WHATSAPP_TO)');
+    }
+    message.recipient = env.OWNER_WHATSAPP_TO;
+  }
+}
+
+/**
+ * Enrich an `owner_new_booking` alert in place: one glance tells the owner who booked what, when,
+ * for how many, and for how much — plus the admin deep-link. The email gets subject/text/html; the
+ * WhatsApp row gets the same summary as `text` (the WhatsApp provider sends text/template only).
+ * A booking-load failure propagates so the alert retries rather than sending a blank one.
+ */
+async function enrichOwnerNewBooking(
+  ctx: ServiceContext,
+  message: NotificationMessage & { bookingId: string | null },
+): Promise<void> {
+  if (!message.bookingId) {
+    throw new Error('owner_new_booking: missing bookingId on the outbox row');
+  }
+  const { booking } = await loadBookingForReceipt(ctx, message.bookingId);
+  const pax = booking.items.reduce((s, i) => s + (i.pax ?? i.quantity), 0);
+  const when = booking.when ? booking.when.slice(0, 10) : 'date TBC';
+  const total = `€${booking.totalEur.toFixed(2)}`;
+  const line =
+    `${booking.customerName || 'A guest'} booked ${booking.activityTitle} on ${when} — ` +
+    `${pax} ${pax === 1 ? 'guest' : 'guests'}, ${total} (ref ${booking.ref}).`;
+  const adminUrl = `${SITE.url}/admin/bookings?q=${encodeURIComponent(booking.ref)}`;
+
+  if (message.channel === 'whatsapp') {
+    message.text = `🔔 New paid booking\n${line}\n${adminUrl}`;
+    return;
+  }
+  message.subject = `New paid booking — ${booking.activityTitle} · ${when} · ${total}`;
+  message.text = `${line}\n\nCustomer: ${booking.customerEmail}\nOpen in admin: ${adminUrl}\n\nBelle Mare Tours (internal alert)`;
+  message.html = `
+    <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#11201f;line-height:1.5">
+      <h2 style="margin:0 0 12px;color:#0B5C63">New paid booking</h2>
+      <p style="margin:0 0 14px">${line}</p>
+      <table style="border-collapse:collapse;font-size:14px" cellpadding="0">
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Reference</td><td><b>${booking.ref}</b></td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Tour</td><td>${booking.activityTitle}</td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Date</td><td>${when}</td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Guests</td><td>${pax}</td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Total</td><td><b>${total}</b></td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Customer</td><td>${booking.customerName} · ${booking.customerEmail}</td></tr>
+      </table>
+      <p style="margin:16px 0 0"><a href="${adminUrl}" style="background:#0E8C92;color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px;display:inline-block">Open in admin</a></p>
+    </div>`;
+}
+
 export interface DrainResult {
   processed: number;
   sent: number;
@@ -118,8 +182,11 @@ export async function drainNotifications(
   let failed = 0;
   for (const message of messages) {
     try {
+      resolveOwnerRecipient(message);
       if (message.template === 'booking_confirmation') {
         await enrichBookingConfirmation(ctx, message);
+      } else if (message.template === 'owner_new_booking') {
+        await enrichOwnerNewBooking(ctx, message);
       }
       await provider.send(message);
       await callRpc(ctx, 'mark_notification', { id: message.id, result: 'sent' });
