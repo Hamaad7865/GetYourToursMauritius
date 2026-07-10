@@ -18,7 +18,7 @@ export const BADGE_ICONS: { key: string; label: string; Icon: IconCmp }[] = [
   { key: 'pin', label: 'Pickup / location', Icon: IconPin },
   { key: 'star', label: 'Star', Icon: IconStar },
   { key: 'heart', label: 'Heart', Icon: IconHeart },
-  { key: 'wallet', label: 'Reserve / pay later', Icon: IconWallet },
+  { key: 'wallet', label: 'Payment / wallet', Icon: IconWallet },
   { key: 'trophy', label: 'Award', Icon: IconTrophy },
   { key: 'chat', label: 'Guide / support', Icon: IconChat },
   { key: 'tag', label: 'Price / tag', Icon: IconTag },

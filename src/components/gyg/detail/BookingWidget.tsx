@@ -617,9 +617,6 @@ export function BookingWidget() {
             </p>
           )}
         </div>
-        <p className="mt-2 text-center text-[11.5px] text-ink-muted">
-          {t('You won’t be charged until you confirm.')}
-        </p>
       </div>
 
       <div className="flex items-center justify-between gap-2.5 rounded-b-2xl border-t border-ink/[0.08] bg-cream px-5 py-3">

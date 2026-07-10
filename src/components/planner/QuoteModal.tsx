@@ -180,7 +180,7 @@ export function QuoteModal({
               {booking ? t('Starting your booking…') : t('Continue to checkout →')}
             </button>
             <p className="m-0 mt-[11px] text-center text-xs text-ink-muted">
-              {t('✓ No payment now · confirm your details and a verified local driver on the next step')}
+              {t('✓ Confirm your details and a verified local driver on the next step')}
             </p>
           </div>
         </form>

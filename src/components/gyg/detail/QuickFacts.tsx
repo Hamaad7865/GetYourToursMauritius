@@ -74,10 +74,12 @@ export function QuickFacts({
       sub: cancellationPolicy,
     });
   }
+  // Payment is taken at checkout (instantly) — never promise "pay later". The instant-confirmation
+  // reassurance is its own fact further down, so this slot carries the payment-security one.
   facts.push({
     icon: <IconWallet width={22} height={22} />,
-    title: t('Reserve now & pay later'),
-    sub: t('Book your spot today and settle up closer to the date.'),
+    title: t('Secure payment'),
+    sub: t('Card payment protected by Peach.'),
   });
   if (duration) {
     facts.push({

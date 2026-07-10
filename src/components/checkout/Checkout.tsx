@@ -1360,7 +1360,7 @@ export function Checkout() {
 
               <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-ink/80">
                 <span className="flex items-center gap-1.5">
-                  <IconCheck width={15} height={15} className="text-teal" /> {t('Pay nothing today')}
+                  <IconCheck width={15} height={15} className="text-teal" /> {t('Instant confirmation')}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <IconCheck width={15} height={15} className="text-teal" /> {t('Free cancellation up to 24 hours before')}

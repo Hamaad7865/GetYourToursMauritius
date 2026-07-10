@@ -215,8 +215,7 @@ export function BookingCard({ type, title, fromPriceEur, options, languages }: B
             hours before
           </div>
           <div className="flex items-center gap-2.5 text-[13px] text-ink/80">
-            <IconCheck width={16} height={16} className="text-teal" /> Reserve now &amp; pay later
-            available
+            <IconCheck width={16} height={16} className="text-teal" /> Instant confirmation
           </div>
         </div>
       </div>
