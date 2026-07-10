@@ -81,7 +81,17 @@ function statusPill(status: BookingStatus): { label: string; cls: string; dot: s
       return { label: titleCase(status), cls: 'bg-teal/10 text-teal-dark', dot: 'bg-teal' };
   }
 }
-function paymentPill(state: PaymentState): { label: string; cls: string; dot: string } {
+/** A booking that can no longer be paid. `payment_state` stays 'pending' in the LEDGER sense (no
+ *  payment ever happened — it's a cached projection of payment_events), but rendering that as
+ *  "Pending" on an expired/cancelled booking reads as money-still-expected. Show "Not paid". */
+function paymentClosed(state: PaymentState, status: BookingStatus): boolean {
+  return state === 'pending' && (status === 'expired' || status === 'cancelled');
+}
+
+function paymentPill(state: PaymentState, status: BookingStatus): { label: string; cls: string; dot: string } {
+  if (paymentClosed(state, status)) {
+    return { label: 'Not paid', cls: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' };
+  }
   switch (state) {
     case 'paid':
       return { label: 'Paid', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
@@ -136,7 +146,10 @@ function statusClass(status: BookingStatus): string {
       return 'bg-gold-light/20 text-ink';
   }
 }
-function paymentClass(state: PaymentState): string {
+/** Optional bookingStatus: the drawer's booking badge passes it so a closed (expired/cancelled)
+ *  never-paid booking greys out instead of glowing "pending"; payment-row badges omit it. */
+function paymentClass(state: PaymentState, bookingStatus?: BookingStatus): string {
+  if (bookingStatus && paymentClosed(state, bookingStatus)) return 'bg-slate-100 text-slate-500';
   switch (state) {
     case 'paid':
       return 'bg-teal/10 text-teal-dark';
@@ -434,7 +447,7 @@ export function AdminBookings() {
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">{b.guests}</td>
                     <td className="whitespace-nowrap px-3 py-3 text-right text-[13.5px] font-extrabold text-ink">{euroInt(b.totalEur)}</td>
                     <td className="px-3 py-3">
-                      <Pill p={paymentPill(b.paymentState)} />
+                      <Pill p={paymentPill(b.paymentState, b.status)} />
                     </td>
                     <td className="px-3 py-3">
                       <Pill p={statusPill(b.status)} />
@@ -583,7 +596,9 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-sm font-bold text-teal">{booking.ref}</span>
                 <Badge className={statusClass(booking.status)}>{titleCase(booking.status)}</Badge>
-                <Badge className={paymentClass(booking.paymentState)}>{titleCase(booking.paymentState)}</Badge>
+                <Badge className={paymentClass(booking.paymentState, booking.status)}>
+                  {paymentPill(booking.paymentState, booking.status).label}
+                </Badge>
               </div>
               <p className="mt-1 text-[12.5px] text-ink-muted">Booked {fmtDateTime(booking.createdAt)} · via {booking.source}</p>
             </div>
