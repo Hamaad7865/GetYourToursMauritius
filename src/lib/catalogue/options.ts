@@ -18,7 +18,34 @@ export function cheapestTier(option: TourOption): TierLite | null {
   return best;
 }
 
-/** Default selected option: options[0] for vehicle, else the option holding the globally cheapest tier. */
+/**
+ * The tier whose price FRONTS an option card, mirroring the server's from-price rule (migrations
+ * 20260750/20260751): an AGE-BANDED option shows its full adult price — the max tier — never the free
+ * infant band (a "€0 per person" card); a non-banded option shows its cheapest non-free tier, falling
+ * back to the plain cheapest when every tier is free. Display-only — booking math never uses this.
+ */
+export function displayFromTier(option: TourOption): TierLite | null {
+  const banded = option.prices.some((p) => p.minAge != null || p.maxAge != null);
+  const lite = (p: TourOption['prices'][number]): TierLite => ({
+    label: p.label,
+    amountEur: p.amountEur,
+    maxGuests: p.maxGuests,
+  });
+  let best: TierLite | null = null;
+  if (banded) {
+    for (const p of option.prices) {
+      if (!best || p.amountEur > best.amountEur) best = lite(p);
+    }
+    return best;
+  }
+  for (const p of option.prices) {
+    if (p.amountEur > 0 && (!best || p.amountEur < best.amountEur)) best = lite(p);
+  }
+  return best ?? cheapestTier(option);
+}
+
+/** Default selected option: options[0] for vehicle, else the option with the lowest FRONT price
+ *  (displayFromTier — so a free infant band never decides the default over the real adult prices). */
 export function defaultOptionId(options: TourOption[], isVehicle: boolean): string | null {
   const first = options[0];
   if (!first) return null;
@@ -26,7 +53,7 @@ export function defaultOptionId(options: TourOption[], isVehicle: boolean): stri
   let bestId: string | null = null;
   let bestEur = Infinity;
   for (const o of options) {
-    const t = cheapestTier(o);
+    const t = displayFromTier(o);
     if (t && t.amountEur < bestEur) {
       bestEur = t.amountEur;
       bestId = o.id;
@@ -94,7 +121,7 @@ export function optionCardSummary(
       isPrivate: true,
     };
   }
-  const t = cheapestTier(option);
+  const t = displayFromTier(option);
   const maxGuests = t?.maxGuests ?? null;
   const unitNote =
     mode === 'vehicle'

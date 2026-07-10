@@ -3,6 +3,7 @@ import {
   activityFromPriceEur,
   cheapestTier,
   defaultOptionId,
+  displayFromTier,
   optionCardSummary,
   privateConfig,
 } from '@/lib/catalogue/options';
@@ -49,6 +50,61 @@ describe('defaultOptionId', () => {
   });
   it('returns null for no options', () => {
     expect(defaultOptionId([], false)).toBeNull();
+  });
+});
+
+describe('displayFromTier (the price fronting an option card)', () => {
+  // The real Western Cruise Catamaran shape that shipped a "€0 per person" card: the free Infant band
+  // is the cheapest tier, but an age-banded option must front its full ADULT price (the server's
+  // from-price rule, migrations 20260750/20260751).
+  const banded: TourOption = {
+    id: 'w',
+    name: 'Standard, Sharing Basis',
+    description: null,
+    prices: [
+      { id: 'w1', label: 'Adult', amountEur: 50, maxGuests: null },
+      { id: 'w2', label: 'Child', amountEur: 40, maxGuests: null, minAge: 3, maxAge: 10 },
+      { id: 'w3', label: 'Infant', amountEur: 0, maxGuests: null, minAge: 0, maxAge: 3 },
+    ],
+  };
+
+  it('age-banded: fronts the adult (max) price, never the free infant band', () => {
+    expect(displayFromTier(banded)).toEqual({ label: 'Adult', amountEur: 50, maxGuests: null });
+    expect(optionCardSummary(banded, 'per_person', 'activity').fromPriceEur).toBe(50);
+  });
+
+  it('non-banded: fronts the cheapest NON-FREE tier', () => {
+    const withFreebie: TourOption = {
+      id: 'f',
+      name: 'F',
+      description: null,
+      prices: [
+        { id: 'f1', label: 'Adult', amountEur: 60, maxGuests: null },
+        { id: 'f2', label: 'Promo', amountEur: 0, maxGuests: null },
+      ],
+    };
+    expect(displayFromTier(withFreebie)?.amountEur).toBe(60);
+  });
+
+  it('falls back to the plain cheapest when every tier is free', () => {
+    const allFree: TourOption = {
+      id: 'z',
+      name: 'Z',
+      description: null,
+      prices: [{ id: 'z1', label: 'Free', amountEur: 0, maxGuests: null }],
+    };
+    expect(displayFromTier(allFree)?.amountEur).toBe(0);
+  });
+
+  it('defaultOptionId compares FRONT prices — a free infant band never wins the default', () => {
+    const plain: TourOption = {
+      id: 'p45',
+      name: 'Plain',
+      description: null,
+      prices: [{ id: 'p1', label: 'Adult', amountEur: 45, maxGuests: null }],
+    };
+    // banded fronts €50, plain fronts €45 → plain is the default despite the €0 infant tier.
+    expect(defaultOptionId([banded, plain], false)).toBe('p45');
   });
 });
 
