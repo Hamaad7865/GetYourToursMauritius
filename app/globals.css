@@ -183,6 +183,10 @@
      its icon medallion pops, sharing one stagger (--itin-d set per row). transform/opacity only. */
   @keyframes gytItinRise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes gytItinPop { 0% { transform: scale(0.55); } 70% { transform: scale(1.07); } 100% { transform: scale(1); } }
+  /* Primary-CTA press feedback: a small compress on :active. Applied to the booking buttons. */
+  .gyt-press { transition: transform 0.12s ease; }
+  .gyt-press:active { transform: scale(0.97); }
+
   .gyt-itin-in { animation: gytItinRise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: var(--itin-d, 0ms); }
   .gyt-itin-in .gyt-itin-badge { animation: gytItinPop 0.55s cubic-bezier(0.2, 1.4, 0.4, 1) both; animation-delay: var(--itin-d, 0ms); }
 
@@ -243,6 +247,11 @@
   .gyt-itin-in,
   .gyt-itin-in .gyt-itin-badge {
     animation: none !important;
+  }
+  .gyt-press,
+  .gyt-press:active {
+    transition: none;
+    transform: none;
   }
   /* Same for the review reveal — and crucially un-hide the children, whose resting state is opacity:0. */
   .gyt-reveal > *,

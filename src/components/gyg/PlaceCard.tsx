@@ -23,8 +23,8 @@ function durationLabel(minutes: number | null, t: T): string | null {
 /**
  * Activity card, recoloured to the Belle Mare brand. Every card shows a single photo (the
  * activity's hero image) — no carousel — so all cards look identical regardless of how many
- * photos an activity has. The only hover effect is a gentle zoom on the photo; the card and
- * its text never move. The whole card is a stretched link to the detail page.
+ * photos an activity has. Hover: the photo zooms gently and the card lifts a few pixels with its
+ * shadow (motion-safe only). The whole card is a stretched link to the detail page.
  */
 export function PlaceCard({
   activity,
@@ -70,7 +70,7 @@ export function PlaceCard({
 
   return (
     <div
-      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-ink/[0.08] bg-white text-left shadow-[0_1px_3px_rgba(10,46,54,0.06)] transition-shadow duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)] ${
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-ink/[0.08] bg-white text-left shadow-[0_1px_3px_rgba(10,46,54,0.06)] transition-[transform,box-shadow] duration-300 hover:shadow-[0_18px_38px_-16px_rgba(10,46,54,0.4)] motion-safe:hover:-translate-y-1 ${
         rail ? `${compact ? 'w-[228px]' : 'w-[300px]'} shrink-0` : ''
       } ${className}`}
     >

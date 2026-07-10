@@ -230,14 +230,14 @@ export function BookingOptionCard() {
               type="button"
               disabled={b.busy || b.updating || b.total == null}
               onClick={() => void b.continueToCheckout()}
-              className="rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
+              className="gyt-press rounded-full bg-teal-dark px-7 py-3 text-sm font-bold text-white hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
             >
               {b.busy ? t('Holding…') : t('Continue')}
             </button>
             <button
               type="button"
               onClick={handleAddToCart}
-              className="rounded-full border-2 border-teal px-7 py-2 text-[13px] font-bold text-teal-dark hover:bg-teal/5"
+              className="gyt-press rounded-full border-2 border-teal px-7 py-2 text-[13px] font-bold text-teal-dark hover:bg-teal/5"
             >
               {t('Add to cart')}
             </button>

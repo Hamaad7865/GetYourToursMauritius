@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { TourSummary } from '@/lib/validation/tours';
 import { getT } from '@/lib/i18n/server';
 import { ActivityCard } from './ActivityCard';
+import { RevealGroup } from '@/components/site/RevealGroup';
 
 export async function ActivityGrid({
   activities,
@@ -21,11 +22,11 @@ export async function ActivityGrid({
     );
   }
   return (
-    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <RevealGroup className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {leadingCard}
       {activities.map((activity) => (
         <ActivityCard key={activity.id} activity={activity} />
       ))}
-    </div>
+    </RevealGroup>
   );
 }

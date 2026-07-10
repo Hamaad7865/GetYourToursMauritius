@@ -602,7 +602,7 @@ export function BookingWidget() {
           // booking = one vehicle/trip) — so a 1-left day must still accept a party of 6 there.
           disabled={!date || seatsForDate <= 0 || (!isVehicle && !b.privateCfg && seatsForDate < participants)}
           onClick={checkAvailability}
-          className="mt-4 flex w-full items-center justify-center rounded-xl bg-teal-dark px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(11,92,99,0.7)] hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
+          className="gyt-press mt-4 flex w-full items-center justify-center rounded-xl bg-teal-dark px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(11,92,99,0.7)] hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
         >
           {t('Check availability')}
         </button>

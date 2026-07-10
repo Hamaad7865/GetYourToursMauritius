@@ -4,6 +4,7 @@ import { useT } from '@/components/site/PreferencesProvider';
 import { useBooking } from './BookingProvider';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { badgeIcon } from '@/components/ui/badge-icons';
+import { RevealGroup } from '@/components/site/RevealGroup';
 import { IconBolt, IconCalendar, IconClock, IconGlobe, IconPin, IconUsers, IconWallet } from '@/components/ui/icons';
 
 /**
@@ -143,7 +144,7 @@ export function QuickFacts({
 
   return (
     <div className="border-t border-ink/10 pt-6">
-      <div className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
+      <RevealGroup className="grid grid-cols-1 gap-x-8 gap-y-5 sm:grid-cols-2">
         {facts.map((f) => (
           <div key={f.title} className="flex items-start gap-3.5">
             <span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-ink/[0.05] text-ink">
@@ -155,7 +156,7 @@ export function QuickFacts({
             </span>
           </div>
         ))}
-      </div>
+      </RevealGroup>
     </div>
   );
 }
