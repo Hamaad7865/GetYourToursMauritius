@@ -32,6 +32,12 @@ jobs:
       - name: Lint
         run: npm run lint
 
+      # Formatting is enforced so it can't drift silently (was red + unenforced). The generated
+      # artifacts (setup.sql, openapi.json) are prettier-ignored and instead guarded for freshness by
+      # the parity tests in the Test step.
+      - name: Format check
+        run: npm run format:check
+
       - name: Test
         run: npm run test
 

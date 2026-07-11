@@ -228,6 +228,13 @@
                             ],
                             "exclusiveMinimum": 0
                           },
+                          "fromPriceIncluded": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "exclusiveMinimum": 0
+                          },
                           "pricingMode": {
                             "type": "string",
                             "enum": [
@@ -480,6 +487,13 @@
                           "minimum": 0
                         },
                         "fromPriceMaxGuests": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "exclusiveMinimum": 0
+                        },
+                        "fromPriceIncluded": {
                           "type": [
                             "integer",
                             "null"
@@ -808,6 +822,12 @@
                                 ]
                               }
                             },
+                            "whatToBring": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              }
+                            },
                             "importantInfo": {
                               "type": "array",
                               "items": {
@@ -854,6 +874,29 @@
                                   "subtitle"
                                 ]
                               }
+                            },
+                            "isPrivate": {
+                              "type": "boolean"
+                            },
+                            "adultsOnly": {
+                              "type": "boolean"
+                            },
+                            "priceList": {
+                              "type": [
+                                "object",
+                                "null"
+                              ],
+                              "properties": {
+                                "url": {
+                                  "type": "string"
+                                },
+                                "label": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "url"
+                              ]
                             }
                           },
                           "default": {}
@@ -874,6 +917,46 @@
                                   "string",
                                   "null"
                                 ]
+                              },
+                              "durationMinutes": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "startWindow": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              },
+                              "privateBaseEur": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "minimum": 0
+                              },
+                              "privateIncluded": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "exclusiveMinimum": 0
+                              },
+                              "privateExtraEur": {
+                                "type": [
+                                  "number",
+                                  "null"
+                                ],
+                                "minimum": 0
+                              },
+                              "privateMaxGuests": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "exclusiveMinimum": 0
                               },
                               "prices": {
                                 "type": "array",
@@ -896,6 +979,20 @@
                                         "null"
                                       ],
                                       "exclusiveMinimum": 0
+                                    },
+                                    "minAge": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ],
+                                      "minimum": 0
+                                    },
+                                    "maxAge": {
+                                      "type": [
+                                        "integer",
+                                        "null"
+                                      ],
+                                      "minimum": 0
                                     }
                                   },
                                   "required": [
@@ -2912,6 +3009,42 @@
           },
           {
             "in": "query",
+            "name": "pickupLat",
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          {
+            "in": "query",
+            "name": "pickupLng",
+            "schema": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          {
+            "in": "query",
+            "name": "dropoffLat",
+            "schema": {
+              "type": "number",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          {
+            "in": "query",
+            "name": "dropoffLng",
+            "schema": {
+              "type": "number",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          {
+            "in": "query",
             "name": "pax",
             "schema": {
               "type": "integer",
@@ -3976,6 +4109,22 @@
                     "maximum": 90
                   },
                   "pickupLng": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": -180,
+                    "maximum": 180
+                  },
+                  "dropoffLat": {
+                    "type": [
+                      "number",
+                      "null"
+                    ],
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  "dropoffLng": {
                     "type": [
                       "number",
                       "null"
@@ -6017,6 +6166,13 @@
                             "minimum": 0
                           },
                           "fromPriceMaxGuests": {
+                            "type": [
+                              "integer",
+                              "null"
+                            ],
+                            "exclusiveMinimum": 0
+                          },
+                          "fromPriceIncluded": {
                             "type": [
                               "integer",
                               "null"

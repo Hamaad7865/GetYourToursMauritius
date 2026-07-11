@@ -8,3 +8,9 @@ pnpm-lock.yaml
 package-lock.json
 src/lib/supabase/types.ts
 design-reference
+# Claude Code scratch: agent worktrees + local settings are not repo source and contain
+# non-parseable fixtures that crash `prettier --check` (exit 2). Never format them.
+.claude
+supabase/setup.sql
+supabase/catch-up.sql
+openapi.json

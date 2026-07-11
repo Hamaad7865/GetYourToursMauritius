@@ -64,7 +64,15 @@ const nextConfig = {
       { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
       { key: 'Content-Security-Policy-Report-Only', value: csp },
     ];
-    const cc = (value) => [{ key: 'Cache-Control', value }];
+    // Every (site) route renders under a layout that reads the locale/currency cookies into the SERVER
+    // HTML (translated text + currency), so a shared/CDN cache must key on the cookie or it could serve
+    // one visitor's language/currency variant to the next. `Vary: Cookie` makes any compliant shared
+    // cache do that. Auth lives in localStorage (not cookies) here, so the cookie header is just
+    // locale/currency/consent — few variants, so caching stays effective while correct.
+    const cc = (value) => [
+      { key: 'Cache-Control', value },
+      { key: 'Vary', value: 'Cookie' },
+    ];
     return [
       { source: '/(.*)', headers: security },
       // /checkout must NEVER be cached or served from the bfcache: it mints/holds a booking and a
