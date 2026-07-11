@@ -280,6 +280,7 @@ export const fr: Record<string, string> = {
   "Only {n} {noun} left on this date.": "Plus que {n} {noun} pour cette date.",
   "spot": "place",
   "spots": "places",
+  "Party size reduced": "Nombre de participants réduit",
   "Added to cart": "Ajouté au panier",
   "1 option available": "1 option disponible",
   "Hotel pickup": "Prise en charge à l’hôtel",

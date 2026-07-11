@@ -98,17 +98,22 @@ export function lineCap(i: CartItem): number {
   return Math.min(bySeats, byTier);
 }
 
-function read(): CartItem[] {
+/** The raw persisted lines, unfiltered — reconcile() partitions these so expiry/unavailable
+ *  notifications can actually fire (filtering here first made those arrays permanently empty). */
+function readRaw(): CartItem[] {
   if (typeof window === 'undefined') return [];
   try {
     const parsed = JSON.parse(window.localStorage.getItem(KEY) ?? '[]');
-    if (!Array.isArray(parsed)) return [];
-    // Saved lines persist indefinitely; held lines expire by their server expiresAt;
-    // unavailable lines are silently dropped on read.
-    return dropExpiredHolds(parsed as CartItem[], Date.now()).kept;
+    return Array.isArray(parsed) ? (parsed as CartItem[]) : [];
   } catch {
     return [];
   }
+}
+
+function read(): CartItem[] {
+  // Saved lines persist indefinitely; held lines expire by their server expiresAt;
+  // unavailable lines are dropped from the VIEW here — reconcile() owns notifying about them.
+  return dropExpiredHolds(readRaw(), Date.now()).kept;
 }
 
 function write(items: CartItem[]): void {
@@ -132,7 +137,7 @@ export function useCart(opts?: { withPending?: boolean }) {
   // Drop expired holds + unavailable lines from the store, notifying for each. Saved lines survive.
   // Pure helper does the partition; we only persist `kept` and fire the per-line notes.
   const reconcile = useCallback(() => {
-    const { kept, expired, unavailable } = dropExpiredHolds(read(), Date.now());
+    const { kept, expired, unavailable } = dropExpiredHolds(readRaw(), Date.now());
     if (expired.length === 0 && unavailable.length === 0) return;
     for (const i of expired) {
       pushNotification('expired', `${i.title} — your held spot expired`, `expired:${i.holdId ?? i.id}`);

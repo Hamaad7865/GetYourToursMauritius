@@ -600,7 +600,9 @@ export function BookingWidget() {
           type="button"
           // seatsLeft counts PEOPLE for per-person options but whole UNITS for vehicle/private (one
           // booking = one vehicle/trip) — so a 1-left day must still accept a party of 6 there.
-          disabled={!date || seatsForDate <= 0 || (!isVehicle && !b.privateCfg && seatsForDate < participants)}
+          // Compare the REAL headcount (totalGuests): in age-banded mode `participants` is the untouched
+          // single-mode default, and gating on it made a valid 1-adult booking unbookable on a 1-seat day.
+          disabled={!date || seatsForDate <= 0 || (!isVehicle && !b.privateCfg && seatsForDate < totalGuests)}
           onClick={checkAvailability}
           className="gyt-press mt-4 flex w-full items-center justify-center rounded-xl bg-teal-dark px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(11,92,99,0.7)] hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
         >
@@ -608,7 +610,7 @@ export function BookingWidget() {
         </button>
         {/* aria-live so a screen reader hears the low-availability warning when it appears/updates. */}
         <div aria-live="polite">
-          {date && !isVehicle && !b.privateCfg && seatsForDate > 0 && seatsForDate < participants && (
+          {date && !isVehicle && !b.privateCfg && seatsForDate > 0 && seatsForDate < totalGuests && (
             <p className="mt-2 text-center text-[12px] font-medium text-coral-dark">
               {t('Only {n} {noun} left on this date.', {
                 n: seatsForDate,

@@ -20,6 +20,8 @@ import {
 } from '@/lib/services/pricing';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
 import { defaultOptionId, cheapestTier, privateConfig, type PrivateConfig } from '@/lib/catalogue/options';
+import { useToast } from '@/components/site/ToastProvider';
+import { useT } from '@/components/site/PreferencesProvider';
 import { encodeParty, partyGuests } from '@/lib/services/party';
 
 export interface BookingActivity {
@@ -153,6 +155,8 @@ export function BookingProvider({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const { showToast } = useToast();
+  const t = useT();
   // Resolve the option the widget opens on up-front, so the initial party can default to a private
   // option's covered count (`included`) with no flash from the generic default of 2.
   const initialOptionId = defaultOptionId(activity.options, activity.pricingMode === 'vehicle');
@@ -320,11 +324,34 @@ export function BookingProvider({
   // Clamp the party down when the cap drops (e.g. switching to a date with fewer seats), so an
   // over-capacity selection never reaches Check availability / checkout.
   useEffect(() => {
-    if (!isAgeBanded && participants > maxParticipants) setParticipants(maxParticipants);
+    if (!isAgeBanded && participants > maxParticipants) {
+      // Seat-driven shrink (a date with fewer seats): tell the customer — a silently changed party
+      // re-quotes a different price with no explanation. Tier-driven caps (option switch) stay silent.
+      if (date && seatsLeft < participants) {
+        showToast({
+          title: t('Party size reduced'),
+          description: t('Only {n} {noun} left on this date.', {
+            n: maxParticipants,
+            noun: maxParticipants === 1 ? t('spot') : t('spots'),
+          }),
+        });
+      }
+      setParticipants(maxParticipants);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAgeBanded, participants, maxParticipants]);
   // Age-banded equivalent: trim extra band guests (keeping ≥1 primary) if the seat cap drops below the total.
   useEffect(() => {
     if (!isAgeBanded || partyGuests(bandCounts) <= maxParticipants) return;
+    if (date && seatsLeft < partyGuests(bandCounts)) {
+      showToast({
+        title: t('Party size reduced'),
+        description: t('Only {n} {noun} left on this date.', {
+          n: maxParticipants,
+          noun: maxParticipants === 1 ? t('spot') : t('spots'),
+        }),
+      });
+    }
     setBandCounts((cur) => {
       let over = partyGuests(cur) - maxParticipants;
       const next = { ...cur };
@@ -338,6 +365,7 @@ export function BookingProvider({
       if (over > 0 && primaryLabel) next[primaryLabel] = Math.max(1, (next[primaryLabel] ?? 1) - over);
       return next;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAgeBanded, bandCounts, maxParticipants, primaryLabel]);
   // Reset the SUV upgrade once the party grows past the entry tier, so dropping back to ≤ 4 starts
   // from Sedan instead of silently snapping the price back to the SUV rate. Applies to both the

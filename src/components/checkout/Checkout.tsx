@@ -524,8 +524,14 @@ export function Checkout() {
   // legitimately adding a pickup fee in this step would falsely trip the warning. When we have no
   // displayed total to compare against, we never block (the server stays the final authority at pay).
   function reconcileOrWarn(srv: number | null): boolean {
+    // Baseline: the last total we SHOWED the customer. After a first warn, `serverTotal` holds the
+    // server's figure and the page displays it (displayTotalNum prefers it) — so the promised
+    // "Tap Pay again to continue" must compare against THAT, not the stale URL total, or the gate
+    // warns forever and the customer can never pay (each attempt stranding a pending booking).
+    // A price that moves AGAIN between taps still re-warns with the new figure.
+    const baseline = serverTotal ?? expectedTotal;
     if (srv != null) setServerTotal(srv);
-    if (srv != null && expectedTotal != null && Math.abs(srv - expectedTotal) >= 0.005) {
+    if (srv != null && baseline != null && Math.abs(srv - baseline) >= 0.005) {
       setError(t('The price for this date is {price}. Tap Pay again to continue.', { price: money(srv) }));
       setBusy(false);
       return true;

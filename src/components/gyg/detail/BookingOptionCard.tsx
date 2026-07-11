@@ -78,7 +78,10 @@ export function BookingOptionCard() {
       // as a flat unit + the per-band map, so the cart + server price each band correctly.
       unitEur: b.unitPriceEur,
       pricingMode: b.activity.pricingMode,
-      party: b.isAgeBanded ? b.party : undefined,
+      // Age-banded AND private lines carry the party map: it makes the cart price the line FLAT
+      // (unitEur is already the whole-trip total for both) and locks the guest stepper — without it a
+      // private €650 base displays as €650 × guests and lineCap clamps guests to the 1-trip pool.
+      party: b.isAgeBanded || b.privateCfg ? b.party : undefined,
       suv: showSuv && b.suv,
       maxGuests: b.groupSize,
       seatsLeft: b.seatsLeft,
