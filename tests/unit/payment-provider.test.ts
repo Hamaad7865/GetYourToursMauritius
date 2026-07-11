@@ -214,10 +214,13 @@ describe('PeachPaymentProvider.createCheckout', () => {
         );
       }
       if (u.endsWith('/v2/checkout')) {
-        return new Response(JSON.stringify({ checkoutId: 'cid_123', result: { code: '000.200.000' } }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        });
+        return new Response(
+          JSON.stringify({ checkoutId: 'cid_123', result: { code: '000.200.000' } }),
+          {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          },
+        );
       }
       throw new Error(`unexpected fetch: ${u}`);
     });

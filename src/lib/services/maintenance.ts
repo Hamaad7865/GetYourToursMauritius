@@ -79,7 +79,9 @@ export async function reconcilePaymentsPending(
   const admin = ctx.admin;
   if (!admin) {
     // Reached only if a non-service-role context calls this — it would otherwise NPE on the append client.
-    throw new Error('reconcilePaymentsPending requires a service-role context (ctx.admin is missing)');
+    throw new Error(
+      'reconcilePaymentsPending requires a service-role context (ctx.admin is missing)',
+    );
   }
 
   const params: Record<string, number> = {};

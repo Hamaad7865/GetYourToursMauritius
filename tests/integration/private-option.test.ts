@@ -15,17 +15,24 @@ const STAFF = 'a7a7a7a7-a7a7-a7a7-a7a7-a7a7a7a7a7a7';
 const CFG = { baseMinor: 9000, included: 4, extraMinor: 2500, maxGuests: 8, tripsPerDay: 1 };
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
 async function usedCapacity(db: TestDb, occurrenceId: string): Promise<number> {
-  const { rows } = await db.pg.query<{ u: number }>(`select used_capacity($1) as u`, [occurrenceId]);
+  const { rows } = await db.pg.query<{ u: number }>(`select used_capacity($1) as u`, [
+    occurrenceId,
+  ]);
   return Number(rows[0]!.u);
 }
 
 async function activitySlug(db: TestDb, activityId: string): Promise<string> {
-  const { rows } = await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [activityId]);
+  const { rows } = await db.pg.query<{ slug: string }>(
+    `select slug from activities where id = $1`,
+    [activityId],
+  );
   return rows[0]!.slug;
 }
 
@@ -77,7 +84,12 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     }>(db, 'api_get_activity', { slug: await activitySlug(db, seed.activityId) });
 
     const priv = data.options.find((o) => o.name === 'Private charter')!;
-    expect(priv).toMatchObject({ privateBaseEur: 90, privateIncluded: 4, privateExtraEur: 25, privateMaxGuests: 8 });
+    expect(priv).toMatchObject({
+      privateBaseEur: 90,
+      privateIncluded: 4,
+      privateExtraEur: 25,
+      privateMaxGuests: 8,
+    });
     expect(priv.prices).toEqual([]);
     const shared = data.options.find((o) => o.name === 'Shared')!;
     expect(shared.privateBaseEur).toBeNull();
@@ -90,7 +102,9 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     const seed = await seedOccurrence(db, 10);
     await seedPrivateOption(db, seed, CFG);
     // Make it private-only: drop the shared option's tier so only the private base remains.
-    await db.pg.query(`delete from activity_option_prices where activity_option_id = $1`, [seed.optionId]);
+    await db.pg.query(`delete from activity_option_prices where activity_option_id = $1`, [
+      seed.optionId,
+    ]);
     const slug = await activitySlug(db, seed.activityId);
     const res = await call<{
       items: Array<{ slug: string; fromPriceEur: number | null; fromPriceIncluded: number | null }>;
@@ -128,7 +142,9 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     await db.asOwner();
     const seed = await seedOccurrence(db, 10);
     const priv = await seedPrivateOption(db, seed, CFG);
-    await expect(bookPrivate(db, seed, priv.occurrenceId, 9, 'priv-over')).rejects.toThrow(/exceeds_max_guests/);
+    await expect(bookPrivate(db, seed, priv.occurrenceId, 9, 'priv-over')).rejects.toThrow(
+      /exceeds_max_guests/,
+    );
   });
 
   it('a private booking consumes ONE trip regardless of group size, as a single pax-carrying item', async () => {
@@ -145,18 +161,32 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     expect(await usedCapacity(db, seed.occurrenceId)).toBe(0);
 
     // One line item: quantity 1, headcount in pax, subtotal = the flat total.
-    const { rows: items } = await db.pg.query<{ price_label: string; quantity: number; pax: number; subtotal_minor: number }>(
+    const { rows: items } = await db.pg.query<{
+      price_label: string;
+      quantity: number;
+      pax: number;
+      subtotal_minor: number;
+    }>(
       `select bi.price_label, bi.quantity, bi.pax, bi.subtotal_minor
          from booking_items bi join bookings b on b.id = bi.booking_id
         where b.idempotency_key = 'priv-pool'`,
     );
     expect(items).toHaveLength(1);
-    expect(items[0]).toMatchObject({ price_label: 'Private charter', quantity: 1, pax: 6, subtotal_minor: 14000 });
+    expect(items[0]).toMatchObject({
+      price_label: 'Private charter',
+      quantity: 1,
+      pax: 6,
+      subtotal_minor: 14000,
+    });
 
     // seatsLeft (trips left) hits 0 for the private occurrence only.
-    const avail = await call<Array<{ occurrenceId: string; seatsLeft: number }>>(db, 'api_list_availability', {
-      slug: await activitySlug(db, seed.activityId),
-    });
+    const avail = await call<Array<{ occurrenceId: string; seatsLeft: number }>>(
+      db,
+      'api_list_availability',
+      {
+        slug: await activitySlug(db, seed.activityId),
+      },
+    );
     expect(avail.find((s) => s.occurrenceId === priv.occurrenceId)?.seatsLeft).toBe(0);
     expect(avail.find((s) => s.occurrenceId === seed.occurrenceId)?.seatsLeft).toBe(10);
   });
@@ -167,7 +197,9 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     const priv = await seedPrivateOption(db, seed, CFG);
 
     await bookPrivate(db, seed, priv.occurrenceId, 2, 'priv-first');
-    await expect(bookPrivate(db, seed, priv.occurrenceId, 2, 'priv-second')).rejects.toThrow(/insufficient_capacity/);
+    await expect(bookPrivate(db, seed, priv.occurrenceId, 2, 'priv-second')).rejects.toThrow(
+      /insufficient_capacity/,
+    );
 
     // Independent pools the other way round: the shared option still takes a normal booking.
     const shared = await call<{ totalEur: number }>(db, 'api_book', {
@@ -213,15 +245,22 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     // Booking B (2 guests, €90) grabs the freed trip and PAYS FIRST → confirmed.
     await bookPrivate(db, seed, priv.occurrenceId, 2, 'priv-race-b');
     const pay = async (key: string, amount: number, evt: string) => {
-      const { rows: b } = await db.pg.query<{ id: string }>(`select id from bookings where idempotency_key = $1`, [key]);
+      const { rows: b } = await db.pg.query<{ id: string }>(
+        `select id from bookings where idempotency_key = $1`,
+        [key],
+      );
       const { rows: p } = await db.pg.query<{ id: string }>(
         `insert into payments (booking_id, idempotency_key, amount_minor) values ($1, $2, $3) returning id`,
         [b[0]!.id, `pay-${key}`, amount],
       );
-      await db.pg.query(`select * from append_payment_event($1, $2, $3, $4, $5::timestamptz, $6::jsonb)`, [
-        p[0]!.id, 'paid', evt, amount, new Date().toISOString(), '{}',
-      ]);
-      const { rows: st } = await db.pg.query<{ status: string }>(`select status from bookings where id = $1`, [b[0]!.id]);
+      await db.pg.query(
+        `select * from append_payment_event($1, $2, $3, $4, $5::timestamptz, $6::jsonb)`,
+        [p[0]!.id, 'paid', evt, amount, new Date().toISOString(), '{}'],
+      );
+      const { rows: st } = await db.pg.query<{ status: string }>(
+        `select status from bookings where id = $1`,
+        [b[0]!.id],
+      );
       return st[0]!.status;
     };
 
@@ -238,7 +277,9 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     await db.pg.query(`update activities set daily_capacity = 5 where id = $1`, [seed.activityId]);
 
     await db.as({ sub: STAFF, role: 'authenticated' });
-    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: seed.activityId })]);
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [
+      JSON.stringify({ activityId: seed.activityId }),
+    ]);
     await db.asOwner();
 
     const counts = async (optionId: string, capacity: number) => {
@@ -260,7 +301,9 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     await seedPrivateOption(db, seed, CFG); // option-level capacity set, but the master switch is off
 
     await db.as({ sub: STAFF, role: 'authenticated' });
-    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: seed.activityId })]);
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [
+      JSON.stringify({ activityId: seed.activityId }),
+    ]);
     await db.asOwner();
 
     // Only the two manually-seeded occurrences exist — an option-level capacity alone never re-lights it.
@@ -279,7 +322,10 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     const priv = await seedPrivateOption(db, seed, CFG); // option daily_capacity = 1
 
     const occCapacity = async (occurrenceId: string) => {
-      const { rows } = await db.pg.query<{ c: number }>(`select capacity as c from session_occurrences where id = $1`, [occurrenceId]);
+      const { rows } = await db.pg.query<{ c: number }>(
+        `select capacity as c from session_occurrences where id = $1`,
+        [occurrenceId],
+      );
       return Number(rows[0]!.c);
     };
 

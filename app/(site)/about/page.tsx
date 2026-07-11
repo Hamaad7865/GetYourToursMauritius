@@ -62,8 +62,21 @@ export const metadata: Metadata = {
 
 function ArrowIcon({ size = 16, className }: { size?: number; className?: string }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="none" aria-hidden="true" className={className}>
-      <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 16 16"
+      fill="none"
+      aria-hidden="true"
+      className={className}
+    >
+      <path
+        d="M3 8h10M9 4l4 4-4 4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -86,10 +99,7 @@ function PinIcon({ color }: { color: string }) {
 
 function Eyebrow({ children, color = TEAL }: { children: ReactNode; color?: string }) {
   return (
-    <span
-      className="text-[13px] font-bold uppercase tracking-[0.2em]"
-      style={{ color }}
-    >
+    <span className="text-[13px] font-bold uppercase tracking-[0.2em]" style={{ color }}>
       {children}
     </span>
   );
@@ -98,7 +108,13 @@ function Eyebrow({ children, color = TEAL }: { children: ReactNode; color?: stri
 function ChevronDown() {
   return (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-      <path d="M5 8l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M5 8l5 5 5-5"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -111,8 +127,19 @@ export default async function AboutPage() {
       tintBg: 'rgba(14,140,146,0.12)',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 2l7 3v6c0 4.5-3 8-7 11-4-3-7-6.5-7-11V5l7-3z" stroke={TEAL} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M8.5 12l2.2 2.2L15.5 9.5" stroke={TEAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M12 2l7 3v6c0 4.5-3 8-7 11-4-3-7-6.5-7-11V5l7-3z"
+            stroke={TEAL}
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M8.5 12l2.2 2.2L15.5 9.5"
+            stroke={TEAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
       title: t('Tourism Authority licensed'),
@@ -123,7 +150,10 @@ export default async function AboutPage() {
       tintBg: 'rgba(233,185,73,0.18)',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 2.5l2.7 6 6.6.6-5 4.3 1.5 6.4L12 16.9 6.2 19.8l1.5-6.4-5-4.3 6.6-.6L12 2.5z" fill={GOLD} />
+          <path
+            d="M12 2.5l2.7 6 6.6.6-5 4.3 1.5 6.4L12 16.9 6.2 19.8l1.5-6.4-5-4.3 6.6-.6L12 2.5z"
+            fill={GOLD}
+          />
         </svg>
       ),
       title: t('4.8★ from 1,000+ reviews'),
@@ -135,7 +165,12 @@ export default async function AboutPage() {
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="12" cy="8" r="3.4" stroke={TEAL} strokeWidth="1.8" />
-          <path d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" stroke={TEAL} strokeWidth="1.8" strokeLinecap="round" />
+          <path
+            d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"
+            stroke={TEAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
         </svg>
       ),
       title: t('The same guide all day'),
@@ -146,9 +181,27 @@ export default async function AboutPage() {
       tintBg: 'rgba(247,108,94,0.14)',
       icon: (
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M3 11l9-7 9 7" stroke={CORAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M5 10v9h14v-9" stroke={CORAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M10 19v-5h4v5" stroke={CORAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M3 11l9-7 9 7"
+            stroke={CORAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M5 10v9h14v-9"
+            stroke={CORAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M10 19v-5h4v5"
+            stroke={CORAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
       title: t('Book direct, no commission'),
@@ -164,7 +217,13 @@ export default async function AboutPage() {
       tintBg: 'rgba(14,140,146,0.12)',
       icon: (
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M5 19l3-6 5-2 6-9" stroke={TEAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M5 19l3-6 5-2 6-9"
+            stroke={TEAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
           <circle cx="5" cy="19" r="2" stroke={TEAL} strokeWidth="1.8" />
           <circle cx="19" cy="4" r="2" stroke={TEAL} strokeWidth="1.8" />
         </svg>
@@ -180,9 +239,26 @@ export default async function AboutPage() {
       tintBg: 'rgba(14,140,146,0.12)',
       icon: (
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M12 3v9M12 5l6 2-6 3-6-3 6-2z" stroke={TEAL} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M3 16c1.5 1.5 3 1.5 4.5 0S10.5 14.5 12 16s3 1.5 4.5 0S19.5 14.5 21 16" stroke={TEAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M4 20c1.3 1.3 2.7 1.3 4 0s2.7-1.3 4 0 2.7 1.3 4 0" stroke={TEAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M12 3v9M12 5l6 2-6 3-6-3 6-2z"
+            stroke={TEAL}
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M3 16c1.5 1.5 3 1.5 4.5 0S10.5 14.5 12 16s3 1.5 4.5 0S19.5 14.5 21 16"
+            stroke={TEAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M4 20c1.3 1.3 2.7 1.3 4 0s2.7-1.3 4 0 2.7 1.3 4 0"
+            stroke={TEAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
       title: t('Catamaran Cruises & Île aux Cerfs'),
@@ -196,8 +272,19 @@ export default async function AboutPage() {
       tintBg: 'rgba(14,140,146,0.12)',
       icon: (
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M4 14c4 0 5-3 8-3s4 3 8 3c-1 4-4 6-8 6s-7-2-8-6z" stroke={TEAL} strokeWidth="1.8" strokeLinejoin="round" />
-          <path d="M12 11c0-3 1-5 4-6-1 2-1 3 0 4" stroke={TEAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M4 14c4 0 5-3 8-3s4 3 8 3c-1 4-4 6-8 6s-7-2-8-6z"
+            stroke={TEAL}
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M12 11c0-3 1-5 4-6-1 2-1 3 0 4"
+            stroke={TEAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
       title: t('Dolphin Swims in Tamarin Bay'),
@@ -211,7 +298,13 @@ export default async function AboutPage() {
       tintBg: 'rgba(247,108,94,0.14)',
       icon: (
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M4 14l1.5-5A2 2 0 017.4 7.5h9.2A2 2 0 0118.5 9L20 14" stroke={CORAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M4 14l1.5-5A2 2 0 017.4 7.5h9.2A2 2 0 0118.5 9L20 14"
+            stroke={CORAL}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
           <path d="M3 14h18v4H3z" stroke={CORAL} strokeWidth="1.8" strokeLinejoin="round" />
           <circle cx="7" cy="18.5" r="1.4" fill={CORAL} />
           <circle cx="17" cy="18.5" r="1.4" fill={CORAL} />
@@ -230,8 +323,20 @@ export default async function AboutPage() {
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <circle cx="6" cy="17" r="3" stroke={INK} strokeWidth="1.8" />
           <circle cx="18" cy="17" r="3" stroke={INK} strokeWidth="1.8" />
-          <path d="M9 17h6M6 17l4-7h4l2 4" stroke={INK} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M13 10l-1-3h-2" stroke={INK} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M9 17h6M6 17l4-7h4l2 4"
+            stroke={INK}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M13 10l-1-3h-2"
+            stroke={INK}
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ),
       title: t('Car & Scooter Rental in Mauritius'),
@@ -279,23 +384,33 @@ export default async function AboutPage() {
   const faqs = [
     {
       q: t('Is Belle Mare Tours licensed?'),
-      a: t('Yes. Belle Mare Tours Ltd is approved and licensed by the Mauritius Tourism Authority, run by veteran local driver-guide Noorani, based in Belle Mare on the east coast.'),
+      a: t(
+        'Yes. Belle Mare Tours Ltd is approved and licensed by the Mauritius Tourism Authority, run by veteran local driver-guide Noorani, based in Belle Mare on the east coast.',
+      ),
     },
     {
       q: t('Which areas of Mauritius do you cover?'),
-      a: t('We operate island-wide — North, East, South, West and Central — with door-to-door pickup from any hotel, Airbnb or cruise port.'),
+      a: t(
+        'We operate island-wide — North, East, South, West and Central — with door-to-door pickup from any hotel, Airbnb or cruise port.',
+      ),
     },
     {
       q: t('Do you pick up from my hotel and the airport?'),
-      a: t('Yes. We offer door-to-door pickup from any hotel, Airbnb or cruise port island-wide, as well as airport arrivals and transfers.'),
+      a: t(
+        'Yes. We offer door-to-door pickup from any hotel, Airbnb or cruise port island-wide, as well as airport arrivals and transfers.',
+      ),
     },
     {
       q: t('Are your tours private?'),
-      a: t('Yes. The same English- and French-speaking driver-guide looks after you all day — you are never passed between taxis.'),
+      a: t(
+        'Yes. The same English- and French-speaking driver-guide looks after you all day — you are never passed between taxis.',
+      ),
     },
     {
       q: t('How do I pay?'),
-      a: t('Prices are transparent and fixed in EUR, shown up front. You pay securely by card and receive instant e-voucher confirmation.'),
+      a: t(
+        'Prices are transparent and fixed in EUR, shown up front. You pay securely by card and receive instant e-voucher confirmation.',
+      ),
     },
     {
       q: t('What is your cancellation policy?'),
@@ -306,7 +421,14 @@ export default async function AboutPage() {
   const cardBase = `group flex flex-col gap-3.5 rounded-[22px] border p-[28px_26px] no-underline transition duration-300 hover:-translate-y-[7px]`;
 
   return (
-    <div className={`${display.variable} ${bodyFont.variable} overflow-x-hidden`} style={{ fontFamily: 'var(--font-about-body), system-ui, sans-serif', color: INK, background: CREAM }}>
+    <div
+      className={`${display.variable} ${bodyFont.variable} overflow-x-hidden`}
+      style={{
+        fontFamily: 'var(--font-about-body), system-ui, sans-serif',
+        color: INK,
+        background: CREAM,
+      }}
+    >
       <JsonLd
         data={breadcrumbListJsonLd([
           { name: 'Home', path: '/' },
@@ -361,7 +483,9 @@ export default async function AboutPage() {
                 className="mt-[16px] max-w-[620px] text-white/90"
                 style={{ fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.6, textWrap: 'pretty' }}
               >
-                {t('We’re Belle Mare Tours — a licensed east-coast operator run by veteran driver-guide Noorani. Book direct with the team that actually drives the roads, for fixed prices and a guide who stays with you all day.')}
+                {t(
+                  'We’re Belle Mare Tours — a licensed east-coast operator run by veteran driver-guide Noorani. Book direct with the team that actually drives the roads, for fixed prices and a guide who stays with you all day.',
+                )}
               </p>
               <div className="mt-[24px] flex flex-wrap gap-3">
                 <Link
@@ -375,7 +499,10 @@ export default async function AboutPage() {
                 <Link
                   href="#story"
                   className="inline-flex items-center gap-[9px] rounded-full border px-[26px] py-[15px] text-base font-semibold text-white no-underline backdrop-blur-[6px] transition"
-                  style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.35)' }}
+                  style={{
+                    background: 'rgba(255,255,255,0.12)',
+                    borderColor: 'rgba(255,255,255,0.35)',
+                  }}
                 >
                   {t('Read our story')}
                 </Link>
@@ -411,10 +538,16 @@ export default async function AboutPage() {
                 >
                   {item.icon}
                 </div>
-                <h3 className="m-0 mb-[5px] text-[18px] font-bold tracking-[-0.01em]" style={displayFont}>
+                <h3
+                  className="m-0 mb-[5px] text-[18px] font-bold tracking-[-0.01em]"
+                  style={displayFont}
+                >
                   {item.title}
                 </h3>
-                <p className="m-0 text-[14.5px] leading-[1.5]" style={{ color: 'rgba(17,32,31,0.66)' }}>
+                <p
+                  className="m-0 text-[14.5px] leading-[1.5]"
+                  style={{ color: 'rgba(17,32,31,0.66)' }}
+                >
                   {item.blurb}
                 </p>
               </div>
@@ -436,18 +569,54 @@ export default async function AboutPage() {
               <Eyebrow>{t('Our story')}</Eyebrow>
               <h2
                 className="m-0 mt-3.5 font-bold"
-                style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em', textWrap: 'balance' }}
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(30px,4.4vw,52px)',
+                  lineHeight: 1.06,
+                  letterSpacing: '-0.02em',
+                  textWrap: 'balance',
+                }}
               >
                 {t('Two driver-guides, one island they know by heart')}
               </h2>
-              <p className="mt-[22px]" style={{ fontSize: 'clamp(16px,1.7vw,18.5px)', lineHeight: 1.65, color: 'rgba(17,32,31,0.78)', textWrap: 'pretty' }}>
-                {t('Noorani has spent his life on Mauritian roads — one of the island’s most experienced driver-guides, based where the day begins, in Belle Mare on the east coast.')}
+              <p
+                className="mt-[22px]"
+                style={{
+                  fontSize: 'clamp(16px,1.7vw,18.5px)',
+                  lineHeight: 1.65,
+                  color: 'rgba(17,32,31,0.78)',
+                  textWrap: 'pretty',
+                }}
+              >
+                {t(
+                  'Noorani has spent his life on Mauritian roads — one of the island’s most experienced driver-guides, based where the day begins, in Belle Mare on the east coast.',
+                )}
               </p>
-              <p className="mt-4" style={{ fontSize: 'clamp(16px,1.7vw,18.5px)', lineHeight: 1.65, color: 'rgba(17,32,31,0.78)', textWrap: 'pretty' }}>
-                {t('Over the years they grew a trusted local operation on one simple promise: the same driver-guide looks after you from morning pickup to evening drop-off. You’re never handed between taxis, never left waiting, never sold a detour you didn’t ask for.')}
+              <p
+                className="mt-4"
+                style={{
+                  fontSize: 'clamp(16px,1.7vw,18.5px)',
+                  lineHeight: 1.65,
+                  color: 'rgba(17,32,31,0.78)',
+                  textWrap: 'pretty',
+                }}
+              >
+                {t(
+                  'Over the years they grew a trusted local operation on one simple promise: the same driver-guide looks after you from morning pickup to evening drop-off. You’re never handed between taxis, never left waiting, never sold a detour you didn’t ask for.',
+                )}
               </p>
-              <p className="mt-4" style={{ fontSize: 'clamp(16px,1.7vw,18.5px)', lineHeight: 1.65, color: 'rgba(17,32,31,0.78)', textWrap: 'pretty' }}>
-                {t('The Mauritius they show you is the one they grew up with — the still lagoons off Belle Mare, a catamaran out to Île aux Cerfs, dolphins at first light in Tamarin Bay, and the colour of the Port Louis markets.')}
+              <p
+                className="mt-4"
+                style={{
+                  fontSize: 'clamp(16px,1.7vw,18.5px)',
+                  lineHeight: 1.65,
+                  color: 'rgba(17,32,31,0.78)',
+                  textWrap: 'pretty',
+                }}
+              >
+                {t(
+                  'The Mauritius they show you is the one they grew up with — the still lagoons off Belle Mare, a catamaran out to Île aux Cerfs, dolphins at first light in Tamarin Bay, and the colour of the Port Louis markets.',
+                )}
               </p>
             </div>
 
@@ -500,7 +669,9 @@ export default async function AboutPage() {
                 <div className="text-[24px] font-extrabold leading-none" style={displayFont}>
                   {t('East coast')}
                 </div>
-                <div className="mt-0.5 text-[12.5px] font-semibold opacity-80">{t('Based in Belle Mare')}</div>
+                <div className="mt-0.5 text-[12.5px] font-semibold opacity-80">
+                  {t('Based in Belle Mare')}
+                </div>
               </div>
             </div>
           </div>
@@ -537,19 +708,37 @@ export default async function AboutPage() {
             <Eyebrow>{t('What we offer')}</Eyebrow>
             <h2
               className="m-0 mt-3.5 font-bold"
-              style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em', textWrap: 'balance' }}
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(30px,4.4vw,52px)',
+                lineHeight: 1.06,
+                letterSpacing: '-0.02em',
+                textWrap: 'balance',
+              }}
             >
               {t('Every way to see Mauritius — booked direct')}
             </h2>
-            <p className="mt-4" style={{ fontSize: 'clamp(16px,1.7vw,18.5px)', lineHeight: 1.6, color: 'rgba(17,32,31,0.7)' }}>
-              {t('From a full day of private sightseeing to a quick airport run, it’s the same trusted team behind every trip.')}
+            <p
+              className="mt-4"
+              style={{
+                fontSize: 'clamp(16px,1.7vw,18.5px)',
+                lineHeight: 1.6,
+                color: 'rgba(17,32,31,0.7)',
+              }}
+            >
+              {t(
+                'From a full day of private sightseeing to a quick airport run, it’s the same trusted team behind every trip.',
+              )}
             </p>
           </div>
 
           <div
             id="tours"
             className="grid scroll-mt-24 gap-[clamp(14px,1.8vw,22px)]"
-            style={{ gridTemplateColumns: `repeat(auto-fit, minmax(270px, 1fr))`, marginTop: 'clamp(34px,4vw,52px)' }}
+            style={{
+              gridTemplateColumns: `repeat(auto-fit, minmax(270px, 1fr))`,
+              marginTop: 'clamp(34px,4vw,52px)',
+            }}
           >
             {offers.map((card) => (
               <Link
@@ -564,16 +753,25 @@ export default async function AboutPage() {
                   borderColor: 'rgba(17,32,31,0.08)',
                 }}
               >
-                <span className="flex h-[50px] w-[50px] items-center justify-center rounded-[14px]" style={{ background: card.tintBg }}>
+                <span
+                  className="flex h-[50px] w-[50px] items-center justify-center rounded-[14px]"
+                  style={{ background: card.tintBg }}
+                >
                   {card.icon}
                 </span>
                 <h3 className="m-0 text-[20px] font-bold tracking-[-0.01em]" style={displayFont}>
                   {card.title}
                 </h3>
-                <p className="m-0 flex-1 text-[14.5px] leading-[1.55]" style={{ color: 'rgba(17,32,31,0.66)' }}>
+                <p
+                  className="m-0 flex-1 text-[14.5px] leading-[1.55]"
+                  style={{ color: 'rgba(17,32,31,0.66)' }}
+                >
                   {card.blurb}
                 </p>
-                <span className="inline-flex items-center gap-[7px] text-[14.5px] font-bold" style={{ color: card.ctaColor }}>
+                <span
+                  className="inline-flex items-center gap-[7px] text-[14.5px] font-bold"
+                  style={{ color: card.ctaColor }}
+                >
                   {card.cta} <ArrowIcon size={14} />
                 </span>
               </Link>
@@ -591,19 +789,34 @@ export default async function AboutPage() {
                 borderColor: 'rgba(255,255,255,0.12)',
               }}
             >
-              <span className="flex h-[50px] w-[50px] items-center justify-center rounded-[14px]" style={{ background: 'rgba(255,255,255,0.16)' }}>
+              <span
+                className="flex h-[50px] w-[50px] items-center justify-center rounded-[14px]"
+                style={{ background: 'rgba(255,255,255,0.16)' }}
+              >
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z" fill={GOLD} />
-                  <path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z" fill="#fff" />
+                  <path
+                    d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"
+                    fill={GOLD}
+                  />
+                  <path
+                    d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z"
+                    fill="#fff"
+                  />
                 </svg>
               </span>
               <h3 className="m-0 text-[20px] font-bold tracking-[-0.01em]" style={displayFont}>
                 {t('Build a Custom Day with AI')}
               </h3>
-              <p className="m-0 flex-1 text-[14.5px] leading-[1.55]" style={{ color: 'rgba(255,255,255,0.82)' }}>
+              <p
+                className="m-0 flex-1 text-[14.5px] leading-[1.55]"
+                style={{ color: 'rgba(255,255,255,0.82)' }}
+              >
                 {t('Tell us your dates and pace — get a tailored island day in seconds.')}
               </p>
-              <span className="inline-flex items-center gap-[7px] text-[14.5px] font-bold" style={{ color: GOLD }}>
+              <span
+                className="inline-flex items-center gap-[7px] text-[14.5px] font-bold"
+                style={{ color: GOLD }}
+              >
                 {t('Plan my day')} <ArrowIcon size={14} />
               </span>
             </Link>
@@ -611,7 +824,11 @@ export default async function AboutPage() {
         </section>
 
         {/* ============ WHY WE BUILT GETYOURTOURSMAURITIUS ============ */}
-        <section id="why" className="relative overflow-hidden text-white" style={{ background: TEAL_DARK }}>
+        <section
+          id="why"
+          className="relative overflow-hidden text-white"
+          style={{ background: TEAL_DARK }}
+        >
           <div
             aria-hidden="true"
             className="absolute"
@@ -648,15 +865,39 @@ export default async function AboutPage() {
                 <Eyebrow color={GOLD}>{t('Why we built GetYourToursMauritius')}</Eyebrow>
                 <h2
                   className="m-0 mt-3.5 font-bold text-white"
-                  style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,50px)', lineHeight: 1.07, letterSpacing: '-0.02em', textWrap: 'balance' }}
+                  style={{
+                    ...displayFont,
+                    fontSize: 'clamp(30px,4.4vw,50px)',
+                    lineHeight: 1.07,
+                    letterSpacing: '-0.02em',
+                    textWrap: 'balance',
+                  }}
                 >
                   {t('Cut out the middleman, keep the price honest')}
                 </h2>
-                <p className="mt-[22px] text-white/85" style={{ fontSize: 'clamp(16px,1.7vw,18.5px)', lineHeight: 1.65, textWrap: 'pretty' }}>
-                  {t('Big booking platforms take a heavy commission on every trip. That money either inflates the price you pay — or quietly shrinks what reaches the local team who actually drive you around the island.')}
+                <p
+                  className="mt-[22px] text-white/85"
+                  style={{
+                    fontSize: 'clamp(16px,1.7vw,18.5px)',
+                    lineHeight: 1.65,
+                    textWrap: 'pretty',
+                  }}
+                >
+                  {t(
+                    'Big booking platforms take a heavy commission on every trip. That money either inflates the price you pay — or quietly shrinks what reaches the local team who actually drive you around the island.',
+                  )}
                 </p>
-                <p className="mt-4 text-white/85" style={{ fontSize: 'clamp(16px,1.7vw,18.5px)', lineHeight: 1.65, textWrap: 'pretty' }}>
-                  {t('So we built our own booking platform. Reserve direct with the operator and you get transparent fixed prices, instant confirmation, free cancellation — and more of what you pay stays with the people showing you Mauritius.')}
+                <p
+                  className="mt-4 text-white/85"
+                  style={{
+                    fontSize: 'clamp(16px,1.7vw,18.5px)',
+                    lineHeight: 1.65,
+                    textWrap: 'pretty',
+                  }}
+                >
+                  {t(
+                    'So we built our own booking platform. Reserve direct with the operator and you get transparent fixed prices, instant confirmation, free cancellation — and more of what you pay stays with the people showing you Mauritius.',
+                  )}
                 </p>
               </div>
 
@@ -665,8 +906,20 @@ export default async function AboutPage() {
                   {
                     tintBg: 'rgba(233,185,73,0.22)',
                     icon: (
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M12 4v16M8 8h6.5a2.5 2.5 0 010 5H8m0 0h7" stroke={GOLD} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M12 4v16M8 8h6.5a2.5 2.5 0 010 5H8m0 0h7"
+                          stroke={GOLD}
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     ),
                     title: t('Transparent fixed EUR prices'),
@@ -675,8 +928,19 @@ export default async function AboutPage() {
                   {
                     tintBg: 'rgba(255,255,255,0.14)',
                     icon: (
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                        <path d="M13 3L4 14h6l-1 7 9-11h-6l1-7z" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M13 3L4 14h6l-1 7 9-11h-6l1-7z"
+                          stroke="#fff"
+                          strokeWidth="1.8"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     ),
                     title: t('Instant e-voucher confirmation'),
@@ -685,9 +949,21 @@ export default async function AboutPage() {
                   {
                     tintBg: 'rgba(247,108,94,0.22)',
                     icon: (
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        aria-hidden="true"
+                      >
                         <circle cx="12" cy="12" r="9" stroke={CORAL} strokeWidth="1.8" />
-                        <path d="M12 7v5l3 2" stroke={CORAL} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M12 7v5l3 2"
+                          stroke={CORAL}
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                     ),
                     title: t('Free cancellation up to 24h'),
@@ -697,7 +973,10 @@ export default async function AboutPage() {
                   <div
                     key={row.title}
                     className="flex items-start gap-4 rounded-[18px] border p-[20px_22px]"
-                    style={{ background: 'rgba(255,255,255,0.07)', borderColor: 'rgba(255,255,255,0.12)' }}
+                    style={{
+                      background: 'rgba(255,255,255,0.07)',
+                      borderColor: 'rgba(255,255,255,0.12)',
+                    }}
                   >
                     <span
                       className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[11px]"
@@ -706,7 +985,10 @@ export default async function AboutPage() {
                       {row.icon}
                     </span>
                     <div>
-                      <h3 className="m-0 mb-[3px] text-[17px] font-bold text-white" style={displayFont}>
+                      <h3
+                        className="m-0 mb-[3px] text-[17px] font-bold text-white"
+                        style={displayFont}
+                      >
                         {row.title}
                       </h3>
                       <p className="m-0 text-[14.5px] leading-[1.5] text-white/75">{row.blurb}</p>
@@ -728,18 +1010,34 @@ export default async function AboutPage() {
             <Eyebrow>{t('Across the whole island')}</Eyebrow>
             <h2
               className="m-0 mt-3.5 font-bold"
-              style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em', textWrap: 'balance' }}
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(30px,4.4vw,52px)',
+                lineHeight: 1.06,
+                letterSpacing: '-0.02em',
+                textWrap: 'balance',
+              }}
             >
               {t('One operator, every corner of Mauritius')}
             </h2>
-            <p className="mt-4" style={{ fontSize: 'clamp(16px,1.7vw,18.5px)', lineHeight: 1.6, color: 'rgba(17,32,31,0.7)' }}>
+            <p
+              className="mt-4"
+              style={{
+                fontSize: 'clamp(16px,1.7vw,18.5px)',
+                lineHeight: 1.6,
+                color: 'rgba(17,32,31,0.7)',
+              }}
+            >
               {t('Door-to-door pickup island-wide — wherever you’re staying, we reach you.')}
             </p>
           </div>
 
           <div
             className="grid gap-[clamp(12px,1.6vw,18px)]"
-            style={{ gridTemplateColumns: `repeat(auto-fit, minmax(210px, 1fr))`, marginTop: 'clamp(34px,4vw,52px)' }}
+            style={{
+              gridTemplateColumns: `repeat(auto-fit, minmax(210px, 1fr))`,
+              marginTop: 'clamp(34px,4vw,52px)',
+            }}
           >
             {regions.map((region) => {
               const cardStyle: CSSProperties = region.highlight
@@ -772,7 +1070,9 @@ export default async function AboutPage() {
                   </h3>
                   <p
                     className="m-0 text-[14px] leading-[1.5]"
-                    style={{ color: region.highlight ? 'rgba(255,255,255,0.8)' : 'rgba(17,32,31,0.62)' }}
+                    style={{
+                      color: region.highlight ? 'rgba(255,255,255,0.8)' : 'rgba(17,32,31,0.62)',
+                    }}
                   >
                     {region.blurb}
                   </p>
@@ -783,16 +1083,29 @@ export default async function AboutPage() {
         </section>
 
         {/* ============ FAQ ============ */}
-        <section id="faq" style={{ background: '#fff', borderTop: '1px solid rgba(17,32,31,0.06)' }}>
+        <section
+          id="faq"
+          style={{ background: '#fff', borderTop: '1px solid rgba(17,32,31,0.06)' }}
+        >
           <div
             className="mx-auto max-w-[880px]"
             style={{ padding: 'clamp(72px,10vw,128px) clamp(18px,5vw,72px)' }}
           >
-            <div data-reveal className="text-center" style={{ marginBottom: 'clamp(34px,4vw,52px)' }}>
+            <div
+              data-reveal
+              className="text-center"
+              style={{ marginBottom: 'clamp(34px,4vw,52px)' }}
+            >
               <Eyebrow>{t('Good to know')}</Eyebrow>
               <h2
                 className="m-0 mt-3.5 font-bold"
-                style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,50px)', lineHeight: 1.07, letterSpacing: '-0.02em', textWrap: 'balance' }}
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(30px,4.4vw,50px)',
+                  lineHeight: 1.07,
+                  letterSpacing: '-0.02em',
+                  textWrap: 'balance',
+                }}
               >
                 {t('Frequently asked questions')}
               </h2>
@@ -816,7 +1129,10 @@ export default async function AboutPage() {
                     }}
                   >
                     <span>{faq.q}</span>
-                    <span className="flex-none transition-transform duration-300 group-open:rotate-180" style={{ color: TEAL }}>
+                    <span
+                      className="flex-none transition-transform duration-300 group-open:rotate-180"
+                      style={{ color: TEAL }}
+                    >
                       <ChevronDown />
                     </span>
                   </summary>
@@ -838,7 +1154,10 @@ export default async function AboutPage() {
         </section>
 
         {/* ============ CTA BAND ============ */}
-        <section className="relative overflow-hidden text-white" style={{ background: 'linear-gradient(150deg, #11201F, #0B5C63)' }}>
+        <section
+          className="relative overflow-hidden text-white"
+          style={{ background: 'linear-gradient(150deg, #11201F, #0B5C63)' }}
+        >
           <div
             aria-hidden="true"
             className="absolute left-1/2 -translate-x-1/2"
@@ -856,11 +1175,21 @@ export default async function AboutPage() {
             <Eyebrow color={GOLD}>{t('Ready when you are')}</Eyebrow>
             <h2
               className="mx-auto mt-4 font-extrabold text-white"
-              style={{ ...displayFont, fontSize: 'clamp(32px,5vw,58px)', lineHeight: 1.04, letterSpacing: '-0.02em', maxWidth: '14ch', textWrap: 'balance' }}
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(32px,5vw,58px)',
+                lineHeight: 1.04,
+                letterSpacing: '-0.02em',
+                maxWidth: '14ch',
+                textWrap: 'balance',
+              }}
             >
               {t('Let’s plan your Mauritius, together')}
             </h2>
-            <p className="mx-auto mt-[18px] max-w-[560px] text-white/85" style={{ fontSize: 'clamp(16px,1.9vw,19px)', lineHeight: 1.6 }}>
+            <p
+              className="mx-auto mt-[18px] max-w-[560px] text-white/85"
+              style={{ fontSize: 'clamp(16px,1.9vw,19px)', lineHeight: 1.6 }}
+            >
               {t('Message Noorani directly, or browse fixed-price tours and book in minutes.')}
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3.5">
@@ -869,9 +1198,19 @@ export default async function AboutPage() {
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2.5 rounded-full px-[30px] py-4 text-[17px] font-bold no-underline transition hover:-translate-y-0.5"
-                style={{ background: '#25D366', color: '#0a2e16', boxShadow: '0 14px 34px rgba(37,211,102,0.36)' }}
+                style={{
+                  background: '#25D366',
+                  color: '#0a2e16',
+                  boxShadow: '0 14px 34px rgba(37,211,102,0.36)',
+                }}
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  aria-hidden="true"
+                >
                   <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.92C21.95 6.45 17.5 2 12.04 2zm5.8 14.04c-.24.68-1.4 1.3-1.94 1.38-.5.07-1.13.1-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.8-4.17-4.94-4.36-.15-.19-1.19-1.58-1.19-3.01 0-1.43.75-2.13 1.02-2.42.27-.29.59-.36.79-.36.2 0 .39.002.56.01.18.008.42-.07.66.5.24.59.82 2.04.89 2.18.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.16-.19.69-.81.88-1.09.18-.28.37-.23.61-.14.25.09 1.58.74 1.85.88.27.14.45.21.51.32.07.11.07.64-.17 1.32z" />
                 </svg>
                 {t('Message us on WhatsApp')}
@@ -886,7 +1225,9 @@ export default async function AboutPage() {
               </Link>
             </div>
             <p className="mt-[26px] text-[13.5px] text-white/60">
-              {t('English & French spoken · Door-to-door island-wide · Free cancellation up to 24h')}
+              {t(
+                'English & French spoken · Door-to-door island-wide · Free cancellation up to 24h',
+              )}
             </p>
           </div>
         </section>

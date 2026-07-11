@@ -4,7 +4,12 @@ import { Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { breadcrumbListJsonLd, faqPageJsonLd, serviceJsonLd, transferServiceJsonLd } from '@/lib/seo/jsonld';
+import {
+  breadcrumbListJsonLd,
+  faqPageJsonLd,
+  serviceJsonLd,
+  transferServiceJsonLd,
+} from '@/lib/seo/jsonld';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { RevealOnScroll } from '@/components/about/RevealOnScroll';
 import { HeroWaves } from '@/components/about/HeroWaves';
@@ -96,7 +101,17 @@ function Eyebrow({ children, color = TEAL }: { children: ReactNode; color?: stri
 
 function Check({ color = CORAL, size = 16 }: { color?: string; size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="m5 13 4 4L19 7" />
     </svg>
   );
@@ -104,7 +119,17 @@ function Check({ color = CORAL, size = 16 }: { color?: string; size?: number }) 
 
 function Arrow() {
   return (
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="19"
+      height="19"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="#fff"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M5 12h14" />
       <path d="m13 6 6 6-6 6" />
     </svg>
@@ -153,14 +178,23 @@ export default function AirportTransfersPage() {
   // calculator + server use. Return cells already include the configured round-trip discount. ──
   const returnPct = AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT;
   const ret = (oneWayMinor: number) => Math.round((oneWayMinor * 2 * (100 - returnPct)) / 100);
-  const vehicleCols: { key: 'sedanMinor' | 'familyMinor' | 'vanMinor' | 'coasterMinor'; label: string }[] = [
+  const vehicleCols: {
+    key: 'sedanMinor' | 'familyMinor' | 'vanMinor' | 'coasterMinor';
+    label: string;
+  }[] = [
     { key: 'sedanMinor', label: 'Standard · ≤4' },
     { key: 'familyMinor', label: 'Family · 5–6' },
     { key: 'vanMinor', label: 'Minibus · 7–14' },
     { key: 'coasterMinor', label: 'Coaster · 15–25' },
   ];
   // Belt-and-braces: the seed always has both zones, but Record<string, …> is loosely typed.
-  const EMPTY_FARE: AirportFare = { sedanMinor: 0, suvMinor: 0, familyMinor: 0, vanMinor: 0, coasterMinor: 0 };
+  const EMPTY_FARE: AirportFare = {
+    sedanMinor: 0,
+    suvMinor: 0,
+    familyMinor: 0,
+    vanMinor: 0,
+    coasterMinor: 0,
+  };
   const zone2Fare: AirportFare = AIRPORT_FARE_DEFAULT.zone2 ?? EMPTY_FARE;
   const zone1Fare: AirportFare = AIRPORT_FARE_DEFAULT.zone1 ?? EMPTY_FARE;
   const fareRows: { zone: string; hint: string; fare: AirportFare }[] = [
@@ -181,7 +215,17 @@ export default function AirportTransfersPage() {
       title: 'Fixed, transparent EUR price',
       body: 'No meters, no surprises. You agree the fare before you fly — metered airport taxis can’t promise that.',
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={TEAL}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
         </svg>
       ),
@@ -190,7 +234,17 @@ export default function AirportTransfersPage() {
       title: 'The same licensed driver, door-to-door',
       body: 'One trusted local driver-guide for your whole journey — English- and French-speaking, from your door to your destination.',
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={TEAL}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
           <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -201,7 +255,17 @@ export default function AirportTransfersPage() {
       title: 'Book direct, no OTA commission',
       body: 'You book straight with Belle Mare Tours — no reseller in the middle taking a cut, so the price stays lower for you.',
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={TEAL}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.73 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.75z" />
           <path d="m9 12 2 2 4-4" />
         </svg>
@@ -211,7 +275,17 @@ export default function AirportTransfersPage() {
       title: 'Meet & greet + flight tracking',
       body: 'Name board in arrivals, real-time flight monitoring and free waiting time — so a late landing never leaves you stranded.',
       icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={TEAL}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
           <path d="M17.8 19.2 16 11l3.5-3.5a2 2 0 1 0-2.8-2.8L13.2 8 5 6.2 3.5 7.7l5.5 3-2.5 2.5-2.5-.5L2.5 14l3.8 1.7L8 19.5z" />
         </svg>
       ),
@@ -219,9 +293,21 @@ export default function AirportTransfersPage() {
   ];
 
   const steps = [
-    { n: '1', title: 'Find your hotel & price', body: 'Search your hotel, or pick your area and vehicle. Your fixed EUR fare appears instantly — no waiting for a quote.' },
-    { n: '2', title: 'Book & get your e-voucher', body: 'Pay securely by card and your confirmation e-voucher lands in your inbox right away.' },
-    { n: '3', title: 'We meet you in arrivals', body: 'We track your flight and your driver-guide is waiting with a name board the moment you walk out.' },
+    {
+      n: '1',
+      title: 'Find your hotel & price',
+      body: 'Search your hotel, or pick your area and vehicle. Your fixed EUR fare appears instantly — no waiting for a quote.',
+    },
+    {
+      n: '2',
+      title: 'Book & get your e-voucher',
+      body: 'Pay securely by card and your confirmation e-voucher lands in your inbox right away.',
+    },
+    {
+      n: '3',
+      title: 'We meet you in arrivals',
+      body: 'We track your flight and your driver-guide is waiting with a name board the moment you walk out.',
+    },
   ];
 
   const fleet = [
@@ -231,7 +317,11 @@ export default function AirportTransfersPage() {
       pax: '1–4 seats',
       bags: '2–3 bags',
       premium: false,
-      feats: ['Air-conditioned saloon car', 'Free meet & greet + name board', 'Free first child seat'],
+      feats: [
+        'Air-conditioned saloon car',
+        'Free meet & greet + name board',
+        'Free first child seat',
+      ],
     },
     {
       name: 'Family Car',
@@ -239,7 +329,11 @@ export default function AirportTransfersPage() {
       pax: '5–6 seats',
       bags: '5–6 bags',
       premium: false,
-      feats: ['Spacious A/C estate / MPV', 'Room for surfboards & buggies', 'Free first child seat'],
+      feats: [
+        'Spacious A/C estate / MPV',
+        'Room for surfboards & buggies',
+        'Free first child seat',
+      ],
     },
     {
       name: 'Minibus',
@@ -247,7 +341,11 @@ export default function AirportTransfersPage() {
       pax: '7–14 seats',
       bags: '14+ bags',
       premium: false,
-      feats: ['Air-conditioned minibus', 'Plenty of luggage space', 'One driver for the whole group'],
+      feats: [
+        'Air-conditioned minibus',
+        'Plenty of luggage space',
+        'One driver for the whole group',
+      ],
     },
     {
       name: 'Coaster',
@@ -255,7 +353,11 @@ export default function AirportTransfersPage() {
       pax: '15–25 seats',
       bags: '25+ bags',
       premium: true,
-      feats: ['Air-conditioned coaster', 'Group travel in one vehicle', 'Ideal for weddings & events'],
+      feats: [
+        'Air-conditioned coaster',
+        'Group travel in one vehicle',
+        'Ideal for weddings & events',
+      ],
     },
   ];
 
@@ -269,7 +371,18 @@ export default function AirportTransfersPage() {
     { title: 'WhatsApp coordination', body: 'Message your driver directly, anytime.' },
   ];
 
-  const coverageChips = ['North', 'East', 'South', 'West', 'Central', 'Le Morne', 'Grand Baie', 'Belle Mare', 'Flic en Flac', 'Blue Bay'];
+  const coverageChips = [
+    'North',
+    'East',
+    'South',
+    'West',
+    'Central',
+    'Le Morne',
+    'Grand Baie',
+    'Belle Mare',
+    'Flic en Flac',
+    'Blue Bay',
+  ];
 
   const breadcrumb = breadcrumbListJsonLd([
     { name: 'Home', path: '/' },
@@ -301,7 +414,11 @@ export default function AirportTransfersPage() {
   return (
     <div
       className={`${display.variable} ${bodyFont.variable} overflow-x-hidden`}
-      style={{ fontFamily: 'var(--font-at-body), system-ui, sans-serif', color: INK, background: CREAM }}
+      style={{
+        fontFamily: 'var(--font-at-body), system-ui, sans-serif',
+        color: INK,
+        background: CREAM,
+      }}
     >
       <JsonLd data={breadcrumb} />
       <JsonLd data={service} />
@@ -315,23 +432,47 @@ export default function AirportTransfersPage() {
         {/* ============ HERO (animated ocean + hotel search) ============ */}
         {/* No overflow-hidden here: HeroWaves clips itself, and the search dropdown must be free to
             overflow the hero. z-20 keeps that dropdown painting above the section below. */}
-        <section id="top" className="relative z-30 flex scroll-mt-24 items-center text-white" style={{ minHeight: 'clamp(480px,76vh,680px)' }}>
+        <section
+          id="top"
+          className="relative z-30 flex scroll-mt-24 items-center text-white"
+          style={{ minHeight: 'clamp(480px,76vh,680px)' }}
+        >
           <HeroWaves />
           {/* Localized left scrim — lifts the white + gold hero text over WCAG AA against the lighter
               upper teal, while the waves and the gold sun-glow stay visible on the right. */}
           <div
             aria-hidden="true"
             className="absolute inset-0 z-[1]"
-            style={{ background: 'linear-gradient(101deg, rgba(3,22,26,0.74) 0%, rgba(3,22,26,0.58) 44%, rgba(3,22,26,0.26) 66%, rgba(3,22,26,0) 86%)' }}
+            style={{
+              background:
+                'linear-gradient(101deg, rgba(3,22,26,0.74) 0%, rgba(3,22,26,0.58) 44%, rgba(3,22,26,0.26) 66%, rgba(3,22,26,0) 86%)',
+            }}
           />
           <AirportArrival />
-          <div className="relative z-[2] mx-auto w-full max-w-shell" style={{ padding: 'clamp(32px,5vw,64px) ' + padX }}>
+          <div
+            className="relative z-[2] mx-auto w-full max-w-shell"
+            style={{ padding: 'clamp(32px,5vw,64px) ' + padX }}
+          >
             <div className="max-w-[680px]">
               <div
                 className="mb-4 inline-flex items-center gap-2.5 rounded-full border px-3.5 py-[7px] text-[13px] font-semibold"
-                style={{ background: 'rgba(4,28,32,0.5)', borderColor: 'rgba(233,185,73,0.5)', color: GOLD }}
+                style={{
+                  background: 'rgba(4,28,32,0.5)',
+                  borderColor: 'rgba(233,185,73,0.5)',
+                  color: GOLD,
+                }}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke={GOLD}
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
                   <path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5z" />
                   <path d="m9 12 2 2 4-4" />
                 </svg>
@@ -339,22 +480,48 @@ export default function AirportTransfersPage() {
               </div>
               <h1
                 className="m-0 mb-4 font-extrabold"
-                style={{ ...displayFont, fontSize: 'clamp(30px,4.6vw,54px)', lineHeight: 1.04, letterSpacing: '-0.025em', textWrap: 'balance' }}
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(30px,4.6vw,54px)',
+                  lineHeight: 1.04,
+                  letterSpacing: '-0.025em',
+                  textWrap: 'balance',
+                }}
               >
-                Land in Mauritius to a driver who’s already waiting — at a <span style={{ color: GOLD }}>fixed price.</span>
+                Land in Mauritius to a driver who’s already waiting — at a{' '}
+                <span style={{ color: GOLD }}>fixed price.</span>
               </h1>
-              <p className="m-0 mb-5 max-w-[560px]" style={{ fontSize: 'clamp(15px,1.5vw,18px)', lineHeight: 1.5, color: 'rgba(251,247,239,0.92)' }}>
-                Private door-to-door transfers between SSR Airport (MRU) and any hotel, Airbnb or cruise port — up to 40% less than metered
-                airport taxis. <strong className="font-bold text-white">Booked direct with the operator, no reseller markup.</strong>
+              <p
+                className="m-0 mb-5 max-w-[560px]"
+                style={{
+                  fontSize: 'clamp(15px,1.5vw,18px)',
+                  lineHeight: 1.5,
+                  color: 'rgba(251,247,239,0.92)',
+                }}
+              >
+                Private door-to-door transfers between SSR Airport (MRU) and any hotel, Airbnb or
+                cruise port — up to 40% less than metered airport taxis.{' '}
+                <strong className="font-bold text-white">
+                  Booked direct with the operator, no reseller markup.
+                </strong>
               </p>
               <div className="mb-[clamp(16px,3vw,26px)] flex flex-wrap items-center gap-x-[26px] gap-y-[14px] text-[15px] font-semibold">
                 <span className="inline-flex items-center gap-2">
-                  <span className="text-[17px] tracking-[1px]" style={{ color: GOLD }}>★★★★★</span> 4.8 · 1,000+ reviews
+                  <span className="text-[17px] tracking-[1px]" style={{ color: GOLD }}>
+                    ★★★★★
+                  </span>{' '}
+                  4.8 · 1,000+ reviews
                 </span>
-                <span className="inline-flex items-center gap-2" style={{ color: 'rgba(251,247,239,0.92)' }}>
+                <span
+                  className="inline-flex items-center gap-2"
+                  style={{ color: 'rgba(251,247,239,0.92)' }}
+                >
                   <Check color={CORAL} size={17} /> Same driver-guide all day
                 </span>
-                <span className="inline-flex items-center gap-2" style={{ color: 'rgba(251,247,239,0.92)' }}>
+                <span
+                  className="inline-flex items-center gap-2"
+                  style={{ color: 'rgba(251,247,239,0.92)' }}
+                >
                   <Check color={CORAL} size={17} /> English &amp; French
                 </span>
               </div>
@@ -363,17 +530,29 @@ export default function AirportTransfersPage() {
             {/* The journey starts here: search your hotel → see your fixed price. No data-reveal here —
                 the primary CTA must never be momentarily hidden. */}
             <div className="max-w-[760px]">
-              <div className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.16em]" style={{ color: 'rgba(255,255,255,0.9)' }}>
+              <div
+                className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.16em]"
+                style={{ color: 'rgba(255,255,255,0.9)' }}
+              >
                 Where are you staying?
               </div>
               <TransferSearch />
-              <p className="mt-3.5 text-[14px] font-semibold" style={{ color: 'rgba(255,255,255,0.92)' }}>
+              <p
+                className="mt-3.5 text-[14px] font-semibold"
+                style={{ color: 'rgba(255,255,255,0.92)' }}
+              >
                 Not sure of the exact hotel?{' '}
-                <a href="#quote" className="font-bold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white">
+                <a
+                  href="#quote"
+                  className="font-bold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white"
+                >
                   Price by area
                 </a>{' '}
                 or{' '}
-                <a href="#map" className="font-bold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white">
+                <a
+                  href="#map"
+                  className="font-bold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white"
+                >
                   browse the map
                 </a>
                 .
@@ -383,15 +562,38 @@ export default function AirportTransfersPage() {
         </section>
 
         {/* ============ INSTANT PRICE QUOTE ============ */}
-        <section id="quote" className="scroll-mt-24" style={{ background: CREAM, borderTop: '1px solid rgba(17,32,31,0.06)' }}>
-          <div className="mx-auto max-w-[1040px]" style={{ padding: 'clamp(64px,9vw,112px) ' + padX }}>
-            <div data-reveal className="mx-auto mb-[clamp(28px,4vw,42px)] max-w-[600px] text-center">
+        <section
+          id="quote"
+          className="scroll-mt-24"
+          style={{ background: CREAM, borderTop: '1px solid rgba(17,32,31,0.06)' }}
+        >
+          <div
+            className="mx-auto max-w-[1040px]"
+            style={{ padding: 'clamp(64px,9vw,112px) ' + padX }}
+          >
+            <div
+              data-reveal
+              className="mx-auto mb-[clamp(28px,4vw,42px)] max-w-[600px] text-center"
+            >
               <Eyebrow>Instant price</Eyebrow>
-              <h2 className="m-0 mb-3.5 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em', textWrap: 'balance' }}>
+              <h2
+                className="m-0 mb-3.5 font-bold"
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(30px,4.4vw,52px)',
+                  lineHeight: 1.06,
+                  letterSpacing: '-0.02em',
+                  textWrap: 'balance',
+                }}
+              >
                 Get your fixed fare in seconds.
               </h2>
-              <p className="m-0" style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.55, color: INK_BODY }}>
-                Pick your route and vehicle — airport-to-hotel or hotel-to-hotel — and your transparent EUR price appears instantly, no waiting around for a quote.
+              <p
+                className="m-0"
+                style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.55, color: INK_BODY }}
+              >
+                Pick your route and vehicle — airport-to-hotel or hotel-to-hotel — and your
+                transparent EUR price appears instantly, no waiting around for a quote.
               </p>
             </div>
             <div data-reveal>
@@ -401,18 +603,35 @@ export default function AirportTransfersPage() {
         </section>
 
         {/* ============ ISLAND-WIDE TAXI SERVICE ============ */}
-        <section id="taxi" className="mx-auto max-w-shell scroll-mt-24" style={{ padding: sectionPad }}>
+        <section
+          id="taxi"
+          className="mx-auto max-w-shell scroll-mt-24"
+          style={{ padding: sectionPad }}
+        >
           <div data-reveal className="mx-auto max-w-[780px] text-center">
             <Eyebrow>Island-wide taxi service</Eyebrow>
-            <h2 className="m-0 mb-4 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em', textWrap: 'balance' }}>
+            <h2
+              className="m-0 mb-4 font-bold"
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(30px,4.4vw,52px)',
+                lineHeight: 1.06,
+                letterSpacing: '-0.02em',
+                textWrap: 'balance',
+              }}
+            >
               A fixed-price taxi anywhere in Mauritius — not just the airport.
             </h2>
-            <p className="m-0" style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.6, color: INK_BODY }}>
-              Need a taxi between two hotels, from your villa to a restaurant, or from the cruise port to your
-              resort? Our private taxi service runs island-wide on the same fixed-price, book-direct basis as our
-              airport transfers. Pick <strong style={{ color: INK }}>Location&nbsp;↔&nbsp;Location</strong> in the
-              price tool above, choose your two points, and your transparent EUR fare appears in seconds — no
-              meter, no haggling, the same trusted licensed driver-guide door to door.
+            <p
+              className="m-0"
+              style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.6, color: INK_BODY }}
+            >
+              Need a taxi between two hotels, from your villa to a restaurant, or from the cruise
+              port to your resort? Our private taxi service runs island-wide on the same
+              fixed-price, book-direct basis as our airport transfers. Pick{' '}
+              <strong style={{ color: INK }}>Location&nbsp;↔&nbsp;Location</strong> in the price
+              tool above, choose your two points, and your transparent EUR fare appears in seconds —
+              no meter, no haggling, the same trusted licensed driver-guide door to door.
             </p>
             <div className="mt-6">
               <a
@@ -427,10 +646,26 @@ export default function AirportTransfersPage() {
         </section>
 
         {/* ============ TRUST BAR ============ */}
-        <section aria-label="Why travellers trust us" style={{ background: TEAL_DARK, color: CREAM }}>
-          <div className="mx-auto flex max-w-shell flex-wrap items-center justify-center gap-x-[38px] gap-y-3.5 text-center text-[14.5px] font-semibold" style={{ padding: '18px ' + padX }}>
+        <section
+          aria-label="Why travellers trust us"
+          style={{ background: TEAL_DARK, color: CREAM }}
+        >
+          <div
+            className="mx-auto flex max-w-shell flex-wrap items-center justify-center gap-x-[38px] gap-y-3.5 text-center text-[14.5px] font-semibold"
+            style={{ padding: '18px ' + padX }}
+          >
             <span className="inline-flex items-center gap-2.5">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={GOLD}
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5z" />
               </svg>
               Licensed · Mauritius Tourism Authority
@@ -441,14 +676,34 @@ export default function AirportTransfersPage() {
             </span>
             <span className="opacity-35">·</span>
             <span className="inline-flex items-center gap-2.5">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={GOLD}
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
               Fixed price, no hidden fees
             </span>
             <span className="opacity-35">·</span>
             <span className="inline-flex items-center gap-2.5">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={GOLD} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg
+                width="17"
+                height="17"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={GOLD}
+                strokeWidth="2.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 7v5l3 2" />
               </svg>
@@ -458,27 +713,51 @@ export default function AirportTransfersPage() {
         </section>
 
         {/* ============ FIND YOUR HOTEL (interactive map) ============ */}
-        <section id="map" className="mx-auto max-w-shell scroll-mt-24" style={{ padding: sectionPad }}>
+        <section
+          id="map"
+          className="mx-auto max-w-shell scroll-mt-24"
+          style={{ padding: sectionPad }}
+        >
           <div data-reveal className="mb-[clamp(28px,4vw,44px)] max-w-[680px]">
             <Eyebrow>Find your hotel</Eyebrow>
-            <h2 className="m-0 mb-4 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em', textWrap: 'balance' }}>
+            <h2
+              className="m-0 mb-4 font-bold"
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(30px,4.4vw,52px)',
+                lineHeight: 1.06,
+                letterSpacing: '-0.02em',
+                textWrap: 'balance',
+              }}
+            >
               Every hotel we serve — pinned on the map.
             </h2>
-            <p className="m-0 max-w-[560px]" style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.55, color: INK_BODY }}>
-              Tap your resort to see the drive from SSR International Airport and your starting price — or search it by name up top. Door-to-door
-              across the whole island, plus the Port Louis cruise terminal.
+            <p
+              className="m-0 max-w-[560px]"
+              style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.55, color: INK_BODY }}
+            >
+              Tap your resort to see the drive from SSR International Airport and your starting
+              price — or search it by name up top. Door-to-door across the whole island, plus the
+              Port Louis cruise terminal.
             </p>
           </div>
           <div data-reveal>
             <HotelMap />
           </div>
           <div data-reveal className="mt-[clamp(22px,3vw,30px)]">
-            <div className="mb-3 text-[13px] font-bold uppercase tracking-[0.14em]" style={{ color: INK_SOFT }}>
+            <div
+              className="mb-3 text-[13px] font-bold uppercase tracking-[0.14em]"
+              style={{ color: INK_SOFT }}
+            >
               Island-wide coverage
             </div>
             <div className="flex flex-wrap gap-2.5">
               {coverageChips.map((c) => (
-                <span key={c} className="rounded-full border bg-white px-4 py-2.5 text-[14px] font-semibold" style={{ borderColor: 'rgba(17,32,31,0.10)', color: TEAL_DARK }}>
+                <span
+                  key={c}
+                  className="rounded-full border bg-white px-4 py-2.5 text-[14px] font-semibold"
+                  style={{ borderColor: 'rgba(17,32,31,0.10)', color: TEAL_DARK }}
+                >
                   {c}
                 </span>
               ))}
@@ -490,14 +769,30 @@ export default function AirportTransfersPage() {
         <section id="why" className="mx-auto max-w-shell" style={{ padding: sectionPad }}>
           <div data-reveal className="mb-[clamp(34px,5vw,52px)] max-w-[680px]">
             <Eyebrow>Beat the airport taxi</Eyebrow>
-            <h2 className="m-0 mb-4 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em', textWrap: 'balance' }}>
+            <h2
+              className="m-0 mb-4 font-bold"
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(30px,4.4vw,52px)',
+                lineHeight: 1.06,
+                letterSpacing: '-0.02em',
+                textWrap: 'balance',
+              }}
+            >
               No meters. No surprises. Just the price you agreed.
             </h2>
-            <p className="m-0" style={{ fontSize: 'clamp(16px,1.5vw,19px)', lineHeight: 1.55, color: INK_BODY }}>
-              Belle Mare Tours has driven this island for years. You book straight with us — so the savings stay with you, not a booking site.
+            <p
+              className="m-0"
+              style={{ fontSize: 'clamp(16px,1.5vw,19px)', lineHeight: 1.55, color: INK_BODY }}
+            >
+              Belle Mare Tours has driven this island for years. You book straight with us — so the
+              savings stay with you, not a booking site.
             </p>
           </div>
-          <div className="grid gap-[clamp(16px,2vw,22px)]" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}>
+          <div
+            className="grid gap-[clamp(16px,2vw,22px)]"
+            style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))' }}
+          >
             {why.map((c, i) => (
               <div
                 key={c.title}
@@ -506,10 +801,16 @@ export default function AirportTransfersPage() {
                 className="rounded-[20px] border bg-white p-[28px_24px] transition duration-300 hover:-translate-y-[5px]"
                 style={{ borderColor: 'rgba(17,32,31,0.08)' }}
               >
-                <div className="mb-[18px] flex h-12 w-12 items-center justify-center rounded-[13px]" style={{ background: 'rgba(14,140,146,0.10)' }}>
+                <div
+                  className="mb-[18px] flex h-12 w-12 items-center justify-center rounded-[13px]"
+                  style={{ background: 'rgba(14,140,146,0.10)' }}
+                >
                   {c.icon}
                 </div>
-                <h3 className="m-0 mb-[9px] text-[19px] font-bold tracking-[-0.01em]" style={displayFont}>
+                <h3
+                  className="m-0 mb-[9px] text-[19px] font-bold tracking-[-0.01em]"
+                  style={displayFont}
+                >
                   {c.title}
                 </h3>
                 <p className="m-0 text-[15px] leading-[1.5]" style={{ color: INK_SOFT }}>
@@ -523,22 +824,45 @@ export default function AirportTransfersPage() {
         {/* ============ HOW IT WORKS ============ */}
         <section style={{ background: INK, color: CREAM }}>
           <div className="mx-auto max-w-shell" style={{ padding: 'clamp(64px,9vw,112px) ' + padX }}>
-            <div data-reveal className="mx-auto mb-[clamp(40px,5vw,60px)] max-w-[620px] text-center">
+            <div
+              data-reveal
+              className="mx-auto mb-[clamp(40px,5vw,60px)] max-w-[620px] text-center"
+            >
               <Eyebrow color={GOLD}>How it works</Eyebrow>
-              <h2 className="m-0 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em' }}>
+              <h2
+                className="m-0 font-bold"
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(30px,4.4vw,52px)',
+                  lineHeight: 1.06,
+                  letterSpacing: '-0.02em',
+                }}
+              >
                 From booking to name board in three steps.
               </h2>
             </div>
-            <div className="grid gap-[clamp(20px,3vw,32px)]" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))' }}>
+            <div
+              className="grid gap-[clamp(20px,3vw,32px)]"
+              style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))' }}
+            >
               {steps.map((s, i) => (
                 <div key={s.n} data-reveal data-reveal-delay={i * 90} className="relative pt-2">
-                  <div className="mb-3.5 text-[58px] font-extrabold leading-none" style={{ ...displayFont, color: 'rgba(233,185,73,0.28)' }}>
+                  <div
+                    className="mb-3.5 text-[58px] font-extrabold leading-none"
+                    style={{ ...displayFont, color: 'rgba(233,185,73,0.28)' }}
+                  >
                     {s.n}
                   </div>
-                  <h3 className="m-0 mb-2.5 text-[21px] font-bold tracking-[-0.01em]" style={displayFont}>
+                  <h3
+                    className="m-0 mb-2.5 text-[21px] font-bold tracking-[-0.01em]"
+                    style={displayFont}
+                  >
                     {s.title}
                   </h3>
-                  <p className="m-0 text-[15.5px] leading-[1.55]" style={{ color: 'rgba(251,247,239,0.78)' }}>
+                  <p
+                    className="m-0 text-[15.5px] leading-[1.55]"
+                    style={{ color: 'rgba(251,247,239,0.78)' }}
+                  >
                     {s.body}
                   </p>
                 </div>
@@ -548,18 +872,34 @@ export default function AirportTransfersPage() {
         </section>
 
         {/* ============ FARE TABLE ============ */}
-        <section id="fares" className="mx-auto max-w-shell scroll-mt-24" style={{ padding: sectionPad }}>
+        <section
+          id="fares"
+          className="mx-auto max-w-shell scroll-mt-24"
+          style={{ padding: sectionPad }}
+        >
           <div data-reveal className="mb-[clamp(28px,4vw,40px)] max-w-[680px]">
             <Eyebrow>Fixed fares</Eyebrow>
-            <h2 className="m-0 mb-3 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em' }}>
+            <h2
+              className="m-0 mb-3 font-bold"
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(30px,4.4vw,52px)',
+                lineHeight: 1.06,
+                letterSpacing: '-0.02em',
+              }}
+            >
               Every fare, in EUR, up front.
             </h2>
             <p className="m-0" style={{ fontSize: '15.5px', lineHeight: 1.55, color: INK_BODY }}>
-              All prices are fixed, per vehicle, and include meet &amp; greet, name board and free waiting time. Each cell shows{' '}
-              <strong>one-way / return</strong>.
+              All prices are fixed, per vehicle, and include meet &amp; greet, name board and free
+              waiting time. Each cell shows <strong>one-way / return</strong>.
             </p>
           </div>
-          <div data-reveal className="overflow-x-auto rounded-[20px] border bg-white" style={{ borderColor: 'rgba(17,32,31,0.08)' }}>
+          <div
+            data-reveal
+            className="overflow-x-auto rounded-[20px] border bg-white"
+            style={{ borderColor: 'rgba(17,32,31,0.08)' }}
+          >
             <table className="w-full min-w-[640px] border-collapse text-[15px]">
               <thead>
                 <tr style={{ background: TEAL_DARK, color: CREAM }}>
@@ -597,23 +937,39 @@ export default function AirportTransfersPage() {
             </table>
           </div>
           <p className="m-[14px_2px_0] text-[13px]" style={{ color: INK_FAINT }}>
-            Return fares already include the {returnPct}% round-trip discount. <strong>Zone 2</strong> is the near-airport south-east cluster —
-            Mahébourg, Blue Bay, Pointe d’Esny, Grand Port, Ferney and resorts like Shandrani, Anantara IKO, Holiday Inn, Le Preskil, Astroea
-            Beach and Le Peninsula Bay. Everywhere else on the island is <strong>Zone 1</strong>. Add an SUV upgrade (≤4 guests, more luggage
-            space) when you book.
+            Return fares already include the {returnPct}% round-trip discount.{' '}
+            <strong>Zone 2</strong> is the near-airport south-east cluster — Mahébourg, Blue Bay,
+            Pointe d’Esny, Grand Port, Ferney and resorts like Shandrani, Anantara IKO, Holiday Inn,
+            Le Preskil, Astroea Beach and Le Peninsula Bay. Everywhere else on the island is{' '}
+            <strong>Zone 1</strong>. Add an SUV upgrade (≤4 guests, more luggage space) when you
+            book.
           </p>
         </section>
 
         {/* ============ FLEET ============ */}
         <section id="fleet" className="scroll-mt-24" style={{ background: CREAM }}>
-          <div className="mx-auto max-w-shell" style={{ padding: 'clamp(48px,6vw,72px) ' + padX + ' clamp(72px,10vw,128px)' }}>
+          <div
+            className="mx-auto max-w-shell"
+            style={{ padding: 'clamp(48px,6vw,72px) ' + padX + ' clamp(72px,10vw,128px)' }}
+          >
             <div data-reveal className="mb-[clamp(28px,4vw,44px)] max-w-[640px]">
               <Eyebrow>The fleet</Eyebrow>
-              <h2 className="m-0 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em' }}>
+              <h2
+                className="m-0 font-bold"
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(30px,4.4vw,52px)',
+                  lineHeight: 1.06,
+                  letterSpacing: '-0.02em',
+                }}
+              >
                 Clean, air-conditioned, the right size for your group.
               </h2>
             </div>
-            <div className="grid gap-[clamp(16px,2vw,22px)]" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))' }}>
+            <div
+              className="grid gap-[clamp(16px,2vw,22px)]"
+              style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))' }}
+            >
               {fleet.map((f, i) => (
                 <div
                   key={f.name}
@@ -623,13 +979,32 @@ export default function AirportTransfersPage() {
                   style={{ borderColor: 'rgba(17,32,31,0.08)' }}
                 >
                   {/* Branded card header (no owner fleet photos) — icon + capacity badge */}
-                  <div className="relative flex items-center justify-center" style={{ aspectRatio: '16 / 10', background: 'linear-gradient(150deg, #0E8C92, #0B5C63)' }}>
+                  <div
+                    className="relative flex items-center justify-center"
+                    style={{
+                      aspectRatio: '16 / 10',
+                      background: 'linear-gradient(150deg, #0E8C92, #0B5C63)',
+                    }}
+                  >
                     {f.premium && (
-                      <span className="absolute left-3 top-3 rounded-full px-2.5 py-[5px] text-[11px] font-extrabold uppercase tracking-[0.04em]" style={{ background: GOLD, color: INK }}>
+                      <span
+                        className="absolute left-3 top-3 rounded-full px-2.5 py-[5px] text-[11px] font-extrabold uppercase tracking-[0.04em]"
+                        style={{ background: GOLD, color: INK }}
+                      >
                         Luxury tier
                       </span>
                     )}
-                    <svg width="74" height="74" viewBox="0 0 24 24" fill="none" stroke="rgba(251,247,239,0.92)" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <svg
+                      width="74"
+                      height="74"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="rgba(251,247,239,0.92)"
+                      strokeWidth="1.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
                       <path d="M4 14l1.5-5A2 2 0 0 1 7.4 7.5h9.2A2 2 0 0 1 18.5 9L20 14" />
                       <path d="M3 14h18v4H3z" />
                       <circle cx="7" cy="18.5" r="1.4" />
@@ -637,15 +1012,31 @@ export default function AirportTransfersPage() {
                     </svg>
                   </div>
                   <div className="flex flex-1 flex-col p-[22px_22px_24px]">
-                    <h3 className="m-0 mb-1 text-[20px] font-bold tracking-[-0.01em]" style={displayFont}>
+                    <h3
+                      className="m-0 mb-1 text-[20px] font-bold tracking-[-0.01em]"
+                      style={displayFont}
+                    >
                       {f.name}
                     </h3>
                     <p className="m-0 mb-4 text-[14px] leading-[1.45]" style={{ color: INK_SOFT }}>
                       {f.tagline}
                     </p>
-                    <div className="mb-4 flex gap-[18px] text-[14px] font-semibold" style={{ color: TEAL_DARK }}>
+                    <div
+                      className="mb-4 flex gap-[18px] text-[14px] font-semibold"
+                      style={{ color: TEAL_DARK }}
+                    >
                       <span className="inline-flex items-center gap-1.5">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <svg
+                          width="17"
+                          height="17"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke={TEAL}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
                           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
                           <circle cx="9" cy="7" r="4" />
                           <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
@@ -653,7 +1044,17 @@ export default function AirportTransfersPage() {
                         {f.pax}
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <svg
+                          width="17"
+                          height="17"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke={TEAL}
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
                           <rect x="5" y="7" width="14" height="13" rx="2" />
                           <path d="M9 7V5a3 3 0 0 1 6 0v2" />
                         </svg>
@@ -662,7 +1063,11 @@ export default function AirportTransfersPage() {
                     </div>
                     <ul className="m-0 mb-auto flex list-none flex-col gap-2 p-0">
                       {f.feats.map((ft) => (
-                        <li key={ft} className="flex items-start gap-2.5 text-[14px] leading-[1.4]" style={{ color: INK_BODY }}>
+                        <li
+                          key={ft}
+                          className="flex items-start gap-2.5 text-[14px] leading-[1.4]"
+                          style={{ color: INK_BODY }}
+                        >
                           <span className="mt-0.5 flex-none">
                             <Check />
                           </span>
@@ -674,11 +1079,25 @@ export default function AirportTransfersPage() {
                 </div>
               ))}
             </div>
-            <p className="m-[22px_2px_0] inline-flex items-center gap-2.5 text-[14px]" style={{ color: INK_BODY }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={TEAL} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <p
+              className="m-[22px_2px_0] inline-flex items-center gap-2.5 text-[14px]"
+              style={{ color: INK_BODY }}
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={TEAL}
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
                 <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />
               </svg>
-              Travelling with little ones? Your <strong>first child seat is free</strong> — just tell us their age when you book.
+              Travelling with little ones? Your <strong>first child seat is free</strong> — just
+              tell us their age when you book.
             </p>
           </div>
         </section>
@@ -688,18 +1107,32 @@ export default function AirportTransfersPage() {
           <div className="mx-auto max-w-shell" style={{ padding: 'clamp(64px,9vw,112px) ' + padX }}>
             <div data-reveal className="mb-[clamp(34px,5vw,52px)] max-w-[620px]">
               <Eyebrow color={GOLD}>Included with every transfer</Eyebrow>
-              <h2 className="m-0 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em' }}>
+              <h2
+                className="m-0 font-bold"
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(30px,4.4vw,52px)',
+                  lineHeight: 1.06,
+                  letterSpacing: '-0.02em',
+                }}
+              >
                 All of this. At no extra cost.
               </h2>
             </div>
-            <div className="grid gap-[clamp(14px,2vw,20px)]" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))' }}>
+            <div
+              className="grid gap-[clamp(14px,2vw,20px)]"
+              style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))' }}
+            >
               {included.map((it, i) => (
                 <div
                   key={it.title}
                   data-reveal
                   data-reveal-delay={(i % 4) * 70}
                   className="rounded-[16px] border p-[22px_20px]"
-                  style={{ background: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.18)' }}
+                  style={{
+                    background: 'rgba(255,255,255,0.10)',
+                    borderColor: 'rgba(255,255,255,0.18)',
+                  }}
                 >
                   <div className="mb-3" style={{ color: GOLD }}>
                     <Check color={GOLD} size={22} />
@@ -707,7 +1140,10 @@ export default function AirportTransfersPage() {
                   <h3 className="m-0 mb-[5px] text-[16.5px] font-bold" style={displayFont}>
                     {it.title}
                   </h3>
-                  <p className="m-0 text-[14px] leading-[1.45]" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                  <p
+                    className="m-0 text-[14px] leading-[1.45]"
+                    style={{ color: 'rgba(255,255,255,0.85)' }}
+                  >
                     {it.body}
                   </p>
                 </div>
@@ -726,10 +1162,22 @@ export default function AirportTransfersPage() {
         </section>
 
         {/* ============ FAQ ============ */}
-        <section id="faq" className="mx-auto max-w-[880px] scroll-mt-24" style={{ padding: sectionPad }}>
+        <section
+          id="faq"
+          className="mx-auto max-w-[880px] scroll-mt-24"
+          style={{ padding: sectionPad }}
+        >
           <div data-reveal className="mb-[clamp(30px,4vw,46px)] text-center">
             <Eyebrow>Good to know</Eyebrow>
-            <h2 className="m-0 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.4vw,52px)', lineHeight: 1.06, letterSpacing: '-0.02em' }}>
+            <h2
+              className="m-0 font-bold"
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(30px,4.4vw,52px)',
+                lineHeight: 1.06,
+                letterSpacing: '-0.02em',
+              }}
+            >
               Your questions, answered up front.
             </h2>
           </div>
@@ -747,13 +1195,29 @@ export default function AirportTransfersPage() {
                   style={{ ...displayFont, fontSize: 'clamp(16px,1.7vw,18px)', color: INK }}
                 >
                   <span>{f.q}</span>
-                  <span className="flex-none transition-transform duration-200 group-open:rotate-45" style={{ color: TEAL }}>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <span
+                    className="flex-none transition-transform duration-200 group-open:rotate-45"
+                    style={{ color: TEAL }}
+                  >
+                    <svg
+                      width="22"
+                      height="22"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
                       <path d="M12 5v14M5 12h14" />
                     </svg>
                   </span>
                 </summary>
-                <p className="m-0 p-[0_22px_22px] text-[15.5px] leading-[1.6]" style={{ color: INK_BODY }}>
+                <p
+                  className="m-0 p-[0_22px_22px] text-[15.5px] leading-[1.6]"
+                  style={{ color: INK_BODY }}
+                >
                   {f.a}
                 </p>
               </details>
@@ -763,12 +1227,32 @@ export default function AirportTransfersPage() {
 
         {/* ============ FINAL CTA ============ */}
         <section style={{ background: TEAL_DARK, color: CREAM }}>
-          <div className="mx-auto max-w-shell text-center" style={{ padding: 'clamp(56px,8vw,100px) ' + padX }}>
-            <h2 className="m-0 mb-4 font-bold" style={{ ...displayFont, fontSize: 'clamp(30px,4.6vw,52px)', lineHeight: 1.04, letterSpacing: '-0.02em', textWrap: 'balance' }}>
+          <div
+            className="mx-auto max-w-shell text-center"
+            style={{ padding: 'clamp(56px,8vw,100px) ' + padX }}
+          >
+            <h2
+              className="m-0 mb-4 font-bold"
+              style={{
+                ...displayFont,
+                fontSize: 'clamp(30px,4.6vw,52px)',
+                lineHeight: 1.04,
+                letterSpacing: '-0.02em',
+                textWrap: 'balance',
+              }}
+            >
               Land, walk out, and there we are.
             </h2>
-            <p className="mx-auto mb-[30px] max-w-[560px]" style={{ fontSize: 'clamp(16px,1.6vw,19px)', lineHeight: 1.5, color: 'rgba(251,247,239,0.85)' }}>
-              Get your fixed price in seconds — booked direct with Noorani and the team in Belle Mare.
+            <p
+              className="mx-auto mb-[30px] max-w-[560px]"
+              style={{
+                fontSize: 'clamp(16px,1.6vw,19px)',
+                lineHeight: 1.5,
+                color: 'rgba(251,247,239,0.85)',
+              }}
+            >
+              Get your fixed price in seconds — booked direct with Noorani and the team in Belle
+              Mare.
             </p>
             <div className="flex flex-wrap justify-center gap-3.5">
               <a
@@ -779,13 +1263,28 @@ export default function AirportTransfersPage() {
                 Find your hotel <Arrow />
               </a>
               <a
-                href={whatsappUrl('Hi Belle Mare Tours! I’d like an airport transfer. Here are my flight details and party size:')}
+                href={whatsappUrl(
+                  'Hi Belle Mare Tours! I’d like an airport transfer. Here are my flight details and party size:',
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2.5 rounded-full border px-[26px] py-4 text-[16px] font-bold text-white no-underline"
-                style={{ background: 'rgba(255,255,255,0.10)', borderColor: 'rgba(255,255,255,0.30)' }}
+                style={{
+                  background: 'rgba(255,255,255,0.10)',
+                  borderColor: 'rgba(255,255,255,0.30)',
+                }}
               >
-                <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <svg
+                  width="19"
+                  height="19"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#fff"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
                   <path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.2-5.6A8.4 8.4 0 1 1 21 11.5z" />
                 </svg>
                 Chat on WhatsApp

@@ -149,12 +149,12 @@ end; $$;
 ```
 
 - [ ] **1.2 Tests (pglite integration)** — mirror `tests/integration/maintenance.test.ts` harness. Assert:
-  (a) `api_my_pending_bookings` as user A returns A's payment_pending booking with a non-null
-  `holdExpiresAt`, excludes B's booking, excludes confirmed/expired; raises when `auth.uid()` is null.
-  (b) `run_booking_maintenance` with a >30-min-old payment_pending booking + active hold → booking
-  `expired`, hold `released`, **exactly one** `audit_logs` row (`action='auto_expire_booking'`), and a
-  `notification_outbox` row (`template='booking_expired'`); a booking with a `paid` payment row is NOT
-  expired (and no expiry audit/notification); re-running is idempotent (no second notification).
+      (a) `api_my_pending_bookings` as user A returns A's payment_pending booking with a non-null
+      `holdExpiresAt`, excludes B's booking, excludes confirmed/expired; raises when `auth.uid()` is null.
+      (b) `run_booking_maintenance` with a >30-min-old payment_pending booking + active hold → booking
+      `expired`, hold `released`, **exactly one** `audit_logs` row (`action='auto_expire_booking'`), and a
+      `notification_outbox` row (`template='booking_expired'`); a booking with a `paid` payment row is NOT
+      expired (and no expiry audit/notification); re-running is idempotent (no second notification).
 - [ ] **1.3 Run the new + existing booking/maintenance tests → green. Commit.**
 
 ## Task 2 — Expiry email copy
@@ -164,24 +164,24 @@ end; $$;
 - [ ] **2.1 Add a `booking_expired` branch to `render()`** (after the `booking_refunded` branch):
 
 ```ts
-  if (message.template === 'booking_expired') {
-    return {
-      subject: `Your Belle Mare Tours reservation ${ref} has expired`,
-      text: `Hi ${name},\n\nYour reservation ${ref} wasn't paid in time, so we've released the seats. If you'd still like to go, just book again on our website.\n\nBelle Mare Tours`,
-    };
-  }
+if (message.template === 'booking_expired') {
+  return {
+    subject: `Your Belle Mare Tours reservation ${ref} has expired`,
+    text: `Hi ${name},\n\nYour reservation ${ref} wasn't paid in time, so we've released the seats. If you'd still like to go, just book again on our website.\n\nBelle Mare Tours`,
+  };
+}
 ```
 
 - [ ] **2.2 Unit test:** `render()` for a `booking_expired` message returns a subject containing the ref
-  and "expired". Run → green. Commit.
+      and "expired". Run → green. Commit.
 
 ## Task 3 — Pending-bookings endpoint + service
 
 **Files:** Create `app/api/v1/bookings/pending/route.ts`; Modify `src/lib/services/bookings.ts`; Test `tests/integration/api-routes.test.ts` (or a focused route test).
 
 - [ ] **3.1 Service** — add to `bookings.ts` a `pendingBookingSchema` (`z.object({ ref, status,
-  paymentState, totalMinor: z.number(), currency, createdAt, holdExpiresAt: z.string().nullable(),
-  title, startsAt: z.string().nullable() })`) and:
+paymentState, totalMinor: z.number(), currency, createdAt, holdExpiresAt: z.string().nullable(),
+title, startsAt: z.string().nullable() })`) and:
 
 ```ts
 export async function listMyPendingBookings(ctx: ServiceContext): Promise<PendingBooking[]> {
@@ -191,8 +191,8 @@ export async function listMyPendingBookings(ctx: ServiceContext): Promise<Pendin
 ```
 
 - [ ] **3.2 Route** (`runtime='edge'`) — require an authenticated user (mirror the bearer-auth gate used
-  by the owner-scoped booking routes; reuse `authenticate`/`requireUser` from `@/lib/http/auth` +
-  `buildServiceContext`), call `listMyPendingBookings`, `jsonOk(rows)`. 401 without a user.
+      by the owner-scoped booking routes; reuse `authenticate`/`requireUser` from `@/lib/http/auth` +
+      `buildServiceContext`), call `listMyPendingBookings`, `jsonOk(rows)`. 401 without a user.
 - [ ] **3.3 Test:** 401 unauthenticated; authed returns the array shape. Run → green. Commit.
 
 ## Task 4 — Cart client slice
@@ -200,12 +200,12 @@ export async function listMyPendingBookings(ctx: ServiceContext): Promise<Pendin
 **Files:** Modify `src/lib/cart/holdClient.ts`, `src/lib/cart/useCart.ts`; Test `tests/unit/cart.test.ts` (or `cart-holds.test.ts`).
 
 - [ ] **4.1 `holdClient.ts`** — add `fetchMyPendingBookings()` using the existing `authHeaders()`:
-  `GET /api/v1/bookings/pending`; on non-ok/throw → `[]`. Type `PendingBooking` exported.
+      `GET /api/v1/bookings/pending`; on non-ok/throw → `[]`. Type `PendingBooking` exported.
 - [ ] **4.2 `useCart.ts`** — add `const [pendingBookings, setPending] = useState<PendingBooking[]>([])`.
-  Fetch on mount, on `window` `focus`/`visibilitychange`, and a ~30s interval that runs **only while
-  CartView is mounted** (gate via an opt-in arg `useCart({ withPending: true })` so the site-wide header
-  instance fetches once on mount + focus but does NOT 30s-poll). Return `pendingBookings`,
-  `pendingCount: pendingBookings.length`, and `count: items.length + pendingBookings.length`.
+      Fetch on mount, on `window` `focus`/`visibilitychange`, and a ~30s interval that runs **only while
+      CartView is mounted** (gate via an opt-in arg `useCart({ withPending: true })` so the site-wide header
+      instance fetches once on mount + focus but does NOT 30s-poll). Return `pendingBookings`,
+      `pendingCount: pendingBookings.length`, and `count: items.length + pendingBookings.length`.
 - [ ] **4.3 Test:** `count` includes pending; a 401/empty fetch leaves `count = items.length`. Commit.
 
 ## Task 5 — Cart "Awaiting payment" UI
@@ -213,10 +213,10 @@ export async function listMyPendingBookings(ctx: ServiceContext): Promise<Pendin
 **Files:** Modify `src/components/cart/CartView.tsx`.
 
 - [ ] **5.1** Call `useCart({ withPending: true })`. Render an "Awaiting payment" section ABOVE the saved
-  items when `pendingBookings.length > 0`: each row = title, `startsAt` date, `Price eur={totalMinor/100}`,
-  a countdown (reuse the `HoldTimer` markup driven by `holdExpiresAt`; at 0 show "Reservation expired —
-  rebook"), and `<ResumePaymentButton bookingRef={ref} />`. Change the empty guard to
-  `items.length === 0 && pendingBookings.length === 0 → <EmptyCart />`.
+      items when `pendingBookings.length > 0`: each row = title, `startsAt` date, `Price eur={totalMinor/100}`,
+      a countdown (reuse the `HoldTimer` markup driven by `holdExpiresAt`; at 0 show "Reservation expired —
+      rebook"), and `<ResumePaymentButton bookingRef={ref} />`. Change the empty guard to
+      `items.length === 0 && pendingBookings.length === 0 → <EmptyCart />`.
 - [ ] **5.2** Verify in the browser (turbopack) + confirm the header badge shows the pending count. Commit.
 
 ## Task 6 — Money-safe cron reorder
@@ -224,17 +224,17 @@ export async function listMyPendingBookings(ctx: ServiceContext): Promise<Pendin
 **Files:** Modify `app/api/v1/internal/maintenance/route.ts`; Test `tests/integration/maintenance.test.ts` or `payment-reconcile-sweep.test.ts`.
 
 - [ ] **6.1** Reorder to **reconcile → expire → materialize**, each wrapped in its own try/catch (so a
-  failure in one step never blocks the others), accumulating a result object. Keep the existing
-  `INTERNAL_TASK_SECRET` gate.
+      failure in one step never blocks the others), accumulating a result object. Keep the existing
+      `INTERNAL_TASK_SECRET` gate.
 - [ ] **6.2 Test:** a payment_pending booking that the (mocked) reconcile confirms as paid ends
-  `confirmed`, NOT `expired`, on a single maintenance run; a thrown step doesn't abort the others. Commit.
+      `confirmed`, NOT `expired`, on a single maintenance run; a thrown step doesn't abort the others. Commit.
 
 ## Task 7 — Verify + review + ship
 
 - [ ] **7.1** `npm run typecheck && npm run lint && npm run test && npm run build` — all green.
 - [ ] **7.2** Adversarial money-path review (workflow): skeptics attempt to (a) make auto-cancel cancel a
-  paid/mid-payment booking, (b) make `api_my_pending_bookings` leak another user's booking, (c) break the
-  cron reorder's isolation. Fix anything confirmed.
+      paid/mid-payment booking, (b) make `api_my_pending_bookings` leak another user's booking, (c) break the
+      cron reorder's isolation. Fix anything confirmed.
 - [ ] **7.3** Present diff + verification; push to `main` on owner go-ahead. Owner re-runs `catch-up.sql`.
 
 ## Spec coverage check

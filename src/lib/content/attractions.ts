@@ -36,12 +36,10 @@ export const REGION_ORDER = ['North', 'East', 'South', 'West', 'Central'] as con
 export const REGION_INTRO: Record<string, string> = {
   North:
     "The north is Mauritius' liveliest coast — Grand Baie's emerald lagoon, the longest white-sand beaches on the island, and the red-roofed chapel at Cap Malheureux looking out to the northern islets.",
-  East:
-    "The east coast is calm and unspoilt: Belle Mare's six-kilometre beach, the lagoons of Île aux Cerfs and authentic fishing villages. This is Belle Mare Tours' home turf, so pickups here are quick and cheap.",
+  East: "The east coast is calm and unspoilt: Belle Mare's six-kilometre beach, the lagoons of Île aux Cerfs and authentic fishing villages. This is Belle Mare Tours' home turf, so pickups here are quick and cheap.",
   South:
     "The wild south holds the island's most dramatic scenery — the Seven Coloured Earths at Chamarel, the tallest waterfall, the UNESCO-listed Le Morne mountain and clifftop viewpoints over the Indian Ocean.",
-  West:
-    "The sunny west is built for adventure: Flic-en-Flac's reef, Casela's safari park, the Black River Gorges and boat trips to Île aux Bénitiers and Crystal Rock.",
+  West: "The sunny west is built for adventure: Flic-en-Flac's reef, Casela's safari park, the Black River Gorges and boat trips to Île aux Bénitiers and Crystal Rock.",
   Central:
     "The cooler central plateau is green and scenic — the Trou aux Cerfs volcanic crater, colonial Eureka House, botanical gardens and the island's best mountain hikes.",
 };
@@ -67,7 +65,13 @@ const CATEGORY_META: Record<string, CategoryMeta> = {
 };
 
 export function categoryMeta(category: string): CategoryMeta {
-  return CATEGORY_META[category] ?? { label: category, emoji: '📍', gradient: 'from-[#13a0a6] to-[#0B5C63]' };
+  return (
+    CATEGORY_META[category] ?? {
+      label: category,
+      emoji: '📍',
+      gradient: 'from-[#13a0a6] to-[#0B5C63]',
+    }
+  );
 }
 
 export function attractionPath(slug: string): string {
@@ -88,7 +92,9 @@ export function attractionMetaTitle(p: PlannerPlace): string {
 }
 
 export function attractionMetaDescription(p: PlannerPlace): string {
-  const lead = p.blurb ? `${p.blurb} ` : `${p.name} is one of the highlights of ${p.region.toLowerCase()} Mauritius. `;
+  const lead = p.blurb
+    ? `${p.blurb} `
+    : `${p.name} is one of the highlights of ${p.region.toLowerCase()} Mauritius. `;
   return `${lead}Visit with ${SITE.operator}: private pickup anywhere in Mauritius, licensed driver-guides and instant online booking.`.slice(
     0,
     320,
@@ -108,7 +114,8 @@ export const ATTRACTION_EXTRA: Record<string, AttractionExtra> = {
       'The Seven Coloured Earths are Mauritius’ most photographed natural wonder: undulating dunes of red, brown, violet, green, blue, purple and yellow sand that never erode together, a quirk of the volcanic clay. The geopark sits in the lush Chamarel valley and the ticket also covers the nearby Chamarel Waterfall viewpoint and a giant-tortoise enclosure.',
       'It pairs naturally with a full day in the south-west — most of our South and Chamarel tours combine it with the waterfall, the rum distillery and Le Morne, so you see the best of the region in one private outing.',
     ],
-    bestTime: 'Go early (9–10am) for the best colour and the smallest crowds; the dunes glow most after light rain.',
+    bestTime:
+      'Go early (9–10am) for the best colour and the smallest crowds; the dunes glow most after light rain.',
     tips: [
       'Allow ~2 hours to include the waterfall viewpoint and tortoise park.',
       'Combine with Chamarel Waterfall and the rum distillery, which are next door.',
@@ -120,16 +127,24 @@ export const ATTRACTION_EXTRA: Record<string, AttractionExtra> = {
       'Le Morne Brabant is a 556-metre basaltic monolith on the south-west tip of the island and a UNESCO World Heritage site, honoured as a refuge for escaped slaves. The lagoon and beach at its foot are among the most beautiful in Mauritius and a world-class kitesurfing spot.',
       'You can admire it from the beach and viewpoints on a sightseeing tour, or take on the guided summit hike for panoramic views over the south-west reef — we can arrange either with hotel pickup.',
     ],
-    bestTime: 'Morning, before the afternoon wind picks up — ideal for both the hike and calm-water photos.',
-    tips: ['The summit hike is guided and takes ~3–4 hours return.', 'Bring water, sun protection and proper shoes for the climb.'],
+    bestTime:
+      'Morning, before the afternoon wind picks up — ideal for both the hike and calm-water photos.',
+    tips: [
+      'The summit hike is guided and takes ~3–4 hours return.',
+      'Bring water, sun protection and proper shoes for the climb.',
+    ],
   },
   'ile-aux-cerfs': {
     body: [
       'Île aux Cerfs is the postcard island of the east coast: powder-white sand, a turquoise lagoon, an 18-hole championship golf course and every water sport going. It sits just off Trou d’Eau Douce, a short boat hop from Belle Mare — our doorstep.',
       'Most visitors reach it on a catamaran cruise or speedboat tour that includes the Grand River South East waterfall, snorkelling stops and a beach barbecue lunch.',
     ],
-    bestTime: 'Weekdays are quieter than weekends; arrive mid-morning to claim a good patch of beach.',
-    tips: ['Reached by boat from Trou d’Eau Douce — we handle the transfer and the cruise.', 'Bring reef-safe sunscreen, a towel and water shoes.'],
+    bestTime:
+      'Weekdays are quieter than weekends; arrive mid-morning to claim a good patch of beach.',
+    tips: [
+      'Reached by boat from Trou d’Eau Douce — we handle the transfer and the cruise.',
+      'Bring reef-safe sunscreen, a towel and water shoes.',
+    ],
   },
   'grand-baie-beach': {
     body: [
@@ -144,8 +159,12 @@ export const ATTRACTION_EXTRA: Record<string, AttractionExtra> = {
       'Casela Nature & Leisure Park spreads over 350 hectares on the west coast and packs in African safari drives, big cats, giant tortoises, zip-lines, quad trails and a petting farm — the island’s top pick for families and thrill-seekers.',
       'Plan a full day; with private transport you can arrive at opening and beat the tour-bus rush.',
     ],
-    bestTime: 'Arrive at opening (9am) for the animals at their most active and the shortest queues.',
-    tips: ['Allow most of a day.', 'Pre-book any safari or zip-line add-ons — we can include them in your plan.'],
+    bestTime:
+      'Arrive at opening (9am) for the animals at their most active and the shortest queues.',
+    tips: [
+      'Allow most of a day.',
+      'Pre-book any safari or zip-line add-ons — we can include them in your plan.',
+    ],
   },
   'pamplemousses-botanical-garden': {
     body: [
@@ -153,7 +172,10 @@ export const ATTRACTION_EXTRA: Record<string, AttractionExtra> = {
       'It is a relaxed, shaded stop that combines well with the Port Louis market and the north coast on a sightseeing day.',
     ],
     bestTime: 'Morning, when it is cooler and the water lilies are fully open.',
-    tips: ['A licensed guide at the gate brings the garden’s stories to life — worth it.', 'Closes around 5:30pm.'],
+    tips: [
+      'A licensed guide at the gate brings the garden’s stories to life — worth it.',
+      'Closes around 5:30pm.',
+    ],
   },
 };
 
@@ -175,7 +197,9 @@ export function buildAttractionFaq(p: PlannerPlace): { q: string; a: string }[] 
     {
       q: `How long should I spend at ${p.name}?`,
       a: `Most visitors spend ${formatVisitDuration(p.durationMin)} at ${p.name}.${
-        p.closesAt ? ` It usually closes around ${p.closesAt}, so plan to arrive earlier in the day.` : ''
+        p.closesAt
+          ? ` It usually closes around ${p.closesAt}, so plan to arrive earlier in the day.`
+          : ''
       }`,
     },
   ];

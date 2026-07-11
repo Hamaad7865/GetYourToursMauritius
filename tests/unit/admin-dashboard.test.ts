@@ -38,11 +38,31 @@ describe('computeDashboard', () => {
   it('buckets departures, upcoming, pending and weekly revenue in Mauritius local time', () => {
     const rows: BookingRow[] = [
       // today's departure (09:00 Mauritius), paid 100
-      booking({ id: 'b1', ref: 'BMT-1', startsAt: '2026-07-18T05:00:00Z', netPaidEur: 100, paymentState: 'paid' }),
+      booking({
+        id: 'b1',
+        ref: 'BMT-1',
+        startsAt: '2026-07-18T05:00:00Z',
+        netPaidEur: 100,
+        paymentState: 'paid',
+      }),
       // upcoming (in 2 days), payment pending, total 200, no cash yet
-      booking({ id: 'b2', ref: 'BMT-2', startsAt: '2026-07-20T08:00:00Z', paymentState: 'pending', totalEur: 200, netPaidEur: 0, createdAt: '2026-07-17T09:00:00Z' }),
+      booking({
+        id: 'b2',
+        ref: 'BMT-2',
+        startsAt: '2026-07-20T08:00:00Z',
+        paymentState: 'pending',
+        totalEur: 200,
+        netPaidEur: 0,
+        createdAt: '2026-07-17T09:00:00Z',
+      }),
       // past + cancelled → excluded everywhere
-      booking({ id: 'b3', ref: 'BMT-3', startsAt: '2026-07-10T08:00:00Z', status: 'cancelled', netPaidEur: 0 }),
+      booking({
+        id: 'b3',
+        ref: 'BMT-3',
+        startsAt: '2026-07-10T08:00:00Z',
+        status: 'cancelled',
+        netPaidEur: 0,
+      }),
     ];
 
     const d = computeDashboard(rows, NOW);
@@ -65,7 +85,11 @@ describe('computeDashboard', () => {
   });
 
   it('carries pickup/drop-off DTO fields used by the booking drawer', () => {
-    const b = booking({ pickupLocation: 'Hotel X', dropoffLocation: 'Airport', pickupPending: true });
+    const b = booking({
+      pickupLocation: 'Hotel X',
+      dropoffLocation: 'Airport',
+      pickupPending: true,
+    });
     expect(b.pickupLocation).toBe('Hotel X');
     expect(b.dropoffLocation).toBe('Airport');
     expect(b.pickupPending).toBe(true);

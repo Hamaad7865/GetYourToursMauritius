@@ -11,6 +11,7 @@
 **Spec:** `docs/superpowers/specs/2026-06-17-per-stop-options-and-gyg-booking-flow-design.md` (Feature 2).
 
 **Grounding:**
+
 - Latest `api_book` = `supabase/migrations/20260617140000_booking_custom_itinerary.sql` (suv + itinerary). Base the holdId rewrite on THAT.
 - `create_hold(occ, qty, key) returns booking_holds` (capacity-checked, idempotent) — `20260615120900_harden_pricing.sql`.
 - `pgliteRpc` ALLOWED set is in `tests/db/rpc.ts`; the `api_*` route→service→`callRpc` pattern is in `app/api/v1/bookings/route.ts` + `src/lib/services/bookings.ts`.
@@ -22,6 +23,7 @@
 ## Task 1: Hold RPC + endpoint + service (hold-on-Continue, anonymous)
 
 **Files:**
+
 - Create: `supabase/migrations/20260617150000_hold_reuse.sql` (Part A: `api_create_hold`)
 - Modify: `tests/db/rpc.ts` (allow `api_create_hold`)
 - Create: `src/lib/services/holds.ts`
@@ -34,35 +36,39 @@
 Add to `tests/integration/booking-flow.test.ts`:
 
 ```ts
-  it('api_create_hold reserves one vehicle / N seats by mode, and api_book reuses the hold', async () => {
-    await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    // per-person occurrence (capacity 20) → hold of 3
-    const hold = await call<{ holdId: string; quantity: number; expiresAt: string }>(db, 'api_create_hold', {
+it('api_create_hold reserves one vehicle / N seats by mode, and api_book reuses the hold', async () => {
+  await db.as({ sub: CUSTOMER, role: 'authenticated' });
+  // per-person occurrence (capacity 20) → hold of 3
+  const hold = await call<{ holdId: string; quantity: number; expiresAt: string }>(
+    db,
+    'api_create_hold',
+    {
       occurrenceId,
       people: 3,
       idempotencyKey: 'hold-pp-1',
-    });
-    expect(hold.quantity).toBe(3);
-    expect(hold.holdId).toBeTruthy();
+    },
+  );
+  expect(hold.quantity).toBe(3);
+  expect(hold.holdId).toBeTruthy();
 
-    // api_book with that holdId reuses it (no second hold) and books.
-    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
-      occurrenceId,
-      party: { Adult: 3 },
-      holdId: hold.holdId,
-      customerName: 'Reuse',
-      customerEmail: 'reuse@example.com',
-      source: 'web',
-      idempotencyKey: 'hold-pp-book',
-    });
-    expect(booking.totalEur).toBe(210); // 3 × €70
-    const { rows } = await db.pg.query<{ n: number }>(
-      `select count(*)::int as n from booking_holds where session_occurrence_id = $1`,
-      [occurrenceId],
-    );
-    // Exactly one hold for this occurrence path (the reused one), not two.
-    expect(rows[0]!.n).toBeGreaterThanOrEqual(1);
+  // api_book with that holdId reuses it (no second hold) and books.
+  const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    occurrenceId,
+    party: { Adult: 3 },
+    holdId: hold.holdId,
+    customerName: 'Reuse',
+    customerEmail: 'reuse@example.com',
+    source: 'web',
+    idempotencyKey: 'hold-pp-book',
   });
+  expect(booking.totalEur).toBe(210); // 3 × €70
+  const { rows } = await db.pg.query<{ n: number }>(
+    `select count(*)::int as n from booking_holds where session_occurrence_id = $1`,
+    [occurrenceId],
+  );
+  // Exactly one hold for this occurrence path (the reused one), not two.
+  expect(rows[0]!.n).toBeGreaterThanOrEqual(1);
+});
 ```
 
 - [ ] **Step 2: Run it — expect FAIL**
@@ -134,6 +140,7 @@ In `tests/db/rpc.ts`, add `'api_create_hold',` to the `ALLOWED` set.
 - [ ] **Step 5: Validation + service + route**
 
 `src/lib/validation/booking.ts` — add:
+
 ```ts
 export const createHoldInputSchema = z.object({
   occurrenceId: z.string().uuid(),
@@ -152,6 +159,7 @@ export type HoldResult = z.infer<typeof holdResultSchema>;
 ```
 
 `src/lib/services/holds.ts` (new):
+
 ```ts
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
@@ -171,6 +179,7 @@ export async function createHold(ctx: ServiceContext, input: CreateHoldInput): P
 ```
 
 `app/api/v1/holds/route.ts` (new — mirror the bookings route):
+
 ```ts
 import { apiHandler, parseJsonBody } from '@/lib/http/handler';
 import { jsonOk } from '@/lib/http/envelope';
@@ -208,6 +217,7 @@ The hold-create half passes now; the reuse assertion needs Task 2. Run after Tas
 ## Task 2: `api_book` reuses a provided hold
 
 **Files:**
+
 - Modify: `supabase/migrations/20260617150000_hold_reuse.sql` (Part B: `api_book`)
 - Modify: `src/lib/validation/booking.ts` (`holdId` on `createBookingInputSchema`)
 - Modify: `src/lib/services/bookings.ts` (forward `holdId`)
@@ -311,11 +321,14 @@ $$;
 - [ ] **Step 2: Thread `holdId` through the schema + service**
 
 `src/lib/validation/booking.ts` — in `createBookingInputSchema` (after `suv`):
+
 ```ts
   /** A hold reserved earlier (Continue) to reuse at pay, so the spot isn't double-held. */
   holdId: z.string().uuid().optional(),
 ```
+
 `src/lib/services/bookings.ts` — in the `api_book` payload (after `suv:`):
+
 ```ts
     holdId: input.holdId ?? null,
 ```
@@ -337,6 +350,7 @@ git commit -m "feat(booking): anonymous hold endpoint + api_book hold reuse (hol
 ## Task 3: `BookingProvider` — shared selection + availability
 
 **Files:**
+
 - Create: `src/components/gyg/detail/BookingProvider.tsx`
 
 - [ ] **Step 1: Create the provider/context**
@@ -431,7 +445,12 @@ export function BookingProvider({
 
   // Cheapest price tier drives the bookable option id + per-person/per-group price.
   const cheapest = useMemo(() => {
-    let best: { optionId: string; label: string; amountEur: number; maxGuests: number | null } | null = null;
+    let best: {
+      optionId: string;
+      label: string;
+      amountEur: number;
+      maxGuests: number | null;
+    } | null = null;
     for (const o of activity.options) {
       for (const p of o.prices) {
         if (!best || p.amountEur < best.amountEur) {
@@ -441,7 +460,9 @@ export function BookingProvider({
     }
     return best;
   }, [activity.options]);
-  const bookingOptionId = isVehicle ? (activity.options[0]?.id ?? null) : (cheapest?.optionId ?? null);
+  const bookingOptionId = isVehicle
+    ? (activity.options[0]?.id ?? null)
+    : (cheapest?.optionId ?? null);
 
   // Availability fetch (slug + bookable option).
   const today = useMemo(() => {
@@ -457,15 +478,25 @@ export function BookingProvider({
     let active = true;
     const horizon = new Date(today);
     horizon.setDate(horizon.getDate() + 180);
-    fetch(`/api/v1/activities/${activity.slug}/availability?from=${dateKey(today)}&to=${dateKey(horizon)}`)
+    fetch(
+      `/api/v1/activities/${activity.slug}/availability?from=${dateKey(today)}&to=${dateKey(horizon)}`,
+    )
       .then((r) => r.json())
       .then((body) => {
         if (!active) return;
         const map = new Map<string, DayInfo>();
         if (body.ok) {
-          for (const s of body.data as Array<{ occurrenceId: string; activityOptionId: string; startsAt: string; seatsLeft: number }>) {
+          for (const s of body.data as Array<{
+            occurrenceId: string;
+            activityOptionId: string;
+            startsAt: string;
+            seatsLeft: number;
+          }>) {
             if (s.activityOptionId !== bookingOptionId) continue;
-            map.set(dateKey(new Date(s.startsAt)), { occurrenceId: s.occurrenceId, seatsLeft: s.seatsLeft });
+            map.set(dateKey(new Date(s.startsAt)), {
+              occurrenceId: s.occurrenceId,
+              seatsLeft: s.seatsLeft,
+            });
           }
         }
         setDays(map);
@@ -478,7 +509,11 @@ export function BookingProvider({
 
   const suvActive = isVehicle && suv && participants <= vehicleCfg.blockSize;
   const vehicleQuote = isVehicle
-    ? sightseeingQuote(Math.min(Math.max(participants, 1), vehicleCfg.maxParty), suvActive, vehicleCfg)
+    ? sightseeingQuote(
+        Math.min(Math.max(participants, 1), vehicleCfg.maxParty),
+        suvActive,
+        vehicleCfg,
+      )
     : null;
   const isGroup = activity.pricingMode === 'per_group' && cheapest?.maxGuests != null;
   const total = isVehicle
@@ -501,7 +536,12 @@ export function BookingProvider({
       const res = await fetch('/api/v1/holds', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ occurrenceId: occ, expectedSlug: activity.slug, people: participants, idempotencyKey: idem }),
+        body: JSON.stringify({
+          occurrenceId: occ,
+          expectedSlug: activity.slug,
+          people: participants,
+          idempotencyKey: idem,
+        }),
       }).then((r) => r.json());
       if (res.ok) {
         holdId = res.data.holdId as string;
@@ -526,7 +566,11 @@ export function BookingProvider({
       total: total != null ? String(total) : '',
       when: dateText,
       guests: String(participants),
-      unit: isVehicle ? 'per vehicle' : isGroup ? `per group up to ${cheapest!.maxGuests}` : 'per person',
+      unit: isVehicle
+        ? 'per vehicle'
+        : isGroup
+          ? `per group up to ${cheapest!.maxGuests}`
+          : 'per person',
       suv: suvActive ? '1' : '0',
       from: 'widget',
       idem,
@@ -578,6 +622,7 @@ git commit -m "feat(detail): BookingProvider — shared booking selection + avai
 ## Task 4: BookingWidget → consume context; Check availability
 
 **Files:**
+
 - Replace: `src/components/gyg/detail/BookingWidget.tsx` (now a thin consumer: Participants/Date/Language + "Check availability"; no SUV toggle, no Book-now/Add-to-cart)
 
 - [ ] **Step 1: Rewrite the widget**
@@ -585,14 +630,14 @@ git commit -m "feat(detail): BookingProvider — shared booking selection + avai
 Replace `src/components/gyg/detail/BookingWidget.tsx` with a context consumer that keeps the existing Participants stepper, the calendar Date popover, and the Language picker, and replaces the action buttons with a single **"Check availability"** button that validates the date and calls `setChecked(true)`. (Reuse the existing calendar/stepper/popover JSX from the current file — `monthCells`, `WEEKDAYS`, the `open` popover state — but read `participants`/`date`/`lang`/`days` from `useBooking()` and write via its setters; drop `selectedBracket`, the SUV toggle block, `goToCheckout`, `handleAddToCart`, the cart import, the "more than max" link.) The button:
 
 ```tsx
-        <button
-          type="button"
-          disabled={!date || (days?.get(date)?.seatsLeft ?? 0) <= 0}
-          onClick={() => setChecked(true)}
-          className="mt-3.5 flex w-full items-center justify-center rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark disabled:opacity-50"
-        >
-          Check availability
-        </button>
+<button
+  type="button"
+  disabled={!date || (days?.get(date)?.seatsLeft ?? 0) <= 0}
+  onClick={() => setChecked(true)}
+  className="mt-3.5 flex w-full items-center justify-center rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark disabled:opacity-50"
+>
+  Check availability
+</button>
 ```
 
 Keep the "From €{fromPriceEur} / {unitLabel}" header, the participant cap logic (`maxParticipants` = vehicle `maxParty` else `min(16, tierCap, seatsLeft)`), and the calendar greying. The full rewrite is large; the executor adapts the current file in place — every piece of selection state moves to `useBooking()`.
@@ -609,6 +654,7 @@ Expected: errors only where the page hasn't been wired yet (Task 7) — i.e. the
 ## Task 5: BookingOptionCard (SUV choice lives here)
 
 **Files:**
+
 - Create: `src/components/gyg/detail/BookingOptionCard.tsx`
 - Delete: `src/components/gyg/detail/VehicleOptionCard.tsx` (superseded)
 
@@ -641,7 +687,12 @@ export function BookingOptionCard() {
   const showSuv = isVehicle && b.participants <= b.vehicleCfg.blockSize;
   const dur = durationLabel(b.activity.durationMinutes);
   const whenText = b.date
-    ? new Date(`${b.date}T00:00:00`).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    ? new Date(`${b.date}T00:00:00`).toLocaleDateString('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
     : '';
 
   function handleAddToCart() {
@@ -669,7 +720,9 @@ export function BookingOptionCard() {
 
   return (
     <div className="mb-6 rounded-2xl border-2 border-teal/30 bg-white p-5 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.4)]">
-      <div className="text-[11px] font-bold uppercase tracking-wide text-teal">1 option available</div>
+      <div className="text-[11px] font-bold uppercase tracking-wide text-teal">
+        1 option available
+      </div>
       <h3 className="mt-1 font-display text-[19px] font-semibold text-ink">{b.activity.title}</h3>
 
       <div className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] text-ink/80">
@@ -688,7 +741,9 @@ export function BookingOptionCard() {
       </div>
 
       <div className="mt-4 border-t border-ink/10 pt-3">
-        <div className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Starting time</div>
+        <div className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+          Starting time
+        </div>
         <div className="text-[15px] font-semibold text-ink">{whenText}</div>
       </div>
 
@@ -744,7 +799,8 @@ export function BookingOptionCard() {
       </div>
 
       <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
-        <IconCheck width={15} height={15} className="text-teal" /> Free cancellation up to 24 hours before
+        <IconCheck width={15} height={15} className="text-teal" /> Free cancellation up to 24 hours
+        before
       </div>
     </div>
   );
@@ -758,32 +814,41 @@ export function BookingOptionCard() {
 ## Task 6: Checkout reuses the Continue hold + honest timer
 
 **Files:**
+
 - Modify: `src/components/checkout/Checkout.tsx`
 
 - [ ] **Step 1: Use holdId + expiresAt + idem from the query**
 
 In `src/components/checkout/Checkout.tsx`:
+
 - Read the new params near the others:
+
 ```ts
-  const holdId = params.get('holdId') || '';
-  const expiresAt = params.get('expiresAt') || '';
-  const idemParam = params.get('idem') || '';
+const holdId = params.get('holdId') || '';
+const expiresAt = params.get('expiresAt') || '';
+const idemParam = params.get('idem') || '';
 ```
+
 - Drive the countdown off the real `expiresAt` when present:
+
 ```ts
-  const [secs, setSecs] = useState(() => {
-    if (expiresAt) {
-      const s = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000);
-      return s > 0 ? s : 0;
-    }
-    return 30 * 60;
-  });
+const [secs, setSecs] = useState(() => {
+  if (expiresAt) {
+    const s = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000);
+    return s > 0 ? s : 0;
+  }
+  return 30 * 60;
+});
 ```
+
 - Use the passed `idem` for the booking (so the same key chains the hold → booking), falling back to a fresh one:
+
 ```ts
-  const [idemKey] = useState(() => idemParam || crypto.randomUUID());
+const [idemKey] = useState(() => idemParam || crypto.randomUUID());
 ```
+
 - In the `POST /api/v1/bookings` body, send `holdId` so `api_book` reuses the Continue hold (after `itinerary: readItinerary(),`):
+
 ```ts
             holdId: holdId || undefined,
 ```
@@ -800,42 +865,49 @@ Expected: no errors (still compiles; full wiring at Task 7).
 ## Task 7: Wire the provider into the page; green gate; review
 
 **Files:**
+
 - Modify: `app/activities/[slug]/page.tsx`
 
 - [ ] **Step 1: Wrap the booking grid in the provider; render the card**
 
 In `app/activities/[slug]/page.tsx`:
+
 - Replace the `VehicleOptionCard` import with:
+
 ```tsx
 import { BookingProvider } from '@/components/gyg/detail/BookingProvider';
 import { BookingOptionCard } from '@/components/gyg/detail/BookingOptionCard';
 ```
+
 - Wrap the `<div className="lg:grid …">` booking grid in `<BookingProvider activity={{…}}>…</BookingProvider>`:
+
 ```tsx
-          <BookingProvider
-            activity={{
-              slug: activity.slug,
-              type: activity.type,
-              title: activity.title,
-              fromPriceEur: activity.fromPriceEur,
-              options: activity.options,
-              languages: activity.languages,
-              pricingMode: activity.pricingMode,
-              vehiclePricing: activity.vehiclePricing ?? null,
-              durationMinutes: activity.durationMinutes,
-              pickupAvailable: activity.pickupAvailable,
-              image: activity.heroImage?.url ?? activity.images[0]?.url ?? null,
-            }}
-          >
-            <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">
-              … existing gallery / aside / content …
-            </div>
-          </BookingProvider>
+<BookingProvider
+  activity={{
+    slug: activity.slug,
+    type: activity.type,
+    title: activity.title,
+    fromPriceEur: activity.fromPriceEur,
+    options: activity.options,
+    languages: activity.languages,
+    pricingMode: activity.pricingMode,
+    vehiclePricing: activity.vehiclePricing ?? null,
+    durationMinutes: activity.durationMinutes,
+    pickupAvailable: activity.pickupAvailable,
+    image: activity.heroImage?.url ?? activity.images[0]?.url ?? null,
+  }}
+>
+  <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">
+    … existing gallery / aside / content …
+  </div>
+</BookingProvider>
 ```
+
 - `<BookingWidget />` in the aside now takes **no props** (it reads context): replace the whole `<BookingWidget … />` element with `<BookingWidget />`.
 - Replace the old `{activity.pricingMode === 'vehicle' && activity.vehiclePricing && (<div className="mb-6"><VehicleOptionCard …/></div>)}` block (just under the summary, before `<QuickFacts/>`) with:
+
 ```tsx
-              <BookingOptionCard />
+<BookingOptionCard />
 ```
 
 - [ ] **Step 2: Full green gate**
@@ -869,6 +941,7 @@ git push
 ## Self-Review
 
 **Spec coverage (Feature 2):**
+
 - Anonymous hold endpoint + `api_book` reuse (no double-hold) → Tasks 1–2. ✓
 - `BookingProvider` shared state + availability → Task 3. ✓
 - Widget = Participants/Date/Language + Check availability (no SUV/Book-now) → Task 4. ✓

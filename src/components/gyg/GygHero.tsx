@@ -32,7 +32,10 @@ export async function GygHero({ children }: { children?: ReactNode }) {
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
-        style={{ background: 'radial-gradient(120% 90% at 74% 16%, rgba(19,160,166,0.55) 0%, transparent 55%)' }}
+        style={{
+          background:
+            'radial-gradient(120% 90% at 74% 16%, rgba(19,160,166,0.55) 0%, transparent 55%)',
+        }}
       />
       {/* L2 — drifting light mesh (the signature): blurred, screen-blended blobs, transform-only. */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
@@ -102,7 +105,13 @@ export async function GygHero({ children }: { children?: ReactNode }) {
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element -- CF Pages serves images unoptimized. */}
-        <img src="/hero/hero-blue.jpg" alt="" fetchPriority="high" decoding="async" className="h-full w-full object-cover" />
+        <img
+          src="/hero/hero-blue.jpg"
+          alt=""
+          fetchPriority="high"
+          decoding="async"
+          className="h-full w-full object-cover"
+        />
       </div>
 
       {/* L4 — legibility scrims (no blend mode), so the white content's contrast is unchanged. */}
@@ -110,18 +119,32 @@ export async function GygHero({ children }: { children?: ReactNode }) {
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-r from-ink/75 via-ink/40 to-transparent max-lg:bg-gradient-to-b max-lg:from-ink/25 max-lg:via-ink/55 max-lg:to-ink/80"
       />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-28 bg-gradient-to-b from-ink/55 to-transparent" />
-      <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-ink/55 to-transparent" />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-28 bg-gradient-to-b from-ink/55 to-transparent"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-44 bg-gradient-to-t from-ink/55 to-transparent"
+      />
       {/* L5 — edge vignette to seat the edges / kill banding on cheap panels. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
-        style={{ background: 'radial-gradient(130% 120% at 50% 120%, transparent 60%, rgba(10,46,54,0.35) 100%)' }}
+        style={{
+          background:
+            'radial-gradient(130% 120% at 50% 120%, transparent 60%, rgba(10,46,54,0.35) 100%)',
+        }}
       />
       {/* L6 — white "shore" wave: dips the hero into the white page body so there is no hard seam.
           Painted on top of the scrims (last backdrop layer) and overshoots 1px to kill a hairline. */}
       <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-[-1px] -z-10 h-24">
-        <svg className="h-full w-full" viewBox="0 0 1200 120" preserveAspectRatio="none" fill="#ffffff">
+        <svg
+          className="h-full w-full"
+          viewBox="0 0 1200 120"
+          preserveAspectRatio="none"
+          fill="#ffffff"
+        >
           <path d="M0,64 C220,22 430,96 640,66 C860,38 1020,90 1200,58 L1200,121 L0,121 Z" />
         </svg>
       </div>
@@ -130,7 +153,10 @@ export async function GygHero({ children }: { children?: ReactNode }) {
         <div className="lg:max-w-[58%]">
           <p className="animate-fade-up flex items-center gap-2.5 text-[13px] font-semibold uppercase tracking-[0.22em] text-white [text-shadow:0_1px_8px_rgba(10,46,54,0.6)]">
             <span className="relative grid h-2 w-2 place-items-center">
-              <span aria-hidden className="absolute h-2 w-2 rounded-full bg-teal-bright motion-safe:animate-ping" />
+              <span
+                aria-hidden
+                className="absolute h-2 w-2 rounded-full bg-teal-bright motion-safe:animate-ping"
+              />
               <span aria-hidden className="relative h-2 w-2 rounded-full bg-teal-bright" />
             </span>
             Belle Mare Tours · Mauritius

@@ -24,10 +24,7 @@
   "summary": {
     "totalSightseeingTours": 9,
     "headlinePricePattern": "Per vehicle, \"from €86 for 4 people\" (Standard car); SUV ~€130; scales to coach ~€310 / 22 pax",
-    "currencies": [
-      "EUR",
-      "MUR"
-    ],
+    "currencies": ["EUR", "MUR"],
     "withImages": 9
   },
   "tours": [
@@ -124,10 +121,7 @@
         "Private transportation to all the sights mentioned",
         "An English/French-speaking driver to guide you and provide information"
       ],
-      "notIncluded": [
-        "Entry ticket fees (Seven Coloured Earth Geopark, Rum Factory)",
-        "Lunch"
-      ],
+      "notIncluded": ["Entry ticket fees (Seven Coloured Earth Geopark, Rum Factory)", "Lunch"],
       "images": [
         "https://taxiservicemauritius.com/wp-content/uploads/2022/02/1-3-thegem-gallery-sidebar.jpg",
         "https://taxiservicemauritius.com/wp-content/uploads/2022/02/2-3-thegem-gallery-sidebar.jpg",
@@ -583,10 +577,7 @@
         "Private transportation to all the sights mentioned",
         "An English/French-speaking driver to guide you and provide information"
       ],
-      "notIncluded": [
-        "Entry ticket fees to museums",
-        "Lunch"
-      ],
+      "notIncluded": ["Entry ticket fees to museums", "Lunch"],
       "images": [
         "https://taxiservicemauritius.com/wp-content/uploads/2022/02/1-6-thegem-gallery-sidebar.jpg",
         "https://taxiservicemauritius.com/wp-content/uploads/2022/02/2-6-thegem-gallery-sidebar.jpg",

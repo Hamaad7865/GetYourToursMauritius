@@ -13,8 +13,14 @@ const COLUMNS = [
       { label: 'Catamaran cruises', href: '/mauritius-catamaran-cruise' },
       { label: 'Île aux Cerfs', href: '/ile-aux-cerfs-tours' },
       { label: 'Dolphin swims', href: '/dolphin-swim-mauritius' },
-      { label: 'Sea walks & diving', href: `/activities?category=${encodeURIComponent('Sea walks & diving')}` },
-      { label: 'Sightseeing tours', href: `/activities?category=${encodeURIComponent('Sightseeing tours')}` },
+      {
+        label: 'Sea walks & diving',
+        href: `/activities?category=${encodeURIComponent('Sea walks & diving')}`,
+      },
+      {
+        label: 'Sightseeing tours',
+        href: `/activities?category=${encodeURIComponent('Sightseeing tours')}`,
+      },
     ],
   },
   {

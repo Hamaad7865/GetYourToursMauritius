@@ -78,7 +78,10 @@ function PlacesToField({ onPick }: { onPick: (t: Transfer) => void }) {
 
   return (
     <div className="relative">
-      <label className="text-[12px] font-bold uppercase tracking-wide text-ink-muted" htmlFor="transfer-hotel-search">
+      <label
+        className="text-[12px] font-bold uppercase tracking-wide text-ink-muted"
+        htmlFor="transfer-hotel-search"
+      >
         To — your hotel
       </label>
       <div className="mt-1 flex items-center gap-2 rounded-xl border border-ink/15 bg-cream/40 px-3.5 py-2.5 focus-within:border-teal">
@@ -129,7 +132,10 @@ function TypeaheadToField({ onPick }: { onPick: (t: Transfer) => void }) {
 
   return (
     <div className="relative">
-      <label className="text-[12px] font-bold uppercase tracking-wide text-ink-muted" htmlFor="transfer-hotel-search">
+      <label
+        className="text-[12px] font-bold uppercase tracking-wide text-ink-muted"
+        htmlFor="transfer-hotel-search"
+      >
         To — your hotel
       </label>
       <div className="mt-1 flex items-center gap-2 rounded-xl border border-ink/15 bg-cream/40 px-3.5 py-2.5 focus-within:border-teal">
@@ -198,7 +204,9 @@ function TypeaheadToField({ onPick }: { onPick: (t: Transfer) => void }) {
                       {t.area} · {t.region} coast
                     </span>
                   </span>
-                  <span className="shrink-0 text-[12.5px] font-extrabold text-ink">from €{t.fromPriceEur}</span>
+                  <span className="shrink-0 text-[12.5px] font-extrabold text-ink">
+                    from €{t.fromPriceEur}
+                  </span>
                 </button>
               </li>
             ))

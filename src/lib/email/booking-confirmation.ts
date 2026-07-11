@@ -71,7 +71,11 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
 
   const tr = model.booking.transfer;
   const transferDirectionLabel = (d?: string | null): string =>
-    d === 'departure' ? 'Departure (hotel → airport)' : d === 'return' ? 'Return (both ways)' : 'Arrival (airport → hotel)';
+    d === 'departure'
+      ? 'Departure (hotel → airport)'
+      : d === 'return'
+        ? 'Return (both ways)'
+        : 'Arrival (airport → hotel)';
 
   const detailRows = [
     detailRow('Booking ref', `<strong>${escapeHtml(ref)}</strong>`),
@@ -83,7 +87,10 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
     tr ? detailRow('Trip', escapeHtml(transferDirectionLabel(tr.direction))) : '',
     tr?.roomOrCabin ? detailRow('Room/cabin', escapeHtml(tr.roomOrCabin)) : '',
     tr && (tr.flightNumber || tr.arrivalTime)
-      ? detailRow('Arrival flight', escapeHtml([tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' · ')))
+      ? detailRow(
+          'Arrival flight',
+          escapeHtml([tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' · ')),
+        )
       : '',
     tr && (tr.departureFlightNumber || tr.returnDate || tr.returnTime)
       ? detailRow(
@@ -96,7 +103,9 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
         )
       : '',
     tr?.luggageDetails ? detailRow('Luggage', escapeHtml(tr.luggageDetails)) : '',
-    tr && typeof tr.childSeatAge === 'number' ? detailRow('Child seat (age)', escapeHtml(String(tr.childSeatAge))) : '',
+    tr && typeof tr.childSeatAge === 'number'
+      ? detailRow('Child seat (age)', escapeHtml(String(tr.childSeatAge)))
+      : '',
     tr?.specialNotes ? detailRow('Notes', escapeHtml(tr.specialNotes)) : '',
   ].join('');
 
@@ -191,7 +200,10 @@ ${voucherHtml}
   if (tr) {
     textLines.push(`Trip: ${transferDirectionLabel(tr.direction)}`);
     if (tr.roomOrCabin) textLines.push(`Room/cabin: ${tr.roomOrCabin}`);
-    if (tr.flightNumber || tr.arrivalTime) textLines.push(`Arrival flight: ${[tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' · ')}`);
+    if (tr.flightNumber || tr.arrivalTime)
+      textLines.push(
+        `Arrival flight: ${[tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' · ')}`,
+      );
     if (tr.departureFlightNumber || tr.returnDate || tr.returnTime) {
       textLines.push(
         `Departure: ${[tr.departureFlightNumber, [tr.returnDate, tr.returnTime].filter(Boolean).join(' ')].filter(Boolean).join(' · ')}`,
@@ -209,7 +221,9 @@ ${voucherHtml}
   textLines.push(`Total: ${totalStr} (incl. ${vatPct}% VAT)`);
   textLines.push('');
   if (tr && bookingUrl) {
-    textLines.push('Your airport-transfer e-voucher (show this to your driver) is in your booking:');
+    textLines.push(
+      'Your airport-transfer e-voucher (show this to your driver) is in your booking:',
+    );
     textLines.push(bookingUrl);
     textLines.push('');
   }

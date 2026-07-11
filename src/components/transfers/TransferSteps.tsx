@@ -27,9 +27,12 @@ const STEPS = [
 export function TransferSteps() {
   return (
     <section className="mt-12 border-t border-ink/10 pt-9">
-      <h2 className="text-[22px] font-extrabold tracking-tight text-ink">Save time on arrival — fill the travel form</h2>
+      <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+        Save time on arrival — fill the travel form
+      </h2>
       <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/75">
-        Share your flight details when you book and your transfer runs itself. Here’s how it works, start to finish.
+        Share your flight details when you book and your transfer runs itself. Here’s how it works,
+        start to finish.
       </p>
       <ol className="m-0 mt-6 grid list-none grid-cols-1 gap-4 p-0 sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map((s, i) => {
@@ -40,7 +43,9 @@ export function TransferSteps() {
                 <span className="grid h-9 w-9 place-items-center rounded-full bg-teal/10 text-teal">
                   <Icon width={18} height={18} />
                 </span>
-                <span className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Step {i + 1}</span>
+                <span className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                  Step {i + 1}
+                </span>
               </div>
               <h3 className="mt-3 text-[15px] font-extrabold leading-snug text-ink">{s.title}</h3>
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink/70">{s.body}</p>

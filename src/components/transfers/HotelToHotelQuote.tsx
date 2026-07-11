@@ -31,7 +31,11 @@ const INK = '#11201F';
 const INK_SOFT = 'rgba(17,32,31,0.6)';
 const displayFont = { fontFamily: 'var(--font-at-display), sans-serif' } as const;
 
-const BAND_LABEL: Record<string, string> = { same: 'Same area', near: 'Nearby coast', far: 'Across the island' };
+const BAND_LABEL: Record<string, string> = {
+  same: 'Same area',
+  near: 'Nearby coast',
+  far: 'Across the island',
+};
 
 /** A picked point: a listed hotel (priced by its known region), a Google Places pick (priced by the
  *  region of its coordinates), or a free-text/curated area (priced by the region classifier). `region`
@@ -102,7 +106,13 @@ function PlacesField({
         const lat = loc.lat();
         const lng = loc.lng();
         const lbl = p.name || p.formatted_address || input.value || '';
-        onSelectRef.current({ kind: 'area', label: lbl, region: regionFromCoords(lat, lng), lat, lng });
+        onSelectRef.current({
+          kind: 'area',
+          label: lbl,
+          region: regionFromCoords(lat, lng),
+          lat,
+          lng,
+        });
       });
     } catch {
       /* Places unavailable — the typeahead fallback (shown when Maps isn't ready) covers it */
@@ -114,7 +124,11 @@ function PlacesField({
 
   return (
     <div className="relative">
-      <label htmlFor={id} className="text-[12px] font-bold uppercase tracking-wide" style={{ color: INK_SOFT }}>
+      <label
+        htmlFor={id}
+        className="text-[12px] font-bold uppercase tracking-wide"
+        style={{ color: INK_SOFT }}
+      >
         {label}
       </label>
       <input
@@ -143,7 +157,14 @@ function LocationField(props: {
 }) {
   const status = useGoogleMaps();
   if (status === 'ready') {
-    return <PlacesField id={props.id} label={props.label} value={props.value} onSelect={props.onSelect} />;
+    return (
+      <PlacesField
+        id={props.id}
+        label={props.label}
+        value={props.value}
+        onSelect={props.onSelect}
+      />
+    );
   }
   return <TypeaheadField {...props} />;
 }
@@ -172,11 +193,13 @@ function TypeaheadField({
   const matches = useMemo<LocPick[]>(() => {
     const s = q.trim().toLowerCase();
     if (!s) return [];
-    const locs: LocPick[] = TRANSFER_LOCATIONS.filter((l) => l.label.toLowerCase().includes(s)).map((l) => ({
-      kind: 'area',
-      label: l.label,
-      region: l.region,
-    }));
+    const locs: LocPick[] = TRANSFER_LOCATIONS.filter((l) => l.label.toLowerCase().includes(s)).map(
+      (l) => ({
+        kind: 'area',
+        label: l.label,
+        region: l.region,
+      }),
+    );
     const hotels: LocPick[] = transfers
       .filter((t) => t.hotelName.toLowerCase().includes(s) || t.area.toLowerCase().includes(s))
       .map((t) => ({ kind: 'hotel', label: t.hotelName, region: t.region, slug: t.slug }));
@@ -184,11 +207,17 @@ function TypeaheadField({
   }, [q, excludeKey]);
 
   // Free-text fallback when nothing matches: send the typed area, server re-derives the region.
-  const freeText: LocPick | null = q.trim() ? { kind: 'area', label: q.trim(), region: areaRegion(q.trim()) } : null;
+  const freeText: LocPick | null = q.trim()
+    ? { kind: 'area', label: q.trim(), region: areaRegion(q.trim()) }
+    : null;
 
   return (
     <div className="relative">
-      <label htmlFor={id} className="text-[12px] font-bold uppercase tracking-wide" style={{ color: INK_SOFT }}>
+      <label
+        htmlFor={id}
+        className="text-[12px] font-bold uppercase tracking-wide"
+        style={{ color: INK_SOFT }}
+      >
         {label}
       </label>
       <input
@@ -198,7 +227,7 @@ function TypeaheadField({
         aria-expanded={open && q.trim() !== ''}
         aria-autocomplete="list"
         autoComplete="off"
-        value={open ? q : value?.label ?? q}
+        value={open ? q : (value?.label ?? q)}
         placeholder="Hotel, resort or town…"
         onChange={(e) => {
           setQ(e.target.value);
@@ -237,7 +266,8 @@ function TypeaheadField({
                 <span className="min-w-0">
                   <span className="block truncate font-bold text-ink">{p.label}</span>
                   <span className="block text-[12px]" style={{ color: INK_SOFT }}>
-                    {p.kind === 'hotel' ? 'Hotel' : 'Area'} · {p.region ? `${p.region} coast` : 'Mauritius'}
+                    {p.kind === 'hotel' ? 'Hotel' : 'Area'} ·{' '}
+                    {p.region ? `${p.region} coast` : 'Mauritius'}
                   </span>
                 </span>
               </button>
@@ -314,7 +344,8 @@ export function HotelToHotelQuote() {
         const f = body.data?.hotelTransferFares;
         if (f && f.same && f.near && f.far) setFares(f);
         if (body.data?.regionDistances) setDistances(body.data.regionDistances);
-        if (typeof body.data?.returnDiscountPct === 'number') setReturnPct(body.data.returnDiscountPct);
+        if (typeof body.data?.returnDiscountPct === 'number')
+          setReturnPct(body.data.returnDiscountPct);
       })
       .catch(() => {
         /* not live yet — defaults stand */
@@ -329,9 +360,19 @@ export function HotelToHotelQuote() {
   const vehicle = vehicleLabel(party, effectiveSuv);
   const samePlace = Boolean(pickup && dropoff && keyOf(pickup) === keyOf(dropoff));
   const ready = Boolean(pickup && dropoff) && !samePlace;
-  const band = pickup && dropoff ? regionDistanceBand(pickup.region, dropoff.region, distances) : null;
+  const band =
+    pickup && dropoff ? regionDistanceBand(pickup.region, dropoff.region, distances) : null;
   const priceEur = ready
-    ? hotelTransferQuote(pickup!.region, dropoff!.region, party, effectiveSuv, tripType, fares, distances, returnPct)
+    ? hotelTransferQuote(
+        pickup!.region,
+        dropoff!.region,
+        party,
+        effectiveSuv,
+        tripType,
+        fares,
+        distances,
+        returnPct,
+      )
     : 0;
 
   const waMessage = ready
@@ -359,7 +400,9 @@ export function HotelToHotelQuote() {
     }
     setBusy(true);
     try {
-      const avail = await fetch(`/api/v1/activities/${SLUG}/availability?from=${date}&to=${date}`).then((r) =>
+      const avail = await fetch(
+        `/api/v1/activities/${SLUG}/availability?from=${date}&to=${date}`,
+      ).then((r) =>
         parseApiJson<Array<{ occurrenceId: string; startsAt: string; seatsLeft: number }>>(r),
       );
       const slots = avail.ok ? (avail.data ?? []) : [];
@@ -378,7 +421,12 @@ export function HotelToHotelQuote() {
         const res = await fetch('/api/v1/holds', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ occurrenceId: occ, expectedSlug: SLUG, people: party, idempotencyKey: idem }),
+          body: JSON.stringify({
+            occurrenceId: occ,
+            expectedSlug: SLUG,
+            people: party,
+            idempotencyKey: idem,
+          }),
         }).then((r) => parseApiJson<{ holdId: string; expiresAt: string }>(r));
         if (res.ok) {
           holdId = res.data.holdId ?? '';
@@ -388,7 +436,10 @@ export function HotelToHotelQuote() {
         /* checkout will create the hold at pay if this failed */
       }
       try {
-        window.sessionStorage.setItem(`gytm:hold:${occ}`, JSON.stringify({ holdId, expiresAt, idem }));
+        window.sessionStorage.setItem(
+          `gytm:hold:${occ}`,
+          JSON.stringify({ holdId, expiresAt, idem }),
+        );
       } catch {
         /* sessionStorage unavailable — checkout falls back to creating its own hold */
       }
@@ -450,17 +501,35 @@ export function HotelToHotelQuote() {
       style={{ borderColor: 'rgba(17,32,31,0.1)' }}
     >
       <div className="grid gap-4 sm:grid-cols-2">
-        <LocationField id="h2h-from" label="From" value={pickup} onSelect={setPickup} excludeKey={dropoff ? keyOf(dropoff) : undefined} />
-        <LocationField id="h2h-to" label="To" value={dropoff} onSelect={setDropoff} excludeKey={pickup ? keyOf(pickup) : undefined} />
+        <LocationField
+          id="h2h-from"
+          label="From"
+          value={pickup}
+          onSelect={setPickup}
+          excludeKey={dropoff ? keyOf(dropoff) : undefined}
+        />
+        <LocationField
+          id="h2h-to"
+          label="To"
+          value={dropoff}
+          onSelect={setDropoff}
+          excludeKey={pickup ? keyOf(pickup) : undefined}
+        />
       </div>
 
       {/* Trip type */}
       <div className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-[12px] font-bold uppercase tracking-wide" style={{ color: INK_SOFT }}>
+          <div
+            className="text-[12px] font-bold uppercase tracking-wide"
+            style={{ color: INK_SOFT }}
+          >
             Trip
           </div>
-          <div className="mt-1.5 inline-flex rounded-full border p-1" style={{ borderColor: 'rgba(17,32,31,0.15)' }}>
+          <div
+            className="mt-1.5 inline-flex rounded-full border p-1"
+            style={{ borderColor: 'rgba(17,32,31,0.15)' }}
+          >
             {(['one_way', 'return'] as const).map((tt) => (
               <button
                 key={tt}
@@ -469,7 +538,11 @@ export function HotelToHotelQuote() {
                 className="rounded-full px-4 py-1.5 text-[13px] font-bold transition"
                 style={tripType === tt ? { background: TEAL, color: '#fff' } : { color: INK }}
               >
-                {tt === 'one_way' ? 'One-way' : returnPct > 0 ? `Return (save ${returnPct}%)` : 'Return'}
+                {tt === 'one_way'
+                  ? 'One-way'
+                  : returnPct > 0
+                    ? `Return (save ${returnPct}%)`
+                    : 'Return'}
               </button>
             ))}
           </div>
@@ -477,7 +550,10 @@ export function HotelToHotelQuote() {
 
         {/* Passengers */}
         <div>
-          <div className="text-[12px] font-bold uppercase tracking-wide" style={{ color: INK_SOFT }}>
+          <div
+            className="text-[12px] font-bold uppercase tracking-wide"
+            style={{ color: INK_SOFT }}
+          >
             Passengers
           </div>
           <div className="mt-1.5 flex items-center gap-3">
@@ -512,8 +588,16 @@ export function HotelToHotelQuote() {
       </div>
 
       {suvEligible && (
-        <label className="mt-3 flex w-fit cursor-pointer items-center gap-2 text-[13px] font-medium" style={{ color: INK }}>
-          <input type="checkbox" checked={suv} onChange={(e) => setSuv(e.target.checked)} className="h-4 w-4 rounded text-teal focus:ring-teal" />
+        <label
+          className="mt-3 flex w-fit cursor-pointer items-center gap-2 text-[13px] font-medium"
+          style={{ color: INK }}
+        >
+          <input
+            type="checkbox"
+            checked={suv}
+            onChange={(e) => setSuv(e.target.checked)}
+            className="h-4 w-4 rounded text-teal focus:ring-teal"
+          />
           SUV upgrade (more luggage space)
         </label>
       )}
@@ -521,7 +605,10 @@ export function HotelToHotelQuote() {
       {/* Dates + times */}
       <div className="mt-4 grid gap-3">
         <div className="grid grid-cols-2 gap-3">
-          <label className="block text-[12px] font-bold uppercase tracking-wide" style={{ color: INK_SOFT }}>
+          <label
+            className="block text-[12px] font-bold uppercase tracking-wide"
+            style={{ color: INK_SOFT }}
+          >
             Pickup date
             <input
               type="date"
@@ -532,7 +619,10 @@ export function HotelToHotelQuote() {
               style={{ borderColor: 'rgba(17,32,31,0.15)' }}
             />
           </label>
-          <label className="block text-[12px] font-bold uppercase tracking-wide" style={{ color: INK_SOFT }}>
+          <label
+            className="block text-[12px] font-bold uppercase tracking-wide"
+            style={{ color: INK_SOFT }}
+          >
             Pickup time
             <input
               type="time"
@@ -545,7 +635,10 @@ export function HotelToHotelQuote() {
         </div>
         {tripType === 'return' && (
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-[12px] font-bold uppercase tracking-wide" style={{ color: INK_SOFT }}>
+            <label
+              className="block text-[12px] font-bold uppercase tracking-wide"
+              style={{ color: INK_SOFT }}
+            >
               Return date
               <input
                 type="date"
@@ -556,7 +649,10 @@ export function HotelToHotelQuote() {
                 style={{ borderColor: 'rgba(17,32,31,0.15)' }}
               />
             </label>
-            <label className="block text-[12px] font-bold uppercase tracking-wide" style={{ color: INK_SOFT }}>
+            <label
+              className="block text-[12px] font-bold uppercase tracking-wide"
+              style={{ color: INK_SOFT }}
+            >
               Return time
               <input
                 type="time"
@@ -577,10 +673,15 @@ export function HotelToHotelQuote() {
       >
         <div>
           {samePlace ? (
-            <div className="text-[14px] font-semibold text-coral">Pick two different locations.</div>
+            <div className="text-[14px] font-semibold text-coral">
+              Pick two different locations.
+            </div>
           ) : ready ? (
             <>
-              <div className="text-[28px] font-extrabold leading-none" style={{ ...displayFont, color: INK }}>
+              <div
+                className="text-[28px] font-extrabold leading-none"
+                style={{ ...displayFont, color: INK }}
+              >
                 <Price eur={priceEur} />
               </div>
               <div className="mt-1 text-[12.5px]" style={{ color: INK_SOFT }}>
@@ -606,7 +707,11 @@ export function HotelToHotelQuote() {
           }}
         >
           {busy ? (
-            <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" aria-label="Loading" role="img" />
+            <span
+              className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white"
+              aria-label="Loading"
+              role="img"
+            />
           ) : (
             'Book this transfer'
           )}
@@ -621,7 +726,13 @@ export function HotelToHotelQuote() {
       {notLive && (
         <p className="mt-3 text-[13px] font-medium" style={{ color: INK_SOFT }}>
           That date isn’t open online just yet —{' '}
-          <a href={whatsappUrl(waMessage)} target="_blank" rel="noopener noreferrer" className="font-bold underline" style={{ color: TEAL_DARK }}>
+          <a
+            href={whatsappUrl(waMessage)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold underline"
+            style={{ color: TEAL_DARK }}
+          >
             message us on WhatsApp
           </a>{' '}
           and we’ll set it up in minutes.
@@ -629,7 +740,8 @@ export function HotelToHotelQuote() {
       )}
 
       <p className="mt-3 text-[12.5px]" style={{ color: INK_SOFT }}>
-        Fixed, all-in EUR price · same trusted driver-guide · door to door · free cancellation up to 24h before.
+        Fixed, all-in EUR price · same trusted driver-guide · door to door · free cancellation up to
+        24h before.
       </p>
     </div>
   );

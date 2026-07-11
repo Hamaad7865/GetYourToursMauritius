@@ -78,7 +78,12 @@ export function PlacesDrawer({
             {loading ? t('searching…') : t('{n} spots · live from Google', { n: results.length })}
           </div>
         </div>
-        <button type="button" onClick={onClose} aria-label={t('Close')} className="ml-auto grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-[10px] border border-[#EEF4F3] bg-white">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={t('Close')}
+          className="ml-auto grid h-[34px] w-[34px] cursor-pointer place-items-center rounded-[10px] border border-[#EEF4F3] bg-white"
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M6 6l12 12M18 6L6 18" stroke="#51666B" strokeWidth={2} strokeLinecap="round" />
           </svg>
@@ -106,7 +111,9 @@ export function PlacesDrawer({
               type="button"
               onClick={() => setCat(c)}
               className={`shrink-0 cursor-pointer rounded-full border px-[13px] py-[7px] text-[12.5px] font-bold ${
-                cat === c ? 'border-teal bg-teal text-white' : 'border-[#E3EEEC] bg-white text-teal-dark'
+                cat === c
+                  ? 'border-teal bg-teal text-white'
+                  : 'border-[#E3EEEC] bg-white text-teal-dark'
               }`}
             >
               {t(c)}
@@ -120,7 +127,9 @@ export function PlacesDrawer({
               type="button"
               onClick={() => setRegion(r)}
               className={`shrink-0 cursor-pointer rounded-full border px-3 py-1.5 text-xs font-semibold ${
-                region === r ? 'border-[#E3CFA0] bg-[#FFF8EC] text-[#7A5A12]' : 'border-[#EEF1F0] bg-white text-ink-muted'
+                region === r
+                  ? 'border-[#E3CFA0] bg-[#FFF8EC] text-[#7A5A12]'
+                  : 'border-[#EEF1F0] bg-white text-ink-muted'
               }`}
             >
               {t(r)}
@@ -132,7 +141,10 @@ export function PlacesDrawer({
       <div className="grid min-h-0 flex-1 gap-2.5 overflow-y-auto px-[15px] pb-4 pt-1">
         {loading ? (
           [0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex gap-3 rounded-[14px] border border-[#EAF2F1] bg-white p-2.5">
+            <div
+              key={i}
+              className="flex gap-3 rounded-[14px] border border-[#EAF2F1] bg-white p-2.5"
+            >
               <div className="h-16 w-16 shrink-0 animate-pulse rounded-xl bg-ink/5" />
               <div className="flex-1 space-y-2 py-1">
                 <div className="h-3.5 w-2/3 animate-pulse rounded bg-ink/5" />
@@ -146,17 +158,32 @@ export function PlacesDrawer({
             {t('Couldn’t load places right now — try again in a moment.')}
           </div>
         ) : results.length === 0 ? (
-          <div className="py-[30px] text-center text-[13.5px] text-ink-muted">{t('No places match — try a different search.')}</div>
+          <div className="py-[30px] text-center text-[13.5px] text-ink-muted">
+            {t('No places match — try a different search.')}
+          </div>
         ) : (
           results.map((p) => {
             const added = selected.has(p.id);
             const reason = added ? null : addReason(p.region);
             const blocked = reason !== null;
-            const label = added ? t('✓ Added') : reason === 'full' ? t('Day full') : reason === 'far-region' ? t('Too far') : t('+ Add');
+            const label = added
+              ? t('✓ Added')
+              : reason === 'full'
+                ? t('Day full')
+                : reason === 'far-region'
+                  ? t('Too far')
+                  : t('+ Add');
             const ariaLabel =
-              reason === 'full' ? t('Your day is full') : reason === 'far-region' ? t('{name} is too far from your day', { name: p.name }) : t('Add {name}', { name: p.name });
+              reason === 'full'
+                ? t('Your day is full')
+                : reason === 'far-region'
+                  ? t('{name} is too far from your day', { name: p.name })
+                  : t('Add {name}', { name: p.name });
             return (
-              <div key={p.id} className="flex gap-3 rounded-[14px] border border-[#EAF2F1] bg-white p-2.5 shadow-[0_3px_10px_rgba(10,46,54,.04)]">
+              <div
+                key={p.id}
+                className="flex gap-3 rounded-[14px] border border-[#EAF2F1] bg-white p-2.5 shadow-[0_3px_10px_rgba(10,46,54,.04)]"
+              >
                 <Thumb place={p} size={64} />
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-[7px]">
@@ -168,11 +195,21 @@ export function PlacesDrawer({
                       {ratingFor(p)}
                     </span>
                   </div>
-                  {p.blurb && <p className="m-0 mb-[7px] mt-1 line-clamp-2 text-[12.5px] leading-[1.4] text-ink-muted">{p.blurb}</p>}
+                  {p.blurb && (
+                    <p className="m-0 mb-[7px] mt-1 line-clamp-2 text-[12.5px] leading-[1.4] text-ink-muted">
+                      {p.blurb}
+                    </p>
+                  )}
                   <div className="mt-1 flex items-center gap-2">
                     <span className="inline-flex items-center gap-1 rounded-[7px] bg-teal-tint px-[7px] py-[3px] text-[11px] font-bold text-teal">
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
-                        <path d="M5 13l4 4L19 7" stroke="#0E8C92" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+                        <path
+                          d="M5 13l4 4L19 7"
+                          stroke="#0E8C92"
+                          strokeWidth={3}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
                       </svg>
                       {p.category}
                     </span>
@@ -185,7 +222,9 @@ export function PlacesDrawer({
                   disabled={added || blocked}
                   aria-label={ariaLabel}
                   className={`shrink-0 self-center rounded-[10px] px-3.5 py-[9px] text-[13px] font-bold ${
-                    added || blocked ? 'cursor-default bg-[#EAF2F1] text-ink-muted' : 'cursor-pointer bg-coral text-white'
+                    added || blocked
+                      ? 'cursor-default bg-[#EAF2F1] text-ink-muted'
+                      : 'cursor-pointer bg-coral text-white'
                   }`}
                 >
                   {label}

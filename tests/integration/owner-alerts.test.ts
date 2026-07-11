@@ -33,7 +33,9 @@ class CapturingProvider implements NotificationProvider {
 }
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -45,7 +47,11 @@ describe('owner booking alerts', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into auth.users (id) values ($1), ($2), ($3)`, [STAFF, ADMIN, CUSTOMER]);
+    await db.pg.query(`insert into auth.users (id) values ($1), ($2), ($3)`, [
+      STAFF,
+      ADMIN,
+      CUSTOMER,
+    ]);
     await db.pg.query(
       `insert into profiles (id, role) values ($1, 'staff'), ($2, 'admin'), ($3, 'customer')`,
       [STAFF, ADMIN, CUSTOMER],
@@ -53,7 +59,9 @@ describe('owner booking alerts', () => {
 
     const seed = await seedOccurrence(db, 10);
     const slug = (
-      await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [seed.activityId])
+      await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [
+        seed.activityId,
+      ])
     ).rows[0]!.slug;
     const booked = await call<{ ref: string }>(db, 'api_book', {
       occurrenceId: seed.occurrenceId,
@@ -65,9 +73,8 @@ describe('owner booking alerts', () => {
       idempotencyKey: 'owner-alerts-1',
     });
     ref = booked.ref;
-    bookingId = (
-      await db.pg.query<{ id: string }>(`select id from bookings where ref = $1`, [ref])
-    ).rows[0]!.id;
+    bookingId = (await db.pg.query<{ id: string }>(`select id from bookings where ref = $1`, [ref]))
+      .rows[0]!.id;
     // Flip to confirmed (the AFTER UPDATE OF status trigger is the unit under test).
     await db.pg.query(`update bookings set status = 'confirmed' where id = $1`, [bookingId]);
   });

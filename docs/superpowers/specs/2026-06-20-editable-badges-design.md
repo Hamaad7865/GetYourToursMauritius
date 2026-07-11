@@ -13,6 +13,7 @@
 badges; they REPLACE the fixed strip for that activity.
 
 ## Locked decisions
+
 1. **Storage = `activities.extra.badges`** (JSONB array). **No migration / no owner DB action** — the
    winning `api_get_activity` already returns `a.extra` wholesale (migration `20260615121400`, preserved by
    every later override incl. `catch-up.sql`). The ONLY reason `badges` wouldn't flow is that Zod strips
@@ -26,6 +27,7 @@ badges; they REPLACE the fixed strip for that activity.
    (admin add/remove/reorder). Empty rows (no icon or no title) are dropped on save.
 
 ## Architecture (all TypeScript — no SQL)
+
 - **Schema:** add `badges: z.array(badgeSchema).optional()` to `activityExtraSchema` in
   `src/lib/validation/tours.ts`. It then flows through `tourDetailSchema.parse` → the page automatically.
 - **Icon registry:** `src/components/ui/badge-icons.tsx` — `BADGE_ICONS: { key, label, Icon }[]` (for the
@@ -42,12 +44,14 @@ badges; they REPLACE the fixed strip for that activity.
   `page.tsx` passes `activity.extra.badges ?? []`.
 
 ## Testing
+
 - Unit: `normalizeBadges` (drops icon-less/title-less rows, trims, caps count); `badgeIcon` (known key →
   component, unknown → null).
 - Manual: an activity with 3 custom badges shows exactly those on the detail page; an activity with none is
   unchanged; admin add/edit/remove round-trips through save + reload.
 
 ## Out of scope
+
 - Free-form icon upload; changing the derived badges' own logic (already editable via their fields);
   per-badge i18n (titles/subtitles are admin free text, shown as entered — like other DB content).
 - Note (pre-existing, NOT introduced here): `buildExtra` only writes the `extra` keys the form manages

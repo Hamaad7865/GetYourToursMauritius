@@ -1,4 +1,8 @@
-import { searchGooglePlaces, placeDetailsByIds, type PlacesSearchArgs } from '@/lib/maps/google-places';
+import {
+  searchGooglePlaces,
+  placeDetailsByIds,
+  type PlacesSearchArgs,
+} from '@/lib/maps/google-places';
 import { planRoute, type PlannedRoute } from '@/lib/maps/route-planning';
 import { filterItinerary } from '@/lib/planner/constraints';
 import type { PlannerPlace } from '@/lib/validation/planner';
@@ -12,7 +16,10 @@ import type { PlannerPlace } from '@/lib/validation/planner';
 export type SearchPlacesArgs = PlacesSearchArgs;
 
 /** Search live Google Places (Mauritius) by free text, category and/or region. */
-export async function searchPlannerPlaces(args: SearchPlacesArgs, apiKey: string | null): Promise<PlannerPlace[]> {
+export async function searchPlannerPlaces(
+  args: SearchPlacesArgs,
+  apiKey: string | null,
+): Promise<PlannerPlace[]> {
   if (!apiKey) return [];
   return searchGooglePlaces(args, apiKey);
 }

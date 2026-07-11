@@ -88,7 +88,9 @@ export function productJsonLd(activity: TourDetail | TourSummary): Record<string
 }
 
 /** Generic BreadcrumbList from ordered crumbs (paths are site-relative). */
-export function breadcrumbListJsonLd(items: { name: string; path: string }[]): Record<string, unknown> {
+export function breadcrumbListJsonLd(
+  items: { name: string; path: string }[],
+): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -230,7 +232,9 @@ export function articleJsonLd(opts: {
 }
 
 /** TravelAgency (same @id as the global Organization) enriched with displayed reviews. */
-export function reviewsPageJsonLd(reviews: { author: string; rating: number; text: string; date: string | null }[]): Record<string, unknown> {
+export function reviewsPageJsonLd(
+  reviews: { author: string; rating: number; text: string; date: string | null }[],
+): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'TravelAgency',
@@ -256,7 +260,11 @@ export function reviewsPageJsonLd(reviews: { author: string; rating: number; tex
 }
 
 /** TouristDestination for an area / destination guide page. */
-export function destinationJsonLd(opts: { name: string; description: string; path: string }): Record<string, unknown> {
+export function destinationJsonLd(opts: {
+  name: string;
+  description: string;
+  path: string;
+}): Record<string, unknown> {
   return {
     '@context': 'https://schema.org',
     '@type': 'TouristDestination',

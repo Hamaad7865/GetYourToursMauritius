@@ -15,17 +15,37 @@
 ## Task 1: Pure option helpers
 
 **Files:**
+
 - Create: `src/lib/catalogue/options.ts`, `tests/unit/options.test.ts`
 
 - [ ] **Step 1: Failing test** — `tests/unit/options.test.ts`. First READ `src/lib/validation/tours.ts` to confirm the `TourOption` / tier shape (expected: `TourOption = { id, name, description?, prices: { label, amountEur, maxGuests }[] }`; `PricingMode = 'per_person'|'per_group'|'vehicle'`). Then:
+
 ```typescript
 import { describe, expect, it } from 'vitest';
 import { cheapestTier, defaultOptionId, optionCardSummary } from '@/lib/catalogue/options';
 import type { TourOption } from '@/lib/validation/tours';
 
-const half: TourOption = { id: 'a', name: 'Half-Day Boat Trip', description: null, prices: [{ label: 'Adult', amountEur: 180, maxGuests: null }] };
-const full: TourOption = { id: 'b', name: 'Full Day Boat Trip', description: null, prices: [{ label: 'Adult', amountEur: 360, maxGuests: null }] };
-const tiered: TourOption = { id: 'c', name: 'Shared', description: null, prices: [{ label: 'Child', amountEur: 40, maxGuests: 8 }, { label: 'Adult', amountEur: 60, maxGuests: 8 }] };
+const half: TourOption = {
+  id: 'a',
+  name: 'Half-Day Boat Trip',
+  description: null,
+  prices: [{ label: 'Adult', amountEur: 180, maxGuests: null }],
+};
+const full: TourOption = {
+  id: 'b',
+  name: 'Full Day Boat Trip',
+  description: null,
+  prices: [{ label: 'Adult', amountEur: 360, maxGuests: null }],
+};
+const tiered: TourOption = {
+  id: 'c',
+  name: 'Shared',
+  description: null,
+  prices: [
+    { label: 'Child', amountEur: 40, maxGuests: 8 },
+    { label: 'Adult', amountEur: 60, maxGuests: 8 },
+  ],
+};
 
 describe('cheapestTier', () => {
   it('returns the lowest-priced tier', () => {
@@ -64,17 +84,23 @@ describe('optionCardSummary', () => {
 - [ ] **Step 2: Run, expect FAIL** — `npx vitest run tests/unit/options.test.ts`.
 
 - [ ] **Step 3: Implement `src/lib/catalogue/options.ts`** (adapt field names to the real `TourOption`):
+
 ```typescript
 import type { PricingMode, TourOption } from '@/lib/validation/tours';
 import type { TourType } from '@/lib/validation/common';
 
-export interface TierLite { label: string; amountEur: number; maxGuests: number | null }
+export interface TierLite {
+  label: string;
+  amountEur: number;
+  maxGuests: number | null;
+}
 
 /** The option's lowest-priced tier, or null when it has none. */
 export function cheapestTier(option: TourOption): TierLite | null {
   let best: TierLite | null = null;
   for (const p of option.prices) {
-    if (!best || p.amountEur < best.amountEur) best = { label: p.label, amountEur: p.amountEur, maxGuests: p.maxGuests };
+    if (!best || p.amountEur < best.amountEur)
+      best = { label: p.label, amountEur: p.amountEur, maxGuests: p.maxGuests };
   }
   return best;
 }
@@ -87,22 +113,39 @@ export function defaultOptionId(options: TourOption[], isVehicle: boolean): stri
   let bestEur = Infinity;
   for (const o of options) {
     const t = cheapestTier(o);
-    if (t && t.amountEur < bestEur) { bestEur = t.amountEur; bestId = o.id; }
+    if (t && t.amountEur < bestEur) {
+      bestEur = t.amountEur;
+      bestId = o.id;
+    }
   }
   return bestId ?? options[0].id;
 }
 
-export interface OptionCardSummary { name: string; fromPriceEur: number | null; maxGuests: number | null; unitNote: string }
+export interface OptionCardSummary {
+  name: string;
+  fromPriceEur: number | null;
+  maxGuests: number | null;
+  unitNote: string;
+}
 
 /** Display fields for one option card. unitNote follows the pricing mode/type, mirroring the widget's unitLabel. */
-export function optionCardSummary(option: TourOption, mode: PricingMode, type: TourType): OptionCardSummary {
+export function optionCardSummary(
+  option: TourOption,
+  mode: PricingMode,
+  type: TourType,
+): OptionCardSummary {
   const t = cheapestTier(option);
   const maxGuests = t?.maxGuests ?? null;
   const unitNote =
-    mode === 'vehicle' ? 'per vehicle'
-      : mode === 'per_group' ? (maxGuests ? `per group up to ${maxGuests}` : 'per group')
-      : type === 'transport' ? 'per vehicle'
-      : 'per person';
+    mode === 'vehicle'
+      ? 'per vehicle'
+      : mode === 'per_group'
+        ? maxGuests
+          ? `per group up to ${maxGuests}`
+          : 'per group'
+        : type === 'transport'
+          ? 'per vehicle'
+          : 'per person';
   return { name: option.name, fromPriceEur: t?.amountEur ?? null, maxGuests, unitNote };
 }
 ```
@@ -110,6 +153,7 @@ export function optionCardSummary(option: TourOption, mode: PricingMode, type: T
 - [ ] **Step 4: Run → PASS.**
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/lib/catalogue/options.ts tests/unit/options.test.ts
 git commit -m "feat(catalogue): pure option helpers (cheapestTier, defaultOptionId, optionCardSummary)"
@@ -120,31 +164,42 @@ git commit -m "feat(catalogue): pure option helpers (cheapestTier, defaultOption
 ## Task 2: Selection state drives pricing + availability in BookingProvider
 
 **Files:**
+
 - Modify: `src/components/gyg/detail/BookingProvider.tsx`
 
 READ the whole file first. Today: `cheapest` (a useMemo, ~L183) scans ALL options to drive `bookingOptionId` (~L194), pricing (`baseTotal`, `unitPriceEur`, `priceLabel`, `groupSize`, `tierCap`), and availability filters on `bookingOptionId` (~L221). We make the SELECTED option drive all of it, keeping today's behaviour as the default.
 
 - [ ] **Step 1: Add selection state.** Near the other `useState`s, add (using the Task-1 helper for the default):
+
 ```typescript
-const [selectedOptionId, setSelectedOptionId] = useState<string | null>(
-  () => defaultOptionId(activity.options, activity.pricingMode === 'vehicle'),
+const [selectedOptionId, setSelectedOptionId] = useState<string | null>(() =>
+  defaultOptionId(activity.options, activity.pricingMode === 'vehicle'),
 );
 const selectedOption = useMemo(
   () => activity.options.find((o) => o.id === selectedOptionId) ?? activity.options[0] ?? null,
   [activity.options, selectedOptionId],
 );
-const setSelectedOption = useCallback((id: string) => {
-  setSelectedOptionId(id);
-  setDate('');   // occurrences differ per option — force a fresh date pick
-  touch();
-}, [touch]);
+const setSelectedOption = useCallback(
+  (id: string) => {
+    setSelectedOptionId(id);
+    setDate(''); // occurrences differ per option — force a fresh date pick
+    touch();
+  },
+  [touch],
+);
 ```
+
 Import `defaultOptionId` + `cheapestTier` from `@/lib/catalogue/options`.
 
 - [ ] **Step 2: Selected-option pricing.** Replace the pricing role of `cheapest` with the cheapest tier of the SELECTED option:
+
 ```typescript
-const selectedTier = useMemo(() => (selectedOption ? cheapestTier(selectedOption) : null), [selectedOption]);
+const selectedTier = useMemo(
+  () => (selectedOption ? cheapestTier(selectedOption) : null),
+  [selectedOption],
+);
 ```
+
 Then update every reader that used `cheapest` for PRICING to use `selectedTier` (keep `cheapest`-style fallbacks identical): `bookingOptionId` becomes `selectedOption?.id ?? null`; `groupSize` uses `selectedTier?.maxGuests`; `tierCap` uses `selectedTier?.maxGuests`; `baseTotal` per_group/per_person branches use `selectedTier.amountEur`; `unitPriceEur` uses `selectedTier?.amountEur ?? 0`; `priceLabel` uses `selectedTier?.label ?? ''`. The vehicle branches (`vehicleCfg`, `sightseeingQuote`, `vehicleName`) are unchanged. Confirm: when `selectedOptionId` is the default, `selectedTier` equals the old `cheapest` for a single-option activity, so existing tests stay green.
 
 - [ ] **Step 3: Availability follows selection.** `bookingOptionId` is now `selectedOption?.id`; the availability `useEffect` dep array already keys on `bookingOptionId`, so it re-fetches on option change. No other change needed (the `s.activityOptionId !== bookingOptionId` filter now matches the selected option).
@@ -154,6 +209,7 @@ Then update every reader that used `cheapest` for PRICING to use `selectedTier` 
 - [ ] **Step 5: Verify no regression** — `npm run typecheck` and `npx vitest run` (the pricing/booking tests must stay green; default selection reproduces today's numbers). Report results.
 
 - [ ] **Step 6: Commit**
+
 ```bash
 git add src/components/gyg/detail/BookingProvider.tsx
 git commit -m "feat(booking): selected option drives price + availability (default unchanged)"
@@ -164,6 +220,7 @@ git commit -m "feat(booking): selected option drives price + availability (defau
 ## Task 3: OptionSelector card UI + wire-in + label fix + green gate
 
 **Files:**
+
 - Create: `src/components/gyg/detail/OptionSelector.tsx`
 - Modify: `src/components/gyg/detail/BookingOptionCard.tsx` (and/or `BookingWidget.tsx`), `src/lib/i18n/messages.ts`
 
@@ -176,6 +233,7 @@ git commit -m "feat(booking): selected option drives price + availability (defau
 - [ ] **Step 4: Green gate** — `npm run typecheck && npm run lint && npx vitest run` all green (report real numbers). Reason through: a 2-option per-person activity shows two cards, selecting Full Day shows €360 and reloads that option's dates; a 1-option activity shows no picker and is visually unchanged.
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/components/gyg/detail/OptionSelector.tsx src/components/gyg/detail/BookingOptionCard.tsx src/components/gyg/detail/BookingWidget.tsx src/lib/i18n/messages.ts
 git commit -m "feat(booking): GYG-style option selector cards on the activity page"

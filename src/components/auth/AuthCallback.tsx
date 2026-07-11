@@ -94,7 +94,10 @@ export function AuthCallback() {
       {error ? (
         <div>
           <p className="text-sm font-medium text-coral">{error}</p>
-          <Link href="/" className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark">
+          <Link
+            href="/"
+            className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark"
+          >
             Back to home
           </Link>
         </div>

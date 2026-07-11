@@ -39,7 +39,11 @@ function toReview(r: PoolReview): Review {
  *  Follows the SAME collapse decision the stats generator made (TOPIC_STATS.collapsed) — otherwise a
  *  page's header aggregate and its review texts would come from different sets (the `air` bucket hit
  *  exactly that: stats collapsed to general while the pool stayed topic-only). */
-export function activityReviewPool(activity: { category: string; title?: string; slug?: string }): PoolReview[] {
+export function activityReviewPool(activity: {
+  category: string;
+  title?: string;
+  slug?: string;
+}): PoolReview[] {
   const topic = topicFor(activity);
   if (TOPIC_STATS[topic]?.collapsed) return REVIEW_POOL;
   const matched = REVIEW_POOL.filter((r) => r.topics.includes(topic));

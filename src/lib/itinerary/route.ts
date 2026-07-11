@@ -10,7 +10,10 @@ export function placeForStop(stop: ItineraryStop, sel: number): AltStop {
 }
 
 /** The chosen route = the selected place for each stop, in order. */
-export function chosenRoute(stops: ItineraryStop[], selectedByStop: Record<number, number>): AltStop[] {
+export function chosenRoute(
+  stops: ItineraryStop[],
+  selectedByStop: Record<number, number>,
+): AltStop[] {
   return stops.map((s, i) => placeForStop(s, selectedByStop[i] ?? 0));
 }
 

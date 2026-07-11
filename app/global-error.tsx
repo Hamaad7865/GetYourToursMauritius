@@ -45,10 +45,12 @@ export default function GlobalError({
         }}
       >
         <div style={{ maxWidth: 440, padding: 24, textAlign: 'center' }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 10px' }}>Something went wrong</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 700, margin: '0 0 10px' }}>
+            Something went wrong
+          </h1>
           <p style={{ fontSize: 15, lineHeight: 1.6, color: '#4a5b5f', margin: '0 0 22px' }}>
-            We hit an unexpected error. Please try again — if it keeps happening, contact us and we’ll
-            help you book directly.
+            We hit an unexpected error. Please try again — if it keeps happening, contact us and
+            we’ll help you book directly.
           </p>
           <button
             onClick={() => reset()}
@@ -66,7 +68,10 @@ export default function GlobalError({
             Try again
           </button>
           <p style={{ marginTop: 18, marginBottom: 0 }}>
-            <a href="/" style={{ color: '#0e8c92', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
+            <a
+              href="/"
+              style={{ color: '#0e8c92', fontSize: 14, fontWeight: 600, textDecoration: 'none' }}
+            >
               Back to home
             </a>
           </p>

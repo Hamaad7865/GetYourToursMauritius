@@ -21,7 +21,13 @@ function VerifiedCue() {
   return (
     <span className="inline-flex items-center gap-1 rounded-[7px] bg-teal-tint px-[7px] py-[3px] text-[11px] font-bold text-teal">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden>
-        <path d="M5 13l4 4L19 7" stroke="#0E8C92" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" />
+        <path
+          d="M5 13l4 4L19 7"
+          stroke="#0E8C92"
+          strokeWidth={3}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
       </svg>
       {t('Real place · open today')}
     </span>
@@ -71,7 +77,11 @@ export function ChatCopilot({
   const bodyRef = useRef<HTMLDivElement>(null);
   // Voice dictation into the message field (Web Speech API, client-only). Recognise in the user's
   // chosen language; appends to whatever they've typed so they can review before sending.
-  const voice = useVoiceInput({ lang: language === 'fr' ? 'fr-FR' : 'en-GB', value: draft, onChange: setDraft });
+  const voice = useVoiceInput({
+    lang: language === 'fr' ? 'fr-FR' : 'en-GB',
+    value: draft,
+    onChange: setDraft,
+  });
 
   useEffect(() => {
     bodyRef.current?.scrollTo({ top: bodyRef.current.scrollHeight });
@@ -91,13 +101,18 @@ export function ChatCopilot({
     const drive = idx != null ? route.segs[idx] : undefined;
     const added = idx != null;
     return (
-      <div key={key} className="flex max-w-[86%] animate-float-in flex-col gap-[9px] self-start rounded-[4px_16px_16px_16px] border border-[#EAF2F1] bg-white p-2.5 shadow-[0_6px_18px_rgba(10,46,54,.07)]">
+      <div
+        key={key}
+        className="flex max-w-[86%] animate-float-in flex-col gap-[9px] self-start rounded-[4px_16px_16px_16px] border border-[#EAF2F1] bg-white p-2.5 shadow-[0_6px_18px_rgba(10,46,54,.07)]"
+      >
         <div className="flex gap-[11px]">
           <Thumb place={p} size={58} />
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-[7px]">
               <strong className="text-[14.5px] text-ink">{p.name}</strong>
-              <span className="rounded-md bg-[#F1F6F5] px-[7px] py-0.5 text-[11px] font-bold text-ink-muted">{p.category}</span>
+              <span className="rounded-md bg-[#F1F6F5] px-[7px] py-0.5 text-[11px] font-bold text-ink-muted">
+                {p.category}
+              </span>
             </div>
             <p className="m-0 mt-1 text-[12.5px] leading-[1.4] text-ink-muted">{why || p.blurb}</p>
             <div className="mt-[7px]">
@@ -108,9 +123,17 @@ export function ChatCopilot({
         <div className="flex items-center justify-between gap-2 border-t border-dashed border-[#E7EFEE] pt-2">
           <span className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-dark">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M5 16l1.5-4.5A2 2 0 0 1 8.4 10h7.2a2 2 0 0 1 1.9 1.5L19 16m-14 0v2.5a.5.5 0 0 0 .5.5H7a.5.5 0 0 0 .5-.5V16m11.5 0v2.5a.5.5 0 0 1-.5.5H17a.5.5 0 0 1-.5-.5V16M5 16h14" stroke="#0B5C63" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M5 16l1.5-4.5A2 2 0 0 1 8.4 10h7.2a2 2 0 0 1 1.9 1.5L19 16m-14 0v2.5a.5.5 0 0 0 .5.5H7a.5.5 0 0 0 .5-.5V16m11.5 0v2.5a.5.5 0 0 1-.5.5H17a.5.5 0 0 1-.5-.5V16M5 16h14"
+                stroke="#0B5C63"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
-            {drive ? t('{m} min · {km} km from last stop', { m: drive.minutes, km: drive.km }) : t('mapped')}
+            {drive
+              ? t('{m} min · {km} km from last stop', { m: drive.minutes, km: drive.km })
+              : t('mapped')}
           </span>
           {added ? (
             <span className="text-xs font-bold text-teal">{t('✓ Added')}</span>
@@ -119,10 +142,16 @@ export function ChatCopilot({
               const reason = addReasonById(id);
               if (reason)
                 return (
-                  <span className="text-xs font-bold text-ink-muted">{reason === 'full' ? t('Day full') : t('Too far')}</span>
+                  <span className="text-xs font-bold text-ink-muted">
+                    {reason === 'full' ? t('Day full') : t('Too far')}
+                  </span>
                 );
               return (
-                <button type="button" onClick={() => onAddPlace(id)} className="cursor-pointer rounded-[9px] bg-coral px-[13px] py-[7px] text-[12.5px] font-bold text-white">
+                <button
+                  type="button"
+                  onClick={() => onAddPlace(id)}
+                  className="cursor-pointer rounded-[9px] bg-coral px-[13px] py-[7px] text-[12.5px] font-bold text-white"
+                >
                   {t('+ Add')}
                 </button>
               );
@@ -135,9 +164,15 @@ export function ChatCopilot({
 
   function summaryCard(key: number) {
     return (
-      <div key={key} className="max-w-[88%] animate-pop self-start rounded-[4px_16px_16px_16px] border border-[#D8ECEA] p-3.5 shadow-[0_10px_26px_rgba(14,140,146,.12)]" style={{ background: 'linear-gradient(160deg,#fff,#EAF7F5)' }}>
+      <div
+        key={key}
+        className="max-w-[88%] animate-pop self-start rounded-[4px_16px_16px_16px] border border-[#D8ECEA] p-3.5 shadow-[0_10px_26px_rgba(14,140,146,.12)]"
+        style={{ background: 'linear-gradient(160deg,#fff,#EAF7F5)' }}
+      >
         <div className="mb-2.5 flex items-center gap-2">
-          <span className="font-display text-[15px] font-semibold text-ink">{t('Your day, mapped')}</span>
+          <span className="font-display text-[15px] font-semibold text-ink">
+            {t('Your day, mapped')}
+          </span>
           <span className="ml-auto">
             <VerifiedCue />
           </span>
@@ -145,26 +180,43 @@ export function ChatCopilot({
         <div className="mb-[11px] flex flex-col gap-1.5">
           {stops.map((p, i) => (
             <div key={p.id} className="flex items-center gap-[9px] text-[13px]">
-              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-coral text-[11px] font-extrabold text-white">{i + 1}</span>
+              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-md bg-coral text-[11px] font-extrabold text-white">
+                {i + 1}
+              </span>
               <span className="font-semibold text-ink">{p.name}</span>
-              <span className="ml-auto text-[11.5px] text-ink-muted">{t('{d} here', { d: fmtDur(p.durationMin) })}</span>
+              <span className="ml-auto text-[11.5px] text-ink-muted">
+                {t('{d} here', { d: fmtDur(p.durationMin) })}
+              </span>
             </div>
           ))}
         </div>
         <div className="mb-[11px] flex gap-3.5 border-y border-teal/15 py-[9px]">
-          {([
-            ['Stops', String(stops.length)],
-            ['Driving', fmtDur(route.totalMinutes)],
-            ['Distance', `${route.totalKm} km`],
-            ['Est.', quote ? <Price eur={quote.totalEur} /> : '—'],
-          ] as Array<[string, ReactNode]>).map(([k, v]) => (
+          {(
+            [
+              ['Stops', String(stops.length)],
+              ['Driving', fmtDur(route.totalMinutes)],
+              ['Distance', `${route.totalKm} km`],
+              ['Est.', quote ? <Price eur={quote.totalEur} /> : '—'],
+            ] as Array<[string, ReactNode]>
+          ).map(([k, v]) => (
             <div key={k}>
-              <div className="text-[10.5px] font-bold uppercase tracking-[0.03em] text-ink-muted">{t(k)}</div>
-              <div className={`text-[15px] font-extrabold ${k === 'Est.' ? 'font-display text-gold' : 'text-ink'} tabular-nums`}>{v}</div>
+              <div className="text-[10.5px] font-bold uppercase tracking-[0.03em] text-ink-muted">
+                {t(k)}
+              </div>
+              <div
+                className={`text-[15px] font-extrabold ${k === 'Est.' ? 'font-display text-gold' : 'text-ink'} tabular-nums`}
+              >
+                {v}
+              </div>
             </div>
           ))}
         </div>
-        <button type="button" onClick={onQuote} className="w-full cursor-pointer rounded-[11px] py-[11px] text-sm font-bold text-white shadow-[0_8px_18px_rgba(14,140,146,.28)]" style={{ background: 'linear-gradient(135deg,#13A0A6,#0B5C63)' }}>
+        <button
+          type="button"
+          onClick={onQuote}
+          className="w-full cursor-pointer rounded-[11px] py-[11px] text-sm font-bold text-white shadow-[0_8px_18px_rgba(14,140,146,.28)]"
+          style={{ background: 'linear-gradient(135deg,#13A0A6,#0B5C63)' }}
+        >
           {t('Get my quote →')}
         </button>
       </div>
@@ -176,19 +228,32 @@ export function ChatCopilot({
       {/* header */}
       <div className="flex items-center gap-2.5 border-b border-[#EEF4F3] bg-white px-4 py-[13px]">
         <div className="relative h-[34px] w-[34px] shrink-0">
-          <div className="grid h-[34px] w-[34px] place-items-center rounded-[11px]" style={{ background: 'linear-gradient(140deg,#13A0A6,#0B5C63)' }}>
+          <div
+            className="grid h-[34px] w-[34px] place-items-center rounded-[11px]"
+            style={{ background: 'linear-gradient(140deg,#13A0A6,#0B5C63)' }}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M12 3l1.6 3.8L17.5 8l-3.9 1.2L12 13l-1.6-3.8L6.5 8l3.9-1.2L12 3Z" fill="#fff" />
+              <path
+                d="M12 3l1.6 3.8L17.5 8l-3.9 1.2L12 13l-1.6-3.8L6.5 8l3.9-1.2L12 3Z"
+                fill="#fff"
+              />
             </svg>
           </div>
           <span className="absolute -bottom-px -right-px h-2.5 w-2.5 rounded-full border-2 border-white bg-[#3FD07A]" />
         </div>
         <div className="leading-[1.2]">
           <div className="text-sm font-extrabold text-ink">ZilAi</div>
-          <div className="text-[11.5px] font-semibold text-teal">{typing ? t('planning…') : t('Local expert · online')}</div>
+          <div className="text-[11.5px] font-semibold text-teal">
+            {typing ? t('planning…') : t('Local expert · online')}
+          </div>
         </div>
         {stops.length > 0 && (
-          <button type="button" onClick={onClear} aria-label={t('Start over')} className="ml-auto cursor-pointer rounded-[9px] border border-[#EEF4F3] bg-white px-[11px] py-1.5 text-xs font-semibold text-ink-muted">
+          <button
+            type="button"
+            onClick={onClear}
+            aria-label={t('Start over')}
+            className="ml-auto cursor-pointer rounded-[9px] border border-[#EEF4F3] bg-white px-[11px] py-1.5 text-xs font-semibold text-ink-muted"
+          >
             {t('Reset')}
           </button>
         )}
@@ -198,18 +263,32 @@ export function ChatCopilot({
       <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col gap-[11px] overflow-y-auto p-4">
         {messages.length === 0 && !typing ? (
           <div className="m-auto max-w-[300px] py-5 text-center">
-            <div className="mx-auto mb-3.5 grid h-[54px] w-[54px] place-items-center rounded-2xl border border-[#E3EEEC]" style={{ background: 'linear-gradient(140deg,#EAF7F5,#fff)' }}>
+            <div
+              className="mx-auto mb-3.5 grid h-[54px] w-[54px] place-items-center rounded-2xl border border-[#E3EEEC]"
+              style={{ background: 'linear-gradient(140deg,#EAF7F5,#fff)' }}
+            >
               <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3Z" fill="#F76C5E" />
+                <path
+                  d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3Z"
+                  fill="#F76C5E"
+                />
                 <circle cx={18} cy={17} r={1.6} fill="#C98A12" />
                 <circle cx={5.5} cy={15.5} r={1.2} fill="#0E8C92" />
               </svg>
             </div>
-            <p className="m-0 mb-1 font-display text-[17px] font-semibold text-ink">{t('Plan your day with me')}</p>
-            <p className="m-0 text-[13.5px] leading-[1.5] text-ink-muted">
-              {t('Describe it above, tap a starter, or browse places — I’ll build the route and keep the price live.')}
+            <p className="m-0 mb-1 font-display text-[17px] font-semibold text-ink">
+              {t('Plan your day with me')}
             </p>
-            <button type="button" onClick={onBrowse} className="mt-3.5 cursor-pointer rounded-[11px] border border-[#E3EEEC] bg-white px-4 py-[9px] text-[13px] font-bold text-teal-dark">
+            <p className="m-0 text-[13.5px] leading-[1.5] text-ink-muted">
+              {t(
+                'Describe it above, tap a starter, or browse places — I’ll build the route and keep the price live.',
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={onBrowse}
+              className="mt-3.5 cursor-pointer rounded-[11px] border border-[#E3EEEC] bg-white px-4 py-[9px] text-[13px] font-bold text-teal-dark"
+            >
               {t('Or browse places')}
             </button>
           </div>
@@ -236,7 +315,11 @@ export function ChatCopilot({
         {typing && (
           <div className="flex gap-[5px] self-start rounded-[4px_16px_16px_16px] border border-[#EAF2F1] bg-white px-[15px] py-3 shadow-[0_4px_14px_rgba(10,46,54,.05)]">
             {[0, 1, 2].map((d) => (
-              <span key={d} className="h-[7px] w-[7px] rounded-full bg-teal" style={{ animation: `blink 1.1s ${d * 0.16}s infinite ease-in-out` }} />
+              <span
+                key={d}
+                className="h-[7px] w-[7px] rounded-full bg-teal"
+                style={{ animation: `blink 1.1s ${d * 0.16}s infinite ease-in-out` }}
+              />
             ))}
           </div>
         )}
@@ -247,19 +330,35 @@ export function ChatCopilot({
         <div className="mx-3.5 mb-1.5 flex animate-float-in items-start gap-2.5 rounded-[13px] border border-[#F3DCA6] bg-[#FFF8EC] px-3 py-[11px]">
           <span className="grid h-[26px] w-[26px] shrink-0 place-items-center rounded-lg bg-gold-light">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M12 9v4m0 3h.01M10.3 4l-7 12a2 2 0 0 0 1.7 3h14a2 2 0 0 0 1.7-3l-7-12a2 2 0 0 0-3.4 0Z" stroke="#fff" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M12 9v4m0 3h.01M10.3 4l-7 12a2 2 0 0 0 1.7 3h14a2 2 0 0 0 1.7-3l-7-12a2 2 0 0 0-3.4 0Z"
+                stroke="#fff"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </span>
           <div className="flex-1">
             <p className="m-0 mb-2 text-[12.5px] font-semibold leading-[1.45] text-[#7A5A12]">
-              <strong>{t('{place} closes at {time}.', { place: boost.place, time: boost.close })}</strong>{' '}
+              <strong>
+                {t('{place} closes at {time}.', { place: boost.place, time: boost.close })}
+              </strong>{' '}
               {t('It’s late in your order — want me to move it earlier?')}
             </p>
             <div className="flex gap-[7px]">
-              <button type="button" onClick={onApplyBoost} className="cursor-pointer rounded-lg bg-gold px-3 py-1.5 text-xs font-bold text-white">
+              <button
+                type="button"
+                onClick={onApplyBoost}
+                className="cursor-pointer rounded-lg bg-gold px-3 py-1.5 text-xs font-bold text-white"
+              >
                 {t('Yes, reorder')}
               </button>
-              <button type="button" onClick={onDismissBoost} className="cursor-pointer rounded-lg border border-[#E7D3A0] bg-white px-3 py-1.5 text-xs font-bold text-[#7A5A12]">
+              <button
+                type="button"
+                onClick={onDismissBoost}
+                className="cursor-pointer rounded-lg border border-[#E7D3A0] bg-white px-3 py-1.5 text-xs font-bold text-[#7A5A12]"
+              >
                 {t('Keep as is')}
               </button>
             </div>
@@ -272,7 +371,12 @@ export function ChatCopilot({
         {hasBuilt && (
           <div className="mb-[9px] flex flex-wrap gap-[7px]">
             {REPLY_CHIPS.map((c) => (
-              <button key={c} type="button" onClick={() => onSend(c)} className="cursor-pointer rounded-full border border-[#E3EEEC] bg-teal-tint px-[11px] py-1.5 text-xs font-semibold text-teal-dark">
+              <button
+                key={c}
+                type="button"
+                onClick={() => onSend(c)}
+                className="cursor-pointer rounded-full border border-[#E3EEEC] bg-teal-tint px-[11px] py-1.5 text-xs font-semibold text-teal-dark"
+              >
                 {t(c)}
               </button>
             ))}
@@ -299,12 +403,23 @@ export function ChatCopilot({
               aria-pressed={voice.listening}
               aria-label={voice.listening ? t('Stop voice input') : t('Voice input')}
               className={`grid cursor-pointer place-items-center rounded-full p-1.5 transition ${
-                voice.listening ? 'animate-pulse bg-coral/15 text-coral' : 'text-ink-muted hover:text-teal'
+                voice.listening
+                  ? 'animate-pulse bg-coral/15 text-coral'
+                  : 'text-ink-muted hover:text-teal'
               }`}
             >
               <svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z" stroke="currentColor" strokeWidth={1.8} />
-                <path d="M5 11a7 7 0 0 0 14 0M12 18v3" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" />
+                <path
+                  d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3Z"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                />
+                <path
+                  d="M5 11a7 7 0 0 0 14 0M12 18v3"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                  strokeLinecap="round"
+                />
               </svg>
             </button>
           )}
@@ -315,7 +430,13 @@ export function ChatCopilot({
             style={{ background: 'linear-gradient(135deg,#13A0A6,#0B5C63)' }}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M5 12h13m0 0-5-5m5 5-5 5" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M5 12h13m0 0-5-5m5 5-5 5"
+                stroke="#fff"
+                strokeWidth={2.2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </button>
         </form>

@@ -23,7 +23,12 @@ function EmptyArt() {
           strokeLinecap="round"
         />
       </svg>
-      <IconHeart width={58} height={58} className="relative text-coral" style={{ fill: 'currentColor' }} />
+      <IconHeart
+        width={58}
+        height={58}
+        className="relative text-coral"
+        style={{ fill: 'currentColor' }}
+      />
     </div>
   );
 }
@@ -45,7 +50,9 @@ export function WishlistView({ activities }: { activities: TourSummary[] }) {
       <div className="grid min-h-[55vh] place-items-center py-12 text-center">
         <div>
           <EmptyArt />
-          <h1 className="mt-8 font-display text-[26px] font-semibold text-ink">{t('Your wishlist is empty')}</h1>
+          <h1 className="mt-8 font-display text-[26px] font-semibold text-ink">
+            {t('Your wishlist is empty')}
+          </h1>
           <p className="mx-auto mt-2 max-w-sm text-[15px] text-ink-muted">
             {t('Save activities to your wishlist by tapping the heart icon on any tour.')}
           </p>

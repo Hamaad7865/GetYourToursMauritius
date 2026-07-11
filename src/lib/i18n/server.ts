@@ -24,7 +24,9 @@ export async function getServerCurrency(): Promise<Currency> {
 }
 
 /** A `t()` bound to the request's locale, for server components. */
-export async function getT(): Promise<(key: string, vars?: Record<string, string | number>) => string> {
+export async function getT(): Promise<
+  (key: string, vars?: Record<string, string | number>) => string
+> {
   const locale = await getLocale();
   return (key, vars) => translate(locale, key, vars);
 }

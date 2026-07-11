@@ -1,6 +1,11 @@
 import type { Metadata } from 'next';
 import { InfoPage, InfoSection, FeatureList, EnquireRow } from '@/components/site/InfoPage';
-import { ContentSection, InlineLink, FaqAccordion, RelatedLinks } from '@/components/seo/LandingSections';
+import {
+  ContentSection,
+  InlineLink,
+  FaqAccordion,
+  RelatedLinks,
+} from '@/components/seo/LandingSections';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { breadcrumbListJsonLd, faqPageJsonLd, serviceJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
@@ -94,7 +99,9 @@ export default async function RentPage() {
       <InfoPage
         eyebrow={t('Car & scooter rental')}
         title={t('Rent a car or scooter in Belle Mare, Mauritius')}
-        intro={t('Self-drive is the best way to see Mauritius beyond the resort. We’re based in Belle Mare and rent to guests staying in the Belle Mare area — we deliver to your hotel or Airbnb nearby, hand over a clean, insured vehicle, and stay one message away the whole trip.')}
+        intro={t(
+          'Self-drive is the best way to see Mauritius beyond the resort. We’re based in Belle Mare and rent to guests staying in the Belle Mare area — we deliver to your hotel or Airbnb nearby, hand over a clean, insured vehicle, and stay one message away the whole trip.',
+        )}
         heroArt={<CarHero />}
       >
         {fleet.length > 0 && (
@@ -103,7 +110,9 @@ export default async function RentPage() {
               {t('Choose your car or scooter')}
             </h2>
             <p className="mt-2 mb-5 max-w-2xl text-[15px] leading-relaxed text-ink/80">
-              {t('Pick a vehicle and your dates for an instant price, then book in one tap on WhatsApp — no online payment, no airport-desk queue. We rent to guests staying in the Belle Mare area and deliver free to your hotel or Airbnb there.')}
+              {t(
+                'Pick a vehicle and your dates for an instant price, then book in one tap on WhatsApp — no online payment, no airport-desk queue. We rent to guests staying in the Belle Mare area and deliver free to your hotel or Airbnb there.',
+              )}
             </p>
             <RentalWidget vehicles={fleet} />
           </section>
@@ -111,23 +120,25 @@ export default async function RentPage() {
 
         <ContentSection id="belle-mare" title="Why base your rental in Belle Mare">
           <p>
-            Belle Mare sits on Mauritius’ quieter east coast, which makes it an ideal base for a self-drive
-            trip. You’re minutes from the Trou d’Eau Douce jetty for{' '}
-            <InlineLink href="/ile-aux-cerfs-tours">Île aux Cerfs</InlineLink>, an easy run up to the
-            northern beaches and Grand Baie, and well placed for day trips to the south and the central
-            tea country. Picking up your rental here means no airport-desk queue and no long transfer before
-            your holiday actually starts.
+            Belle Mare sits on Mauritius’ quieter east coast, which makes it an ideal base for a
+            self-drive trip. You’re minutes from the Trou d’Eau Douce jetty for{' '}
+            <InlineLink href="/ile-aux-cerfs-tours">Île aux Cerfs</InlineLink>, an easy run up to
+            the northern beaches and Grand Baie, and well placed for day trips to the south and the
+            central tea country. Picking up your rental here means no airport-desk queue and no long
+            transfer before your holiday actually starts.
           </p>
           <p>
-            We rent to guests staying in the Belle Mare area and deliver there for free — then talk you
-            through the route options for wherever you want to drive, from a lazy coastal loop to a full
-            island day trip.
+            We rent to guests staying in the Belle Mare area and deliver there for free — then talk
+            you through the route options for wherever you want to drive, from a lazy coastal loop
+            to a full island day trip.
           </p>
         </ContentSection>
 
         <InfoSection id="car" title={t('Rent a car')}>
           <p>
-            {t('From compact hatchbacks for two to family SUVs, our cars are well-maintained, air-conditioned and fully insured. We drive on the left in Mauritius; an international or home licence is fine.')}
+            {t(
+              'From compact hatchbacks for two to family SUVs, our cars are well-maintained, air-conditioned and fully insured. We drive on the left in Mauritius; an international or home licence is fine.',
+            )}
           </p>
           <FeatureList
             items={[
@@ -141,7 +152,9 @@ export default async function RentPage() {
 
         <InfoSection id="scooter" title={t('Rent a scooter')}>
           <p>
-            {t('Perfect for short hops along the coast and into Belle Mare village. Scooters come with two helmets and a quick handover so you’re on the road in minutes.')}
+            {t(
+              'Perfect for short hops along the coast and into Belle Mare village. Scooters come with two helmets and a quick handover so you’re on the road in minutes.',
+            )}
           </p>
           <FeatureList
             items={[
@@ -155,24 +168,26 @@ export default async function RentPage() {
 
         <ContentSection id="driving" title="Driving in Mauritius — what to know">
           <p>
-            Mauritius drives on the <strong>left</strong>, the same as the UK. Roads are paved and well
-            signposted, with a motorway running north–south through the middle of the island. Outside the
-            towns the pace is relaxed; in Port Louis and around Grand Baie it’s busier, so allow extra time.
-            Fuel stations are easy to find, and parking at beaches and attractions is usually free.
+            Mauritius drives on the <strong>left</strong>, the same as the UK. Roads are paved and
+            well signposted, with a motorway running north–south through the middle of the island.
+            Outside the towns the pace is relaxed; in Port Louis and around Grand Baie it’s busier,
+            so allow extra time. Fuel stations are easy to find, and parking at beaches and
+            attractions is usually free.
           </p>
           <p>
-            Your home licence is accepted for short stays. We point out the handful of local quirks —
-            roundabout priority, speed limits, and a couple of spots worth avoiding at rush hour — when we
-            hand the vehicle over.
+            Your home licence is accepted for short stays. We point out the handful of local quirks
+            — roundabout priority, speed limits, and a couple of spots worth avoiding at rush hour —
+            when we hand the vehicle over.
           </p>
         </ContentSection>
 
         <ContentSection id="vs-airport" title="Belle Mare rental vs an airport chain">
           <p>
-            Airport rental desks add surcharges, queues and a long drive before you’ve even reached your
-            hotel. Renting locally from Belle Mare Tours means a <strong>fixed, all-in price</strong>, free
-            delivery to your door, and a local team you can reach on WhatsApp the whole trip — not a call
-            centre. If you’re also arriving or leaving, we can sort your{' '}
+            Airport rental desks add surcharges, queues and a long drive before you’ve even reached
+            your hotel. Renting locally from Belle Mare Tours means a{' '}
+            <strong>fixed, all-in price</strong>, free delivery to your door, and a local team you
+            can reach on WhatsApp the whole trip — not a call centre. If you’re also arriving or
+            leaving, we can sort your{' '}
             <InlineLink href="/airport-transfers">airport transfer</InlineLink> at the same time.
           </p>
         </ContentSection>
@@ -193,7 +208,11 @@ export default async function RentPage() {
           />
         </ContentSection>
 
-        <EnquireRow message={t('Hi Belle Mare Tours! I’d like to rent a car / scooter. Could you send rates and availability?')} />
+        <EnquireRow
+          message={t(
+            'Hi Belle Mare Tours! I’d like to rent a car / scooter. Could you send rates and availability?',
+          )}
+        />
       </InfoPage>
     </>
   );

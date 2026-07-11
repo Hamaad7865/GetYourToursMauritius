@@ -21,7 +21,9 @@ import { drainNotifications } from '@/lib/services/notifications';
 const CUSTOMER = 'b8b8b8b8-b8b8-b8b8-b8b8-b8b8b8b8b8b8';
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -42,8 +44,11 @@ describe('transfer booking_confirmation drain → receipt attached, e-voucher li
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
 
@@ -96,10 +101,14 @@ describe('transfer booking_confirmation drain → receipt attached, e-voucher li
       source: 'web',
       idempotencyKey: 'voucher-book-12345678',
     });
-    const payment = await call<{ paymentId: string; amountMinor: number }>(db, 'api_create_payment', {
-      bookingRef: booking.ref,
-      idempotencyKey: 'voucher-pay-12345678',
-    });
+    const payment = await call<{ paymentId: string; amountMinor: number }>(
+      db,
+      'api_create_payment',
+      {
+        bookingRef: booking.ref,
+        idempotencyKey: 'voucher-pay-12345678',
+      },
+    );
     await call(db, 'api_record_payment_charge', {
       paymentId: payment.paymentId,
       chargedAmountMinor: 3850,

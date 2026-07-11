@@ -3,2996 +3,3076 @@ import type { PostContent } from './blog';
 
 export const POSTS_RAW: PostContent[] = [
   {
-    "slug": "best-time-to-visit-mauritius",
-    "title": "Best Time to Visit Mauritius: A Month-by-Month Guide",
-    "metaTitle": "Best Time to Visit Mauritius (Month-by-Month)",
-    "metaDescription": "Find the best time to visit Mauritius with our month-by-month weather, season and price guide. Plan beaches, diving, hiking and whale watching with confidence.",
-    "excerpt": "A practical month-by-month guide to Mauritius weather, seasons and prices, with the best windows for beaches, diving, hiking and whale watching.",
-    "readMins": 7,
-    "sections": [
+    slug: 'best-time-to-visit-mauritius',
+    title: 'Best Time to Visit Mauritius: A Month-by-Month Guide',
+    metaTitle: 'Best Time to Visit Mauritius (Month-by-Month)',
+    metaDescription:
+      'Find the best time to visit Mauritius with our month-by-month weather, season and price guide. Plan beaches, diving, hiking and whale watching with confidence.',
+    excerpt:
+      'A practical month-by-month guide to Mauritius weather, seasons and prices, with the best windows for beaches, diving, hiking and whale watching.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "The Two Seasons You Need to Understand",
-        "paragraphs": [
-          "Mauritius sits in the southern hemisphere, so its seasons are flipped from Europe and North America. There are really only two: a warm, humid summer from November to April, and a cooler, drier winter from May to October. The island never gets truly cold. Even in the depths of July, coastal temperatures rarely dip below 17 degrees Celsius at night, and most days still reach the mid-twenties.",
+        heading: 'The Two Seasons You Need to Understand',
+        paragraphs: [
+          'Mauritius sits in the southern hemisphere, so its seasons are flipped from Europe and North America. There are really only two: a warm, humid summer from November to April, and a cooler, drier winter from May to October. The island never gets truly cold. Even in the depths of July, coastal temperatures rarely dip below 17 degrees Celsius at night, and most days still reach the mid-twenties.',
           "Summer brings sea temperatures around 27 to 29 degrees, lush green landscapes and the occasional heavy downpour. It is also the official cyclone season, which runs roughly from mid-November to early April, with January and February the months most likely to see a tropical system pass nearby. Winter is generally sunnier, less humid and far more predictable, though the trade winds pick up, especially along the east and southeast coasts around Belle Mare, Trou d'Eau Douce and Le Morne.",
-          "One detail trips up a lot of first-timers: the island has distinct micro-climates. The central plateau towns of Curepipe and Vacoas sit at altitude and are noticeably cooler and wetter year-round, while the western and northern coasts, think Flic en Flac, Tamarin and Grand Baie, are the driest and most sheltered. If rain worries you, lean west."
-        ]
+          'One detail trips up a lot of first-timers: the island has distinct micro-climates. The central plateau towns of Curepipe and Vacoas sit at altitude and are noticeably cooler and wetter year-round, while the western and northern coasts, think Flic en Flac, Tamarin and Grand Baie, are the driest and most sheltered. If rain worries you, lean west.',
+        ],
       },
       {
-        "heading": "Month by Month at a Glance",
-        "paragraphs": [
-          "January and February are the hottest and wettest months, with daytime highs near 31 degrees, high humidity and the peak cyclone risk. The upside is warm seas, dramatic green scenery and quieter beaches outside the local school holidays. March and April ease off gradually; April in particular is a sweet spot, still warm enough to swim comfortably but with falling humidity and fewer storms.",
-          "May through August is the heart of winter. Expect bright, breezy days in the low-to-mid twenties, cooler evenings and clear underwater visibility. July and August are the windiest and coolest, which is wonderful for hiking and sightseeing but means the exposed east coast can feel blustery. September and October are arguably the all-round best months: mild, dry, calm seas and the tail end of whale season, all before the summer heat and crowds return.",
-          "If you want to map this against specific destinations and excursions, our /attractions and /activities pages break down what is genuinely worth doing in each region, from the Black River Gorges to catamaran cruises off the northern islets."
-        ]
+        heading: 'Month by Month at a Glance',
+        paragraphs: [
+          'January and February are the hottest and wettest months, with daytime highs near 31 degrees, high humidity and the peak cyclone risk. The upside is warm seas, dramatic green scenery and quieter beaches outside the local school holidays. March and April ease off gradually; April in particular is a sweet spot, still warm enough to swim comfortably but with falling humidity and fewer storms.',
+          'May through August is the heart of winter. Expect bright, breezy days in the low-to-mid twenties, cooler evenings and clear underwater visibility. July and August are the windiest and coolest, which is wonderful for hiking and sightseeing but means the exposed east coast can feel blustery. September and October are arguably the all-round best months: mild, dry, calm seas and the tail end of whale season, all before the summer heat and crowds return.',
+          'If you want to map this against specific destinations and excursions, our /attractions and /activities pages break down what is genuinely worth doing in each region, from the Black River Gorges to catamaran cruises off the northern islets.',
+        ],
       },
       {
-        "heading": "Best Time for Beaches and Swimming",
-        "paragraphs": [
-          "For pure beach days, the shoulder months of April, May, September, October and November are hard to beat. The water is warm, the air is comfortable rather than sweltering, and the wind that whips the lagoons in mid-winter has usually died down. North and west coast beaches such as Mont Choisy, Trou aux Biches, Flic en Flac and Le Morne stay swimmable and calm across most of the year.",
-          "In peak summer (December to February) the sea is at its warmest and most inviting, but you trade that for humidity and the chance of a tropical downpour that clears as quickly as it arrives. During the windier winter weeks, simply switch coasts: when the southeast is choppy, the sheltered northwest is usually flat and glassy. That flexibility is one of the quiet advantages of an island this compact, you are rarely more than 90 minutes from calmer water."
-        ]
+        heading: 'Best Time for Beaches and Swimming',
+        paragraphs: [
+          'For pure beach days, the shoulder months of April, May, September, October and November are hard to beat. The water is warm, the air is comfortable rather than sweltering, and the wind that whips the lagoons in mid-winter has usually died down. North and west coast beaches such as Mont Choisy, Trou aux Biches, Flic en Flac and Le Morne stay swimmable and calm across most of the year.',
+          'In peak summer (December to February) the sea is at its warmest and most inviting, but you trade that for humidity and the chance of a tropical downpour that clears as quickly as it arrives. During the windier winter weeks, simply switch coasts: when the southeast is choppy, the sheltered northwest is usually flat and glassy. That flexibility is one of the quiet advantages of an island this compact, you are rarely more than 90 minutes from calmer water.',
+        ],
       },
       {
-        "heading": "Best Time for Diving and Snorkelling",
-        "paragraphs": [
-          "Diving in Mauritius is good year-round, but visibility and conditions peak from November to April, when the water is warmest and calmest. This window is prime time for the popular sites off Flic en Flac, Trou aux Biches and the wrecks near Grand Baie. December to March, in particular, brings the clearest water and the best chance of encounters with larger pelagic species.",
-          "Winter diving (May to October) is still rewarding, especially on the more sheltered western and northern sites, though stronger trade winds can occasionally close exposed dive spots on the east. Snorkellers do well almost any time inside the protected lagoons at Blue Bay Marine Park near Mahebourg, where the coral and fish life are accessible even to beginners. Expect to pay roughly 35 to 60 EUR for a guided snorkelling trip and from around 50 EUR for a single dive, depending on the centre and whether gear is included."
-        ]
+        heading: 'Best Time for Diving and Snorkelling',
+        paragraphs: [
+          'Diving in Mauritius is good year-round, but visibility and conditions peak from November to April, when the water is warmest and calmest. This window is prime time for the popular sites off Flic en Flac, Trou aux Biches and the wrecks near Grand Baie. December to March, in particular, brings the clearest water and the best chance of encounters with larger pelagic species.',
+          'Winter diving (May to October) is still rewarding, especially on the more sheltered western and northern sites, though stronger trade winds can occasionally close exposed dive spots on the east. Snorkellers do well almost any time inside the protected lagoons at Blue Bay Marine Park near Mahebourg, where the coral and fish life are accessible even to beginners. Expect to pay roughly 35 to 60 EUR for a guided snorkelling trip and from around 50 EUR for a single dive, depending on the centre and whether gear is included.',
+        ],
       },
       {
-        "heading": "Best Time for Hiking and Inland Adventures",
-        "paragraphs": [
+        heading: 'Best Time for Hiking and Inland Adventures',
+        paragraphs: [
           "The cooler, drier winter months from June to September are by far the best for hiking. Trails in Black River Gorges National Park, the climb up Le Morne Brabant and the trek to the summit of Le Pouce are far more enjoyable without summer's heat and humidity, and the lower rainfall means less mud and better footing. Mornings are clear and crisp, perfect for an early start before the midday sun.",
-          "Summer hiking is still possible, but go early, carry plenty of water and watch the forecast, as the plateau and forested interior catch a lot more rain than the coast. Waterfalls like Chamarel and Tamarind Falls are at their most powerful after summer rains, so there is a genuine trade-off between greener, fuller scenery in summer and more comfortable, reliable conditions in winter. If you would rather not piece an itinerary together yourself, our free /ai-road-trip-planner can build a day-by-day route around the weather and the regions you want to cover."
-        ]
+          'Summer hiking is still possible, but go early, carry plenty of water and watch the forecast, as the plateau and forested interior catch a lot more rain than the coast. Waterfalls like Chamarel and Tamarind Falls are at their most powerful after summer rains, so there is a genuine trade-off between greener, fuller scenery in summer and more comfortable, reliable conditions in winter. If you would rather not piece an itinerary together yourself, our free /ai-road-trip-planner can build a day-by-day route around the weather and the regions you want to cover.',
+        ],
       },
       {
-        "heading": "Best Time for Whale and Dolphin Watching",
-        "paragraphs": [
-          "Spinner and bottlenose dolphins live in the waters off Tamarin and the west coast year-round, and early morning boat trips to see them run in almost every season. The real seasonal highlight is humpback whales, which migrate past Mauritius between roughly late June and early November. August, September and October are the most reliable months for a sighting, with the whales often visible off the west and southwest coasts.",
-          "If whales are a priority, plan your trip for that late-winter-into-spring window. It happens to overlap beautifully with the island's best all-round weather, so you can pair whale watching with calm-sea beach days and comfortable hiking conditions in a single trip. Responsible operators keep a respectful distance, so manage expectations: this is wild ocean, not a guaranteed show."
-        ]
+        heading: 'Best Time for Whale and Dolphin Watching',
+        paragraphs: [
+          'Spinner and bottlenose dolphins live in the waters off Tamarin and the west coast year-round, and early morning boat trips to see them run in almost every season. The real seasonal highlight is humpback whales, which migrate past Mauritius between roughly late June and early November. August, September and October are the most reliable months for a sighting, with the whales often visible off the west and southwest coasts.',
+          "If whales are a priority, plan your trip for that late-winter-into-spring window. It happens to overlap beautifully with the island's best all-round weather, so you can pair whale watching with calm-sea beach days and comfortable hiking conditions in a single trip. Responsible operators keep a respectful distance, so manage expectations: this is wild ocean, not a guaranteed show.",
+        ],
       },
       {
-        "heading": "When Is Mauritius Cheapest?",
-        "paragraphs": [
-          "The cheapest time to visit is generally the low season from late January through March, and again in May and early June, outside the European and South African holiday peaks. During these weeks, flights and hotel rates can fall well below what you pay over Christmas, New Year and the July to August window, when both European summer holidays and local school breaks push demand and prices up sharply.",
-          "If you want the best value without gambling on cyclone-season weather, target late April to early June or late September to early November. You get pleasant conditions, thinner crowds and softer pricing all at once, the closest thing Mauritius has to a perfect-balance season. Booking flights three to five months ahead also makes a real difference, as last-minute peak-season fares can be brutal.",
-          "Whenever you land, getting from the airport at Plaisance in the southeast to your resort can eat into your budget if you rely on taxi-rank rates. Arranging a fixed-price private transfer in advance through our /airport-transfers service is usually cheaper and removes the late-night haggling after a long flight."
-        ]
-      }
+        heading: 'When Is Mauritius Cheapest?',
+        paragraphs: [
+          'The cheapest time to visit is generally the low season from late January through March, and again in May and early June, outside the European and South African holiday peaks. During these weeks, flights and hotel rates can fall well below what you pay over Christmas, New Year and the July to August window, when both European summer holidays and local school breaks push demand and prices up sharply.',
+          'If you want the best value without gambling on cyclone-season weather, target late April to early June or late September to early November. You get pleasant conditions, thinner crowds and softer pricing all at once, the closest thing Mauritius has to a perfect-balance season. Booking flights three to five months ahead also makes a real difference, as last-minute peak-season fares can be brutal.',
+          'Whenever you land, getting from the airport at Plaisance in the southeast to your resort can eat into your budget if you rely on taxi-rank rates. Arranging a fixed-price private transfer in advance through our /airport-transfers service is usually cheaper and removes the late-night haggling after a long flight.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "What is the overall best month to visit Mauritius?",
-        "a": "September and October are the strongest all-round months: dry, mild, calm seas, the tail end of whale season and lower humidity, all before the summer heat and peak prices arrive. April and May are a close second."
+        q: 'What is the overall best month to visit Mauritius?',
+        a: 'September and October are the strongest all-round months: dry, mild, calm seas, the tail end of whale season and lower humidity, all before the summer heat and peak prices arrive. April and May are a close second.',
       },
       {
-        "q": "When is cyclone season in Mauritius and should I avoid it?",
-        "a": "Cyclone season runs from about mid-November to early April, with January and February the highest-risk months. You do not have to avoid it entirely, as direct hits are uncommon and the seas are warm, but be ready for occasional heavy rain and keep travel insurance in place."
+        q: 'When is cyclone season in Mauritius and should I avoid it?',
+        a: 'Cyclone season runs from about mid-November to early April, with January and February the highest-risk months. You do not have to avoid it entirely, as direct hits are uncommon and the seas are warm, but be ready for occasional heavy rain and keep travel insurance in place.',
       },
       {
-        "q": "What is the cheapest time to fly to Mauritius?",
-        "a": "Late January to March and the May to early June period are usually the cheapest, as they fall outside the European and local school holidays. Avoid Christmas, New Year and July to August if budget is your priority."
+        q: 'What is the cheapest time to fly to Mauritius?',
+        a: 'Late January to March and the May to early June period are usually the cheapest, as they fall outside the European and local school holidays. Avoid Christmas, New Year and July to August if budget is your priority.',
       },
       {
-        "q": "Is the sea warm enough to swim year-round?",
-        "a": "Yes. Sea temperatures range from around 27 to 29 degrees in summer down to about 22 to 24 in winter, so swimming is comfortable all year. In windier winter weeks, simply choose the sheltered north and west coasts over the breezier east."
-      }
-    ]
+        q: 'Is the sea warm enough to swim year-round?',
+        a: 'Yes. Sea temperatures range from around 27 to 29 degrees in summer down to about 22 to 24 in winter, so swimming is comfortable all year. In windier winter weeks, simply choose the sheltered north and west coasts over the breezier east.',
+      },
+    ],
   },
   {
-    "slug": "things-to-do-in-mauritius",
-    "title": "The Best Things to Do in Mauritius",
-    "metaTitle": "The Best Things to Do in Mauritius (2026 Guide)",
-    "metaDescription": "From Belle Mare's beaches and Île aux Cerfs to Chamarel and Black River Gorges, here are the best things to do in Mauritius by interest, plus how to book.",
-    "excerpt": "A practical guide to the best things to do in Mauritius, organised by interest, with real places, realistic prices and tips on how to plan and book.",
-    "readMins": 6,
-    "sections": [
+    slug: 'things-to-do-in-mauritius',
+    title: 'The Best Things to Do in Mauritius',
+    metaTitle: 'The Best Things to Do in Mauritius (2026 Guide)',
+    metaDescription:
+      "From Belle Mare's beaches and Île aux Cerfs to Chamarel and Black River Gorges, here are the best things to do in Mauritius by interest, plus how to book.",
+    excerpt:
+      'A practical guide to the best things to do in Mauritius, organised by interest, with real places, realistic prices and tips on how to plan and book.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "Why Mauritius rewards a bit of planning",
-        "paragraphs": [
-          "Mauritius is small enough to drive across in about two hours, yet it packs in a surprising range of experiences: turquoise lagoons in the east, a wild volcanic south, a buzzing north and an adventurous west. Each coast has its own character, so the trick is matching the island to what you actually enjoy rather than trying to see everything in one trip.",
-          "The climate splits into two simple seasons. Summer runs from November to April and is hot and humid, with the best conditions for swimming and snorkelling but an outside chance of a tropical cyclone in January and February. Winter, from May to October, is drier, breezier and cooler in the evenings, which many visitors actually prefer for hiking, sightseeing and the kitesurfing season around Le Morne.",
-          "If you would rather not piece an itinerary together from scratch, our free AI trip planner at /ai-road-trip-planner suggests a day-by-day route based on where you are staying and what you like, and you can browse individual sights first at /attractions."
-        ]
+        heading: 'Why Mauritius rewards a bit of planning',
+        paragraphs: [
+          'Mauritius is small enough to drive across in about two hours, yet it packs in a surprising range of experiences: turquoise lagoons in the east, a wild volcanic south, a buzzing north and an adventurous west. Each coast has its own character, so the trick is matching the island to what you actually enjoy rather than trying to see everything in one trip.',
+          'The climate splits into two simple seasons. Summer runs from November to April and is hot and humid, with the best conditions for swimming and snorkelling but an outside chance of a tropical cyclone in January and February. Winter, from May to October, is drier, breezier and cooler in the evenings, which many visitors actually prefer for hiking, sightseeing and the kitesurfing season around Le Morne.',
+          'If you would rather not piece an itinerary together from scratch, our free AI trip planner at /ai-road-trip-planner suggests a day-by-day route based on where you are staying and what you like, and you can browse individual sights first at /attractions.',
+        ],
       },
       {
-        "heading": "Beaches and lagoons: the east and north",
-        "paragraphs": [
+        heading: 'Beaches and lagoons: the east and north',
+        paragraphs: [
           "For classic postcard beaches, the east coast is hard to beat. Belle Mare stretches for around six kilometres of soft white sand backed by casuarina trees, with a wide, shallow lagoon that is calm in the mornings before the trade winds pick up. Nearby Trou d'Eau Douce is the launch point for boats to Île aux Cerfs, a small island whose sandbars and warm shallows make it the most popular day trip on this side of the island.",
-          "The north is livelier. Grand Baie is the island's social hub, with an emerald bay, restaurants and the departure point for catamaran cruises up to the northern islets. A short drive away, the red-roofed chapel at Cap Malheureux and the long beaches of Mont Choisy and Pereybère are easy to combine into a single day. Public beaches are free and open to all in Mauritius, so you are never far from a spot to swim, even outside the hotel zones."
-        ]
+          "The north is livelier. Grand Baie is the island's social hub, with an emerald bay, restaurants and the departure point for catamaran cruises up to the northern islets. A short drive away, the red-roofed chapel at Cap Malheureux and the long beaches of Mont Choisy and Pereybère are easy to combine into a single day. Public beaches are free and open to all in Mauritius, so you are never far from a spot to swim, even outside the hotel zones.",
+        ],
       },
       {
-        "heading": "Water sports and marine life",
-        "paragraphs": [
-          "The reef that rings most of the island creates sheltered lagoons that are ideal for water sports. Snorkelling is excellent at Blue Bay Marine Park in the south-east, where glass-bottom boat and snorkel trips typically run from around 25 to 40 EUR per person. Flic-en-Flac on the west coast is the main scuba diving base, with reef and wreck dives, while Trou aux Biches in the north suits beginners.",
-          "If you prefer to stay on the surface, Tamarin Bay and the west coast are known for dolphin-watching boat tours, usually setting off early so you reach the pods before the wind builds; expect to pay roughly 30 to 50 EUR for a morning trip. Around Le Morne in the south-west, the steady winds make this one of the Indian Ocean's premier kitesurfing and windsurfing spots, especially from June to September. You can compare guided cruises, snorkelling and reef trips on our /activities page."
-        ]
+        heading: 'Water sports and marine life',
+        paragraphs: [
+          'The reef that rings most of the island creates sheltered lagoons that are ideal for water sports. Snorkelling is excellent at Blue Bay Marine Park in the south-east, where glass-bottom boat and snorkel trips typically run from around 25 to 40 EUR per person. Flic-en-Flac on the west coast is the main scuba diving base, with reef and wreck dives, while Trou aux Biches in the north suits beginners.',
+          "If you prefer to stay on the surface, Tamarin Bay and the west coast are known for dolphin-watching boat tours, usually setting off early so you reach the pods before the wind builds; expect to pay roughly 30 to 50 EUR for a morning trip. Around Le Morne in the south-west, the steady winds make this one of the Indian Ocean's premier kitesurfing and windsurfing spots, especially from June to September. You can compare guided cruises, snorkelling and reef trips on our /activities page.",
+        ],
       },
       {
-        "heading": "Nature, mountains and the wild south",
-        "paragraphs": [
+        heading: 'Nature, mountains and the wild south',
+        paragraphs: [
           "Inland and to the south, Mauritius turns green and dramatic. The Black River Gorges National Park protects the island's largest surviving native forest and has well-marked walking trails with viewpoints over deep valleys, where you may spot endemic birds and fruit bats. Entry to the park is free, and the nearby Alexandra Falls and Gorges viewpoints need no more than a short stop.",
-          "The headline natural sight is the Seven Coloured Earths at Chamarel, where mineral-rich dunes form bands of red, brown, violet and blue; the same site includes the Chamarel waterfall, one of the tallest single-drop falls on the island. Entry is around 7 to 10 EUR. Further south, the UNESCO-listed Le Morne Brabant peninsula offers a strenuous guided hike with panoramic ocean views, while the central plateau has the Trou aux Cerfs volcanic crater and the cool botanical gardens at Pamplemousses, famous for their giant water lilies."
-        ]
+          'The headline natural sight is the Seven Coloured Earths at Chamarel, where mineral-rich dunes form bands of red, brown, violet and blue; the same site includes the Chamarel waterfall, one of the tallest single-drop falls on the island. Entry is around 7 to 10 EUR. Further south, the UNESCO-listed Le Morne Brabant peninsula offers a strenuous guided hike with panoramic ocean views, while the central plateau has the Trou aux Cerfs volcanic crater and the cool botanical gardens at Pamplemousses, famous for their giant water lilies.',
+        ],
       },
       {
-        "heading": "Culture, food and heritage",
-        "paragraphs": [
+        heading: 'Culture, food and heritage',
+        paragraphs: [
           "Mauritius is a genuine cultural crossroads, and its food shows it. Street stalls sell dholl puri, gato pima and fresh roti for a euro or two, while the central market in Port Louis is the best place to taste the island's Indian, Creole, Chinese and French influences in one busy morning. The capital also has the UNESCO-listed Aapravasi Ghat, the immigration depot where indentured labourers first arrived, and the bustling Caudan Waterfront.",
-          "Heritage runs deep across the island. The Grand Bassin crater lake, known as Ganga Talao, is the most important Hindu pilgrimage site in Mauritius and is watched over by towering statues of Shiva and Durga. For colonial history, Eureka House near Moka is a restored 19th-century mansion, and a rum distillery tour at Chamarel or Rhumerie de Chamarel rounds out a cultural day nicely. Many of these spots are spread across different regions, so it is worth grouping them by area."
-        ]
+          'Heritage runs deep across the island. The Grand Bassin crater lake, known as Ganga Talao, is the most important Hindu pilgrimage site in Mauritius and is watched over by towering statues of Shiva and Durga. For colonial history, Eureka House near Moka is a restored 19th-century mansion, and a rum distillery tour at Chamarel or Rhumerie de Chamarel rounds out a cultural day nicely. Many of these spots are spread across different regions, so it is worth grouping them by area.',
+        ],
       },
       {
-        "heading": "Things to do with families",
-        "paragraphs": [
-          "Families are well served because so many activities work for mixed ages. Casela Nature Park on the west coast combines a small safari, walk-through aviaries, a petting farm and zip-lines, with entry tickets around 25 to 35 EUR for adults and less for children. The shallow, warm lagoons at Belle Mare, Pereybère and Blue Bay are reassuring for younger swimmers, and a glass-bottom boat is an easy way to show kids the reef without anyone needing to dive.",
-          "Île aux Cerfs is a reliable family favourite for its calm sandbars and shaded picnic spots, and the gentle paths at Pamplemousses gardens suit a slower-paced afternoon. Because distances are short, you can pair a morning beach with an afternoon attraction without long drives wearing everyone out."
-        ]
+        heading: 'Things to do with families',
+        paragraphs: [
+          'Families are well served because so many activities work for mixed ages. Casela Nature Park on the west coast combines a small safari, walk-through aviaries, a petting farm and zip-lines, with entry tickets around 25 to 35 EUR for adults and less for children. The shallow, warm lagoons at Belle Mare, Pereybère and Blue Bay are reassuring for younger swimmers, and a glass-bottom boat is an easy way to show kids the reef without anyone needing to dive.',
+          'Île aux Cerfs is a reliable family favourite for its calm sandbars and shaded picnic spots, and the gentle paths at Pamplemousses gardens suit a slower-paced afternoon. Because distances are short, you can pair a morning beach with an afternoon attraction without long drives wearing everyone out.',
+        ],
       },
       {
-        "heading": "Getting around and how to book",
-        "paragraphs": [
-          "There is no train network, and while buses are cheap they are slow and stop running early in the evening. Most visitors get around by private driver, organised excursion or self-drive hire car; bear in mind Mauritius drives on the left. Having a reliable transfer waiting at the airport removes the most stressful part of any trip, especially after a long-haul flight that often lands late at night.",
-          "Belle Mare Tours is a licensed local operator based on the east coast, so pickups around Belle Mare, Trou d'Eau Douce and the eastern resorts are quick. You can pre-book a fixed-price meet-and-greet from the airport at /airport-transfers, browse guided tours and excursions at /activities, and read up on individual sights at /attractions. Booking ahead also locks in availability for popular trips like Île aux Cerfs and the south-coast tour, which fill up fast in peak season."
-        ]
-      }
+        heading: 'Getting around and how to book',
+        paragraphs: [
+          'There is no train network, and while buses are cheap they are slow and stop running early in the evening. Most visitors get around by private driver, organised excursion or self-drive hire car; bear in mind Mauritius drives on the left. Having a reliable transfer waiting at the airport removes the most stressful part of any trip, especially after a long-haul flight that often lands late at night.',
+          "Belle Mare Tours is a licensed local operator based on the east coast, so pickups around Belle Mare, Trou d'Eau Douce and the eastern resorts are quick. You can pre-book a fixed-price meet-and-greet from the airport at /airport-transfers, browse guided tours and excursions at /activities, and read up on individual sights at /attractions. Booking ahead also locks in availability for popular trips like Île aux Cerfs and the south-coast tour, which fill up fast in peak season.",
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "What is the best time of year to visit Mauritius?",
-        "a": "Both seasons work well. November to April is hot and best for swimming and snorkelling, though January and February carry a small cyclone risk. May to October is drier and cooler, which is better for hiking, sightseeing and kitesurfing at Le Morne. For a balance of warm sea and pleasant weather, September to early November and April are sweet spots."
+        q: 'What is the best time of year to visit Mauritius?',
+        a: 'Both seasons work well. November to April is hot and best for swimming and snorkelling, though January and February carry a small cyclone risk. May to October is drier and cooler, which is better for hiking, sightseeing and kitesurfing at Le Morne. For a balance of warm sea and pleasant weather, September to early November and April are sweet spots.',
       },
       {
-        "q": "How many days do you need to see the main attractions?",
-        "a": "Seven to ten days lets you enjoy the beaches and still fit in the major day trips: Île aux Cerfs, the south coast with Chamarel and Le Morne, Black River Gorges and a cultural day around Port Louis and Grand Bassin. The island is compact, so even with a week you can cover a lot if you group sights by region rather than crisscrossing."
+        q: 'How many days do you need to see the main attractions?',
+        a: 'Seven to ten days lets you enjoy the beaches and still fit in the major day trips: Île aux Cerfs, the south coast with Chamarel and Le Morne, Black River Gorges and a cultural day around Port Louis and Grand Bassin. The island is compact, so even with a week you can cover a lot if you group sights by region rather than crisscrossing.',
       },
       {
-        "q": "Are the beaches in Mauritius free to access?",
-        "a": "Yes. All public beaches in Mauritius are free and open to everyone, including the stretches in front of hotels. Popular free beaches include Belle Mare, Mont Choisy, Flic-en-Flac and Pereybère. You only pay for optional extras such as sunbed hire, water sports or boat trips."
+        q: 'Are the beaches in Mauritius free to access?',
+        a: 'Yes. All public beaches in Mauritius are free and open to everyone, including the stretches in front of hotels. Popular free beaches include Belle Mare, Mont Choisy, Flic-en-Flac and Pereybère. You only pay for optional extras such as sunbed hire, water sports or boat trips.',
       },
       {
-        "q": "Should I book tours and transfers in advance?",
-        "a": "For airport transfers, yes, so a driver is waiting when you land. Popular excursions such as Île aux Cerfs and dolphin-watching also sell out in peak season, so booking a day or two ahead is wise. You can reserve transfers at /airport-transfers and tours at /activities, or let the planner at /ai-road-trip-planner build a suggested itinerary first."
-      }
-    ]
+        q: 'Should I book tours and transfers in advance?',
+        a: 'For airport transfers, yes, so a driver is waiting when you land. Popular excursions such as Île aux Cerfs and dolphin-watching also sell out in peak season, so booking a day or two ahead is wise. You can reserve transfers at /airport-transfers and tours at /activities, or let the planner at /ai-road-trip-planner build a suggested itinerary first.',
+      },
+    ],
   },
   {
-    "slug": "mauritius-airport-transfer-guide",
-    "title": "Mauritius Airport Transfer: The Complete Guide",
-    "metaTitle": "Mauritius Airport Transfer: The Complete Guide",
-    "metaDescription": "How to get from SSR Airport to your Mauritius hotel: taxi, private and hotel transfer costs in EUR, common scams to avoid, and how to pre-book the smart way.",
-    "excerpt": "Everything you need to get from SSR Airport to your Mauritius hotel: real transfer options, honest EUR prices, scams to avoid, and how to pre-book before you fly.",
-    "readMins": 6,
-    "faq": [
+    slug: 'mauritius-airport-transfer-guide',
+    title: 'Mauritius Airport Transfer: The Complete Guide',
+    metaTitle: 'Mauritius Airport Transfer: The Complete Guide',
+    metaDescription:
+      'How to get from SSR Airport to your Mauritius hotel: taxi, private and hotel transfer costs in EUR, common scams to avoid, and how to pre-book the smart way.',
+    excerpt:
+      'Everything you need to get from SSR Airport to your Mauritius hotel: real transfer options, honest EUR prices, scams to avoid, and how to pre-book before you fly.',
+    readMins: 6,
+    faq: [
       {
-        "q": "How much does a taxi from Mauritius airport cost?",
-        "a": "It depends heavily on distance. A short hop to Mahebourg or Blue Bay runs roughly 15 to 25 EUR, the south-west coast around Le Morne is typically 55 to 75 EUR, and the north or east coast (Grand Baie, Belle Mare) often lands between 50 and 70 EUR. Always agree the full price before getting in, because most airport taxis do not run a meter."
+        q: 'How much does a taxi from Mauritius airport cost?',
+        a: 'It depends heavily on distance. A short hop to Mahebourg or Blue Bay runs roughly 15 to 25 EUR, the south-west coast around Le Morne is typically 55 to 75 EUR, and the north or east coast (Grand Baie, Belle Mare) often lands between 50 and 70 EUR. Always agree the full price before getting in, because most airport taxis do not run a meter.',
       },
       {
-        "q": "Is Uber available at SSR Airport in Mauritius?",
-        "a": "No. Ride-hailing apps like Uber and Bolt do not operate in Mauritius, so you cannot summon a car on arrival the way you might elsewhere. Your realistic options are a rank taxi, your hotel's shuttle, or a pre-booked private transfer. Pre-booking is the closest thing to the convenience of an app, with the price fixed in advance."
+        q: 'Is Uber available at SSR Airport in Mauritius?',
+        a: "No. Ride-hailing apps like Uber and Bolt do not operate in Mauritius, so you cannot summon a car on arrival the way you might elsewhere. Your realistic options are a rank taxi, your hotel's shuttle, or a pre-booked private transfer. Pre-booking is the closest thing to the convenience of an app, with the price fixed in advance.",
       },
       {
-        "q": "How long does the transfer from the airport to my hotel take?",
-        "a": "SSR Airport sits in the south-east near Plaisance. Mahebourg and Blue Bay are 10 to 20 minutes away, the east coast resorts around Belle Mare take roughly 50 to 60 minutes, the north (Grand Baie) is about 75 to 90 minutes, and the west around Flic en Flac or Le Morne is 60 to 90 minutes. Add time during weekday rush hours near Port Louis."
+        q: 'How long does the transfer from the airport to my hotel take?',
+        a: 'SSR Airport sits in the south-east near Plaisance. Mahebourg and Blue Bay are 10 to 20 minutes away, the east coast resorts around Belle Mare take roughly 50 to 60 minutes, the north (Grand Baie) is about 75 to 90 minutes, and the west around Flic en Flac or Le Morne is 60 to 90 minutes. Add time during weekday rush hours near Port Louis.',
       },
       {
-        "q": "Should I book my airport transfer before I arrive in Mauritius?",
-        "a": "Yes, for most travellers. Pre-booking locks in a fixed all-in fare, guarantees a meet-and-greet after a long flight, and removes any pressure to negotiate while jet-lagged. It also means a child seat or larger vehicle is ready and waiting rather than a gamble at the rank."
-      }
+        q: 'Should I book my airport transfer before I arrive in Mauritius?',
+        a: 'Yes, for most travellers. Pre-booking locks in a fixed all-in fare, guarantees a meet-and-greet after a long flight, and removes any pressure to negotiate while jet-lagged. It also means a child seat or larger vehicle is ready and waiting rather than a gamble at the rank.',
+      },
     ],
-    "sections": [
+    sections: [
       {
-        "heading": "Where You're Actually Landing: SSR Airport and the Island Layout",
-        "paragraphs": [
-          "Almost every visitor arrives at Sir Seewoosagur Ramgoolam International Airport (airport code MRU), tucked into the south-east of the island near Plaisance, about 48 kilometres from the capital, Port Louis. It is a single, modern terminal, and the good news is that no resort in Mauritius is more than roughly 90 minutes away by road. The catch is that the airport sits a long way from the most popular tourist coasts, so your transfer is rarely a five-minute hop.",
-          "Knowing roughly where you are headed makes every later decision easier. The east coast around Belle Mare, Trou d'Eau Douce and Palmar is about 50 to 60 minutes north of the airport. The north around Grand Baie and Pereybere is the furthest at roughly 75 to 90 minutes. The west coast resorts of Flic en Flac and Le Morne sit 60 to 90 minutes away, while Mahebourg and Blue Bay, the closest beach towns, are barely 15 minutes from arrivals. Whatever you have planned once you settle in, our /attractions and /activities pages are a good way to map out the area around your hotel before you even land."
-        ]
+        heading: "Where You're Actually Landing: SSR Airport and the Island Layout",
+        paragraphs: [
+          'Almost every visitor arrives at Sir Seewoosagur Ramgoolam International Airport (airport code MRU), tucked into the south-east of the island near Plaisance, about 48 kilometres from the capital, Port Louis. It is a single, modern terminal, and the good news is that no resort in Mauritius is more than roughly 90 minutes away by road. The catch is that the airport sits a long way from the most popular tourist coasts, so your transfer is rarely a five-minute hop.',
+          "Knowing roughly where you are headed makes every later decision easier. The east coast around Belle Mare, Trou d'Eau Douce and Palmar is about 50 to 60 minutes north of the airport. The north around Grand Baie and Pereybere is the furthest at roughly 75 to 90 minutes. The west coast resorts of Flic en Flac and Le Morne sit 60 to 90 minutes away, while Mahebourg and Blue Bay, the closest beach towns, are barely 15 minutes from arrivals. Whatever you have planned once you settle in, our /attractions and /activities pages are a good way to map out the area around your hotel before you even land.",
+        ],
       },
       {
-        "heading": "Your Three Real Options: Taxi, Hotel Shuttle, or Private Transfer",
-        "paragraphs": [
-          "The first thing worth saying clearly is that ride-hailing apps do not work here. Uber and Bolt are not available in Mauritius, so the slick on-demand experience you might expect from other destinations simply is not on the table. That leaves three genuine choices, and each suits a different kind of traveller.",
-          "Airport rank taxis are the walk-up option. They are licensed and plentiful, but very few use a meter, so the price is whatever you agree at the kerb. That is fine if you are confident negotiating after a long-haul flight, less fine if you are not. Hotel transfers are the most hands-off route: many four and five-star resorts offer a private car or a shared shuttle, often arranged through the hotel concierge, though they tend to charge a premium over the going rate and a shared shuttle may wait to fill before leaving. A pre-booked private transfer with an independent operator sits in the sweet spot. You get a named driver waiting in arrivals, a fixed all-in price, and a car that is yours alone, usually for less than the hotel's own quote. You can see how we run this on our /airport-transfers page."
-        ]
+        heading: 'Your Three Real Options: Taxi, Hotel Shuttle, or Private Transfer',
+        paragraphs: [
+          'The first thing worth saying clearly is that ride-hailing apps do not work here. Uber and Bolt are not available in Mauritius, so the slick on-demand experience you might expect from other destinations simply is not on the table. That leaves three genuine choices, and each suits a different kind of traveller.',
+          "Airport rank taxis are the walk-up option. They are licensed and plentiful, but very few use a meter, so the price is whatever you agree at the kerb. That is fine if you are confident negotiating after a long-haul flight, less fine if you are not. Hotel transfers are the most hands-off route: many four and five-star resorts offer a private car or a shared shuttle, often arranged through the hotel concierge, though they tend to charge a premium over the going rate and a shared shuttle may wait to fill before leaving. A pre-booked private transfer with an independent operator sits in the sweet spot. You get a named driver waiting in arrivals, a fixed all-in price, and a car that is yours alone, usually for less than the hotel's own quote. You can see how we run this on our /airport-transfers page.",
+        ],
       },
       {
-        "heading": "What It Should Cost: Honest Price Ranges in EUR",
-        "paragraphs": [
+        heading: 'What It Should Cost: Honest Price Ranges in EUR',
+        paragraphs: [
           "Mauritius transfer pricing is driven almost entirely by distance, and prices are usually quoted as a flat fare for the car rather than per person. As a rough guide for a standard saloon or small people-carrier, a run to nearby Mahebourg or Blue Bay should cost around 15 to 25 EUR. The east coast (Belle Mare, Trou d'Eau Douce) typically falls between 50 and 70 EUR, the north around Grand Baie is similar at roughly 55 to 70 EUR, and the south-west toward Le Morne or Flic en Flac sits around 55 to 80 EUR.",
-          "A few things move the number. A larger group needing a minivan, a late-night arrival, or a request for child seats can each nudge the price up. Be a little wary of quotes that come in dramatically below these ranges, as they sometimes hide a shared vehicle, a long wait, or an unlicensed driver. Equally, a hotel quoting two or three times these figures is simply charging a convenience premium. A fixed written quote from a licensed operator before you fly is the cleanest way to know exactly what you will pay, with no surprises at the destination."
-        ]
+          'A few things move the number. A larger group needing a minivan, a late-night arrival, or a request for child seats can each nudge the price up. Be a little wary of quotes that come in dramatically below these ranges, as they sometimes hide a shared vehicle, a long wait, or an unlicensed driver. Equally, a hotel quoting two or three times these figures is simply charging a convenience premium. A fixed written quote from a licensed operator before you fly is the cleanest way to know exactly what you will pay, with no surprises at the destination.',
+        ],
       },
       {
-        "heading": "Scams and Pitfalls to Sidestep",
-        "paragraphs": [
-          "Mauritius is a safe and friendly place, and serious transfer scams are rare, but a few avoidable annoyances catch tired travellers every year. The most common is the unagreed fare: stepping into a taxi without settling the price first, then facing an inflated demand on arrival when you are tired and have nowhere else to go. Always confirm the full amount, the currency, and that it covers the whole journey before you load your bags.",
-          "Watch, too, for the friendly stranger inside the terminal who offers to arrange a car. Legitimate drivers wait in the official arrivals area, often holding a name board for pre-booked guests. Be cautious of anyone steering you toward an unmarked vehicle, of vague promises to 'sort out the price later', and of currency confusion when a rate quoted in rupees is suddenly recalculated in euros at a poor exchange. None of this is reason for alarm; it is simply the case that a fare agreed in advance, ideally in writing, removes every one of these pressure points before they can arise."
-        ]
+        heading: 'Scams and Pitfalls to Sidestep',
+        paragraphs: [
+          'Mauritius is a safe and friendly place, and serious transfer scams are rare, but a few avoidable annoyances catch tired travellers every year. The most common is the unagreed fare: stepping into a taxi without settling the price first, then facing an inflated demand on arrival when you are tired and have nowhere else to go. Always confirm the full amount, the currency, and that it covers the whole journey before you load your bags.',
+          "Watch, too, for the friendly stranger inside the terminal who offers to arrange a car. Legitimate drivers wait in the official arrivals area, often holding a name board for pre-booked guests. Be cautious of anyone steering you toward an unmarked vehicle, of vague promises to 'sort out the price later', and of currency confusion when a rate quoted in rupees is suddenly recalculated in euros at a poor exchange. None of this is reason for alarm; it is simply the case that a fare agreed in advance, ideally in writing, removes every one of these pressure points before they can arise.",
+        ],
       },
       {
-        "heading": "How to Pre-Book the Smart Way",
-        "paragraphs": [
-          "Pre-booking is the single biggest upgrade you can make to your arrival. When you reserve ahead with a licensed operator, you share your flight number and the driver tracks it, so a delayed or early landing is not a problem and you are not charged for the wait. You step out of customs to someone holding your name, the price is already fixed, and within minutes you are on the road rather than haggling at a rank.",
-          "To book well, send your full flight details, your exact hotel or villa name with its region, your arrival date and time, and your group size including children so the right vehicle and any child seats are ready. Confirm the total price and currency in writing, and keep the driver's contact number handy in case your flight is diverted or your plans shift. If you would like the whole holiday mapped out before you arrive, our free /ai-road-trip-planner can build a day-by-day itinerary around your hotel, which makes it easy to line up onward excursions and your return transfer at the same time."
-        ]
+        heading: 'How to Pre-Book the Smart Way',
+        paragraphs: [
+          'Pre-booking is the single biggest upgrade you can make to your arrival. When you reserve ahead with a licensed operator, you share your flight number and the driver tracks it, so a delayed or early landing is not a problem and you are not charged for the wait. You step out of customs to someone holding your name, the price is already fixed, and within minutes you are on the road rather than haggling at a rank.',
+          "To book well, send your full flight details, your exact hotel or villa name with its region, your arrival date and time, and your group size including children so the right vehicle and any child seats are ready. Confirm the total price and currency in writing, and keep the driver's contact number handy in case your flight is diverted or your plans shift. If you would like the whole holiday mapped out before you arrive, our free /ai-road-trip-planner can build a day-by-day itinerary around your hotel, which makes it easy to line up onward excursions and your return transfer at the same time.",
+        ],
       },
       {
-        "heading": "Timing, Seasons and a Few Local Realities",
-        "paragraphs": [
-          "Build a little buffer into your plans. Mauritius drives on the left, and while the motorway network is good, the stretch around Port Louis can crawl during weekday morning and late-afternoon rush hours, so an east or north-coast transfer that normally takes an hour can stretch noticeably. For your departure, plan to leave your hotel about three hours before an international flight, and ask your operator to advise the pickup time rather than guessing.",
-          "Season matters less for transfers than for the rest of your trip, but it is worth knowing the rhythm. The warm, humid summer runs November to April and brings the occasional heavy downpour or, rarely, a cyclone alert that can briefly affect roads; the cooler, drier winter from May to October is the calmest time to travel. Whenever you come, a transfer arranged in advance means one less thing to think about, leaving you free to start enjoying the lagoons, markets and mountains the moment you land."
-        ]
-      }
-    ]
-  },
-  {
-    "slug": "getting-around-mauritius",
-    "title": "How to Get Around Mauritius: Taxis, Transfers & Car Hire",
-    "metaTitle": "Getting Around Mauritius: Taxi, Transfers & Car Hire",
-    "metaDescription": "Planning a Mauritius trip? Compare taxi fares, private driver-guides, buses, car and scooter hire, and airport transfers so you can move around the island with ease.",
-    "excerpt": "A practical, honest guide to getting around Mauritius: realistic taxi fares, private driver-guides, the bus network, car and scooter rental, and stress-free airport transfers.",
-    "readMins": 7,
-    "sections": [
-      {
-        "heading": "Why Transport Planning Matters in Mauritius",
-        "paragraphs": [
-          "Mauritius is small, but it is not as quick to cross as the map suggests. The island measures roughly 65 kilometres north to south and 45 kilometres east to west, yet narrow coastal roads, sugar-cane lanes, roundabouts and the daily rush around Port Louis mean a journey of 40 kilometres can still take well over an hour. A transfer from the airport in the south-east to Grand Baie in the far north is around 55 to 65 kilometres and usually takes 75 to 90 minutes depending on traffic.",
-          "There is no train network for tourists and, importantly, there is no Uber or Bolt operating on the island. That surprises many visitors, so it is worth knowing before you land. Your real options are taxis, a private driver-guide, the public bus network, and self-drive car or scooter hire. The right choice depends on where you are staying, how much you want to explore, and whether you are comfortable driving on the left.",
-          "Most travellers end up mixing methods: a pre-booked transfer from the airport, taxis or a driver for day trips, and perhaps a hire car for a few days of independent exploring. Knowing roughly what each costs and how each works saves both money and the awkward roadside negotiation that catches first-timers out."
-        ]
+        heading: 'Timing, Seasons and a Few Local Realities',
+        paragraphs: [
+          'Build a little buffer into your plans. Mauritius drives on the left, and while the motorway network is good, the stretch around Port Louis can crawl during weekday morning and late-afternoon rush hours, so an east or north-coast transfer that normally takes an hour can stretch noticeably. For your departure, plan to leave your hotel about three hours before an international flight, and ask your operator to advise the pickup time rather than guessing.',
+          'Season matters less for transfers than for the rest of your trip, but it is worth knowing the rhythm. The warm, humid summer runs November to April and brings the occasional heavy downpour or, rarely, a cyclone alert that can briefly affect roads; the cooler, drier winter from May to October is the calmest time to travel. Whenever you come, a transfer arranged in advance means one less thing to think about, leaving you free to start enjoying the lagoons, markets and mountains the moment you land.',
+        ],
       },
-      {
-        "heading": "Taxis in Mauritius: Fares and How They Work",
-        "paragraphs": [
-          "Taxis are everywhere in Mauritius, especially outside hotels, in Port Louis, Grand Baie, Flic en Flac and around tourist sites. They are the default for short hops and spontaneous outings. The catch is that taxis here are not metered. Every fare is agreed verbally before you set off, so always settle the price with the driver first and confirm whether it covers waiting time if you are stopping along the way.",
-          "As a rough guide, a short local ride of a few kilometres costs around 8 to 15 euros. Common tourist routes have fairly settled rates: Grand Baie to Port Louis is around 25 to 35 euros, and a full day with a taxi at your disposal, typically eight to nine hours, runs from about 70 to 100 euros depending on distance and season. Prices tend to be a little firmer during the November to April summer high season when demand is up. Rates are usually quoted per vehicle, not per person, which makes taxis good value for couples and small groups.",
-          "A few honest tips. Hotel-rank taxis are convenient but often pricier than one you flag on the street or arrange through a local operator. Have an idea of the fare before you ask, agree the number clearly, and keep small notes since change for large bills can be scarce. For airport pickups in particular, a pre-arranged price removes the late-night haggling, which is exactly why so many visitors book an airport transfer in advance rather than joining the rank on arrival."
-        ]
-      },
-      {
-        "heading": "Hiring a Private Driver-Guide",
-        "paragraphs": [
-          "If you want to actually see the island rather than just move between points, a private driver-guide is the most relaxed option. Unlike a standard taxi run, a driver-guide stays with you for the day, knows the back roads, suggests viewpoints and lunch spots, and waits while you explore. It turns transport into part of the experience, which matters on an island where the journey through the Black River Gorges or along the wild south coast is half the reward.",
-          "A typical full-day private tour with driver and air-conditioned vehicle costs somewhere between 80 and 140 euros for the car, again priced per vehicle rather than per head, so the cost per person drops sharply with a group of three or four. That usually covers fuel and the driver's time, though entrance fees to sites such as Chamarel's Seven Coloured Earths, the Casela nature park, or a botanical garden are paid separately. A good driver-guide also takes the stress out of finding parking at busy spots and timing visits to dodge the crowds.",
-          "This is the sweet spot for visitors who want flexibility without driving themselves. You can build a loop around the south, the wild coast and the tea route one day, then the north and the capital another. If you would rather have a set itinerary with fixed inclusions, browse the guided excursions on our activities page, or tell our free AI road trip planner what you like and let it sketch a day-by-day route you can hand to a driver."
-        ]
-      },
-      {
-        "heading": "Public Buses: The Budget Way Around",
-        "paragraphs": [
-          "Mauritius has an extensive and genuinely cheap public bus network, and for budget travellers it is hard to beat. Most single fares cost only the equivalent of around 0.50 to 1.50 euros, paid in cash to the conductor or, increasingly, by contactless card on newer buses. Routes radiate from the two main hubs in Port Louis, Victoria Station and Immigration Square, and connect almost every town and many coastal villages, including Grand Baie, Mahebourg, Curepipe and Flic en Flac.",
-          "The trade-offs are time and convenience. Buses can be slow, stop often, and rarely run to a precise timetable. Services generally wind down in the early evening, with most routes finishing by around 6.30 to 8 pm, so buses are not an option for late dinners or evening outings. They also do not serve many of the more remote beaches, waterfalls and viewpoints, which is exactly where the scenery is best.",
-          "For confident, unhurried travellers the bus is a lovely, sociable way to see daily Mauritian life and reach the main towns for a few euros. Use it for town-to-town hops and longer stays in one base, then switch to a taxi or driver for the harder-to-reach spots and anything after dark."
-        ]
-      },
-      {
-        "heading": "Car and Scooter Hire: Driving Yourself",
-        "paragraphs": [
-          "Renting a car gives you total freedom and is popular with families and longer-stay visitors. Small hatchbacks start at roughly 30 to 45 euros a day, with rates often cheaper for week-long bookings and a little higher over the December and January peak. Driving is on the left, a legacy of British rule, and most visitors can drive on their home licence for short stays, though an International Driving Permit is sensible to carry. You will want full insurance, as minor scrapes on tight lanes and unlit rural roads at night are common.",
-          "Be realistic about the conditions. The motorway between the airport, Port Louis and the north is good, but secondary roads are narrow and winding, signage is patchy, stray dogs and pedestrians appear without warning, and local driving can be assertive. Parking in Port Louis and Grand Baie gets tight in high season. None of this is a dealbreaker, but it is more demanding than driving at home, so factor in a cautious first day to find your feet.",
-          "Scooters, from around 15 to 25 euros a day, are tempting for zipping between nearby beaches, but they suit only experienced riders given the traffic and the rain that can sweep in fast during the November to April summer. Whichever you choose, a hire vehicle pairs perfectly with our list of attractions and things to do, so you can string together beaches, viewpoints and markets at your own pace."
-        ]
-      },
-      {
-        "heading": "Airport Transfers: Starting the Trip Right",
-        "paragraphs": [
-          "Sir Seewoosagur Ramgoolam International Airport sits near Mahebourg in the south-east, a fair distance from the main resort areas in the north and west. After a long-haul flight, the last thing most travellers want is to negotiate a fare at the rank, so a pre-booked private transfer is the easiest way to start a holiday. Your driver meets you in arrivals with a name board, helps with bags, and takes you straight to your hotel for a price fixed in advance.",
-          "Expect roughly 90 to 130 minutes to reach the northern villages such as Grand Baie, Pereybere or Trou aux Biches, around 60 to 80 minutes to the west coast at Flic en Flac or Tamarin, and 30 to 50 minutes to the south-east coast near Blue Bay. A private transfer typically costs in the region of 45 to 75 euros one way depending on distance and vehicle size, again per vehicle, which makes it sensible value for families with luggage.",
-          "Booking ahead also protects you against arriving on a late or delayed flight when the taxi rank has thinned out. You can arrange a meet-and-greet transfer through our airport transfer page, and if you are not yet sure how the rest of your stay fits together, our AI road trip planner can suggest a base and a rough route in a couple of minutes so your first transfer drops you exactly where it makes sense to start."
-        ]
-      }
     ],
-    "faq": [
-      {
-        "q": "Is there Uber in Mauritius?",
-        "a": "No. Ride-hailing apps such as Uber and Bolt do not operate in Mauritius. Your options are taxis, a private driver-guide, public buses, or self-drive car and scooter hire. Because taxis are unmetered, always agree the fare before you set off, or pre-book a transfer to fix the price in advance."
-      },
-      {
-        "q": "How much does a taxi cost in Mauritius?",
-        "a": "Taxis are not metered, so fares are negotiated. A short local ride is roughly 8 to 15 euros, Grand Baie to Port Louis around 25 to 35 euros, and a full day with a taxi at your disposal about 70 to 100 euros. Prices are usually per vehicle and a little firmer during the November to April high season."
-      },
-      {
-        "q": "Should I rent a car or hire a driver in Mauritius?",
-        "a": "It depends on confidence and plans. Self-drive hire from around 30 to 45 euros a day gives total freedom but means driving on the left on narrow, winding roads. A private driver-guide, roughly 80 to 140 euros for a full day per vehicle, is more relaxed and adds local knowledge, which suits anyone who would rather sightsee than navigate."
-      },
-      {
-        "q": "Are public buses a good way to get around Mauritius?",
-        "a": "For budget travellers and town-to-town trips, yes. Fares are tiny, often under 1.50 euros, and the network reaches most towns from the Port Louis hubs. The downsides are slow, frequent stops, limited reach to remote beaches and waterfalls, and services that mostly finish in the early evening, so pair buses with a taxi for harder-to-reach spots and nights out."
-      }
-    ]
   },
   {
-    "slug": "best-beaches-in-mauritius",
-    "title": "The 12 Best Beaches in Mauritius",
-    "metaTitle": "The 12 Best Beaches in Mauritius (by Region)",
-    "metaDescription": "A local guide to the 12 best beaches in Mauritius by region, with what each one is good for: swimming, snorkelling, surf, families and sunsets.",
-    "excerpt": "A region-by-region roundup of the 12 best beaches in Mauritius, with honest notes on what each is good for, from calm family lagoons to surf and kitesurfing.",
-    "readMins": 7,
-    "sections": [
+    slug: 'getting-around-mauritius',
+    title: 'How to Get Around Mauritius: Taxis, Transfers & Car Hire',
+    metaTitle: 'Getting Around Mauritius: Taxi, Transfers & Car Hire',
+    metaDescription:
+      'Planning a Mauritius trip? Compare taxi fares, private driver-guides, buses, car and scooter hire, and airport transfers so you can move around the island with ease.',
+    excerpt:
+      'A practical, honest guide to getting around Mauritius: realistic taxi fares, private driver-guides, the bus network, car and scooter rental, and stress-free airport transfers.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "How to read this list (and when to go)",
-        "paragraphs": [
-          "Mauritius is ringed almost entirely by a coral reef, which means most of its coast is a calm, shallow lagoon in shades of turquoise rather than open ocean surf. That single fact shapes everything about its beaches: the water is usually warm, flat and swimmable, and the colour really is that bright in person. But not every beach is good at the same thing. Some are dead-calm nurseries perfect for small children; others catch the trade wind and become world-class kitesurfing spots; a handful sit outside the reef and pick up real waves for surfers.",
-          "The island has two simple seasons. The summer runs from November to April: hot, humid, the warmest sea, and the time when the rare cyclone can pass. Winter runs May to October: cooler, drier, breezier, and the prime season for kitesurfing and surfing on the south and west coasts. For pure beach lazing, the shoulder months of September, October and April tend to give you the best balance of sun and comfortable heat.",
-          "One practical note before the list. Every public beach in Mauritius is free and open to all, including the stretches in front of the big resorts, so you never have to pay to swim. Most beaches have little or no shade beyond the casuarina (filao) trees, almost none have lifeguards, and facilities vary wildly. We have grouped the twelve below by region so you can plan a sensible day rather than zig-zagging across the island. If you would rather not drive yourself, you can see how each of these connects on a route using our free AI trip planner at /ai-road-trip-planner."
-        ]
+        heading: 'Why Transport Planning Matters in Mauritius',
+        paragraphs: [
+          'Mauritius is small, but it is not as quick to cross as the map suggests. The island measures roughly 65 kilometres north to south and 45 kilometres east to west, yet narrow coastal roads, sugar-cane lanes, roundabouts and the daily rush around Port Louis mean a journey of 40 kilometres can still take well over an hour. A transfer from the airport in the south-east to Grand Baie in the far north is around 55 to 65 kilometres and usually takes 75 to 90 minutes depending on traffic.',
+          'There is no train network for tourists and, importantly, there is no Uber or Bolt operating on the island. That surprises many visitors, so it is worth knowing before you land. Your real options are taxis, a private driver-guide, the public bus network, and self-drive car or scooter hire. The right choice depends on where you are staying, how much you want to explore, and whether you are comfortable driving on the left.',
+          'Most travellers end up mixing methods: a pre-booked transfer from the airport, taxis or a driver for day trips, and perhaps a hire car for a few days of independent exploring. Knowing roughly what each costs and how each works saves both money and the awkward roadside negotiation that catches first-timers out.',
+        ],
       },
       {
-        "heading": "North: lively lagoons and the island's longest sands",
-        "paragraphs": [
-          "The north is the busiest, most developed coast, and the easiest if you want beaches with bars, boats and a bit of life around them. Pereybere is the local favourite here: a compact, sheltered cove with genuinely calm, clear water, a sandy entry that is gentle on bare feet, and snack shacks and snorkel rental right behind the sand. It gets busy at weekends with Mauritian families, which is part of its charm, and it is one of the few northern beaches with real shade.",
+        heading: 'Taxis in Mauritius: Fares and How They Work',
+        paragraphs: [
+          'Taxis are everywhere in Mauritius, especially outside hotels, in Port Louis, Grand Baie, Flic en Flac and around tourist sites. They are the default for short hops and spontaneous outings. The catch is that taxis here are not metered. Every fare is agreed verbally before you set off, so always settle the price with the driver first and confirm whether it covers waiting time if you are stopping along the way.',
+          'As a rough guide, a short local ride of a few kilometres costs around 8 to 15 euros. Common tourist routes have fairly settled rates: Grand Baie to Port Louis is around 25 to 35 euros, and a full day with a taxi at your disposal, typically eight to nine hours, runs from about 70 to 100 euros depending on distance and season. Prices tend to be a little firmer during the November to April summer high season when demand is up. Rates are usually quoted per vehicle, not per person, which makes taxis good value for couples and small groups.',
+          'A few honest tips. Hotel-rank taxis are convenient but often pricier than one you flag on the street or arrange through a local operator. Have an idea of the fare before you ask, agree the number clearly, and keep small notes since change for large bills can be scarce. For airport pickups in particular, a pre-arranged price removes the late-night haggling, which is exactly why so many visitors book an airport transfer in advance rather than joining the rank on arrival.',
+        ],
+      },
+      {
+        heading: 'Hiring a Private Driver-Guide',
+        paragraphs: [
+          'If you want to actually see the island rather than just move between points, a private driver-guide is the most relaxed option. Unlike a standard taxi run, a driver-guide stays with you for the day, knows the back roads, suggests viewpoints and lunch spots, and waits while you explore. It turns transport into part of the experience, which matters on an island where the journey through the Black River Gorges or along the wild south coast is half the reward.',
+          "A typical full-day private tour with driver and air-conditioned vehicle costs somewhere between 80 and 140 euros for the car, again priced per vehicle rather than per head, so the cost per person drops sharply with a group of three or four. That usually covers fuel and the driver's time, though entrance fees to sites such as Chamarel's Seven Coloured Earths, the Casela nature park, or a botanical garden are paid separately. A good driver-guide also takes the stress out of finding parking at busy spots and timing visits to dodge the crowds.",
+          'This is the sweet spot for visitors who want flexibility without driving themselves. You can build a loop around the south, the wild coast and the tea route one day, then the north and the capital another. If you would rather have a set itinerary with fixed inclusions, browse the guided excursions on our activities page, or tell our free AI road trip planner what you like and let it sketch a day-by-day route you can hand to a driver.',
+        ],
+      },
+      {
+        heading: 'Public Buses: The Budget Way Around',
+        paragraphs: [
+          'Mauritius has an extensive and genuinely cheap public bus network, and for budget travellers it is hard to beat. Most single fares cost only the equivalent of around 0.50 to 1.50 euros, paid in cash to the conductor or, increasingly, by contactless card on newer buses. Routes radiate from the two main hubs in Port Louis, Victoria Station and Immigration Square, and connect almost every town and many coastal villages, including Grand Baie, Mahebourg, Curepipe and Flic en Flac.',
+          'The trade-offs are time and convenience. Buses can be slow, stop often, and rarely run to a precise timetable. Services generally wind down in the early evening, with most routes finishing by around 6.30 to 8 pm, so buses are not an option for late dinners or evening outings. They also do not serve many of the more remote beaches, waterfalls and viewpoints, which is exactly where the scenery is best.',
+          'For confident, unhurried travellers the bus is a lovely, sociable way to see daily Mauritian life and reach the main towns for a few euros. Use it for town-to-town hops and longer stays in one base, then switch to a taxi or driver for the harder-to-reach spots and anything after dark.',
+        ],
+      },
+      {
+        heading: 'Car and Scooter Hire: Driving Yourself',
+        paragraphs: [
+          'Renting a car gives you total freedom and is popular with families and longer-stay visitors. Small hatchbacks start at roughly 30 to 45 euros a day, with rates often cheaper for week-long bookings and a little higher over the December and January peak. Driving is on the left, a legacy of British rule, and most visitors can drive on their home licence for short stays, though an International Driving Permit is sensible to carry. You will want full insurance, as minor scrapes on tight lanes and unlit rural roads at night are common.',
+          'Be realistic about the conditions. The motorway between the airport, Port Louis and the north is good, but secondary roads are narrow and winding, signage is patchy, stray dogs and pedestrians appear without warning, and local driving can be assertive. Parking in Port Louis and Grand Baie gets tight in high season. None of this is a dealbreaker, but it is more demanding than driving at home, so factor in a cautious first day to find your feet.',
+          'Scooters, from around 15 to 25 euros a day, are tempting for zipping between nearby beaches, but they suit only experienced riders given the traffic and the rain that can sweep in fast during the November to April summer. Whichever you choose, a hire vehicle pairs perfectly with our list of attractions and things to do, so you can string together beaches, viewpoints and markets at your own pace.',
+        ],
+      },
+      {
+        heading: 'Airport Transfers: Starting the Trip Right',
+        paragraphs: [
+          'Sir Seewoosagur Ramgoolam International Airport sits near Mahebourg in the south-east, a fair distance from the main resort areas in the north and west. After a long-haul flight, the last thing most travellers want is to negotiate a fare at the rank, so a pre-booked private transfer is the easiest way to start a holiday. Your driver meets you in arrivals with a name board, helps with bags, and takes you straight to your hotel for a price fixed in advance.',
+          'Expect roughly 90 to 130 minutes to reach the northern villages such as Grand Baie, Pereybere or Trou aux Biches, around 60 to 80 minutes to the west coast at Flic en Flac or Tamarin, and 30 to 50 minutes to the south-east coast near Blue Bay. A private transfer typically costs in the region of 45 to 75 euros one way depending on distance and vehicle size, again per vehicle, which makes it sensible value for families with luggage.',
+          'Booking ahead also protects you against arriving on a late or delayed flight when the taxi rank has thinned out. You can arrange a meet-and-greet transfer through our airport transfer page, and if you are not yet sure how the rest of your stay fits together, our AI road trip planner can suggest a base and a rough route in a couple of minutes so your first transfer drops you exactly where it makes sense to start.',
+        ],
+      },
+    ],
+    faq: [
+      {
+        q: 'Is there Uber in Mauritius?',
+        a: 'No. Ride-hailing apps such as Uber and Bolt do not operate in Mauritius. Your options are taxis, a private driver-guide, public buses, or self-drive car and scooter hire. Because taxis are unmetered, always agree the fare before you set off, or pre-book a transfer to fix the price in advance.',
+      },
+      {
+        q: 'How much does a taxi cost in Mauritius?',
+        a: 'Taxis are not metered, so fares are negotiated. A short local ride is roughly 8 to 15 euros, Grand Baie to Port Louis around 25 to 35 euros, and a full day with a taxi at your disposal about 70 to 100 euros. Prices are usually per vehicle and a little firmer during the November to April high season.',
+      },
+      {
+        q: 'Should I rent a car or hire a driver in Mauritius?',
+        a: 'It depends on confidence and plans. Self-drive hire from around 30 to 45 euros a day gives total freedom but means driving on the left on narrow, winding roads. A private driver-guide, roughly 80 to 140 euros for a full day per vehicle, is more relaxed and adds local knowledge, which suits anyone who would rather sightsee than navigate.',
+      },
+      {
+        q: 'Are public buses a good way to get around Mauritius?',
+        a: 'For budget travellers and town-to-town trips, yes. Fares are tiny, often under 1.50 euros, and the network reaches most towns from the Port Louis hubs. The downsides are slow, frequent stops, limited reach to remote beaches and waterfalls, and services that mostly finish in the early evening, so pair buses with a taxi for harder-to-reach spots and nights out.',
+      },
+    ],
+  },
+  {
+    slug: 'best-beaches-in-mauritius',
+    title: 'The 12 Best Beaches in Mauritius',
+    metaTitle: 'The 12 Best Beaches in Mauritius (by Region)',
+    metaDescription:
+      'A local guide to the 12 best beaches in Mauritius by region, with what each one is good for: swimming, snorkelling, surf, families and sunsets.',
+    excerpt:
+      'A region-by-region roundup of the 12 best beaches in Mauritius, with honest notes on what each is good for, from calm family lagoons to surf and kitesurfing.',
+    readMins: 7,
+    sections: [
+      {
+        heading: 'How to read this list (and when to go)',
+        paragraphs: [
+          'Mauritius is ringed almost entirely by a coral reef, which means most of its coast is a calm, shallow lagoon in shades of turquoise rather than open ocean surf. That single fact shapes everything about its beaches: the water is usually warm, flat and swimmable, and the colour really is that bright in person. But not every beach is good at the same thing. Some are dead-calm nurseries perfect for small children; others catch the trade wind and become world-class kitesurfing spots; a handful sit outside the reef and pick up real waves for surfers.',
+          'The island has two simple seasons. The summer runs from November to April: hot, humid, the warmest sea, and the time when the rare cyclone can pass. Winter runs May to October: cooler, drier, breezier, and the prime season for kitesurfing and surfing on the south and west coasts. For pure beach lazing, the shoulder months of September, October and April tend to give you the best balance of sun and comfortable heat.',
+          'One practical note before the list. Every public beach in Mauritius is free and open to all, including the stretches in front of the big resorts, so you never have to pay to swim. Most beaches have little or no shade beyond the casuarina (filao) trees, almost none have lifeguards, and facilities vary wildly. We have grouped the twelve below by region so you can plan a sensible day rather than zig-zagging across the island. If you would rather not drive yourself, you can see how each of these connects on a route using our free AI trip planner at /ai-road-trip-planner.',
+        ],
+      },
+      {
+        heading: "North: lively lagoons and the island's longest sands",
+        paragraphs: [
+          'The north is the busiest, most developed coast, and the easiest if you want beaches with bars, boats and a bit of life around them. Pereybere is the local favourite here: a compact, sheltered cove with genuinely calm, clear water, a sandy entry that is gentle on bare feet, and snack shacks and snorkel rental right behind the sand. It gets busy at weekends with Mauritian families, which is part of its charm, and it is one of the few northern beaches with real shade.',
           "A few minutes south, Mont Choisy is the longest beach on the island, a sweeping two-kilometre arc of white sand backed by filao trees. The wide shallow lagoon makes it ideal for long swims, paddleboarding and letting children splash safely. Nearby Grand Baie is less a swimming beach than a hub: a sheltered bay that is the departure point for almost every catamaran cruise to the northern islets such as Coin de Mire, Île Gabriel and Île Plate, plus the island's best restaurants and nightlife. Trou aux Biches rounds out the north, a calm, palm-lined strip that is one of the best snorkelling-from-the-sand spots and a beautiful place to watch the sunset.",
-          "If you are flying in or out, the north is roughly an hour and a quarter from the airport in the south-east, so it is worth booking a fixed-price transfer rather than a metered taxi. We run door-to-door airport transfers at /airport-transfer, and catamaran trips and snorkelling excursions from Grand Baie are listed under /activities."
-        ]
+          'If you are flying in or out, the north is roughly an hour and a quarter from the airport in the south-east, so it is worth booking a fixed-price transfer rather than a metered taxi. We run door-to-door airport transfers at /airport-transfer, and catamaran trips and snorkelling excursions from Grand Baie are listed under /activities.',
+        ],
       },
       {
-        "heading": "East: the calm, unspoilt coast",
-        "paragraphs": [
+        heading: 'East: the calm, unspoilt coast',
+        paragraphs: [
           "The east is the quietest and, to many people, the most beautiful coast. This is Belle Mare Tours' home turf, so we are biased, but the facts back it up. Belle Mare itself is a six-kilometre ribbon of fine white sand and a huge, calm lagoon, far less built-up than the north, with long empty stretches even in high season. It is excellent for swimming and walking, and the early-morning light here is something special.",
           "Just south sits Trou d'Eau Douce, a working fishing village that is the launch point for Île aux Cerfs, the postcard island with powder-white sand, an 18-hole golf course and every water sport going. A short boat hop gets you there, and most visitors combine it with the Grand River South East waterfall and a beach barbecue. The east does come with one honest caveat: it catches the prevailing south-east trade wind, so afternoons can be breezier here than on the sheltered west, which is wonderful for sailing and kitesurfing but can blow sand around if you just want to lie still. Mornings are usually glassy.",
-          "Because we are based here, pickups on the east coast are quick and inexpensive, and you can browse the Île aux Cerfs cruises and east-coast day tours under /activities."
-        ]
+          'Because we are based here, pickups on the east coast are quick and inexpensive, and you can browse the Île aux Cerfs cruises and east-coast day tours under /activities.',
+        ],
       },
       {
-        "heading": "South and South-West: wild scenery and serious water sports",
-        "paragraphs": [
+        heading: 'South and South-West: wild scenery and serious water sports',
+        paragraphs: [
           "The south is the dramatic, rugged side of the island, where the reef opens up and the scenery turns cinematic. The standout is Le Morne, at the foot of the UNESCO-listed Le Morne Brabant, a 556-metre basaltic monolith that was a refuge for escaped slaves. The beach and lagoon below it are among the most photographed in Mauritius, and the spot is a genuine world-class kitesurfing destination thanks to the reliable wind and the famous 'One Eye' wave. Beginners stick to the flat inner lagoon; experts head out back.",
           "Around the headland, Gris Gris near Souillac is the exception that proves the lagoon rule. Here the reef stops and the open Indian Ocean smashes straight into the cliffs, so this is not a swimming beach at all. It is a place to watch raw surf and walk the wild clifftops, and it pairs naturally with the coloured earths and waterfalls of Chamarel inland. The south-west is also where surfers head in the May-to-October winter season, with Le Morne and Tamarin picking up the season's swell.",
-          "A full south-west day usually strings together Le Morne, Chamarel and a viewpoint or two, which is a lot of ground to cover. You can see how it all links and what is worth your time on our things-to-do guide at /attractions."
-        ]
+          'A full south-west day usually strings together Le Morne, Chamarel and a viewpoint or two, which is a lot of ground to cover. You can see how it all links and what is worth your time on our things-to-do guide at /attractions.',
+        ],
       },
       {
-        "heading": "West: sunsets, snorkelling and dolphins",
-        "paragraphs": [
-          "The west coast is the sunny, sheltered side, protected from the trade wind and famous for its sunsets over the ocean. Flic-en-Flac is the headline beach: a long, broad sweep of white sand with a calm lagoon, easy snorkelling over the nearby reef, and plenty of restaurants and shops within walking distance. It is one of the best all-rounders on the island and a sensible base if you want a beach with amenities but not the intensity of Grand Baie.",
-          "Further south, Tamarin Bay is a different proposition. It is one of the few places in Mauritius with a proper surf break, a river-mouth beach that draws bodyboarders and longboarders, and the bay is well known for the wild dolphins that gather offshore most mornings. Early-morning swim-with-dolphins boat trips leave from here and from nearby Black River, and they are far better done at dawn before the wind and the crowds build. The west also gives you easy access to boat trips out to Île aux Bénitiers and the photogenic Crystal Rock sandbar.",
-          "Dolphin-watching cruises, snorkelling trips and Île aux Bénitiers excursions on this coast are listed under /activities, and if you are short on planning time the AI planner at /ai-road-trip-planner can slot a west-coast beach day into your route automatically."
-        ]
+        heading: 'West: sunsets, snorkelling and dolphins',
+        paragraphs: [
+          'The west coast is the sunny, sheltered side, protected from the trade wind and famous for its sunsets over the ocean. Flic-en-Flac is the headline beach: a long, broad sweep of white sand with a calm lagoon, easy snorkelling over the nearby reef, and plenty of restaurants and shops within walking distance. It is one of the best all-rounders on the island and a sensible base if you want a beach with amenities but not the intensity of Grand Baie.',
+          'Further south, Tamarin Bay is a different proposition. It is one of the few places in Mauritius with a proper surf break, a river-mouth beach that draws bodyboarders and longboarders, and the bay is well known for the wild dolphins that gather offshore most mornings. Early-morning swim-with-dolphins boat trips leave from here and from nearby Black River, and they are far better done at dawn before the wind and the crowds build. The west also gives you easy access to boat trips out to Île aux Bénitiers and the photogenic Crystal Rock sandbar.',
+          'Dolphin-watching cruises, snorkelling trips and Île aux Bénitiers excursions on this coast are listed under /activities, and if you are short on planning time the AI planner at /ai-road-trip-planner can slot a west-coast beach day into your route automatically.',
+        ],
       },
       {
-        "heading": "A quick honest verdict",
-        "paragraphs": [
+        heading: 'A quick honest verdict',
+        paragraphs: [
           "If you want calm water and a do-nothing beach day, choose Belle Mare in the east or Mont Choisy and Trou aux Biches in the north. For families with small children, the gentle shallow entries at Pereybere, Mont Choisy and Flic-en-Flac are hard to beat. For snorkelling straight off the sand, Trou aux Biches and Flic-en-Flac are the reliable picks, while serious reef snorkelling is better reached by boat from Grand Baie or Trou d'Eau Douce.",
-          "For wind and wave sports, the south-west is the place: Le Morne for kitesurfing and Tamarin for surfing and dolphins, both at their best in the May-to-October winter. And for sheer drama over swimming, Gris Gris and the Le Morne backdrop deliver the photographs you will actually remember. No single beach does everything, which is exactly why it is worth seeing two or three coasts in a week rather than parking yourself on one."
-        ]
-      }
+          'For wind and wave sports, the south-west is the place: Le Morne for kitesurfing and Tamarin for surfing and dolphins, both at their best in the May-to-October winter. And for sheer drama over swimming, Gris Gris and the Le Morne backdrop deliver the photographs you will actually remember. No single beach does everything, which is exactly why it is worth seeing two or three coasts in a week rather than parking yourself on one.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "What is the best beach in Mauritius for families with young children?",
-        "a": "For calm, shallow, sandy-bottomed lagoons that are gentle on small swimmers, the standout choices are Pereybere and Mont Choisy in the north and Flic-en-Flac on the west coast. All three have easy entry, nearby snacks and at least some shade, and the reef keeps the water flat. There are almost no lifeguards on Mauritian beaches, so always keep children within arm's reach."
+        q: 'What is the best beach in Mauritius for families with young children?',
+        a: "For calm, shallow, sandy-bottomed lagoons that are gentle on small swimmers, the standout choices are Pereybere and Mont Choisy in the north and Flic-en-Flac on the west coast. All three have easy entry, nearby snacks and at least some shade, and the reef keeps the water flat. There are almost no lifeguards on Mauritian beaches, so always keep children within arm's reach.",
       },
       {
-        "q": "When is the best time of year to go to the beach in Mauritius?",
-        "a": "Mauritius is a beach destination year-round, but the warmest sea and hottest weather run from November to April (summer), while May to October (winter) is cooler, drier and breezier. For pure beach relaxing, the shoulder months of September, October and April give the best balance of sunshine and comfortable heat. Winter is the prime season for kitesurfing and surfing in the south and west."
+        q: 'When is the best time of year to go to the beach in Mauritius?',
+        a: 'Mauritius is a beach destination year-round, but the warmest sea and hottest weather run from November to April (summer), while May to October (winter) is cooler, drier and breezier. For pure beach relaxing, the shoulder months of September, October and April give the best balance of sunshine and comfortable heat. Winter is the prime season for kitesurfing and surfing in the south and west.',
       },
       {
-        "q": "Are the beaches in Mauritius free, even in front of the resorts?",
-        "a": "Yes. Every beach in Mauritius is public and free, including the stretches of sand in front of the large resort hotels, so you never have to pay to swim. The hotels own only their loungers and facilities, not the beach itself. Just bring your own towel and water, as public stretches rarely have rentals or shade beyond the casuarina trees."
+        q: 'Are the beaches in Mauritius free, even in front of the resorts?',
+        a: 'Yes. Every beach in Mauritius is public and free, including the stretches of sand in front of the large resort hotels, so you never have to pay to swim. The hotels own only their loungers and facilities, not the beach itself. Just bring your own towel and water, as public stretches rarely have rentals or shade beyond the casuarina trees.',
       },
       {
-        "q": "How do I get between the best beaches without renting a car?",
-        "a": "The beaches sit on different coasts, so the easiest option is a private driver-guide for the day, which lets you combine, say, a north-coast beach with a catamaran cruise. Belle Mare Tours offers fixed-price door-to-door airport transfers and private day tours, and you can map a custom multi-beach route in minutes with the free AI trip planner before you book."
-      }
-    ]
+        q: 'How do I get between the best beaches without renting a car?',
+        a: 'The beaches sit on different coasts, so the easiest option is a private driver-guide for the day, which lets you combine, say, a north-coast beach with a catamaran cruise. Belle Mare Tours offers fixed-price door-to-door airport transfers and private day tours, and you can map a custom multi-beach route in minutes with the free AI trip planner before you book.',
+      },
+    ],
   },
   {
-    "slug": "best-waterfalls-in-mauritius",
-    "title": "The Best Waterfalls in Mauritius",
-    "metaTitle": "The Best Waterfalls in Mauritius: A Visitor's Guide",
-    "metaDescription": "Discover the best waterfalls in Mauritius, from Chamarel and Tamarind Falls to Rochester Falls. Where they are, when to go, entry fees and how to visit them.",
-    "excerpt": "A practical guide to the best waterfalls in Mauritius, including Chamarel, Tamarind Falls and Rochester Falls, with seasons, costs and tips on how to visit each one.",
-    "readMins": 7,
-    "faq": [
+    slug: 'best-waterfalls-in-mauritius',
+    title: 'The Best Waterfalls in Mauritius',
+    metaTitle: "The Best Waterfalls in Mauritius: A Visitor's Guide",
+    metaDescription:
+      'Discover the best waterfalls in Mauritius, from Chamarel and Tamarind Falls to Rochester Falls. Where they are, when to go, entry fees and how to visit them.',
+    excerpt:
+      'A practical guide to the best waterfalls in Mauritius, including Chamarel, Tamarind Falls and Rochester Falls, with seasons, costs and tips on how to visit each one.',
+    readMins: 7,
+    faq: [
       {
-        "q": "What is the best time of year to see waterfalls in Mauritius?",
-        "a": "The Mauritian summer, roughly November to April, brings the heaviest rainfall, so the waterfalls are at their fullest and most dramatic during and just after these months. The winter (May to October) is drier and cooler, and some falls shrink noticeably by September. If raw power and volume matter most to you, aim for the period from January to April, and ideally visit a day or two after rain. Just bear in mind that heavy summer downpours can also make trails slippery and rivers unsafe, so check conditions before setting out."
+        q: 'What is the best time of year to see waterfalls in Mauritius?',
+        a: 'The Mauritian summer, roughly November to April, brings the heaviest rainfall, so the waterfalls are at their fullest and most dramatic during and just after these months. The winter (May to October) is drier and cooler, and some falls shrink noticeably by September. If raw power and volume matter most to you, aim for the period from January to April, and ideally visit a day or two after rain. Just bear in mind that heavy summer downpours can also make trails slippery and rivers unsafe, so check conditions before setting out.',
       },
       {
-        "q": "Can you swim at the waterfalls in Mauritius?",
-        "a": "At some of them, yes. The lower pools at Tamarind Falls and the base of Rochester Falls are popular swimming spots when water levels are safe, and local guides will tell you whether conditions allow it on the day. Chamarel Waterfall, by contrast, is a viewpoint only, with no access down to the plunge pool. Currents and water levels change quickly after rain, so never jump or swim alone, and always follow a guide who knows the site."
+        q: 'Can you swim at the waterfalls in Mauritius?',
+        a: 'At some of them, yes. The lower pools at Tamarind Falls and the base of Rochester Falls are popular swimming spots when water levels are safe, and local guides will tell you whether conditions allow it on the day. Chamarel Waterfall, by contrast, is a viewpoint only, with no access down to the plunge pool. Currents and water levels change quickly after rain, so never jump or swim alone, and always follow a guide who knows the site.',
       },
       {
-        "q": "How much does it cost to visit waterfalls in Mauritius?",
-        "a": "It varies. Chamarel Waterfall is inside the Seven Coloured Earths geopark, where entry is around 10 to 12 euros per adult and covers the dunes, the falls viewpoint and a tortoise park. Tamarind Falls is best done as a guided canyoning or hiking trip, typically 40 to 70 euros per person depending on the route. Rochester Falls has no formal entry fee, though a small tip for the informal car park attendants is customary. A private tour that links several sites in one day usually offers the best value."
+        q: 'How much does it cost to visit waterfalls in Mauritius?',
+        a: 'It varies. Chamarel Waterfall is inside the Seven Coloured Earths geopark, where entry is around 10 to 12 euros per adult and covers the dunes, the falls viewpoint and a tortoise park. Tamarind Falls is best done as a guided canyoning or hiking trip, typically 40 to 70 euros per person depending on the route. Rochester Falls has no formal entry fee, though a small tip for the informal car park attendants is customary. A private tour that links several sites in one day usually offers the best value.',
       },
       {
-        "q": "Are the waterfalls suitable for families with children?",
-        "a": "Some are, some are not. Chamarel Waterfall is a short, easy walk to a railed viewpoint and is fine for all ages. Rochester Falls involves a rough access road and an uneven walk to the base, manageable for older children with care. The full Tamarind Falls canyoning route involves abseiling and jumps and suits teenagers and adults rather than young children, although a gentler guided hike to the upper viewpoints is family friendly. Tell your operator the ages in your group so the day can be planned accordingly."
-      }
+        q: 'Are the waterfalls suitable for families with children?',
+        a: 'Some are, some are not. Chamarel Waterfall is a short, easy walk to a railed viewpoint and is fine for all ages. Rochester Falls involves a rough access road and an uneven walk to the base, manageable for older children with care. The full Tamarind Falls canyoning route involves abseiling and jumps and suits teenagers and adults rather than young children, although a gentler guided hike to the upper viewpoints is family friendly. Tell your operator the ages in your group so the day can be planned accordingly.',
+      },
     ],
-    "sections": [
+    sections: [
       {
-        "heading": "Why Mauritius Is a Surprising Waterfall Destination",
-        "paragraphs": [
+        heading: 'Why Mauritius Is a Surprising Waterfall Destination',
+        paragraphs: [
           "Most people picture Mauritius as a ring of white-sand beaches and turquoise lagoons, and it is. But the island's volcanic interior is a green, mountainous world of gorges, rivers and waterfalls that many visitors never see. Because the central plateau catches far more rain than the coast, dozens of cascades thread down through the forests of the south and west, from single dramatic drops to long staircases of pools.",
-          "The contrast is part of the appeal. You can spend the morning snorkelling off a calm east-coast lagoon and the afternoon standing in spray at the foot of a 90-metre fall. The waterfalls are also clustered close enough together that, with a bit of planning, you can see two or three of the best in a single day. If you are mapping out where each sight sits and how to string them together, our free /ai-road-trip-planner can sketch a realistic route around your dates and where you are staying."
-        ]
+          'The contrast is part of the appeal. You can spend the morning snorkelling off a calm east-coast lagoon and the afternoon standing in spray at the foot of a 90-metre fall. The waterfalls are also clustered close enough together that, with a bit of planning, you can see two or three of the best in a single day. If you are mapping out where each sight sits and how to string them together, our free /ai-road-trip-planner can sketch a realistic route around your dates and where you are staying.',
+        ],
       },
       {
-        "heading": "Chamarel Waterfall: The Island's Tallest Single Drop",
-        "paragraphs": [
-          "Chamarel Waterfall is the most famous in Mauritius and, at roughly 90 to 100 metres, the tallest single-drop fall on the island. Fed by the Saint Denis River, it plunges off a basalt cliff into a forested gorge in the lush south-western valley of Chamarel. From the railed viewpoint you look across to the full height of the cascade framed by dense green, and on a clear morning the light catches the spray beautifully.",
-          "The waterfall sits inside the same geopark as the Seven Coloured Earths, so a single ticket of around 10 to 12 euros per adult covers the dunes, the falls viewpoint and a giant-tortoise enclosure. The walk to the viewpoint is short and easy, which makes it one of the most accessible waterfalls on the island. There is no path down to the plunge pool itself, so this is a place to admire from above rather than swim.",
-          "Because everything is so close together, Chamarel pairs naturally with a wider day in the south-west. Most of our south-coast trips on the /activities page combine the waterfall with the coloured earths, a rum distillery tasting and the UNESCO-listed Le Morne peninsula. You will find a fuller write-up of the site, with timings and entry details, on our /attractions guide."
-        ]
+        heading: "Chamarel Waterfall: The Island's Tallest Single Drop",
+        paragraphs: [
+          'Chamarel Waterfall is the most famous in Mauritius and, at roughly 90 to 100 metres, the tallest single-drop fall on the island. Fed by the Saint Denis River, it plunges off a basalt cliff into a forested gorge in the lush south-western valley of Chamarel. From the railed viewpoint you look across to the full height of the cascade framed by dense green, and on a clear morning the light catches the spray beautifully.',
+          'The waterfall sits inside the same geopark as the Seven Coloured Earths, so a single ticket of around 10 to 12 euros per adult covers the dunes, the falls viewpoint and a giant-tortoise enclosure. The walk to the viewpoint is short and easy, which makes it one of the most accessible waterfalls on the island. There is no path down to the plunge pool itself, so this is a place to admire from above rather than swim.',
+          'Because everything is so close together, Chamarel pairs naturally with a wider day in the south-west. Most of our south-coast trips on the /activities page combine the waterfall with the coloured earths, a rum distillery tasting and the UNESCO-listed Le Morne peninsula. You will find a fuller write-up of the site, with timings and entry details, on our /attractions guide.',
+        ],
       },
       {
-        "heading": "Tamarind Falls (Seven Cascades): For the Adventurous",
-        "paragraphs": [
-          "Tamarind Falls, known locally as Sept Cascades or the Seven Cascades, is arguably the most spectacular waterfall system in Mauritius. As the name suggests, it is not one fall but a series of seven cascades tumbling through a steep, green valley near Henrietta in the west, with deep emerald pools between each drop. The setting feels genuinely wild, and reaching the best spots takes effort.",
-          "This is the one waterfall on the island that rewards a guided trip. The classic way to experience it is a canyoning or hiking excursion that descends through the valley, with abseiling, scrambling and jumps into the pools along the way. Expect to pay roughly 40 to 70 euros per person depending on the operator and the route, and to spend a good half-day on it. A gentler guided walk to the upper viewpoints is available too, which suits those who want the scenery without the ropes.",
-          "Go with someone who knows the terrain. The trails are unmarked in places, the rocks are slippery, and water levels rise fast after rain. A licensed guide also knows which pools are safe for swimming on the day, which changes with the season and recent weather."
-        ]
+        heading: 'Tamarind Falls (Seven Cascades): For the Adventurous',
+        paragraphs: [
+          'Tamarind Falls, known locally as Sept Cascades or the Seven Cascades, is arguably the most spectacular waterfall system in Mauritius. As the name suggests, it is not one fall but a series of seven cascades tumbling through a steep, green valley near Henrietta in the west, with deep emerald pools between each drop. The setting feels genuinely wild, and reaching the best spots takes effort.',
+          'This is the one waterfall on the island that rewards a guided trip. The classic way to experience it is a canyoning or hiking excursion that descends through the valley, with abseiling, scrambling and jumps into the pools along the way. Expect to pay roughly 40 to 70 euros per person depending on the operator and the route, and to spend a good half-day on it. A gentler guided walk to the upper viewpoints is available too, which suits those who want the scenery without the ropes.',
+          'Go with someone who knows the terrain. The trails are unmarked in places, the rocks are slippery, and water levels rise fast after rain. A licensed guide also knows which pools are safe for swimming on the day, which changes with the season and recent weather.',
+        ],
       },
       {
-        "heading": "Rochester Falls: A Wide Curtain in the South",
-        "paragraphs": [
-          "Rochester Falls, near Souillac on the south coast, is different in character from the tall plunges at Chamarel or Tamarind. Here the Savanne River spreads out and drops about 10 metres over an unusual wall of rock columns, forming a wide, curtain-like cascade. The strangely geometric, almost organ-pipe shape of the basalt is what makes it memorable, and the flat ground at the base lets you get right up close.",
-          "Access is part of the experience. The last stretch is a rough, unpaved track through sugar-cane fields that is bumpy in a small car, so many visitors arrive by tour vehicle or 4x4. There is no official entrance fee, though a small tip for the informal car park attendants is customary. When the river is high and the guides say it is safe, the pool at the base is a popular swimming and cliff-jumping spot, but levels and currents change quickly, so take local advice seriously."
-        ]
+        heading: 'Rochester Falls: A Wide Curtain in the South',
+        paragraphs: [
+          'Rochester Falls, near Souillac on the south coast, is different in character from the tall plunges at Chamarel or Tamarind. Here the Savanne River spreads out and drops about 10 metres over an unusual wall of rock columns, forming a wide, curtain-like cascade. The strangely geometric, almost organ-pipe shape of the basalt is what makes it memorable, and the flat ground at the base lets you get right up close.',
+          'Access is part of the experience. The last stretch is a rough, unpaved track through sugar-cane fields that is bumpy in a small car, so many visitors arrive by tour vehicle or 4x4. There is no official entrance fee, though a small tip for the informal car park attendants is customary. When the river is high and the guides say it is safe, the pool at the base is a popular swimming and cliff-jumping spot, but levels and currents change quickly, so take local advice seriously.',
+        ],
       },
       {
-        "heading": "Other Falls Worth Knowing",
-        "paragraphs": [
+        heading: 'Other Falls Worth Knowing',
+        paragraphs: [
           "Beyond the big three, a few more cascades are worth folding into a trip. The Grand River South East (GRSE) waterfall on the east coast is a modest but pretty fall reached by boat, and it features on most catamaran and speedboat cruises out to Île aux Cerfs, making it an easy add-on if you are staying near Belle Mare or Trou d'Eau Douce. Eau Bleue, an off-the-beaten-track fall and swimming hole in the south-east, rewards those willing to walk a little for a quieter, more local experience.",
-          "Within the Black River Gorges National Park, the Alexandra Falls viewpoint gives you a sweeping panorama over the forested valley and a distant cascade, with no hiking required beyond the short walk from the car park. It is an easy, scenic stop if you are already exploring the south-west and want big views without committing to a trek."
-        ]
+          'Within the Black River Gorges National Park, the Alexandra Falls viewpoint gives you a sweeping panorama over the forested valley and a distant cascade, with no hiking required beyond the short walk from the car park. It is an easy, scenic stop if you are already exploring the south-west and want big views without committing to a trek.',
+        ],
       },
       {
-        "heading": "When to Go and How to Plan Your Day",
-        "paragraphs": [
-          "Timing matters more for waterfalls than for almost any other sight in Mauritius. The summer wet season, roughly November to April, delivers the heaviest rain, so the falls run fullest and loudest then. The drier winter months from May to October are more comfortable for walking and the skies are clearer, but some cascades thin out by late winter. For the best balance of strong flow and manageable trails, the shoulder of the wet season works well, and visiting a day or two after rain almost always pays off.",
-          "Geography makes a clean route easy. Chamarel and Tamarind Falls both sit in the south-west, so they combine well in one day, while Rochester sits along the south coast on the way back from that direction. GRSE belongs to an east-coast island cruise rather than a waterfall day. Whatever you choose, an early start beats the heat, the afternoon clouds and the tour-bus crowds.",
-          "Reaching the trailheads is the practical hurdle, since several falls sit at the end of rough roads with no public transport. A private driver-guide who knows the back lanes removes that friction and keeps the day flexible. Many visitors start with a smooth /airport-transfers pickup on arrival and then book a dedicated waterfall and south-coast day through us, so the logistics are handled and you can focus on the scenery rather than the navigation."
-        ]
-      }
-    ]
+        heading: 'When to Go and How to Plan Your Day',
+        paragraphs: [
+          'Timing matters more for waterfalls than for almost any other sight in Mauritius. The summer wet season, roughly November to April, delivers the heaviest rain, so the falls run fullest and loudest then. The drier winter months from May to October are more comfortable for walking and the skies are clearer, but some cascades thin out by late winter. For the best balance of strong flow and manageable trails, the shoulder of the wet season works well, and visiting a day or two after rain almost always pays off.',
+          'Geography makes a clean route easy. Chamarel and Tamarind Falls both sit in the south-west, so they combine well in one day, while Rochester sits along the south coast on the way back from that direction. GRSE belongs to an east-coast island cruise rather than a waterfall day. Whatever you choose, an early start beats the heat, the afternoon clouds and the tour-bus crowds.',
+          'Reaching the trailheads is the practical hurdle, since several falls sit at the end of rough roads with no public transport. A private driver-guide who knows the back lanes removes that friction and keeps the day flexible. Many visitors start with a smooth /airport-transfers pickup on arrival and then book a dedicated waterfall and south-coast day through us, so the logistics are handled and you can focus on the scenery rather than the navigation.',
+        ],
+      },
+    ],
   },
   {
-    "slug": "mauritius-7-day-itinerary",
-    "title": "The Perfect 7-Day Mauritius Itinerary",
-    "metaTitle": "The Perfect 7-Day Mauritius Itinerary",
-    "metaDescription": "A practical day-by-day 7-day Mauritius itinerary covering the north, south, east and west coasts, with real prices, driving times and honest local tips.",
-    "excerpt": "A region-by-region 7-day plan for Mauritius covering the north, wild south, east lagoons and dramatic west, with realistic prices, driving times and honest advice.",
-    "readMins": 8,
-    "sections": [
+    slug: 'mauritius-7-day-itinerary',
+    title: 'The Perfect 7-Day Mauritius Itinerary',
+    metaTitle: 'The Perfect 7-Day Mauritius Itinerary',
+    metaDescription:
+      'A practical day-by-day 7-day Mauritius itinerary covering the north, south, east and west coasts, with real prices, driving times and honest local tips.',
+    excerpt:
+      'A region-by-region 7-day plan for Mauritius covering the north, wild south, east lagoons and dramatic west, with realistic prices, driving times and honest advice.',
+    readMins: 8,
+    sections: [
       {
-        "heading": "How to Use This 7-Day Mauritius Itinerary",
-        "paragraphs": [
+        heading: 'How to Use This 7-Day Mauritius Itinerary',
+        paragraphs: [
           "Mauritius is small, roughly 65 kilometres top to bottom, but the island packs four very different coasts into that compact frame. The north is lively and beachy, the south is wild and green, the east has the calmest turquoise lagoons, and the west delivers dolphins, mountains and the island's best sunsets. Trying to see all of it from a single base means a lot of backtracking, so this plan groups attractions by region and moves you through them in a logical loop. You will spend your week without ever sitting in the car for more than about ninety minutes at a stretch.",
-          "A quick word on seasons, because it shapes what you pack. Summer runs November to April: hot, humid, and the period when the occasional cyclone passes, though most days are still beach weather. Winter runs May to October: drier, breezier and cooler in the evenings, with the best conditions for hiking and whale watching off the west coast. Either way the lagoon water stays warm enough to swim year round.",
-          "Most of the days below are self-drivable, but Mauritian roads, roundabouts and the sugar-cane back lanes can be daunting on the left-hand side if you are jet-lagged. If you would rather skip the driving, a licensed operator with a private driver-guide is the stress-free option, and you can browse guided trips and excursions under /activities to slot into any day. If you want a plan built around your exact hotel, dates and pace, the free /ai-road-trip-planner will assemble a personalised version of this route in a couple of minutes."
-        ]
+          'A quick word on seasons, because it shapes what you pack. Summer runs November to April: hot, humid, and the period when the occasional cyclone passes, though most days are still beach weather. Winter runs May to October: drier, breezier and cooler in the evenings, with the best conditions for hiking and whale watching off the west coast. Either way the lagoon water stays warm enough to swim year round.',
+          'Most of the days below are self-drivable, but Mauritian roads, roundabouts and the sugar-cane back lanes can be daunting on the left-hand side if you are jet-lagged. If you would rather skip the driving, a licensed operator with a private driver-guide is the stress-free option, and you can browse guided trips and excursions under /activities to slot into any day. If you want a plan built around your exact hotel, dates and pace, the free /ai-road-trip-planner will assemble a personalised version of this route in a couple of minutes.',
+        ],
       },
       {
-        "heading": "Day 1: Arrival, Transfer and the Southeast",
-        "paragraphs": [
-          "Sir Seewoosagur Ramgoolam International Airport sits in the southeast near Mahebourg, so your first decisions happen the moment you land. The airport is about 50 minutes from the popular Grand Baie area in the north, 35 to 45 minutes from the east-coast resorts around Belle Mare, and only 15 minutes from the southeast itself. Pre-booking a private airport transfer is worth it after a long-haul flight; expect roughly 30 to 50 EUR for a private car to most resorts, and you can arrange one in advance through /airport-transfers so a driver is waiting with your name rather than haggling at the taxi rank.",
-          "If your flight lands early enough, don't waste the afternoon. Mahebourg has a genuine, un-touristy waterfront, a Monday morning market, and the Blue Penny and naval history nearby. A short drive away, the Pointe d'Esny and Blue Bay lagoon offer your first snorkel of the trip over a protected marine park. Keep day one gentle, eat an early dinner of fresh fish, and let the jet lag settle."
-        ]
+        heading: 'Day 1: Arrival, Transfer and the Southeast',
+        paragraphs: [
+          'Sir Seewoosagur Ramgoolam International Airport sits in the southeast near Mahebourg, so your first decisions happen the moment you land. The airport is about 50 minutes from the popular Grand Baie area in the north, 35 to 45 minutes from the east-coast resorts around Belle Mare, and only 15 minutes from the southeast itself. Pre-booking a private airport transfer is worth it after a long-haul flight; expect roughly 30 to 50 EUR for a private car to most resorts, and you can arrange one in advance through /airport-transfers so a driver is waiting with your name rather than haggling at the taxi rank.',
+          "If your flight lands early enough, don't waste the afternoon. Mahebourg has a genuine, un-touristy waterfront, a Monday morning market, and the Blue Penny and naval history nearby. A short drive away, the Pointe d'Esny and Blue Bay lagoon offer your first snorkel of the trip over a protected marine park. Keep day one gentle, eat an early dinner of fresh fish, and let the jet lag settle.",
+        ],
       },
       {
-        "heading": "Day 2: The Wild South Coast",
-        "paragraphs": [
-          "The south is the Mauritius that surprises people who expected only resorts. Start at Gris Gris, where there is no protective reef and the Indian Ocean slams directly into black cliffs; it is dramatic rather than swimmable. From there work west along the coast to Le Souffleur blowhole and the photogenic Rochester Falls, a wide curtain of water tumbling over hexagonal basalt columns where local cliff jumpers will happily perform for a tip.",
-          "Inland, the Bel Ombre and Chamarel area is the highlight. The Seven Coloured Earths at Chamarel are dunes of naturally striped volcanic clay in reds, ochres and violets, with the 100-metre Chamarel waterfall a short walk away; entry is around 6 to 8 EUR. Continue up to Black River Gorges National Park, the island's main rainforest reserve, for viewpoints over the whole southwest and a chance to spot endemic birds. This is a long, full day of driving, so an early start pays off."
-        ]
+        heading: 'Day 2: The Wild South Coast',
+        paragraphs: [
+          'The south is the Mauritius that surprises people who expected only resorts. Start at Gris Gris, where there is no protective reef and the Indian Ocean slams directly into black cliffs; it is dramatic rather than swimmable. From there work west along the coast to Le Souffleur blowhole and the photogenic Rochester Falls, a wide curtain of water tumbling over hexagonal basalt columns where local cliff jumpers will happily perform for a tip.',
+          "Inland, the Bel Ombre and Chamarel area is the highlight. The Seven Coloured Earths at Chamarel are dunes of naturally striped volcanic clay in reds, ochres and violets, with the 100-metre Chamarel waterfall a short walk away; entry is around 6 to 8 EUR. Continue up to Black River Gorges National Park, the island's main rainforest reserve, for viewpoints over the whole southwest and a chance to spot endemic birds. This is a long, full day of driving, so an early start pays off.",
+        ],
       },
       {
-        "heading": "Day 3: West Coast, Dolphins and Le Morne",
-        "paragraphs": [
+        heading: 'Day 3: West Coast, Dolphins and Le Morne',
+        paragraphs: [
           "Begin at dawn off Tamarin or Black River, where pods of spinner and bottlenose dolphins gather in the calm morning water. Responsible boat trips let you swim near them; choose an operator that keeps a respectful distance and limits the number of boats, and expect to pay around 30 to 45 EUR per person. Afterwards, the long golden sweep of Flic en Flac is the west coast's main swimming and snorkelling beach.",
-          "The afternoon belongs to Le Morne Brabant, the UNESCO-listed basalt monolith at the island's southwest tip with a powerful history as a refuge for people who had escaped slavery. The summit hike is steep and takes roughly three to four hours return with a guide, but even if you skip the climb, the public beach beneath it is one of the most beautiful in the country and a world-class kitesurfing spot in winter. Stay out for sunset; the west coast is the only side of the island where the sun drops into the sea."
-        ]
+          "The afternoon belongs to Le Morne Brabant, the UNESCO-listed basalt monolith at the island's southwest tip with a powerful history as a refuge for people who had escaped slavery. The summit hike is steep and takes roughly three to four hours return with a guide, but even if you skip the climb, the public beach beneath it is one of the most beautiful in the country and a world-class kitesurfing spot in winter. Stay out for sunset; the west coast is the only side of the island where the sun drops into the sea.",
+        ],
       },
       {
-        "heading": "Days 4-5: The North and Central Plateau",
-        "paragraphs": [
+        heading: 'Days 4-5: The North and Central Plateau',
+        paragraphs: [
           "Shift your focus north for a couple of days. Grand Baie is the island's social hub, with the best concentration of restaurants, bars, shops and boat operators. Use it as a launchpad for a catamaran day trip to the northern islets, Coin de Mire, Ilot Gabriel and Ile Plate, where you snorkel, swim and eat a grilled lunch on board; full-day trips usually run 50 to 80 EUR including food. Nearby Cap Malheureux, with its red-roofed church framing the islands, is the postcard shot everyone wants.",
-          "Give one of these days to the central plateau and the capital. The Sir Seewoosagur Ramgoolam Botanical Garden at Pamplemousses is famous for its giant Victoria amazonica water lilies and centuries-old palms, with entry around 5 to 7 EUR. In Port Louis, the Caudan Waterfront, the Central Market, Aapravasi Ghat and the old Chinatown reward a few hours of wandering. If you would rather have all this curated rather than guess at opening times, the things-to-do guides under /attractions map out the headline sights with practical detail so you can build a day that flows."
-        ]
+          'Give one of these days to the central plateau and the capital. The Sir Seewoosagur Ramgoolam Botanical Garden at Pamplemousses is famous for its giant Victoria amazonica water lilies and centuries-old palms, with entry around 5 to 7 EUR. In Port Louis, the Caudan Waterfront, the Central Market, Aapravasi Ghat and the old Chinatown reward a few hours of wandering. If you would rather have all this curated rather than guess at opening times, the things-to-do guides under /attractions map out the headline sights with practical detail so you can build a day that flows.',
+        ],
       },
       {
-        "heading": "Day 6: The East Coast Lagoons and Belle Mare",
-        "paragraphs": [
+        heading: 'Day 6: The East Coast Lagoons and Belle Mare',
+        paragraphs: [
           "The east coast has the island's calmest, clearest water, protected by a wide reef that turns the lagoon into a pale-turquoise swimming pool. Belle Mare and Palmar are the headline beaches here: long, soft, white sand backed by casuarina trees, far quieter than the north. It is the perfect place to slow down on day six, after a busy week, with nothing more demanding than a swim and a long lunch.",
-          "For a bit more, take the short boat ride to Ile aux Cerfs, a sandbar island off the east coast ringed by shallow lagoon and home to a championship golf course. It gets busy at midday, so go early or late. Glass-bottom boat trips here often combine a stop at the Grand River South East waterfall, where the river meets the sea. The east is also the best base if you simply want a relaxed beach holiday with day trips, since it is roughly central to most of the island."
-        ]
+          'For a bit more, take the short boat ride to Ile aux Cerfs, a sandbar island off the east coast ringed by shallow lagoon and home to a championship golf course. It gets busy at midday, so go early or late. Glass-bottom boat trips here often combine a stop at the Grand River South East waterfall, where the river meets the sea. The east is also the best base if you simply want a relaxed beach holiday with day trips, since it is roughly central to most of the island.',
+        ],
       },
       {
-        "heading": "Day 7: A Slow Finish and Departure",
-        "paragraphs": [
-          "Reserve your last day for whatever your week left undone. That might be a final snorkel, a spa morning, last-minute shopping for vanilla tea, rum and dodo-print souvenirs, or a leisurely lunch somewhere you loved. Because the airport is in the southeast, build in buffer time; aim to leave your hotel about three hours before an international departure, more if you are coming from the far north during weekday traffic around Port Louis.",
-          "If your flight is in the evening, you have a genuine bonus half-day. From an east or south base you can fit in one more beach or a visit to the Mahebourg waterfront before heading to the airport. Pre-arranging your departure transfer removes the last bit of holiday stress, and a private car back to the airport costs about the same as your arrival leg."
-        ]
+        heading: 'Day 7: A Slow Finish and Departure',
+        paragraphs: [
+          'Reserve your last day for whatever your week left undone. That might be a final snorkel, a spa morning, last-minute shopping for vanilla tea, rum and dodo-print souvenirs, or a leisurely lunch somewhere you loved. Because the airport is in the southeast, build in buffer time; aim to leave your hotel about three hours before an international departure, more if you are coming from the far north during weekday traffic around Port Louis.',
+          'If your flight is in the evening, you have a genuine bonus half-day. From an east or south base you can fit in one more beach or a visit to the Mahebourg waterfront before heading to the airport. Pre-arranging your departure transfer removes the last bit of holiday stress, and a private car back to the airport costs about the same as your arrival leg.',
+        ],
       },
       {
-        "heading": "Practical Tips to Make the Week Work",
-        "paragraphs": [
-          "Budget realistically. Beyond flights and accommodation, a comfortable mid-range traveller spends maybe 40 to 70 EUR a day on food, entrance fees and one paid activity. Restaurant mains run 8 to 20 EUR, a hearty street-food roti or dholl puri costs barely 1 to 2 EUR, and the local currency is the Mauritian rupee, though many tour prices are quoted in euros. Tipping is appreciated but not obligatory.",
+        heading: 'Practical Tips to Make the Week Work',
+        paragraphs: [
+          'Budget realistically. Beyond flights and accommodation, a comfortable mid-range traveller spends maybe 40 to 70 EUR a day on food, entrance fees and one paid activity. Restaurant mains run 8 to 20 EUR, a hearty street-food roti or dholl puri costs barely 1 to 2 EUR, and the local currency is the Mauritian rupee, though many tour prices are quoted in euros. Tipping is appreciated but not obligatory.',
           "Logistics make or break a trip this packed. Sundays are quiet, with many shops and some attractions closed, so plan beaches or boat trips then. Sun protection matters more than most visitors expect this close to the tropics; reef-safe sunscreen, a rash vest for snorkelling and plenty of water are non-negotiable. And don't over-schedule. Seven days is enough to taste all four coasts, but the happiest visitors leave room to do nothing on at least one of them.",
-          "If mapping driving times, ferry timings and booking windows sounds like more admin than holiday, hand it off. The free /ai-road-trip-planner turns this region-by-region framework into a day-by-day plan tuned to your hotel and travel dates, and you can book the guided pieces, from dolphin trips to the Chamarel loop, directly under /activities."
-        ]
-      }
+          'If mapping driving times, ferry timings and booking windows sounds like more admin than holiday, hand it off. The free /ai-road-trip-planner turns this region-by-region framework into a day-by-day plan tuned to your hotel and travel dates, and you can book the guided pieces, from dolphin trips to the Chamarel loop, directly under /activities.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Is 7 days enough to see Mauritius?",
-        "a": "Yes. Mauritius is compact, so a week is enough to experience all four coasts without rushing, provided you group attractions by region as this itinerary does rather than crisscrossing the island. If you want more downtime on the beach, simply trade one sightseeing day for relaxation."
+        q: 'Is 7 days enough to see Mauritius?',
+        a: 'Yes. Mauritius is compact, so a week is enough to experience all four coasts without rushing, provided you group attractions by region as this itinerary does rather than crisscrossing the island. If you want more downtime on the beach, simply trade one sightseeing day for relaxation.',
       },
       {
-        "q": "What is the best time of year for this itinerary?",
-        "a": "Both seasons work. May to October (winter) is drier and cooler, ideal for hiking Le Morne and Black River Gorges and for whale and dolphin watching. November to April (summer) is hotter and better for pure beach days, with a small cyclone risk. The lagoons are warm enough to swim year round."
+        q: 'What is the best time of year for this itinerary?',
+        a: 'Both seasons work. May to October (winter) is drier and cooler, ideal for hiking Le Morne and Black River Gorges and for whale and dolphin watching. November to April (summer) is hotter and better for pure beach days, with a small cyclone risk. The lagoons are warm enough to swim year round.',
       },
       {
-        "q": "Should I rent a car or hire a private driver in Mauritius?",
-        "a": "It depends on your confidence. Driving is on the left and roundabouts and narrow back roads can be challenging when jet-lagged, but a car gives total freedom. A licensed private driver-guide removes the stress and adds local knowledge, which many visitors prefer for the longer south and west days."
+        q: 'Should I rent a car or hire a private driver in Mauritius?',
+        a: 'It depends on your confidence. Driving is on the left and roundabouts and narrow back roads can be challenging when jet-lagged, but a car gives total freedom. A licensed private driver-guide removes the stress and adds local knowledge, which many visitors prefer for the longer south and west days.',
       },
       {
-        "q": "How much should I budget for activities during the week?",
-        "a": "Entrance fees are modest, typically 5 to 8 EUR for sites like Chamarel or the botanical garden. Paid excursions are the bigger cost: dolphin trips run about 30 to 45 EUR per person and full-day catamaran cruises 50 to 80 EUR including lunch. Allow roughly 40 to 70 EUR a day overall on top of accommodation."
-      }
-    ]
+        q: 'How much should I budget for activities during the week?',
+        a: 'Entrance fees are modest, typically 5 to 8 EUR for sites like Chamarel or the botanical garden. Paid excursions are the bigger cost: dolphin trips run about 30 to 45 EUR per person and full-day catamaran cruises 50 to 80 EUR including lunch. Allow roughly 40 to 70 EUR a day overall on top of accommodation.',
+      },
+    ],
   },
   {
-    "slug": "swimming-with-dolphins-mauritius",
-    "title": "Swimming with Dolphins in Mauritius: Where, When & How",
-    "metaTitle": "Swimming With Dolphins in Mauritius: Where & When",
-    "metaDescription": "Swimming with wild dolphins in Mauritius, the right way. Where to go (Tamarin Bay), the best season and time of day, ethics, prices and how to book responsibly.",
-    "excerpt": "A practical, honest guide to swimming with wild dolphins in Mauritius: Tamarin Bay, the best season and time, the ethics that matter, and how to book a responsible trip.",
-    "readMins": 7,
-    "sections": [
+    slug: 'swimming-with-dolphins-mauritius',
+    title: 'Swimming with Dolphins in Mauritius: Where, When & How',
+    metaTitle: 'Swimming With Dolphins in Mauritius: Where & When',
+    metaDescription:
+      'Swimming with wild dolphins in Mauritius, the right way. Where to go (Tamarin Bay), the best season and time of day, ethics, prices and how to book responsibly.',
+    excerpt:
+      'A practical, honest guide to swimming with wild dolphins in Mauritius: Tamarin Bay, the best season and time, the ethics that matter, and how to book a responsible trip.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "Where to Swim With Dolphins in Mauritius",
-        "paragraphs": [
-          "Almost every dolphin trip in Mauritius leaves from the same stretch of the west coast: the calm, deep waters off Tamarin Bay and Black River (Rivière Noire), with some boats also departing from Flic-en-Flac just to the north. This corner of the island, sheltered by the mountains around the Black River Gorges, has resident pods of spinner dolphins and a smaller number of bottlenose dolphins that move close to shore in the early morning. The west coast faces away from the prevailing south-east trade winds, so the sea here is usually flatter and clearer than around the wilder south or east, which is exactly why the dolphins favour it and why the boats can reach them quickly.",
-          "Geographically, you are looking at the district of Rivière Noire, roughly an hour to ninety minutes by road from the airport in the south-east and a similar drive from the northern resorts of Grand Baie. If you are based in the east near Belle Mare, plan for a cross-island transfer of around an hour and a half each way. Spinner dolphins use the bay as a daytime resting and socialising area after hunting offshore at night, which is the whole reason they are reliably found here. It is not an aquarium and there are no guarantees, but sightings on a Tamarin trip are common, and the same waters are a launch point for whale watching too, since sperm whales pass through the deeper drop-offs just beyond the reef."
-        ]
+        heading: 'Where to Swim With Dolphins in Mauritius',
+        paragraphs: [
+          'Almost every dolphin trip in Mauritius leaves from the same stretch of the west coast: the calm, deep waters off Tamarin Bay and Black River (Rivière Noire), with some boats also departing from Flic-en-Flac just to the north. This corner of the island, sheltered by the mountains around the Black River Gorges, has resident pods of spinner dolphins and a smaller number of bottlenose dolphins that move close to shore in the early morning. The west coast faces away from the prevailing south-east trade winds, so the sea here is usually flatter and clearer than around the wilder south or east, which is exactly why the dolphins favour it and why the boats can reach them quickly.',
+          'Geographically, you are looking at the district of Rivière Noire, roughly an hour to ninety minutes by road from the airport in the south-east and a similar drive from the northern resorts of Grand Baie. If you are based in the east near Belle Mare, plan for a cross-island transfer of around an hour and a half each way. Spinner dolphins use the bay as a daytime resting and socialising area after hunting offshore at night, which is the whole reason they are reliably found here. It is not an aquarium and there are no guarantees, but sightings on a Tamarin trip are common, and the same waters are a launch point for whale watching too, since sperm whales pass through the deeper drop-offs just beyond the reef.',
+        ],
       },
       {
-        "heading": "The Best Time of Year and Time of Day",
-        "paragraphs": [
-          "Dolphins are present off the west coast all year, so there is no closed season, but the conditions for getting in the water with them vary. The Mauritian summer runs roughly from November to April and brings warmer water and longer days; the cooler, drier winter from May to October brings the steadiest weather and often the calmest mornings on the sheltered west coast. Many regulars actually prefer the winter months for flat seas and good visibility, while summer offers warmer swimming. The one window to be cautious of is the cyclone-prone height of summer, late January through March, when an approaching system can cancel boats at short notice.",
-          "Time of day matters far more than the month. Dolphins come into the bay to rest in the early morning and tend to move back out to sea as the day warms and boat traffic builds. Reputable operators leave very early, typically between 6 and 7am, to reach the pods while the water is calm and the animals are settled. Booking the first departure of the day gives you the best chance of a genuine, unhurried encounter and the lowest crowds. By mid-morning the dolphins are often gone and the bay can be busy with vessels, so an afternoon trip is rarely worth it for swimming."
-        ]
+        heading: 'The Best Time of Year and Time of Day',
+        paragraphs: [
+          'Dolphins are present off the west coast all year, so there is no closed season, but the conditions for getting in the water with them vary. The Mauritian summer runs roughly from November to April and brings warmer water and longer days; the cooler, drier winter from May to October brings the steadiest weather and often the calmest mornings on the sheltered west coast. Many regulars actually prefer the winter months for flat seas and good visibility, while summer offers warmer swimming. The one window to be cautious of is the cyclone-prone height of summer, late January through March, when an approaching system can cancel boats at short notice.',
+          'Time of day matters far more than the month. Dolphins come into the bay to rest in the early morning and tend to move back out to sea as the day warms and boat traffic builds. Reputable operators leave very early, typically between 6 and 7am, to reach the pods while the water is calm and the animals are settled. Booking the first departure of the day gives you the best chance of a genuine, unhurried encounter and the lowest crowds. By mid-morning the dolphins are often gone and the bay can be busy with vessels, so an afternoon trip is rarely worth it for swimming.',
+        ],
       },
       {
-        "heading": "The Ethics: Why How You Swim Matters",
-        "paragraphs": [
+        heading: 'The Ethics: Why How You Swim Matters',
+        paragraphs: [
           "Dolphin swimming in Tamarin has a real reputation problem, and it is worth being honest about it. For years the bay drew too many boats chasing the same pods, with crews racing to drop swimmers directly into the path of resting dolphins. That kind of pressure disrupts the animals' rest and can push them out of the bay entirely. The dolphins you meet here are wild, free-ranging animals, not a managed attraction, and the quality of your trip depends almost entirely on the behaviour of the crew you choose.",
-          "Mauritius introduced regulations under its Wildlife and National Parks framework to curb the worst of this: boats are meant to keep their distance, approach slowly and from the side rather than head-on, limit the number of vessels around a pod, and never encircle or chase the animals. As a swimmer, the right approach is to enter the water quietly, keep your distance, never touch or feed the dolphins, and let them choose whether to come to you. Avoid sunscreen that leaves an oily slick, and follow your guide's signals without insisting on getting closer. A good operator will pull you out and move on rather than crowd a pod, and that restraint is the clearest sign you have booked well."
-        ]
+          "Mauritius introduced regulations under its Wildlife and National Parks framework to curb the worst of this: boats are meant to keep their distance, approach slowly and from the side rather than head-on, limit the number of vessels around a pod, and never encircle or chase the animals. As a swimmer, the right approach is to enter the water quietly, keep your distance, never touch or feed the dolphins, and let them choose whether to come to you. Avoid sunscreen that leaves an oily slick, and follow your guide's signals without insisting on getting closer. A good operator will pull you out and move on rather than crowd a pod, and that restraint is the clearest sign you have booked well.",
+        ],
       },
       {
-        "heading": "What to Expect on the Trip",
-        "paragraphs": [
-          "A typical dolphin excursion is a half-day morning outing lasting around two to four hours. You will usually meet at a jetty in Tamarin or Black River before sunrise, head out in a speedboat or small catamaran, and cruise the bay until the crew spots a pod. When the moment is right, you slip in with a mask, snorkel and fins for short, repeated swims rather than one long session, because the dolphins are moving and you re-position the boat between encounters. Many trips then continue to a nearby reef or to the dramatic coastline at Le Morne for snorkelling and a swim before heading back.",
-          "Bring a rash guard or wetsuit top if you feel the cold, reef-safe sunscreen, a towel and a waterproof bag, and consider seasickness tablets if open water bothers you, as the swell can build once you leave the lee of the bay. Being a confident swimmer helps enormously, since you may be in deep, open water away from the boat. Manage expectations honestly: you might have a wonderful close encounter, or the dolphins might stay deep and you simply watch them from the surface. That uncertainty is the nature of wild-animal tourism, and any operator promising guaranteed in-water contact should be treated with suspicion. If you would rather build the morning into a wider west-coast day, our /activities pages list excursions that pair dolphin trips with Le Morne, Crystal Rock and the lagoon, and our /attractions guide covers the rest of the region worth your time."
-        ]
+        heading: 'What to Expect on the Trip',
+        paragraphs: [
+          'A typical dolphin excursion is a half-day morning outing lasting around two to four hours. You will usually meet at a jetty in Tamarin or Black River before sunrise, head out in a speedboat or small catamaran, and cruise the bay until the crew spots a pod. When the moment is right, you slip in with a mask, snorkel and fins for short, repeated swims rather than one long session, because the dolphins are moving and you re-position the boat between encounters. Many trips then continue to a nearby reef or to the dramatic coastline at Le Morne for snorkelling and a swim before heading back.',
+          'Bring a rash guard or wetsuit top if you feel the cold, reef-safe sunscreen, a towel and a waterproof bag, and consider seasickness tablets if open water bothers you, as the swell can build once you leave the lee of the bay. Being a confident swimmer helps enormously, since you may be in deep, open water away from the boat. Manage expectations honestly: you might have a wonderful close encounter, or the dolphins might stay deep and you simply watch them from the surface. That uncertainty is the nature of wild-animal tourism, and any operator promising guaranteed in-water contact should be treated with suspicion. If you would rather build the morning into a wider west-coast day, our /activities pages list excursions that pair dolphin trips with Le Morne, Crystal Rock and the lagoon, and our /attractions guide covers the rest of the region worth your time.',
+        ],
       },
       {
-        "heading": "Prices and How to Book Responsibly",
-        "paragraphs": [
-          "Costs vary with the boat and the group size. A place on a shared speedboat or small group trip typically runs from around 30 to 60 EUR per person, often including snorkelling gear, soft drinks and sometimes a light breakfast or barbecue on a longer catamaran day. A private boat charter for a family or small group will cost more, frequently in the region of 150 to 300 EUR or above depending on duration and how many people share the cost, but it buys you flexibility, fewer swimmers in the water and a crew working only to your pace.",
-          "When you book, prioritise the operator's conduct over the lowest headline price. Ask whether they follow the marine wildlife rules, how many people they put in the water at once, and whether they will back off if the dolphins are unsettled. Licensed, locally rooted operators who plan the early start and treat the pods with care will give you both a better experience and a clearer conscience. To weave a dolphin morning into a sensible route across the island, our free /ai-road-trip-planner can sketch a day-by-day itinerary around the west coast, and if you are arriving the night before from the south-east, a pre-arranged /airport-transfers booking means you are rested and ready for that 6am departure instead of scrambling for a taxi."
-        ]
+        heading: 'Prices and How to Book Responsibly',
+        paragraphs: [
+          'Costs vary with the boat and the group size. A place on a shared speedboat or small group trip typically runs from around 30 to 60 EUR per person, often including snorkelling gear, soft drinks and sometimes a light breakfast or barbecue on a longer catamaran day. A private boat charter for a family or small group will cost more, frequently in the region of 150 to 300 EUR or above depending on duration and how many people share the cost, but it buys you flexibility, fewer swimmers in the water and a crew working only to your pace.',
+          "When you book, prioritise the operator's conduct over the lowest headline price. Ask whether they follow the marine wildlife rules, how many people they put in the water at once, and whether they will back off if the dolphins are unsettled. Licensed, locally rooted operators who plan the early start and treat the pods with care will give you both a better experience and a clearer conscience. To weave a dolphin morning into a sensible route across the island, our free /ai-road-trip-planner can sketch a day-by-day itinerary around the west coast, and if you are arriving the night before from the south-east, a pre-arranged /airport-transfers booking means you are rested and ready for that 6am departure instead of scrambling for a taxi.",
+        ],
       },
       {
-        "heading": "Is Swimming With Dolphins in Mauritius Worth It?",
-        "paragraphs": [
+        heading: 'Is Swimming With Dolphins in Mauritius Worth It?',
+        paragraphs: [
           "For many visitors, watching wild spinner dolphins glide beneath them in clear Indian Ocean water is a highlight of the whole trip, and done responsibly it is a low-impact way to experience the island's marine life. The key word is responsibly: the difference between a memory you treasure and a stressful scramble of boats comes down to choosing the right crew, going at dawn, and accepting that these are wild animals on their own schedule.",
-          "If the idea of open-water swimming or early starts does not appeal, you can still enjoy the dolphins by staying on the boat and watching from the surface, which is gentler on the animals anyway. Either way, the west coast around Tamarin, Black River, Le Morne and Flic-en-Flac rewards a slow morning and an early alarm. Go with realistic expectations and a conscientious operator, and Mauritius offers one of the more accessible wild-dolphin encounters anywhere in the world."
-        ]
-      }
+          'If the idea of open-water swimming or early starts does not appeal, you can still enjoy the dolphins by staying on the boat and watching from the surface, which is gentler on the animals anyway. Either way, the west coast around Tamarin, Black River, Le Morne and Flic-en-Flac rewards a slow morning and an early alarm. Go with realistic expectations and a conscientious operator, and Mauritius offers one of the more accessible wild-dolphin encounters anywhere in the world.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Is it legal to swim with dolphins in Mauritius?",
-        "a": "Yes. Swimming with wild dolphins is legal off the west coast, but it is governed by marine wildlife rules that limit how boats approach the pods and how close swimmers may get. Choose a licensed operator who keeps a respectful distance, does not chase the animals, and never encircles a resting pod."
+        q: 'Is it legal to swim with dolphins in Mauritius?',
+        a: 'Yes. Swimming with wild dolphins is legal off the west coast, but it is governed by marine wildlife rules that limit how boats approach the pods and how close swimmers may get. Choose a licensed operator who keeps a respectful distance, does not chase the animals, and never encircles a resting pod.',
       },
       {
-        "q": "What is the best time of day to see dolphins?",
-        "a": "Early morning, between roughly 6 and 8am. Spinner dolphins come into Tamarin Bay to rest at dawn and move back out to sea as the day warms and boat traffic builds, so the first departure of the day offers the calmest water, the fewest boats and the best chance of an encounter."
+        q: 'What is the best time of day to see dolphins?',
+        a: 'Early morning, between roughly 6 and 8am. Spinner dolphins come into Tamarin Bay to rest at dawn and move back out to sea as the day warms and boat traffic builds, so the first departure of the day offers the calmest water, the fewest boats and the best chance of an encounter.',
       },
       {
-        "q": "How much does a dolphin trip cost in Mauritius?",
-        "a": "A place on a shared group trip usually costs around 30 to 60 EUR per person, often including snorkelling gear and refreshments. A private boat charter for a family or small group typically ranges from about 150 to 300 EUR or more, depending on the duration and group size."
+        q: 'How much does a dolphin trip cost in Mauritius?',
+        a: 'A place on a shared group trip usually costs around 30 to 60 EUR per person, often including snorkelling gear and refreshments. A private boat charter for a family or small group typically ranges from about 150 to 300 EUR or more, depending on the duration and group size.',
       },
       {
-        "q": "Are dolphin sightings guaranteed?",
-        "a": "No. These are wild, free-ranging dolphins, not a captive attraction, so encounters cannot be guaranteed. Sightings off Tamarin are common but the animals set their own schedule, and any operator promising guaranteed in-water contact should be treated with caution."
-      }
-    ]
+        q: 'Are dolphin sightings guaranteed?',
+        a: 'No. These are wild, free-ranging dolphins, not a captive attraction, so encounters cannot be guaranteed. Sightings off Tamarin are common but the animals set their own schedule, and any operator promising guaranteed in-water contact should be treated with caution.',
+      },
+    ],
   },
   {
-    "slug": "ile-aux-cerfs-guide",
-    "title": "Île aux Cerfs: The Complete Visitor Guide",
-    "metaTitle": "Île aux Cerfs Guide: How to Visit, Costs & Tips",
-    "metaDescription": "Planning Île aux Cerfs in Mauritius? Compare catamaran vs speedboat, see realistic costs, what to do, the best time to go, and honest local tips for your day trip.",
-    "excerpt": "A practical, honest guide to visiting Île aux Cerfs in Mauritius: how to get there, catamaran vs speedboat, realistic costs, what to do, and timing tips.",
-    "readMins": 6,
-    "sections": [
+    slug: 'ile-aux-cerfs-guide',
+    title: 'Île aux Cerfs: The Complete Visitor Guide',
+    metaTitle: 'Île aux Cerfs Guide: How to Visit, Costs & Tips',
+    metaDescription:
+      'Planning Île aux Cerfs in Mauritius? Compare catamaran vs speedboat, see realistic costs, what to do, the best time to go, and honest local tips for your day trip.',
+    excerpt:
+      'A practical, honest guide to visiting Île aux Cerfs in Mauritius: how to get there, catamaran vs speedboat, realistic costs, what to do, and timing tips.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "Why Île aux Cerfs Is on Every Mauritius Itinerary",
-        "paragraphs": [
+        heading: 'Why Île aux Cerfs Is on Every Mauritius Itinerary',
+        paragraphs: [
           "Île aux Cerfs is a small island lying just off the east coast of Mauritius, inside the sheltered turquoise lagoon of Trou d'Eau Douce in the Flacq district. Despite the name, which translates from French as Island of Deer, you will not find herds roaming the beaches today. What you will find is roughly 100 hectares of casuarina trees, powder-white sand and some of the most photographed shallow water in the Indian Ocean. It is the kind of place that ends up on postcards, screensavers and most first-time visitors' must-do lists.",
           "The island's appeal is simple. The lagoon here is unusually calm and shallow, protected by an outer reef, so the water stays warm and glassy and shades from clear to deep aquamarine. That makes it ideal for swimming, wading and lazy beach time even if you are not a confident swimmer. Because it sits a short hop offshore, getting there is part of the experience: you cross the lagoon by boat rather than driving up to it, which gives the day a proper excursion feel.",
-          "It is worth being honest, though. Île aux Cerfs is popular, and in high season the main public beach gets busy with day-trippers from across the island. If you arrive expecting a deserted desert island you may be surprised. Go in with the right expectations, time your visit well, and it remains one of the genuine highlights of a Mauritius trip."
-        ]
+          'It is worth being honest, though. Île aux Cerfs is popular, and in high season the main public beach gets busy with day-trippers from across the island. If you arrive expecting a deserted desert island you may be surprised. Go in with the right expectations, time your visit well, and it remains one of the genuine highlights of a Mauritius trip.',
+        ],
       },
       {
-        "heading": "How to Get to Île aux Cerfs",
-        "paragraphs": [
+        heading: 'How to Get to Île aux Cerfs',
+        paragraphs: [
           "Almost everyone reaches Île aux Cerfs from the village of Trou d'Eau Douce on the east coast, where boats depart across the lagoon. The crossing itself is short, usually around ten to fifteen minutes by speedboat, so the island is far closer than its remote look suggests. Some excursions also leave from points slightly further along the coast, but Trou d'Eau Douce is the classic and most convenient jetty.",
           "If you are staying in the east, near Belle Mare, Palmar or Trou d'Eau Douce itself, you are only a short drive from the departure points and an early start is easy. From the north (Grand Baie, Pereybere), the west (Flic en Flac, Tamarin) or the central plateau towns, plan on roughly an hour to ninety minutes of road travel each way, so a full-day excursion makes more sense than a quick dash. Many visitors pair the boat trip with hotel pickup so they do not have to drive and park.",
-          "Reliable transport makes the day far smoother. If you are arriving in Mauritius and want to start exploring straight away, you can arrange an airport transfer through Belle Mare Tours at /airport-transfers, and for help slotting Île aux Cerfs into a wider route around the island, the free planning tool at /ai-road-trip-planner can map out a sensible day-by-day itinerary based on where you are staying."
-        ]
+          'Reliable transport makes the day far smoother. If you are arriving in Mauritius and want to start exploring straight away, you can arrange an airport transfer through Belle Mare Tours at /airport-transfers, and for help slotting Île aux Cerfs into a wider route around the island, the free planning tool at /ai-road-trip-planner can map out a sensible day-by-day itinerary based on where you are staying.',
+        ],
       },
       {
-        "heading": "Catamaran vs Speedboat: Which Trip Suits You",
-        "paragraphs": [
-          "The two main ways to visit are by catamaran or by speedboat, and they offer quite different days out. A catamaran cruise is the relaxed, social option. You sail slowly across the lagoon, usually with a barbecue lunch cooked on board, drinks included, time to snorkel, and several unhurried hours moored near the island. Expect to pay somewhere in the region of 55 to 85 EUR per adult depending on the operator, group size and what is included. It is the better choice if your priority is unwinding, sunbathing on the netting at the bow, and a leisurely full day on the water.",
-          "A speedboat trip is faster, more flexible and more activity-focused. These typically zip you across to the island, stop at the nearby Grande Rivière Sud-Est waterfall, where the river meets the sea, and often include snorkelling over the reef. Private speedboat charters can be arranged for a half or full day and are ideal for families or small groups who want to set their own pace; shared speedboat tours are cheaper, often around 40 to 70 EUR per person. Speedboats also reach the island quicker, which matters if you want to land early before the crowds.",
-          "Both options can usually be booked as part of a guided excursion. You can browse organised Île aux Cerfs trips and other day tours through Belle Mare Tours at /activities, which saves the hassle of negotiating prices at the jetty on the day. As a rule of thumb: choose a catamaran for a slow, indulgent day, and a speedboat if you want the waterfall, snorkelling and more island time."
-        ]
+        heading: 'Catamaran vs Speedboat: Which Trip Suits You',
+        paragraphs: [
+          'The two main ways to visit are by catamaran or by speedboat, and they offer quite different days out. A catamaran cruise is the relaxed, social option. You sail slowly across the lagoon, usually with a barbecue lunch cooked on board, drinks included, time to snorkel, and several unhurried hours moored near the island. Expect to pay somewhere in the region of 55 to 85 EUR per adult depending on the operator, group size and what is included. It is the better choice if your priority is unwinding, sunbathing on the netting at the bow, and a leisurely full day on the water.',
+          'A speedboat trip is faster, more flexible and more activity-focused. These typically zip you across to the island, stop at the nearby Grande Rivière Sud-Est waterfall, where the river meets the sea, and often include snorkelling over the reef. Private speedboat charters can be arranged for a half or full day and are ideal for families or small groups who want to set their own pace; shared speedboat tours are cheaper, often around 40 to 70 EUR per person. Speedboats also reach the island quicker, which matters if you want to land early before the crowds.',
+          'Both options can usually be booked as part of a guided excursion. You can browse organised Île aux Cerfs trips and other day tours through Belle Mare Tours at /activities, which saves the hassle of negotiating prices at the jetty on the day. As a rule of thumb: choose a catamaran for a slow, indulgent day, and a speedboat if you want the waterfall, snorkelling and more island time.',
+        ],
       },
       {
-        "heading": "What to Do Once You Are There",
-        "paragraphs": [
-          "The headline activity is simply the beach. The main public beach has the famous shallow turquoise water, soft sand and shaded spots under the casuarinas, and for many visitors a few hours of swimming and sunbathing is the whole point. If you want more space, walk away from the boat drop-off area; the island is larger than it first appears and quieter stretches of sand open up as you explore on foot.",
-          "Beyond the beach, Île aux Cerfs is known for water sports. You can try parasailing, tube rides, banana boats, glass-bottom boat tours over the coral, and snorkelling around the reef. There is also an 18-hole championship golf course set across the island, designed by Bernhard Langer, for travellers who want to combine a round with the scenery. Most activities are paid extras on top of your boat trip, so carry some cash if you think you might be tempted.",
-          "A popular add-on, especially with speedboat trips, is the stop at Grande Rivière Sud-Est waterfall on the mainland coast nearby, where you can watch the cascade tumble toward the sea and sometimes spot monkeys on the rocks. For ideas on combining the island with other east-coast sights, the things-to-do overview at /attractions is a useful starting point when you are building out the rest of your day."
-        ]
+        heading: 'What to Do Once You Are There',
+        paragraphs: [
+          'The headline activity is simply the beach. The main public beach has the famous shallow turquoise water, soft sand and shaded spots under the casuarinas, and for many visitors a few hours of swimming and sunbathing is the whole point. If you want more space, walk away from the boat drop-off area; the island is larger than it first appears and quieter stretches of sand open up as you explore on foot.',
+          'Beyond the beach, Île aux Cerfs is known for water sports. You can try parasailing, tube rides, banana boats, glass-bottom boat tours over the coral, and snorkelling around the reef. There is also an 18-hole championship golf course set across the island, designed by Bernhard Langer, for travellers who want to combine a round with the scenery. Most activities are paid extras on top of your boat trip, so carry some cash if you think you might be tempted.',
+          'A popular add-on, especially with speedboat trips, is the stop at Grande Rivière Sud-Est waterfall on the mainland coast nearby, where you can watch the cascade tumble toward the sea and sometimes spot monkeys on the rocks. For ideas on combining the island with other east-coast sights, the things-to-do overview at /attractions is a useful starting point when you are building out the rest of your day.',
+        ],
       },
       {
-        "heading": "Costs, Timing and What to Bring",
-        "paragraphs": [
+        heading: 'Costs, Timing and What to Bring',
+        paragraphs: [
           "Budget realistically. A shared boat excursion to the island generally falls between roughly 40 and 85 EUR per adult depending on whether it is a basic speedboat transfer or a full catamaran cruise with lunch and drinks. Children's rates are usually lower. On top of that, factor in optional water sports, food and drinks bought on the island, and tips for crew. Booking a complete excursion in advance usually works out clearer and often cheaper than arranging everything piecemeal at the jetty.",
-          "Timing matters more than people expect. Mauritius has a warm summer from November to April and a cooler, drier winter from May to October. The east coast can be breezier than the sheltered north and west, particularly in the windier winter months, which occasionally affects boat departures and sea conditions. For the calmest water and the emptiest beach, aim to arrive early in the morning, ideally on one of the first boats, and consider visiting midweek rather than at the weekend.",
-          "Pack for a full day in strong sun: reef-safe sunscreen, a hat, sunglasses, a rash vest if you burn easily, and plenty of water. Bring cash in Mauritian rupees for activities and refreshments, a dry bag for valuables on the boat, and water shoes if you have sensitive feet, as some areas have coral fragments. Shade exists but fills up fast, so a small beach towel or sarong to claim a spot helps."
-        ]
+          'Timing matters more than people expect. Mauritius has a warm summer from November to April and a cooler, drier winter from May to October. The east coast can be breezier than the sheltered north and west, particularly in the windier winter months, which occasionally affects boat departures and sea conditions. For the calmest water and the emptiest beach, aim to arrive early in the morning, ideally on one of the first boats, and consider visiting midweek rather than at the weekend.',
+          'Pack for a full day in strong sun: reef-safe sunscreen, a hat, sunglasses, a rash vest if you burn easily, and plenty of water. Bring cash in Mauritian rupees for activities and refreshments, a dry bag for valuables on the boat, and water shoes if you have sensitive feet, as some areas have coral fragments. Shade exists but fills up fast, so a small beach towel or sarong to claim a spot helps.',
+        ],
       },
       {
-        "heading": "Making the Most of Your Day Trip",
-        "paragraphs": [
-          "The single best piece of advice is to go early and leave before the afternoon rush builds. Boats from the resorts and bigger operators tend to arrive mid-morning, so an early landing buys you an hour or two of relative calm on the prettiest part of the beach. By early afternoon the main beach is at its busiest, which is also a fine time to head off on a water sport or to the waterfall while the sand is crowded.",
-          "Decide in advance what kind of day you want and book accordingly. If you crave a slow, scenic cruise with food laid on, the catamaran is hard to beat. If you would rather pack in the waterfall, snorkelling and as much island time as possible, choose a speedboat, and consider a private charter if you are a family or group who values flexibility over saving a few euros. Either way, a single well-chosen excursion usually beats trying to assemble the day yourself on arrival.",
-          "Finally, treat Île aux Cerfs as one chapter of the east coast rather than the entire story. The nearby beaches of Belle Mare and Palmar, the Grande Rivière Sud-Est waterfall and the laid-back village of Trou d'Eau Douce all pair naturally with an island day. A little planning around tides, weather and timing turns a good outing into the kind of day you remember for the rest of the trip."
-        ]
-      }
+        heading: 'Making the Most of Your Day Trip',
+        paragraphs: [
+          'The single best piece of advice is to go early and leave before the afternoon rush builds. Boats from the resorts and bigger operators tend to arrive mid-morning, so an early landing buys you an hour or two of relative calm on the prettiest part of the beach. By early afternoon the main beach is at its busiest, which is also a fine time to head off on a water sport or to the waterfall while the sand is crowded.',
+          'Decide in advance what kind of day you want and book accordingly. If you crave a slow, scenic cruise with food laid on, the catamaran is hard to beat. If you would rather pack in the waterfall, snorkelling and as much island time as possible, choose a speedboat, and consider a private charter if you are a family or group who values flexibility over saving a few euros. Either way, a single well-chosen excursion usually beats trying to assemble the day yourself on arrival.',
+          "Finally, treat Île aux Cerfs as one chapter of the east coast rather than the entire story. The nearby beaches of Belle Mare and Palmar, the Grande Rivière Sud-Est waterfall and the laid-back village of Trou d'Eau Douce all pair naturally with an island day. A little planning around tides, weather and timing turns a good outing into the kind of day you remember for the rest of the trip.",
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long does it take to get to Île aux Cerfs?",
-        "a": "The boat crossing from Trou d'Eau Douce on the east coast takes only about ten to fifteen minutes by speedboat. The bigger variable is road travel to the jetty: short from the east coast, but roughly one to one and a half hours from the north, west or central Mauritius."
+        q: 'How long does it take to get to Île aux Cerfs?',
+        a: "The boat crossing from Trou d'Eau Douce on the east coast takes only about ten to fifteen minutes by speedboat. The bigger variable is road travel to the jetty: short from the east coast, but roughly one to one and a half hours from the north, west or central Mauritius.",
       },
       {
-        "q": "Is a catamaran or a speedboat better for visiting Île aux Cerfs?",
-        "a": "A catamaran suits a relaxed full day with an onboard barbecue lunch, drinks and slow sailing, typically around 55 to 85 EUR per adult. A speedboat is faster and more activity-focused, often including the Grande Rivière Sud-Est waterfall and snorkelling, and usually costs less. Choose based on whether you want to unwind or to do more."
+        q: 'Is a catamaran or a speedboat better for visiting Île aux Cerfs?',
+        a: 'A catamaran suits a relaxed full day with an onboard barbecue lunch, drinks and slow sailing, typically around 55 to 85 EUR per adult. A speedboat is faster and more activity-focused, often including the Grande Rivière Sud-Est waterfall and snorkelling, and usually costs less. Choose based on whether you want to unwind or to do more.',
       },
       {
-        "q": "When is the best time of year and day to visit?",
-        "a": "Mauritius is warm year-round, with summer from November to April and a cooler, drier, sometimes breezier winter from May to October. For the calmest water and quietest beach, arrive on one of the first morning boats and, if you can, visit midweek rather than at the weekend."
+        q: 'When is the best time of year and day to visit?',
+        a: 'Mauritius is warm year-round, with summer from November to April and a cooler, drier, sometimes breezier winter from May to October. For the calmest water and quietest beach, arrive on one of the first morning boats and, if you can, visit midweek rather than at the weekend.',
       },
       {
-        "q": "What should I bring for a day on the island?",
-        "a": "Bring reef-safe sunscreen, a hat, sunglasses, plenty of water and cash in Mauritian rupees for water sports and refreshments. A dry bag for the boat, a beach towel to claim shade and water shoes for coral-strewn areas all make the day more comfortable."
-      }
-    ]
+        q: 'What should I bring for a day on the island?',
+        a: 'Bring reef-safe sunscreen, a hat, sunglasses, plenty of water and cash in Mauritian rupees for water sports and refreshments. A dry bag for the boat, a beach towel to claim shade and water shoes for coral-strewn areas all make the day more comfortable.',
+      },
+    ],
   },
   {
-    "slug": "mauritius-on-a-budget",
-    "title": "Mauritius on a Budget: How to Save on Tours & Transfers",
-    "metaTitle": "Mauritius on a Budget: Save on Tours & Transfers",
-    "metaDescription": "Travel Mauritius for less. Learn how booking direct beats hotel markups, when to choose shared over private, and smart ways to cut tour and transfer costs.",
-    "excerpt": "A practical guide to spending less in Mauritius: skip hotel markups, book transfers and tours direct, choose the right vehicle, and time your trip to the off-season.",
-    "readMins": 6,
-    "sections": [
+    slug: 'mauritius-on-a-budget',
+    title: 'Mauritius on a Budget: How to Save on Tours & Transfers',
+    metaTitle: 'Mauritius on a Budget: Save on Tours & Transfers',
+    metaDescription:
+      'Travel Mauritius for less. Learn how booking direct beats hotel markups, when to choose shared over private, and smart ways to cut tour and transfer costs.',
+    excerpt:
+      'A practical guide to spending less in Mauritius: skip hotel markups, book transfers and tours direct, choose the right vehicle, and time your trip to the off-season.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "Mauritius Is Not As Expensive As the Resorts Make It Look",
-        "paragraphs": [
-          "Mauritius has a reputation as a honeymoon-and-five-star destination, and the all-inclusive resorts on the north and west coasts do nothing to dispel it. But the island that locals actually live on runs on far more reasonable numbers. A roadside dholl puri costs around 25 to 40 rupees, a seat on a public bus from Port Louis to Grand Baie is well under a euro, and a fresh pineapple from a market stall in Flacq is pocket change. The gap between the resort version of Mauritius and the real one is where almost all your savings hide.",
-          "The two biggest line items most visitors overpay on are tours and transfers. These are also the two easiest to fix, because the markup is almost entirely a middleman charge rather than a real cost. Once you understand who is taking a cut and why, you can keep that money in your pocket without sacrificing anything except a glossy brochure. This guide walks through exactly where the value leaks out and how to plug it."
-        ]
+        heading: 'Mauritius Is Not As Expensive As the Resorts Make It Look',
+        paragraphs: [
+          'Mauritius has a reputation as a honeymoon-and-five-star destination, and the all-inclusive resorts on the north and west coasts do nothing to dispel it. But the island that locals actually live on runs on far more reasonable numbers. A roadside dholl puri costs around 25 to 40 rupees, a seat on a public bus from Port Louis to Grand Baie is well under a euro, and a fresh pineapple from a market stall in Flacq is pocket change. The gap between the resort version of Mauritius and the real one is where almost all your savings hide.',
+          'The two biggest line items most visitors overpay on are tours and transfers. These are also the two easiest to fix, because the markup is almost entirely a middleman charge rather than a real cost. Once you understand who is taking a cut and why, you can keep that money in your pocket without sacrificing anything except a glossy brochure. This guide walks through exactly where the value leaks out and how to plug it.',
+        ],
       },
       {
-        "heading": "Book Direct Instead of Through Your Hotel Concierge",
-        "paragraphs": [
+        heading: 'Book Direct Instead of Through Your Hotel Concierge',
+        paragraphs: [
           "When you ask a hotel concierge to arrange a catamaran cruise to Ile aux Cerfs or a day tour of the south, you are usually getting a third or fourth hand price. The hotel adds a commission on top of the agency that sits on top of the operator who actually owns the boat or the vehicle. It is not unusual for a concierge-booked excursion to land 30 to 50 percent above what the same operator charges directly. A South Wild tour that a local operator runs for roughly 45 to 55 euros per person can quietly become 75 euros or more once the resort's margin is baked in.",
-          "Booking direct with a licensed operator cuts those layers out. You deal with the company running the tour, you see the real price, and you can ask specific questions about pickup times, group size, and what is actually included. Browsing a transparent menu of tours and excursions on our /activities page or scanning the things-to-do options under /attractions gives you a genuine price baseline before anyone at a front desk quotes you a number. Even if you ultimately want the convenience of the concierge, knowing the direct price tells you exactly how much that convenience is costing you."
-        ]
+          'Booking direct with a licensed operator cuts those layers out. You deal with the company running the tour, you see the real price, and you can ask specific questions about pickup times, group size, and what is actually included. Browsing a transparent menu of tours and excursions on our /activities page or scanning the things-to-do options under /attractions gives you a genuine price baseline before anyone at a front desk quotes you a number. Even if you ultimately want the convenience of the concierge, knowing the direct price tells you exactly how much that convenience is costing you.',
+        ],
       },
       {
-        "heading": "Private vs Shared: Pick the Right One for the Job",
-        "paragraphs": [
-          "The instinct on a budget is to always choose shared, but the maths is more interesting than that. A shared seat-in-coach excursion makes sense when you are a solo traveller or a couple, because you only pay for two seats and the cost of the driver and fuel is split across a full minibus. For a popular trip like the Seven Coloured Earths at Chamarel or a catamaran day out, shared pricing per person is genuinely hard to beat.",
-          "Private flips in your favour the moment your group grows. A private car or van charged at a flat day rate, often somewhere around 60 to 90 euros for the vehicle depending on distance and duration, gets cheaper per head with every passenger you add. Four friends or a family of five splitting one private vehicle frequently pay less each than four shared seats would have cost, and they get door-to-door pickup, no waiting for other guests, and the freedom to linger at Black River Gorges or skip a stop entirely. The honest rule of thumb: one or two people lean shared, three or more start pricing out private and compare."
-        ]
+        heading: 'Private vs Shared: Pick the Right One for the Job',
+        paragraphs: [
+          'The instinct on a budget is to always choose shared, but the maths is more interesting than that. A shared seat-in-coach excursion makes sense when you are a solo traveller or a couple, because you only pay for two seats and the cost of the driver and fuel is split across a full minibus. For a popular trip like the Seven Coloured Earths at Chamarel or a catamaran day out, shared pricing per person is genuinely hard to beat.',
+          'Private flips in your favour the moment your group grows. A private car or van charged at a flat day rate, often somewhere around 60 to 90 euros for the vehicle depending on distance and duration, gets cheaper per head with every passenger you add. Four friends or a family of five splitting one private vehicle frequently pay less each than four shared seats would have cost, and they get door-to-door pickup, no waiting for other guests, and the freedom to linger at Black River Gorges or skip a stop entirely. The honest rule of thumb: one or two people lean shared, three or more start pricing out private and compare.',
+        ],
       },
       {
-        "heading": "Airport Transfers: Where the Easiest Savings Live",
-        "paragraphs": [
-          "Sir Seewoosagur Ramgoolam International Airport sits in the southeast near Plaine Magnien, and most resorts are an hour or more away in the north or on the west coast. That distance is exactly why airport transfers are such a common overpay. A hotel-arranged private transfer to Grand Baie or Flic en Flac can run 80 euros or more one way, while a pre-booked private transfer with an independent operator covering the same route typically lands in the region of 35 to 55 euros depending on distance and vehicle size.",
-          "The trap to avoid is arriving with nothing booked and negotiating with taxi touts at the arrivals exit after a long flight, which almost guarantees a tired-traveller premium. Pre-arranging a fixed-price meet-and-greet through a service like our /airport-transfers page locks in the rate, puts a named driver with a sign at the door, and removes the post-flight haggling entirely. If you are travelling extremely light and your hotel is genuinely close, the public bus network is astonishingly cheap, but for most arrivals a pre-booked private or shared transfer is the sweet spot of price and sanity."
-        ]
+        heading: 'Airport Transfers: Where the Easiest Savings Live',
+        paragraphs: [
+          'Sir Seewoosagur Ramgoolam International Airport sits in the southeast near Plaine Magnien, and most resorts are an hour or more away in the north or on the west coast. That distance is exactly why airport transfers are such a common overpay. A hotel-arranged private transfer to Grand Baie or Flic en Flac can run 80 euros or more one way, while a pre-booked private transfer with an independent operator covering the same route typically lands in the region of 35 to 55 euros depending on distance and vehicle size.',
+          'The trap to avoid is arriving with nothing booked and negotiating with taxi touts at the arrivals exit after a long flight, which almost guarantees a tired-traveller premium. Pre-arranging a fixed-price meet-and-greet through a service like our /airport-transfers page locks in the rate, puts a named driver with a sign at the door, and removes the post-flight haggling entirely. If you are travelling extremely light and your hotel is genuinely close, the public bus network is astonishingly cheap, but for most arrivals a pre-booked private or shared transfer is the sweet spot of price and sanity.',
+        ],
       },
       {
-        "heading": "Time Your Trip and Your Tours to the Quiet Season",
-        "paragraphs": [
-          "Mauritius has two broad seasons. The summer runs roughly November to April and is hot, humid, and the window when the occasional cyclone passes. The winter, May to October, is cooler, drier, and far more comfortable for hiking and full-day touring. Peak demand and peak pricing cluster around the European winter holidays in December and January and the dry-season sweet spot of July to September. If your dates are flexible, the shoulder periods of May, June, and October often deliver excellent weather at noticeably softer rates on both accommodation and excursions.",
-          "Tour timing matters within the day too. Many operators run the same itinerary in the morning and afternoon, and morning departures to places like Ile aux Cerfs or the Chamarel waterfall mean cooler temperatures, calmer seas, and thinner crowds. Midweek tends to be quieter and occasionally cheaper than weekends, when locals also head to the beaches and viewpoints. Bundling several stops into one well-planned day, rather than booking separate half-day outings, spreads the fixed transport cost across more sights and squeezes more value from each euro."
-        ]
+        heading: 'Time Your Trip and Your Tours to the Quiet Season',
+        paragraphs: [
+          'Mauritius has two broad seasons. The summer runs roughly November to April and is hot, humid, and the window when the occasional cyclone passes. The winter, May to October, is cooler, drier, and far more comfortable for hiking and full-day touring. Peak demand and peak pricing cluster around the European winter holidays in December and January and the dry-season sweet spot of July to September. If your dates are flexible, the shoulder periods of May, June, and October often deliver excellent weather at noticeably softer rates on both accommodation and excursions.',
+          'Tour timing matters within the day too. Many operators run the same itinerary in the morning and afternoon, and morning departures to places like Ile aux Cerfs or the Chamarel waterfall mean cooler temperatures, calmer seas, and thinner crowds. Midweek tends to be quieter and occasionally cheaper than weekends, when locals also head to the beaches and viewpoints. Bundling several stops into one well-planned day, rather than booking separate half-day outings, spreads the fixed transport cost across more sights and squeezes more value from each euro.',
+        ],
       },
       {
-        "heading": "Small Habits That Quietly Cut the Bill",
-        "paragraphs": [
-          "Pay in rupees, not euros, wherever you have the choice. Operators and shops that quote in euros usually bake in a generous exchange buffer, so withdrawing rupees from an ATM and paying in local currency is consistently cheaper. Carry some cash for markets, street food, and small tips, since card minimums and surcharges crop up at smaller vendors. A loaded SIM or eSIM from Emtel or my.t costs very little and lets you confirm pickups and prices on the fly rather than relying on patchy hotel wifi.",
-          "Mix paid excursions with the island's many free pleasures so your spend goes where it counts. The beaches at Belle Mare, Mont Choisy, and Flic en Flac are public and cost nothing, the botanical garden at Pamplemousses is inexpensive, and a wander through the Port Louis central market is free entertainment. To stitch a sensible itinerary together without overbooking, our free /ai-road-trip-planner can sketch a day-by-day route around your dates and interests, so you only pay for the tours that genuinely earn their place."
-        ]
+        heading: 'Small Habits That Quietly Cut the Bill',
+        paragraphs: [
+          'Pay in rupees, not euros, wherever you have the choice. Operators and shops that quote in euros usually bake in a generous exchange buffer, so withdrawing rupees from an ATM and paying in local currency is consistently cheaper. Carry some cash for markets, street food, and small tips, since card minimums and surcharges crop up at smaller vendors. A loaded SIM or eSIM from Emtel or my.t costs very little and lets you confirm pickups and prices on the fly rather than relying on patchy hotel wifi.',
+          "Mix paid excursions with the island's many free pleasures so your spend goes where it counts. The beaches at Belle Mare, Mont Choisy, and Flic en Flac are public and cost nothing, the botanical garden at Pamplemousses is inexpensive, and a wander through the Port Louis central market is free entertainment. To stitch a sensible itinerary together without overbooking, our free /ai-road-trip-planner can sketch a day-by-day route around your dates and interests, so you only pay for the tours that genuinely earn their place.",
+        ],
       },
       {
-        "heading": "Putting It All Together",
-        "paragraphs": [
-          "Saving money in Mauritius is less about cutting corners and more about removing middlemen and matching the service to your group. Book your transfers and tours direct with a licensed operator, choose shared when you are one or two people and private when you are three or more, lock in your airport ride before you fly, and lean toward the quieter shoulder months when you can. None of these moves makes the trip worse. Most of them make it smoother while leaving more in your budget for a sunset catamaran or a second day on the water.",
-          "The single most effective habit is simply checking the direct price before you accept any quote. Once you have a baseline from a transparent operator menu, every other decision becomes easy, because you can see exactly what each layer of convenience is costing you and decide whether it is worth it."
-        ]
-      }
+        heading: 'Putting It All Together',
+        paragraphs: [
+          'Saving money in Mauritius is less about cutting corners and more about removing middlemen and matching the service to your group. Book your transfers and tours direct with a licensed operator, choose shared when you are one or two people and private when you are three or more, lock in your airport ride before you fly, and lean toward the quieter shoulder months when you can. None of these moves makes the trip worse. Most of them make it smoother while leaving more in your budget for a sunset catamaran or a second day on the water.',
+          'The single most effective habit is simply checking the direct price before you accept any quote. Once you have a baseline from a transparent operator menu, every other decision becomes easy, because you can see exactly what each layer of convenience is costing you and decide whether it is worth it.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Is it cheaper to book tours directly or through my hotel in Mauritius?",
-        "a": "Booking direct with a licensed operator is almost always cheaper. Hotel concierges add a commission on top of the agency and operator, which can push prices 30 to 50 percent higher. Checking a direct operator's tour menu first gives you a true price baseline before you accept any quote."
+        q: 'Is it cheaper to book tours directly or through my hotel in Mauritius?',
+        a: "Booking direct with a licensed operator is almost always cheaper. Hotel concierges add a commission on top of the agency and operator, which can push prices 30 to 50 percent higher. Checking a direct operator's tour menu first gives you a true price baseline before you accept any quote.",
       },
       {
-        "q": "Should I choose a private or shared transfer to save money?",
-        "a": "It depends on group size. For one or two people, shared seats are cheapest because the cost is split across a full vehicle. For three or more, a flat-rate private car or van usually costs less per person and adds door-to-door convenience with no waiting for other passengers."
+        q: 'Should I choose a private or shared transfer to save money?',
+        a: 'It depends on group size. For one or two people, shared seats are cheapest because the cost is split across a full vehicle. For three or more, a flat-rate private car or van usually costs less per person and adds door-to-door convenience with no waiting for other passengers.',
       },
       {
-        "q": "How much should an airport transfer cost in Mauritius?",
-        "a": "A pre-booked private transfer from the airport near Plaine Magnien to the north or west coast typically runs around 35 to 55 euros depending on distance and vehicle size, often well below hotel-arranged rates. Booking a fixed price in advance avoids paying a premium to taxi touts on arrival."
+        q: 'How much should an airport transfer cost in Mauritius?',
+        a: 'A pre-booked private transfer from the airport near Plaine Magnien to the north or west coast typically runs around 35 to 55 euros depending on distance and vehicle size, often well below hotel-arranged rates. Booking a fixed price in advance avoids paying a premium to taxi touts on arrival.',
       },
       {
-        "q": "When is the cheapest time to visit Mauritius?",
-        "a": "The shoulder months of May, June, and October usually combine pleasant dry-season weather with softer prices on hotels and excursions. Peak demand falls around December and January and the July to September dry season, so flexible travellers save most by avoiding those windows."
-      }
-    ]
+        q: 'When is the cheapest time to visit Mauritius?',
+        a: 'The shoulder months of May, June, and October usually combine pleasant dry-season weather with softer prices on hotels and excursions. Peak demand falls around December and January and the July to September dry season, so flexible travellers save most by avoiding those windows.',
+      },
+    ],
   },
   {
-    "slug": "catamaran-cruises-mauritius",
-    "title": "Catamaran Cruises in Mauritius: Which One to Choose",
-    "metaTitle": "Catamaran Cruises in Mauritius: Which One to Choose",
-    "metaDescription": "Compare catamaran cruises in Mauritius: Ile aux Cerfs, the northern islands and the west coast. Routes, what to expect, realistic prices and how to book.",
-    "excerpt": "A practical guide to catamaran cruises in Mauritius, comparing Ile aux Cerfs, the northern islands and west-coast routes, with honest tips on prices, seasons and booking.",
-    "readMins": 6,
-    "sections": [
+    slug: 'catamaran-cruises-mauritius',
+    title: 'Catamaran Cruises in Mauritius: Which One to Choose',
+    metaTitle: 'Catamaran Cruises in Mauritius: Which One to Choose',
+    metaDescription:
+      'Compare catamaran cruises in Mauritius: Ile aux Cerfs, the northern islands and the west coast. Routes, what to expect, realistic prices and how to book.',
+    excerpt:
+      'A practical guide to catamaran cruises in Mauritius, comparing Ile aux Cerfs, the northern islands and west-coast routes, with honest tips on prices, seasons and booking.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "Why a Catamaran Cruise Is Worth It in Mauritius",
-        "paragraphs": [
-          "A catamaran day cruise is one of the few experiences in Mauritius that almost everyone enjoys, whatever their age or fitness level. The twin-hull design sits flat and stable on the water, so it handles the lagoon far more gently than a speedboat, and the wide front deck gives you space to sunbathe or shelter under the canopy. For most visitors it is the easiest way to reach the snorkelling spots, sandbanks and offshore islets that you simply cannot see from a beach lounger.",
-          "There is no single best cruise, because the island has three very different coastlines and each suits a different kind of day. The east is famous for the lagoon around Ile aux Cerfs, the north for a string of nature-reserve islands, and the west for calm waters, dolphins and sunset light. Knowing the differences before you book saves you a long, hot transfer to the wrong side of the island. If you are still mapping out your week, our /attractions and /destinations pages give a sense of which region your hotel sits closest to."
-        ]
+        heading: 'Why a Catamaran Cruise Is Worth It in Mauritius',
+        paragraphs: [
+          'A catamaran day cruise is one of the few experiences in Mauritius that almost everyone enjoys, whatever their age or fitness level. The twin-hull design sits flat and stable on the water, so it handles the lagoon far more gently than a speedboat, and the wide front deck gives you space to sunbathe or shelter under the canopy. For most visitors it is the easiest way to reach the snorkelling spots, sandbanks and offshore islets that you simply cannot see from a beach lounger.',
+          'There is no single best cruise, because the island has three very different coastlines and each suits a different kind of day. The east is famous for the lagoon around Ile aux Cerfs, the north for a string of nature-reserve islands, and the west for calm waters, dolphins and sunset light. Knowing the differences before you book saves you a long, hot transfer to the wrong side of the island. If you are still mapping out your week, our /attractions and /destinations pages give a sense of which region your hotel sits closest to.',
+        ],
       },
       {
-        "heading": "Ile aux Cerfs and the East Coast",
-        "paragraphs": [
+        heading: 'Ile aux Cerfs and the East Coast',
+        paragraphs: [
           "Ile aux Cerfs, off the east coast near Trou d'Eau Douce, is the most popular catamaran destination on the island, and for good reason. The lagoon here is shallow, turquoise and enormous, with white-sand beaches on the islet itself and a separate sandbank where the boat anchors for swimming. A typical full-day trip leaves around 9:30am, cruises across the lagoon with a stop for snorkelling, then anchors near the famous Grand River South East waterfall before mooring off Ile aux Cerfs for a barbecue lunch of grilled fish, chicken, sausages and salads, usually with beer, wine, soft drinks and local rum punch included.",
-          "Expect to pay roughly 55 to 85 EUR per adult for a shared full-day cruise with lunch, with children typically half price. The trade-off is that this is the busiest route: in peak months several catamarans share the same anchorage, so it feels social rather than secluded. If you want the lagoon at its quietest, ask for an early-departure boat. Because the east is a long drive from the west-coast and northern resorts, factor in transfer time and book your road transport in advance through /airport-transfers rather than scrambling for a taxi on the day."
-        ]
+          'Expect to pay roughly 55 to 85 EUR per adult for a shared full-day cruise with lunch, with children typically half price. The trade-off is that this is the busiest route: in peak months several catamarans share the same anchorage, so it feels social rather than secluded. If you want the lagoon at its quietest, ask for an early-departure boat. Because the east is a long drive from the west-coast and northern resorts, factor in transfer time and book your road transport in advance through /airport-transfers rather than scrambling for a taxi on the day.',
+        ],
       },
       {
-        "heading": "The Northern Islands: Gabriel, Coin de Mire and Flat Island",
-        "paragraphs": [
+        heading: 'The Northern Islands: Gabriel, Coin de Mire and Flat Island',
+        paragraphs: [
           "From the north coast, cruises head out to a cluster of small islands off Cap Malheureux: Ilot Gabriel, Coin de Mire (Gunner's Quoin), Flat Island (Ile Plate) and the rocky Round Island in the distance. These are protected nature reserves with some of the clearest water in Mauritius, and the snorkelling around Ilot Gabriel is genuinely excellent, with good coral and reef fish in calm conditions. Most full-day trips depart from Grand Baie or Cap Malheureux, anchor off Gabriel for swimming and a beach barbecue, and give you time ashore on the soft white sand.",
-          "Prices are similar to the east, broadly 60 to 90 EUR per adult including lunch and drinks. The northern crossing is more exposed than the sheltered east lagoon, so the sea can be choppier, especially in the windier winter months from May to October. If anyone in your group is prone to seasickness, choose a calm-weather day and sit near the centre of the boat. The upside is scenery: the dramatic silhouette of Coin de Mire and the open ocean make this the most photogenic of the three regions."
-        ]
+          'Prices are similar to the east, broadly 60 to 90 EUR per adult including lunch and drinks. The northern crossing is more exposed than the sheltered east lagoon, so the sea can be choppier, especially in the windier winter months from May to October. If anyone in your group is prone to seasickness, choose a calm-weather day and sit near the centre of the boat. The upside is scenery: the dramatic silhouette of Coin de Mire and the open ocean make this the most photogenic of the three regions.',
+        ],
       },
       {
-        "heading": "The West Coast: Dolphins, Benitiers and Sunset Cruises",
-        "paragraphs": [
-          "The west coast around Tamarin, Black River and La Gaulette offers a different rhythm. Mornings here are about dolphins: pods of spinner and bottlenose dolphins gather in Tamarin Bay, and early catamaran or speedboat trips let you swim near them, weather and regulations permitting. Many west-coast cruises continue south to Ile aux Benitiers, a long sandy islet near Le Morne, stopping at the Crystal Rock formation that rises straight out of the lagoon. The backdrop of Le Morne Brabant, a UNESCO World Heritage site, makes this one of the most beautiful stretches of water on the island.",
-          "The west is also the home of the sunset cruise. Shorter two to three hour evening trips, often with canapes, drinks and music, run from around 30 to 55 EUR per person, while full-day dolphin-and-Benitiers cruises with lunch sit closer to 55 to 80 EUR. Because the west coast is sheltered from the prevailing south-easterly wind, the water is frequently the calmest on the island, which makes it a sensible choice in the windy winter season. You can find west-coast boat trips and other excursions on our /activities page."
-        ]
+        heading: 'The West Coast: Dolphins, Benitiers and Sunset Cruises',
+        paragraphs: [
+          'The west coast around Tamarin, Black River and La Gaulette offers a different rhythm. Mornings here are about dolphins: pods of spinner and bottlenose dolphins gather in Tamarin Bay, and early catamaran or speedboat trips let you swim near them, weather and regulations permitting. Many west-coast cruises continue south to Ile aux Benitiers, a long sandy islet near Le Morne, stopping at the Crystal Rock formation that rises straight out of the lagoon. The backdrop of Le Morne Brabant, a UNESCO World Heritage site, makes this one of the most beautiful stretches of water on the island.',
+          'The west is also the home of the sunset cruise. Shorter two to three hour evening trips, often with canapes, drinks and music, run from around 30 to 55 EUR per person, while full-day dolphin-and-Benitiers cruises with lunch sit closer to 55 to 80 EUR. Because the west coast is sheltered from the prevailing south-easterly wind, the water is frequently the calmest on the island, which makes it a sensible choice in the windy winter season. You can find west-coast boat trips and other excursions on our /activities page.',
+        ],
       },
       {
-        "heading": "What to Expect on Board and What to Bring",
-        "paragraphs": [
-          "A standard shared catamaran carries anywhere from a dozen to forty guests with a crew of two or three. Snorkelling masks and fins are normally provided, the barbecue is cooked on board or on the beach, and drinks flow steadily through the day, so pace yourself in the heat. Cruises run rain or shine in most conditions, though operators will postpone or reroute if the sea is genuinely rough. Toilets on board are basic, and changing space is limited, so arrive ready for the water.",
-          "Bring reef-safe sunscreen, a hat, a light cover-up and a dry bag for your phone and valuables. The tropical sun is intense even on cloudy days, and the deck offers little shade once the canopy seats fill up. A waterproof phone pouch is worth its weight for photos at the snorkelling stops. If you would rather have the boat to yourselves for a birthday, proposal or family group, private charters are widely available and usually start from around 400 to 600 EUR for a half day, scaling up with boat size and catering."
-        ]
+        heading: 'What to Expect on Board and What to Bring',
+        paragraphs: [
+          'A standard shared catamaran carries anywhere from a dozen to forty guests with a crew of two or three. Snorkelling masks and fins are normally provided, the barbecue is cooked on board or on the beach, and drinks flow steadily through the day, so pace yourself in the heat. Cruises run rain or shine in most conditions, though operators will postpone or reroute if the sea is genuinely rough. Toilets on board are basic, and changing space is limited, so arrive ready for the water.',
+          'Bring reef-safe sunscreen, a hat, a light cover-up and a dry bag for your phone and valuables. The tropical sun is intense even on cloudy days, and the deck offers little shade once the canopy seats fill up. A waterproof phone pouch is worth its weight for photos at the snorkelling stops. If you would rather have the boat to yourselves for a birthday, proposal or family group, private charters are widely available and usually start from around 400 to 600 EUR for a half day, scaling up with boat size and catering.',
+        ],
       },
       {
-        "heading": "Seasons, Weather and the Best Time to Cruise",
-        "paragraphs": [
-          "Mauritius has two seasons, and they matter for cruising. The summer months from November to April are hotter and more humid, with warmer water and the calmest seas overall, but this is also the cyclone window, so an occasional trip is cancelled at short notice. The winter months from May to October are cooler, drier and breezier; the south-easterly trade winds can make the east and north choppier, while the sheltered west coast often stays calm. Whale and dolphin activity on the west is good much of the year.",
-          "Whatever the season, morning departures generally have the lightest wind and the best light for snorkelling, with the sea building through the afternoon. Book a day or two ahead in peak periods such as the European winter holidays and the local school holidays, when the popular Ile aux Cerfs boats fill quickly. If you are unsure how a cruise fits with the rest of your itinerary, our /ai-road-trip-planner can help you slot it onto a day that matches where you are staying and the weather forecast."
-        ]
+        heading: 'Seasons, Weather and the Best Time to Cruise',
+        paragraphs: [
+          'Mauritius has two seasons, and they matter for cruising. The summer months from November to April are hotter and more humid, with warmer water and the calmest seas overall, but this is also the cyclone window, so an occasional trip is cancelled at short notice. The winter months from May to October are cooler, drier and breezier; the south-easterly trade winds can make the east and north choppier, while the sheltered west coast often stays calm. Whale and dolphin activity on the west is good much of the year.',
+          'Whatever the season, morning departures generally have the lightest wind and the best light for snorkelling, with the sea building through the afternoon. Book a day or two ahead in peak periods such as the European winter holidays and the local school holidays, when the popular Ile aux Cerfs boats fill quickly. If you are unsure how a cruise fits with the rest of your itinerary, our /ai-road-trip-planner can help you slot it onto a day that matches where you are staying and the weather forecast.',
+        ],
       },
       {
-        "heading": "How to Book and What to Watch For",
-        "paragraphs": [
-          "The simplest way to book is to reserve directly with a licensed operator that confirms the boat, the route, the inclusions and the pickup arrangement in writing. Check exactly what the price covers: lunch, drinks, snorkelling gear, national-park or landing fees, and hotel transfers are sometimes extra. Confirm the group size too, since a shared cruise can mean anything from an intimate dozen to a packed forty, and ask whether departure is guaranteed or weather-dependent.",
-          "As a licensed Mauritius tour and transfer operator, Belle Mare Tours arranges catamaran cruises on all three coasts together with the road transfers that get you there on time, so you are not relying on a separate taxi the morning of your trip. Tell us your dates, your group size and where you are staying, and we will match you to the route that makes sense for your side of the island rather than the one that is simply easiest to sell. Combining the cruise with your /airport-transfers or a wider day tour usually works out cheaper and far less stressful than booking each piece separately."
-        ]
-      }
+        heading: 'How to Book and What to Watch For',
+        paragraphs: [
+          'The simplest way to book is to reserve directly with a licensed operator that confirms the boat, the route, the inclusions and the pickup arrangement in writing. Check exactly what the price covers: lunch, drinks, snorkelling gear, national-park or landing fees, and hotel transfers are sometimes extra. Confirm the group size too, since a shared cruise can mean anything from an intimate dozen to a packed forty, and ask whether departure is guaranteed or weather-dependent.',
+          'As a licensed Mauritius tour and transfer operator, Belle Mare Tours arranges catamaran cruises on all three coasts together with the road transfers that get you there on time, so you are not relying on a separate taxi the morning of your trip. Tell us your dates, your group size and where you are staying, and we will match you to the route that makes sense for your side of the island rather than the one that is simply easiest to sell. Combining the cruise with your /airport-transfers or a wider day tour usually works out cheaper and far less stressful than booking each piece separately.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Which catamaran cruise is best for first-time visitors to Mauritius?",
-        "a": "For a classic, easy day most first-timers choose the Ile aux Cerfs cruise on the east coast: shallow turquoise lagoon, a beach barbecue, the Grand River South East waterfall and gentle snorkelling. If you are staying in the north or west, the northern islands or a west-coast dolphin and Ile aux Benitiers cruise will save you a long transfer and is just as scenic."
+        q: 'Which catamaran cruise is best for first-time visitors to Mauritius?',
+        a: 'For a classic, easy day most first-timers choose the Ile aux Cerfs cruise on the east coast: shallow turquoise lagoon, a beach barbecue, the Grand River South East waterfall and gentle snorkelling. If you are staying in the north or west, the northern islands or a west-coast dolphin and Ile aux Benitiers cruise will save you a long transfer and is just as scenic.',
       },
       {
-        "q": "How much does a catamaran cruise in Mauritius cost?",
-        "a": "A shared full-day cruise with a barbecue lunch and drinks typically runs about 55 to 90 EUR per adult, with children often half price. Shorter sunset cruises start from around 30 to 55 EUR per person, and private charters generally begin near 400 to 600 EUR for a half day, depending on boat size and catering."
+        q: 'How much does a catamaran cruise in Mauritius cost?',
+        a: 'A shared full-day cruise with a barbecue lunch and drinks typically runs about 55 to 90 EUR per adult, with children often half price. Shorter sunset cruises start from around 30 to 55 EUR per person, and private charters generally begin near 400 to 600 EUR for a half day, depending on boat size and catering.',
       },
       {
-        "q": "Is the sea rough, and will I get seasick?",
-        "a": "Catamarans are stable and the sheltered east and west lagoons are usually calm, especially in the morning. The northern crossing and any open-ocean stretch can be choppier, particularly in the windy winter season from May to October. If you are prone to seasickness, pick a calm-weather day, sit near the centre of the boat and consider motion-sickness tablets beforehand."
+        q: 'Is the sea rough, and will I get seasick?',
+        a: 'Catamarans are stable and the sheltered east and west lagoons are usually calm, especially in the morning. The northern crossing and any open-ocean stretch can be choppier, particularly in the windy winter season from May to October. If you are prone to seasickness, pick a calm-weather day, sit near the centre of the boat and consider motion-sickness tablets beforehand.',
       },
       {
-        "q": "When is the best time of year for a catamaran cruise?",
-        "a": "Summer, from November to April, brings warmer water and the calmest seas, though it overlaps the cyclone season when a rare trip is cancelled. Winter, from May to October, is cooler and breezier, so the sheltered west coast is often the most reliable choice. Morning departures give the lightest wind and clearest water in any season."
-      }
-    ]
+        q: 'When is the best time of year for a catamaran cruise?',
+        a: 'Summer, from November to April, brings warmer water and the calmest seas, though it overlaps the cyclone season when a rare trip is cancelled. Winter, from May to October, is cooler and breezier, so the sheltered west coast is often the most reliable choice. Morning departures give the lightest wind and clearest water in any season.',
+      },
+    ],
   },
   {
-    "slug": "mauritius-with-kids",
-    "title": "Mauritius with Kids: A Family Travel Guide",
-    "metaTitle": "Mauritius with Kids: A Family Travel Guide",
-    "metaDescription": "Planning Mauritius with kids? Family beaches, Casela and La Vanille parks, safe activities and easy ways to get around, with real tips and EUR prices.",
-    "excerpt": "A practical, honest guide to visiting Mauritius with children: calm family beaches, Casela and La Vanille parks, safe activities and stress-free ways to get around the island.",
-    "readMins": 7,
-    "sections": [
+    slug: 'mauritius-with-kids',
+    title: 'Mauritius with Kids: A Family Travel Guide',
+    metaTitle: 'Mauritius with Kids: A Family Travel Guide',
+    metaDescription:
+      'Planning Mauritius with kids? Family beaches, Casela and La Vanille parks, safe activities and easy ways to get around, with real tips and EUR prices.',
+    excerpt:
+      'A practical, honest guide to visiting Mauritius with children: calm family beaches, Casela and La Vanille parks, safe activities and stress-free ways to get around the island.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "Why Mauritius Works So Well for Families",
-        "paragraphs": [
-          "Mauritius is one of those rare destinations that suits toddlers and teenagers without anyone feeling short-changed. A near-continuous coral reef rings the island, which means most of the coastline is fringed by shallow, warm lagoons rather than open surf. For parents, that calm water is the headline feature: small children can paddle and snorkel in waist-deep shallows where the biggest hazard is usually a curious sergeant-major fish.",
-          "The island is also reassuringly compact. You can drive from the north to the deep south in roughly two hours, so even if you base yourself in one resort, every major family attraction is within a manageable day trip. Add safe tap-friendly resorts, a strong culture of hospitality towards children, and good private clinics in Curepipe and Floreal, and the practical worries that shadow long-haul travel with kids tend to shrink quickly.",
-          "One thing to plan around is the seasons, which are flipped from Europe. Summer runs November to April and is hot, humid and the wettest stretch, with an outside chance of a cyclone in January or February. Winter, from May to October, is drier and breezier, with cooler evenings that many families find easier for sightseeing and for getting overtired children to sleep."
-        ]
+        heading: 'Why Mauritius Works So Well for Families',
+        paragraphs: [
+          'Mauritius is one of those rare destinations that suits toddlers and teenagers without anyone feeling short-changed. A near-continuous coral reef rings the island, which means most of the coastline is fringed by shallow, warm lagoons rather than open surf. For parents, that calm water is the headline feature: small children can paddle and snorkel in waist-deep shallows where the biggest hazard is usually a curious sergeant-major fish.',
+          'The island is also reassuringly compact. You can drive from the north to the deep south in roughly two hours, so even if you base yourself in one resort, every major family attraction is within a manageable day trip. Add safe tap-friendly resorts, a strong culture of hospitality towards children, and good private clinics in Curepipe and Floreal, and the practical worries that shadow long-haul travel with kids tend to shrink quickly.',
+          'One thing to plan around is the seasons, which are flipped from Europe. Summer runs November to April and is hot, humid and the wettest stretch, with an outside chance of a cyclone in January or February. Winter, from May to October, is drier and breezier, with cooler evenings that many families find easier for sightseeing and for getting overtired children to sleep.',
+        ],
       },
       {
-        "heading": "The Best Family Beaches",
-        "paragraphs": [
+        heading: 'The Best Family Beaches',
+        paragraphs: [
           "Not every beautiful beach is a good beach for young children, so it pays to choose by lagoon rather than by looks. On the east coast, Belle Mare offers around six kilometres of soft sand and a wide, shallow lagoon that is glassy in the mornings before the trade winds arrive. Just south, Blue Bay near Mahebourg is a marine park with a protected, shallow swimming area and some of the gentlest snorkelling on the island, ideal for a child's first time with a mask.",
-          "In the north and west, Mont Choisy and Trou aux Biches are long, gently shelving beaches with calm water, plenty of shade from casuarina trees and food stalls within easy reach, which matters when a snack-emergency strikes. Pereybere is small and sheltered with a sandy entry that suits toddlers. A useful local fact: all public beaches in Mauritius are free and open to everyone, so you are never locked out of the best stretches even if you are not staying at a beachfront resort.",
-          "Two honest cautions. The east and southeast coasts can get windy from June to September, so on blustery days simply switch to the sheltered northwest. And always look for the reef pass markers and any flag systems; the lagoons are calm, but the gaps in the reef can carry strong currents, so keep children well inside the swimming zones."
-        ]
+          'In the north and west, Mont Choisy and Trou aux Biches are long, gently shelving beaches with calm water, plenty of shade from casuarina trees and food stalls within easy reach, which matters when a snack-emergency strikes. Pereybere is small and sheltered with a sandy entry that suits toddlers. A useful local fact: all public beaches in Mauritius are free and open to everyone, so you are never locked out of the best stretches even if you are not staying at a beachfront resort.',
+          'Two honest cautions. The east and southeast coasts can get windy from June to September, so on blustery days simply switch to the sheltered northwest. And always look for the reef pass markers and any flag systems; the lagoons are calm, but the gaps in the reef can carry strong currents, so keep children well inside the swimming zones.',
+        ],
       },
       {
-        "heading": "Casela: Safari, Splash and Slides",
-        "paragraphs": [
+        heading: 'Casela: Safari, Splash and Slides',
+        paragraphs: [
           "Casela Nature Parks, in the west near Cascavelle, is the closest thing the island has to a full day theme park and it is squarely aimed at families. The core attraction is a savannah-style safari where you ride past zebra, giraffe, ostrich and antelope, alongside walk-through aviaries, a petting area, a kids' zone and a small water-play section that toddlers love on a hot day. Older children and teenagers can graduate to the zip-lines, quad trails and a via ferrata.",
-          "Expect to budget from around 22 EUR per adult and about 15 EUR per child for a basic entry-and-safari package, with optional add-on adventures priced separately. It is genuinely a full day, so arrive when it opens, bring hats, sun cream and water, and pace the little ones. The big-cat interaction experiences exist but are pricey and not for young children; the standard safari and play areas are more than enough to fill a happy day. You can see current options and combined day trips on our /attractions page."
-        ]
+          'Expect to budget from around 22 EUR per adult and about 15 EUR per child for a basic entry-and-safari package, with optional add-on adventures priced separately. It is genuinely a full day, so arrive when it opens, bring hats, sun cream and water, and pace the little ones. The big-cat interaction experiences exist but are pricey and not for young children; the standard safari and play areas are more than enough to fill a happy day. You can see current options and combined day trips on our /attractions page.',
+        ],
       },
       {
-        "heading": "La Vanille: Tortoises, Crocodiles and Bugs",
-        "paragraphs": [
+        heading: 'La Vanille: Tortoises, Crocodiles and Bugs',
+        paragraphs: [
           "Down in the green, rainy south near Riviere des Anguilles, La Vanille Nature Park is a quieter, more nature-focused outing and a firm favourite with curious children. It is home to the world's largest captive herd of Aldabra giant tortoises, and the daily tortoise feeding lets kids get genuinely close to these gentle, slow-moving giants. There are also Nile crocodiles, a well-stocked insectarium with enormous beetles and butterflies, and shaded forest walkways that make it manageable even with a pushchair.",
-          "The setting is lush and the canopy gives welcome shade, but remember the south catches more rain, so pack a light raincoat whatever the season. A morning here pairs neatly with the nearby south-coast viewpoints. Entry is moderately priced and there are family packages; budget broadly in line with Casela for a family of four. For ideas on linking La Vanille with other southern stops into a single relaxed loop, our free /ai-road-trip-planner can sketch a day-by-day route around where you are staying."
-        ]
+          'The setting is lush and the canopy gives welcome shade, but remember the south catches more rain, so pack a light raincoat whatever the season. A morning here pairs neatly with the nearby south-coast viewpoints. Entry is moderately priced and there are family packages; budget broadly in line with Casela for a family of four. For ideas on linking La Vanille with other southern stops into a single relaxed loop, our free /ai-road-trip-planner can sketch a day-by-day route around where you are staying.',
+        ],
       },
       {
-        "heading": "Safe Activities Beyond the Beach",
-        "paragraphs": [
-          "When you want to be on the water rather than in it, the sheltered lagoons open up plenty of gentle options. Glass-bottom boat trips at Blue Bay let small children see coral and fish without getting their faces wet, typically from around 25 to 40 EUR per person. Catamaran day cruises from Grand Baie up to the northern islets are a hit with families because there is space to move around, lunch is included and the anchorages are calm; reckon on roughly 60 to 90 EUR per adult with reduced child rates.",
-          "On land, the Black River Gorges National Park has short, well-marked walks with big viewpoints that suit family legs, and entry is free. The botanical gardens at Pamplemousses, famous for their giant water lilies, are flat, shady and stroller-friendly. The Seven Coloured Earths at Chamarel, with its small waterfall and resident giant tortoises, is a quick, easy stop that children enjoy. For older kids, gentle introductory snorkelling trips and dolphin-watching boats off the west coast are popular early-morning outings. You can compare guided trips by interest on our /activities page, and it is worth checking minimum-age limits before you book anything with a thrill element."
-        ]
+        heading: 'Safe Activities Beyond the Beach',
+        paragraphs: [
+          'When you want to be on the water rather than in it, the sheltered lagoons open up plenty of gentle options. Glass-bottom boat trips at Blue Bay let small children see coral and fish without getting their faces wet, typically from around 25 to 40 EUR per person. Catamaran day cruises from Grand Baie up to the northern islets are a hit with families because there is space to move around, lunch is included and the anchorages are calm; reckon on roughly 60 to 90 EUR per adult with reduced child rates.',
+          'On land, the Black River Gorges National Park has short, well-marked walks with big viewpoints that suit family legs, and entry is free. The botanical gardens at Pamplemousses, famous for their giant water lilies, are flat, shady and stroller-friendly. The Seven Coloured Earths at Chamarel, with its small waterfall and resident giant tortoises, is a quick, easy stop that children enjoy. For older kids, gentle introductory snorkelling trips and dolphin-watching boats off the west coast are popular early-morning outings. You can compare guided trips by interest on our /activities page, and it is worth checking minimum-age limits before you book anything with a thrill element.',
+        ],
       },
       {
-        "heading": "Getting Around with Kids",
-        "paragraphs": [
-          "The single biggest stress-saver is sorting your first transfer before you fly. The airport sits at Plaisance in the southeast, and depending on your resort you could face anything from a 20-minute hop to a 75-minute drive north. Arriving with overtired children at night is not the moment to negotiate taxi-rank fares, so a fixed-price private transfer booked in advance, ideally one that can supply a child seat if you ask, removes a real friction point. Our /airport-transfers service quotes a set price up front and meets you in arrivals.",
-          "For getting around once you are settled, you have three realistic options. Self-driving is cheap and flexible, but Mauritius drives on the left, roads are narrow and busy, and child seats are not always standard in hire cars, so request them explicitly. Pre-booked private drivers for day trips are popular with families because someone else handles the navigation while you mind the kids, and you can stop on demand. Public buses are very cheap and an adventure in themselves, but they have no luggage space, no air conditioning and no fixed timetable, so they suit a short hop rather than a full day out with a baby. Browse regions and what is near each base on our /destinations pages before you decide where to stay."
-        ]
-      }
+        heading: 'Getting Around with Kids',
+        paragraphs: [
+          'The single biggest stress-saver is sorting your first transfer before you fly. The airport sits at Plaisance in the southeast, and depending on your resort you could face anything from a 20-minute hop to a 75-minute drive north. Arriving with overtired children at night is not the moment to negotiate taxi-rank fares, so a fixed-price private transfer booked in advance, ideally one that can supply a child seat if you ask, removes a real friction point. Our /airport-transfers service quotes a set price up front and meets you in arrivals.',
+          'For getting around once you are settled, you have three realistic options. Self-driving is cheap and flexible, but Mauritius drives on the left, roads are narrow and busy, and child seats are not always standard in hire cars, so request them explicitly. Pre-booked private drivers for day trips are popular with families because someone else handles the navigation while you mind the kids, and you can stop on demand. Public buses are very cheap and an adventure in themselves, but they have no luggage space, no air conditioning and no fixed timetable, so they suit a short hop rather than a full day out with a baby. Browse regions and what is near each base on our /destinations pages before you decide where to stay.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "What is the best age to take children to Mauritius?",
-        "a": "Mauritius works at any age. The calm, shallow reef lagoons are reassuring for babies and toddlers, while parks like Casela and water sports keep older children and teenagers busy. The long-haul flight is the main consideration, so an overnight flight and a slightly longer stay help younger ones settle."
+        q: 'What is the best age to take children to Mauritius?',
+        a: 'Mauritius works at any age. The calm, shallow reef lagoons are reassuring for babies and toddlers, while parks like Casela and water sports keep older children and teenagers busy. The long-haul flight is the main consideration, so an overnight flight and a slightly longer stay help younger ones settle.',
       },
       {
-        "q": "Is the water safe for children to swim in?",
-        "a": "Inside the reef-protected lagoons, yes, the water is warm, shallow and usually calm, which is ideal for kids. Always keep children well inside the marked swimming zones, as the gaps in the reef can carry strong currents, and switch to the sheltered north and west coasts on windy winter days."
+        q: 'Is the water safe for children to swim in?',
+        a: 'Inside the reef-protected lagoons, yes, the water is warm, shallow and usually calm, which is ideal for kids. Always keep children well inside the marked swimming zones, as the gaps in the reef can carry strong currents, and switch to the sheltered north and west coasts on windy winter days.',
       },
       {
-        "q": "Which is better for kids, Casela or La Vanille?",
-        "a": "They are different. Casela in the west is a high-energy day out with a safari, play areas and adventure activities, best for a full active day. La Vanille in the south is calmer and more nature-focused, with giant tortoises, crocodiles and an insectarium. With time, do both; if choosing one, pick by your child's energy and interests."
+        q: 'Which is better for kids, Casela or La Vanille?',
+        a: "They are different. Casela in the west is a high-energy day out with a safari, play areas and adventure activities, best for a full active day. La Vanille in the south is calmer and more nature-focused, with giant tortoises, crocodiles and an insectarium. With time, do both; if choosing one, pick by your child's energy and interests.",
       },
       {
-        "q": "Do we need to hire a car to get around with kids?",
-        "a": "Not necessarily. A car gives flexibility but Mauritius drives on the left and roads are busy. Many families prefer a pre-booked private driver for day trips and a fixed-price airport transfer, which avoids navigation stress and lets you request a child seat in advance."
-      }
-    ]
+        q: 'Do we need to hire a car to get around with kids?',
+        a: 'Not necessarily. A car gives flexibility but Mauritius drives on the left and roads are busy. Many families prefer a pre-booked private driver for day trips and a fixed-price airport transfer, which avoids navigation stress and lets you request a child seat in advance.',
+      },
+    ],
   },
   {
-    "slug": "mauritius-honeymoon-guide",
-    "title": "The Ultimate Mauritius Honeymoon Guide",
-    "metaTitle": "The Ultimate Mauritius Honeymoon Guide",
-    "metaDescription": "Plan the perfect Mauritius honeymoon: the most romantic coasts, sunset catamaran cruises, private island tours, when to go, and realistic budget tips.",
-    "excerpt": "A practical, honest guide to a Mauritius honeymoon: where to stay, the most romantic experiences, sunset cruises, private tours, and the best time of year to visit.",
-    "readMins": 7,
-    "sections": [
+    slug: 'mauritius-honeymoon-guide',
+    title: 'The Ultimate Mauritius Honeymoon Guide',
+    metaTitle: 'The Ultimate Mauritius Honeymoon Guide',
+    metaDescription:
+      'Plan the perfect Mauritius honeymoon: the most romantic coasts, sunset catamaran cruises, private island tours, when to go, and realistic budget tips.',
+    excerpt:
+      'A practical, honest guide to a Mauritius honeymoon: where to stay, the most romantic experiences, sunset cruises, private tours, and the best time of year to visit.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "Why Mauritius works so well for a honeymoon",
-        "paragraphs": [
-          "Mauritius packs an unusual amount of variety into a small island. In under 90 minutes by road you can move from the calm, swimmable lagoons of the east coast to the dramatic cliffs of the south, the buzzing beach town of Grand Baie in the north, and the cooler tea country of the central plateau. For a honeymoon that means you do not have to choose between a do-nothing beach holiday and a proper adventure. You can have a slow morning by the lagoon and still be hiking, snorkelling, or watching dolphins by lunchtime.",
-          "The island is also genuinely easy. English and French are widely spoken, the currency is the Mauritian rupee, tap water is generally fine in the main tourist areas, and the vibe is relaxed and safe for couples. Most resorts and private operators are used to honeymooners and will quietly upgrade the experience with little touches like a decorated room or a private table on the sand. None of that requires a five-star budget, though the five-star scene here is world class if that is what you are after."
-        ]
+        heading: 'Why Mauritius works so well for a honeymoon',
+        paragraphs: [
+          'Mauritius packs an unusual amount of variety into a small island. In under 90 minutes by road you can move from the calm, swimmable lagoons of the east coast to the dramatic cliffs of the south, the buzzing beach town of Grand Baie in the north, and the cooler tea country of the central plateau. For a honeymoon that means you do not have to choose between a do-nothing beach holiday and a proper adventure. You can have a slow morning by the lagoon and still be hiking, snorkelling, or watching dolphins by lunchtime.',
+          'The island is also genuinely easy. English and French are widely spoken, the currency is the Mauritian rupee, tap water is generally fine in the main tourist areas, and the vibe is relaxed and safe for couples. Most resorts and private operators are used to honeymooners and will quietly upgrade the experience with little touches like a decorated room or a private table on the sand. None of that requires a five-star budget, though the five-star scene here is world class if that is what you are after.',
+        ],
       },
       {
-        "heading": "The most romantic areas to base yourselves",
-        "paragraphs": [
+        heading: 'The most romantic areas to base yourselves',
+        paragraphs: [
           "The east coast, around Belle Mare, Trou d'Eau Douce, and Poste Lafayette, is the classic honeymoon choice. The lagoons here are wide, shallow, and turquoise, the beaches are long and quiet, and the sunrise over the water is spectacular. It is calmer and less commercial than the north, which suits couples who mostly want privacy and good light for photos. The trade-off is that you are a little further from nightlife and big restaurant choice.",
-          "The north, centred on Grand Baie and Pereybere, is livelier, with more restaurants, bars, shops, and easy day-trip departures. If you want a mix of romance and things to do in the evening, this is the easiest base. The west coast around Flic en Flac, Tamarin, and Le Morne is the place for sunsets, surfing, dolphin watching, and the iconic Le Morne Brabant mountain. The south, around Bel Ombre and Souillac, is wilder and greener, ideal if you value seclusion and dramatic scenery over convenience. Wherever you land, it is worth browsing the regional guides under /destinations before booking, since each coast has a distinct character."
-        ]
+          'The north, centred on Grand Baie and Pereybere, is livelier, with more restaurants, bars, shops, and easy day-trip departures. If you want a mix of romance and things to do in the evening, this is the easiest base. The west coast around Flic en Flac, Tamarin, and Le Morne is the place for sunsets, surfing, dolphin watching, and the iconic Le Morne Brabant mountain. The south, around Bel Ombre and Souillac, is wilder and greener, ideal if you value seclusion and dramatic scenery over convenience. Wherever you land, it is worth browsing the regional guides under /destinations before booking, since each coast has a distinct character.',
+        ],
       },
       {
-        "heading": "Experiences worth building the trip around",
-        "paragraphs": [
-          "A few experiences are almost unmissable on a Mauritius honeymoon. Snorkelling or diving in the lagoons and at sites like Blue Bay Marine Park is a highlight, with warm, clear water and easy entry for beginners. The southwest delivers the big set pieces: the Black River Gorges National Park for forest hikes, the Chamarel Seven Coloured Earths and its waterfall, and the climb or guided walk around Le Morne Brabant, a UNESCO World Heritage site with a moving history. In the centre, the Trou aux Cerfs crater, Grand Bassin sacred lake, and the colonial estates and gardens make for a cooler, greener day.",
-          "If you want to plan a couple of standout days rather than leaving it to chance, browse /attractions for the landmarks and /activities for bookable experiences such as catamaran trips, quad biking, and guided hikes. Couples who would rather have a route mapped for them can use the /ai-road-trip-planner to turn a few preferences into a day-by-day itinerary that balances beach time with the sights you actually care about."
-        ]
+        heading: 'Experiences worth building the trip around',
+        paragraphs: [
+          'A few experiences are almost unmissable on a Mauritius honeymoon. Snorkelling or diving in the lagoons and at sites like Blue Bay Marine Park is a highlight, with warm, clear water and easy entry for beginners. The southwest delivers the big set pieces: the Black River Gorges National Park for forest hikes, the Chamarel Seven Coloured Earths and its waterfall, and the climb or guided walk around Le Morne Brabant, a UNESCO World Heritage site with a moving history. In the centre, the Trou aux Cerfs crater, Grand Bassin sacred lake, and the colonial estates and gardens make for a cooler, greener day.',
+          'If you want to plan a couple of standout days rather than leaving it to chance, browse /attractions for the landmarks and /activities for bookable experiences such as catamaran trips, quad biking, and guided hikes. Couples who would rather have a route mapped for them can use the /ai-road-trip-planner to turn a few preferences into a day-by-day itinerary that balances beach time with the sights you actually care about.',
+        ],
       },
       {
-        "heading": "Sunset cruises and private boat days",
-        "paragraphs": [
-          "A sunset cruise is the single most popular honeymoon add-on here, and for good reason. A typical shared catamaran or speedboat sunset trip off the west coast around Tamarin and Black River runs roughly 45 to 75 EUR per person and usually includes drinks, light snacks, and a couple of hours on the water as the sky turns gold over the lagoon. It is relaxed, sociable, and genuinely beautiful, though shared boats can be busy in peak season.",
-          "For something more intimate, a private charter is the upgrade worth considering. A half-day private catamaran for two, often with a skipper and crew, snorkelling stops, and a barbecue lunch on board, typically starts around 350 to 600 EUR for the boat depending on size, season, and route. Popular itineraries head to the northern islands such as Ile aux Cerfs in the east or Gabriel and Flat Island in the north. Book private boats a few weeks ahead in high season, and ask whether the price is per person or per boat so there are no surprises."
-        ]
+        heading: 'Sunset cruises and private boat days',
+        paragraphs: [
+          'A sunset cruise is the single most popular honeymoon add-on here, and for good reason. A typical shared catamaran or speedboat sunset trip off the west coast around Tamarin and Black River runs roughly 45 to 75 EUR per person and usually includes drinks, light snacks, and a couple of hours on the water as the sky turns gold over the lagoon. It is relaxed, sociable, and genuinely beautiful, though shared boats can be busy in peak season.',
+          'For something more intimate, a private charter is the upgrade worth considering. A half-day private catamaran for two, often with a skipper and crew, snorkelling stops, and a barbecue lunch on board, typically starts around 350 to 600 EUR for the boat depending on size, season, and route. Popular itineraries head to the northern islands such as Ile aux Cerfs in the east or Gabriel and Flat Island in the north. Book private boats a few weeks ahead in high season, and ask whether the price is per person or per boat so there are no surprises.',
+        ],
       },
       {
-        "heading": "Private tours and getting around",
-        "paragraphs": [
-          "Mauritius has no rail network and limited public transport between regions, so most honeymooners get around by private car with a driver, by rental car, or by pre-booked transfers. A private full-day tour with an English-speaking driver-guide is the most comfortable way to see the south or the central plateau, and it removes the stress of navigating, parking, and finding the good spots. Day rates vary with distance and group size, but a private car for a couple is often comparable to two seats on a shared excursion once you factor in the flexibility of stopping where and when you like.",
-          "Start the trip on the right foot by arranging your airport pickup in advance. The international airport sits in the southeast, and the drive to the east coast resorts is around 35 to 50 minutes, to the north roughly 60 to 75 minutes. Pre-booked /airport-transfers mean a driver is waiting after a long flight rather than queuing for a taxi at midnight, which matters when you arrive tired. If you would rather self-drive for part of the trip, remember Mauritius drives on the left, and the main roads are good while village lanes can be narrow."
-        ]
+        heading: 'Private tours and getting around',
+        paragraphs: [
+          'Mauritius has no rail network and limited public transport between regions, so most honeymooners get around by private car with a driver, by rental car, or by pre-booked transfers. A private full-day tour with an English-speaking driver-guide is the most comfortable way to see the south or the central plateau, and it removes the stress of navigating, parking, and finding the good spots. Day rates vary with distance and group size, but a private car for a couple is often comparable to two seats on a shared excursion once you factor in the flexibility of stopping where and when you like.',
+          'Start the trip on the right foot by arranging your airport pickup in advance. The international airport sits in the southeast, and the drive to the east coast resorts is around 35 to 50 minutes, to the north roughly 60 to 75 minutes. Pre-booked /airport-transfers mean a driver is waiting after a long flight rather than queuing for a taxi at midnight, which matters when you arrive tired. If you would rather self-drive for part of the trip, remember Mauritius drives on the left, and the main roads are good while village lanes can be narrow.',
+        ],
       },
       {
-        "heading": "Best time to go and a few honest tips",
-        "paragraphs": [
-          "Mauritius is a year-round destination, but the seasons are reversed from the northern hemisphere. Summer runs roughly November to April: hot, humid, and the wetter half of the year, with the cyclone risk concentrated in January to March. Winter runs May to October: drier, cooler, and very comfortable, with pleasant beach weather and the best conditions for hiking and whale watching. The shoulder months of September, October, and April often hit the sweet spot of warm water, lower rainfall, and slightly softer prices.",
-          "A few honest pointers. The east and southeast coasts can be windy from June to August, which surfers love but some swimmers do not, so the sheltered north or west may suit a winter honeymoon better. Peak rates and crowds cluster around the European and South African school holidays in December, January, and July to August, so booking outside those windows stretches your budget. Finally, build in at least one slow day with nothing planned. The temptation is to fill every day with excursions, but the best honeymoon memories here are often an unhurried morning in the lagoon and a long dinner by the sea."
-        ]
-      }
+        heading: 'Best time to go and a few honest tips',
+        paragraphs: [
+          'Mauritius is a year-round destination, but the seasons are reversed from the northern hemisphere. Summer runs roughly November to April: hot, humid, and the wetter half of the year, with the cyclone risk concentrated in January to March. Winter runs May to October: drier, cooler, and very comfortable, with pleasant beach weather and the best conditions for hiking and whale watching. The shoulder months of September, October, and April often hit the sweet spot of warm water, lower rainfall, and slightly softer prices.',
+          'A few honest pointers. The east and southeast coasts can be windy from June to August, which surfers love but some swimmers do not, so the sheltered north or west may suit a winter honeymoon better. Peak rates and crowds cluster around the European and South African school holidays in December, January, and July to August, so booking outside those windows stretches your budget. Finally, build in at least one slow day with nothing planned. The temptation is to fill every day with excursions, but the best honeymoon memories here are often an unhurried morning in the lagoon and a long dinner by the sea.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How many days do you need for a Mauritius honeymoon?",
-        "a": "Seven to ten nights is the sweet spot. A week lets you settle into one coast, take two or three excursions such as a sunset cruise and a southern tour, and still have proper beach time. Ten nights lets you split between two coasts, for example the calm east and the livelier north, without feeling rushed."
+        q: 'How many days do you need for a Mauritius honeymoon?',
+        a: 'Seven to ten nights is the sweet spot. A week lets you settle into one coast, take two or three excursions such as a sunset cruise and a southern tour, and still have proper beach time. Ten nights lets you split between two coasts, for example the calm east and the livelier north, without feeling rushed.',
       },
       {
-        "q": "When is the best time of year for a Mauritius honeymoon?",
-        "a": "Many couples find the winter months of May to October ideal: drier, cooler, and great for hiking and whale watching. The shoulder months of September, October, and April balance warm water with fewer crowds. Summer (November to April) is hotter and wetter, with cyclone risk highest from January to March."
+        q: 'When is the best time of year for a Mauritius honeymoon?',
+        a: 'Many couples find the winter months of May to October ideal: drier, cooler, and great for hiking and whale watching. The shoulder months of September, October, and April balance warm water with fewer crowds. Summer (November to April) is hotter and wetter, with cyclone risk highest from January to March.',
       },
       {
-        "q": "How much does a sunset cruise cost in Mauritius?",
-        "a": "A shared catamaran or speedboat sunset cruise typically costs around 45 to 75 EUR per person including drinks and snacks. A private charter for two is more intimate and usually starts around 350 to 600 EUR for the whole boat, depending on size, season, and itinerary."
+        q: 'How much does a sunset cruise cost in Mauritius?',
+        a: 'A shared catamaran or speedboat sunset cruise typically costs around 45 to 75 EUR per person including drinks and snacks. A private charter for two is more intimate and usually starts around 350 to 600 EUR for the whole boat, depending on size, season, and itinerary.',
       },
       {
-        "q": "Do we need a car, or can we rely on transfers and tours?",
-        "a": "You do not need to self-drive. Many honeymooners use pre-booked airport transfers plus private day tours with a driver-guide, which is comfortable and stress-free. Renting a car is worth it if you want full freedom to explore, but remember Mauritius drives on the left and rural lanes can be narrow."
-      }
-    ]
+        q: 'Do we need a car, or can we rely on transfers and tours?',
+        a: 'You do not need to self-drive. Many honeymooners use pre-booked airport transfers plus private day tours with a driver-guide, which is comfortable and stress-free. Renting a car is worth it if you want full freedom to explore, but remember Mauritius drives on the left and rural lanes can be narrow.',
+      },
+    ],
   },
   {
-    "slug": "north-vs-south-mauritius",
-    "title": "North vs South Mauritius: Where to Stay",
-    "metaTitle": "North vs South Mauritius: Where to Stay",
-    "metaDescription": "North vs South Mauritius compared for beaches, scenery, nightlife, families and budget, so you can choose the right base for your trip with confidence.",
-    "excerpt": "An honest comparison of north and south Mauritius across scenery, beaches, nightlife, families and budget, to help you pick the right base for your holiday.",
-    "readMins": 7,
-    "sections": [
+    slug: 'north-vs-south-mauritius',
+    title: 'North vs South Mauritius: Where to Stay',
+    metaTitle: 'North vs South Mauritius: Where to Stay',
+    metaDescription:
+      'North vs South Mauritius compared for beaches, scenery, nightlife, families and budget, so you can choose the right base for your trip with confidence.',
+    excerpt:
+      'An honest comparison of north and south Mauritius across scenery, beaches, nightlife, families and budget, to help you pick the right base for your holiday.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "Two Very Different Coasts on One Small Island",
-        "paragraphs": [
-          "Mauritius is only about 65 kilometres long and 45 kilometres wide, so on paper nowhere is far from anywhere. In practice, where you sleep shapes your whole trip, because the north and south of the island feel like different holidays. The north, anchored by Grand Baie, is flat, sheltered, developed and lively. The south, stretching from Le Morne round to Blue Bay and Mahebourg, is wilder, greener, hillier and far quieter.",
-          "A rough rule of thumb: the north is the easy, sociable, do-everything base, while the south is the scenic, slower, nature-first base. Neither is objectively better. The right answer depends on whether you want restaurants and boat trips on your doorstep or dramatic cliffs and empty beaches. Because driving from Grand Baie to Le Morne takes around 90 minutes to two hours, most people pick one region and make day trips from it rather than splitting their stay, especially on a week-long visit."
-        ]
+        heading: 'Two Very Different Coasts on One Small Island',
+        paragraphs: [
+          'Mauritius is only about 65 kilometres long and 45 kilometres wide, so on paper nowhere is far from anywhere. In practice, where you sleep shapes your whole trip, because the north and south of the island feel like different holidays. The north, anchored by Grand Baie, is flat, sheltered, developed and lively. The south, stretching from Le Morne round to Blue Bay and Mahebourg, is wilder, greener, hillier and far quieter.',
+          'A rough rule of thumb: the north is the easy, sociable, do-everything base, while the south is the scenic, slower, nature-first base. Neither is objectively better. The right answer depends on whether you want restaurants and boat trips on your doorstep or dramatic cliffs and empty beaches. Because driving from Grand Baie to Le Morne takes around 90 minutes to two hours, most people pick one region and make day trips from it rather than splitting their stay, especially on a week-long visit.',
+        ],
       },
       {
-        "heading": "Scenery: Sheltered Lagoons North, Dramatic Landscapes South",
-        "paragraphs": [
-          "If postcard drama is what moves you, the south wins clearly. This is the side of the island with Le Morne Brabant, the UNESCO-listed basalt mountain that rises straight out of the lagoon, plus the coloured earths and waterfall at Chamarel, the Black River Gorges National Park, and the cliffs and crashing surf around Gris Gris near Souillac, one of the few stretches of Mauritian coast with no protecting reef. The interior is lush, mountainous and genuinely cinematic.",
-          "The north is prettier than it is grand. Its appeal is the calm, shallow, turquoise lagoon and the scatter of offshore islets, Coin de Mire (Gunner's Quoin), Île Plate and Île aux Bénitiers further down the west, that make for superb catamaran days. The landscape inland is flatter sugar-cane country rather than soaring peaks. For a sense of which natural sights sit where before you commit, our /attractions and /destinations pages map the headline spots region by region."
-        ]
+        heading: 'Scenery: Sheltered Lagoons North, Dramatic Landscapes South',
+        paragraphs: [
+          'If postcard drama is what moves you, the south wins clearly. This is the side of the island with Le Morne Brabant, the UNESCO-listed basalt mountain that rises straight out of the lagoon, plus the coloured earths and waterfall at Chamarel, the Black River Gorges National Park, and the cliffs and crashing surf around Gris Gris near Souillac, one of the few stretches of Mauritian coast with no protecting reef. The interior is lush, mountainous and genuinely cinematic.',
+          "The north is prettier than it is grand. Its appeal is the calm, shallow, turquoise lagoon and the scatter of offshore islets, Coin de Mire (Gunner's Quoin), Île Plate and Île aux Bénitiers further down the west, that make for superb catamaran days. The landscape inland is flatter sugar-cane country rather than soaring peaks. For a sense of which natural sights sit where before you commit, our /attractions and /destinations pages map the headline spots region by region.",
+        ],
       },
       {
-        "heading": "Beaches: Easy Swimming vs Wild Beauty",
-        "paragraphs": [
+        heading: 'Beaches: Easy Swimming vs Wild Beauty',
+        paragraphs: [
           "Both regions have excellent beaches, but they swim differently. The north and adjacent northwest, Mont Choisy, Trou aux Biches, Pereybere and Grand Baie's small public beach, offer long stretches of calm, shallow, family-friendly water protected by reef. These are reliably swimmable almost year round and rarely have dangerous currents, which is why they are so popular with first-time visitors and families with young children.",
-          "The south's beaches are more spectacular and more variable. Le Morne is a world-class beach and the island's premier kitesurfing spot thanks to the steady winds funnelling through the lagoon, while Blue Bay, near the airport, has some of the best snorkelling on the island inside its protected marine park. The flip side is that southern conditions are weather-dependent: during the windier winter (May to October) the southeast can be choppy and breezy, and a few southern beaches have stronger currents or no reef at all, so they are better for scenery and surfing than for casual paddling."
-        ]
+          "The south's beaches are more spectacular and more variable. Le Morne is a world-class beach and the island's premier kitesurfing spot thanks to the steady winds funnelling through the lagoon, while Blue Bay, near the airport, has some of the best snorkelling on the island inside its protected marine park. The flip side is that southern conditions are weather-dependent: during the windier winter (May to October) the southeast can be choppy and breezy, and a few southern beaches have stronger currents or no reef at all, so they are better for scenery and surfing than for casual paddling.",
+        ],
       },
       {
-        "heading": "Nightlife and Dining: The North Has No Real Rival",
-        "paragraphs": [
+        heading: 'Nightlife and Dining: The North Has No Real Rival',
+        paragraphs: [
           "If evenings out matter to you, choose the north. Grand Baie is the island's nightlife capital, with the widest concentration of restaurants, beach bars, late-night venues and the Super U and shopping at La Croisette and Grand Baie itself. You can walk between dinner, drinks and a club, and there is genuine variety, from cheap street food and dholl puri stalls to upmarket seafood. Neighbouring Pereybere and Trou aux Biches add more relaxed, family-style dining.",
-          "The south is the opposite. Outside the big resorts around Le Morne and Bel Ombre, dining is low-key and spread out, centred on small local restaurants in Mahebourg, Bel Ombre and Chamarel rather than a buzzing strip. Evenings tend to revolve around your hotel or a quiet seafood dinner. For couples wanting peace that is a feature, not a flaw, but anyone hoping to bar-hop on foot will find the south sleepy. If nightlife is non-negotiable, base yourself in the north and treat the south as a day-trip."
-        ]
+          'The south is the opposite. Outside the big resorts around Le Morne and Bel Ombre, dining is low-key and spread out, centred on small local restaurants in Mahebourg, Bel Ombre and Chamarel rather than a buzzing strip. Evenings tend to revolve around your hotel or a quiet seafood dinner. For couples wanting peace that is a feature, not a flaw, but anyone hoping to bar-hop on foot will find the south sleepy. If nightlife is non-negotiable, base yourself in the north and treat the south as a day-trip.',
+        ],
       },
       {
-        "heading": "Best for Families",
-        "paragraphs": [
-          "Families lean north for sheer convenience. The calm northern lagoons are forgiving for young swimmers, there is plenty to do within a short drive, and the density of supermarkets, pharmacies, restaurants and car-hire makes self-catering and last-minute changes of plan easy. Glass-bottom boat trips, the catamaran cruises to the northern islets, and attractions are all close at hand, which keeps transfer times and grumbling to a minimum.",
-          "That said, the south has strong family credentials of its own if your children are a little older and into nature. Blue Bay's snorkelling, the Black River Gorges trails, Casela nature park on the west, and the sheer space of quieter beaches suit active, outdoorsy families. The trade-off is more driving to reach amenities and fewer walkable options after dark. Whichever region you choose, browse /activities to line up bookings such as catamaran trips and snorkelling in advance, as the best operators fill up in the December to February peak."
-        ]
+        heading: 'Best for Families',
+        paragraphs: [
+          'Families lean north for sheer convenience. The calm northern lagoons are forgiving for young swimmers, there is plenty to do within a short drive, and the density of supermarkets, pharmacies, restaurants and car-hire makes self-catering and last-minute changes of plan easy. Glass-bottom boat trips, the catamaran cruises to the northern islets, and attractions are all close at hand, which keeps transfer times and grumbling to a minimum.',
+          "That said, the south has strong family credentials of its own if your children are a little older and into nature. Blue Bay's snorkelling, the Black River Gorges trails, Casela nature park on the west, and the sheer space of quieter beaches suit active, outdoorsy families. The trade-off is more driving to reach amenities and fewer walkable options after dark. Whichever region you choose, browse /activities to line up bookings such as catamaran trips and snorkelling in advance, as the best operators fill up in the December to February peak.",
+        ],
       },
       {
-        "heading": "Budget: Where Your Money Goes Further",
-        "paragraphs": [
-          "The north is the better value all-rounder, mainly because of choice. Grand Baie and Pereybere have everything from simple guesthouses and self-catering studios from around 40 to 70 EUR a night to mid-range hotels and a handful of luxury properties, so it is easy to dial spending up or down. Eating out is cheap if you want it to be: a generous plate of local food at a casual spot can cost 5 to 10 EUR, while a sit-down seafood dinner runs 25 to 40 EUR per head.",
-          "The south skews towards two extremes: high-end resorts around Le Morne and Bel Ombre at the top, and modest local guesthouses around Mahebourg and Souillac at the bottom, with less in the comfortable middle. If you want a five-star beachfront escape, the south delivers genuine seclusion for the price. If you are watching every euro, the north's competition keeps rates and restaurant prices lower. Factor in transport too: a private airport transfer is broadly similar in price to either coast (commonly around 30 to 55 EUR depending on the resort), but the south sits closer to the airport at Plaisance, so southern stays save you the longer northbound drive. You can compare and book a fixed-price ride on our /airport-transfers page."
-        ]
+        heading: 'Budget: Where Your Money Goes Further',
+        paragraphs: [
+          'The north is the better value all-rounder, mainly because of choice. Grand Baie and Pereybere have everything from simple guesthouses and self-catering studios from around 40 to 70 EUR a night to mid-range hotels and a handful of luxury properties, so it is easy to dial spending up or down. Eating out is cheap if you want it to be: a generous plate of local food at a casual spot can cost 5 to 10 EUR, while a sit-down seafood dinner runs 25 to 40 EUR per head.',
+          "The south skews towards two extremes: high-end resorts around Le Morne and Bel Ombre at the top, and modest local guesthouses around Mahebourg and Souillac at the bottom, with less in the comfortable middle. If you want a five-star beachfront escape, the south delivers genuine seclusion for the price. If you are watching every euro, the north's competition keeps rates and restaurant prices lower. Factor in transport too: a private airport transfer is broadly similar in price to either coast (commonly around 30 to 55 EUR depending on the resort), but the south sits closer to the airport at Plaisance, so southern stays save you the longer northbound drive. You can compare and book a fixed-price ride on our /airport-transfers page.",
+        ],
       },
       {
-        "heading": "So, Which Should You Choose?",
-        "paragraphs": [
+        heading: 'So, Which Should You Choose?',
+        paragraphs: [
           "Pick the north if you want lively evenings, easy swimming, the widest pick of restaurants and excursions, and the flexibility of a developed base, ideal for first-timers, families with small children, and anyone who values convenience. Pick the south if you are after dramatic scenery, kitesurfing or world-class snorkelling, a slower pace, and don't mind driving to reach the action, ideal for couples, honeymooners, nature lovers and repeat visitors who already know the island.",
-          "Because Mauritius is small, you genuinely can have both. Many travellers base in the north for the bulk of their stay and take one or two full days south to Le Morne, Chamarel and the gorges, or split a longer trip with a few nights at each end. If you would rather not piece the logistics together yourself, our free /ai-road-trip-planner can build a day-by-day route around your chosen base, the weather and the sights you most want to see."
-        ]
-      }
+          'Because Mauritius is small, you genuinely can have both. Many travellers base in the north for the bulk of their stay and take one or two full days south to Le Morne, Chamarel and the gorges, or split a longer trip with a few nights at each end. If you would rather not piece the logistics together yourself, our free /ai-road-trip-planner can build a day-by-day route around your chosen base, the weather and the sights you most want to see.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Is the north or south of Mauritius better for a first visit?",
-        "a": "For most first-timers the north is the easier choice. Grand Baie and the surrounding coast have calm, shallow lagoons, the widest range of restaurants and excursions, plenty of accommodation at every budget, and short transfer times to the main attractions. The south is more rewarding once you know the island or if dramatic scenery and a quiet pace matter more to you than convenience."
+        q: 'Is the north or south of Mauritius better for a first visit?',
+        a: 'For most first-timers the north is the easier choice. Grand Baie and the surrounding coast have calm, shallow lagoons, the widest range of restaurants and excursions, plenty of accommodation at every budget, and short transfer times to the main attractions. The south is more rewarding once you know the island or if dramatic scenery and a quiet pace matter more to you than convenience.',
       },
       {
-        "q": "How long does it take to drive from the north to the south?",
-        "a": "Roughly 90 minutes to two hours from Grand Baie to Le Morne, depending on traffic and route. Because the island is so compact, most visitors base themselves in one region and make day trips rather than relocating mid-stay, though splitting a longer holiday between a northern and a southern hotel is perfectly doable."
+        q: 'How long does it take to drive from the north to the south?',
+        a: 'Roughly 90 minutes to two hours from Grand Baie to Le Morne, depending on traffic and route. Because the island is so compact, most visitors base themselves in one region and make day trips rather than relocating mid-stay, though splitting a longer holiday between a northern and a southern hotel is perfectly doable.',
       },
       {
-        "q": "Which side is closer to the airport?",
-        "a": "The south. Sir Seewoosagur Ramgoolam International Airport sits near Plaisance in the southeast, so southern bases like Blue Bay, Mahebourg and Bel Ombre are only 15 to 30 minutes away, while reaching Grand Baie in the north takes around an hour. A private transfer typically costs somewhere around 30 to 55 EUR depending on your resort."
+        q: 'Which side is closer to the airport?',
+        a: 'The south. Sir Seewoosagur Ramgoolam International Airport sits near Plaisance in the southeast, so southern bases like Blue Bay, Mahebourg and Bel Ombre are only 15 to 30 minutes away, while reaching Grand Baie in the north takes around an hour. A private transfer typically costs somewhere around 30 to 55 EUR depending on your resort.',
       },
       {
-        "q": "Where should I stay for the best beaches and swimming?",
-        "a": "For reliably calm, swimmable water choose the north or northwest, including Trou aux Biches, Mont Choisy and Pereybere. For the most striking beaches and the best snorkelling head south to Le Morne and Blue Bay, but be aware that southern conditions are more weather and wind dependent, especially during the windier winter months from May to October."
-      }
-    ]
+        q: 'Where should I stay for the best beaches and swimming?',
+        a: 'For reliably calm, swimmable water choose the north or northwest, including Trou aux Biches, Mont Choisy and Pereybere. For the most striking beaches and the best snorkelling head south to Le Morne and Blue Bay, but be aware that southern conditions are more weather and wind dependent, especially during the windier winter months from May to October.',
+      },
+    ],
   },
   {
-    "slug": "snorkeling-in-mauritius",
-    "title": "Snorkeling in Mauritius: The Best Spots",
-    "metaTitle": "Snorkeling in Mauritius: The Best Spots",
-    "metaDescription": "Where to snorkel in Mauritius: Blue Bay, Trou aux Biches and the northern islets. Honest tips on what you'll see, best seasons, prices and how to get there.",
-    "excerpt": "A practical, honest guide to the best snorkeling spots in Mauritius, from the Blue Bay marine park to Trou aux Biches and the northern islets, with seasons, prices and tips.",
-    "readMins": 6,
-    "sections": [
+    slug: 'snorkeling-in-mauritius',
+    title: 'Snorkeling in Mauritius: The Best Spots',
+    metaTitle: 'Snorkeling in Mauritius: The Best Spots',
+    metaDescription:
+      "Where to snorkel in Mauritius: Blue Bay, Trou aux Biches and the northern islets. Honest tips on what you'll see, best seasons, prices and how to get there.",
+    excerpt:
+      'A practical, honest guide to the best snorkeling spots in Mauritius, from the Blue Bay marine park to Trou aux Biches and the northern islets, with seasons, prices and tips.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "Why Mauritius is a great place to snorkel",
-        "paragraphs": [
+        heading: 'Why Mauritius is a great place to snorkel',
+        paragraphs: [
           "Mauritius sits inside an almost continuous fringing reef, so most of the coast is wrapped in a calm, shallow lagoon between the beach and the breaking waves offshore. That lagoon is the secret to the island's snorkeling: the water is warm year-round (roughly 24 to 28 degrees Celsius), waist-to-chest deep in many places, and usually protected from open-ocean swell. You can wade in straight from the sand without a boat, which makes it genuinely beginner-friendly and good for families.",
-          "What you see depends a lot on where you go. The healthiest coral and the biggest variety of fish are concentrated in a handful of well-known sites rather than spread evenly along the whole coast. Some popular beaches have sandy or seagrass bottoms with little to look at, so it pays to be specific. Below are the three areas worth planning around: Blue Bay in the south-east, Trou aux Biches in the north-west, and the northern islets reached by boat."
-        ]
+          'What you see depends a lot on where you go. The healthiest coral and the biggest variety of fish are concentrated in a handful of well-known sites rather than spread evenly along the whole coast. Some popular beaches have sandy or seagrass bottoms with little to look at, so it pays to be specific. Below are the three areas worth planning around: Blue Bay in the south-east, Trou aux Biches in the north-west, and the northern islets reached by boat.',
+        ],
       },
       {
-        "heading": "Blue Bay Marine Park (south-east)",
-        "paragraphs": [
+        heading: 'Blue Bay Marine Park (south-east)',
+        paragraphs: [
           "Blue Bay is the most famous snorkeling spot on the island and the only legally protected marine park among these three, gazetted in 1997. The reef here has good live coral cover, including large old brain and stag corals, plus reliable fish life: parrotfish, sergeant majors, butterflyfish, the occasional moray eel, and sea turtles if you are lucky. Because it's a protected park, fishing and anchoring are restricted, which is a big part of why the reef has held up better than at busier resort beaches.",
-          "You can snorkel directly off Blue Bay public beach, but the best coral is further out toward the reef edge, so most visitors take a short glass-bottom boat trip. Local operators run these from the beach for roughly 15 to 25 EUR per person for about an hour, often combining a glass-bottom viewing with one or two snorkel stops. A word of honesty: boat traffic at the surface can be busy mid-morning, and parts of the reef near the channel show wear from years of tourism. Go early, ask the boatman to take you to the live-coral zone rather than the sandy patches, and never stand on or touch the coral."
-        ]
+          'You can snorkel directly off Blue Bay public beach, but the best coral is further out toward the reef edge, so most visitors take a short glass-bottom boat trip. Local operators run these from the beach for roughly 15 to 25 EUR per person for about an hour, often combining a glass-bottom viewing with one or two snorkel stops. A word of honesty: boat traffic at the surface can be busy mid-morning, and parts of the reef near the channel show wear from years of tourism. Go early, ask the boatman to take you to the live-coral zone rather than the sandy patches, and never stand on or touch the coral.',
+        ],
       },
       {
-        "heading": "Trou aux Biches and the north-west coast",
-        "paragraphs": [
+        heading: 'Trou aux Biches and the north-west coast',
+        paragraphs: [
           "Trou aux Biches, on the calm north-west coast, is one of the easiest places to snorkel without a boat. The lagoon is shallow, sheltered and sandy underfoot near the shore, and the reef sits close enough that confident swimmers can reach patches of coral and fish straight from the public beach. It's a relaxed, no-fuss option, and because the beach is long and free to access, you can simply bring a mask and go. Nearby Mont Choisy and Pointe aux Canonniers offer similar conditions.",
-          "Visibility on this coast is generally best in the calmer summer months and can drop after heavy rain or strong wind churns up sand. Trou aux Biches is also a popular base for diving and boat excursions, so it's an easy place to combine a casual shore snorkel in the morning with a booked trip later. If you want a fuller day on the water, browse the boat and snorkel options under /activities, or check what else is nearby under /attractions before you commit to one beach."
-        ]
+          "Visibility on this coast is generally best in the calmer summer months and can drop after heavy rain or strong wind churns up sand. Trou aux Biches is also a popular base for diving and boat excursions, so it's an easy place to combine a casual shore snorkel in the morning with a booked trip later. If you want a fuller day on the water, browse the boat and snorkel options under /activities, or check what else is nearby under /attractions before you commit to one beach.",
+        ],
       },
       {
-        "heading": "The northern islets: Île aux Cerfs, Gabriel and Coin de Mire",
-        "paragraphs": [
+        heading: 'The northern islets: Île aux Cerfs, Gabriel and Coin de Mire',
+        paragraphs: [
           "Some of the clearest water in Mauritius is around the small islands off the north coast, reached only by catamaran or speedboat. Full-day northern islands cruises typically visit Gabriel Island (Îlot Gabriel) and the area around Flat Island (Île Plate), with a dramatic view of the basalt outcrop called Coin de Mire (Gunner's Quoin). The snorkel stops here tend to have excellent visibility and lively fish life because they sit away from river run-off and town beaches. Expect a full day out, usually with lunch and drinks included, for roughly 50 to 90 EUR per adult depending on the operator and whether it's a shared or private boat.",
-          "On the east coast, Île aux Cerfs is the headline boat-trip island. It's stunning for its turquoise lagoon and white sand, but be realistic about the snorkeling itself: the main beach areas are sandy and the island is very busy, so it's more of a beach-and-swim day than a coral-spotting one. If snorkeling quality is your priority over scenery and crowds, the northern islets cruise is the stronger pick. Either way, sea conditions and departures shift with the weather, so it helps to map your days out in advance with the /ai-road-trip-planner."
-        ]
+          "On the east coast, Île aux Cerfs is the headline boat-trip island. It's stunning for its turquoise lagoon and white sand, but be realistic about the snorkeling itself: the main beach areas are sandy and the island is very busy, so it's more of a beach-and-swim day than a coral-spotting one. If snorkeling quality is your priority over scenery and crowds, the northern islets cruise is the stronger pick. Either way, sea conditions and departures shift with the weather, so it helps to map your days out in advance with the /ai-road-trip-planner.",
+        ],
       },
       {
-        "heading": "Best time of year and water conditions",
-        "paragraphs": [
-          "Mauritius has two broad seasons. The warmer summer runs roughly November to April, with sea temperatures around 27 to 28 degrees and generally calm mornings, though this is also the wetter cyclone-risk window when a passing storm or heavy downpour can cloud the lagoon for a day or two. The cooler, drier winter runs May to October; the water is a little cooler (around 24 to 25 degrees) and the south-east trade winds are stronger, which can make exposed coasts choppy but leaves sheltered spots clear.",
-          "As a rule, snorkel in the early morning before the wind picks up and before the boat crowds arrive, and pick a coast on the lee side of the day's wind. The north and west coasts (Trou aux Biches) are calmest when the south-easterly trades blow in winter, while the south-east (Blue Bay) is often best in the calmer summer months. Visibility is almost always better a few days after rain rather than immediately after."
-        ]
+        heading: 'Best time of year and water conditions',
+        paragraphs: [
+          'Mauritius has two broad seasons. The warmer summer runs roughly November to April, with sea temperatures around 27 to 28 degrees and generally calm mornings, though this is also the wetter cyclone-risk window when a passing storm or heavy downpour can cloud the lagoon for a day or two. The cooler, drier winter runs May to October; the water is a little cooler (around 24 to 25 degrees) and the south-east trade winds are stronger, which can make exposed coasts choppy but leaves sheltered spots clear.',
+          "As a rule, snorkel in the early morning before the wind picks up and before the boat crowds arrive, and pick a coast on the lee side of the day's wind. The north and west coasts (Trou aux Biches) are calmest when the south-easterly trades blow in winter, while the south-east (Blue Bay) is often best in the calmer summer months. Visibility is almost always better a few days after rain rather than immediately after.",
+        ],
       },
       {
-        "heading": "Practical tips, gear and safety",
-        "paragraphs": [
+        heading: 'Practical tips, gear and safety',
+        paragraphs: [
           "Bring your own mask and snorkel if you can; rental gear at the beach is fine but quality varies and a leaking mask ruins the experience. Reef-safe sunscreen, a rash guard or T-shirt for sun protection, and water shoes for rocky entries are all worth packing. Apply sunscreen well before you get in, since the magnified sun on your back while floating face-down causes some of the worst burns visitors get. Stay hydrated and don't overestimate your stamina against a current.",
           "Respect the reef and the rules: never stand on, touch or break coral, don't chase or feed fish or turtles, and take nothing from a marine park. Watch for boat channels and stay inside the lagoon unless you're a strong swimmer with a guide. Lagoons look calm but currents near reef passes can be deceptively strong, so snorkel with a buddy and keep an eye on your distance from shore.",
-          "Most of these spots are spread around the island, so a half-day at Blue Bay and a day on a northern cruise sit on opposite coasts. Renting a car or arranging a driver makes the logistics far easier; if you're arriving fresh, sorting your /airport-transfers first means you can head straight to the coast, and you can compare regions across the island under /destinations when deciding where to base yourself."
-        ]
-      }
+          "Most of these spots are spread around the island, so a half-day at Blue Bay and a day on a northern cruise sit on opposite coasts. Renting a car or arranging a driver makes the logistics far easier; if you're arriving fresh, sorting your /airport-transfers first means you can head straight to the coast, and you can compare regions across the island under /destinations when deciding where to base yourself.",
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Where is the best snorkeling in Mauritius for beginners?",
-        "a": "Trou aux Biches on the north-west coast is the easiest for beginners: a shallow, sheltered lagoon you can wade into straight from the public beach. Blue Bay is also beginner-friendly if you take a short glass-bottom boat to the calm reef zone rather than swimming far out yourself."
+        q: 'Where is the best snorkeling in Mauritius for beginners?',
+        a: 'Trou aux Biches on the north-west coast is the easiest for beginners: a shallow, sheltered lagoon you can wade into straight from the public beach. Blue Bay is also beginner-friendly if you take a short glass-bottom boat to the calm reef zone rather than swimming far out yourself.',
       },
       {
-        "q": "Do I need a boat to snorkel in Mauritius?",
-        "a": "Not always. You can snorkel from shore at Trou aux Biches, Mont Choisy and parts of Blue Bay beach. But the best coral and clearest water, especially at Blue Bay's reef edge and around the northern islets like Gabriel Island, are reached by a short boat trip costing roughly 15 to 90 EUR depending on the excursion."
+        q: 'Do I need a boat to snorkel in Mauritius?',
+        a: "Not always. You can snorkel from shore at Trou aux Biches, Mont Choisy and parts of Blue Bay beach. But the best coral and clearest water, especially at Blue Bay's reef edge and around the northern islets like Gabriel Island, are reached by a short boat trip costing roughly 15 to 90 EUR depending on the excursion.",
       },
       {
-        "q": "What is the best time of year to snorkel in Mauritius?",
-        "a": "The water is warm and good for snorkeling all year. Summer (November to April) is warmest and often calmest in the mornings but wetter; winter (May to October) is cooler and drier with stronger trade winds. For the clearest water, go early in the morning, avoid the day or two right after heavy rain, and choose a coast sheltered from the day's wind."
+        q: 'What is the best time of year to snorkel in Mauritius?',
+        a: "The water is warm and good for snorkeling all year. Summer (November to April) is warmest and often calmest in the mornings but wetter; winter (May to October) is cooler and drier with stronger trade winds. For the clearest water, go early in the morning, avoid the day or two right after heavy rain, and choose a coast sheltered from the day's wind.",
       },
       {
-        "q": "Will I see turtles when snorkeling in Mauritius?",
-        "a": "It's possible but not guaranteed. Green and hawksbill turtles are sometimes seen at Blue Bay Marine Park and on northern islets cruises, along with parrotfish, butterflyfish and sergeant majors. Sightings depend on luck and conditions, so treat any encounter as a bonus and never chase or touch the animals."
-      }
-    ]
+        q: 'Will I see turtles when snorkeling in Mauritius?',
+        a: "It's possible but not guaranteed. Green and hawksbill turtles are sometimes seen at Blue Bay Marine Park and on northern islets cruises, along with parrotfish, butterflyfish and sergeant majors. Sightings depend on luck and conditions, so treat any encounter as a bonus and never chase or touch the animals.",
+      },
+    ],
   },
   {
-    "slug": "scuba-diving-mauritius",
-    "title": "Scuba Diving in Mauritius: Sites & Seasons",
-    "metaTitle": "Scuba Diving in Mauritius: Sites & Seasons",
-    "metaDescription": "A practical guide to scuba diving in Mauritius: best dive sites, wrecks, certification options, the right season to dive, and how to choose a reputable operator.",
-    "excerpt": "An honest guide to scuba diving in Mauritius, covering the best reef and wreck sites, certification options, seasonal conditions, and how to pick a safe, reputable dive operator.",
-    "readMins": 7,
-    "sections": [
+    slug: 'scuba-diving-mauritius',
+    title: 'Scuba Diving in Mauritius: Sites & Seasons',
+    metaTitle: 'Scuba Diving in Mauritius: Sites & Seasons',
+    metaDescription:
+      'A practical guide to scuba diving in Mauritius: best dive sites, wrecks, certification options, the right season to dive, and how to choose a reputable operator.',
+    excerpt:
+      'An honest guide to scuba diving in Mauritius, covering the best reef and wreck sites, certification options, seasonal conditions, and how to pick a safe, reputable dive operator.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "Why Mauritius is a strong dive destination",
-        "paragraphs": [
-          "Mauritius sits in the southwest Indian Ocean, ringed by an almost continuous fringing reef that creates a sheltered lagoon and, just beyond the reef pass, dramatic drop-offs into clear blue water. That geography is the whole appeal for divers: calm, shallow training conditions inside the lagoon, and walls, caves, canyons and wrecks within a short boat ride outside it. Visibility on a good day commonly runs 20 to 30 metres, and water temperatures stay diver-friendly year round, roughly 22C in the cooler months and up to 28C in summer.",
-          "It is worth setting expectations honestly. Mauritius is not the Maldives or the Red Sea when it comes to big pelagic action or dense coral gardens, and decades of fishing and bleaching events have affected some reefs. What it does very well is varied, accessible diving: friendly reef fish, moray eels, turtles, the occasional reef shark, good macro life, and a genuinely excellent collection of wrecks. For most certified holidaymakers and people learning to dive, that is more than enough.",
-          "Diving is one of several water-based activities the island is known for, so it slots neatly into a wider trip. If you are still shaping your itinerary, browse the broader range under /activities and the headline sights under /attractions to balance dive days with land-based excursions."
-        ]
+        heading: 'Why Mauritius is a strong dive destination',
+        paragraphs: [
+          'Mauritius sits in the southwest Indian Ocean, ringed by an almost continuous fringing reef that creates a sheltered lagoon and, just beyond the reef pass, dramatic drop-offs into clear blue water. That geography is the whole appeal for divers: calm, shallow training conditions inside the lagoon, and walls, caves, canyons and wrecks within a short boat ride outside it. Visibility on a good day commonly runs 20 to 30 metres, and water temperatures stay diver-friendly year round, roughly 22C in the cooler months and up to 28C in summer.',
+          'It is worth setting expectations honestly. Mauritius is not the Maldives or the Red Sea when it comes to big pelagic action or dense coral gardens, and decades of fishing and bleaching events have affected some reefs. What it does very well is varied, accessible diving: friendly reef fish, moray eels, turtles, the occasional reef shark, good macro life, and a genuinely excellent collection of wrecks. For most certified holidaymakers and people learning to dive, that is more than enough.',
+          'Diving is one of several water-based activities the island is known for, so it slots neatly into a wider trip. If you are still shaping your itinerary, browse the broader range under /activities and the headline sights under /attractions to balance dive days with land-based excursions.',
+        ],
       },
       {
-        "heading": "Best reef dive sites",
-        "paragraphs": [
+        heading: 'Best reef dive sites',
+        paragraphs: [
           "The north and northwest coast around Grand Baie and Trou aux Biches is the most developed diving area and a sensible base for first-timers and casual divers. Coin de Mire (Gunner's Coin), the small island off the north coast, offers sites such as Holt's Rock and Djabeda with swim-throughs, canyons and reliable fish life. Closer in, sites like Aquarium live up to the name with shoals of reef fish in shallow, gentle conditions ideal for newer divers.",
           "The west coast around Flic en Flac is many divers' favourite for its proximity to the reef drop-off. Sites such as La Cathedrale, with its cavern, archways and shafts of light, and Rempart Serpent (Snake Reef), known for stonefish, scorpionfish and moray eels, are deservedly popular. On the east coast near Belle Mare and Trou d'Eau Douce, conditions are more weather-dependent because of the prevailing southeast trade winds, but on calm days the diving over Belle Mare's outer reef is quiet and rewarding, and the famed waterfall dive off the southwest near Le Morne is a separate bucket-list spectacle driven by underwater sand currents.",
-          "Wherever you are staying, ask your operator which sites suit the day's wind and swell rather than fixating on one famous name. A good dive centre will route you to wherever conditions and your certification level line up."
-        ]
+          "Wherever you are staying, ask your operator which sites suit the day's wind and swell rather than fixating on one famous name. A good dive centre will route you to wherever conditions and your certification level line up.",
+        ],
       },
       {
-        "heading": "Wreck diving in Mauritius",
-        "paragraphs": [
-          "Mauritius punches above its weight on wrecks, partly because several vessels have been deliberately scuttled to create artificial reefs and dive attractions. Off the west coast near Flic en Flac you will find the Stella Maris, the Kei Sei 113 and the well-loved Tug II, the last of which sits in around 20 metres and is encrusted with coral and patrolled by lionfish, making it suitable for divers with modest experience.",
-          "More advanced wrecks include the Silver Star and the deeper sites that demand good buoyancy and, in some cases, a deep or wreck speciality. The water tends to be clear around these structures, so even when you are not penetrating the wreck, the silhouette against the blue and the marine life that has colonised the metal make for memorable dives. Photographers in particular tend to rate the island's wrecks above its natural reefs."
-        ]
+        heading: 'Wreck diving in Mauritius',
+        paragraphs: [
+          'Mauritius punches above its weight on wrecks, partly because several vessels have been deliberately scuttled to create artificial reefs and dive attractions. Off the west coast near Flic en Flac you will find the Stella Maris, the Kei Sei 113 and the well-loved Tug II, the last of which sits in around 20 metres and is encrusted with coral and patrolled by lionfish, making it suitable for divers with modest experience.',
+          "More advanced wrecks include the Silver Star and the deeper sites that demand good buoyancy and, in some cases, a deep or wreck speciality. The water tends to be clear around these structures, so even when you are not penetrating the wreck, the silhouette against the blue and the marine life that has colonised the metal make for memorable dives. Photographers in particular tend to rate the island's wrecks above its natural reefs.",
+        ],
       },
       {
-        "heading": "Learning to dive and certification",
-        "paragraphs": [
-          "Mauritius is a comfortable place to learn. Most reputable centres teach PADI or SSI courses, and the sheltered lagoon means your confined-water and early open-water sessions happen in calm, warm conditions. If you only want a taste, a Discover Scuba Diving experience (a guided shallow dive with an instructor, no certification) typically costs in the region of 60 to 90 EUR. A full PADI Open Water course, the entry-level qualification that lets you dive to 18 metres worldwide, usually runs around 400 to 550 EUR over three to four days, including materials and certification.",
-          "For already-certified divers, a single guided dive with full equipment generally costs about 40 to 60 EUR, with multi-dive packages bringing the per-dive price down noticeably. Bring your certification card and logbook; centres will usually want to see them and may ask you to do a check dive if you have not dived for a while. Booking learning and dive days early in your stay is wise, so weather disruptions still leave room to reschedule."
-        ]
+        heading: 'Learning to dive and certification',
+        paragraphs: [
+          'Mauritius is a comfortable place to learn. Most reputable centres teach PADI or SSI courses, and the sheltered lagoon means your confined-water and early open-water sessions happen in calm, warm conditions. If you only want a taste, a Discover Scuba Diving experience (a guided shallow dive with an instructor, no certification) typically costs in the region of 60 to 90 EUR. A full PADI Open Water course, the entry-level qualification that lets you dive to 18 metres worldwide, usually runs around 400 to 550 EUR over three to four days, including materials and certification.',
+          'For already-certified divers, a single guided dive with full equipment generally costs about 40 to 60 EUR, with multi-dive packages bringing the per-dive price down noticeably. Bring your certification card and logbook; centres will usually want to see them and may ask you to do a check dive if you have not dived for a while. Booking learning and dive days early in your stay is wise, so weather disruptions still leave room to reschedule.',
+        ],
       },
       {
-        "heading": "Best time to dive: seasons and conditions",
-        "paragraphs": [
-          "Mauritius has two broad seasons. The austral summer, roughly November to April, is warmer and wetter, with water temperatures around 26 to 28C; it is also the cyclone-risk window, so occasional days are lost to swell or storms even when no cyclone makes landfall. The winter, May to October, is cooler and drier, with water nearer 22 to 24C and steadier conditions on the more sheltered coasts.",
-          "Rather than one single best month, think in terms of coast. The north and west are generally divable year round and are the safer bet in winter when the southeast trade winds pick up. The east and southeast coasts dive best in the calmer summer months. Marine life adds seasonal interest too: whale sharks are most often reported between roughly August and November off the west coast, and humpback whales pass the island on migration around July to October, though these are sightings on the surface rather than guaranteed dive encounters.",
-          "If you want to line up dive-friendly coasts with the rest of your route, the /ai-road-trip-planner can help sketch an itinerary around the conditions, and the regional pages under /destinations give a feel for which coast suits your dates."
-        ]
+        heading: 'Best time to dive: seasons and conditions',
+        paragraphs: [
+          'Mauritius has two broad seasons. The austral summer, roughly November to April, is warmer and wetter, with water temperatures around 26 to 28C; it is also the cyclone-risk window, so occasional days are lost to swell or storms even when no cyclone makes landfall. The winter, May to October, is cooler and drier, with water nearer 22 to 24C and steadier conditions on the more sheltered coasts.',
+          'Rather than one single best month, think in terms of coast. The north and west are generally divable year round and are the safer bet in winter when the southeast trade winds pick up. The east and southeast coasts dive best in the calmer summer months. Marine life adds seasonal interest too: whale sharks are most often reported between roughly August and November off the west coast, and humpback whales pass the island on migration around July to October, though these are sightings on the surface rather than guaranteed dive encounters.',
+          'If you want to line up dive-friendly coasts with the rest of your route, the /ai-road-trip-planner can help sketch an itinerary around the conditions, and the regional pages under /destinations give a feel for which coast suits your dates.',
+        ],
       },
       {
-        "heading": "Choosing a safe, reputable operator",
-        "paragraphs": [
-          "Diving is a safety-critical activity, so the operator matters more than the price. Look for a centre affiliated with a recognised training agency such as PADI or SSI, and ideally one registered with the Mauritius Scuba Diving Association (MSDA), the national body that sets local standards. Good signs include well-maintained rental gear, oxygen and a first-aid kit on the boat, small guided groups, a clear pre-dive briefing, and instructors who ask about your experience rather than waving you straight onto the boat.",
+        heading: 'Choosing a safe, reputable operator',
+        paragraphs: [
+          'Diving is a safety-critical activity, so the operator matters more than the price. Look for a centre affiliated with a recognised training agency such as PADI or SSI, and ideally one registered with the Mauritius Scuba Diving Association (MSDA), the national body that sets local standards. Good signs include well-maintained rental gear, oxygen and a first-aid kit on the boat, small guided groups, a clear pre-dive briefing, and instructors who ask about your experience rather than waving you straight onto the boat.',
           "Mauritius has a recompression chamber, but it is sensible to dive within your limits, stay well hydrated, and respect the standard advice of not flying within 18 to 24 hours of your last dive, which matters when you are timing dives against a departure flight. Don't be shy about asking an operator how many divers a guide will lead, what the plan is if conditions deteriorate, and whether your insurance covers diving.",
-          "On the logistics side, plan transfers around dive times so an early boat doesn't become a rush. Many visitors arrange a fixed-price airport pickup and book island transport in advance through /airport-transfers, which removes the morning-of scramble and lets you focus on the diving."
-        ]
-      }
+          "On the logistics side, plan transfers around dive times so an early boat doesn't become a rush. Many visitors arrange a fixed-price airport pickup and book island transport in advance through /airport-transfers, which removes the morning-of scramble and lets you focus on the diving.",
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Do I need to be certified to scuba dive in Mauritius?",
-        "a": "No. Certified divers can join guided dives with proof of certification, but complete beginners can do a Discover Scuba Diving experience, a guided shallow dive with an instructor, for around 60 to 90 EUR. If you want to dive independently, take an entry-level PADI or SSI Open Water course, which typically costs 400 to 550 EUR over three to four days."
+        q: 'Do I need to be certified to scuba dive in Mauritius?',
+        a: 'No. Certified divers can join guided dives with proof of certification, but complete beginners can do a Discover Scuba Diving experience, a guided shallow dive with an instructor, for around 60 to 90 EUR. If you want to dive independently, take an entry-level PADI or SSI Open Water course, which typically costs 400 to 550 EUR over three to four days.',
       },
       {
-        "q": "What is the best time of year to dive in Mauritius?",
-        "a": "Diving is possible year round. The north and west coasts dive well all year and are the safer choice in the cooler, drier winter (May to October) when the southeast trade winds blow. The east and southeast coasts are best in the warmer summer (November to April), which is also the cyclone-risk season, so the odd day can be lost to swell."
+        q: 'What is the best time of year to dive in Mauritius?',
+        a: 'Diving is possible year round. The north and west coasts dive well all year and are the safer choice in the cooler, drier winter (May to October) when the southeast trade winds blow. The east and southeast coasts are best in the warmer summer (November to April), which is also the cyclone-risk season, so the odd day can be lost to swell.',
       },
       {
-        "q": "Are there good wrecks to dive in Mauritius?",
-        "a": "Yes, wrecks are a highlight. Several vessels have been scuttled as artificial reefs, especially off the west coast near Flic en Flac. The Tug II is a popular shallower wreck suitable for moderately experienced divers, while sites like the Stella Maris, Kei Sei 113 and Silver Star offer deeper, more advanced diving."
+        q: 'Are there good wrecks to dive in Mauritius?',
+        a: 'Yes, wrecks are a highlight. Several vessels have been scuttled as artificial reefs, especially off the west coast near Flic en Flac. The Tug II is a popular shallower wreck suitable for moderately experienced divers, while sites like the Stella Maris, Kei Sei 113 and Silver Star offer deeper, more advanced diving.',
       },
       {
-        "q": "How much does a single dive cost for a certified diver?",
-        "a": "A single guided dive with full equipment generally costs about 40 to 60 EUR. Multi-dive packages reduce the per-dive price, so booking several dives at once is usually better value. Bring your certification card and logbook, as most centres want to see them before you dive."
-      }
-    ]
+        q: 'How much does a single dive cost for a certified diver?',
+        a: 'A single guided dive with full equipment generally costs about 40 to 60 EUR. Multi-dive packages reduce the per-dive price, so booking several dives at once is usually better value. Bring your certification card and logbook, as most centres want to see them before you dive.',
+      },
+    ],
   },
   {
-    "slug": "hiking-le-morne",
-    "title": "Hiking Le Morne Brabant: A Complete Guide",
-    "metaTitle": "Hiking Le Morne Brabant: A Complete Guide",
-    "metaDescription": "A complete guide to hiking Le Morne Brabant in Mauritius: route, difficulty, the guide requirement, timing, what to bring, and the mountain's history.",
-    "excerpt": "Everything you need to hike Le Morne Brabant: the route, real difficulty, why a guide is required for the summit, timing, packing, and the mountain's history.",
-    "readMins": 6,
-    "sections": [
+    slug: 'hiking-le-morne',
+    title: 'Hiking Le Morne Brabant: A Complete Guide',
+    metaTitle: 'Hiking Le Morne Brabant: A Complete Guide',
+    metaDescription:
+      "A complete guide to hiking Le Morne Brabant in Mauritius: route, difficulty, the guide requirement, timing, what to bring, and the mountain's history.",
+    excerpt:
+      "Everything you need to hike Le Morne Brabant: the route, real difficulty, why a guide is required for the summit, timing, packing, and the mountain's history.",
+    readMins: 6,
+    sections: [
       {
-        "heading": "Why Le Morne Brabant Is More Than a Hike",
-        "paragraphs": [
-          "Le Morne Brabant is the basalt monolith that rises 556 metres above the south-western tip of Mauritius, framing the lagoons of Le Morne village and the wider Black River district. Its silhouette is on the back of the postcards, but the mountain carries far more weight than its looks. In 2008 UNESCO inscribed Le Morne Cultural Landscape on the World Heritage List as a symbol of resistance to slavery, and that history is part of why people climb it today.",
-          "For most visitors the hike is the single best half-day of effort-for-reward on the island. You trade a beach morning for a steep forest trail and a summit ridge with views over the turquoise lagoon, the underwater waterfall illusion off the coast, and the surrounding sugar-cane plains. It is genuinely strenuous in places, but it is achievable for anyone with reasonable fitness who respects the mountain and the heat. If you are still mapping out your week, the climb pairs naturally with the beaches and viewpoints listed under /attractions on the south-west coast."
-        ]
+        heading: 'Why Le Morne Brabant Is More Than a Hike',
+        paragraphs: [
+          'Le Morne Brabant is the basalt monolith that rises 556 metres above the south-western tip of Mauritius, framing the lagoons of Le Morne village and the wider Black River district. Its silhouette is on the back of the postcards, but the mountain carries far more weight than its looks. In 2008 UNESCO inscribed Le Morne Cultural Landscape on the World Heritage List as a symbol of resistance to slavery, and that history is part of why people climb it today.',
+          'For most visitors the hike is the single best half-day of effort-for-reward on the island. You trade a beach morning for a steep forest trail and a summit ridge with views over the turquoise lagoon, the underwater waterfall illusion off the coast, and the surrounding sugar-cane plains. It is genuinely strenuous in places, but it is achievable for anyone with reasonable fitness who respects the mountain and the heat. If you are still mapping out your week, the climb pairs naturally with the beaches and viewpoints listed under /attractions on the south-west coast.',
+        ],
       },
       {
-        "heading": "The Route: From Car Park to Summit",
-        "paragraphs": [
-          "The trail starts at the public car park at the base of the peninsula, near the entrance gate by the Le Morne road. The first section is the easy part: a gradual, well-defined path that winds upward through dry forest for roughly 45 minutes to an hour. This stretch is open to everyone without a guide, and it ends at a small viewpoint and a cross that marks where the public trail officially stops. Many casual walkers turn around here, and that is a perfectly good objective in itself.",
-          "Beyond the cross the character of the climb changes completely. The route becomes a steep scramble over rock, with sections where you use your hands, some fixed ropes, and exposed ledges before the final push to the true summit. This upper half is where the mountain earns its reputation. The total round trip to the summit is about 7 kilometres with roughly 550 metres of ascent, typically taking three to four hours including stops. Going only to the viewpoint and back is closer to 90 minutes to two hours."
-        ]
+        heading: 'The Route: From Car Park to Summit',
+        paragraphs: [
+          'The trail starts at the public car park at the base of the peninsula, near the entrance gate by the Le Morne road. The first section is the easy part: a gradual, well-defined path that winds upward through dry forest for roughly 45 minutes to an hour. This stretch is open to everyone without a guide, and it ends at a small viewpoint and a cross that marks where the public trail officially stops. Many casual walkers turn around here, and that is a perfectly good objective in itself.',
+          'Beyond the cross the character of the climb changes completely. The route becomes a steep scramble over rock, with sections where you use your hands, some fixed ropes, and exposed ledges before the final push to the true summit. This upper half is where the mountain earns its reputation. The total round trip to the summit is about 7 kilometres with roughly 550 metres of ascent, typically taking three to four hours including stops. Going only to the viewpoint and back is closer to 90 minutes to two hours.',
+        ],
       },
       {
-        "heading": "Difficulty and the Guide Requirement",
-        "paragraphs": [
-          "The lower trail is moderate. The upper section, from the cross to the summit, is graded difficult and should not be attempted casually. It involves real scrambling, loose rock, drop-offs, and a route that is not obvious once you leave the main path. People are injured here every season, almost always above the viewpoint, and almost always because they pushed past their limits or lost the line in poor visibility.",
-          "Because of this, a licensed guide is required for the section above the cross to the summit. This is not a bureaucratic upsell; the upper mountain is on protected land and the safe route genuinely needs local knowledge. Plan on roughly 40 to 70 EUR per person for a guided summit climb, often less per head for a group, usually including the early start and sometimes hotel pickup. A reputable operator will brief you honestly on conditions and turn the group around if the weather closes in. You can browse guided options and book a transfer to the trailhead through /activities and /airport-transfers."
-        ]
+        heading: 'Difficulty and the Guide Requirement',
+        paragraphs: [
+          'The lower trail is moderate. The upper section, from the cross to the summit, is graded difficult and should not be attempted casually. It involves real scrambling, loose rock, drop-offs, and a route that is not obvious once you leave the main path. People are injured here every season, almost always above the viewpoint, and almost always because they pushed past their limits or lost the line in poor visibility.',
+          'Because of this, a licensed guide is required for the section above the cross to the summit. This is not a bureaucratic upsell; the upper mountain is on protected land and the safe route genuinely needs local knowledge. Plan on roughly 40 to 70 EUR per person for a guided summit climb, often less per head for a group, usually including the early start and sometimes hotel pickup. A reputable operator will brief you honestly on conditions and turn the group around if the weather closes in. You can browse guided options and book a transfer to the trailhead through /activities and /airport-transfers.',
+        ],
       },
       {
-        "heading": "Best Time of Day and Season",
-        "paragraphs": [
-          "Start early. Most guided climbs begin between 6:30 and 7:30 in the morning so that you reach the steep, exposed rock before the sun is high. By mid-morning the basalt radiates heat and there is almost no shade above the forest, which turns a manageable scramble into a draining one. An early start also gives you the clearest air and the best chance of an uninterrupted summit view before afternoon cloud builds over the peak.",
-          "Seasonally, Mauritius has a warm, humid summer from November to April and a cooler, drier winter from May to October. Winter is the more comfortable window for hiking: lower humidity, gentler temperatures, and more stable mornings. Summer climbs are still very doable but demand an earlier start and more water, and you should watch for sudden tropical downpours that make the rock slick and dangerous. Whenever you go, check the forecast the night before and accept that guides will postpone if the upper mountain is wet."
-        ]
+        heading: 'Best Time of Day and Season',
+        paragraphs: [
+          'Start early. Most guided climbs begin between 6:30 and 7:30 in the morning so that you reach the steep, exposed rock before the sun is high. By mid-morning the basalt radiates heat and there is almost no shade above the forest, which turns a manageable scramble into a draining one. An early start also gives you the clearest air and the best chance of an uninterrupted summit view before afternoon cloud builds over the peak.',
+          'Seasonally, Mauritius has a warm, humid summer from November to April and a cooler, drier winter from May to October. Winter is the more comfortable window for hiking: lower humidity, gentler temperatures, and more stable mornings. Summer climbs are still very doable but demand an earlier start and more water, and you should watch for sudden tropical downpours that make the rock slick and dangerous. Whenever you go, check the forecast the night before and accept that guides will postpone if the upper mountain is wet.',
+        ],
       },
       {
-        "heading": "What to Bring",
-        "paragraphs": [
-          "Footwear matters most. Trail shoes or hiking boots with real grip are essential for the scramble; flip-flops and smooth-soled trainers are how people slip. Bring at least 1.5 to 2 litres of water per person, more in summer, because there is nowhere to refill on the mountain. Add sun protection you can rely on in the open: a hat, high-factor sunscreen, and sunglasses.",
-          "Pack light but complete. A small daypack with a light rain layer, some snacks or fruit, and a basic first-aid kit covers most situations. Your phone or a camera is worth carrying for the summit ridge, ideally on a strap. Skip anything bulky, and do not bring valuables you would hate to drop. Wear breathable clothing rather than cotton that stays soaked with sweat. If you are planning a full day around the climb, it is easy to slot beach time or a lagoon stop afterwards using the south-west spots on /destinations."
-        ]
+        heading: 'What to Bring',
+        paragraphs: [
+          'Footwear matters most. Trail shoes or hiking boots with real grip are essential for the scramble; flip-flops and smooth-soled trainers are how people slip. Bring at least 1.5 to 2 litres of water per person, more in summer, because there is nowhere to refill on the mountain. Add sun protection you can rely on in the open: a hat, high-factor sunscreen, and sunglasses.',
+          'Pack light but complete. A small daypack with a light rain layer, some snacks or fruit, and a basic first-aid kit covers most situations. Your phone or a camera is worth carrying for the summit ridge, ideally on a strap. Skip anything bulky, and do not bring valuables you would hate to drop. Wear breathable clothing rather than cotton that stays soaked with sweat. If you are planning a full day around the climb, it is easy to slot beach time or a lagoon stop afterwards using the south-west spots on /destinations.',
+        ],
       },
       {
-        "heading": "The History Beneath Your Feet",
-        "paragraphs": [
+        heading: 'The History Beneath Your Feet',
+        paragraphs: [
           "Le Morne's meaning comes from the era of slavery in Mauritius. The mountain's caves and forested summit became a refuge for runaway slaves, known as maroons, who used its near-inaccessibility to hide from capture. The most powerful story attached to it is one of tragedy: according to oral tradition, when a party arrived in the early 19th century, the maroons on the summit, fearing recapture, are said to have leapt from the cliffs rather than be taken back into bondage, not realising the visitors had in fact come to tell them slavery had been abolished.",
-          "Whether every detail is literal history or remembered legend, the mountain stands as a memorial to that resistance, which is exactly why UNESCO recognised it. Climbing it with that context changes the experience; the summit is not just a viewpoint but a place people died to stay free. A respectful climb means staying on the route, taking your litter down, and giving the cultural landscape the regard it is owed. To weave the hike into a wider itinerary of the island's heritage and coast, the trip-builder at /ai-road-trip-planner can sketch a route around it."
-        ]
-      }
+          "Whether every detail is literal history or remembered legend, the mountain stands as a memorial to that resistance, which is exactly why UNESCO recognised it. Climbing it with that context changes the experience; the summit is not just a viewpoint but a place people died to stay free. A respectful climb means staying on the route, taking your litter down, and giving the cultural landscape the regard it is owed. To weave the hike into a wider itinerary of the island's heritage and coast, the trip-builder at /ai-road-trip-planner can sketch a route around it.",
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Do I really need a guide to climb Le Morne Brabant?",
-        "a": "You can walk the lower trail to the viewpoint and cross on your own, and many people do. But the steep, exposed section from the cross to the true summit is on protected land and is graded difficult, so a licensed guide is required for it. The route is not obvious, involves scrambling and drop-offs, and accidents happen there most seasons, so the guide is a genuine safety measure rather than a formality."
+        q: 'Do I really need a guide to climb Le Morne Brabant?',
+        a: 'You can walk the lower trail to the viewpoint and cross on your own, and many people do. But the steep, exposed section from the cross to the true summit is on protected land and is graded difficult, so a licensed guide is required for it. The route is not obvious, involves scrambling and drop-offs, and accidents happen there most seasons, so the guide is a genuine safety measure rather than a formality.',
       },
       {
-        "q": "How long does the Le Morne hike take?",
-        "a": "Going only to the viewpoint and back takes roughly 90 minutes to two hours at an easy pace. The full guided round trip to the summit is about three to four hours including breaks, covering around 7 kilometres with about 550 metres of ascent. Most guided climbs start between 6:30 and 7:30 in the morning to avoid the midday heat."
+        q: 'How long does the Le Morne hike take?',
+        a: 'Going only to the viewpoint and back takes roughly 90 minutes to two hours at an easy pace. The full guided round trip to the summit is about three to four hours including breaks, covering around 7 kilometres with about 550 metres of ascent. Most guided climbs start between 6:30 and 7:30 in the morning to avoid the midday heat.',
       },
       {
-        "q": "How much does a guided summit climb cost?",
-        "a": "Expect roughly 40 to 70 EUR per person for a guided climb to the summit, often cheaper per person for a group. Many operators include an early start and sometimes hotel pickup. Prices vary with group size and what is bundled in, so confirm exactly what is covered when you book."
+        q: 'How much does a guided summit climb cost?',
+        a: 'Expect roughly 40 to 70 EUR per person for a guided climb to the summit, often cheaper per person for a group. Many operators include an early start and sometimes hotel pickup. Prices vary with group size and what is bundled in, so confirm exactly what is covered when you book.',
       },
       {
-        "q": "What is the best season to hike Le Morne?",
-        "a": "The cooler, drier winter from May to October is the most comfortable window, with lower humidity and more stable mornings. The summer months of November to April are still fine but hotter and more humid, so you need an earlier start, more water, and an eye on sudden tropical rain that can make the upper rock slippery and unsafe."
-      }
-    ]
+        q: 'What is the best season to hike Le Morne?',
+        a: 'The cooler, drier winter from May to October is the most comfortable window, with lower humidity and more stable mornings. The summer months of November to April are still fine but hotter and more humid, so you need an earlier start, more water, and an eye on sudden tropical rain that can make the upper rock slippery and unsafe.',
+      },
+    ],
   },
   {
-    "slug": "black-river-gorges-guide",
-    "title": "Black River Gorges National Park: Hiking Guide",
-    "metaTitle": "Black River Gorges National Park: Hiking Guide",
-    "metaDescription": "A practical hiking guide to Black River Gorges National Park, Mauritius: trails, viewpoints, endemic wildlife, both entrances, seasons and what to bring.",
-    "excerpt": "A practical, honest hiking guide to Mauritius's Black River Gorges National Park, covering the main trails, viewpoints, wildlife, both entrances and what to pack.",
-    "readMins": 8,
-    "sections": [
+    slug: 'black-river-gorges-guide',
+    title: 'Black River Gorges National Park: Hiking Guide',
+    metaTitle: 'Black River Gorges National Park: Hiking Guide',
+    metaDescription:
+      'A practical hiking guide to Black River Gorges National Park, Mauritius: trails, viewpoints, endemic wildlife, both entrances, seasons and what to bring.',
+    excerpt:
+      "A practical, honest hiking guide to Mauritius's Black River Gorges National Park, covering the main trails, viewpoints, wildlife, both entrances and what to pack.",
+    readMins: 8,
+    sections: [
       {
-        "heading": "Why Black River Gorges Is Worth the Detour",
-        "paragraphs": [
-          "Black River Gorges National Park protects the largest stretch of native forest left in Mauritius, covering roughly 6,500 hectares across the wet, mountainous southwest of the island. While the coast gets the postcards, this is where you see what Mauritius looked like before the sugar cane and the resorts: deep ravines cloaked in endemic ebony and tambalacoque, ferny streambeds, and ridgelines that drop away to the sea near Le Morne. It is the single best place on the island for walking and for spotting native wildlife.",
-          "Entry to the park itself is free, which still surprises people. There are no gates and no tickets for the trails. You simply turn up at one of the entrances, sign the visitor book at the main centre if you wish, and walk. The park is open daily and there are no fixed closing hours on the trails, though you should always be back at your car well before dark, as there is no lighting and no phone signal in the gorges.",
-          "One honest caveat up front: this is not a manicured, fully-railed nature park. Trail signage is patchy in places, paths can be muddy and slippery, and a couple of the longer routes are genuinely strenuous. That rawness is exactly what makes it special, but it means you should treat a walk here as a proper hike, not a stroll. If you would rather not plan the logistics yourself, our free /ai-road-trip-planner can slot a Black River day into a wider west-coast itinerary."
-        ]
+        heading: 'Why Black River Gorges Is Worth the Detour',
+        paragraphs: [
+          'Black River Gorges National Park protects the largest stretch of native forest left in Mauritius, covering roughly 6,500 hectares across the wet, mountainous southwest of the island. While the coast gets the postcards, this is where you see what Mauritius looked like before the sugar cane and the resorts: deep ravines cloaked in endemic ebony and tambalacoque, ferny streambeds, and ridgelines that drop away to the sea near Le Morne. It is the single best place on the island for walking and for spotting native wildlife.',
+          'Entry to the park itself is free, which still surprises people. There are no gates and no tickets for the trails. You simply turn up at one of the entrances, sign the visitor book at the main centre if you wish, and walk. The park is open daily and there are no fixed closing hours on the trails, though you should always be back at your car well before dark, as there is no lighting and no phone signal in the gorges.',
+          'One honest caveat up front: this is not a manicured, fully-railed nature park. Trail signage is patchy in places, paths can be muddy and slippery, and a couple of the longer routes are genuinely strenuous. That rawness is exactly what makes it special, but it means you should treat a walk here as a proper hike, not a stroll. If you would rather not plan the logistics yourself, our free /ai-road-trip-planner can slot a Black River day into a wider west-coast itinerary.',
+        ],
       },
       {
-        "heading": "The Two Entrances: Pétrin and Black River",
-        "paragraphs": [
-          "The park has two main access points, and choosing the right one shapes your whole day. The eastern entrance is at Pétrin, on the cool central plateau near Grand Bassin (Ganga Talao), reached on the road from Curepipe or Mare aux Vacoas. Pétrin sits high, around 600 metres, so trails from here start on the heathland plateau and tend to descend into the gorges. This side is closer to the famous viewpoints and is the easier place to begin if you want shorter, flatter walks.",
-          "The western entrance is at Black River (Rivière Noire), near the visitor centre off the coast road south of Tamarin and Grande Rivière Noire. Starting here means you begin near sea level and climb, which makes routes such as the ascent to Black River Peak considerably harder going up than coming down. The visitor centre on this side has maps, toilets, parking and rangers who can advise on current trail conditions, so it is the better choice for a first visit or a longer hike.",
-          "A common misjudgement is to underestimate the drive. From the east-coast resorts around Belle Mare or Trou d'Eau Douce, allow around 75 to 90 minutes to reach either entrance, and the plateau roads are slow and winding. From Flic en Flac or Tamarin on the west coast you are much closer, perhaps 30 to 45 minutes. Many visitors combine the park with a guided transfer rather than a hire car so they can be dropped at one entrance and collected at another; you can arrange that through our /airport-transfers and private-driver service."
-        ]
+        heading: 'The Two Entrances: Pétrin and Black River',
+        paragraphs: [
+          'The park has two main access points, and choosing the right one shapes your whole day. The eastern entrance is at Pétrin, on the cool central plateau near Grand Bassin (Ganga Talao), reached on the road from Curepipe or Mare aux Vacoas. Pétrin sits high, around 600 metres, so trails from here start on the heathland plateau and tend to descend into the gorges. This side is closer to the famous viewpoints and is the easier place to begin if you want shorter, flatter walks.',
+          'The western entrance is at Black River (Rivière Noire), near the visitor centre off the coast road south of Tamarin and Grande Rivière Noire. Starting here means you begin near sea level and climb, which makes routes such as the ascent to Black River Peak considerably harder going up than coming down. The visitor centre on this side has maps, toilets, parking and rangers who can advise on current trail conditions, so it is the better choice for a first visit or a longer hike.',
+          "A common misjudgement is to underestimate the drive. From the east-coast resorts around Belle Mare or Trou d'Eau Douce, allow around 75 to 90 minutes to reach either entrance, and the plateau roads are slow and winding. From Flic en Flac or Tamarin on the west coast you are much closer, perhaps 30 to 45 minutes. Many visitors combine the park with a guided transfer rather than a hire car so they can be dropped at one entrance and collected at another; you can arrange that through our /airport-transfers and private-driver service.",
+        ],
       },
       {
-        "heading": "The Main Trails, From Easy to Demanding",
-        "paragraphs": [
-          "For most visitors, the standout short walk is the Macchabée Trail from near Pétrin out to the Macchabée viewpoint, an easy-to-moderate route of roughly three to four kilometres each way through native forest, mostly level and well-defined. It gives you a real sense of the forest without committing to a full day. Even gentler is the short loop near Pétrin itself, suitable for families and anyone testing their footing in the mud.",
-          "Stepping up in effort, the Parakeet Trail links the Pétrin area down to the Black River visitor centre, a one-way descent of around eight kilometres that takes most people three to four hours. Walked downhill from Pétrin to Black River it is very manageable and rewards you with changing forest, birdsong and gorge views; this is the classic point-to-point that makes a two-car or transfer arrangement so useful. The Macchabée Forest trail extends further for those wanting a longer half-day in the trees.",
-          "The headline challenge is Black River Peak (Piton de la Petite Rivière Noire), at 828 metres the highest point in Mauritius. From the Black River side it is a steep, sustained climb of around seven kilometres return and four to five hours, with a final scramble and, on a clear day, a sweeping view over the southwest coast to Le Morne. It is rewarding but should not be attempted casually: wear proper shoes, start early, and turn back if cloud closes in, which it often does by midday. Less experienced walkers will get more enjoyment from the plateau trails and viewpoints, several of which are listed on our /attractions page."
-        ]
+        heading: 'The Main Trails, From Easy to Demanding',
+        paragraphs: [
+          'For most visitors, the standout short walk is the Macchabée Trail from near Pétrin out to the Macchabée viewpoint, an easy-to-moderate route of roughly three to four kilometres each way through native forest, mostly level and well-defined. It gives you a real sense of the forest without committing to a full day. Even gentler is the short loop near Pétrin itself, suitable for families and anyone testing their footing in the mud.',
+          'Stepping up in effort, the Parakeet Trail links the Pétrin area down to the Black River visitor centre, a one-way descent of around eight kilometres that takes most people three to four hours. Walked downhill from Pétrin to Black River it is very manageable and rewards you with changing forest, birdsong and gorge views; this is the classic point-to-point that makes a two-car or transfer arrangement so useful. The Macchabée Forest trail extends further for those wanting a longer half-day in the trees.',
+          'The headline challenge is Black River Peak (Piton de la Petite Rivière Noire), at 828 metres the highest point in Mauritius. From the Black River side it is a steep, sustained climb of around seven kilometres return and four to five hours, with a final scramble and, on a clear day, a sweeping view over the southwest coast to Le Morne. It is rewarding but should not be attempted casually: wear proper shoes, start early, and turn back if cloud closes in, which it often does by midday. Less experienced walkers will get more enjoyment from the plateau trails and viewpoints, several of which are listed on our /attractions page.',
+        ],
       },
       {
-        "heading": "Viewpoints You Can Reach by Car",
-        "paragraphs": [
-          "Not everyone wants to hike, and the park is generous to drivers too. The two essential roadside viewpoints sit along the scenic road between Pétrin and Chamarel. The Gorges Viewpoint (Black River Gorges Viewpoint) is the big one: a railed platform looking straight down the forested valley to the sea, with a small car park and usually a few stalls selling pineapple and soft drinks. On a clear morning the view is genuinely spectacular.",
-          "A little further along is Alexandra Falls Viewpoint, a short, flat walk from its car park to a platform overlooking a multi-tiered waterfall framed by native forest. Both stops are free and take only a few minutes, which makes them the perfect add-on if you are already driving the Chamarel loop to see the Seven Coloured Earths and the Chamarel waterfall. Go early; by late morning the gorges often fill with cloud and the view can vanish entirely.",
-          "Because these viewpoints sit on the through-road to Chamarel and the south, they pair naturally with a wider west-and-south day. If you are mapping a route, our /destinations pages cover how Chamarel, Grand Bassin and Le Morne connect, so you can string the highlights together without doubling back across the plateau."
-        ]
+        heading: 'Viewpoints You Can Reach by Car',
+        paragraphs: [
+          'Not everyone wants to hike, and the park is generous to drivers too. The two essential roadside viewpoints sit along the scenic road between Pétrin and Chamarel. The Gorges Viewpoint (Black River Gorges Viewpoint) is the big one: a railed platform looking straight down the forested valley to the sea, with a small car park and usually a few stalls selling pineapple and soft drinks. On a clear morning the view is genuinely spectacular.',
+          'A little further along is Alexandra Falls Viewpoint, a short, flat walk from its car park to a platform overlooking a multi-tiered waterfall framed by native forest. Both stops are free and take only a few minutes, which makes them the perfect add-on if you are already driving the Chamarel loop to see the Seven Coloured Earths and the Chamarel waterfall. Go early; by late morning the gorges often fill with cloud and the view can vanish entirely.',
+          'Because these viewpoints sit on the through-road to Chamarel and the south, they pair naturally with a wider west-and-south day. If you are mapping a route, our /destinations pages cover how Chamarel, Grand Bassin and Le Morne connect, so you can string the highlights together without doubling back across the plateau.',
+        ],
       },
       {
-        "heading": "Wildlife: What You Might Actually See",
-        "paragraphs": [
-          "Black River Gorges is the last refuge for several species that exist nowhere else on Earth, which gives a walk here real conservation weight. The star is the echo parakeet, a green endemic parrot brought back from the brink of extinction by an intensive recovery programme; the Parakeet Trail is named for it, and patient, quiet walkers do sometimes hear and glimpse them. The pink pigeon, another remarkable recovery story, is occasionally seen near feeding stations, and the Mauritius kestrel, once the rarest bird in the world, hunts in the area.",
-          "You are very likely to see the Mauritian flying fox, a large native fruit bat, wheeling over the canopy at dusk, and to hear far more birds than you see in the dense forest. The forest itself is part of the wildlife: endemic ebony, the famous tambalacoque (the so-called dodo tree) and a tangle of native ferns and orchids, alongside introduced species that rangers and volunteers work to control. There are no dangerous animals, no snakes and no large mammals to worry about; the only real nuisances are mosquitoes near water and the occasional troop of long-tailed macaques, which you should never feed.",
-          "Set expectations honestly: this is wild forest, not a safari park, and the rarest birds are genuinely hard to find. Go slowly, walk quietly, and bring binoculars if birdwatching matters to you. Early morning is by far the most active time. Whatever you do, take all litter out with you and stay on the marked paths, as straying damages fragile native habitat that has taken decades to protect."
-        ]
+        heading: 'Wildlife: What You Might Actually See',
+        paragraphs: [
+          'Black River Gorges is the last refuge for several species that exist nowhere else on Earth, which gives a walk here real conservation weight. The star is the echo parakeet, a green endemic parrot brought back from the brink of extinction by an intensive recovery programme; the Parakeet Trail is named for it, and patient, quiet walkers do sometimes hear and glimpse them. The pink pigeon, another remarkable recovery story, is occasionally seen near feeding stations, and the Mauritius kestrel, once the rarest bird in the world, hunts in the area.',
+          'You are very likely to see the Mauritian flying fox, a large native fruit bat, wheeling over the canopy at dusk, and to hear far more birds than you see in the dense forest. The forest itself is part of the wildlife: endemic ebony, the famous tambalacoque (the so-called dodo tree) and a tangle of native ferns and orchids, alongside introduced species that rangers and volunteers work to control. There are no dangerous animals, no snakes and no large mammals to worry about; the only real nuisances are mosquitoes near water and the occasional troop of long-tailed macaques, which you should never feed.',
+          'Set expectations honestly: this is wild forest, not a safari park, and the rarest birds are genuinely hard to find. Go slowly, walk quietly, and bring binoculars if birdwatching matters to you. Early morning is by far the most active time. Whatever you do, take all litter out with you and stay on the marked paths, as straying damages fragile native habitat that has taken decades to protect.',
+        ],
       },
       {
-        "heading": "Best Time to Hike and What to Bring",
-        "paragraphs": [
+        heading: 'Best Time to Hike and What to Bring',
+        paragraphs: [
           "The cool, dry winter from May to October is the best window for hiking here. Days are clearer, the trails are firmer underfoot, and the plateau's lower temperatures make the climbs far more comfortable than in summer. The wet summer months from November to April bring heavier rain to this part of the island in particular, leaving paths slick and muddy and shrouding the viewpoints in cloud; the upside is fuller waterfalls and lusher forest. Whatever the season, start early, both for wildlife and to beat the midday cloud that rolls into the gorges.",
-          "Pack for a proper trail even on a short walk. Bring sturdy shoes or hiking boots with grip, as the mud is no joke after rain, plus at least one to two litres of water per person since there is nowhere to buy any inside the park. Add sun protection, insect repellent, a light rain jacket because the plateau can shower without warning, and some snacks. There is no café in the park, only the seasonal stalls at the Gorges Viewpoint, so carry your own food.",
-          "A few practical notes. Phone signal is unreliable to non-existent in the gorges, so download an offline map and tell someone your route and expected return. Carry cash in rupees for the roadside stalls. There is no entrance fee, but parking at the visitor centre and viewpoints is informal, so keep valuables out of sight. And if you want everything organised end to end, including a driver who can drop you at Pétrin and collect you at Black River, browse the guided options on our /activities page rather than juggling a hire car on the winding plateau roads."
-        ]
-      }
+          'Pack for a proper trail even on a short walk. Bring sturdy shoes or hiking boots with grip, as the mud is no joke after rain, plus at least one to two litres of water per person since there is nowhere to buy any inside the park. Add sun protection, insect repellent, a light rain jacket because the plateau can shower without warning, and some snacks. There is no café in the park, only the seasonal stalls at the Gorges Viewpoint, so carry your own food.',
+          'A few practical notes. Phone signal is unreliable to non-existent in the gorges, so download an offline map and tell someone your route and expected return. Carry cash in rupees for the roadside stalls. There is no entrance fee, but parking at the visitor centre and viewpoints is informal, so keep valuables out of sight. And if you want everything organised end to end, including a driver who can drop you at Pétrin and collect you at Black River, browse the guided options on our /activities page rather than juggling a hire car on the winding plateau roads.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Is there an entrance fee for Black River Gorges National Park?",
-        "a": "No. Entry to the park and its hiking trails is free, and there are no ticket gates. The two roadside viewpoints, the Gorges Viewpoint and Alexandra Falls, are also free to visit. You only pay separately if you add nearby attractions like the Seven Coloured Earths at Chamarel."
+        q: 'Is there an entrance fee for Black River Gorges National Park?',
+        a: 'No. Entry to the park and its hiking trails is free, and there are no ticket gates. The two roadside viewpoints, the Gorges Viewpoint and Alexandra Falls, are also free to visit. You only pay separately if you add nearby attractions like the Seven Coloured Earths at Chamarel.',
       },
       {
-        "q": "How long does it take to hike in the park?",
-        "a": "It depends on the route. The short Pétrin loops and the Macchabée viewpoint walk take one to two hours. The Parakeet Trail from Pétrin down to Black River is around three to four hours one way. The climb to Black River Peak, the island's highest point at 828 metres, is a demanding four to five hours return."
+        q: 'How long does it take to hike in the park?',
+        a: "It depends on the route. The short Pétrin loops and the Macchabée viewpoint walk take one to two hours. The Parakeet Trail from Pétrin down to Black River is around three to four hours one way. The climb to Black River Peak, the island's highest point at 828 metres, is a demanding four to five hours return.",
       },
       {
-        "q": "What is the best time of year to hike Black River Gorges?",
-        "a": "The dry winter season from May to October is best, with clearer skies, firmer trails and cooler temperatures for the climbs. The summer months from November to April are wetter, making paths muddy and often hiding the viewpoints in cloud, though the forest and waterfalls are at their fullest. Start early in any season."
+        q: 'What is the best time of year to hike Black River Gorges?',
+        a: 'The dry winter season from May to October is best, with clearer skies, firmer trails and cooler temperatures for the climbs. The summer months from November to April are wetter, making paths muddy and often hiding the viewpoints in cloud, though the forest and waterfalls are at their fullest. Start early in any season.',
       },
       {
-        "q": "Can I see endemic wildlife, and do I need a guide?",
-        "a": "You can see endemic species such as the echo parakeet, pink pigeon and Mauritius kestrel, plus large native fruit bats, though the rarest birds are hard to spot, so go quietly and early. A guide is not required for the main trails, but one greatly improves your chances of finding wildlife and is worth considering for the longer or steeper routes."
-      }
-    ]
+        q: 'Can I see endemic wildlife, and do I need a guide?',
+        a: 'You can see endemic species such as the echo parakeet, pink pigeon and Mauritius kestrel, plus large native fruit bats, though the rarest birds are hard to spot, so go quietly and early. A guide is not required for the main trails, but one greatly improves your chances of finding wildlife and is worth considering for the longer or steeper routes.',
+      },
+    ],
   },
   {
-    "slug": "tamarind-falls-guide",
-    "title": "Tamarind Falls (7 Cascades): Visitor Guide",
-    "metaTitle": "Tamarind Falls (7 Cascades) Guide | Mauritius",
-    "metaDescription": "A practical guide to Tamarind Falls (7 Cascades) in Mauritius: how to visit, guided hikes, swimming, difficulty, prices and honest tips for a safe day out.",
-    "excerpt": "Everything you need to plan a visit to Tamarind Falls (7 Cascades): viewpoints versus the full hike, swimming spots, difficulty, costs and honest safety advice.",
-    "readMins": 6,
-    "sections": [
+    slug: 'tamarind-falls-guide',
+    title: 'Tamarind Falls (7 Cascades): Visitor Guide',
+    metaTitle: 'Tamarind Falls (7 Cascades) Guide | Mauritius',
+    metaDescription:
+      'A practical guide to Tamarind Falls (7 Cascades) in Mauritius: how to visit, guided hikes, swimming, difficulty, prices and honest tips for a safe day out.',
+    excerpt:
+      'Everything you need to plan a visit to Tamarind Falls (7 Cascades): viewpoints versus the full hike, swimming spots, difficulty, costs and honest safety advice.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "What Is Tamarind Falls (7 Cascades)?",
-        "paragraphs": [
+        heading: 'What Is Tamarind Falls (7 Cascades)?',
+        paragraphs: [
           "Tamarind Falls, known locally as Sept Cascades or simply 7 Cascades, is a chain of seven waterfalls set in the volcanic uplands near Henrietta, in the Black River district of south-west Mauritius. The river drops in a series of stages through a steep, forested gorge, with each cascade feeding a pool below it before the water continues toward the Tamarind Falls reservoir and the island's hydro-electric scheme. At roughly 290 to 300 metres above sea level, the surrounding plateau is noticeably cooler and greener than the coast, and on a clear day the upper viewpoints give you long views across the gorge toward the central mountains.",
-          "It is one of the most photographed inland sights in Mauritius, and for good reason. The combination of tall cascades, deep emerald plunge pools and dense vegetation feels a world away from the beaches most visitors come for. Importantly, there are two very different ways to experience it: a short walk to a couple of viewpoints near the top, or a proper canyon hike down to the pools at the base of the falls. Knowing which one you want before you set off saves a lot of confusion on the day."
-        ]
+          'It is one of the most photographed inland sights in Mauritius, and for good reason. The combination of tall cascades, deep emerald plunge pools and dense vegetation feels a world away from the beaches most visitors come for. Importantly, there are two very different ways to experience it: a short walk to a couple of viewpoints near the top, or a proper canyon hike down to the pools at the base of the falls. Knowing which one you want before you set off saves a lot of confusion on the day.',
+        ],
       },
       {
-        "heading": "Two Ways to Visit: Viewpoints vs the Full Hike",
-        "paragraphs": [
-          "The easy option is the upper viewpoint walk from the Henrietta side. From the small car park you follow a rough track for 15 to 30 minutes to reach overlooks above the first cascades. This is fine for families, older visitors or anyone short on time, and it costs little or nothing beyond parking. You will see the waterfalls from above, but you will not reach the swimming pools, and the viewpoints can be busy at midday when tour groups arrive.",
-          "The rewarding option is the guided descent into the gorge, where you scramble down rocky paths, cross the river and reach the foot of several cascades with swimmable pools. This route is steep, slippery and not signposted as a single clear trail, which is exactly why a guide matters here. Going down is the easy part; the climb back out in the heat is what catches people out. If you want to combine the falls with other inland stops such as the Black River Gorges or Chamarel, our /attractions and /activities pages list options that pair well into a single south-west day trip."
-        ]
+        heading: 'Two Ways to Visit: Viewpoints vs the Full Hike',
+        paragraphs: [
+          'The easy option is the upper viewpoint walk from the Henrietta side. From the small car park you follow a rough track for 15 to 30 minutes to reach overlooks above the first cascades. This is fine for families, older visitors or anyone short on time, and it costs little or nothing beyond parking. You will see the waterfalls from above, but you will not reach the swimming pools, and the viewpoints can be busy at midday when tour groups arrive.',
+          'The rewarding option is the guided descent into the gorge, where you scramble down rocky paths, cross the river and reach the foot of several cascades with swimmable pools. This route is steep, slippery and not signposted as a single clear trail, which is exactly why a guide matters here. Going down is the easy part; the climb back out in the heat is what catches people out. If you want to combine the falls with other inland stops such as the Black River Gorges or Chamarel, our /attractions and /activities pages list options that pair well into a single south-west day trip.',
+        ],
       },
       {
-        "heading": "Going Guided: What a Trip Usually Includes",
-        "paragraphs": [
-          "Because the full route through the gorge is genuinely easy to lose and the rock is greasy when wet, almost everyone who reaches the lower pools does so with a local guide. A typical half-day guided hike runs around three to four hours including swimming time, and group prices commonly fall in the region of 25 to 45 EUR per person depending on group size, season and whether transfers are included. Guides know the safe lines down, the deeper pools that are good for a dip, and the spots to avoid after heavy rain.",
-          "If you are staying on the east or north coast, the falls are around an hour to ninety minutes' drive away, so a private transfer or a guide-plus-driver package is usually the most relaxed way to do it. You can arrange coast-to-falls transport through our /airport-transfers service, which also handles point-to-point trips around the island, not just airport runs. To stitch the falls into a wider self-drive route with sensible timings, our /ai-road-trip-planner can build a day around your base and pace."
-        ]
+        heading: 'Going Guided: What a Trip Usually Includes',
+        paragraphs: [
+          'Because the full route through the gorge is genuinely easy to lose and the rock is greasy when wet, almost everyone who reaches the lower pools does so with a local guide. A typical half-day guided hike runs around three to four hours including swimming time, and group prices commonly fall in the region of 25 to 45 EUR per person depending on group size, season and whether transfers are included. Guides know the safe lines down, the deeper pools that are good for a dip, and the spots to avoid after heavy rain.',
+          "If you are staying on the east or north coast, the falls are around an hour to ninety minutes' drive away, so a private transfer or a guide-plus-driver package is usually the most relaxed way to do it. You can arrange coast-to-falls transport through our /airport-transfers service, which also handles point-to-point trips around the island, not just airport runs. To stitch the falls into a wider self-drive route with sensible timings, our /ai-road-trip-planner can build a day around your base and pace.",
+        ],
       },
       {
-        "heading": "Swimming at the Falls",
-        "paragraphs": [
-          "Swimming is the highlight for most hikers. Several of the lower cascades drop into clear, deep pools that are cool and refreshing after the climb down, and a few have natural ledges you can ease into the water from. The water is fresh, not salty, and considerably colder than the lagoon, so give yourself a moment to acclimatise. Bring water shoes or trainers you do not mind getting wet, as the rocks at the edges are sharp and slick.",
-          "Be sensible about where and when you swim. Stay in the pools your guide points out, avoid jumping unless someone who knows the exact depth confirms it is safe, and never enter the water if the river is running high or brown. Flash flooding is the real danger here: a downpour upstream can raise the river quickly even when it looks fine where you are standing. If there has been heavy rain that morning, a reputable guide will postpone or change the route, and you should treat that as good judgement rather than a wasted trip."
-        ]
+        heading: 'Swimming at the Falls',
+        paragraphs: [
+          'Swimming is the highlight for most hikers. Several of the lower cascades drop into clear, deep pools that are cool and refreshing after the climb down, and a few have natural ledges you can ease into the water from. The water is fresh, not salty, and considerably colder than the lagoon, so give yourself a moment to acclimatise. Bring water shoes or trainers you do not mind getting wet, as the rocks at the edges are sharp and slick.',
+          'Be sensible about where and when you swim. Stay in the pools your guide points out, avoid jumping unless someone who knows the exact depth confirms it is safe, and never enter the water if the river is running high or brown. Flash flooding is the real danger here: a downpour upstream can raise the river quickly even when it looks fine where you are standing. If there has been heavy rain that morning, a reputable guide will postpone or change the route, and you should treat that as good judgement rather than a wasted trip.',
+        ],
       },
       {
-        "heading": "Difficulty, Fitness and What to Wear",
-        "paragraphs": [
-          "The upper viewpoint walk is easy and suitable for most people in everyday clothes and trainers. The full hike into the gorge is moderate to challenging: expect steep descents, loose ground, river crossings and some short scrambles using hands as well as feet. You need a reasonable level of fitness and steady footing, and it is not suitable for very young children, anyone with knee or mobility issues, or visitors uncomfortable with heights and exposure on narrow paths.",
-          "Wear proper closed shoes with grip rather than flip-flops, and bring at least one to two litres of water per person, sun protection, a swimsuit and a small dry bag for your phone. A light rain layer is wise in the wet season. Leave valuables behind and pack out everything you bring in. The climb back up is hot and steady, so pacing yourself and staying hydrated matters more than speed."
-        ]
+        heading: 'Difficulty, Fitness and What to Wear',
+        paragraphs: [
+          'The upper viewpoint walk is easy and suitable for most people in everyday clothes and trainers. The full hike into the gorge is moderate to challenging: expect steep descents, loose ground, river crossings and some short scrambles using hands as well as feet. You need a reasonable level of fitness and steady footing, and it is not suitable for very young children, anyone with knee or mobility issues, or visitors uncomfortable with heights and exposure on narrow paths.',
+          'Wear proper closed shoes with grip rather than flip-flops, and bring at least one to two litres of water per person, sun protection, a swimsuit and a small dry bag for your phone. A light rain layer is wise in the wet season. Leave valuables behind and pack out everything you bring in. The climb back up is hot and steady, so pacing yourself and staying hydrated matters more than speed.',
+        ],
       },
       {
-        "heading": "Best Time to Go and Practical Tips",
-        "paragraphs": [
-          "Mauritius has two broad seasons: a warm, humid summer from November to April and a cooler, drier winter from May to October. The falls are most powerful and photogenic in the summer rainy months, but that is also when flash-flood risk is highest and trails are at their slipperiest. The cooler winter months offer safer, more comfortable hiking with lower water levels, though some cascades will be gentler. Whatever the season, set off early, ideally before mid-morning, to beat the heat, the crowds and the afternoon clouds that often build over the highlands.",
-          "A few last practicalities. The site is inland and remote, so there are no real facilities at the pools and limited shade, meaning you should carry your own food and water. Mobile signal is patchy in the gorge. Always check the morning weather, and if it has been pouring, switch to the upper viewpoints or another plan rather than forcing the descent. For ideas on combining the falls with nearby Chamarel, the Seven Coloured Earths or a south-coast beach, browse our /destinations pages to map out a full day in the south-west."
-        ]
-      }
+        heading: 'Best Time to Go and Practical Tips',
+        paragraphs: [
+          'Mauritius has two broad seasons: a warm, humid summer from November to April and a cooler, drier winter from May to October. The falls are most powerful and photogenic in the summer rainy months, but that is also when flash-flood risk is highest and trails are at their slipperiest. The cooler winter months offer safer, more comfortable hiking with lower water levels, though some cascades will be gentler. Whatever the season, set off early, ideally before mid-morning, to beat the heat, the crowds and the afternoon clouds that often build over the highlands.',
+          'A few last practicalities. The site is inland and remote, so there are no real facilities at the pools and limited shade, meaning you should carry your own food and water. Mobile signal is patchy in the gorge. Always check the morning weather, and if it has been pouring, switch to the upper viewpoints or another plan rather than forcing the descent. For ideas on combining the falls with nearby Chamarel, the Seven Coloured Earths or a south-coast beach, browse our /destinations pages to map out a full day in the south-west.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Do I need a guide to visit Tamarind Falls?",
-        "a": "Not for the upper viewpoints, which you can reach on a short self-guided walk from the Henrietta car park. For the full hike down to the swimming pools, a local guide is strongly recommended because the route is steep, unmarked, slippery and easy to lose, and guides know which pools are safe and when conditions are dangerous."
+        q: 'Do I need a guide to visit Tamarind Falls?',
+        a: 'Not for the upper viewpoints, which you can reach on a short self-guided walk from the Henrietta car park. For the full hike down to the swimming pools, a local guide is strongly recommended because the route is steep, unmarked, slippery and easy to lose, and guides know which pools are safe and when conditions are dangerous.',
       },
       {
-        "q": "How much does a guided 7 Cascades hike cost?",
-        "a": "Group guided hikes typically cost around 25 to 45 EUR per person, depending on group size, season and whether transport is included. Private guides and packages with hotel transfers cost more. The upper viewpoint walk is essentially free aside from parking."
+        q: 'How much does a guided 7 Cascades hike cost?',
+        a: 'Group guided hikes typically cost around 25 to 45 EUR per person, depending on group size, season and whether transport is included. Private guides and packages with hotel transfers cost more. The upper viewpoint walk is essentially free aside from parking.',
       },
       {
-        "q": "Can you swim at Tamarind Falls?",
-        "a": "Yes. Several of the lower cascades feed into deep, cool freshwater pools that are excellent for swimming after the descent. Stick to the pools your guide recommends, wear water shoes, and never swim if the river is high or discoloured after heavy rain due to flash-flood risk."
+        q: 'Can you swim at Tamarind Falls?',
+        a: 'Yes. Several of the lower cascades feed into deep, cool freshwater pools that are excellent for swimming after the descent. Stick to the pools your guide recommends, wear water shoes, and never swim if the river is high or discoloured after heavy rain due to flash-flood risk.',
       },
       {
-        "q": "When is the best time to hike the falls?",
-        "a": "The cooler, drier winter months from May to October are safest and most comfortable for the full hike. The summer months from November to April make the falls fuller and more dramatic but bring higher flash-flood risk and slipperier trails. Set off early in any season."
-      }
-    ]
+        q: 'When is the best time to hike the falls?',
+        a: 'The cooler, drier winter months from May to October are safest and most comfortable for the full hike. The summer months from November to April make the falls fuller and more dramatic but bring higher flash-flood risk and slipperier trails. Set off early in any season.',
+      },
+    ],
   },
   {
-    "slug": "chamarel-guide",
-    "title": "Chamarel: Seven Coloured Earths & Waterfall Guide",
-    "metaTitle": "Chamarel Seven Coloured Earths & Waterfall Guide",
-    "metaDescription": "Plan a Chamarel day trip in Mauritius: Seven Coloured Earths, the 100m waterfall, tickets and prices, the rum distillery combo, and the best time to visit.",
-    "excerpt": "A practical guide to Chamarel in southwest Mauritius: the Seven Coloured Earths, the island's tallest waterfall, ticket prices, the rum distillery combo, and when to go.",
-    "readMins": 6,
-    "sections": [
+    slug: 'chamarel-guide',
+    title: 'Chamarel: Seven Coloured Earths & Waterfall Guide',
+    metaTitle: 'Chamarel Seven Coloured Earths & Waterfall Guide',
+    metaDescription:
+      'Plan a Chamarel day trip in Mauritius: Seven Coloured Earths, the 100m waterfall, tickets and prices, the rum distillery combo, and the best time to visit.',
+    excerpt:
+      "A practical guide to Chamarel in southwest Mauritius: the Seven Coloured Earths, the island's tallest waterfall, ticket prices, the rum distillery combo, and when to go.",
+    readMins: 6,
+    sections: [
       {
-        "heading": "Where Chamarel Is and Why It Draws Crowds",
-        "paragraphs": [
+        heading: 'Where Chamarel Is and Why It Draws Crowds',
+        paragraphs: [
           "Chamarel sits in the hilly southwest of Mauritius, in the Riviere Noire (Black River) district, on the edge of the Black River Gorges National Park. The village itself is small, but the surrounding plateau holds two of the island's most photographed natural sights: the Seven Coloured Earths and the Chamarel Waterfall. Both are inside the same privately managed Geopark, so a single entrance ticket covers them along with a small tortoise enclosure and a couple of viewpoints.",
-          "Getting there is half the appeal. The road climbs from the coastal towns of the west, winding up through sugar cane and forest with broad views back toward Le Morne and the lagoon. From Flic en Flac or Tamarin the drive is roughly 30 to 45 minutes; from Grand Baie or the north, plan for around 90 minutes each way. Because the route is twisty and largely unmarked by public transport, most visitors come by rental car, organised tour, or private driver. If you are mapping out a wider west-coast day, our regional overview at /destinations is a useful starting point for distances and pairings."
-        ]
+          'Getting there is half the appeal. The road climbs from the coastal towns of the west, winding up through sugar cane and forest with broad views back toward Le Morne and the lagoon. From Flic en Flac or Tamarin the drive is roughly 30 to 45 minutes; from Grand Baie or the north, plan for around 90 minutes each way. Because the route is twisty and largely unmarked by public transport, most visitors come by rental car, organised tour, or private driver. If you are mapping out a wider west-coast day, our regional overview at /destinations is a useful starting point for distances and pairings.',
+        ],
       },
       {
-        "heading": "The Seven Coloured Earths Explained",
-        "paragraphs": [
-          "The Seven Coloured Earths (Terres des Sept Couleurs) are undulating dunes of volcanic clay that show distinct bands of red, brown, violet, blue, green, purple and yellow. The colours come from basalt that weathered into clay minerals over millions of years, with iron and aluminium oxides giving each layer its tint. A genuine quirk is that the colours do not wash away or mix even in heavy rain, and locals will tell you that if you take samples of the different shades and shake them together in a jar, they slowly separate back into layers.",
-          "Be honest with yourself about expectations. The dunes are modest in size and you view them from a fenced boardwalk rather than walking across them, which protects the fragile clay. The colours are real but subtle, and they read best in soft, low-angle light. This is a 20 to 30 minute stop, not a half-day hike. Photographers tend to be happiest in the early morning or late afternoon when the sun rakes across the ridges and the bands stand out; harsh midday light flattens them into a uniform tan."
-        ]
+        heading: 'The Seven Coloured Earths Explained',
+        paragraphs: [
+          'The Seven Coloured Earths (Terres des Sept Couleurs) are undulating dunes of volcanic clay that show distinct bands of red, brown, violet, blue, green, purple and yellow. The colours come from basalt that weathered into clay minerals over millions of years, with iron and aluminium oxides giving each layer its tint. A genuine quirk is that the colours do not wash away or mix even in heavy rain, and locals will tell you that if you take samples of the different shades and shake them together in a jar, they slowly separate back into layers.',
+          'Be honest with yourself about expectations. The dunes are modest in size and you view them from a fenced boardwalk rather than walking across them, which protects the fragile clay. The colours are real but subtle, and they read best in soft, low-angle light. This is a 20 to 30 minute stop, not a half-day hike. Photographers tend to be happiest in the early morning or late afternoon when the sun rakes across the ridges and the bands stand out; harsh midday light flattens them into a uniform tan.',
+        ],
       },
       {
-        "heading": "Chamarel Waterfall: The Island's Tallest Single Drop",
-        "paragraphs": [
-          "Included in the same ticket, and arguably the more dramatic sight, is the Chamarel Waterfall. The Saint Denis River plunges roughly 100 metres over a cliff of layered basalt into a forested gorge, making it the highest single-drop waterfall in Mauritius. There is a purpose-built viewing platform a short drive or walk from the entrance, looking across the valley to the falls; on a clear day the view stretches well beyond the cascade itself.",
-          "A few practical notes. The official viewpoint is the safe, easy option and suits all ages and mobility levels. There are unofficial trails down toward the base of the falls, but they are steep, slippery, and not maintained, so attempt them only with proper footwear and ideally a local guide. The waterfall is at its most powerful from January to April, after the summer rains, when it can roar; in the drier winter months it narrows but rarely dries up. Early morning often gives the best chance of clear air before afternoon cloud builds over the highlands."
-        ]
+        heading: "Chamarel Waterfall: The Island's Tallest Single Drop",
+        paragraphs: [
+          'Included in the same ticket, and arguably the more dramatic sight, is the Chamarel Waterfall. The Saint Denis River plunges roughly 100 metres over a cliff of layered basalt into a forested gorge, making it the highest single-drop waterfall in Mauritius. There is a purpose-built viewing platform a short drive or walk from the entrance, looking across the valley to the falls; on a clear day the view stretches well beyond the cascade itself.',
+          'A few practical notes. The official viewpoint is the safe, easy option and suits all ages and mobility levels. There are unofficial trails down toward the base of the falls, but they are steep, slippery, and not maintained, so attempt them only with proper footwear and ideally a local guide. The waterfall is at its most powerful from January to April, after the summer rains, when it can roar; in the drier winter months it narrows but rarely dries up. Early morning often gives the best chance of clear air before afternoon cloud builds over the highlands.',
+        ],
       },
       {
-        "heading": "Tickets, Opening Hours and What to Expect On-Site",
-        "paragraphs": [
-          "The Seven Coloured Earths Geopark is privately run and charges a single combined entrance fee covering the coloured earths, the waterfall viewpoint, the giant tortoise enclosure and the on-site facilities. As a rough guide, adult entry is around 350 to 400 Mauritian rupees, which is roughly 7 to 8 euros, with reduced rates for children; bring some cash, though card payment is usually accepted at the gate. Prices and hours change, so treat these figures as indicative rather than a quote.",
-          "The park typically opens daily from around 8:30am to 5:00pm, with last entry in the late afternoon. Inside, a one-way road loops past the waterfall viewpoint first and then the coloured earths, so you can drive between the two main stops rather than walk the whole way. There are toilets, a small cafe and souvenir stalls near the entrance, including the famous little jars of layered coloured sand. Allow around 60 to 90 minutes for a relaxed visit covering both highlights and the tortoises."
-        ]
+        heading: 'Tickets, Opening Hours and What to Expect On-Site',
+        paragraphs: [
+          'The Seven Coloured Earths Geopark is privately run and charges a single combined entrance fee covering the coloured earths, the waterfall viewpoint, the giant tortoise enclosure and the on-site facilities. As a rough guide, adult entry is around 350 to 400 Mauritian rupees, which is roughly 7 to 8 euros, with reduced rates for children; bring some cash, though card payment is usually accepted at the gate. Prices and hours change, so treat these figures as indicative rather than a quote.',
+          'The park typically opens daily from around 8:30am to 5:00pm, with last entry in the late afternoon. Inside, a one-way road loops past the waterfall viewpoint first and then the coloured earths, so you can drive between the two main stops rather than walk the whole way. There are toilets, a small cafe and souvenir stalls near the entrance, including the famous little jars of layered coloured sand. Allow around 60 to 90 minutes for a relaxed visit covering both highlights and the tortoises.',
+        ],
       },
       {
-        "heading": "Combining Chamarel With the Rum Distillery",
-        "paragraphs": [
+        heading: 'Combining Chamarel With the Rum Distillery',
+        paragraphs: [
           "The obvious pairing is Rhumerie de Chamarel, a working agricultural rum distillery just down the road from the Geopark. Unlike molasses-based rums, it presses fresh sugar cane juice grown on the surrounding estate, and the guided tour walks you through the fields, the press, fermentation and the copper stills before a tasting of white, aged and spiced rums plus their liqueurs. A standard tour with tasting costs in the region of 350 to 450 rupees per person, and the on-site restaurant, L'Alchimiste, is well regarded if you want a proper lunch with a view.",
-          "Geographically it makes a tidy half-day: the Geopark and the distillery are only a few minutes apart, so most visitors do the coloured earths and waterfall in the morning, then the distillery tour and lunch afterwards. If you would rather not drive the mountain roads after a tasting, a private driver-guide is the sensible choice. You can browse guided options and day tours on /activities, and if you want the whole route stitched together with timings, our trip-builder at /ai-road-trip-planner can sequence Chamarel with nearby stops automatically."
-        ]
+          'Geographically it makes a tidy half-day: the Geopark and the distillery are only a few minutes apart, so most visitors do the coloured earths and waterfall in the morning, then the distillery tour and lunch afterwards. If you would rather not drive the mountain roads after a tasting, a private driver-guide is the sensible choice. You can browse guided options and day tours on /activities, and if you want the whole route stitched together with timings, our trip-builder at /ai-road-trip-planner can sequence Chamarel with nearby stops automatically.',
+        ],
       },
       {
-        "heading": "Best Time to Visit and Easy Add-Ons Nearby",
-        "paragraphs": [
-          "Mauritius has two broad seasons: a warm, wetter summer from November to April and a cooler, drier winter from May to October. For Chamarel specifically, the trade-off is simple. The summer months feed the waterfall and make the greenery lush, but bring heavier, more frequent downpours and, occasionally, cyclone risk in January and February. Winter is more comfortable for walking and gives clearer skies, though the falls run thinner. Whatever the season, arriving soon after opening beats both the tour-bus crowds and the afternoon cloud that often settles over the plateau.",
-          "Chamarel rewards being part of a wider southwest loop rather than a standalone errand. Within easy reach are the Black River Gorges viewpoints, the sacred lake of Grand Bassin (Ganga Talao), the dramatic Le Morne peninsula, and the beaches around Le Morne and La Gaulette. You can read up on these and other sights on /attractions before you go. Many visitors fold Chamarel into their first or last day on the island; if you are arriving fresh, arranging a private /airport-transfers pickup that continues straight to the southwest can save a wasted day of backtracking."
-        ]
-      }
+        heading: 'Best Time to Visit and Easy Add-Ons Nearby',
+        paragraphs: [
+          'Mauritius has two broad seasons: a warm, wetter summer from November to April and a cooler, drier winter from May to October. For Chamarel specifically, the trade-off is simple. The summer months feed the waterfall and make the greenery lush, but bring heavier, more frequent downpours and, occasionally, cyclone risk in January and February. Winter is more comfortable for walking and gives clearer skies, though the falls run thinner. Whatever the season, arriving soon after opening beats both the tour-bus crowds and the afternoon cloud that often settles over the plateau.',
+          'Chamarel rewards being part of a wider southwest loop rather than a standalone errand. Within easy reach are the Black River Gorges viewpoints, the sacred lake of Grand Bassin (Ganga Talao), the dramatic Le Morne peninsula, and the beaches around Le Morne and La Gaulette. You can read up on these and other sights on /attractions before you go. Many visitors fold Chamarel into their first or last day on the island; if you are arriving fresh, arranging a private /airport-transfers pickup that continues straight to the southwest can save a wasted day of backtracking.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How much does it cost to visit the Seven Coloured Earths and Chamarel Waterfall?",
-        "a": "One combined entrance ticket to the Geopark covers both the coloured earths and the waterfall viewpoint, plus the tortoise enclosure. Adult entry is roughly 350 to 400 Mauritian rupees (about 7 to 8 euros), with reduced rates for children. Prices change, so confirm at the gate."
+        q: 'How much does it cost to visit the Seven Coloured Earths and Chamarel Waterfall?',
+        a: 'One combined entrance ticket to the Geopark covers both the coloured earths and the waterfall viewpoint, plus the tortoise enclosure. Adult entry is roughly 350 to 400 Mauritian rupees (about 7 to 8 euros), with reduced rates for children. Prices change, so confirm at the gate.',
       },
       {
-        "q": "Is the Chamarel Waterfall the tallest in Mauritius?",
-        "a": "Yes. The Saint Denis River drops about 100 metres over a basalt cliff, making it the highest single-drop waterfall on the island. It is most powerful from January to April after the summer rains and narrows, but rarely dries up, during the cooler winter months."
+        q: 'Is the Chamarel Waterfall the tallest in Mauritius?',
+        a: 'Yes. The Saint Denis River drops about 100 metres over a basalt cliff, making it the highest single-drop waterfall on the island. It is most powerful from January to April after the summer rains and narrows, but rarely dries up, during the cooler winter months.',
       },
       {
-        "q": "Can I combine Chamarel with the rum distillery in one trip?",
-        "a": "Easily. Rhumerie de Chamarel is only minutes from the Geopark. Most people see the coloured earths and waterfall in the morning, then take the distillery tour and tasting (around 350 to 450 rupees) with lunch at its restaurant. A private driver is wise if you plan to taste rum."
+        q: 'Can I combine Chamarel with the rum distillery in one trip?',
+        a: 'Easily. Rhumerie de Chamarel is only minutes from the Geopark. Most people see the coloured earths and waterfall in the morning, then take the distillery tour and tasting (around 350 to 450 rupees) with lunch at its restaurant. A private driver is wise if you plan to taste rum.',
       },
       {
-        "q": "What is the best time of day to visit Chamarel?",
-        "a": "Arrive soon after the 8:30am opening. Early morning gives clearer air before afternoon cloud builds over the highlands, the coloured earths show better in low-angle light, and you beat most of the tour-bus crowds."
-      }
-    ]
+        q: 'What is the best time of day to visit Chamarel?',
+        a: 'Arrive soon after the 8:30am opening. Early morning gives clearer air before afternoon cloud builds over the highlands, the coloured earths show better in low-angle light, and you beat most of the tour-bus crowds.',
+      },
+    ],
   },
   {
-    "slug": "grand-bassin-guide",
-    "title": "Grand Bassin (Ganga Talao): Visitor Guide",
-    "metaTitle": "Grand Bassin (Ganga Talao) Visitor Guide | Mauritius",
-    "metaDescription": "Plan a visit to Grand Bassin (Ganga Talao), Mauritius' sacred crater lake: temples, Maha Shivaratri, dress code, how to get there and honest local tips.",
-    "excerpt": "A local operator's honest guide to Grand Bassin (Ganga Talao): the sacred lake, its temples and giant statues, the Maha Shivaratri pilgrimage, visitor etiquette and how to get there.",
-    "readMins": 6,
-    "sections": [
+    slug: 'grand-bassin-guide',
+    title: 'Grand Bassin (Ganga Talao): Visitor Guide',
+    metaTitle: 'Grand Bassin (Ganga Talao) Visitor Guide | Mauritius',
+    metaDescription:
+      "Plan a visit to Grand Bassin (Ganga Talao), Mauritius' sacred crater lake: temples, Maha Shivaratri, dress code, how to get there and honest local tips.",
+    excerpt:
+      "A local operator's honest guide to Grand Bassin (Ganga Talao): the sacred lake, its temples and giant statues, the Maha Shivaratri pilgrimage, visitor etiquette and how to get there.",
+    readMins: 6,
+    sections: [
       {
-        "heading": "What Grand Bassin Is",
-        "paragraphs": [
-          "Grand Bassin, known to most Mauritians by its Hindu name Ganga Talao (\"Lake of the Ganges\"), is a natural crater lake set roughly 550 metres above sea level in the forested highlands of the Savanne district, in the south-central interior of the island. It is the most important Hindu pilgrimage site in Mauritius and one of the most significant outside India. The setting is quietly dramatic: a still, dark-green lake ringed by temples, prayer flags, statues of deities and dense native and planted forest, often wrapped in cool highland mist.",
-          "The site's religious significance dates from the 1860s, when a local priest is said to have dreamt that the lake's water was connected to the holy river Ganges. In 1972, water brought from the Ganges in India was symbolically poured into the lake, and it was renamed Ganga Talao. Today it draws worshippers year-round, but it is also genuinely worth visiting for non-Hindu travellers who approach it respectfully. It is calm, atmospheric and free to enter, and it pairs naturally with other southern stops, so it features on many of our southern day tours under /activities."
-        ]
+        heading: 'What Grand Bassin Is',
+        paragraphs: [
+          'Grand Bassin, known to most Mauritians by its Hindu name Ganga Talao ("Lake of the Ganges"), is a natural crater lake set roughly 550 metres above sea level in the forested highlands of the Savanne district, in the south-central interior of the island. It is the most important Hindu pilgrimage site in Mauritius and one of the most significant outside India. The setting is quietly dramatic: a still, dark-green lake ringed by temples, prayer flags, statues of deities and dense native and planted forest, often wrapped in cool highland mist.',
+          "The site's religious significance dates from the 1860s, when a local priest is said to have dreamt that the lake's water was connected to the holy river Ganges. In 1972, water brought from the Ganges in India was symbolically poured into the lake, and it was renamed Ganga Talao. Today it draws worshippers year-round, but it is also genuinely worth visiting for non-Hindu travellers who approach it respectfully. It is calm, atmospheric and free to enter, and it pairs naturally with other southern stops, so it features on many of our southern day tours under /activities.",
+        ],
       },
       {
-        "heading": "The Temples and the Giant Statues",
-        "paragraphs": [
+        heading: 'The Temples and the Giant Statues',
+        paragraphs: [
           "Several temples (mandirs) sit around the lakeshore, dedicated principally to Lord Shiva, alongside shrines to Hanuman, Lakshmi and other deities. Inside you will find priests performing rituals, oil lamps, garlands and offerings of fruit and flowers. The lake itself is treated as sacred; you will see pilgrims praying at the water's edge and small fish and eels living in it, which are not to be disturbed.",
-          "The two landmarks most visitors photograph are the enormous statues at the entrance area, by the car park. One is a 33-metre statue of Lord Shiva (Mangal Mahadev), and the other a similarly towering statue of the goddess Durga. They are among the tallest statues in Mauritius and are visible from a distance as you approach. Allow time to walk the full loop around the lake rather than just stopping at the statues; the smaller shrines and the views across the water are the quieter, more rewarding part of the visit."
-        ]
+          'The two landmarks most visitors photograph are the enormous statues at the entrance area, by the car park. One is a 33-metre statue of Lord Shiva (Mangal Mahadev), and the other a similarly towering statue of the goddess Durga. They are among the tallest statues in Mauritius and are visible from a distance as you approach. Allow time to walk the full loop around the lake rather than just stopping at the statues; the smaller shrines and the views across the water are the quieter, more rewarding part of the visit.',
+        ],
       },
       {
-        "heading": "Maha Shivaratri: The Great Pilgrimage",
-        "paragraphs": [
-          "Once a year, usually in February or March (the date follows the Hindu lunar calendar, so it shifts annually), Grand Bassin becomes the focus of Maha Shivaratri, the \"Great Night of Shiva.\" In the days beforehand, hundreds of thousands of devotees walk on foot from all corners of the island, many carrying beautifully decorated wooden arches called kanwars, to collect holy water from the lake and offer prayers to Shiva. It is one of the largest Hindu festivals anywhere outside India and a profound expression of Mauritius' Indian heritage.",
-          "If you happen to be on the island during Maha Shivaratri, witnessing the pilgrimage is extraordinary, but plan around it. Roads across the centre and south of the island fill with walking pilgrims, traffic is heavily affected, and the site itself is extremely crowded. Drive slowly and patiently, give pilgrims plenty of room, and dress and behave with extra care given the religious intensity of the occasion. Outside the festival period the site is far quieter, which many visitors actually prefer for a calmer, more reflective experience."
-        ]
+        heading: 'Maha Shivaratri: The Great Pilgrimage',
+        paragraphs: [
+          'Once a year, usually in February or March (the date follows the Hindu lunar calendar, so it shifts annually), Grand Bassin becomes the focus of Maha Shivaratri, the "Great Night of Shiva." In the days beforehand, hundreds of thousands of devotees walk on foot from all corners of the island, many carrying beautifully decorated wooden arches called kanwars, to collect holy water from the lake and offer prayers to Shiva. It is one of the largest Hindu festivals anywhere outside India and a profound expression of Mauritius\' Indian heritage.',
+          'If you happen to be on the island during Maha Shivaratri, witnessing the pilgrimage is extraordinary, but plan around it. Roads across the centre and south of the island fill with walking pilgrims, traffic is heavily affected, and the site itself is extremely crowded. Drive slowly and patiently, give pilgrims plenty of room, and dress and behave with extra care given the religious intensity of the occasion. Outside the festival period the site is far quieter, which many visitors actually prefer for a calmer, more reflective experience.',
+        ],
       },
       {
-        "heading": "Visitor Etiquette and Dress Code",
-        "paragraphs": [
-          "Grand Bassin is an active place of worship, not a tourist attraction first, so the most important thing you can bring is respect. Dress modestly: shoulders and knees covered for both men and women is the sensible standard, and a light scarf or sarong is useful. You may be asked to remove your shoes before entering certain temples, so easy-off footwear helps. Keep your voice low, do not touch offerings, statues or shrine items, and never wade in, swim in or throw anything into the lake.",
-          "Photography of the scenery and statues is fine, but ask before photographing people praying or priests at work, and avoid using flash or posing inside shrines. If a ceremony is underway, watch quietly from a distance rather than walking through it. Alcohol is not appropriate at the site. These are small courtesies, but they matter a great deal to the community for whom this is sacred ground."
-        ]
+        heading: 'Visitor Etiquette and Dress Code',
+        paragraphs: [
+          'Grand Bassin is an active place of worship, not a tourist attraction first, so the most important thing you can bring is respect. Dress modestly: shoulders and knees covered for both men and women is the sensible standard, and a light scarf or sarong is useful. You may be asked to remove your shoes before entering certain temples, so easy-off footwear helps. Keep your voice low, do not touch offerings, statues or shrine items, and never wade in, swim in or throw anything into the lake.',
+          'Photography of the scenery and statues is fine, but ask before photographing people praying or priests at work, and avoid using flash or posing inside shrines. If a ceremony is underway, watch quietly from a distance rather than walking through it. Alcohol is not appropriate at the site. These are small courtesies, but they matter a great deal to the community for whom this is sacred ground.',
+        ],
       },
       {
-        "heading": "How to Get There and What to Combine It With",
-        "paragraphs": [
-          "Grand Bassin lies in the interior, roughly 45 minutes to an hour from the south coast and around an hour to 90 minutes from the northern and eastern beach resorts, depending on traffic and your starting point. There is no convenient public-transport route for visitors, and the winding highland roads can be slow, so most travellers come by rental car or with a private driver-guide. Because it sits close to several other highlights, the most efficient way to see it is as part of a southern circuit rather than a single out-and-back trip.",
-          "The classic pairing is Grand Bassin with Black River Gorges National Park, the multi-coloured earths and waterfall at Chamarel, and the viewpoint over the gorges, all of which are within easy reach. You can browse these stops under /attractions and /destinations to shape your route. If you would rather not drive the mountain roads yourself, a private guided day from your hotel takes the navigation and parking out of your hands; see the options under /activities, and use /ai-road-trip-planner to slot Grand Bassin into a day-by-day itinerary around your dates."
-        ]
+        heading: 'How to Get There and What to Combine It With',
+        paragraphs: [
+          'Grand Bassin lies in the interior, roughly 45 minutes to an hour from the south coast and around an hour to 90 minutes from the northern and eastern beach resorts, depending on traffic and your starting point. There is no convenient public-transport route for visitors, and the winding highland roads can be slow, so most travellers come by rental car or with a private driver-guide. Because it sits close to several other highlights, the most efficient way to see it is as part of a southern circuit rather than a single out-and-back trip.',
+          'The classic pairing is Grand Bassin with Black River Gorges National Park, the multi-coloured earths and waterfall at Chamarel, and the viewpoint over the gorges, all of which are within easy reach. You can browse these stops under /attractions and /destinations to shape your route. If you would rather not drive the mountain roads yourself, a private guided day from your hotel takes the navigation and parking out of your hands; see the options under /activities, and use /ai-road-trip-planner to slot Grand Bassin into a day-by-day itinerary around your dates.',
+        ],
       },
       {
-        "heading": "Best Time to Visit and Practical Tips",
-        "paragraphs": [
-          "Because of its altitude, Grand Bassin is noticeably cooler, wetter and mistier than the coast, so bring a light layer even on a hot day, and a compact rain jacket in the November to April summer, when highland showers are common. The drier May to October winter months bring crisp, clear conditions but genuinely chilly mornings up there, so do not be caught out in beachwear. Early morning or late afternoon gives the softest light and the thinnest crowds; midday coach groups are the busiest stretch.",
-          "Entry is free and parking is available near the statues. There are a few small stalls selling drinks, snacks and religious items, but facilities are limited, so carry water and use the toilets before a long drive. Plan to spend around 45 minutes to an hour on site for a relaxed walk around the lake. If you are arranging the rest of your trip too, our pre-booked /airport-transfers can collect you on arrival so the logistics are handled before you ever set out for the highlands."
-        ]
-      }
+        heading: 'Best Time to Visit and Practical Tips',
+        paragraphs: [
+          'Because of its altitude, Grand Bassin is noticeably cooler, wetter and mistier than the coast, so bring a light layer even on a hot day, and a compact rain jacket in the November to April summer, when highland showers are common. The drier May to October winter months bring crisp, clear conditions but genuinely chilly mornings up there, so do not be caught out in beachwear. Early morning or late afternoon gives the softest light and the thinnest crowds; midday coach groups are the busiest stretch.',
+          'Entry is free and parking is available near the statues. There are a few small stalls selling drinks, snacks and religious items, but facilities are limited, so carry water and use the toilets before a long drive. Plan to spend around 45 minutes to an hour on site for a relaxed walk around the lake. If you are arranging the rest of your trip too, our pre-booked /airport-transfers can collect you on arrival so the logistics are handled before you ever set out for the highlands.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Is there an entrance fee for Grand Bassin?",
-        "a": "No. Entry to Grand Bassin (Ganga Talao) and its temples is free, and there is no charge for parking near the giant Shiva and Durga statues. As it is a place of worship rather than a commercial attraction, you simply come, walk the lake and pay your respects. A small donation at a temple is welcome but never required."
+        q: 'Is there an entrance fee for Grand Bassin?',
+        a: 'No. Entry to Grand Bassin (Ganga Talao) and its temples is free, and there is no charge for parking near the giant Shiva and Durga statues. As it is a place of worship rather than a commercial attraction, you simply come, walk the lake and pay your respects. A small donation at a temple is welcome but never required.',
       },
       {
-        "q": "What should I wear to Grand Bassin?",
-        "a": "Dress modestly, with shoulders and knees covered for both men and women. A light scarf or sarong is handy, and slip-on shoes help because you may need to remove footwear to enter some temples. Because of the highland altitude it is cooler and often mistier than the coast, so bring a light layer or rain jacket."
+        q: 'What should I wear to Grand Bassin?',
+        a: 'Dress modestly, with shoulders and knees covered for both men and women. A light scarf or sarong is handy, and slip-on shoes help because you may need to remove footwear to enter some temples. Because of the highland altitude it is cooler and often mistier than the coast, so bring a light layer or rain jacket.',
       },
       {
-        "q": "When is Maha Shivaratri and should I plan around it?",
-        "a": "Maha Shivaratri usually falls in February or March; the exact date follows the Hindu lunar calendar and changes each year. It is an awe-inspiring pilgrimage, but roads across central and southern Mauritius fill with walking devotees and the site is very crowded, so allow far more travel time, drive patiently, and expect a busy visit. For a quieter experience, visit outside the festival period."
+        q: 'When is Maha Shivaratri and should I plan around it?',
+        a: 'Maha Shivaratri usually falls in February or March; the exact date follows the Hindu lunar calendar and changes each year. It is an awe-inspiring pilgrimage, but roads across central and southern Mauritius fill with walking devotees and the site is very crowded, so allow far more travel time, drive patiently, and expect a busy visit. For a quieter experience, visit outside the festival period.',
       },
       {
-        "q": "How do I get to Grand Bassin from the beach resorts?",
-        "a": "Grand Bassin is in the island's interior, roughly an hour to 90 minutes from the northern and eastern resorts and 45 to 60 minutes from the south coast. There is no practical public transport for visitors, so most people come by rental car or with a private driver-guide, often combining it with Chamarel and Black River Gorges on a southern day tour."
-      }
-    ]
+        q: 'How do I get to Grand Bassin from the beach resorts?',
+        a: "Grand Bassin is in the island's interior, roughly an hour to 90 minutes from the northern and eastern resorts and 45 to 60 minutes from the south coast. There is no practical public transport for visitors, so most people come by rental car or with a private driver-guide, often combining it with Chamarel and Black River Gorges on a southern day tour.",
+      },
+    ],
   },
   {
-    "slug": "casela-nature-park-guide",
-    "title": "Casela Nature Park: Tickets, Tips & What to Do",
-    "metaTitle": "Casela Nature Park: Tickets, Tips & What to Do",
-    "metaDescription": "Plan your visit to Casela Nature Park in Mauritius: ticket options, prices, the best activities for families and thrill-seekers, plus honest timing tips.",
-    "excerpt": "A practical, honest guide to Casela Nature Park in western Mauritius: ticket types and prices, the best activities for families and thrill-seekers, and when to go.",
-    "readMins": 6,
-    "sections": [
+    slug: 'casela-nature-park-guide',
+    title: 'Casela Nature Park: Tickets, Tips & What to Do',
+    metaTitle: 'Casela Nature Park: Tickets, Tips & What to Do',
+    metaDescription:
+      'Plan your visit to Casela Nature Park in Mauritius: ticket options, prices, the best activities for families and thrill-seekers, plus honest timing tips.',
+    excerpt:
+      'A practical, honest guide to Casela Nature Park in western Mauritius: ticket types and prices, the best activities for families and thrill-seekers, and when to go.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "What Casela Nature Park Actually Is",
-        "paragraphs": [
+        heading: 'What Casela Nature Park Actually Is',
+        paragraphs: [
           "Casela Nature Park sits on the rolling hills above Cascavelle in western Mauritius, near Flic en Flac and a short drive from the coast. It started decades ago as a modest bird garden and has grown into one of the island's largest adventure and wildlife parks, spread across roughly 350 hectares of savannah, valley and woodland. The setting is genuinely scenic: from the upper areas you get long views over the west coast and out toward the lagoon, which is part of why the zip-lines and Segway trails are so popular.",
-          "Today the park blends three things under one entrance: a wildlife and walk-through area (birds, giant tortoises, big cats viewed from safe vantage points, and farm animals), an adventure zone (zip-lines, canyon swings, Nepalese bridges, quad and buggy trails), and a safari section where you ride through open land that is home to zebra, ostrich, antelope and other free-roaming species. Because it tries to be all of these at once, the single most useful thing to know before you arrive is that no standard ticket covers everything. You choose a base entry and then add the experiences you want."
-        ]
+          'Today the park blends three things under one entrance: a wildlife and walk-through area (birds, giant tortoises, big cats viewed from safe vantage points, and farm animals), an adventure zone (zip-lines, canyon swings, Nepalese bridges, quad and buggy trails), and a safari section where you ride through open land that is home to zebra, ostrich, antelope and other free-roaming species. Because it tries to be all of these at once, the single most useful thing to know before you arrive is that no standard ticket covers everything. You choose a base entry and then add the experiences you want.',
+        ],
       },
       {
-        "heading": "Tickets and Prices: How the System Works",
-        "paragraphs": [
+        heading: 'Tickets and Prices: How the System Works',
+        paragraphs: [
           "Casela uses a base-entry-plus-activities model rather than one all-inclusive price. A standard day pass that covers the walk-through park, the birds and tortoises, the children's farm and general access typically lands somewhere around 25 to 30 EUR for adults and roughly 18 to 22 EUR for children, with under-threes usually free. Prices shift with season and promotions, and booking online ahead of time is normally cheaper than paying at the gate, so always confirm the current rate on the official park site before you travel.",
-          "From there, the headline experiences are paid separately. Expect to budget for each activity you add: the safari adventure (the off-road vehicle ride through the free-roaming zone) is commonly in the 20 to 40 EUR range depending on the version, while the big zip-line circuit, canyon swing and quad or buggy rides each carry their own fee that can range from around 30 EUR up to 70 EUR or more for the longer adventure packages. Combo packages bundle entry with two or three activities at a small saving, which usually works out best if you know in advance what you want to do.",
-          "One honest note: the interaction with big cats has changed over the years, and Casela has moved away from the close walking-with-lions experiences that some older travel articles still describe. Plan your day around what is currently offered and avoid relying on outdated blog posts. If you want help slotting Casela into a wider itinerary alongside other stops, our /attractions and /activities pages list current, bookable options, and the /ai-road-trip-planner can sketch a full day for you."
-        ]
+          'From there, the headline experiences are paid separately. Expect to budget for each activity you add: the safari adventure (the off-road vehicle ride through the free-roaming zone) is commonly in the 20 to 40 EUR range depending on the version, while the big zip-line circuit, canyon swing and quad or buggy rides each carry their own fee that can range from around 30 EUR up to 70 EUR or more for the longer adventure packages. Combo packages bundle entry with two or three activities at a small saving, which usually works out best if you know in advance what you want to do.',
+          'One honest note: the interaction with big cats has changed over the years, and Casela has moved away from the close walking-with-lions experiences that some older travel articles still describe. Plan your day around what is currently offered and avoid relying on outdated blog posts. If you want help slotting Casela into a wider itinerary alongside other stops, our /attractions and /activities pages list current, bookable options, and the /ai-road-trip-planner can sketch a full day for you.',
+        ],
       },
       {
-        "heading": "Best for Families: A Gentle, Full Day Out",
-        "paragraphs": [
+        heading: 'Best for Families: A Gentle, Full Day Out',
+        paragraphs: [
           "Families with younger children get strong value from the base entry alone. The walk-through loop is stroller-friendly in most sections, and kids tend to gravitate to the giant Aldabra tortoises, the petting and feeding areas of the children's farm, and the aviaries with parrots and other birds. The tortoise and bird feeding moments are calm, hands-on and genuinely memorable for small children without needing any paid add-on.",
-          "If your children are a bit older, say eight and up, the gentle safari ride is the natural upgrade. Sitting in an open vehicle while zebra and ostrich wander past delivers the wildlife thrill without any physical demand, and it suits mixed-age groups well. Allow a relaxed half to full day, bring hats, sunscreen and water, and plan to break for lunch at one of the on-site restaurants since the park is large and walking it under the Mauritian sun is tiring. There is real shade in parts but plenty of exposed savannah too."
-        ]
+          'If your children are a bit older, say eight and up, the gentle safari ride is the natural upgrade. Sitting in an open vehicle while zebra and ostrich wander past delivers the wildlife thrill without any physical demand, and it suits mixed-age groups well. Allow a relaxed half to full day, bring hats, sunscreen and water, and plan to break for lunch at one of the on-site restaurants since the park is large and walking it under the Mauritian sun is tiring. There is real shade in parts but plenty of exposed savannah too.',
+        ],
       },
       {
-        "heading": "Best for Thrill-Seekers: Zip-Lines, Swings and Quads",
-        "paragraphs": [
-          "Casela is one of the best places on the island for adrenaline activities precisely because of its terrain. The flagship draw is the multi-line zip circuit that sends you across a valley with the west coast in the background; it is run in small groups with full harnessing and guides, and it usually takes a couple of hours from briefing to finish. The canyon swing is the other standout for the brave, a freefall arc over a gorge that is short but genuinely intense.",
-          "Beyond the heights, the quad bike and buggy trails take you across rough park terrain and often pass close to free-roaming animals, which is a different and more active way to see them than the standard safari vehicle. These activities have minimum age, height and weight requirements, and some are not suitable during heavy rain, so build flexibility into your plan. Closed shoes are essential, and you should book adventure packages in advance during the busy summer months from November to April because spots are limited per session."
-        ]
+        heading: 'Best for Thrill-Seekers: Zip-Lines, Swings and Quads',
+        paragraphs: [
+          'Casela is one of the best places on the island for adrenaline activities precisely because of its terrain. The flagship draw is the multi-line zip circuit that sends you across a valley with the west coast in the background; it is run in small groups with full harnessing and guides, and it usually takes a couple of hours from briefing to finish. The canyon swing is the other standout for the brave, a freefall arc over a gorge that is short but genuinely intense.',
+          'Beyond the heights, the quad bike and buggy trails take you across rough park terrain and often pass close to free-roaming animals, which is a different and more active way to see them than the standard safari vehicle. These activities have minimum age, height and weight requirements, and some are not suitable during heavy rain, so build flexibility into your plan. Closed shoes are essential, and you should book adventure packages in advance during the busy summer months from November to April because spots are limited per session.',
+        ],
       },
       {
-        "heading": "When to Go and How to Get There",
-        "paragraphs": [
-          "Mauritius has two broad seasons: a warm, more humid summer from November to April and a cooler, drier winter from May to October. The winter months generally make for the most comfortable park days, with milder temperatures for walking and the adventure trails, while the summer can be hot and brings short, heavy downpours that occasionally pause the zip-lines and outdoor rides. Whatever the season, arrive early. The park opens in the morning and the first couple of hours are cooler, quieter and better for animal activity before midday heat sets in.",
-          "Casela is in the west, easily reached from Flic en Flac, Tamarin and Black River, and roughly a 45 to 60 minute drive from Grand Baie in the north or the Belle Mare area in the east, traffic depending. From the airport in the southeast it is around an hour to an hour and a half. There is parking on site if you self-drive, but many visitors prefer a private driver so they can enjoy the day without navigating or worrying about timing. You can arrange a comfortable door-to-door pickup through our /airport-transfers service, and our /destinations pages explain how Casela fits with nearby western stops like Tamarin Bay and the Black River Gorges."
-        ]
+        heading: 'When to Go and How to Get There',
+        paragraphs: [
+          'Mauritius has two broad seasons: a warm, more humid summer from November to April and a cooler, drier winter from May to October. The winter months generally make for the most comfortable park days, with milder temperatures for walking and the adventure trails, while the summer can be hot and brings short, heavy downpours that occasionally pause the zip-lines and outdoor rides. Whatever the season, arrive early. The park opens in the morning and the first couple of hours are cooler, quieter and better for animal activity before midday heat sets in.',
+          'Casela is in the west, easily reached from Flic en Flac, Tamarin and Black River, and roughly a 45 to 60 minute drive from Grand Baie in the north or the Belle Mare area in the east, traffic depending. From the airport in the southeast it is around an hour to an hour and a half. There is parking on site if you self-drive, but many visitors prefer a private driver so they can enjoy the day without navigating or worrying about timing. You can arrange a comfortable door-to-door pickup through our /airport-transfers service, and our /destinations pages explain how Casela fits with nearby western stops like Tamarin Bay and the Black River Gorges.',
+        ],
       },
       {
-        "heading": "Honest Tips to Make the Day Worth It",
-        "paragraphs": [
-          "A few practical things keep the visit smooth. Decide your activities before you arrive and pre-book them so you are not standing in queues choosing on the spot, which wastes the cool morning hours. Wear closed shoes and light, breathable clothing, carry water, and reapply sunscreen because much of the terrain is open savannah. If you are bringing very young children or older relatives, note that distances between zones are significant and there is a paid land train or shuttle in parts of the park that is worth using.",
-          "Set expectations honestly. Casela is a managed adventure-and-wildlife park, not a true open wilderness, so the animal encounters are curated rather than wild. For the price, the combination of activities, views and the safari ride still makes it one of the better full-day attractions in the west, especially for families and active travellers. If you only have a half day or want to compare it against quieter natural sites like the Black River Gorges, weigh that up before booking, and use our /activities listings to balance a high-energy Casela day with a gentler beach or boat outing elsewhere in your trip."
-        ]
-      }
+        heading: 'Honest Tips to Make the Day Worth It',
+        paragraphs: [
+          'A few practical things keep the visit smooth. Decide your activities before you arrive and pre-book them so you are not standing in queues choosing on the spot, which wastes the cool morning hours. Wear closed shoes and light, breathable clothing, carry water, and reapply sunscreen because much of the terrain is open savannah. If you are bringing very young children or older relatives, note that distances between zones are significant and there is a paid land train or shuttle in parts of the park that is worth using.',
+          'Set expectations honestly. Casela is a managed adventure-and-wildlife park, not a true open wilderness, so the animal encounters are curated rather than wild. For the price, the combination of activities, views and the safari ride still makes it one of the better full-day attractions in the west, especially for families and active travellers. If you only have a half day or want to compare it against quieter natural sites like the Black River Gorges, weigh that up before booking, and use our /activities listings to balance a high-energy Casela day with a gentler beach or boat outing elsewhere in your trip.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How much does it cost to visit Casela Nature Park?",
-        "a": "Base entry for the walk-through park is typically around 25 to 30 EUR for adults and 18 to 22 EUR for children, with under-threes usually free. Activities like the safari ride, zip-lines, canyon swing and quad bikes are paid separately, each ranging from roughly 20 EUR to 70 EUR or more. Combo packages save a little. Always check the official site for current prices and book online for the best rate."
+        q: 'How much does it cost to visit Casela Nature Park?',
+        a: 'Base entry for the walk-through park is typically around 25 to 30 EUR for adults and 18 to 22 EUR for children, with under-threes usually free. Activities like the safari ride, zip-lines, canyon swing and quad bikes are paid separately, each ranging from roughly 20 EUR to 70 EUR or more. Combo packages save a little. Always check the official site for current prices and book online for the best rate.',
       },
       {
-        "q": "Is Casela good for young children?",
-        "a": "Yes. The base entry alone gives families a full day: stroller-friendly walking paths, giant tortoise and bird feeding, and a children's farm with petting and feeding areas. The gentle open-vehicle safari ride suits children around eight and up. Bring hats, sunscreen and water, and plan a lunch break since the park is large and partly exposed to the sun."
+        q: 'Is Casela good for young children?',
+        a: "Yes. The base entry alone gives families a full day: stroller-friendly walking paths, giant tortoise and bird feeding, and a children's farm with petting and feeding areas. The gentle open-vehicle safari ride suits children around eight and up. Bring hats, sunscreen and water, and plan a lunch break since the park is large and partly exposed to the sun.",
       },
       {
-        "q": "What are the best thrill activities at Casela?",
-        "a": "The standout adrenaline experiences are the multi-line zip-line circuit across the valley, the canyon swing freefall over a gorge, and the quad bike and buggy trails that pass close to free-roaming animals. These have minimum age, height and weight requirements, need closed shoes, and may pause in heavy rain. Book adventure packages ahead during the busy November to April summer season."
+        q: 'What are the best thrill activities at Casela?',
+        a: 'The standout adrenaline experiences are the multi-line zip-line circuit across the valley, the canyon swing freefall over a gorge, and the quad bike and buggy trails that pass close to free-roaming animals. These have minimum age, height and weight requirements, need closed shoes, and may pause in heavy rain. Book adventure packages ahead during the busy November to April summer season.',
       },
       {
-        "q": "When is the best time to visit Casela?",
-        "a": "The cooler, drier winter from May to October is generally most comfortable for walking and outdoor activities. The November to April summer is hotter and brings short heavy downpours that can briefly pause the zip-lines and rides. In any season, arrive early in the morning when it is cooler, quieter and better for seeing the animals active."
-      }
-    ]
+        q: 'When is the best time to visit Casela?',
+        a: 'The cooler, drier winter from May to October is generally most comfortable for walking and outdoor activities. The November to April summer is hotter and brings short heavy downpours that can briefly pause the zip-lines and rides. In any season, arrive early in the morning when it is cooler, quieter and better for seeing the animals active.',
+      },
+    ],
   },
   {
-    "slug": "port-louis-things-to-do",
-    "title": "Port Louis: The Best Things to Do in the Capital",
-    "metaTitle": "Port Louis: Best Things to Do in the Capital",
-    "metaDescription": "Discover the best things to do in Port Louis, Mauritius: Central Market, Caudan, Aapravasi Ghat, the Citadel and Chinatown, plus a smart half-day plan.",
-    "excerpt": "A practical local guide to Port Louis, Mauritius: its market, waterfront, UNESCO sites, the Citadel and Chinatown, with a half-day plan that actually works.",
-    "readMins": 6,
-    "sections": [
+    slug: 'port-louis-things-to-do',
+    title: 'Port Louis: The Best Things to Do in the Capital',
+    metaTitle: 'Port Louis: Best Things to Do in the Capital',
+    metaDescription:
+      'Discover the best things to do in Port Louis, Mauritius: Central Market, Caudan, Aapravasi Ghat, the Citadel and Chinatown, plus a smart half-day plan.',
+    excerpt:
+      'A practical local guide to Port Louis, Mauritius: its market, waterfront, UNESCO sites, the Citadel and Chinatown, with a half-day plan that actually works.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "Why Port Louis Deserves a Few Hours",
-        "paragraphs": [
+        heading: 'Why Port Louis Deserves a Few Hours',
+        paragraphs: [
           "Most visitors to Mauritius head straight for the beaches of the north and west, and Port Louis often gets skipped. That is a shame, because the capital is where the island's real story lives. Founded by the French in the 1730s and named after King Louis XV, Port Louis grew into the busiest harbour in the Indian Ocean, and today it blends a working port, colonial buildings, Hindu and Tamil temples, mosques, Chinese shophouses and Creole street food within a few walkable blocks.",
-          "It is a compact city. The market, the waterfront, the UNESCO-listed Aapravasi Ghat and Chinatown all sit within roughly a fifteen-minute walk of each other, so you do not need a full day to get a genuine feel for the place. A half-day is plenty. The honest caveat: Port Louis is hot, busy and dusty in the city centre, and it largely shuts down on Sunday afternoons, so plan around that.",
-          "If you are based on the coast and want to fold the capital into a wider day out, it pairs naturally with sights nearby. You can browse the full list of stops on our /attractions and /destinations pages before deciding how much time to give the city versus the rest of the route."
-        ]
+          'It is a compact city. The market, the waterfront, the UNESCO-listed Aapravasi Ghat and Chinatown all sit within roughly a fifteen-minute walk of each other, so you do not need a full day to get a genuine feel for the place. A half-day is plenty. The honest caveat: Port Louis is hot, busy and dusty in the city centre, and it largely shuts down on Sunday afternoons, so plan around that.',
+          'If you are based on the coast and want to fold the capital into a wider day out, it pairs naturally with sights nearby. You can browse the full list of stops on our /attractions and /destinations pages before deciding how much time to give the city versus the rest of the route.',
+        ],
       },
       {
-        "heading": "Central Market: The Heart of the City",
-        "paragraphs": [
-          "Start at the Central Market (Bazar de Port Louis) on Farquhar and Queen Streets. The covered market has two main halves: the fruit, vegetable and flower section, and a separate craft and souvenir hall. Mornings are best, roughly from 8am, when the produce is fresh and the aisles are lively rather than chaotic. Expect pyramids of lychees, pineapples, mangoes and chillies, plus stalls of vanilla pods, dried spices and tea.",
-          "This is also the place to try a dholl puri, the island's favourite street snack: a soft turmeric flatbird filled with split-pea purée, served with bean curry, pickles and rougaille sauce. Two of them with a drink rarely costs more than 2 to 3 EUR, and it is one of the best-value meals you will find anywhere on the island. Be polite but firm with souvenir sellers, where light haggling is expected, and keep an eye on your bag in the busier passages as you would in any city market."
-        ]
+        heading: 'Central Market: The Heart of the City',
+        paragraphs: [
+          'Start at the Central Market (Bazar de Port Louis) on Farquhar and Queen Streets. The covered market has two main halves: the fruit, vegetable and flower section, and a separate craft and souvenir hall. Mornings are best, roughly from 8am, when the produce is fresh and the aisles are lively rather than chaotic. Expect pyramids of lychees, pineapples, mangoes and chillies, plus stalls of vanilla pods, dried spices and tea.',
+          "This is also the place to try a dholl puri, the island's favourite street snack: a soft turmeric flatbird filled with split-pea purée, served with bean curry, pickles and rougaille sauce. Two of them with a drink rarely costs more than 2 to 3 EUR, and it is one of the best-value meals you will find anywhere on the island. Be polite but firm with souvenir sellers, where light haggling is expected, and keep an eye on your bag in the busier passages as you would in any city market.",
+        ],
       },
       {
-        "heading": "Caudan Waterfront: Modern Mauritius by the Harbour",
-        "paragraphs": [
+        heading: 'Caudan Waterfront: Modern Mauritius by the Harbour',
+        paragraphs: [
           "A short walk from the market, across the main road, the Caudan Waterfront is the city's modern face: a redeveloped harbour district with shops, restaurants, a casino, a cinema and the Blue Penny Museum. It is cleaner, calmer and far more tourist-friendly than the market streets, which makes it a good spot to cool down, find a proper coffee and use a reliable bathroom.",
-          "The Blue Penny Museum is the standout cultural stop here, built around two of the world's most famous postage stamps, the 1847 Mauritius Red Penny and Blue Penny, alongside maritime history and art. Entry is modest, usually around 5 to 6 EUR for adults. Caudan is also where you will find the small Aapravasi Ghat interpretation context, craft shops with fixed prices if you dislike haggling, and harbour views back towards the cranes of the working port."
-        ]
+          "The Blue Penny Museum is the standout cultural stop here, built around two of the world's most famous postage stamps, the 1847 Mauritius Red Penny and Blue Penny, alongside maritime history and art. Entry is modest, usually around 5 to 6 EUR for adults. Caudan is also where you will find the small Aapravasi Ghat interpretation context, craft shops with fixed prices if you dislike haggling, and harbour views back towards the cranes of the working port.",
+        ],
       },
       {
-        "heading": "Aapravasi Ghat: A UNESCO World Heritage Site",
-        "paragraphs": [
+        heading: 'Aapravasi Ghat: A UNESCO World Heritage Site',
+        paragraphs: [
           "Few places explain modern Mauritius as clearly as Aapravasi Ghat, the immigration depot on the edge of the harbour where nearly half a million indentured labourers from India first set foot on the island between 1834 and the early 1900s. After the abolition of slavery, Britain ran its 'great experiment' in indentured labour here, and the surviving stone steps, hospital block and depot foundations are now a UNESCO World Heritage Site.",
-          "It is a quiet, moving place rather than a flashy attraction, and entry is free. There is a small, well-presented interpretation centre that puts the site in context, and visiting takes about thirty to forty-five minutes. Most Mauritians can trace family back to those who arrived through this gate, so treat it with the respect you would any memorial. It opens on weekdays and Saturday mornings, and like much of the city it is best visited before midday."
-        ]
+          'It is a quiet, moving place rather than a flashy attraction, and entry is free. There is a small, well-presented interpretation centre that puts the site in context, and visiting takes about thirty to forty-five minutes. Most Mauritians can trace family back to those who arrived through this gate, so treat it with the respect you would any memorial. It opens on weekdays and Saturday mornings, and like much of the city it is best visited before midday.',
+        ],
       },
       {
-        "heading": "The Citadel: The Best View Over Port Louis",
-        "paragraphs": [
+        heading: 'The Citadel: The Best View Over Port Louis',
+        paragraphs: [
           "For the city's best viewpoint, head up to Fort Adelaide, known to everyone as the Citadel. Built by the British in the 1830s on a hill above the centre, this squat stone fort was designed to keep watch over both the harbour and the town below. The fort itself is fairly bare inside, with a few cannons and craft stalls, but you do not climb up for the architecture, you climb for the panorama.",
-          "From the ramparts you get a sweeping view across the rooftops to the harbour, the Caudan cranes, and the dramatic peaks of the Moka range behind, including the unmistakable thumb of Pieter Both. Entry is free, though the access road is steep, so it is far easier to drive or be dropped off than to walk up in the heat. It is one of the few city stops that is genuinely good in the late afternoon, when the light softens and the crowds thin."
-        ]
+          'From the ramparts you get a sweeping view across the rooftops to the harbour, the Caudan cranes, and the dramatic peaks of the Moka range behind, including the unmistakable thumb of Pieter Both. Entry is free, though the access road is steep, so it is far easier to drive or be dropped off than to walk up in the heat. It is one of the few city stops that is genuinely good in the late afternoon, when the light softens and the crowds thin.',
+        ],
       },
       {
-        "heading": "Chinatown: Food, Heritage and a Slower Pace",
-        "paragraphs": [
-          "Port Louis has one of the oldest Chinatowns in the Indian Ocean, marked by two ceremonial friendship gates and centred on Royal Street. Chinese traders settled here from the 19th century, and the district is still full of old shophouses, herbal-medicine shops, bakeries and family-run restaurants. It is a good place to wander slowly, look up at the faded signage and tiled facades, and escape the intensity of the market.",
-          "Come hungry. Chinatown is where to try boulettes (Mauritian-Chinese dumplings in clear broth), fried noodles, and bao from the old bakeries, usually for just a few euros. If your trip lines up with it, the annual Chinatown Food and Cultural Festival, typically held around mid-year, fills the streets with stalls and lion dances. On a normal day, lunchtime on a weekday is the sweet spot, as some places close early and Sundays can be very quiet."
-        ]
+        heading: 'Chinatown: Food, Heritage and a Slower Pace',
+        paragraphs: [
+          'Port Louis has one of the oldest Chinatowns in the Indian Ocean, marked by two ceremonial friendship gates and centred on Royal Street. Chinese traders settled here from the 19th century, and the district is still full of old shophouses, herbal-medicine shops, bakeries and family-run restaurants. It is a good place to wander slowly, look up at the faded signage and tiled facades, and escape the intensity of the market.',
+          'Come hungry. Chinatown is where to try boulettes (Mauritian-Chinese dumplings in clear broth), fried noodles, and bao from the old bakeries, usually for just a few euros. If your trip lines up with it, the annual Chinatown Food and Cultural Festival, typically held around mid-year, fills the streets with stalls and lion dances. On a normal day, lunchtime on a weekday is the sweet spot, as some places close early and Sundays can be very quiet.',
+        ],
       },
       {
-        "heading": "A Smart Half-Day Plan for Port Louis",
-        "paragraphs": [
-          "Here is a route that works well and avoids the worst of the heat and crowds. Arrive around 8:30am and start at the Central Market while it is fresh, allowing about forty-five minutes. Walk over to the Caudan Waterfront for a coffee and the Blue Penny Museum, then continue on foot to Aapravasi Ghat, which sits between the two. That covers the market, the modern waterfront and the UNESCO site in one easy loop before late morning.",
-          "Break for an early lunch in Chinatown, then drive up to the Citadel last for the view, by which point the morning haze has usually cleared. The whole circuit takes roughly four to five hours at a relaxed pace. Wear light clothing and comfortable shoes, carry water, and aim for a weekday or Saturday morning rather than a Sunday. In the November to April summer the city is hot and humid, so an early start matters more; the cooler, drier May to October winter is the most comfortable time to explore on foot.",
-          "Getting in and out is the part most people overstate the difficulty of. If you are staying on the coast, a private driver makes the day effortless, especially because parking in the centre is tight. We can build Port Louis into a guided day trip or a flexible private transfer, and you can map your wider itinerary with our /ai-road-trip-planner or browse driver-led day tours on /activities. If you are arriving on the island, our /airport-transfers connect the airport to your hotel so you can hit the capital fresh the next morning."
-        ]
-      }
+        heading: 'A Smart Half-Day Plan for Port Louis',
+        paragraphs: [
+          'Here is a route that works well and avoids the worst of the heat and crowds. Arrive around 8:30am and start at the Central Market while it is fresh, allowing about forty-five minutes. Walk over to the Caudan Waterfront for a coffee and the Blue Penny Museum, then continue on foot to Aapravasi Ghat, which sits between the two. That covers the market, the modern waterfront and the UNESCO site in one easy loop before late morning.',
+          'Break for an early lunch in Chinatown, then drive up to the Citadel last for the view, by which point the morning haze has usually cleared. The whole circuit takes roughly four to five hours at a relaxed pace. Wear light clothing and comfortable shoes, carry water, and aim for a weekday or Saturday morning rather than a Sunday. In the November to April summer the city is hot and humid, so an early start matters more; the cooler, drier May to October winter is the most comfortable time to explore on foot.',
+          'Getting in and out is the part most people overstate the difficulty of. If you are staying on the coast, a private driver makes the day effortless, especially because parking in the centre is tight. We can build Port Louis into a guided day trip or a flexible private transfer, and you can map your wider itinerary with our /ai-road-trip-planner or browse driver-led day tours on /activities. If you are arriving on the island, our /airport-transfers connect the airport to your hotel so you can hit the capital fresh the next morning.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How much time do I need in Port Louis?",
-        "a": "A half-day, around four to five hours, is enough to cover the highlights comfortably: the Central Market, Caudan Waterfront, Aapravasi Ghat, Chinatown for lunch and the Citadel for the view. You do not need a full day unless you want a slow, unhurried pace."
+        q: 'How much time do I need in Port Louis?',
+        a: 'A half-day, around four to five hours, is enough to cover the highlights comfortably: the Central Market, Caudan Waterfront, Aapravasi Ghat, Chinatown for lunch and the Citadel for the view. You do not need a full day unless you want a slow, unhurried pace.',
       },
       {
-        "q": "Is Port Louis safe for tourists?",
-        "a": "Yes, Port Louis is generally safe to visit by day. Use normal city sense: watch your bag in the crowded market passages, keep valuables out of sight, and avoid wandering quiet back streets after dark. The central sights are busy and well-trafficked during the daytime hours most visitors use."
+        q: 'Is Port Louis safe for tourists?',
+        a: 'Yes, Port Louis is generally safe to visit by day. Use normal city sense: watch your bag in the crowded market passages, keep valuables out of sight, and avoid wandering quiet back streets after dark. The central sights are busy and well-trafficked during the daytime hours most visitors use.',
       },
       {
-        "q": "What is the best day and time to visit?",
-        "a": "Aim for a weekday or Saturday morning, starting around 8:30am. The market is freshest early, and you beat both the heat and the midday crowds. Avoid Sunday afternoons, when much of the city centre, including the market and many shops, closes down."
+        q: 'What is the best day and time to visit?',
+        a: 'Aim for a weekday or Saturday morning, starting around 8:30am. The market is freshest early, and you beat both the heat and the midday crowds. Avoid Sunday afternoons, when much of the city centre, including the market and many shops, closes down.',
       },
       {
-        "q": "How do I get to Port Louis from the beach resorts?",
-        "a": "The easiest option is a private driver or a guided day tour, as central parking is limited and public buses can be slow. From the airport in the south, allow roughly an hour by car. We can arrange a transfer or fold the capital into a wider day trip so you skip the logistics entirely."
-      }
-    ]
+        q: 'How do I get to Port Louis from the beach resorts?',
+        a: 'The easiest option is a private driver or a guided day tour, as central parking is limited and public buses can be slow. From the airport in the south, allow roughly an hour by car. We can arrange a transfer or fold the capital into a wider day trip so you skip the logistics entirely.',
+      },
+    ],
   },
   {
-    "slug": "mauritian-food-dishes",
-    "title": "Mauritian Food: 15 Dishes You Must Try",
-    "metaTitle": "Mauritian Food: 15 Dishes You Must Try",
-    "metaDescription": "A local's guide to Mauritian food: dholl puri, gateaux piments, rougaille, biryani, street food and where to eat, with real names and realistic prices.",
-    "excerpt": "A practical guide to the 15 Mauritian dishes worth seeking out, from dholl puri and gateaux piments to rougaille and biryani, with real prices and where to find them.",
-    "readMins": 8,
-    "sections": [
+    slug: 'mauritian-food-dishes',
+    title: 'Mauritian Food: 15 Dishes You Must Try',
+    metaTitle: 'Mauritian Food: 15 Dishes You Must Try',
+    metaDescription:
+      "A local's guide to Mauritian food: dholl puri, gateaux piments, rougaille, biryani, street food and where to eat, with real names and realistic prices.",
+    excerpt:
+      'A practical guide to the 15 Mauritian dishes worth seeking out, from dholl puri and gateaux piments to rougaille and biryani, with real prices and where to find them.',
+    readMins: 8,
+    sections: [
       {
-        "heading": "Why Mauritian Food Is Worth Travelling For",
-        "paragraphs": [
+        heading: 'Why Mauritian Food Is Worth Travelling For',
+        paragraphs: [
           "Mauritian cooking is one of the most underrated cuisines in the Indian Ocean, and it is the direct result of the island's history. Over three centuries, Indian indentured labourers, Chinese traders, African and Malagasy communities, and French and British settlers all landed on the same small island and brought their kitchens with them. What emerged is genuinely Creole: an Indian curry cooked with a French rougaille base, a Chinese noodle dish seasoned with local chilli, a flatbread eaten with a bean curry on a Port Louis street corner. Nothing here is a museum piece. It is what people actually eat every day.",
-          "The other thing to understand is that the best Mauritian food is rarely found in hotel buffets. It lives in roadside stalls, family snack shops known as snacks, market food courts and small family restaurants in towns like Mahebourg, Flacq and Port Louis. Prices reflect that. A street snack costs a fraction of a euro, a proper plate of biryani might run 4 to 7 EUR, and even a sit-down Creole meal rarely climbs past 12 to 18 EUR per person outside the resorts. If you want to fold a few of these food stops into a wider itinerary, our /attractions and /destinations pages map out the towns and markets where the eating is best."
-        ]
+          'The other thing to understand is that the best Mauritian food is rarely found in hotel buffets. It lives in roadside stalls, family snack shops known as snacks, market food courts and small family restaurants in towns like Mahebourg, Flacq and Port Louis. Prices reflect that. A street snack costs a fraction of a euro, a proper plate of biryani might run 4 to 7 EUR, and even a sit-down Creole meal rarely climbs past 12 to 18 EUR per person outside the resorts. If you want to fold a few of these food stops into a wider itinerary, our /attractions and /destinations pages map out the towns and markets where the eating is best.',
+        ],
       },
       {
-        "heading": "Dholl Puri and Roti: The National Street Food",
-        "paragraphs": [
+        heading: 'Dholl Puri and Roti: The National Street Food',
+        paragraphs: [
           "If you try only one thing in Mauritius, make it dholl puri. This is the island's signature street food and arguably its most beloved dish: a soft, thin flatbread stuffed with ground yellow split peas (dholl), griddled fresh, then folded around fillings of butter bean curry (gros pois), a tomato-based rougaille, grated cucumber and a fiery chilli paste called mazavaroo. Vendors stack two together and hand them over wrapped in paper. The whole thing usually costs around 25 to 40 Mauritian rupees, which is well under one euro, and it is engineered to be eaten standing up.",
-          "Its cousin is roti chaud, a plain flatbread served with the same curries and chutneys, slightly thicker and just as good. The most famous dholl puri name in the country is Dewa, whose stalls in and around Rose Hill and Port Louis draw long lunchtime queues, but almost every town has a stall locals will swear by. A tip worth following: eat dholl puri early in the day. The best vendors sell out by mid-afternoon, and a dholl puri that has been sitting around loses the soft, warm texture that makes it special."
-        ]
+          'Its cousin is roti chaud, a plain flatbread served with the same curries and chutneys, slightly thicker and just as good. The most famous dholl puri name in the country is Dewa, whose stalls in and around Rose Hill and Port Louis draw long lunchtime queues, but almost every town has a stall locals will swear by. A tip worth following: eat dholl puri early in the day. The best vendors sell out by mid-afternoon, and a dholl puri that has been sitting around loses the soft, warm texture that makes it special.',
+        ],
       },
       {
-        "heading": "Gateaux Piments and Fried Snacks",
-        "paragraphs": [
-          "Gateaux piments are small deep-fried fritters made from split peas, ground with chilli, spring onion, cumin and coriander, then dropped into hot oil until crisp. The name translates literally as chilli cakes, and they are the classic Mauritian breakfast, often tucked inside a soft bread roll (pain maison) with a smear of chilli paste to make a sandwich locals call a dipain maison. A handful costs just a few rupees, and you will smell them frying at bus stations and market entrances from early morning.",
-          "They belong to a wider family of fried snacks you should sample as you go. Look out for samoussas, the triangular pastries filled with spiced potato or vegetables; gateaux arouille, made from grated taro; and bhajia or gato brinzel, sliced aubergine in a chickpea-flour batter. Vendors usually sell these in mixed paper cones for a euro or two. They are the perfect thing to grab on the way to a beach or a market, and they travel well in a day pack if you are heading out on a tour."
-        ]
+        heading: 'Gateaux Piments and Fried Snacks',
+        paragraphs: [
+          'Gateaux piments are small deep-fried fritters made from split peas, ground with chilli, spring onion, cumin and coriander, then dropped into hot oil until crisp. The name translates literally as chilli cakes, and they are the classic Mauritian breakfast, often tucked inside a soft bread roll (pain maison) with a smear of chilli paste to make a sandwich locals call a dipain maison. A handful costs just a few rupees, and you will smell them frying at bus stations and market entrances from early morning.',
+          'They belong to a wider family of fried snacks you should sample as you go. Look out for samoussas, the triangular pastries filled with spiced potato or vegetables; gateaux arouille, made from grated taro; and bhajia or gato brinzel, sliced aubergine in a chickpea-flour batter. Vendors usually sell these in mixed paper cones for a euro or two. They are the perfect thing to grab on the way to a beach or a market, and they travel well in a day pack if you are heading out on a tour.',
+        ],
       },
       {
-        "heading": "Rougaille and Creole Mains",
-        "paragraphs": [
-          "Rougaille is the cornerstone of Mauritian Creole home cooking. At its heart it is a rich tomato sauce built on onion, garlic, ginger, fresh thyme and curry leaves, simmered until thick and used to cook everything from fish and prawns to sausages (saucisses rougaille), salted snoek fish, or simply eggs. It is comfort food, served with plain white rice and a side of lentils (dholl) and a pickle or chutney (achard). A plate of fish or sausage rougaille in a small Creole restaurant typically costs 6 to 10 EUR.",
-          "Around it sits the rest of the Creole repertoire. Vindaye is a tangy, turmeric-and-mustard-spiked dish, usually made with fish or octopus and meant to be eaten cold or at room temperature, often the day after it is made when the flavours have settled. Cari, the local curry, comes in countless versions, with cari poule (chicken) and the seafood versions being the most common. Octopus, known locally as ourite, is a particular island favourite, whether curried, in a salad or as a vindaye. The seaside village of Mahebourg in the south-east is an excellent place to eat all of this, and it pairs naturally with the marine spots covered on our /activities page."
-        ]
+        heading: 'Rougaille and Creole Mains',
+        paragraphs: [
+          'Rougaille is the cornerstone of Mauritian Creole home cooking. At its heart it is a rich tomato sauce built on onion, garlic, ginger, fresh thyme and curry leaves, simmered until thick and used to cook everything from fish and prawns to sausages (saucisses rougaille), salted snoek fish, or simply eggs. It is comfort food, served with plain white rice and a side of lentils (dholl) and a pickle or chutney (achard). A plate of fish or sausage rougaille in a small Creole restaurant typically costs 6 to 10 EUR.',
+          'Around it sits the rest of the Creole repertoire. Vindaye is a tangy, turmeric-and-mustard-spiked dish, usually made with fish or octopus and meant to be eaten cold or at room temperature, often the day after it is made when the flavours have settled. Cari, the local curry, comes in countless versions, with cari poule (chicken) and the seafood versions being the most common. Octopus, known locally as ourite, is a particular island favourite, whether curried, in a salad or as a vindaye. The seaside village of Mahebourg in the south-east is an excellent place to eat all of this, and it pairs naturally with the marine spots covered on our /activities page.',
+        ],
       },
       {
-        "heading": "Biryani: The Sunday Showpiece",
-        "paragraphs": [
+        heading: 'Biryani: The Sunday Showpiece',
+        paragraphs: [
           "Brought by Muslim communities of Indian origin, biryani has become one of Mauritius's most prized dishes, the thing families cook for weddings, celebrations and lazy Sundays. The Mauritian version is distinctive: long-grain basmati layered with marinated meat (usually chicken or goat), potatoes, fried onions, saffron and a generous hand of whole spices, then slow-cooked sealed so the rice steams in the aromatics. Crucially, many cooks add a little potato to the pot, and a good biryani is judged partly on those soft, spice-soaked potatoes.",
-          "You will find it everywhere from dedicated biryani specialists to small takeaways, and it is one of the best-value substantial meals on the island, generally 4 to 7 EUR for a packed portion that will defeat most appetites. Port Louis has long-standing biryani houses, and you will spot it at markets and street counters across the country, often served with a cooling cucumber salad and a chilli sauce on the side. If a place looks busy with locals at lunchtime, that is your signal to join the queue."
-        ]
+          'You will find it everywhere from dedicated biryani specialists to small takeaways, and it is one of the best-value substantial meals on the island, generally 4 to 7 EUR for a packed portion that will defeat most appetites. Port Louis has long-standing biryani houses, and you will spot it at markets and street counters across the country, often served with a cooling cucumber salad and a chilli sauce on the side. If a place looks busy with locals at lunchtime, that is your signal to join the queue.',
+        ],
       },
       {
-        "heading": "Chinese-Mauritian Favourites",
-        "paragraphs": [
+        heading: 'Chinese-Mauritian Favourites',
+        paragraphs: [
           "The island's Sino-Mauritian community gave the everyday food scene some of its most popular staples, adapted over generations into something distinctly local. Mine frire (fried noodles) and riz frire (fried rice) are lunchtime workhorses, tossed with vegetables, egg and your choice of chicken, prawn or squid. Bol renversé, literally the upside-down bowl, is a beloved comfort dish: rice packed into a bowl, topped with stir-fried meat, vegetables and a fried egg, then flipped over onto the plate so the egg crowns the top.",
-          "Then there is boulettes, the Mauritian take on dim sum dumplings, served in a clear broth and ordered by the type, fish, chicken, pork or vegetable. A bowl of boulettes is light, cheap and deeply satisfying, usually a few euros. Chinatown in Port Louis is the obvious place to eat all of this, and a wander through it makes a natural pairing with the capital's central market. These dishes are widely available across the island too, so you are never far from a plate of mine frire when hunger strikes mid-trip."
-        ]
+          "Then there is boulettes, the Mauritian take on dim sum dumplings, served in a clear broth and ordered by the type, fish, chicken, pork or vegetable. A bowl of boulettes is light, cheap and deeply satisfying, usually a few euros. Chinatown in Port Louis is the obvious place to eat all of this, and a wander through it makes a natural pairing with the capital's central market. These dishes are widely available across the island too, so you are never far from a plate of mine frire when hunger strikes mid-trip.",
+        ],
       },
       {
-        "heading": "Sweets, Drinks and Where to Eat Them",
-        "paragraphs": [
-          "Save room for the sweet side. Gateau patate are crescent-shaped fried pastries filled with sweet potato and flavoured with cardamom or coconut. Napolitaine, a soft shortbread sandwich joined with jam and coated in pink icing, is a teatime classic you will see in every bakery for a few rupees. Alouda, a cold, milky drink with basil seeds, agar jelly and often a scoop of ice cream, is the perfect antidote to a hot afternoon at the market. And no food tour is complete without a fresh pineapple sold sliced and spiced with salt and chilli by beachside vendors.",
-          "For where to eat all of this, the central market in Port Louis and the seafront market at Mahebourg are the two essential food destinations, both bustling with stalls and snack counters. Quatre Bornes and Rose Hill have excellent street food, and the coastal villages near Belle Mare and Trou d'Eau Douce have honest Creole restaurants away from the resort prices. Remember the seasons when you plan: tropical fruit like lychee and mango peaks in the warm summer months of November to April, while the cooler, drier winter from May to October is more comfortable for wandering markets on foot. If you would rather have the food stops built into a sensible driving route, our free /ai-road-trip-planner can string them together with the sights, and arranging a fixed-price /airport-transfers on arrival means you can head straight to your first dholl puri without haggling at the rank."
-        ]
-      }
+        heading: 'Sweets, Drinks and Where to Eat Them',
+        paragraphs: [
+          'Save room for the sweet side. Gateau patate are crescent-shaped fried pastries filled with sweet potato and flavoured with cardamom or coconut. Napolitaine, a soft shortbread sandwich joined with jam and coated in pink icing, is a teatime classic you will see in every bakery for a few rupees. Alouda, a cold, milky drink with basil seeds, agar jelly and often a scoop of ice cream, is the perfect antidote to a hot afternoon at the market. And no food tour is complete without a fresh pineapple sold sliced and spiced with salt and chilli by beachside vendors.',
+          "For where to eat all of this, the central market in Port Louis and the seafront market at Mahebourg are the two essential food destinations, both bustling with stalls and snack counters. Quatre Bornes and Rose Hill have excellent street food, and the coastal villages near Belle Mare and Trou d'Eau Douce have honest Creole restaurants away from the resort prices. Remember the seasons when you plan: tropical fruit like lychee and mango peaks in the warm summer months of November to April, while the cooler, drier winter from May to October is more comfortable for wandering markets on foot. If you would rather have the food stops built into a sensible driving route, our free /ai-road-trip-planner can string them together with the sights, and arranging a fixed-price /airport-transfers on arrival means you can head straight to your first dholl puri without haggling at the rank.",
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "What is the most famous Mauritian dish?",
-        "a": "Dholl puri is the dish most associated with Mauritius. It is a thin flatbread stuffed with ground yellow split peas and folded around bean curry, rougaille and chilli paste, sold from street stalls for well under one euro. Locals eat it as a quick, cheap lunch, and trying it is close to a rite of passage for visitors."
+        q: 'What is the most famous Mauritian dish?',
+        a: 'Dholl puri is the dish most associated with Mauritius. It is a thin flatbread stuffed with ground yellow split peas and folded around bean curry, rougaille and chilli paste, sold from street stalls for well under one euro. Locals eat it as a quick, cheap lunch, and trying it is close to a rite of passage for visitors.',
       },
       {
-        "q": "Is Mauritian food very spicy?",
-        "a": "It can be, but the heat is usually added by you rather than cooked in. Most dishes come with a side of chilli paste such as mazavaroo or a fresh chilli sauce, so you control how fiery your plate gets. If you are sensitive to spice, simply ask for less or none of the chilli condiments and you will be fine."
+        q: 'Is Mauritian food very spicy?',
+        a: 'It can be, but the heat is usually added by you rather than cooked in. Most dishes come with a side of chilli paste such as mazavaroo or a fresh chilli sauce, so you control how fiery your plate gets. If you are sensitive to spice, simply ask for less or none of the chilli condiments and you will be fine.',
       },
       {
-        "q": "Is street food in Mauritius safe to eat?",
-        "a": "Generally yes. Busy stalls with high turnover serve food that is freshly fried or griddled in front of you, which is exactly what you want. Stick to places that are crowded with locals, eat hot food while it is hot, and you will rarely have any trouble. Tap water is treated in most areas, but many visitors prefer bottled water to be cautious."
+        q: 'Is street food in Mauritius safe to eat?',
+        a: 'Generally yes. Busy stalls with high turnover serve food that is freshly fried or griddled in front of you, which is exactly what you want. Stick to places that are crowded with locals, eat hot food while it is hot, and you will rarely have any trouble. Tap water is treated in most areas, but many visitors prefer bottled water to be cautious.',
       },
       {
-        "q": "How much should I budget for food in Mauritius?",
-        "a": "Street food is very cheap: snacks like gateaux piments and dholl puri cost a fraction of a euro each, and a hearty plate of biryani runs about 4 to 7 EUR. A sit-down Creole meal in a local restaurant is typically 12 to 18 EUR per person, while resort and hotel dining costs considerably more. Eating where locals eat is both the most authentic and the most economical choice."
-      }
-    ]
+        q: 'How much should I budget for food in Mauritius?',
+        a: 'Street food is very cheap: snacks like gateaux piments and dholl puri cost a fraction of a euro each, and a hearty plate of biryani runs about 4 to 7 EUR. A sit-down Creole meal in a local restaurant is typically 12 to 18 EUR per person, while resort and hotel dining costs considerably more. Eating where locals eat is both the most authentic and the most economical choice.',
+      },
+    ],
   },
   {
-    "slug": "street-food-mauritius",
-    "title": "A Guide to Street Food in Mauritius",
-    "metaTitle": "Street Food in Mauritius: What to Eat & Where",
-    "metaDescription": "A practical guide to street food in Mauritius: dholl puri, gateaux piments, boulettes and bol renversé, plus the best markets, prices and safety tips.",
-    "excerpt": "A practical guide to Mauritian street food: what to eat, where to find it, the best markets, realistic prices, safety tips and the must-try dishes you should not miss.",
-    "readMins": 7,
-    "sections": [
+    slug: 'street-food-mauritius',
+    title: 'A Guide to Street Food in Mauritius',
+    metaTitle: 'Street Food in Mauritius: What to Eat & Where',
+    metaDescription:
+      'A practical guide to street food in Mauritius: dholl puri, gateaux piments, boulettes and bol renversé, plus the best markets, prices and safety tips.',
+    excerpt:
+      'A practical guide to Mauritian street food: what to eat, where to find it, the best markets, realistic prices, safety tips and the must-try dishes you should not miss.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "Why Mauritian Street Food Is So Good",
-        "paragraphs": [
+        heading: 'Why Mauritian Street Food Is So Good',
+        paragraphs: [
           "Street food is where you taste the real Mauritius. The island's population descends from Indian, African, Chinese, French and Creole roots, and centuries of living side by side have produced a snack culture that borrows freely from all of them. A single roadside cart might sell Indian-style flatbreads, Chinese fried dumplings and French-influenced pastries, all within arm's reach of each other.",
-          "Crucially, this food is cheap, fast and genuinely part of daily life rather than a tourist performance. Office workers in Port Louis queue for the same dholl puri stalls at lunchtime that they have used for years, and prices are measured in rupees rather than euros. Most snacks cost between 15 and 60 Mauritian rupees, which is roughly 0.30 to 1.20 EUR, so you can eat your way through a whole market for the price of one resort cocktail.",
-          "Because so much of it is cooked to order in front of you, street food is also one of the best ways to meet locals and pick up a few words of Mauritian Creole. Vendors are used to curious visitors and will happily tell you what is in the pot. If you are mapping out where to wander between beaches and sights, the regions covered on our /destinations and /attractions pages all have their own snack traditions worth seeking out."
-        ]
+          'Crucially, this food is cheap, fast and genuinely part of daily life rather than a tourist performance. Office workers in Port Louis queue for the same dholl puri stalls at lunchtime that they have used for years, and prices are measured in rupees rather than euros. Most snacks cost between 15 and 60 Mauritian rupees, which is roughly 0.30 to 1.20 EUR, so you can eat your way through a whole market for the price of one resort cocktail.',
+          'Because so much of it is cooked to order in front of you, street food is also one of the best ways to meet locals and pick up a few words of Mauritian Creole. Vendors are used to curious visitors and will happily tell you what is in the pot. If you are mapping out where to wander between beaches and sights, the regions covered on our /destinations and /attractions pages all have their own snack traditions worth seeking out.',
+        ],
       },
       {
-        "heading": "Dholl Puri: The National Snack",
-        "paragraphs": [
-          "If you try only one thing, make it dholl puri. This is the unofficial national dish of Mauritius and the snack most locals would defend to the death. It is a soft, thin flatbread made from wheat flour and stuffed with ground yellow split peas (dholl), then griddled and folded around fillings: a thin curry of butter beans or lima beans, tangy tomato rougaille, fresh coriander chutney and, if you dare, a fierce chilli paste called mazavaroo.",
-          "A typical serving is two flatbreads wrapped together for around 25 to 35 rupees, well under a euro. The most famous vendors in the capital, such as the long-running stalls around Port Louis, sell thousands a day and run out by mid-afternoon, so go at lunchtime. Watch how locals eat it: folded into quarters and eaten by hand, ideally still warm, because dholl puri goes from sublime to rubbery once it cools.",
-          "A close cousin is the roti chaud, a plain wheat flatbread served with the same curries and chutneys, slightly chewier and just as cheap. Both are vegetarian by default, which makes them a reliable, filling option for travellers who do not eat meat."
-        ]
+        heading: 'Dholl Puri: The National Snack',
+        paragraphs: [
+          'If you try only one thing, make it dholl puri. This is the unofficial national dish of Mauritius and the snack most locals would defend to the death. It is a soft, thin flatbread made from wheat flour and stuffed with ground yellow split peas (dholl), then griddled and folded around fillings: a thin curry of butter beans or lima beans, tangy tomato rougaille, fresh coriander chutney and, if you dare, a fierce chilli paste called mazavaroo.',
+          'A typical serving is two flatbreads wrapped together for around 25 to 35 rupees, well under a euro. The most famous vendors in the capital, such as the long-running stalls around Port Louis, sell thousands a day and run out by mid-afternoon, so go at lunchtime. Watch how locals eat it: folded into quarters and eaten by hand, ideally still warm, because dholl puri goes from sublime to rubbery once it cools.',
+          'A close cousin is the roti chaud, a plain wheat flatbread served with the same curries and chutneys, slightly chewier and just as cheap. Both are vegetarian by default, which makes them a reliable, filling option for travellers who do not eat meat.',
+        ],
       },
       {
-        "heading": "Gateaux Piments, Boulettes and the Fried Snack Family",
-        "paragraphs": [
-          "Mauritius has a deep love of the fried savoury snack, collectively known as gateaux (cakes) even though most are anything but sweet. The star is the gateau piment, a small, spiced split-pea fritter flecked with chilli and spring onion, crisp outside and soft inside. They are sold by the bag for a handful of rupees and are the classic local breakfast, often tucked inside a fresh baguette called pain maison with butter and chilli sauce, the Mauritian answer to a bacon roll.",
+        heading: 'Gateaux Piments, Boulettes and the Fried Snack Family',
+        paragraphs: [
+          'Mauritius has a deep love of the fried savoury snack, collectively known as gateaux (cakes) even though most are anything but sweet. The star is the gateau piment, a small, spiced split-pea fritter flecked with chilli and spring onion, crisp outside and soft inside. They are sold by the bag for a handful of rupees and are the classic local breakfast, often tucked inside a fresh baguette called pain maison with butter and chilli sauce, the Mauritian answer to a bacon roll.',
           "Look out too for gateau arouille (taro fritters), samoussas (the local samosa, smaller and crisper than the Indian version), and faratas served with curry. From Chinese-Mauritian kitchens come boulettes, delicate steamed dumplings of fish, chicken, chayote or watercress served in a clear broth, usually sold at small bouchon-style stalls and in Port Louis's Chinatown. A bowl of boulettes runs about 60 to 120 rupees and makes a light, soothing meal.",
-          "One thing to know honestly: most fried snacks are made in advance and reheated, so they are at their best mid-morning when batches are fresh. By late afternoon the oil has often been working overtime and quality dips. Buy where there is a steady queue and high turnover."
-        ]
+          'One thing to know honestly: most fried snacks are made in advance and reheated, so they are at their best mid-morning when batches are fresh. By late afternoon the oil has often been working overtime and quality dips. Buy where there is a steady queue and high turnover.',
+        ],
       },
       {
-        "heading": "Where to Find It: Markets and Hotspots",
-        "paragraphs": [
-          "The single best hunting ground is the Central Market (Bazar de Port Louis) in the capital, where food stalls sit alongside fruit, vegetable and spice vendors. It is busy, chaotic and authentic, best visited in the morning. In the north, the Grand Baie bazaar mixes street food with souvenir stalls and is the most tourist-friendly introduction. In the south, the Mahebourg Monday market is a genuine local institution and worth timing a trip around.",
-          "Beyond the markets, look for stalls near beaches, bus stations and town centres. Flacq market (in the east, near Belle Mare and our home patch) is one of the largest open-air markets on the island and a fantastic place to graze, while Quatre Bornes hosts a large market famous for fabric but with plenty of food too. At the coast, beachside vendors sell fresh pineapple carved on a stick and dusted with chilli and salt, grilled corn, and cups of fresh sugarcane juice, perfect after a swim.",
-          "Markets generally run from early morning, around 6 or 7am, until early afternoon, and the freshest food is gone first. If you want to combine market grazing with a day of sightseeing, our /activities listings and the free /ai-road-trip-planner can help you build a route that passes the right towns on the right days, since several of the best markets only operate once or twice a week."
-        ]
+        heading: 'Where to Find It: Markets and Hotspots',
+        paragraphs: [
+          'The single best hunting ground is the Central Market (Bazar de Port Louis) in the capital, where food stalls sit alongside fruit, vegetable and spice vendors. It is busy, chaotic and authentic, best visited in the morning. In the north, the Grand Baie bazaar mixes street food with souvenir stalls and is the most tourist-friendly introduction. In the south, the Mahebourg Monday market is a genuine local institution and worth timing a trip around.',
+          'Beyond the markets, look for stalls near beaches, bus stations and town centres. Flacq market (in the east, near Belle Mare and our home patch) is one of the largest open-air markets on the island and a fantastic place to graze, while Quatre Bornes hosts a large market famous for fabric but with plenty of food too. At the coast, beachside vendors sell fresh pineapple carved on a stick and dusted with chilli and salt, grilled corn, and cups of fresh sugarcane juice, perfect after a swim.',
+          'Markets generally run from early morning, around 6 or 7am, until early afternoon, and the freshest food is gone first. If you want to combine market grazing with a day of sightseeing, our /activities listings and the free /ai-road-trip-planner can help you build a route that passes the right towns on the right days, since several of the best markets only operate once or twice a week.',
+        ],
       },
       {
-        "heading": "Sweets, Drinks and Things to Wash It Down",
-        "paragraphs": [
-          "Mauritian street sweets reward a sweet tooth. Napolitaine is a soft shortbread sandwich filled with jam and coated in pink icing, found in every bakery for around 20 rupees. Gateau patate are small sweet-potato turnovers spiced with cardamom and coconut, and Indian-origin sweets like gulab jamun and barfi appear around festivals such as Diwali and Eid. From the Chinese tradition you will find sticky rice cakes and sesame balls.",
-          "For drinks, the obvious icon is fresh sugarcane juice, pressed to order and brightened with a squeeze of lime. Alouda, a chilled milk drink with basil seeds (tukmaria), agar jelly and rose or vanilla flavouring, is wonderfully refreshing in the November-to-April summer heat and costs around 40 to 60 rupees. Local fruit is everywhere: depending on the season you might find lychees (December to January is peak), mangoes, custard apples and the famous chilli-spiked pineapple.",
-          "Coconut water straight from a green coconut, hacked open with a machete by a beachside vendor, is both a drink and a small piece of theatre. Expect to pay around 50 to 80 rupees, and the vendor will often split the shell afterwards so you can scoop out the soft flesh."
-        ]
+        heading: 'Sweets, Drinks and Things to Wash It Down',
+        paragraphs: [
+          'Mauritian street sweets reward a sweet tooth. Napolitaine is a soft shortbread sandwich filled with jam and coated in pink icing, found in every bakery for around 20 rupees. Gateau patate are small sweet-potato turnovers spiced with cardamom and coconut, and Indian-origin sweets like gulab jamun and barfi appear around festivals such as Diwali and Eid. From the Chinese tradition you will find sticky rice cakes and sesame balls.',
+          'For drinks, the obvious icon is fresh sugarcane juice, pressed to order and brightened with a squeeze of lime. Alouda, a chilled milk drink with basil seeds (tukmaria), agar jelly and rose or vanilla flavouring, is wonderfully refreshing in the November-to-April summer heat and costs around 40 to 60 rupees. Local fruit is everywhere: depending on the season you might find lychees (December to January is peak), mangoes, custard apples and the famous chilli-spiked pineapple.',
+          'Coconut water straight from a green coconut, hacked open with a machete by a beachside vendor, is both a drink and a small piece of theatre. Expect to pay around 50 to 80 rupees, and the vendor will often split the shell afterwards so you can scoop out the soft flesh.',
+        ],
       },
       {
-        "heading": "Eating Safely and Smartly",
-        "paragraphs": [
+        heading: 'Eating Safely and Smartly',
+        paragraphs: [
           "Street food in Mauritius is generally safe, and the island's tap water is officially treated and considered drinkable in most areas, though many visitors stick to bottled water for the first few days while their stomachs adjust. The sensible rules are universal: choose busy stalls with high turnover, favour food that is cooked or fried fresh in front of you, and be a little more cautious with anything that has been sitting out at room temperature in the summer heat.",
-          "Pace yourself with the chilli. Mauritian mazavaroo and fresh chilli paste are seriously hot, and vendors are happy to add it on the side rather than mixing it in, so just say a little or none if you are unsure. Carry small denominations of cash, as stalls rarely take cards and almost never have change for a large note. A bit of basic French or Creole, a simple bonjour and merci, goes a long way and is genuinely appreciated.",
-          "Finally, plan your timing. The freshest food appears in the morning and around the lunchtime rush, and the best markets are concentrated in town centres that can be a long drive from the resort coasts. If you are arriving tired and want to head straight to a market or your hotel without haggling at the taxi rank, booking a fixed-price /airport-transfers in advance keeps the first day stress-free and leaves you with energy to go exploring."
-        ]
-      }
+          'Pace yourself with the chilli. Mauritian mazavaroo and fresh chilli paste are seriously hot, and vendors are happy to add it on the side rather than mixing it in, so just say a little or none if you are unsure. Carry small denominations of cash, as stalls rarely take cards and almost never have change for a large note. A bit of basic French or Creole, a simple bonjour and merci, goes a long way and is genuinely appreciated.',
+          'Finally, plan your timing. The freshest food appears in the morning and around the lunchtime rush, and the best markets are concentrated in town centres that can be a long drive from the resort coasts. If you are arriving tired and want to head straight to a market or your hotel without haggling at the taxi rank, booking a fixed-price /airport-transfers in advance keeps the first day stress-free and leaves you with energy to go exploring.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "What is the most famous street food in Mauritius?",
-        "a": "Dholl puri is the undisputed favourite and the unofficial national snack: a soft split-pea flatbread folded around bean curry, rougaille and chutney. It costs well under a euro, is vegetarian, and is best eaten warm from a busy stall at lunchtime."
+        q: 'What is the most famous street food in Mauritius?',
+        a: 'Dholl puri is the undisputed favourite and the unofficial national snack: a soft split-pea flatbread folded around bean curry, rougaille and chutney. It costs well under a euro, is vegetarian, and is best eaten warm from a busy stall at lunchtime.',
       },
       {
-        "q": "Is street food in Mauritius safe to eat?",
-        "a": "Generally yes. Choose stalls with high turnover, favour food cooked fresh in front of you, and be cautious with items left out in the summer heat. Tap water is officially treated, but many visitors drink bottled water for the first few days to let their stomach adjust."
+        q: 'Is street food in Mauritius safe to eat?',
+        a: 'Generally yes. Choose stalls with high turnover, favour food cooked fresh in front of you, and be cautious with items left out in the summer heat. Tap water is officially treated, but many visitors drink bottled water for the first few days to let their stomach adjust.',
       },
       {
-        "q": "How much does street food cost in Mauritius?",
-        "a": "Most snacks cost 15 to 60 Mauritian rupees, roughly 0.30 to 1.20 EUR. A serving of dholl puri is about 25 to 35 rupees, a bowl of boulettes 60 to 120 rupees, and fresh drinks like alouda or coconut water 40 to 80 rupees. Bring small cash, as stalls rarely take cards."
+        q: 'How much does street food cost in Mauritius?',
+        a: 'Most snacks cost 15 to 60 Mauritian rupees, roughly 0.30 to 1.20 EUR. A serving of dholl puri is about 25 to 35 rupees, a bowl of boulettes 60 to 120 rupees, and fresh drinks like alouda or coconut water 40 to 80 rupees. Bring small cash, as stalls rarely take cards.',
       },
       {
-        "q": "Where are the best markets for street food in Mauritius?",
-        "a": "The Central Market in Port Louis is the classic choice, busiest in the morning. Flacq market in the east is one of the largest open-air markets, the Mahebourg Monday market in the south is a local institution, and Grand Baie in the north is the most tourist-friendly. Most markets run from early morning until early afternoon."
-      }
-    ]
+        q: 'Where are the best markets for street food in Mauritius?',
+        a: 'The Central Market in Port Louis is the classic choice, busiest in the morning. Flacq market in the east is one of the largest open-air markets, the Mahebourg Monday market in the south is a local institution, and Grand Baie in the north is the most tourist-friendly. Most markets run from early morning until early afternoon.',
+      },
+    ],
   },
   {
-    "slug": "whale-dolphin-watching",
-    "title": "Whale & Dolphin Watching in Mauritius",
-    "metaTitle": "Whale & Dolphin Watching in Mauritius: Full Guide",
-    "metaDescription": "Plan whale and dolphin watching in Mauritius: the west coast hotspots, the best season, ethical viewing rules, what a trip really costs, and how to book a tour.",
-    "excerpt": "A practical, honest guide to whale and dolphin watching on Mauritius's west coast, covering the best season, ethical viewing, what to expect on the water, and how to book.",
-    "readMins": 6,
-    "sections": [
+    slug: 'whale-dolphin-watching',
+    title: 'Whale & Dolphin Watching in Mauritius',
+    metaTitle: 'Whale & Dolphin Watching in Mauritius: Full Guide',
+    metaDescription:
+      'Plan whale and dolphin watching in Mauritius: the west coast hotspots, the best season, ethical viewing rules, what a trip really costs, and how to book a tour.',
+    excerpt:
+      "A practical, honest guide to whale and dolphin watching on Mauritius's west coast, covering the best season, ethical viewing, what to expect on the water, and how to book.",
+    readMins: 6,
+    sections: [
       {
-        "heading": "Where It Happens: The West Coast",
-        "paragraphs": [
-          "Almost all whale and dolphin watching in Mauritius takes place along the calmer, lee-side west coast, between Tamarin Bay and the Le Morne peninsula in the southwest. The reason is geography. The west sits in the wind shadow of the island, so the water is flatter and clearer than the exposed east, and the seabed drops away quickly just beyond the reef. That deep water close to shore is exactly where spinner dolphins rest in the early morning and where migrating humpback whales pass within a few kilometres of land.",
-          "Boats typically launch from Tamarin, Black River (Rivière Noire), and the bays around Le Morne. From these points it is usually only a fifteen to thirty minute cruise out to where the animals gather, which means you spend more time watching wildlife and less time in transit. If you are planning a wider itinerary, the same southwest corner is home to several of the island's best-known sights, so it pairs naturally with the day trips listed under /attractions and /activities."
-        ]
+        heading: 'Where It Happens: The West Coast',
+        paragraphs: [
+          'Almost all whale and dolphin watching in Mauritius takes place along the calmer, lee-side west coast, between Tamarin Bay and the Le Morne peninsula in the southwest. The reason is geography. The west sits in the wind shadow of the island, so the water is flatter and clearer than the exposed east, and the seabed drops away quickly just beyond the reef. That deep water close to shore is exactly where spinner dolphins rest in the early morning and where migrating humpback whales pass within a few kilometres of land.',
+          "Boats typically launch from Tamarin, Black River (Rivière Noire), and the bays around Le Morne. From these points it is usually only a fifteen to thirty minute cruise out to where the animals gather, which means you spend more time watching wildlife and less time in transit. If you are planning a wider itinerary, the same southwest corner is home to several of the island's best-known sights, so it pairs naturally with the day trips listed under /attractions and /activities.",
+        ],
       },
       {
-        "heading": "Best Season and Time of Day",
-        "paragraphs": [
-          "Dolphins are resident year-round. Pods of spinner and bottlenose dolphins live off the west coast and can be seen in almost any month, which makes a dolphin trip a reliable activity even during the wetter summer (November to April). Whales are different. Humpback whales migrate past Mauritius during the cooler winter, roughly from June to October, with the most consistent sightings in the August and September window. Sperm whales are present in the deeper offshore waters for much of the year but require longer, more specialised trips to find.",
-          "Time of day matters more than most visitors expect. Dolphins come into the shallower bays to rest in the early morning, so the best trips leave at or before sunrise, often around 6 to 7 am. By mid-morning the pods tend to move into deeper water and the wind picks up, making both sightings and the ride less comfortable. Booking the earliest available departure genuinely improves your odds. If you want help slotting an early start into a full day, the /ai-road-trip-planner can build an itinerary around a dawn boat trip."
-        ]
+        heading: 'Best Season and Time of Day',
+        paragraphs: [
+          'Dolphins are resident year-round. Pods of spinner and bottlenose dolphins live off the west coast and can be seen in almost any month, which makes a dolphin trip a reliable activity even during the wetter summer (November to April). Whales are different. Humpback whales migrate past Mauritius during the cooler winter, roughly from June to October, with the most consistent sightings in the August and September window. Sperm whales are present in the deeper offshore waters for much of the year but require longer, more specialised trips to find.',
+          'Time of day matters more than most visitors expect. Dolphins come into the shallower bays to rest in the early morning, so the best trips leave at or before sunrise, often around 6 to 7 am. By mid-morning the pods tend to move into deeper water and the wind picks up, making both sightings and the ride less comfortable. Booking the earliest available departure genuinely improves your odds. If you want help slotting an early start into a full day, the /ai-road-trip-planner can build an itinerary around a dawn boat trip.',
+        ],
       },
       {
-        "heading": "Watching Responsibly: The Ethics",
-        "paragraphs": [
+        heading: 'Watching Responsibly: The Ethics',
+        paragraphs: [
           "Mauritius has had real problems with overcrowding around its dolphin pods, with too many boats chasing the same animals and swimmers dropped directly on top of resting dolphins. This stresses the animals and disrupts the rest they need. In response, regulations now limit how boats may approach marine mammals: operators are expected to keep a respectful distance, avoid cutting across a pod's path, cap the number of boats near a single group, and limit how long they stay. A responsible skipper will switch off or idle the engine and let the animals choose whether to come closer.",
-          "As a guest, you can vote with your booking. Choose a licensed operator that talks openly about distance rules and time limits rather than promising guaranteed swims or chasing pods for the perfect photo. Be wary of any trip that pressures you to jump in the moment dolphins appear; ethical swims happen calmly and on the animals' terms, and sometimes the right outcome is simply watching from the boat. The animals are wild, so no honest operator can promise a swim or even a sighting on every trip."
-        ]
+          "As a guest, you can vote with your booking. Choose a licensed operator that talks openly about distance rules and time limits rather than promising guaranteed swims or chasing pods for the perfect photo. Be wary of any trip that pressures you to jump in the moment dolphins appear; ethical swims happen calmly and on the animals' terms, and sometimes the right outcome is simply watching from the boat. The animals are wild, so no honest operator can promise a swim or even a sighting on every trip.",
+        ],
       },
       {
-        "heading": "What to Expect on the Water",
-        "paragraphs": [
-          "A typical west-coast trip runs two to three hours on a small motorboat or catamaran carrying anywhere from six to twenty guests. After an early launch you cruise to the dolphin grounds, where the skipper positions the boat and waits. Spinner dolphins often appear in pods of dozens, sometimes leaping and spinning clear of the water, while calmer bottlenose dolphins may glide alongside. When conditions and regulations allow, you may snorkel near the pod; mask, snorkel and fins are usually included, and life jackets are available for weaker swimmers.",
-          "Come prepared for the conditions. Even in summer the open sea can be choppy and cool at dawn, so bring a light layer, reef-safe sunscreen, water, and motion-sickness tablets if you are prone to seasickness. The morning light is excellent for photos but spray and movement make it hard, so a strap and a waterproof case are worth having. Many trips combine the dolphin watch with a stop to snorkel over a reef or a cruise toward Le Morne, turning the morning into a relaxed half-day on the water."
-        ]
+        heading: 'What to Expect on the Water',
+        paragraphs: [
+          'A typical west-coast trip runs two to three hours on a small motorboat or catamaran carrying anywhere from six to twenty guests. After an early launch you cruise to the dolphin grounds, where the skipper positions the boat and waits. Spinner dolphins often appear in pods of dozens, sometimes leaping and spinning clear of the water, while calmer bottlenose dolphins may glide alongside. When conditions and regulations allow, you may snorkel near the pod; mask, snorkel and fins are usually included, and life jackets are available for weaker swimmers.',
+          'Come prepared for the conditions. Even in summer the open sea can be choppy and cool at dawn, so bring a light layer, reef-safe sunscreen, water, and motion-sickness tablets if you are prone to seasickness. The morning light is excellent for photos but spray and movement make it hard, so a strap and a waterproof case are worth having. Many trips combine the dolphin watch with a stop to snorkel over a reef or a cruise toward Le Morne, turning the morning into a relaxed half-day on the water.',
+        ],
       },
       {
-        "heading": "What It Costs and How to Book",
-        "paragraphs": [
+        heading: 'What It Costs and How to Book',
+        paragraphs: [
           "Prices vary with boat size, group size and duration. As a guide, a shared small-group dolphin watching trip typically costs around 35 to 60 EUR per person, while a private boat for a couple or family usually runs from roughly 200 EUR upward for the morning, depending on the vessel and any add-ons such as a barbecue lunch or extra snorkelling stops. Whale-watching trips during the winter migration sit at the higher end because they often range further offshore. Children's rates and family discounts are common, so ask when you enquire.",
-          "Book at least a day or two ahead in peak season (the European summer holidays and the December-January period), as the best early-morning slots fill quickly. A reputable operator will confirm the launch point, the start time, what is included, and the weather cancellation policy in writing. Because departures are so early and the launch sites sit on the southwest coast, transport is worth planning in advance. Belle Mare Tours can arrange a private transfer to and from the harbour, and the same vehicles handle /airport-transfers if your boat day falls near your arrival or departure."
-        ]
+          'Book at least a day or two ahead in peak season (the European summer holidays and the December-January period), as the best early-morning slots fill quickly. A reputable operator will confirm the launch point, the start time, what is included, and the weather cancellation policy in writing. Because departures are so early and the launch sites sit on the southwest coast, transport is worth planning in advance. Belle Mare Tours can arrange a private transfer to and from the harbour, and the same vehicles handle /airport-transfers if your boat day falls near your arrival or departure.',
+        ],
       },
       {
-        "heading": "Combining It With the Rest of Your Trip",
-        "paragraphs": [
-          "Because the boats finish by late morning, a dolphin trip leaves the rest of the day open. The southwest is rich with things to do once you are back on land: the coloured earths and waterfall at Chamarel, the viewpoints around Le Morne Brabant, the Black River Gorges National Park, and the long beach at Flic en Flac are all within easy reach. Tying these together into a single loop avoids backtracking across the island and makes the early start worthwhile.",
-          "If you are based on the east coast near Belle Mare, the drive west takes well over an hour, so an early boat means a very early departure; many guests prefer a private driver for that morning rather than self-driving in the dark. Browse the regions and day-trip ideas under /destinations to see how a west-coast boat morning fits with the rest of the island, and we can stitch the logistics together for you."
-        ]
-      }
+        heading: 'Combining It With the Rest of Your Trip',
+        paragraphs: [
+          'Because the boats finish by late morning, a dolphin trip leaves the rest of the day open. The southwest is rich with things to do once you are back on land: the coloured earths and waterfall at Chamarel, the viewpoints around Le Morne Brabant, the Black River Gorges National Park, and the long beach at Flic en Flac are all within easy reach. Tying these together into a single loop avoids backtracking across the island and makes the early start worthwhile.',
+          'If you are based on the east coast near Belle Mare, the drive west takes well over an hour, so an early boat means a very early departure; many guests prefer a private driver for that morning rather than self-driving in the dark. Browse the regions and day-trip ideas under /destinations to see how a west-coast boat morning fits with the rest of the island, and we can stitch the logistics together for you.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "When is the best time to see whales in Mauritius?",
-        "a": "Humpback whales migrate past the west coast during the cooler winter months, roughly June to October, with the most reliable sightings in August and September. Dolphins, by contrast, are resident year-round and can be seen in almost any month."
+        q: 'When is the best time to see whales in Mauritius?',
+        a: 'Humpback whales migrate past the west coast during the cooler winter months, roughly June to October, with the most reliable sightings in August and September. Dolphins, by contrast, are resident year-round and can be seen in almost any month.',
       },
       {
-        "q": "Can you swim with the dolphins?",
-        "a": "Often, yes, when conditions and regulations allow. Responsible operators approach resting pods slowly, keep a respectful distance, and let the dolphins decide whether to come closer. No ethical trip can guarantee a swim, since these are wild animals."
+        q: 'Can you swim with the dolphins?',
+        a: 'Often, yes, when conditions and regulations allow. Responsible operators approach resting pods slowly, keep a respectful distance, and let the dolphins decide whether to come closer. No ethical trip can guarantee a swim, since these are wild animals.',
       },
       {
-        "q": "How much does a dolphin watching trip cost?",
-        "a": "A shared small-group trip is typically around 35 to 60 EUR per person, while a private boat for the morning usually starts from roughly 200 EUR. Winter whale-watching trips cost more because they range further offshore."
+        q: 'How much does a dolphin watching trip cost?',
+        a: 'A shared small-group trip is typically around 35 to 60 EUR per person, while a private boat for the morning usually starts from roughly 200 EUR. Winter whale-watching trips cost more because they range further offshore.',
       },
       {
-        "q": "Where do the boats leave from?",
-        "a": "Almost all trips launch from the calmer southwest coast, around Tamarin, Black River (Rivière Noire), and Le Morne. Departures are early, usually before 7 am, so a private transfer to the harbour is worth arranging in advance."
-      }
-    ]
+        q: 'Where do the boats leave from?',
+        a: 'Almost all trips launch from the calmer southwest coast, around Tamarin, Black River (Rivière Noire), and Le Morne. Departures are early, usually before 7 am, so a private transfer to the harbour is worth arranging in advance.',
+      },
+    ],
   },
   {
-    "slug": "kitesurfing-mauritius",
-    "title": "Kitesurfing in Mauritius: Spots & Seasons",
-    "metaTitle": "Kitesurfing in Mauritius: Spots & Seasons Guide",
-    "metaDescription": "Where and when to kitesurf in Mauritius: Le Morne and Anse la Raie spots, the May-October wind season, school prices, and honest advice for every level.",
-    "excerpt": "A practical guide to kitesurfing in Mauritius, covering Le Morne and Anse la Raie, the best wind season, schools, prices, and what each spot suits which level.",
-    "readMins": 6,
-    "sections": [
+    slug: 'kitesurfing-mauritius',
+    title: 'Kitesurfing in Mauritius: Spots & Seasons',
+    metaTitle: 'Kitesurfing in Mauritius: Spots & Seasons Guide',
+    metaDescription:
+      'Where and when to kitesurf in Mauritius: Le Morne and Anse la Raie spots, the May-October wind season, school prices, and honest advice for every level.',
+    excerpt:
+      'A practical guide to kitesurfing in Mauritius, covering Le Morne and Anse la Raie, the best wind season, schools, prices, and what each spot suits which level.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "Why Mauritius is a serious kitesurfing destination",
-        "paragraphs": [
-          "Mauritius earns its reputation among kitesurfers for a simple reason: it combines warm, shallow turquoise lagoons protected by a coral reef with steady, reliable trade winds for a good chunk of the year. You can learn in waist-deep flat water inside the reef and, once you progress, head out to ride genuine ocean swell on the reef passes, all within the same bay. Few places offer that range of conditions so close together.",
-          "The island sits in the path of the south-east trade winds, which means the south and east coasts get the most consistent breeze. Water temperatures stay comfortable year-round, typically between 22 and 27 degrees Celsius, so a shorty wetsuit or even boardshorts is enough most days; you rarely need more than a 2mm top in the cooler winter months. This guide focuses on the two best-known spots, Le Morne in the south-west and Anse la Raie in the north, along with honest notes on season, schools, and what suits which level."
-        ]
+        heading: 'Why Mauritius is a serious kitesurfing destination',
+        paragraphs: [
+          'Mauritius earns its reputation among kitesurfers for a simple reason: it combines warm, shallow turquoise lagoons protected by a coral reef with steady, reliable trade winds for a good chunk of the year. You can learn in waist-deep flat water inside the reef and, once you progress, head out to ride genuine ocean swell on the reef passes, all within the same bay. Few places offer that range of conditions so close together.',
+          'The island sits in the path of the south-east trade winds, which means the south and east coasts get the most consistent breeze. Water temperatures stay comfortable year-round, typically between 22 and 27 degrees Celsius, so a shorty wetsuit or even boardshorts is enough most days; you rarely need more than a 2mm top in the cooler winter months. This guide focuses on the two best-known spots, Le Morne in the south-west and Anse la Raie in the north, along with honest notes on season, schools, and what suits which level.',
+        ],
       },
       {
-        "heading": "Le Morne: the flagship spot",
-        "paragraphs": [
+        heading: 'Le Morne: the flagship spot',
+        paragraphs: [
           "Le Morne, on the south-western peninsula beneath the dramatic UNESCO-listed Le Morne Brabant mountain, is the most famous kitesurfing area on the island and the one most people picture. The bay is large, with a wide flat-water lagoon close to shore that is ideal for beginners and freestyle riders, while experienced kiters head out to the legendary reef break known as 'One Eye'. One Eye is a fast, powerful left-hander that breaks over shallow coral; it is a genuine expert wave and not a place to take chances, but it is the reason advanced riders fly here from around the world.",
-          "Wind at Le Morne tends to be cross-shore to cross-onshore from the south-east, which is friendly for self-rescue and getting back to the beach. The lagoon is shallow and the bottom is mostly sand near shore turning to coral and seagrass further out, so reef booties are a sensible idea. The launch area can get busy in peak season with kiters, windsurfers, and the occasional swimmer, so spatial awareness matters. If you are building a wider trip, the mountain hike and the surrounding south-west beaches pair well with a kite session; see /attractions for what else is nearby."
-        ]
+          'Wind at Le Morne tends to be cross-shore to cross-onshore from the south-east, which is friendly for self-rescue and getting back to the beach. The lagoon is shallow and the bottom is mostly sand near shore turning to coral and seagrass further out, so reef booties are a sensible idea. The launch area can get busy in peak season with kiters, windsurfers, and the occasional swimmer, so spatial awareness matters. If you are building a wider trip, the mountain hike and the surrounding south-west beaches pair well with a kite session; see /attractions for what else is nearby.',
+        ],
       },
       {
-        "heading": "Anse la Raie: the northern alternative",
-        "paragraphs": [
+        heading: 'Anse la Raie: the northern alternative',
+        paragraphs: [
           "On the north-east coast near Cap Malheureux, Anse la Raie offers a calmer, less crowded counterpoint to Le Morne. The lagoon here is broad and forgiving, with flat to lightly chopped water and a sandy bottom in much of the riding zone, which makes it a favourite for beginners and intermediates who want space to practise without the intimidation of a famous reef break. On a clear day you ride with views out to the northern islets, including Coin de Mire (Gunner's Quoin).",
-          "Anse la Raie generally gets slightly lighter and sometimes less consistent wind than Le Morne, partly because the trade winds wrap around the island and lose a little strength by the time they reach the north. That is often a plus for learners, who benefit from manageable conditions, but advanced freeriders chasing big power may find fewer epic days here. It is also a convenient base if you are staying in Grand Baie or the north, and it pairs naturally with boat trips to the northern islands. Browse /activities and /destinations to plan around it."
-        ]
+          'Anse la Raie generally gets slightly lighter and sometimes less consistent wind than Le Morne, partly because the trade winds wrap around the island and lose a little strength by the time they reach the north. That is often a plus for learners, who benefit from manageable conditions, but advanced freeriders chasing big power may find fewer epic days here. It is also a convenient base if you are staying in Grand Baie or the north, and it pairs naturally with boat trips to the northern islands. Browse /activities and /destinations to plan around it.',
+        ],
       },
       {
-        "heading": "The best wind season for kitesurfing",
-        "paragraphs": [
-          "Timing is everything. Mauritius has two broad seasons: the austral summer from November to April, which is hotter, more humid, and the cyclone-risk window, and the austral winter from May to October, which is cooler and drier. For kitesurfing, the winter months are the prime season. From roughly June to September the south-east trade winds blow most reliably, often in the 15 to 25 knot range, and the spots come alive almost daily. This is when schools are busiest and when you have the best odds of guaranteed wind on a short trip.",
-          "The summer months are not a write-off. November through April can still deliver good days, particularly around weather systems, and the water is at its warmest. The trade-off is less reliability and the small but real possibility of cyclonic weather between roughly January and March, which can shut everything down for a few days at a time. If wind certainty is your priority, book between June and September; if you also want to combine kiting with diving, snorkelling, and beach time in warm water, the shoulder months of May and October are a fair compromise."
-        ]
+        heading: 'The best wind season for kitesurfing',
+        paragraphs: [
+          'Timing is everything. Mauritius has two broad seasons: the austral summer from November to April, which is hotter, more humid, and the cyclone-risk window, and the austral winter from May to October, which is cooler and drier. For kitesurfing, the winter months are the prime season. From roughly June to September the south-east trade winds blow most reliably, often in the 15 to 25 knot range, and the spots come alive almost daily. This is when schools are busiest and when you have the best odds of guaranteed wind on a short trip.',
+          'The summer months are not a write-off. November through April can still deliver good days, particularly around weather systems, and the water is at its warmest. The trade-off is less reliability and the small but real possibility of cyclonic weather between roughly January and March, which can shut everything down for a few days at a time. If wind certainty is your priority, book between June and September; if you also want to combine kiting with diving, snorkelling, and beach time in warm water, the shoulder months of May and October are a fair compromise.',
+        ],
       },
       {
-        "heading": "Schools, lessons, and realistic prices",
-        "paragraphs": [
-          "Both Le Morne and Anse la Raie have established kite schools offering IKO-certified instruction, equipment rental, and storage. As a rough guide, a private one-hour lesson typically costs around 60 to 90 euros, while a full beginner course of roughly 9 to 12 hours, enough to get most people riding and self-sufficient, usually runs in the region of 450 to 650 euros depending on the school and whether lessons are private or shared. Equipment rental for certified independent riders is commonly 50 to 80 euros per day, or less on a weekly package.",
-          "Choose a school that uses radio helmets for beginners, runs small groups, and provides a rescue boat, especially at Le Morne where you can drift downwind toward the reef. Booking ahead in the June to September peak is strongly advised, as instructor slots fill fast. Lessons are usually conducted in English and French, and many instructors speak more. Always confirm that the school is properly licensed and insured before you pay."
-        ]
+        heading: 'Schools, lessons, and realistic prices',
+        paragraphs: [
+          'Both Le Morne and Anse la Raie have established kite schools offering IKO-certified instruction, equipment rental, and storage. As a rough guide, a private one-hour lesson typically costs around 60 to 90 euros, while a full beginner course of roughly 9 to 12 hours, enough to get most people riding and self-sufficient, usually runs in the region of 450 to 650 euros depending on the school and whether lessons are private or shared. Equipment rental for certified independent riders is commonly 50 to 80 euros per day, or less on a weekly package.',
+          'Choose a school that uses radio helmets for beginners, runs small groups, and provides a rescue boat, especially at Le Morne where you can drift downwind toward the reef. Booking ahead in the June to September peak is strongly advised, as instructor slots fill fast. Lessons are usually conducted in English and French, and many instructors speak more. Always confirm that the school is properly licensed and insured before you pay.',
+        ],
       },
       {
-        "heading": "Which spot suits which level",
-        "paragraphs": [
+        heading: 'Which spot suits which level',
+        paragraphs: [
           "Complete beginners are well served at both spots, but Anse la Raie's lighter wind, sandy bottom, and quieter water arguably make it the gentler classroom. Le Morne's lagoon is also excellent for learning and offers more wind, but the busier launch and the proximity of the reef mean you want to stay well upwind and within the supervised zone. Intermediates working on transitions, jumps, and first waves will be happy at either, with Le Morne offering more power on a typical day.",
-          "Advanced and expert riders gravitate to Le Morne for the reef breaks. One Eye and the nearby 'Manawa' break are wave-riding spots that demand solid skills, the right gear, and respect for the shallow coral; they are not for anyone still mastering upwind riding. Wherever you ride, the basics apply: check the daily wind forecast, ride within the marked areas, give swimmers and other water users room, and wear reef protection on your feet."
-        ]
+          "Advanced and expert riders gravitate to Le Morne for the reef breaks. One Eye and the nearby 'Manawa' break are wave-riding spots that demand solid skills, the right gear, and respect for the shallow coral; they are not for anyone still mastering upwind riding. Wherever you ride, the basics apply: check the daily wind forecast, ride within the marked areas, give swimmers and other water users room, and wear reef protection on your feet.",
+        ],
       },
       {
-        "heading": "Getting there and planning your trip",
-        "paragraphs": [
-          "Le Morne is about a 50 to 60 minute drive from Sir Seewoosagur Ramgoolam International Airport in the south-east, while Anse la Raie in the north is roughly 75 to 90 minutes away depending on traffic. Kite gear is bulky, so a pre-arranged private transfer with luggage space is far easier than juggling boards and bags on public transport; you can arrange a fixed-price pickup through /airport-transfers.",
-          "If you only have a week and want to maximise wind while still seeing the island, it pays to plan your days around the forecast rather than a fixed itinerary, keeping flexible non-kite activities, waterfalls, markets, the botanical garden, in reserve for lighter days. Our /ai-road-trip-planner can help you build a route that keeps you near the best wind while fitting in the rest of Mauritius around your sessions."
-        ]
-      }
+        heading: 'Getting there and planning your trip',
+        paragraphs: [
+          'Le Morne is about a 50 to 60 minute drive from Sir Seewoosagur Ramgoolam International Airport in the south-east, while Anse la Raie in the north is roughly 75 to 90 minutes away depending on traffic. Kite gear is bulky, so a pre-arranged private transfer with luggage space is far easier than juggling boards and bags on public transport; you can arrange a fixed-price pickup through /airport-transfers.',
+          'If you only have a week and want to maximise wind while still seeing the island, it pays to plan your days around the forecast rather than a fixed itinerary, keeping flexible non-kite activities, waterfalls, markets, the botanical garden, in reserve for lighter days. Our /ai-road-trip-planner can help you build a route that keeps you near the best wind while fitting in the rest of Mauritius around your sessions.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "When is the best time to kitesurf in Mauritius?",
-        "a": "The prime season is the austral winter, roughly May to October, with the most reliable trade winds from June to September when 15 to 25 knots is common most days. Summer (November to April) is warmer but less reliable and carries a small cyclone risk between January and March."
+        q: 'When is the best time to kitesurf in Mauritius?',
+        a: 'The prime season is the austral winter, roughly May to October, with the most reliable trade winds from June to September when 15 to 25 knots is common most days. Summer (November to April) is warmer but less reliable and carries a small cyclone risk between January and March.',
       },
       {
-        "q": "Is Mauritius good for beginner kitesurfers?",
-        "a": "Yes. The shallow, warm lagoons inside the reef are ideal for learning. Anse la Raie in the north is the gentlest classroom thanks to lighter wind, a sandy bottom, and quieter water, while Le Morne also has an excellent beginner lagoon alongside its famous expert reef breaks."
+        q: 'Is Mauritius good for beginner kitesurfers?',
+        a: 'Yes. The shallow, warm lagoons inside the reef are ideal for learning. Anse la Raie in the north is the gentlest classroom thanks to lighter wind, a sandy bottom, and quieter water, while Le Morne also has an excellent beginner lagoon alongside its famous expert reef breaks.',
       },
       {
-        "q": "How much does a kitesurfing course cost in Mauritius?",
-        "a": "Expect roughly 60 to 90 euros for a private one-hour lesson, and around 450 to 650 euros for a full 9 to 12 hour beginner course. Equipment rental for certified independent riders is usually 50 to 80 euros per day, with cheaper weekly packages available."
+        q: 'How much does a kitesurfing course cost in Mauritius?',
+        a: 'Expect roughly 60 to 90 euros for a private one-hour lesson, and around 450 to 650 euros for a full 9 to 12 hour beginner course. Equipment rental for certified independent riders is usually 50 to 80 euros per day, with cheaper weekly packages available.',
       },
       {
-        "q": "What is One Eye at Le Morne?",
-        "a": "One Eye is a fast, powerful left-hand wave that breaks over shallow coral reef off Le Morne. It is a world-famous spot for advanced and expert riders only; it demands strong skills, the right gear, and caution, and is not suitable for learners or anyone still working on upwind riding."
-      }
-    ]
+        q: 'What is One Eye at Le Morne?',
+        a: 'One Eye is a fast, powerful left-hand wave that breaks over shallow coral reef off Le Morne. It is a world-famous spot for advanced and expert riders only; it demands strong skills, the right gear, and caution, and is not suitable for learners or anyone still working on upwind riding.',
+      },
+    ],
   },
   {
-    "slug": "deep-sea-fishing-mauritius",
-    "title": "Deep Sea Fishing in Mauritius",
-    "metaTitle": "Deep Sea Fishing in Mauritius: Catch, Season & Costs",
-    "metaDescription": "Plan deep sea fishing in Mauritius: what you catch, the best season, west coast charters and realistic costs. An honest guide from a licensed local operator.",
-    "excerpt": "A practical guide to deep sea fishing in Mauritius, covering the marlin and tuna you can catch, the best months, where the boats leave from, and what a charter really costs.",
-    "readMins": 7,
-    "sections": [
+    slug: 'deep-sea-fishing-mauritius',
+    title: 'Deep Sea Fishing in Mauritius',
+    metaTitle: 'Deep Sea Fishing in Mauritius: Catch, Season & Costs',
+    metaDescription:
+      'Plan deep sea fishing in Mauritius: what you catch, the best season, west coast charters and realistic costs. An honest guide from a licensed local operator.',
+    excerpt:
+      'A practical guide to deep sea fishing in Mauritius, covering the marlin and tuna you can catch, the best months, where the boats leave from, and what a charter really costs.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "Why Mauritius Is a Serious Big-Game Destination",
-        "paragraphs": [
+        heading: 'Why Mauritius Is a Serious Big-Game Destination',
+        paragraphs: [
           "Mauritius sits on the edge of a deep underwater drop-off where the shallow lagoon floor falls away to thousands of metres within a few kilometres of shore. That steep shelf is what makes the island a genuine big-game fishing destination rather than just a pretty place to throw a line. Currents sweep nutrient-rich water up against the slope, baitfish gather, and the predators that feed on them, including blue marlin, are within easy reach of a morning's outing. You rarely need a long run to find fishing ground, which keeps trip times and fuel costs sensible.",
-          "The island has a long competitive fishing pedigree, and several record-class blue marlin have been landed in these waters over the decades. That history is worth knowing because it sets honest expectations: the potential for a trophy fish is real, but big-game fishing is hunting, not harvesting. Some days the ocean delivers and some days it does not. A good skipper and a bit of patience matter more than luck."
-        ]
+          'The island has a long competitive fishing pedigree, and several record-class blue marlin have been landed in these waters over the decades. That history is worth knowing because it sets honest expectations: the potential for a trophy fish is real, but big-game fishing is hunting, not harvesting. Some days the ocean delivers and some days it does not. A good skipper and a bit of patience matter more than luck.',
+        ],
       },
       {
-        "heading": "What You Can Catch",
-        "paragraphs": [
-          "The headline fish is blue marlin, which can run from around 100 kg to well over 300 kg in Mauritian waters and is the reason many anglers travel here in the first place. Alongside it you may hook black marlin and striped marlin, along with sailfish, which give a spectacular acrobatic fight on lighter tackle. These billfish are the marquee catches and the ones that draw experienced crews back season after season.",
-          "Beyond the billfish, the everyday rod-benders are yellowfin tuna, skipjack and dogtooth tuna, plus wahoo, which is one of the fastest fish in the sea and superb eating. Dorado, also known as mahi-mahi or dorade coryphène locally, and bonito round out the mix and are common enough that most trips bring something back to the dock. If you are new to the sport, these smaller pelagics make for an engaging day even when the big marlin stay quiet.",
-          "Most reputable operators practise tag-and-release for marlin and other billfish to protect the stock, while eating fish like tuna, wahoo and dorado are usually kept and shared with the crew. Many charters will happily portion your catch for you to take back, and some hotels and guesthouses will cook it for dinner. Always confirm the boat's release policy before you book if catch-and-keep matters to you."
-        ]
+        heading: 'What You Can Catch',
+        paragraphs: [
+          'The headline fish is blue marlin, which can run from around 100 kg to well over 300 kg in Mauritian waters and is the reason many anglers travel here in the first place. Alongside it you may hook black marlin and striped marlin, along with sailfish, which give a spectacular acrobatic fight on lighter tackle. These billfish are the marquee catches and the ones that draw experienced crews back season after season.',
+          'Beyond the billfish, the everyday rod-benders are yellowfin tuna, skipjack and dogtooth tuna, plus wahoo, which is one of the fastest fish in the sea and superb eating. Dorado, also known as mahi-mahi or dorade coryphène locally, and bonito round out the mix and are common enough that most trips bring something back to the dock. If you are new to the sport, these smaller pelagics make for an engaging day even when the big marlin stay quiet.',
+          "Most reputable operators practise tag-and-release for marlin and other billfish to protect the stock, while eating fish like tuna, wahoo and dorado are usually kept and shared with the crew. Many charters will happily portion your catch for you to take back, and some hotels and guesthouses will cook it for dinner. Always confirm the boat's release policy before you book if catch-and-keep matters to you.",
+        ],
       },
       {
-        "heading": "Best Season for Deep Sea Fishing",
-        "paragraphs": [
-          "Mauritius has two broad seasons: the warm summer from November to April and the cooler, drier winter from May to October. Fishing is possible year-round, but the species change with the water temperature. The prime window for blue marlin is the warmer months, roughly November through April, with the peak of the marlin run often falling between December and March when the big fish move closest to the drop-off.",
-          "The cooler winter months from May to October are not a write-off at all. This is generally the better time for yellowfin tuna, dogtooth tuna and wahoo, and the seas are often calmer and more comfortable, which suits anglers who are prone to seasickness. So if a trophy marlin is your single goal, aim for the southern-hemisphere summer; if you want consistent action, good eating fish and steadier conditions, winter is an excellent and often quieter, cheaper choice.",
-          "Keep an eye on the weather as well as the calendar. Summer is also cyclone season in the wider Indian Ocean, and the occasional storm system can cancel a day on short notice. Reputable operators will not take you out in unsafe conditions, so build a little flexibility into your itinerary and avoid booking your fishing day for the morning you fly home."
-        ]
+        heading: 'Best Season for Deep Sea Fishing',
+        paragraphs: [
+          'Mauritius has two broad seasons: the warm summer from November to April and the cooler, drier winter from May to October. Fishing is possible year-round, but the species change with the water temperature. The prime window for blue marlin is the warmer months, roughly November through April, with the peak of the marlin run often falling between December and March when the big fish move closest to the drop-off.',
+          'The cooler winter months from May to October are not a write-off at all. This is generally the better time for yellowfin tuna, dogtooth tuna and wahoo, and the seas are often calmer and more comfortable, which suits anglers who are prone to seasickness. So if a trophy marlin is your single goal, aim for the southern-hemisphere summer; if you want consistent action, good eating fish and steadier conditions, winter is an excellent and often quieter, cheaper choice.',
+          'Keep an eye on the weather as well as the calendar. Summer is also cyclone season in the wider Indian Ocean, and the occasional storm system can cancel a day on short notice. Reputable operators will not take you out in unsafe conditions, so build a little flexibility into your itinerary and avoid booking your fishing day for the morning you fly home.',
+        ],
       },
       {
-        "heading": "The West Coast: Where the Boats Leave From",
-        "paragraphs": [
-          "Most serious charters depart from the sheltered west coast, where the drop-off is close to shore and the mornings are typically calmer. Black River, known locally as Rivière Noire, is the historic heart of Mauritian big-game fishing and home to the largest concentration of professional charter boats and crews. Nearby Tamarin and the Le Morne peninsula in the south-west are also popular launch points, all within a short run of deep blue water.",
+        heading: 'The West Coast: Where the Boats Leave From',
+        paragraphs: [
+          'Most serious charters depart from the sheltered west coast, where the drop-off is close to shore and the mornings are typically calmer. Black River, known locally as Rivière Noire, is the historic heart of Mauritian big-game fishing and home to the largest concentration of professional charter boats and crews. Nearby Tamarin and the Le Morne peninsula in the south-west are also popular launch points, all within a short run of deep blue water.',
           "The west coast suits fishing for two practical reasons. First, the prevailing south-easterly trade winds are blocked by the island's mountains, so the lee shore stays comparatively flat while the east coast can be choppy. Second, the continental shelf is narrow here, meaning you reach marlin grounds in deep water within 20 to 40 minutes of leaving the marina rather than after a long, fuel-hungry slog. If you are staying on the east or north coast, factor in the cross-island drive; our private airport transfers and on-island transport can get you to the marina in good time for an early start.",
-          "If you would rather fold a fishing morning into a wider itinerary, it pairs naturally with other south-west highlights such as Chamarel, Black River Gorges and the beaches around Le Morne. Browse our other tours & activities to combine a charter with sightseeing, or use the AI trip planner to build a day-by-day route that puts you on the right coast at the right time."
-        ]
+          'If you would rather fold a fishing morning into a wider itinerary, it pairs naturally with other south-west highlights such as Chamarel, Black River Gorges and the beaches around Le Morne. Browse our other tours & activities to combine a charter with sightseeing, or use the AI trip planner to build a day-by-day route that puts you on the right coast at the right time.',
+        ],
       },
       {
-        "heading": "Choosing a Charter",
-        "paragraphs": [
-          "Charters generally come in two forms: a private (exclusive) boat just for your group, or a shared trip where you join other anglers and split the cost. Private charters give you control over timing, target species and how hard you push, and are the better choice for a dedicated group or a marlin mission. Shared trips are friendlier on the budget and perfectly good if you simply want a half-day on the water and a chance at some tuna or dorado.",
+        heading: 'Choosing a Charter',
+        paragraphs: [
+          'Charters generally come in two forms: a private (exclusive) boat just for your group, or a shared trip where you join other anglers and split the cost. Private charters give you control over timing, target species and how hard you push, and are the better choice for a dedicated group or a marlin mission. Shared trips are friendlier on the budget and perfectly good if you simply want a half-day on the water and a chance at some tuna or dorado.',
           "Boats range from compact sport-fishers around 8 to 10 metres to larger fully-equipped game boats over 12 metres with a fighting chair, outriggers and quality reels. Before you book, check that the operator is licensed and insured, that tackle, bait, ice and soft drinks are included, and whether there is a fighting chair, which matters if you genuinely hook a big marlin. Ask about group size, the crew's experience, and the boat's billfish-release policy. A short, honest phone call tells you a lot about whether a charter is run properly.",
-          "Half-day trips usually run four to six hours and are the most common booking; full-day trips of eight hours or more give you the range to chase marlin properly but are more tiring and more expensive. For a first taste of the sport, or if you have non-fishing family along, a morning half-day is the sensible starting point."
-        ]
+          'Half-day trips usually run four to six hours and are the most common booking; full-day trips of eight hours or more give you the range to chase marlin properly but are more tiring and more expensive. For a first taste of the sport, or if you have non-fishing family along, a morning half-day is the sensible starting point.',
+        ],
       },
       {
-        "heading": "What It Costs",
-        "paragraphs": [
-          "As a rough guide for a private charter, expect a half-day (around four to six hours) to start near 450 to 650 EUR for a smaller boat and run to 700 to 900 EUR for a larger, better-equipped game boat. A full day of eight hours or more typically lands somewhere between 900 and 1,400 EUR depending on the vessel, the crew and the season. These figures are for the whole boat, not per person, so the cost falls quickly once you split it across a group of four to six.",
-          "Shared trips are far cheaper per head, often in the region of 100 to 180 EUR per angler for a half-day, which makes them ideal for solo travellers or couples who do not want to pay for an exclusive boat. Prices climb a little in the peak marlin months of December to March and are softer in the quieter winter season. Always confirm exactly what is included; tackle, bait and ice should be standard, and most boats provide water and soft drinks, but lunch on a full day is sometimes extra.",
-          "A few honest notes on value. Fuel is the biggest variable cost, so a boat moored close to the deep water will often deliver more fishing time for your money than a cheaper boat that has to steam a long way out. Tipping the crew is customary if they have worked hard for you, with something around 10 percent a fair benchmark. And remember that no skipper can guarantee a fish; what you are paying for is a well-run boat, an experienced crew and a real shot at the catch of a lifetime."
-        ]
+        heading: 'What It Costs',
+        paragraphs: [
+          'As a rough guide for a private charter, expect a half-day (around four to six hours) to start near 450 to 650 EUR for a smaller boat and run to 700 to 900 EUR for a larger, better-equipped game boat. A full day of eight hours or more typically lands somewhere between 900 and 1,400 EUR depending on the vessel, the crew and the season. These figures are for the whole boat, not per person, so the cost falls quickly once you split it across a group of four to six.',
+          'Shared trips are far cheaper per head, often in the region of 100 to 180 EUR per angler for a half-day, which makes them ideal for solo travellers or couples who do not want to pay for an exclusive boat. Prices climb a little in the peak marlin months of December to March and are softer in the quieter winter season. Always confirm exactly what is included; tackle, bait and ice should be standard, and most boats provide water and soft drinks, but lunch on a full day is sometimes extra.',
+          'A few honest notes on value. Fuel is the biggest variable cost, so a boat moored close to the deep water will often deliver more fishing time for your money than a cheaper boat that has to steam a long way out. Tipping the crew is customary if they have worked hard for you, with something around 10 percent a fair benchmark. And remember that no skipper can guarantee a fish; what you are paying for is a well-run boat, an experienced crew and a real shot at the catch of a lifetime.',
+        ],
       },
       {
-        "heading": "Practical Tips for the Day",
-        "paragraphs": [
-          "Book the earliest start you can, as the sea is usually flattest and the bite often best in the first hours after dawn. Bring a hat, polarised sunglasses, reef-safe sunscreen and a light layer, since it can be cool on the water early before the sun climbs. If you are unsure about seasickness, take a tablet the night before and again on the morning of the trip rather than waiting until you feel unwell on board.",
-          "Wear soft-soled shoes or go barefoot to protect the deck, eat a light breakfast, and listen to the crew; they know their boat and their grounds. If a big fish takes the bait, the team will coach you through the fight, so there is no need to be an expert to take part. To weave a charter into a fuller Mauritius trip alongside beaches, waterfalls and culture, see our wider list of things to do in Mauritius and our destinations across the island so your fishing morning slots neatly into the rest of your holiday."
-        ]
-      }
+        heading: 'Practical Tips for the Day',
+        paragraphs: [
+          'Book the earliest start you can, as the sea is usually flattest and the bite often best in the first hours after dawn. Bring a hat, polarised sunglasses, reef-safe sunscreen and a light layer, since it can be cool on the water early before the sun climbs. If you are unsure about seasickness, take a tablet the night before and again on the morning of the trip rather than waiting until you feel unwell on board.',
+          'Wear soft-soled shoes or go barefoot to protect the deck, eat a light breakfast, and listen to the crew; they know their boat and their grounds. If a big fish takes the bait, the team will coach you through the fight, so there is no need to be an expert to take part. To weave a charter into a fuller Mauritius trip alongside beaches, waterfalls and culture, see our wider list of things to do in Mauritius and our destinations across the island so your fishing morning slots neatly into the rest of your holiday.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "When is the best time for marlin fishing in Mauritius?",
-        "a": "The blue marlin season runs broadly from November to April during the warm summer, with the peak often between December and March when the big fish move closest to the west-coast drop-off. The cooler May-to-October winter is better for tuna and wahoo and tends to offer calmer seas."
+        q: 'When is the best time for marlin fishing in Mauritius?',
+        a: 'The blue marlin season runs broadly from November to April during the warm summer, with the peak often between December and March when the big fish move closest to the west-coast drop-off. The cooler May-to-October winter is better for tuna and wahoo and tends to offer calmer seas.',
       },
       {
-        "q": "How much does a deep sea fishing charter cost?",
-        "a": "A private half-day charter typically starts around 450 to 650 EUR for the whole boat and rises to 700 to 900 EUR for larger game boats; a full day runs roughly 900 to 1,400 EUR. Shared trips are far cheaper, often 100 to 180 EUR per angler for a half-day. Prices firm up in the peak marlin months."
+        q: 'How much does a deep sea fishing charter cost?',
+        a: 'A private half-day charter typically starts around 450 to 650 EUR for the whole boat and rises to 700 to 900 EUR for larger game boats; a full day runs roughly 900 to 1,400 EUR. Shared trips are far cheaper, often 100 to 180 EUR per angler for a half-day. Prices firm up in the peak marlin months.',
       },
       {
-        "q": "Where do the fishing boats leave from?",
-        "a": "Most serious charters depart from the sheltered west coast, especially Black River (Rivière Noire), with Tamarin and Le Morne also popular. The mountains shelter this coast from the trade winds and the deep water is close to shore, so you reach marlin grounds within 20 to 40 minutes."
+        q: 'Where do the fishing boats leave from?',
+        a: 'Most serious charters depart from the sheltered west coast, especially Black River (Rivière Noire), with Tamarin and Le Morne also popular. The mountains shelter this coast from the trade winds and the deep water is close to shore, so you reach marlin grounds within 20 to 40 minutes.',
       },
       {
-        "q": "Do I need experience to go deep sea fishing?",
-        "a": "No. The crew handles the tackle, rigging and boat-craft, and will coach you through a fight if you hook a big fish. Beginners and families are welcome, and a half-day trip targeting tuna or dorado is an easy, enjoyable introduction to the sport."
-      }
-    ]
+        q: 'Do I need experience to go deep sea fishing?',
+        a: 'No. The crew handles the tackle, rigging and boat-craft, and will coach you through a fight if you hook a big fish. Beginners and families are welcome, and a half-day trip targeting tuna or dorado is an easy, enjoyable introduction to the sport.',
+      },
+    ],
   },
   {
-    "slug": "mauritius-in-december",
-    "title": "Visiting Mauritius in December",
-    "metaTitle": "Visiting Mauritius in December: Weather & Tips",
-    "metaDescription": "Planning Mauritius in December? Get honest advice on summer weather, festive season, crowds, realistic prices and the best things to do across the island.",
-    "excerpt": "December puts Mauritius in warm summer mode with festive energy and busy beaches. Here is honest, practical advice on weather, crowds, prices and what to do.",
-    "readMins": 7,
-    "sections": [
+    slug: 'mauritius-in-december',
+    title: 'Visiting Mauritius in December',
+    metaTitle: 'Visiting Mauritius in December: Weather & Tips',
+    metaDescription:
+      'Planning Mauritius in December? Get honest advice on summer weather, festive season, crowds, realistic prices and the best things to do across the island.',
+    excerpt:
+      'December puts Mauritius in warm summer mode with festive energy and busy beaches. Here is honest, practical advice on weather, crowds, prices and what to do.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "December weather: warm, humid summer",
-        "paragraphs": [
-          "December sits firmly in the Mauritian summer, which runs roughly from November to April (winter is the cooler, drier May to October stretch). Expect daytime highs around 29 to 31C on the coast, with humidity that climbs as the month goes on. Sea temperatures are wonderfully warm, often 27 to 28C, so swimming and snorkelling are a pleasure with no wetsuit needed. Nights stay mild, usually in the low-to-mid 20s, which means light clothing day and night.",
-          "The honest caveat is rain. December is part of the warmer, wetter half of the year, and short tropical downpours are common, especially over the central plateau around Curepipe and on the higher inland routes. These showers are usually brief and heavy rather than all-day grey, and the coasts, particularly the drier west and north around Grand Baie and Flic en Flac, tend to stay sunnier than the interior. Cyclone season technically opens in November and runs into April; a direct hit in December is uncommon but not impossible, so it is worth keeping an eye on the Mauritius Meteorological Services forecasts during your trip."
-        ]
+        heading: 'December weather: warm, humid summer',
+        paragraphs: [
+          'December sits firmly in the Mauritian summer, which runs roughly from November to April (winter is the cooler, drier May to October stretch). Expect daytime highs around 29 to 31C on the coast, with humidity that climbs as the month goes on. Sea temperatures are wonderfully warm, often 27 to 28C, so swimming and snorkelling are a pleasure with no wetsuit needed. Nights stay mild, usually in the low-to-mid 20s, which means light clothing day and night.',
+          'The honest caveat is rain. December is part of the warmer, wetter half of the year, and short tropical downpours are common, especially over the central plateau around Curepipe and on the higher inland routes. These showers are usually brief and heavy rather than all-day grey, and the coasts, particularly the drier west and north around Grand Baie and Flic en Flac, tend to stay sunnier than the interior. Cyclone season technically opens in November and runs into April; a direct hit in December is uncommon but not impossible, so it is worth keeping an eye on the Mauritius Meteorological Services forecasts during your trip.',
+        ],
       },
       {
-        "heading": "The festive season atmosphere",
-        "paragraphs": [
-          "December is one of the liveliest months on the island. Mauritius is genuinely multicultural, so Christmas is widely celebrated across Christian, and increasingly secular, communities, with decorations in Port Louis, lights along the Caudan Waterfront, and hotels staging gala dinners on the 24th and 31st. The mood is relaxed and warm rather than cold-weather cosy, picture a Christmas lunch followed by an afternoon on the beach.",
-          "New Year is the real highlight. Locals take the festive period seriously, and beaches such as Belle Mare, Mont Choisy and Flic en Flac fill with families camping out, barbecuing and celebrating well into the night on 31 December. Sega music, the island's signature rhythm, is everywhere. If you want to join a hotel New Year's Eve dinner, book early, because the best venues sell out weeks in advance and many add a compulsory festive supplement to room rates."
-        ]
+        heading: 'The festive season atmosphere',
+        paragraphs: [
+          'December is one of the liveliest months on the island. Mauritius is genuinely multicultural, so Christmas is widely celebrated across Christian, and increasingly secular, communities, with decorations in Port Louis, lights along the Caudan Waterfront, and hotels staging gala dinners on the 24th and 31st. The mood is relaxed and warm rather than cold-weather cosy, picture a Christmas lunch followed by an afternoon on the beach.',
+          "New Year is the real highlight. Locals take the festive period seriously, and beaches such as Belle Mare, Mont Choisy and Flic en Flac fill with families camping out, barbecuing and celebrating well into the night on 31 December. Sega music, the island's signature rhythm, is everywhere. If you want to join a hotel New Year's Eve dinner, book early, because the best venues sell out weeks in advance and many add a compulsory festive supplement to room rates.",
+        ],
       },
       {
-        "heading": "Crowds and why December gets busy",
-        "paragraphs": [
-          "December is high season, and it shows. Two crowds overlap: international visitors escaping the northern-hemisphere winter, and the large number of Mauritian families and returning diaspora who travel domestically over the holidays. The result is full hotels, busier beaches and longer waits at popular attractions, with the squeeze most intense from roughly 20 December through the first week of January.",
-          "That does not mean it is unpleasant, the island absorbs visitors well, but it does reward planning. Popular day trips and boat excursions can sell out, and signature spots like Ile aux Cerfs lagoon get genuinely crowded by late morning. Going early, midweek where possible, and pre-booking anything time-sensitive makes a real difference. You can browse the island's headline sights and natural parks on our /attractions page to decide what is worth an early start."
-        ]
+        heading: 'Crowds and why December gets busy',
+        paragraphs: [
+          'December is high season, and it shows. Two crowds overlap: international visitors escaping the northern-hemisphere winter, and the large number of Mauritian families and returning diaspora who travel domestically over the holidays. The result is full hotels, busier beaches and longer waits at popular attractions, with the squeeze most intense from roughly 20 December through the first week of January.',
+          "That does not mean it is unpleasant, the island absorbs visitors well, but it does reward planning. Popular day trips and boat excursions can sell out, and signature spots like Ile aux Cerfs lagoon get genuinely crowded by late morning. Going early, midweek where possible, and pre-booking anything time-sensitive makes a real difference. You can browse the island's headline sights and natural parks on our /attractions page to decide what is worth an early start.",
+        ],
       },
       {
-        "heading": "Prices: what to budget in December",
-        "paragraphs": [
-          "December is the most expensive time to visit, alongside the European summer. Flights and hotels peak around the Christmas-to-New-Year window, and many resorts apply a mandatory festive gala supplement for the 24th and 31st. If your dates are flexible, the first half of December is noticeably cheaper and quieter than the last ten days, so shifting a trip earlier can save a meaningful amount without losing the summer weather.",
-          "Tours and excursions, by contrast, hold fairly steady year-round, which is one reason they offer good value in peak season. As a rough guide, a guided full-day sightseeing tour such as the south circuit or the north tour starts from around 60 to 70 EUR for a small group, while a catamaran cruise or speedboat trip to Ile aux Cerfs starts from around 40 EUR per person. You can compare current options and what each includes on our /activities page before you arrive, which helps you lock in the popular festive-week slots early."
-        ]
+        heading: 'Prices: what to budget in December',
+        paragraphs: [
+          'December is the most expensive time to visit, alongside the European summer. Flights and hotels peak around the Christmas-to-New-Year window, and many resorts apply a mandatory festive gala supplement for the 24th and 31st. If your dates are flexible, the first half of December is noticeably cheaper and quieter than the last ten days, so shifting a trip earlier can save a meaningful amount without losing the summer weather.',
+          'Tours and excursions, by contrast, hold fairly steady year-round, which is one reason they offer good value in peak season. As a rough guide, a guided full-day sightseeing tour such as the south circuit or the north tour starts from around 60 to 70 EUR for a small group, while a catamaran cruise or speedboat trip to Ile aux Cerfs starts from around 40 EUR per person. You can compare current options and what each includes on our /activities page before you arrive, which helps you lock in the popular festive-week slots early.',
+        ],
       },
       {
-        "heading": "Best things to do in December",
-        "paragraphs": [
-          "Warm seas make December ideal for the water. A catamaran or speedboat day to Ile aux Cerfs in the east, snorkelling over the coral, and dolphin-watching off Tamarin Bay in the calmer west are all at their best. For families, Casela Nature Parks near Cascavelle combines safaris, zip lines and animal encounters and works well even if an afternoon shower passes through.",
-          "On land, the south of the island is the classic full-day route: the Black River Gorges viewpoints, the Seven Coloured Earth at Chamarel, the Chamarel waterfall, and the sacred crater lake of Grand Bassin (Ganga Talao), which is especially atmospheric. The north tour pairs Port Louis and its central market with the botanical gardens at Pamplemousses, home to the famous giant water lilies. Because December showers favour the coasts, it is smart to keep beach and lagoon plans loosely scheduled and save inland sightseeing for clearer mornings. If you would rather have a day-by-day itinerary built around the weather and your interests, our /ai-road-trip-planner can sketch a route in minutes, and you can explore regions first on our /destinations pages."
-        ]
+        heading: 'Best things to do in December',
+        paragraphs: [
+          'Warm seas make December ideal for the water. A catamaran or speedboat day to Ile aux Cerfs in the east, snorkelling over the coral, and dolphin-watching off Tamarin Bay in the calmer west are all at their best. For families, Casela Nature Parks near Cascavelle combines safaris, zip lines and animal encounters and works well even if an afternoon shower passes through.',
+          'On land, the south of the island is the classic full-day route: the Black River Gorges viewpoints, the Seven Coloured Earth at Chamarel, the Chamarel waterfall, and the sacred crater lake of Grand Bassin (Ganga Talao), which is especially atmospheric. The north tour pairs Port Louis and its central market with the botanical gardens at Pamplemousses, home to the famous giant water lilies. Because December showers favour the coasts, it is smart to keep beach and lagoon plans loosely scheduled and save inland sightseeing for clearer mornings. If you would rather have a day-by-day itinerary built around the weather and your interests, our /ai-road-trip-planner can sketch a route in minutes, and you can explore regions first on our /destinations pages.',
+        ],
       },
       {
-        "heading": "Getting around and airport transfers",
-        "paragraphs": [
-          "Sir Seewoosagar Ramgoolam International Airport sits in the southeast near Plaisance, and most resorts are 45 minutes to over an hour away by road, with the far north around Grand Baie closer to 75 minutes. December arrivals are heavy, and taxi queues at peak times can be long, so a pre-arranged transfer that meets you in arrivals takes the stress out of a late-night or holiday landing. You can pre-book a fixed-price pickup through our /airport-transfers service so the price is agreed before you travel.",
-          "For getting around once you are settled, a private driver-guide is the easiest way to handle the south and north day tours, especially in December when sudden showers make self-driving on unfamiliar plateau roads less appealing. Roads are good but signage can be patchy, and driving is on the left. Whatever you choose, build in a little buffer over the festive week, when traffic around Port Louis, Grand Baie and the coastal beach spots is at its annual heaviest."
-        ]
+        heading: 'Getting around and airport transfers',
+        paragraphs: [
+          'Sir Seewoosagar Ramgoolam International Airport sits in the southeast near Plaisance, and most resorts are 45 minutes to over an hour away by road, with the far north around Grand Baie closer to 75 minutes. December arrivals are heavy, and taxi queues at peak times can be long, so a pre-arranged transfer that meets you in arrivals takes the stress out of a late-night or holiday landing. You can pre-book a fixed-price pickup through our /airport-transfers service so the price is agreed before you travel.',
+          'For getting around once you are settled, a private driver-guide is the easiest way to handle the south and north day tours, especially in December when sudden showers make self-driving on unfamiliar plateau roads less appealing. Roads are good but signage can be patchy, and driving is on the left. Whatever you choose, build in a little buffer over the festive week, when traffic around Port Louis, Grand Baie and the coastal beach spots is at its annual heaviest.',
+        ],
       },
       {
-        "heading": "Quick tips for a December trip",
-        "paragraphs": [
+        heading: 'Quick tips for a December trip',
+        paragraphs: [
           "Pack light, breathable clothing, strong reef-safe sunscreen, a hat and a compact rain jacket or umbrella for the inland showers. Stay hydrated, the combination of heat and humidity is more tiring than the temperature alone suggests. Book your accommodation, any New Year's Eve dinner and your most-wanted excursions as early as you can, ideally well before December begins.",
-          "Finally, lean into the season rather than fighting it. December in Mauritius is festive, warm and social, with locals out celebrating and the lagoons at their warmest. Plan the headline activities in advance, keep beach days flexible around the weather, and you get the best of the island's summer at its most joyful time of year."
-        ]
-      }
+          "Finally, lean into the season rather than fighting it. December in Mauritius is festive, warm and social, with locals out celebrating and the lagoons at their warmest. Plan the headline activities in advance, keep beach days flexible around the weather, and you get the best of the island's summer at its most joyful time of year.",
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Is December a good time to visit Mauritius?",
-        "a": "Yes, if you want warm summer weather, hot seas for swimming and a festive atmosphere. The trade-offs are higher prices, busier beaches and the chance of short tropical downpours, especially inland. The first half of the month is quieter and cheaper than the Christmas-to-New-Year peak."
+        q: 'Is December a good time to visit Mauritius?',
+        a: 'Yes, if you want warm summer weather, hot seas for swimming and a festive atmosphere. The trade-offs are higher prices, busier beaches and the chance of short tropical downpours, especially inland. The first half of the month is quieter and cheaper than the Christmas-to-New-Year peak.',
       },
       {
-        "q": "What is the weather like in Mauritius in December?",
-        "a": "It is warm and humid summer weather, with coastal highs around 29 to 31C and sea temperatures of roughly 27 to 28C. Expect brief, heavy showers at times, more often over the central plateau than on the drier west and north coasts. December is also part of the cyclone season, though direct hits are uncommon."
+        q: 'What is the weather like in Mauritius in December?',
+        a: 'It is warm and humid summer weather, with coastal highs around 29 to 31C and sea temperatures of roughly 27 to 28C. Expect brief, heavy showers at times, more often over the central plateau than on the drier west and north coasts. December is also part of the cyclone season, though direct hits are uncommon.',
       },
       {
-        "q": "How much does a Mauritius trip cost in December?",
-        "a": "December is peak season, so flights and hotels are at their priciest, and many resorts add a festive gala supplement for the 24th and 31st. Tours stay better value: full-day sightseeing trips start from around 60 to 70 EUR for a small group, and Ile aux Cerfs boat trips from around 40 EUR per person."
+        q: 'How much does a Mauritius trip cost in December?',
+        a: 'December is peak season, so flights and hotels are at their priciest, and many resorts add a festive gala supplement for the 24th and 31st. Tours stay better value: full-day sightseeing trips start from around 60 to 70 EUR for a small group, and Ile aux Cerfs boat trips from around 40 EUR per person.',
       },
       {
-        "q": "Should I book tours and transfers in advance for December?",
-        "a": "Yes. December is the busiest month, popular excursions and boat trips can sell out, and airport taxi queues get long. Pre-booking a fixed-price airport transfer and your key day tours secures your spot and your price before the festive-week rush."
-      }
-    ]
+        q: 'Should I book tours and transfers in advance for December?',
+        a: 'Yes. December is the busiest month, popular excursions and boat trips can sell out, and airport taxi queues get long. Pre-booking a fixed-price airport transfer and your key day tours secures your spot and your price before the festive-week rush.',
+      },
+    ],
   },
   {
-    "slug": "mauritius-cyclone-season",
-    "title": "Cyclone Season in Mauritius: What to Know",
-    "metaTitle": "Mauritius Cyclone Season: What to Know",
-    "metaDescription": "Mauritius cyclone season runs November to mid-May. Learn the real risk, warning classes, safety steps and whether it's still worth visiting in summer.",
-    "excerpt": "A clear, honest look at Mauritius cyclone season: when it runs, how warning classes work, how to stay safe, and whether a summer trip is still worth booking.",
-    "readMins": 6,
-    "sections": [
+    slug: 'mauritius-cyclone-season',
+    title: 'Cyclone Season in Mauritius: What to Know',
+    metaTitle: 'Mauritius Cyclone Season: What to Know',
+    metaDescription:
+      "Mauritius cyclone season runs November to mid-May. Learn the real risk, warning classes, safety steps and whether it's still worth visiting in summer.",
+    excerpt:
+      'A clear, honest look at Mauritius cyclone season: when it runs, how warning classes work, how to stay safe, and whether a summer trip is still worth booking.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "When Is Cyclone Season in Mauritius?",
-        "paragraphs": [
+        heading: 'When Is Cyclone Season in Mauritius?',
+        paragraphs: [
           "The official cyclone season in Mauritius runs from 1 November to 15 May, which overlaps almost exactly with the island's summer. Mauritius has two seasons rather than four: a warm, humid summer from November to April and a cooler, drier winter from May to October. Summer brings sea temperatures around 27 to 29C, lush green landscapes and the occasional tropical system spinning across the south-west Indian Ocean.",
-          "In practice, the months that carry the most cyclone activity are January, February and March. November and December are usually quieter, and by late April the risk tapers off. It is worth being clear about what 'season' means here: it marks the window in which a cyclone is possible, not a forecast that one will arrive. Many Mauritian summers pass with no direct hit at all, and even an active year typically involves only one or two systems coming close enough to matter."
-        ]
+          "In practice, the months that carry the most cyclone activity are January, February and March. November and December are usually quieter, and by late April the risk tapers off. It is worth being clear about what 'season' means here: it marks the window in which a cyclone is possible, not a forecast that one will arrive. Many Mauritian summers pass with no direct hit at all, and even an active year typically involves only one or two systems coming close enough to matter.",
+        ],
       },
       {
-        "heading": "How Likely Is a Cyclone During Your Trip?",
-        "paragraphs": [
-          "The honest answer is: possible, but far from guaranteed. Mauritius sits in a large ocean, and most tropical systems that form nearby pass to the north, south or simply weaken before reaching the island. A direct strike from a strong cyclone is a rare event in any given year. What is more common during summer is the indirect effect of a distant system: a few days of heavy rain, gusty wind and rough seas, after which the bright weather returns.",
-          "If you are travelling between November and mid-May, the sensible mindset is to expect mostly sunny days with the small chance of a disruptive spell. The far west and north coasts around Flic en Flac, Trou aux Biches and Grand Baie tend to be more sheltered, while the exposed south and east can feel weather more sharply. None of this should put you off the island, but it does make travel insurance and a flexible attitude genuinely worthwhile for summer bookings."
-        ]
+        heading: 'How Likely Is a Cyclone During Your Trip?',
+        paragraphs: [
+          'The honest answer is: possible, but far from guaranteed. Mauritius sits in a large ocean, and most tropical systems that form nearby pass to the north, south or simply weaken before reaching the island. A direct strike from a strong cyclone is a rare event in any given year. What is more common during summer is the indirect effect of a distant system: a few days of heavy rain, gusty wind and rough seas, after which the bright weather returns.',
+          'If you are travelling between November and mid-May, the sensible mindset is to expect mostly sunny days with the small chance of a disruptive spell. The far west and north coasts around Flic en Flac, Trou aux Biches and Grand Baie tend to be more sheltered, while the exposed south and east can feel weather more sharply. None of this should put you off the island, but it does make travel insurance and a flexible attitude genuinely worthwhile for summer bookings.',
+        ],
       },
       {
-        "heading": "Understanding the Warning System",
-        "paragraphs": [
-          "Mauritius has one of the most organised cyclone-warning systems in the region, run by the Mauritius Meteorological Services. Warnings are issued in four classes, all built around the expected timing of damaging gusts of 120 km/h or more. Class I is a heads-up issued roughly 36 to 48 hours ahead. Class II means those gusts are expected within about 12 hours of daylight, Class III within about 6 hours, and Class IV is declared when 120 km/h gusts are actually being recorded and are expected to continue.",
-          "The classes are announced regularly on local radio, television and the Meteorological Services website, and most hotels relay them to guests. The practical takeaway for visitors is simple. At Class I and II you can still move around but should start planning your day indoors. From Class III you should be settled wherever you intend to stay, and at Class IV you stay put completely. Shops, attractions and public transport wind down well before the worst arrives, so do not leave food, water or charging until the last moment."
-        ]
+        heading: 'Understanding the Warning System',
+        paragraphs: [
+          'Mauritius has one of the most organised cyclone-warning systems in the region, run by the Mauritius Meteorological Services. Warnings are issued in four classes, all built around the expected timing of damaging gusts of 120 km/h or more. Class I is a heads-up issued roughly 36 to 48 hours ahead. Class II means those gusts are expected within about 12 hours of daylight, Class III within about 6 hours, and Class IV is declared when 120 km/h gusts are actually being recorded and are expected to continue.',
+          'The classes are announced regularly on local radio, television and the Meteorological Services website, and most hotels relay them to guests. The practical takeaway for visitors is simple. At Class I and II you can still move around but should start planning your day indoors. From Class III you should be settled wherever you intend to stay, and at Class IV you stay put completely. Shops, attractions and public transport wind down well before the worst arrives, so do not leave food, water or charging until the last moment.',
+        ],
       },
       {
-        "heading": "Staying Safe If a Cyclone Approaches",
-        "paragraphs": [
+        heading: 'Staying Safe If a Cyclone Approaches',
+        paragraphs: [
           "If a warning is issued during your stay, the most important thing is to follow your accommodation's instructions rather than your own travel plans. Mauritian hotels and guesthouses have decades of experience with cyclones and will know when to close pools, secure loose furniture and ask guests to stay inside. Keep your phone charged, fill a bottle or two with drinking water, and have some cash, snacks and a torch on hand, since power and water can be interrupted for a day or so even after a moderate system.",
-          "Avoid the coast, rivers and hiking trails entirely once a warning is in force. The biggest dangers are not the wind itself but flash flooding, fallen trees, downed power lines and dangerously rough seas. Swimming, boat trips and water sports are suspended during warnings for good reason. If you are self-driving, get the vehicle parked somewhere safe before Class III and stay off the roads; flooding and debris make driving hazardous, and emergency services need clear routes. When planning a flexible summer itinerary, our /ai-road-trip-planner can help you sketch alternative indoor-friendly days you can swap in if the weather turns."
-        ]
+          'Avoid the coast, rivers and hiking trails entirely once a warning is in force. The biggest dangers are not the wind itself but flash flooding, fallen trees, downed power lines and dangerously rough seas. Swimming, boat trips and water sports are suspended during warnings for good reason. If you are self-driving, get the vehicle parked somewhere safe before Class III and stay off the roads; flooding and debris make driving hazardous, and emergency services need clear routes. When planning a flexible summer itinerary, our /ai-road-trip-planner can help you sketch alternative indoor-friendly days you can swap in if the weather turns.',
+        ],
       },
       {
-        "heading": "How Cyclone Season Affects Travel and Activities",
-        "paragraphs": [
-          "Most summer disruption is short-lived. Outdoor experiences such as catamaran cruises, dolphin watching, quad biking and ziplining are weather-dependent and may be paused for a day or two around a warning, then resume. Reputable operators reschedule or refund rather than run trips in unsafe conditions, so always book activities that offer free changes during summer and confirm the cancellation policy before you pay. You can browse weather-flexible options on our /activities pages and pair them with sheltered sightseeing from /attractions for the rainier days.",
-          "Airport operations are also affected. Sir Seewoosagar Ramgoolam International Airport in the south-east can suspend flights during Class III and IV warnings, and a backlog of delays may follow once it reopens. If your arrival or departure falls in a warning window, expect possible changes and build in a buffer. For airport pickups, a licensed operator that monitors flight status and adjusts timing matters far more in summer than in winter; you can see how our /airport-transfers handle delayed or rescheduled flights, including waiting time and re-booking when conditions disrupt the schedule."
-        ]
+        heading: 'How Cyclone Season Affects Travel and Activities',
+        paragraphs: [
+          'Most summer disruption is short-lived. Outdoor experiences such as catamaran cruises, dolphin watching, quad biking and ziplining are weather-dependent and may be paused for a day or two around a warning, then resume. Reputable operators reschedule or refund rather than run trips in unsafe conditions, so always book activities that offer free changes during summer and confirm the cancellation policy before you pay. You can browse weather-flexible options on our /activities pages and pair them with sheltered sightseeing from /attractions for the rainier days.',
+          'Airport operations are also affected. Sir Seewoosagar Ramgoolam International Airport in the south-east can suspend flights during Class III and IV warnings, and a backlog of delays may follow once it reopens. If your arrival or departure falls in a warning window, expect possible changes and build in a buffer. For airport pickups, a licensed operator that monitors flight status and adjusts timing matters far more in summer than in winter; you can see how our /airport-transfers handle delayed or rescheduled flights, including waiting time and re-booking when conditions disrupt the schedule.',
+        ],
       },
       {
-        "heading": "Is It Still Worth Visiting in Summer?",
-        "paragraphs": [
-          "For many travellers, yes. Summer in Mauritius is warm, green and noticeably less crowded than the peak winter months, and prices for accommodation and tours are often softer. A typical shared airport transfer sits around 25 to 35 EUR, a half-day catamaran trip around 45 to 70 EUR per person, and many guided excursions in the 40 to 90 EUR range, with summer sometimes bringing better availability and the occasional discount. The diving and snorkelling are excellent, the waterfalls in the south are at their most dramatic, and the underwater visibility is generally good between rain spells.",
-          "The trade-off is accepting a small chance of disruption and planning around it. Choose accommodation on the more sheltered west or north coast if weather worries you, take out travel insurance that covers cyclone-related changes, and favour bookings with flexible cancellation. If you would rather avoid any risk entirely, the dry winter from May to October offers calm, sunny weather and is the safest bet. Either way, it helps to plan around the regions and conditions in advance using our /destinations guides so you know which coasts suit your travel dates best."
-        ]
-      }
+        heading: 'Is It Still Worth Visiting in Summer?',
+        paragraphs: [
+          'For many travellers, yes. Summer in Mauritius is warm, green and noticeably less crowded than the peak winter months, and prices for accommodation and tours are often softer. A typical shared airport transfer sits around 25 to 35 EUR, a half-day catamaran trip around 45 to 70 EUR per person, and many guided excursions in the 40 to 90 EUR range, with summer sometimes bringing better availability and the occasional discount. The diving and snorkelling are excellent, the waterfalls in the south are at their most dramatic, and the underwater visibility is generally good between rain spells.',
+          'The trade-off is accepting a small chance of disruption and planning around it. Choose accommodation on the more sheltered west or north coast if weather worries you, take out travel insurance that covers cyclone-related changes, and favour bookings with flexible cancellation. If you would rather avoid any risk entirely, the dry winter from May to October offers calm, sunny weather and is the safest bet. Either way, it helps to plan around the regions and conditions in advance using our /destinations guides so you know which coasts suit your travel dates best.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "What months are cyclone season in Mauritius?",
-        "a": "The official season runs from 1 November to 15 May, overlapping with the island's warm summer. The highest activity is usually in January, February and March, while November, December and late April are generally quieter."
+        q: 'What months are cyclone season in Mauritius?',
+        a: "The official season runs from 1 November to 15 May, overlapping with the island's warm summer. The highest activity is usually in January, February and March, while November, December and late April are generally quieter.",
       },
       {
-        "q": "Will a cyclone definitely affect my holiday?",
-        "a": "No. A direct hit in any given year is rare. Most Mauritian summers pass with no major impact, and the most common effect is a few days of heavy rain and wind from a distant system before sunny weather returns."
+        q: 'Will a cyclone definitely affect my holiday?',
+        a: 'No. A direct hit in any given year is rare. Most Mauritian summers pass with no major impact, and the most common effect is a few days of heavy rain and wind from a distant system before sunny weather returns.',
       },
       {
-        "q": "What do the cyclone warning classes mean?",
-        "a": "The Mauritius Meteorological Services issue Classes I to IV based on the expected timing of 120 km/h gusts. Class I is an early heads-up, Class II means gusts within about 12 hours, Class III within about 6 hours, and Class IV means those gusts are already occurring. From Class III you should stay where you are."
+        q: 'What do the cyclone warning classes mean?',
+        a: 'The Mauritius Meteorological Services issue Classes I to IV based on the expected timing of 120 km/h gusts. Class I is an early heads-up, Class II means gusts within about 12 hours, Class III within about 6 hours, and Class IV means those gusts are already occurring. From Class III you should stay where you are.',
       },
       {
-        "q": "Is it still worth visiting Mauritius in summer?",
-        "a": "For most travellers, yes. Summer brings warm seas, green landscapes, fewer crowds and often lower prices. Just book flexible activities and accommodation, take travel insurance covering weather disruption, and consider the sheltered west or north coast. If you want zero risk, the dry winter from May to October is the safest choice."
-      }
-    ]
+        q: 'Is it still worth visiting Mauritius in summer?',
+        a: 'For most travellers, yes. Summer brings warm seas, green landscapes, fewer crowds and often lower prices. Just book flexible activities and accommodation, take travel insurance covering weather disruption, and consider the sheltered west or north coast. If you want zero risk, the dry winter from May to October is the safest choice.',
+      },
+    ],
   },
   {
-    "slug": "money-in-mauritius",
-    "title": "Currency & Money in Mauritius: A Practical Guide",
-    "metaTitle": "Currency & Money in Mauritius: Practical Guide",
-    "metaDescription": "Money in Mauritius made simple: the rupee, cards, ATMs, tipping, whether to bring euros or dollars, and realistic daily costs from a local tour operator.",
-    "excerpt": "A clear, honest guide to money in Mauritius: the rupee, paying by card, ATMs, tipping, whether to bring euros or dollars, and what things actually cost.",
-    "readMins": 7,
-    "sections": [
+    slug: 'money-in-mauritius',
+    title: 'Currency & Money in Mauritius: A Practical Guide',
+    metaTitle: 'Currency & Money in Mauritius: Practical Guide',
+    metaDescription:
+      'Money in Mauritius made simple: the rupee, cards, ATMs, tipping, whether to bring euros or dollars, and realistic daily costs from a local tour operator.',
+    excerpt:
+      'A clear, honest guide to money in Mauritius: the rupee, paying by card, ATMs, tipping, whether to bring euros or dollars, and what things actually cost.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "The Mauritian Rupee: What You're Actually Spending",
-        "paragraphs": [
-          "The local currency is the Mauritian rupee, written as Rs or with the ISO code MUR. Notes come in denominations of 25, 50, 100, 200, 500, 1,000 and 2,000 rupees, with coins for the small change. As a rough mental shortcut at the time of writing, one euro is worth somewhere around 48 to 50 rupees and one US dollar around 44 to 46, though the rate drifts, so check a live converter before you travel rather than trusting a number you read months ago.",
-          "A useful habit is to think in round euro chunks. A 1,000-rupee note is roughly 20 euros, a 500 is about 10, and a 100 is a couple of euros. Once that sticks, you stop doing mental gymnastics at every till. The rupee is a closed-ish currency in practice: it is hard to buy meaningful amounts before you arrive and there is little point hoarding it after you leave, so the sensible approach is to get most of your rupees on the island and spend down to a small float before your flight home."
-        ]
+        heading: "The Mauritian Rupee: What You're Actually Spending",
+        paragraphs: [
+          'The local currency is the Mauritian rupee, written as Rs or with the ISO code MUR. Notes come in denominations of 25, 50, 100, 200, 500, 1,000 and 2,000 rupees, with coins for the small change. As a rough mental shortcut at the time of writing, one euro is worth somewhere around 48 to 50 rupees and one US dollar around 44 to 46, though the rate drifts, so check a live converter before you travel rather than trusting a number you read months ago.',
+          'A useful habit is to think in round euro chunks. A 1,000-rupee note is roughly 20 euros, a 500 is about 10, and a 100 is a couple of euros. Once that sticks, you stop doing mental gymnastics at every till. The rupee is a closed-ish currency in practice: it is hard to buy meaningful amounts before you arrive and there is little point hoarding it after you leave, so the sensible approach is to get most of your rupees on the island and spend down to a small float before your flight home.',
+        ],
       },
       {
-        "heading": "Cards vs Cash: How Locals and Visitors Actually Pay",
-        "paragraphs": [
-          "Mauritius is more card-friendly than many first-time visitors expect. Visa and Mastercard are accepted almost everywhere that caters to tourists: hotels, resorts, supermarkets such as Winners and Super U, larger restaurants, petrol stations, and established attractions like Casela Nature Parks, La Vanille and the botanical garden at Pamplemousses. Contactless tap-to-pay is common in these places, and Amex is accepted but noticeably less widely, so do not rely on it as your only card.",
+        heading: 'Cards vs Cash: How Locals and Visitors Actually Pay',
+        paragraphs: [
+          'Mauritius is more card-friendly than many first-time visitors expect. Visa and Mastercard are accepted almost everywhere that caters to tourists: hotels, resorts, supermarkets such as Winners and Super U, larger restaurants, petrol stations, and established attractions like Casela Nature Parks, La Vanille and the botanical garden at Pamplemousses. Contactless tap-to-pay is common in these places, and Amex is accepted but noticeably less widely, so do not rely on it as your only card.',
           "Cash still rules in the everyday economy, though. You will want rupees for street food and roti stalls, small family-run table d'hote restaurants, local buses, market stalls in Port Louis and Flacq, tips, and the dholl puri vendor who is not going to run a card terminal for a 30-rupee snack. Taxis are almost always cash, and many drivers happily quote in euros for longer journeys. The practical rule is simple: pay by card for anything substantial to protect the exchange rate, and keep a few thousand rupees on hand for the small, charming, cash-only moments that make up a lot of a trip.",
-          "Tell your bank you are travelling so a Mauritius transaction does not trip a fraud block, and check your card's foreign-transaction fee. A fee-free travel card or a debit card with no overseas loading can save you a surprising amount over a two-week stay compared with a card that quietly adds two to three percent on everything."
-        ]
+          "Tell your bank you are travelling so a Mauritius transaction does not trip a fraud block, and check your card's foreign-transaction fee. A fee-free travel card or a debit card with no overseas loading can save you a surprising amount over a two-week stay compared with a card that quietly adds two to three percent on everything.",
+        ],
       },
       {
-        "heading": "ATMs and Getting Cash on the Island",
-        "paragraphs": [
-          "ATMs are plentiful and reliable across the island. You will find them at the airport, in every town, at the major shopping centres like Bagatelle and Cascavelle, and dotted through tourist hubs such as Grand Baie, Flic en Flac and Belle Mare. The big local banks, MCB, SBM, ABSA and Bank One, run machines that take foreign Visa and Mastercard without fuss, and most have an English-language option. Withdrawal limits per transaction are often in the region of 10,000 to 20,000 rupees.",
-          "Two things will save you money at the machine. First, when an ATM offers to charge you in your home currency instead of rupees, always decline and choose to be charged in rupees. That on-the-spot conversion, known as dynamic currency conversion, almost always gives you a worse rate than your own bank would. Second, withdraw larger amounts less often rather than small sums repeatedly, because flat per-withdrawal fees add up. The airport ATMs in the arrivals hall are perfectly fine for a first withdrawal to cover your transfer and first day, even if the airport exchange counters themselves are not the best value."
-        ]
+        heading: 'ATMs and Getting Cash on the Island',
+        paragraphs: [
+          'ATMs are plentiful and reliable across the island. You will find them at the airport, in every town, at the major shopping centres like Bagatelle and Cascavelle, and dotted through tourist hubs such as Grand Baie, Flic en Flac and Belle Mare. The big local banks, MCB, SBM, ABSA and Bank One, run machines that take foreign Visa and Mastercard without fuss, and most have an English-language option. Withdrawal limits per transaction are often in the region of 10,000 to 20,000 rupees.',
+          'Two things will save you money at the machine. First, when an ATM offers to charge you in your home currency instead of rupees, always decline and choose to be charged in rupees. That on-the-spot conversion, known as dynamic currency conversion, almost always gives you a worse rate than your own bank would. Second, withdraw larger amounts less often rather than small sums repeatedly, because flat per-withdrawal fees add up. The airport ATMs in the arrivals hall are perfectly fine for a first withdrawal to cover your transfer and first day, even if the airport exchange counters themselves are not the best value.',
+        ],
       },
       {
-        "heading": "Should You Bring Euros or US Dollars?",
-        "paragraphs": [
-          "Bringing some hard currency as a backup is a good idea, and the euro is the most useful one to carry in Mauritius, followed by the US dollar and the British pound. Tourist-facing businesses, tour operators and many taxi drivers are comfortable quoting and accepting euros in particular, especially for bigger-ticket items like excursions, car hire deposits and longer transfers. That said, if you pay in euros for something priced in rupees, expect the informal rate to favour the seller, so it is rarely the cheapest way to pay day to day.",
-          "Where the dollar or euro genuinely earns its keep is at the bank or bureau de change once you arrive. Exchange counters at the banks and in the larger malls give fair, transparent rates and a printed receipt. Avoid changing large sums at the airport arrivals desk if you can help it, and steer well clear of anyone offering to change money on the street. Our pricing across tours and airport transfers is set so you can pay in rupees, by card, or in euros without nasty surprises, which is the kind of clarity worth looking for from any operator."
-        ]
+        heading: 'Should You Bring Euros or US Dollars?',
+        paragraphs: [
+          'Bringing some hard currency as a backup is a good idea, and the euro is the most useful one to carry in Mauritius, followed by the US dollar and the British pound. Tourist-facing businesses, tour operators and many taxi drivers are comfortable quoting and accepting euros in particular, especially for bigger-ticket items like excursions, car hire deposits and longer transfers. That said, if you pay in euros for something priced in rupees, expect the informal rate to favour the seller, so it is rarely the cheapest way to pay day to day.',
+          'Where the dollar or euro genuinely earns its keep is at the bank or bureau de change once you arrive. Exchange counters at the banks and in the larger malls give fair, transparent rates and a printed receipt. Avoid changing large sums at the airport arrivals desk if you can help it, and steer well clear of anyone offering to change money on the street. Our pricing across tours and airport transfers is set so you can pay in rupees, by card, or in euros without nasty surprises, which is the kind of clarity worth looking for from any operator.',
+        ],
       },
       {
-        "heading": "Tipping in Mauritius: What's Expected",
-        "paragraphs": [
-          "Tipping is appreciated but not aggressively expected, and nobody will chase you down the street for it. In restaurants, check whether a service charge has already been added to the bill, which is common at hotels and smarter establishments. If it has not, rounding up or leaving around 5 to 10 percent for good service is normal and generous by local standards. Leaving the tip in cash, even when you pay the bill by card, is the surest way to get it to the staff.",
-          "For the people who shape your trip directly, a small tip goes a long way and is genuinely valued: think 100 to 300 rupees for a driver or guide after a full-day tour, a little more if they have gone out of their way, and 50 to 100 rupees for hotel porters or housekeeping. Boat crews on catamaran cruises and snorkelling trips also welcome a few hundred rupees from the group. None of this is compulsory, and a warm thank-you in Creole, a simple mersi, is never unwelcome either."
-        ]
+        heading: "Tipping in Mauritius: What's Expected",
+        paragraphs: [
+          'Tipping is appreciated but not aggressively expected, and nobody will chase you down the street for it. In restaurants, check whether a service charge has already been added to the bill, which is common at hotels and smarter establishments. If it has not, rounding up or leaving around 5 to 10 percent for good service is normal and generous by local standards. Leaving the tip in cash, even when you pay the bill by card, is the surest way to get it to the staff.',
+          'For the people who shape your trip directly, a small tip goes a long way and is genuinely valued: think 100 to 300 rupees for a driver or guide after a full-day tour, a little more if they have gone out of their way, and 50 to 100 rupees for hotel porters or housekeeping. Boat crews on catamaran cruises and snorkelling trips also welcome a few hundred rupees from the group. None of this is compulsory, and a warm thank-you in Creole, a simple mersi, is never unwelcome either.',
+        ],
       },
       {
-        "heading": "What Things Actually Cost",
-        "paragraphs": [
+        heading: 'What Things Actually Cost',
+        paragraphs: [
           "Mauritius spans the full range from cheap and cheerful to genuinely high-end, so your daily spend depends heavily on how you travel. A street snack like a dholl puri or gateau piment costs well under a euro. A hearty local meal at a roadside table d'hote runs around 5 to 10 euros, while a relaxed dinner at a mid-range tourist restaurant with a drink is more like 20 to 35 euros a head. A large local Phoenix beer is a couple of euros, and bottled water and soft drinks are cheap. Petrol, by contrast, is not especially cheap, which matters if you are hiring a car.",
-          "For activities, budget roughly 35 to 60 euros for a guided snorkelling trip, from around 50 euros for a single dive, and 50 to 90 euros per person for a full-day catamaran cruise to the northern islets with lunch included. Entry to attractions like Casela or the Seven Coloured Earths at Chamarel typically lands in the 15 to 40 euro range. A private airport transfer to the east coast around Belle Mare is far better value and less stressful than scrambling for a taxi on arrival, and you can browse current prices on our airport transfers, attractions and activities pages.",
-          "Two seasonal notes worth planning around. The southern-hemisphere summer of November to April is the busy, pricier window over Christmas, New Year and the European holidays, while the cooler, drier winter of May to October, outside the July to August peak, tends to be gentler on the wallet for both flights and hotels. And distances are small, so you can pack a lot into a day. If you would rather not price every leg yourself, our free AI trip planner can sketch a day-by-day route, and our destinations pages show what each region offers."
-        ]
-      }
+          'For activities, budget roughly 35 to 60 euros for a guided snorkelling trip, from around 50 euros for a single dive, and 50 to 90 euros per person for a full-day catamaran cruise to the northern islets with lunch included. Entry to attractions like Casela or the Seven Coloured Earths at Chamarel typically lands in the 15 to 40 euro range. A private airport transfer to the east coast around Belle Mare is far better value and less stressful than scrambling for a taxi on arrival, and you can browse current prices on our airport transfers, attractions and activities pages.',
+          'Two seasonal notes worth planning around. The southern-hemisphere summer of November to April is the busy, pricier window over Christmas, New Year and the European holidays, while the cooler, drier winter of May to October, outside the July to August peak, tends to be gentler on the wallet for both flights and hotels. And distances are small, so you can pack a lot into a day. If you would rather not price every leg yourself, our free AI trip planner can sketch a day-by-day route, and our destinations pages show what each region offers.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Can I use euros or US dollars directly in Mauritius?",
-        "a": "Often yes for tourist-facing businesses, tour operators and many taxis, especially the euro and for larger purchases like excursions and transfers. But the informal rate usually favours the seller, so for everyday spending it is cheaper to pay in rupees by card or cash. Carry some euros as a backup and change them at a bank or mall bureau de change for a fair rate."
+        q: 'Can I use euros or US dollars directly in Mauritius?',
+        a: 'Often yes for tourist-facing businesses, tour operators and many taxis, especially the euro and for larger purchases like excursions and transfers. But the informal rate usually favours the seller, so for everyday spending it is cheaper to pay in rupees by card or cash. Carry some euros as a backup and change them at a bank or mall bureau de change for a fair rate.',
       },
       {
-        "q": "Should I get Mauritian rupees before I travel?",
-        "a": "There is little need. The rupee is hard to obtain abroad and pointless to hoard afterwards, so it is easier and usually cheaper to withdraw from an ATM in the airport arrivals hall on arrival, then top up from town ATMs as needed. Aim to spend down to a small amount of cash before your flight home."
+        q: 'Should I get Mauritian rupees before I travel?',
+        a: 'There is little need. The rupee is hard to obtain abroad and pointless to hoard afterwards, so it is easier and usually cheaper to withdraw from an ATM in the airport arrivals hall on arrival, then top up from town ATMs as needed. Aim to spend down to a small amount of cash before your flight home.',
       },
       {
-        "q": "Are cards widely accepted in Mauritius?",
-        "a": "Visa and Mastercard work almost everywhere tourists go: hotels, supermarkets, larger restaurants, petrol stations and major attractions, with contactless common. Amex is accepted but less widely. Keep some cash for street food, local buses, market stalls, taxis and tips, which are typically cash only."
+        q: 'Are cards widely accepted in Mauritius?',
+        a: 'Visa and Mastercard work almost everywhere tourists go: hotels, supermarkets, larger restaurants, petrol stations and major attractions, with contactless common. Amex is accepted but less widely. Keep some cash for street food, local buses, market stalls, taxis and tips, which are typically cash only.',
       },
       {
-        "q": "How much should I tip in Mauritius?",
-        "a": "Tipping is appreciated but not obligatory. In restaurants, check for a service charge first; if there is none, around 5 to 10 percent is generous. For drivers and guides, 100 to 300 rupees after a full-day tour is a kind gesture, and 50 to 100 rupees suits porters or housekeeping. Cash tips are the surest way to reach the staff."
-      }
-    ]
+        q: 'How much should I tip in Mauritius?',
+        a: 'Tipping is appreciated but not obligatory. In restaurants, check for a service charge first; if there is none, around 5 to 10 percent is generous. For drivers and guides, 100 to 300 rupees after a full-day tour is a kind gesture, and 50 to 100 rupees suits porters or housekeeping. Cash tips are the surest way to reach the staff.',
+      },
+    ],
   },
   {
-    "slug": "sim-card-internet-mauritius",
-    "title": "SIM Cards & Internet in Mauritius: A Practical Guide",
-    "metaTitle": "SIM Cards & Internet in Mauritius: Travel Guide",
-    "metaDescription": "How to stay online in Mauritius: local SIM cards, eSIMs, where to buy, real data plan prices in EUR, mobile coverage and wifi tips for travellers.",
-    "excerpt": "Everything you need to stay connected in Mauritius: local SIM cards, eSIM options, where to buy, realistic data plan prices, mobile coverage and wifi advice.",
-    "readMins": 7,
-    "sections": [
+    slug: 'sim-card-internet-mauritius',
+    title: 'SIM Cards & Internet in Mauritius: A Practical Guide',
+    metaTitle: 'SIM Cards & Internet in Mauritius: Travel Guide',
+    metaDescription:
+      'How to stay online in Mauritius: local SIM cards, eSIMs, where to buy, real data plan prices in EUR, mobile coverage and wifi tips for travellers.',
+    excerpt:
+      'Everything you need to stay connected in Mauritius: local SIM cards, eSIM options, where to buy, realistic data plan prices, mobile coverage and wifi advice.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "The Three Mobile Networks You Can Choose From",
-        "paragraphs": [
+        heading: 'The Three Mobile Networks You Can Choose From',
+        paragraphs: [
           "Mauritius has three mobile operators, and it helps to know the names before you land. The largest is my.t (the mobile arm of state-owned Mauritius Telecom, often still called Orange by locals out of habit). The other two are Emtel, the island's first private operator, and MTML, which trades under the Chili brand. For most visitors the practical choice comes down to my.t or Emtel, as they have the widest coverage and the most convenient airport and shop presence.",
           "All three run 4G across the populated parts of the island, and my.t and Emtel have rolled out 5G in busier zones such as Port Louis, Grand Baie, Flic en Flac and the airport area. Coverage along the coasts where most tourists stay, from Belle Mare and Trou d'Eau Douce in the east to Tamarin and Le Morne in the west, is generally reliable for calls, maps and streaming. Signal can drop in the mountainous interior around Black River Gorges and on remote stretches of the south coast, so download offline maps before heading inland.",
-          "There is genuinely little difference in everyday quality between the top two networks for a short trip. If you have a strong preference, my.t tends to edge ahead on raw coverage in rural areas, while Emtel is popular for its straightforward tourist packages. Either will serve you well for navigating to our /attractions and /activities listings on the move."
-        ]
+          'There is genuinely little difference in everyday quality between the top two networks for a short trip. If you have a strong preference, my.t tends to edge ahead on raw coverage in rural areas, while Emtel is popular for its straightforward tourist packages. Either will serve you well for navigating to our /attractions and /activities listings on the move.',
+        ],
       },
       {
-        "heading": "Buying a Local SIM Card: Where and How",
-        "paragraphs": [
-          "The easiest place to buy a SIM is right at Sir Seewoosagur Ramgoolam International Airport in the south-east, where both my.t and Emtel run counters in the arrivals area. Staff there are used to tourists, the kiosks usually open for incoming flights, and you can walk out already connected. Prices at the airport are broadly the same as in town, so the small convenience premium people fear rarely materialises.",
-          "If you would rather buy later, operator shops and authorised dealers are everywhere: in shopping centres like Bagatelle Mall and Cascavelle, in the tourist hubs of Grand Baie and Flic en Flac, and in most village high streets. Supermarkets and small phone shops sell prepaid starter packs too. By law you must register any local SIM with your passport, so always carry it when buying. Registration is quick and the assistant handles it for you on the spot.",
-          "A prepaid tourist SIM typically costs very little for the card itself, sometimes free with a data bundle, and you top up with airtime or buy a data pass through the operator's app or via a USSD code. Expect to pay roughly 10 to 20 EUR for a generous tourist data package, with the exact figure depending on the operator and how much data you choose."
-        ]
+        heading: 'Buying a Local SIM Card: Where and How',
+        paragraphs: [
+          'The easiest place to buy a SIM is right at Sir Seewoosagur Ramgoolam International Airport in the south-east, where both my.t and Emtel run counters in the arrivals area. Staff there are used to tourists, the kiosks usually open for incoming flights, and you can walk out already connected. Prices at the airport are broadly the same as in town, so the small convenience premium people fear rarely materialises.',
+          'If you would rather buy later, operator shops and authorised dealers are everywhere: in shopping centres like Bagatelle Mall and Cascavelle, in the tourist hubs of Grand Baie and Flic en Flac, and in most village high streets. Supermarkets and small phone shops sell prepaid starter packs too. By law you must register any local SIM with your passport, so always carry it when buying. Registration is quick and the assistant handles it for you on the spot.',
+          "A prepaid tourist SIM typically costs very little for the card itself, sometimes free with a data bundle, and you top up with airtime or buy a data pass through the operator's app or via a USSD code. Expect to pay roughly 10 to 20 EUR for a generous tourist data package, with the exact figure depending on the operator and how much data you choose.",
+        ],
       },
       {
-        "heading": "eSIM: The Hassle-Free Alternative",
-        "paragraphs": [
-          "If your phone supports eSIM (most recent iPhones and flagship Android handsets do), this is the smoothest way to arrive already online. You can buy a Mauritius eSIM before you fly from international providers such as Airalo, Holafly or Saily, install it by scanning a QR code, and have data the moment you land, no queuing, no passport registration, no swapping out your home SIM. This is ideal if you want to keep your usual number active for messages while using data on the eSIM.",
-          "Travel eSIM pricing is competitive: a typical plan runs from around 5 to 8 EUR for a few gigabytes over a week, up to roughly 20 to 30 EUR for larger or longer allowances. The trade-off is that these eSIMs are data-only, with no local phone number, which is fine for maps, messaging apps and email but less convenient if you need to call a Mauritian landline, for example a guesthouse or restaurant. Note that my.t and Emtel also offer their own local eSIMs now, giving you a Mauritian number with the convenience of a digital install.",
-          "A quick word of caution: confirm your handset is carrier-unlocked and eSIM-capable before relying on this. Phones bought on contract in some countries can be locked, which would scupper the plan after you have already paid."
-        ]
+        heading: 'eSIM: The Hassle-Free Alternative',
+        paragraphs: [
+          'If your phone supports eSIM (most recent iPhones and flagship Android handsets do), this is the smoothest way to arrive already online. You can buy a Mauritius eSIM before you fly from international providers such as Airalo, Holafly or Saily, install it by scanning a QR code, and have data the moment you land, no queuing, no passport registration, no swapping out your home SIM. This is ideal if you want to keep your usual number active for messages while using data on the eSIM.',
+          'Travel eSIM pricing is competitive: a typical plan runs from around 5 to 8 EUR for a few gigabytes over a week, up to roughly 20 to 30 EUR for larger or longer allowances. The trade-off is that these eSIMs are data-only, with no local phone number, which is fine for maps, messaging apps and email but less convenient if you need to call a Mauritian landline, for example a guesthouse or restaurant. Note that my.t and Emtel also offer their own local eSIMs now, giving you a Mauritian number with the convenience of a digital install.',
+          'A quick word of caution: confirm your handset is carrier-unlocked and eSIM-capable before relying on this. Phones bought on contract in some countries can be locked, which would scupper the plan after you have already paid.',
+        ],
       },
       {
-        "heading": "Understanding Data Plans and Top-Ups",
-        "paragraphs": [
-          "Local data is cheap by European standards. Operators sell time-limited tourist passes designed exactly for visitors, often bundling several gigabytes of data with some local minutes and validity of one to four weeks. A mid-range package giving you around 10 to 20 GB for two or three weeks usually lands in the 15 to 25 EUR range, which is more than enough for navigation, social media and moderate streaming. Lighter day passes and small weekly bundles exist for short stays.",
-          "Topping up is simple. Both my.t and Emtel have apps (My.t and My Emtel) where you can recharge with a card and activate bundles, and you can also buy top-up vouchers in supermarkets, petrol stations and corner shops almost anywhere on the island. If you prefer not to deal with apps, the shop assistant who sold you the SIM can set up your first bundle before you leave. Keep an eye on validity dates, as unused tourist-pass data does not always roll over once the period expires."
-        ]
+        heading: 'Understanding Data Plans and Top-Ups',
+        paragraphs: [
+          'Local data is cheap by European standards. Operators sell time-limited tourist passes designed exactly for visitors, often bundling several gigabytes of data with some local minutes and validity of one to four weeks. A mid-range package giving you around 10 to 20 GB for two or three weeks usually lands in the 15 to 25 EUR range, which is more than enough for navigation, social media and moderate streaming. Lighter day passes and small weekly bundles exist for short stays.',
+          'Topping up is simple. Both my.t and Emtel have apps (My.t and My Emtel) where you can recharge with a card and activate bundles, and you can also buy top-up vouchers in supermarkets, petrol stations and corner shops almost anywhere on the island. If you prefer not to deal with apps, the shop assistant who sold you the SIM can set up your first bundle before you leave. Keep an eye on validity dates, as unused tourist-pass data does not always roll over once the period expires.',
+        ],
       },
       {
-        "heading": "Wifi: What to Expect at Hotels, Cafes and Beyond",
-        "paragraphs": [
-          "Wifi is widespread in Mauritius and almost every hotel, guesthouse and serviced villa offers it free of charge. Quality varies more than availability: large resorts on the north and east coasts generally have solid connections in rooms and lobbies, while smaller budget guesthouses and properties in remote southern or western spots can be slower, especially in the evening when everyone is online at once. If reliable internet matters for work, ask the property directly about speeds before booking rather than assuming.",
-          "Out and about, cafes, restaurants and shopping malls in tourist areas commonly offer free wifi, and there is a government-backed free public wifi scheme in selected spots including some beaches, bus stations and town centres. It is handy in a pinch but not something to depend on for anything sensitive or bandwidth-heavy. As anywhere, treat open public networks with care: avoid banking or entering passwords on them, and a local SIM or eSIM is almost always faster and safer for day-to-day use."
-        ]
+        heading: 'Wifi: What to Expect at Hotels, Cafes and Beyond',
+        paragraphs: [
+          'Wifi is widespread in Mauritius and almost every hotel, guesthouse and serviced villa offers it free of charge. Quality varies more than availability: large resorts on the north and east coasts generally have solid connections in rooms and lobbies, while smaller budget guesthouses and properties in remote southern or western spots can be slower, especially in the evening when everyone is online at once. If reliable internet matters for work, ask the property directly about speeds before booking rather than assuming.',
+          'Out and about, cafes, restaurants and shopping malls in tourist areas commonly offer free wifi, and there is a government-backed free public wifi scheme in selected spots including some beaches, bus stations and town centres. It is handy in a pinch but not something to depend on for anything sensitive or bandwidth-heavy. As anywhere, treat open public networks with care: avoid banking or entering passwords on them, and a local SIM or eSIM is almost always faster and safer for day-to-day use.',
+        ],
       },
       {
-        "heading": "Which Option Is Right for Your Trip?",
-        "paragraphs": [
-          "For a one or two week beach holiday where you mainly want maps, messaging and the odd video call home, a local prepaid SIM bought at the airport or a pre-installed travel eSIM are both excellent. The eSIM wins on convenience and arriving connected; the physical local SIM wins if you want a Mauritian number and the absolute lowest data prices, and it is the only realistic option if your phone does not support eSIM.",
-          "If you are touring the island and relying on navigation to reach scattered sights across our /destinations, prioritise a plan with comfortable data and good coverage, and download offline maps as a backup for the interior. Business travellers who need dependable upload speeds should pair a local data SIM with a vetted hotel connection. Whichever you pick, the cost of staying connected here is low, so there is no reason to land without a plan. Once you are online, our /ai-road-trip-planner can turn your dates and interests into a ready-made itinerary, and you can browse our /airport-transfers to get from the terminal to your hotel without hunting for a taxi while you are still finding your SIM."
-        ]
-      }
+        heading: 'Which Option Is Right for Your Trip?',
+        paragraphs: [
+          'For a one or two week beach holiday where you mainly want maps, messaging and the odd video call home, a local prepaid SIM bought at the airport or a pre-installed travel eSIM are both excellent. The eSIM wins on convenience and arriving connected; the physical local SIM wins if you want a Mauritian number and the absolute lowest data prices, and it is the only realistic option if your phone does not support eSIM.',
+          'If you are touring the island and relying on navigation to reach scattered sights across our /destinations, prioritise a plan with comfortable data and good coverage, and download offline maps as a backup for the interior. Business travellers who need dependable upload speeds should pair a local data SIM with a vetted hotel connection. Whichever you pick, the cost of staying connected here is low, so there is no reason to land without a plan. Once you are online, our /ai-road-trip-planner can turn your dates and interests into a ready-made itinerary, and you can browse our /airport-transfers to get from the terminal to your hotel without hunting for a taxi while you are still finding your SIM.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Can I buy a SIM card at Mauritius airport?",
-        "a": "Yes. Both my.t and Emtel run counters in the arrivals area of Sir Seewoosagur Ramgoolam International Airport, and they typically open for incoming flights. Bring your passport, as local SIMs must be registered. Prices are essentially the same as in town, so it is the most convenient place to get connected on arrival."
+        q: 'Can I buy a SIM card at Mauritius airport?',
+        a: 'Yes. Both my.t and Emtel run counters in the arrivals area of Sir Seewoosagur Ramgoolam International Airport, and they typically open for incoming flights. Bring your passport, as local SIMs must be registered. Prices are essentially the same as in town, so it is the most convenient place to get connected on arrival.',
       },
       {
-        "q": "Is an eSIM or a physical SIM better for Mauritius?",
-        "a": "It depends on your priorities. An eSIM from a provider like Airalo or Holafly lets you arrive already online with no queuing or passport registration, but it is usually data-only with no local number. A physical local SIM gives you a Mauritian phone number and the cheapest data rates, and it is the only option if your phone does not support eSIM."
+        q: 'Is an eSIM or a physical SIM better for Mauritius?',
+        a: 'It depends on your priorities. An eSIM from a provider like Airalo or Holafly lets you arrive already online with no queuing or passport registration, but it is usually data-only with no local number. A physical local SIM gives you a Mauritian phone number and the cheapest data rates, and it is the only option if your phone does not support eSIM.',
       },
       {
-        "q": "How much does mobile data cost in Mauritius?",
-        "a": "Data is inexpensive. A local prepaid tourist package with around 10 to 20 GB and a few weeks of validity typically costs roughly 15 to 25 EUR. Travel eSIMs start lower, from about 5 to 8 EUR for a few gigabytes over a week, rising to 20 to 30 EUR for larger or longer plans."
+        q: 'How much does mobile data cost in Mauritius?',
+        a: 'Data is inexpensive. A local prepaid tourist package with around 10 to 20 GB and a few weeks of validity typically costs roughly 15 to 25 EUR. Travel eSIMs start lower, from about 5 to 8 EUR for a few gigabytes over a week, rising to 20 to 30 EUR for larger or longer plans.',
       },
       {
-        "q": "Is wifi reliable in Mauritius?",
-        "a": "Wifi is widely available and free at almost all hotels, guesthouses, cafes and malls, but quality varies. Large resorts on the north and east coasts are generally reliable, while smaller or more remote properties can be slow in the evenings. For dependable internet, a local SIM or eSIM is usually faster than public wifi, and you should avoid sensitive activity on open public networks."
-      }
-    ]
+        q: 'Is wifi reliable in Mauritius?',
+        a: 'Wifi is widely available and free at almost all hotels, guesthouses, cafes and malls, but quality varies. Large resorts on the north and east coasts are generally reliable, while smaller or more remote properties can be slow in the evenings. For dependable internet, a local SIM or eSIM is usually faster than public wifi, and you should avoid sensitive activity on open public networks.',
+      },
+    ],
   },
   {
-    "slug": "is-mauritius-safe",
-    "title": "Is Mauritius Safe? A Traveler Safety Guide",
-    "metaTitle": "Is Mauritius Safe? A Traveler Safety Guide",
-    "metaDescription": "Is Mauritius safe to visit? An honest guide to crime, sea and sun safety, taxis, common scams and health tips so you can travel the island with confidence.",
-    "excerpt": "Mauritius is one of the safest holiday islands in the Indian Ocean, but a few sensible precautions around the sea, sun, taxis and petty theft go a long way.",
-    "readMins": 6,
-    "sections": [
+    slug: 'is-mauritius-safe',
+    title: 'Is Mauritius Safe? A Traveler Safety Guide',
+    metaTitle: 'Is Mauritius Safe? A Traveler Safety Guide',
+    metaDescription:
+      'Is Mauritius safe to visit? An honest guide to crime, sea and sun safety, taxis, common scams and health tips so you can travel the island with confidence.',
+    excerpt:
+      'Mauritius is one of the safest holiday islands in the Indian Ocean, but a few sensible precautions around the sea, sun, taxis and petty theft go a long way.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "So, Is Mauritius Actually Safe?",
-        "paragraphs": [
+        heading: 'So, Is Mauritius Actually Safe?',
+        paragraphs: [
           "Yes. Mauritius is widely considered one of the safest destinations in the Indian Ocean and in Africa as a region. Violent crime against tourists is rare, the political situation is stable, and most visitors spend two weeks here without a single uncomfortable moment. Locals are famously warm, and the island's four main communities live side by side peacefully, which is part of why family travel and solo travel both work well here.",
-          "That said, \"very safe\" is not the same as \"nothing ever goes wrong.\" The real risks in Mauritius are not the ones tourists usually worry about. You are far more likely to be caught out by a strong ocean current, a sunburn that ruins day three, or an overpriced taxi than by any kind of serious crime. This guide walks through each of those honestly so you know what to actually pay attention to.",
-          "A useful mental model: treat Mauritius like a relaxed European beach destination. The same common sense you would use in southern Spain or Portugal applies here. Lock your villa, do not flash valuables on the beach, respect the sea, and you will be fine."
-        ]
+          'That said, "very safe" is not the same as "nothing ever goes wrong." The real risks in Mauritius are not the ones tourists usually worry about. You are far more likely to be caught out by a strong ocean current, a sunburn that ruins day three, or an overpriced taxi than by any kind of serious crime. This guide walks through each of those honestly so you know what to actually pay attention to.',
+          'A useful mental model: treat Mauritius like a relaxed European beach destination. The same common sense you would use in southern Spain or Portugal applies here. Lock your villa, do not flash valuables on the beach, respect the sea, and you will be fine.',
+        ],
       },
       {
-        "heading": "Crime and Petty Theft",
-        "paragraphs": [
-          "The most common issue is opportunistic petty theft, not confrontation. Think bags left unattended on a beach towel while you swim, phones on restaurant tables, or valuables visible in a parked rental car. Public beaches such as Flic en Flac, Pereybere and Grand Baie get busy, and an unwatched bag is an easy target. Bring only what you need to the beach and take turns watching belongings if you are in a group.",
-          "Use the safe in your hotel room or villa for your passport, spare cash and anything you cannot replace. Most hotels and guesthouses provide one as standard. When you are out, a cross-body bag worn to the front is far more secure than a backpack or an open tote, especially in crowded spots like Port Louis Central Market or the Caudan Waterfront.",
-          "Walking around tourist areas in daylight is comfortable. At night, stick to well-lit, populated streets and avoid isolated stretches of beach after dark, particularly if you have been drinking. In the unlikely event of an emergency, the police number is 999 and the general emergency line is 112. Mauritius also has a dedicated Tourism Police presence in the main resort zones."
-        ]
+        heading: 'Crime and Petty Theft',
+        paragraphs: [
+          'The most common issue is opportunistic petty theft, not confrontation. Think bags left unattended on a beach towel while you swim, phones on restaurant tables, or valuables visible in a parked rental car. Public beaches such as Flic en Flac, Pereybere and Grand Baie get busy, and an unwatched bag is an easy target. Bring only what you need to the beach and take turns watching belongings if you are in a group.',
+          'Use the safe in your hotel room or villa for your passport, spare cash and anything you cannot replace. Most hotels and guesthouses provide one as standard. When you are out, a cross-body bag worn to the front is far more secure than a backpack or an open tote, especially in crowded spots like Port Louis Central Market or the Caudan Waterfront.',
+          'Walking around tourist areas in daylight is comfortable. At night, stick to well-lit, populated streets and avoid isolated stretches of beach after dark, particularly if you have been drinking. In the unlikely event of an emergency, the police number is 999 and the general emergency line is 112. Mauritius also has a dedicated Tourism Police presence in the main resort zones.',
+        ],
       },
       {
-        "heading": "The Sea: The Risk Most Tourists Underestimate",
-        "paragraphs": [
-          "The biggest genuine danger in Mauritius is the ocean, not crime. The island is ringed by a coral reef that creates calm, shallow lagoons perfect for swimming and snorkeling, but outside the reef the open sea is powerful and currents can be deceptively strong. Drownings here almost always involve people who swam in unprotected areas or ignored warning signs.",
-          "Stick to swimming inside the lagoon and pay attention to flags and signage. Some beaches, like parts of Le Morne, are known for strong currents and offshore winds, which is exactly why they are world-class kitesurfing spots and not ideal for a casual swim. If you snorkel, wear water shoes or reef-safe footwear, never touch or stand on coral, and give a wide berth to anything you cannot identify. Stonefish and sea urchins are present in shallow water, so shuffle your feet and look before you step.",
-          "If you book boat trips, snorkeling or water sports, choose operators who provide life jackets and brief you properly. When you plan your days through our tours & activities, you can see exactly what safety equipment and guiding is included before you commit. For non-swimmers and young children, glass-bottom boats and the calmer northern beaches are a gentler way to enjoy the water."
-        ]
+        heading: 'The Sea: The Risk Most Tourists Underestimate',
+        paragraphs: [
+          'The biggest genuine danger in Mauritius is the ocean, not crime. The island is ringed by a coral reef that creates calm, shallow lagoons perfect for swimming and snorkeling, but outside the reef the open sea is powerful and currents can be deceptively strong. Drownings here almost always involve people who swam in unprotected areas or ignored warning signs.',
+          'Stick to swimming inside the lagoon and pay attention to flags and signage. Some beaches, like parts of Le Morne, are known for strong currents and offshore winds, which is exactly why they are world-class kitesurfing spots and not ideal for a casual swim. If you snorkel, wear water shoes or reef-safe footwear, never touch or stand on coral, and give a wide berth to anything you cannot identify. Stonefish and sea urchins are present in shallow water, so shuffle your feet and look before you step.',
+          'If you book boat trips, snorkeling or water sports, choose operators who provide life jackets and brief you properly. When you plan your days through our tours & activities, you can see exactly what safety equipment and guiding is included before you commit. For non-swimmers and young children, glass-bottom boats and the calmer northern beaches are a gentler way to enjoy the water.',
+        ],
       },
       {
-        "heading": "Sun, Heat and Staying Hydrated",
-        "paragraphs": [
-          "Mauritius sits just south of the Tropic of Capricorn, so the sun is strong year-round, even on cloudy or breezy days. The breeze off the lagoon masks how much sun you are getting, and first-day sunburn is one of the most common ways a trip starts badly. Use a high-SPF, reef-safe sunscreen, reapply after swimming, and wear a hat and a rash vest if you plan long snorkeling sessions.",
+        heading: 'Sun, Heat and Staying Hydrated',
+        paragraphs: [
+          'Mauritius sits just south of the Tropic of Capricorn, so the sun is strong year-round, even on cloudy or breezy days. The breeze off the lagoon masks how much sun you are getting, and first-day sunburn is one of the most common ways a trip starts badly. Use a high-SPF, reef-safe sunscreen, reapply after swimming, and wear a hat and a rash vest if you plan long snorkeling sessions.',
           "Seasons are reversed from the northern hemisphere: summer runs roughly November to April and is hot, humid and the wetter cyclone season, while winter from May to October is cooler, drier and very pleasant. January to March can bring brief, intense downpours and the occasional cyclone warning; if one is issued, follow your hotel's instructions, as the island's warning system is well organized and resorts are built for it.",
-          "Drink more water than you think you need, especially if you are hiking spots like Black River Gorges or climbing Le Pouce. Tap water in Mauritius is generally treated and considered safe in most areas, but many visitors prefer bottled water to be cautious, particularly in more rural parts. A 1.5-litre bottle costs around 1 to 2 euros from a supermarket."
-        ]
+          'Drink more water than you think you need, especially if you are hiking spots like Black River Gorges or climbing Le Pouce. Tap water in Mauritius is generally treated and considered safe in most areas, but many visitors prefer bottled water to be cautious, particularly in more rural parts. A 1.5-litre bottle costs around 1 to 2 euros from a supermarket.',
+        ],
       },
       {
-        "heading": "Taxis, Driving and Getting Around Safely",
-        "paragraphs": [
-          "There are no metered taxis in Mauritius, so the golden rule is to agree the fare before you get in. Most drivers are honest, but a few will quote inflated prices to arriving tourists, especially at the airport and outside busy hotels. As a rough guide, a short hop within a resort town might be 8 to 15 euros, while a longer cross-island trip can run 50 to 80 euros or more. If a price feels off, it is completely normal to decline and ask another driver.",
-          "The most stress-free option, particularly after a long flight, is to arrange transport in advance at a fixed, known price. Our airport transfers put you with a licensed driver who is already waiting for you, so there is no negotiating, no surprise surcharge and no wondering whether the car is legitimate. It also means a child seat or a larger vehicle can be sorted ahead of time.",
-          "If you rent a car, remember that Mauritius drives on the left. Roads are decent but narrow and winding in the interior, stray dogs and pedestrians appear at the roadside, and local driving can be assertive. Avoid driving at night in unlit rural areas if you can. If you would rather not drive at all, a private driver-guide for the day is a popular and safe way to reach the attractions across the island, and you can map out a realistic route using our AI trip planner."
-        ]
+        heading: 'Taxis, Driving and Getting Around Safely',
+        paragraphs: [
+          'There are no metered taxis in Mauritius, so the golden rule is to agree the fare before you get in. Most drivers are honest, but a few will quote inflated prices to arriving tourists, especially at the airport and outside busy hotels. As a rough guide, a short hop within a resort town might be 8 to 15 euros, while a longer cross-island trip can run 50 to 80 euros or more. If a price feels off, it is completely normal to decline and ask another driver.',
+          'The most stress-free option, particularly after a long flight, is to arrange transport in advance at a fixed, known price. Our airport transfers put you with a licensed driver who is already waiting for you, so there is no negotiating, no surprise surcharge and no wondering whether the car is legitimate. It also means a child seat or a larger vehicle can be sorted ahead of time.',
+          'If you rent a car, remember that Mauritius drives on the left. Roads are decent but narrow and winding in the interior, stray dogs and pedestrians appear at the roadside, and local driving can be assertive. Avoid driving at night in unlit rural areas if you can. If you would rather not drive at all, a private driver-guide for the day is a popular and safe way to reach the attractions across the island, and you can map out a realistic route using our AI trip planner.',
+        ],
       },
       {
-        "heading": "Common Scams to Watch For",
-        "paragraphs": [
-          "Scams in Mauritius are mild by global standards, but a few are worth knowing. The most frequent is the overpriced taxi covered above. Beyond that, watch for unofficial \"beach vendors\" or self-appointed guides who attach themselves to you, perform a small service or hand you something, then demand payment. A polite but firm \"no thank you\" works; you are not obliged to engage.",
-          "Around markets such as Port Louis, the same goods often vary wildly in price, so browse a few stalls before buying and haggle gently on souvenirs, sarongs and spices. For organized day trips, dolphin watching or catamaran cruises, book through a recognized, licensed operator rather than someone touting on the sand, who may not carry insurance or proper safety gear. Reading reviews and confirming the company in advance avoids almost all of this.",
-          "Card skimming is uncommon but not unheard of, so use ATMs attached to banks or inside your hotel rather than standalone machines, and keep an eye on your card. When you are deciding where to spend your time, browsing things to do in Mauritius and the different destinations on the island ahead of time helps you recognize fair prices and avoid impulse bookings from a pushy vendor."
-        ]
+        heading: 'Common Scams to Watch For',
+        paragraphs: [
+          'Scams in Mauritius are mild by global standards, but a few are worth knowing. The most frequent is the overpriced taxi covered above. Beyond that, watch for unofficial "beach vendors" or self-appointed guides who attach themselves to you, perform a small service or hand you something, then demand payment. A polite but firm "no thank you" works; you are not obliged to engage.',
+          'Around markets such as Port Louis, the same goods often vary wildly in price, so browse a few stalls before buying and haggle gently on souvenirs, sarongs and spices. For organized day trips, dolphin watching or catamaran cruises, book through a recognized, licensed operator rather than someone touting on the sand, who may not carry insurance or proper safety gear. Reading reviews and confirming the company in advance avoids almost all of this.',
+          'Card skimming is uncommon but not unheard of, so use ATMs attached to banks or inside your hotel rather than standalone machines, and keep an eye on your card. When you are deciding where to spend your time, browsing things to do in Mauritius and the different destinations on the island ahead of time helps you recognize fair prices and avoid impulse bookings from a pushy vendor.',
+        ],
       },
       {
-        "heading": "Health and Practical Precautions",
-        "paragraphs": [
-          "Mauritius is malaria-free, and no special vaccinations are required for most travelers, though it is always worth checking current advice with your doctor or a travel clinic before you go and making sure routine vaccinations are up to date. Mosquitoes are present, especially in the wetter summer months, and chikungunya and dengue can occur in outbreaks, so pack a good repellent and use it at dawn and dusk.",
-          "Healthcare is reasonably good. Private clinics in areas like Grand Baie and Moka offer high standards and English-speaking staff, while public hospitals are free but busier. Either way, comprehensive travel insurance that covers medical treatment and water sports is essential, since serious cases may need treatment costs covered upfront. Bring any prescription medication you need in its original packaging, as some over-the-counter drugs from home may be restricted here.",
-          "Minor stomach upsets from new food and heat are the most common health complaint. Eat at busy, well-reviewed restaurants and street stalls where turnover is high, enjoy the famous street food like dholl puri and gateaux piments, and ease into the local cuisine rather than overdoing it on day one. With sensible sun care, mosquito protection and travel insurance in place, the practical health risks of a Mauritius holiday are genuinely low."
-        ]
-      }
+        heading: 'Health and Practical Precautions',
+        paragraphs: [
+          'Mauritius is malaria-free, and no special vaccinations are required for most travelers, though it is always worth checking current advice with your doctor or a travel clinic before you go and making sure routine vaccinations are up to date. Mosquitoes are present, especially in the wetter summer months, and chikungunya and dengue can occur in outbreaks, so pack a good repellent and use it at dawn and dusk.',
+          'Healthcare is reasonably good. Private clinics in areas like Grand Baie and Moka offer high standards and English-speaking staff, while public hospitals are free but busier. Either way, comprehensive travel insurance that covers medical treatment and water sports is essential, since serious cases may need treatment costs covered upfront. Bring any prescription medication you need in its original packaging, as some over-the-counter drugs from home may be restricted here.',
+          'Minor stomach upsets from new food and heat are the most common health complaint. Eat at busy, well-reviewed restaurants and street stalls where turnover is high, enjoy the famous street food like dholl puri and gateaux piments, and ease into the local cuisine rather than overdoing it on day one. With sensible sun care, mosquito protection and travel insurance in place, the practical health risks of a Mauritius holiday are genuinely low.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Is Mauritius safe for solo female travelers?",
-        "a": "Generally yes. Solo female travelers report feeling comfortable in Mauritius, and the island is considered one of the safer destinations in the region. The usual sensible precautions apply: avoid isolated beaches after dark, keep an eye on your drink and belongings, agree taxi fares in advance, and trust your instincts if a situation feels off. Staying in established resort areas and using licensed transport adds extra peace of mind."
+        q: 'Is Mauritius safe for solo female travelers?',
+        a: 'Generally yes. Solo female travelers report feeling comfortable in Mauritius, and the island is considered one of the safer destinations in the region. The usual sensible precautions apply: avoid isolated beaches after dark, keep an eye on your drink and belongings, agree taxi fares in advance, and trust your instincts if a situation feels off. Staying in established resort areas and using licensed transport adds extra peace of mind.',
       },
       {
-        "q": "Is it safe to swim and snorkel in Mauritius?",
-        "a": "Swimming inside the reef-protected lagoons is very safe and ideal for families. The danger comes from swimming in unprotected areas outside the reef, where currents are strong. Always follow beach flags and warning signs, snorkel with a reputable operator who provides life jackets, wear water shoes to protect against urchins and stonefish, and never touch the coral."
+        q: 'Is it safe to swim and snorkel in Mauritius?',
+        a: 'Swimming inside the reef-protected lagoons is very safe and ideal for families. The danger comes from swimming in unprotected areas outside the reef, where currents are strong. Always follow beach flags and warning signs, snorkel with a reputable operator who provides life jackets, wear water shoes to protect against urchins and stonefish, and never touch the coral.',
       },
       {
-        "q": "Should I use taxis or rent a car in Mauritius?",
-        "a": "Both work, but each has trade-offs. Taxis are convenient but unmetered, so always agree the price before setting off. Renting a car gives you freedom, but bear in mind Mauritius drives on the left and rural roads are narrow and winding. For airport runs and longer trips, a pre-booked private transfer or driver-guide at a fixed price is the most stress-free and reliable option."
+        q: 'Should I use taxis or rent a car in Mauritius?',
+        a: 'Both work, but each has trade-offs. Taxis are convenient but unmetered, so always agree the price before setting off. Renting a car gives you freedom, but bear in mind Mauritius drives on the left and rural roads are narrow and winding. For airport runs and longer trips, a pre-booked private transfer or driver-guide at a fixed price is the most stress-free and reliable option.',
       },
       {
-        "q": "Do I need vaccinations or anti-malaria tablets for Mauritius?",
-        "a": "Mauritius is malaria-free, so anti-malaria tablets are not needed. No special vaccinations are required for most travelers, but you should keep routine vaccinations up to date and check current advice with your doctor or a travel clinic before departure. Pack insect repellent for the mosquitoes, especially in the summer rainy season, and arrange comprehensive travel insurance that covers medical care and any water sports you plan to do."
-      }
-    ]
+        q: 'Do I need vaccinations or anti-malaria tablets for Mauritius?',
+        a: 'Mauritius is malaria-free, so anti-malaria tablets are not needed. No special vaccinations are required for most travelers, but you should keep routine vaccinations up to date and check current advice with your doctor or a travel clinic before departure. Pack insect repellent for the mosquitoes, especially in the summer rainy season, and arrange comprehensive travel insurance that covers medical care and any water sports you plan to do.',
+      },
+    ],
   },
   {
-    "slug": "mauritius-entry-requirements",
-    "title": "Mauritius Visa & Entry Requirements: What You Need to Know",
-    "metaTitle": "Mauritius Visa & Entry Requirements Guide",
-    "metaDescription": "Planning a trip to Mauritius? Learn about visa-free entry, the Mauritius All-in-One arrival card, passport rules and what you need at immigration before you fly.",
-    "excerpt": "A practical, honest guide to entering Mauritius: who gets visa-free entry, the online arrival card, passport and onward-ticket rules, and what immigration actually checks.",
-    "readMins": 7,
-    "sections": [
+    slug: 'mauritius-entry-requirements',
+    title: 'Mauritius Visa & Entry Requirements: What You Need to Know',
+    metaTitle: 'Mauritius Visa & Entry Requirements Guide',
+    metaDescription:
+      'Planning a trip to Mauritius? Learn about visa-free entry, the Mauritius All-in-One arrival card, passport rules and what you need at immigration before you fly.',
+    excerpt:
+      'A practical, honest guide to entering Mauritius: who gets visa-free entry, the online arrival card, passport and onward-ticket rules, and what immigration actually checks.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "Mauritius Is Visa-Free for Most Travellers",
-        "paragraphs": [
+        heading: 'Mauritius Is Visa-Free for Most Travellers',
+        paragraphs: [
           "For the great majority of holidaymakers, Mauritius is one of the easier destinations to enter. Citizens of the United Kingdom, the European Union, the United States, Canada, Australia, South Africa and many other countries do not need to arrange a visa in advance. Instead you are granted entry on arrival at Sir Seewoosagur Ramgoolam International Airport, the island's main gateway near Mahebourg in the southeast. The standard tourist stay is generous: most visa-exempt visitors receive up to 60 days, and many nationalities can be granted up to 90 days within a calendar year, decided by the immigration officer at the desk.",
           "Importantly, this entry permit is free of charge. There is no arrival fee or visa sticker to pay for if you qualify for visa-free entry, so treat any website asking for a payment to 'process your Mauritius visa' with caution. Rules do change, and a handful of nationalities still need a visa arranged before travel or on arrival, so the only authoritative source is the Mauritius Passport and Immigration Office. Check your specific passport against their guidance a few weeks before you fly rather than relying on a forum post or an old guidebook.",
-          "Once you clear immigration, the island is compact and easy to get around. If you want to start shaping your trip before you land, our /attractions and /activities pages give an honest overview of what is genuinely worth your time, from the Black River Gorges to a catamaran cruise off the north."
-        ]
+          'Once you clear immigration, the island is compact and easy to get around. If you want to start shaping your trip before you land, our /attractions and /activities pages give an honest overview of what is genuinely worth your time, from the Black River Gorges to a catamaran cruise off the north.',
+        ],
       },
       {
-        "heading": "The Mauritius Arrival Card (All-in-One Travel Form)",
-        "paragraphs": [
-          "Mauritius has moved its old paper landing card online. Every traveller, including infants, must complete the Mauritius All-in-One Travel Form before arrival. This single digital form combines the immigration arrival card, the customs declaration and a short health declaration that lingered after the pandemic years. It is free and submitted on the official government portal, and you will receive a confirmation, often with a QR code, to show on arrival.",
+        heading: 'The Mauritius Arrival Card (All-in-One Travel Form)',
+        paragraphs: [
+          'Mauritius has moved its old paper landing card online. Every traveller, including infants, must complete the Mauritius All-in-One Travel Form before arrival. This single digital form combines the immigration arrival card, the customs declaration and a short health declaration that lingered after the pandemic years. It is free and submitted on the official government portal, and you will receive a confirmation, often with a QR code, to show on arrival.',
           "The recommended window to fill it in is within the last few days before departure, and many travellers complete it the day before or the morning of their flight. You will need your passport details, your flight number, the address of your first night's accommodation (your hotel or villa name is enough) and your dates of stay. It only takes a few minutes, but do not leave it until you are standing in the immigration queue, as airport Wi-Fi can be patchy and some airlines now check for it at the departure gate.",
-          "Keep the confirmation accessible offline, either as a screenshot or a printout. Phone batteries die and roaming can fail, and an officer asking to see your form does not want to wait while you reconnect."
-        ]
+          'Keep the confirmation accessible offline, either as a screenshot or a printout. Phone batteries die and roaming can fail, and an officer asking to see your form does not want to wait while you reconnect.',
+        ],
       },
       {
-        "heading": "Passport Rules and Validity",
-        "paragraphs": [
-          "Your passport is the one document you cannot improvise around. Mauritius requires it to be valid for the duration of your stay, and most airlines and many travellers play it safe by ensuring at least six months of validity beyond the date they intend to leave. If your passport is edging towards its expiry, renew it well before you book flights rather than risk being turned away at check-in, which is where most passport problems actually surface.",
-          "You should also have at least one or two blank pages for entry and exit stamps. Damaged passports, including those with water damage or a detached photo page, can cause problems at the border, so inspect yours early. If you hold more than one nationality, travel on the passport that gives you the most straightforward entry, and make sure the name on your passport matches the name on your flight booking exactly, as mismatches cause avoidable delays."
-        ]
+        heading: 'Passport Rules and Validity',
+        paragraphs: [
+          'Your passport is the one document you cannot improvise around. Mauritius requires it to be valid for the duration of your stay, and most airlines and many travellers play it safe by ensuring at least six months of validity beyond the date they intend to leave. If your passport is edging towards its expiry, renew it well before you book flights rather than risk being turned away at check-in, which is where most passport problems actually surface.',
+          'You should also have at least one or two blank pages for entry and exit stamps. Damaged passports, including those with water damage or a detached photo page, can cause problems at the border, so inspect yours early. If you hold more than one nationality, travel on the passport that gives you the most straightforward entry, and make sure the name on your passport matches the name on your flight booking exactly, as mismatches cause avoidable delays.',
+        ],
       },
       {
-        "heading": "Proof of Onward Travel, Funds and Accommodation",
-        "paragraphs": [
-          "Mauritius is a tourist economy and immigration officers want to see that you are a genuine visitor who will leave when your stay ends. The two things most likely to be requested are a confirmed return or onward flight and proof of where you are staying. A printed or saved booking for your first hotel, guesthouse or villa is usually sufficient, and the address from that booking is also what you enter on the arrival form.",
-          "Officers may, less commonly, ask whether you have sufficient funds for your trip. There is no fixed published figure to memorise, but being able to show a credit card or evidence of around the equivalent of 100 EUR per day of your stay reassures anyone who asks. In practice most beach-holiday travellers with a hotel booking and a return ticket are waved through in under a minute. The requests tend to come up only when something looks unusual, such as a very long stay, a one-way ticket or no accommodation booked.",
-          "If you are still deciding where to base yourself, our /destinations pages compare the different coasts so you can pick somewhere that genuinely suits your plans before you commit to a booking."
-        ]
+        heading: 'Proof of Onward Travel, Funds and Accommodation',
+        paragraphs: [
+          'Mauritius is a tourist economy and immigration officers want to see that you are a genuine visitor who will leave when your stay ends. The two things most likely to be requested are a confirmed return or onward flight and proof of where you are staying. A printed or saved booking for your first hotel, guesthouse or villa is usually sufficient, and the address from that booking is also what you enter on the arrival form.',
+          'Officers may, less commonly, ask whether you have sufficient funds for your trip. There is no fixed published figure to memorise, but being able to show a credit card or evidence of around the equivalent of 100 EUR per day of your stay reassures anyone who asks. In practice most beach-holiday travellers with a hotel booking and a return ticket are waved through in under a minute. The requests tend to come up only when something looks unusual, such as a very long stay, a one-way ticket or no accommodation booked.',
+          'If you are still deciding where to base yourself, our /destinations pages compare the different coasts so you can pick somewhere that genuinely suits your plans before you commit to a booking.',
+        ],
       },
       {
-        "heading": "Getting From the Airport After You Land",
-        "paragraphs": [
-          "Clearing immigration is only the first step; the airport sits in the southeast, and most resorts are 45 minutes to well over an hour away by road. Public transport from the terminal is limited and not designed for arriving holidaymakers with luggage, so the realistic choices are a metered taxi from the rank, a hire car or a pre-booked private transfer. Arranging your ride before you fly removes the most stressful part of arrival, when you are tired and unfamiliar with local prices.",
-          "A pre-booked transfer means a driver is waiting with your name as you exit, the fare is fixed and agreed in advance, and there is no haggling at the rank after a long flight. We run licensed /airport-transfers with fixed pricing to every part of the island, and because Mauritius drives on the left and rural signage can be sparse, many first-time visitors find a transfer far less daunting than collecting a hire car in the dark."
-        ]
+        heading: 'Getting From the Airport After You Land',
+        paragraphs: [
+          'Clearing immigration is only the first step; the airport sits in the southeast, and most resorts are 45 minutes to well over an hour away by road. Public transport from the terminal is limited and not designed for arriving holidaymakers with luggage, so the realistic choices are a metered taxi from the rank, a hire car or a pre-booked private transfer. Arranging your ride before you fly removes the most stressful part of arrival, when you are tired and unfamiliar with local prices.',
+          'A pre-booked transfer means a driver is waiting with your name as you exit, the fare is fixed and agreed in advance, and there is no haggling at the rank after a long flight. We run licensed /airport-transfers with fixed pricing to every part of the island, and because Mauritius drives on the left and rural signage can be sparse, many first-time visitors find a transfer far less daunting than collecting a hire car in the dark.',
+        ],
       },
       {
-        "heading": "Customs, Prohibited Items and Health Basics",
-        "paragraphs": [
-          "The customs section of the arrival form covers what you are bringing in. Mauritius has the usual duty-free allowances on alcohol and tobacco for adults, and you must declare large amounts of cash, generally the equivalent of around 500,000 Mauritian rupees or more, on arrival. As an island that depends on its agriculture and fragile ecosystems, Mauritius is strict about biosecurity: fresh food, plants, seeds, meat and dairy products are restricted or banned, so do not pack fruit or homemade snacks for the journey expecting to bring leftovers ashore.",
-          "There are no compulsory vaccinations for entry unless you are arriving from, or have recently transited, a country with a risk of yellow fever, in which case a vaccination certificate is required. Mauritius is not a malaria zone for ordinary travellers, though sensible mosquito precautions are worth packing. None of this is medical or legal advice; confirm health requirements with your doctor or a travel clinic and check the official immigration site close to your departure date, as rules and thresholds are updated from time to time."
-        ]
+        heading: 'Customs, Prohibited Items and Health Basics',
+        paragraphs: [
+          'The customs section of the arrival form covers what you are bringing in. Mauritius has the usual duty-free allowances on alcohol and tobacco for adults, and you must declare large amounts of cash, generally the equivalent of around 500,000 Mauritian rupees or more, on arrival. As an island that depends on its agriculture and fragile ecosystems, Mauritius is strict about biosecurity: fresh food, plants, seeds, meat and dairy products are restricted or banned, so do not pack fruit or homemade snacks for the journey expecting to bring leftovers ashore.',
+          'There are no compulsory vaccinations for entry unless you are arriving from, or have recently transited, a country with a risk of yellow fever, in which case a vaccination certificate is required. Mauritius is not a malaria zone for ordinary travellers, though sensible mosquito precautions are worth packing. None of this is medical or legal advice; confirm health requirements with your doctor or a travel clinic and check the official immigration site close to your departure date, as rules and thresholds are updated from time to time.',
+        ],
       },
       {
-        "heading": "A Simple Pre-Departure Checklist",
-        "paragraphs": [
-          "Putting it together, the entry essentials are short. Confirm your nationality qualifies for visa-free entry, or arrange the correct visa if it does not. Check your passport has enough validity and a blank page. Complete the Mauritius All-in-One Travel Form in the final days before you fly and save the confirmation offline. Have your return or onward ticket and your first-night accommodation booking to hand, both for the airline and for immigration.",
-          "Do that and the border itself is rarely the hard part of a Mauritius trip. The harder questions are the enjoyable ones, such as which coast to stay on and how to fill your days. Our free /ai-road-trip-planner can sketch a day-by-day route around your dates and interests, so by the time you reach the immigration desk the only thing left to decide is which beach comes first."
-        ]
-      }
+        heading: 'A Simple Pre-Departure Checklist',
+        paragraphs: [
+          'Putting it together, the entry essentials are short. Confirm your nationality qualifies for visa-free entry, or arrange the correct visa if it does not. Check your passport has enough validity and a blank page. Complete the Mauritius All-in-One Travel Form in the final days before you fly and save the confirmation offline. Have your return or onward ticket and your first-night accommodation booking to hand, both for the airline and for immigration.',
+          'Do that and the border itself is rarely the hard part of a Mauritius trip. The harder questions are the enjoyable ones, such as which coast to stay on and how to fill your days. Our free /ai-road-trip-planner can sketch a day-by-day route around your dates and interests, so by the time you reach the immigration desk the only thing left to decide is which beach comes first.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Do I need a visa to visit Mauritius as a tourist?",
-        "a": "Most travellers, including citizens of the UK, EU, US, Canada, Australia and South Africa, do not need a visa arranged in advance. You are granted entry on arrival, usually for up to 60 days and sometimes longer, free of charge. A few nationalities still require a visa, so always confirm your specific passport with the official Mauritius Passport and Immigration Office before you fly."
+        q: 'Do I need a visa to visit Mauritius as a tourist?',
+        a: 'Most travellers, including citizens of the UK, EU, US, Canada, Australia and South Africa, do not need a visa arranged in advance. You are granted entry on arrival, usually for up to 60 days and sometimes longer, free of charge. A few nationalities still require a visa, so always confirm your specific passport with the official Mauritius Passport and Immigration Office before you fly.',
       },
       {
-        "q": "What is the Mauritius arrival card and is it free?",
-        "a": "It is the Mauritius All-in-One Travel Form, an online form combining the immigration arrival card, customs declaration and a health declaration. Every traveller must complete it for free on the official government portal, ideally in the last few days before departure. Save the confirmation, often a QR code, offline to show on arrival, as some airlines check for it at the gate."
+        q: 'What is the Mauritius arrival card and is it free?',
+        a: 'It is the Mauritius All-in-One Travel Form, an online form combining the immigration arrival card, customs declaration and a health declaration. Every traveller must complete it for free on the official government portal, ideally in the last few days before departure. Save the confirmation, often a QR code, offline to show on arrival, as some airlines check for it at the gate.',
       },
       {
-        "q": "How much passport validity do I need for Mauritius?",
-        "a": "Your passport must be valid for the length of your stay, but most airlines and travellers play it safe with at least six months of validity beyond your departure date. You should also have at least one blank page for stamps. Renew an ageing passport before booking flights, since check-in is where validity problems usually surface."
+        q: 'How much passport validity do I need for Mauritius?',
+        a: 'Your passport must be valid for the length of your stay, but most airlines and travellers play it safe with at least six months of validity beyond your departure date. You should also have at least one blank page for stamps. Renew an ageing passport before booking flights, since check-in is where validity problems usually surface.',
       },
       {
-        "q": "Will immigration ask for a return ticket or hotel booking?",
-        "a": "Often, yes. A confirmed return or onward flight and proof of your first night's accommodation are the documents most likely to be requested, and the accommodation address is also needed for the arrival form. Officers may occasionally ask about funds. Most beach-holiday travellers with a booking and a return ticket clear immigration in well under a minute."
-      }
-    ]
+        q: 'Will immigration ask for a return ticket or hotel booking?',
+        a: "Often, yes. A confirmed return or onward flight and proof of your first night's accommodation are the documents most likely to be requested, and the accommodation address is also needed for the arrival form. Officers may occasionally ask about funds. Most beach-holiday travellers with a booking and a return ticket clear immigration in well under a minute.",
+      },
+    ],
   },
   {
-    "slug": "what-to-pack-for-mauritius",
-    "title": "What to Pack for Mauritius",
-    "metaTitle": "What to Pack for Mauritius: Seasonal Packing List",
-    "metaDescription": "What to pack for Mauritius: reef-safe sunscreen, water shoes, clothing by season, plus rainy-season tips for summer (Nov-Apr) and winter (May-Oct).",
-    "excerpt": "A practical, honest packing list for Mauritius covering clothing, reef-safe sunscreen and water shoes, broken down by the island's summer and winter seasons.",
-    "readMins": 6,
-    "sections": [
+    slug: 'what-to-pack-for-mauritius',
+    title: 'What to Pack for Mauritius',
+    metaTitle: 'What to Pack for Mauritius: Seasonal Packing List',
+    metaDescription:
+      'What to pack for Mauritius: reef-safe sunscreen, water shoes, clothing by season, plus rainy-season tips for summer (Nov-Apr) and winter (May-Oct).',
+    excerpt:
+      "A practical, honest packing list for Mauritius covering clothing, reef-safe sunscreen and water shoes, broken down by the island's summer and winter seasons.",
+    readMins: 6,
+    sections: [
       {
-        "heading": "First, Understand the Two Seasons",
-        "paragraphs": [
-          "Mauritius has only two real seasons, and getting this right saves you from over-packing. Summer runs roughly November to April: hot, humid, with daytime highs around 30 to 34 degrees Celsius on the coast and short, heavy downpours that usually clear within an hour. This is also the cyclone window, with the highest risk between January and March. Winter runs May to October: drier, breezier and noticeably cooler, with coastal highs of 24 to 27 degrees and evenings that can drop to 17 or 18 degrees, especially on the elevated central plateau around Curepipe and Vacoas, where it rains more and feels several degrees colder than the beach.",
-          "What this means in practice: a summer traveller packs almost entirely for heat and water, plus rain protection. A winter traveller packs the same beach kit but adds one warm layer for evenings and any inland excursions. The sun is intense year-round because Mauritius sits at a low latitude, so sun protection is non-negotiable in every month. If you are still mapping out where you will actually go, our /destinations and /attractions pages give a sense of how much of your trip will be on the water versus inland, which directly shapes what you bring."
-        ]
+        heading: 'First, Understand the Two Seasons',
+        paragraphs: [
+          'Mauritius has only two real seasons, and getting this right saves you from over-packing. Summer runs roughly November to April: hot, humid, with daytime highs around 30 to 34 degrees Celsius on the coast and short, heavy downpours that usually clear within an hour. This is also the cyclone window, with the highest risk between January and March. Winter runs May to October: drier, breezier and noticeably cooler, with coastal highs of 24 to 27 degrees and evenings that can drop to 17 or 18 degrees, especially on the elevated central plateau around Curepipe and Vacoas, where it rains more and feels several degrees colder than the beach.',
+          'What this means in practice: a summer traveller packs almost entirely for heat and water, plus rain protection. A winter traveller packs the same beach kit but adds one warm layer for evenings and any inland excursions. The sun is intense year-round because Mauritius sits at a low latitude, so sun protection is non-negotiable in every month. If you are still mapping out where you will actually go, our /destinations and /attractions pages give a sense of how much of your trip will be on the water versus inland, which directly shapes what you bring.',
+        ],
       },
       {
-        "heading": "Clothing: Light, Breathable, and Modest Where It Counts",
-        "paragraphs": [
-          "Pack light, loose, natural fabrics: cotton and linen breathe far better than synthetics in the humidity. Bring more T-shirts and shorts than you think you need, because you will sweat through them and laundry is not always quick. Two or three swimsuits are sensible so you always have a dry one. A wide-brimmed hat and good sunglasses do more work here than anywhere else on your trip.",
-          "Mauritius is relaxed on the beach but more conservative away from it. For visiting sites such as the Ganga Talao (Grand Bassin) sacred lake, the Hindu temples, or any mosque, cover your shoulders and knees; carry a light scarf or sarong that doubles as a cover-up. Resort restaurants and the smarter places in Grand Baie or around Port Louis lean towards smart-casual in the evening, so one collared shirt or a simple dress is worth the space. For evenings out and any inland touring in winter, add a light sweater, fleece or long-sleeved layer; the plateau and early-morning catamaran departures genuinely call for it.",
-          "Footwear is simple: flip-flops or sandals for daily wear, plus one pair of trainers or light walking shoes if you plan to hike Le Morne Brabant, the Black River Gorges trails, or the Seven Coloured Earths area at Chamarel. Those trails are uneven and often muddy after rain, and sandals will not cut it. Browse our /activities listings to see which of your planned outings are land-based hikes versus boat trips, since that tells you exactly how much closed footwear to bring."
-        ]
+        heading: 'Clothing: Light, Breathable, and Modest Where It Counts',
+        paragraphs: [
+          'Pack light, loose, natural fabrics: cotton and linen breathe far better than synthetics in the humidity. Bring more T-shirts and shorts than you think you need, because you will sweat through them and laundry is not always quick. Two or three swimsuits are sensible so you always have a dry one. A wide-brimmed hat and good sunglasses do more work here than anywhere else on your trip.',
+          'Mauritius is relaxed on the beach but more conservative away from it. For visiting sites such as the Ganga Talao (Grand Bassin) sacred lake, the Hindu temples, or any mosque, cover your shoulders and knees; carry a light scarf or sarong that doubles as a cover-up. Resort restaurants and the smarter places in Grand Baie or around Port Louis lean towards smart-casual in the evening, so one collared shirt or a simple dress is worth the space. For evenings out and any inland touring in winter, add a light sweater, fleece or long-sleeved layer; the plateau and early-morning catamaran departures genuinely call for it.',
+          'Footwear is simple: flip-flops or sandals for daily wear, plus one pair of trainers or light walking shoes if you plan to hike Le Morne Brabant, the Black River Gorges trails, or the Seven Coloured Earths area at Chamarel. Those trails are uneven and often muddy after rain, and sandals will not cut it. Browse our /activities listings to see which of your planned outings are land-based hikes versus boat trips, since that tells you exactly how much closed footwear to bring.',
+        ],
       },
       {
-        "heading": "Reef-Safe Sunscreen Is the One Thing People Forget",
-        "paragraphs": [
-          "Mauritius is ringed by a coral lagoon, and the reef is under real pressure from bleaching and pollution. Many conventional sunscreens contain oxybenzone and octinoxate, chemicals shown to harm coral. Choose a mineral, reef-safe sunscreen based on non-nano zinc oxide or titanium dioxide instead, at SPF 30 or higher. You will be in and out of the water constantly, so bring more than you would for a typical beach holiday: budget roughly one 200ml bottle per person per week of an active trip.",
-          "Buy it before you fly. Reef-safe options exist in Mauritian pharmacies and supermarkets such as Super U and Winner's, but choice is limited and prices are high for tourists: expect to pay around 12 to 20 EUR for a decent imported bottle locally, often more than at home. Pack it in your checked bag if it is over 100ml. Reapply every two hours and after every swim, and remember a rash guard or UV swim shirt protects your back and shoulders far better than lotion alone while you snorkel face-down for an hour, which is exactly what happens at popular spots like Blue Bay Marine Park or the Île aux Cerfs lagoon."
-        ]
+        heading: 'Reef-Safe Sunscreen Is the One Thing People Forget',
+        paragraphs: [
+          'Mauritius is ringed by a coral lagoon, and the reef is under real pressure from bleaching and pollution. Many conventional sunscreens contain oxybenzone and octinoxate, chemicals shown to harm coral. Choose a mineral, reef-safe sunscreen based on non-nano zinc oxide or titanium dioxide instead, at SPF 30 or higher. You will be in and out of the water constantly, so bring more than you would for a typical beach holiday: budget roughly one 200ml bottle per person per week of an active trip.',
+          "Buy it before you fly. Reef-safe options exist in Mauritian pharmacies and supermarkets such as Super U and Winner's, but choice is limited and prices are high for tourists: expect to pay around 12 to 20 EUR for a decent imported bottle locally, often more than at home. Pack it in your checked bag if it is over 100ml. Reapply every two hours and after every swim, and remember a rash guard or UV swim shirt protects your back and shoulders far better than lotion alone while you snorkel face-down for an hour, which is exactly what happens at popular spots like Blue Bay Marine Park or the Île aux Cerfs lagoon.",
+        ],
       },
       {
-        "heading": "Water Shoes and Snorkel Gear: Worth the Suitcase Space",
-        "paragraphs": [
-          "Water shoes are one of the most under-rated items for Mauritius. The lagoon floor in many places is not soft sand but dead coral, rock and sea-urchin territory, and stepping on an urchin spine or fire coral can ruin a day. A pair of slip-on water shoes or sturdy reef sandals protects your feet at rocky entry points and on excursions to spots like the basalt pools or river-mouth beaches. They are cheap, light and pack flat, so there is little reason to leave them home.",
-          "On snorkel gear, it is a judgement call. Most boat tours and many hotels lend masks, snorkels and fins for free or for a small charge, so you do not strictly need your own. That said, rental masks are hit-and-miss on fit and fogging, and if you snorkel a lot, bringing your own well-fitted mask is the difference between a great session and a leaky, frustrating one. If you wear glasses, an optical mask from home is invaluable since you will not find your prescription locally. Fins are bulky and usually not worth flying with unless you are a serious snorkeller."
-        ]
+        heading: 'Water Shoes and Snorkel Gear: Worth the Suitcase Space',
+        paragraphs: [
+          'Water shoes are one of the most under-rated items for Mauritius. The lagoon floor in many places is not soft sand but dead coral, rock and sea-urchin territory, and stepping on an urchin spine or fire coral can ruin a day. A pair of slip-on water shoes or sturdy reef sandals protects your feet at rocky entry points and on excursions to spots like the basalt pools or river-mouth beaches. They are cheap, light and pack flat, so there is little reason to leave them home.',
+          'On snorkel gear, it is a judgement call. Most boat tours and many hotels lend masks, snorkels and fins for free or for a small charge, so you do not strictly need your own. That said, rental masks are hit-and-miss on fit and fogging, and if you snorkel a lot, bringing your own well-fitted mask is the difference between a great session and a leaky, frustrating one. If you wear glasses, an optical mask from home is invaluable since you will not find your prescription locally. Fins are bulky and usually not worth flying with unless you are a serious snorkeller.',
+        ],
       },
       {
-        "heading": "Summer Packing (November to April): Beat the Heat and the Rain",
-        "paragraphs": [
-          "For a summer trip, lean hard into heat and water gear: extra swimwear, two hats in case one blows off a boat, electrolyte tablets, and the lightest clothing you own. Humidity is the real challenge, so quick-dry fabrics that you can rinse and hang overnight are gold. A small dry bag protects your phone, cash and passport on catamaran trips and during sudden downpours.",
-          "Rain is the part people underestimate. Summer showers are frequent but brief; a packable rain jacket or a cheap travel poncho is more practical than an umbrella, which is useless in the wind. If you travel during the January-to-March cyclone window, pack a power bank, a small torch and a few days of any essential medication, because heavy weather can occasionally cause short power cuts or disrupt boat trips. Build flexible plans rather than rigid day-by-day schedules; tools like our /ai-road-trip-planner help you reshuffle around a wet morning without losing the whole day."
-        ]
+        heading: 'Summer Packing (November to April): Beat the Heat and the Rain',
+        paragraphs: [
+          'For a summer trip, lean hard into heat and water gear: extra swimwear, two hats in case one blows off a boat, electrolyte tablets, and the lightest clothing you own. Humidity is the real challenge, so quick-dry fabrics that you can rinse and hang overnight are gold. A small dry bag protects your phone, cash and passport on catamaran trips and during sudden downpours.',
+          'Rain is the part people underestimate. Summer showers are frequent but brief; a packable rain jacket or a cheap travel poncho is more practical than an umbrella, which is useless in the wind. If you travel during the January-to-March cyclone window, pack a power bank, a small torch and a few days of any essential medication, because heavy weather can occasionally cause short power cuts or disrupt boat trips. Build flexible plans rather than rigid day-by-day schedules; tools like our /ai-road-trip-planner help you reshuffle around a wet morning without losing the whole day.',
+        ],
       },
       {
-        "heading": "Winter Packing (May to October): Add One Warm Layer",
-        "paragraphs": [
-          "Winter is the most comfortable season for many travellers and the packing changes are small. Keep all your beach and water gear, because the lagoon is still warm and swimmable, then add layers for cooler evenings and the windier south and east coasts. A light fleece or hoodie, long trousers for the evening, and a wrap or shawl will cover most situations. The water can feel cool on early-morning dives and dolphin-watching trips off Tamarin and the west coast, so a rash guard earns its place again.",
-          "If you head inland to Curepipe, the Black River Gorges or up to Grand Bassin, expect it to be cooler, wetter and breezier than the coast, so the same warm layer plus a rain jacket does double duty. Winter is also the prime whale and dolphin season and the best window for diving thanks to clearer water, so prioritise reliable swim and sun gear over heavy clothing. You will still spend most daylight hours warm and outdoors."
-        ]
+        heading: 'Winter Packing (May to October): Add One Warm Layer',
+        paragraphs: [
+          'Winter is the most comfortable season for many travellers and the packing changes are small. Keep all your beach and water gear, because the lagoon is still warm and swimmable, then add layers for cooler evenings and the windier south and east coasts. A light fleece or hoodie, long trousers for the evening, and a wrap or shawl will cover most situations. The water can feel cool on early-morning dives and dolphin-watching trips off Tamarin and the west coast, so a rash guard earns its place again.',
+          'If you head inland to Curepipe, the Black River Gorges or up to Grand Bassin, expect it to be cooler, wetter and breezier than the coast, so the same warm layer plus a rain jacket does double duty. Winter is also the prime whale and dolphin season and the best window for diving thanks to clearer water, so prioritise reliable swim and sun gear over heavy clothing. You will still spend most daylight hours warm and outdoors.',
+        ],
       },
       {
-        "heading": "Practical Extras and Getting from the Airport",
-        "paragraphs": [
-          "A few small items make a real difference: a universal travel adapter (Mauritius uses mainly the UK-style three-pin Type G socket, with some Type C found in older buildings), a basic first-aid kit with antihistamines and after-sun, mosquito repellent for dusk, and any prescription medication in its original packaging with a copy of the prescription. Bring some cash in euros to change into Mauritian rupees on arrival; cards are widely accepted in hotels and larger shops but markets, small eateries and bus fares run on cash.",
-          "Finally, plan how you will get from Sir Seewoosagar Ramgoolam International Airport in the south-east to your base, as it is a 45-minute to over-an-hour drive to the main resort areas in the north and west. After a long-haul flight with bags full of water gear, a pre-booked private transfer is far easier than negotiating a taxi at midnight; you can arrange one in advance through our /airport-transfers service so a driver is waiting when you land. Pack your sunscreen, swimwear and a change of light clothes in your carry-on too, just in case checked luggage is delayed and you want to hit the beach on day one."
-        ]
-      }
+        heading: 'Practical Extras and Getting from the Airport',
+        paragraphs: [
+          'A few small items make a real difference: a universal travel adapter (Mauritius uses mainly the UK-style three-pin Type G socket, with some Type C found in older buildings), a basic first-aid kit with antihistamines and after-sun, mosquito repellent for dusk, and any prescription medication in its original packaging with a copy of the prescription. Bring some cash in euros to change into Mauritian rupees on arrival; cards are widely accepted in hotels and larger shops but markets, small eateries and bus fares run on cash.',
+          'Finally, plan how you will get from Sir Seewoosagar Ramgoolam International Airport in the south-east to your base, as it is a 45-minute to over-an-hour drive to the main resort areas in the north and west. After a long-haul flight with bags full of water gear, a pre-booked private transfer is far easier than negotiating a taxi at midnight; you can arrange one in advance through our /airport-transfers service so a driver is waiting when you land. Pack your sunscreen, swimwear and a change of light clothes in your carry-on too, just in case checked luggage is delayed and you want to hit the beach on day one.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Do I really need reef-safe sunscreen in Mauritius?",
-        "a": "Yes. Mauritius is surrounded by a coral lagoon that is already stressed by bleaching, and conventional sunscreens with oxybenzone or octinoxate harm coral. Use a mineral, non-nano zinc oxide or titanium dioxide sunscreen at SPF 30 or higher, and buy it before you fly since local reef-safe options are limited and cost around 12 to 20 EUR per bottle."
+        q: 'Do I really need reef-safe sunscreen in Mauritius?',
+        a: 'Yes. Mauritius is surrounded by a coral lagoon that is already stressed by bleaching, and conventional sunscreens with oxybenzone or octinoxate harm coral. Use a mineral, non-nano zinc oxide or titanium dioxide sunscreen at SPF 30 or higher, and buy it before you fly since local reef-safe options are limited and cost around 12 to 20 EUR per bottle.',
       },
       {
-        "q": "Are water shoes necessary, or can I just wear flip-flops?",
-        "a": "For walking around they are fine, but many beach and lagoon entry points have dead coral, rock and sea urchins. Water shoes or reef sandals protect your feet at these rocky spots and on excursions. They are cheap, light and pack flat, so they are worth bringing even if you only use them a few times."
+        q: 'Are water shoes necessary, or can I just wear flip-flops?',
+        a: 'For walking around they are fine, but many beach and lagoon entry points have dead coral, rock and sea urchins. Water shoes or reef sandals protect your feet at these rocky spots and on excursions. They are cheap, light and pack flat, so they are worth bringing even if you only use them a few times.',
       },
       {
-        "q": "What should I pack differently for winter (May to October)?",
-        "a": "Keep all your beach and water gear, since the lagoon stays warm and swimmable, then add one warm layer such as a fleece or hoodie plus long trousers for cooler evenings. Inland areas like Curepipe and the central plateau are noticeably colder and wetter, so a light rain jacket is also useful for excursions away from the coast."
+        q: 'What should I pack differently for winter (May to October)?',
+        a: 'Keep all your beach and water gear, since the lagoon stays warm and swimmable, then add one warm layer such as a fleece or hoodie plus long trousers for cooler evenings. Inland areas like Curepipe and the central plateau are noticeably colder and wetter, so a light rain jacket is also useful for excursions away from the coast.',
       },
       {
-        "q": "How should I handle rain during the summer season?",
-        "a": "Summer (November to April) brings frequent but short, heavy showers, so pack a packable rain jacket or travel poncho rather than an umbrella, which is useless in the wind. A small dry bag protects valuables on boat trips. If you travel during the January-to-March cyclone window, also bring a power bank, a small torch and a few days of any essential medication."
-      }
-    ]
+        q: 'How should I handle rain during the summer season?',
+        a: 'Summer (November to April) brings frequent but short, heavy showers, so pack a packable rain jacket or travel poncho rather than an umbrella, which is useless in the wind. A small dry bag protects valuables on boat trips. If you travel during the January-to-March cyclone window, also bring a power bank, a small torch and a few days of any essential medication.',
+      },
+    ],
   },
   {
-    "slug": "ile-aux-cerfs-vs-blue-bay",
-    "title": "Île aux Cerfs vs Blue Bay: Which Lagoon Day?",
-    "metaTitle": "Île aux Cerfs vs Blue Bay: Which Lagoon Day?",
-    "metaDescription": "Île aux Cerfs vs Blue Bay compared: how each lagoon day works, who it suits, real EUR prices, snorkelling, seasons and how to get there from your hotel.",
-    "excerpt": "A side-by-side, honest comparison of Île aux Cerfs and Blue Bay: what each lagoon day involves, who each suits, what it costs and how to plan the trip.",
-    "readMins": 7,
-    "sections": [
+    slug: 'ile-aux-cerfs-vs-blue-bay',
+    title: 'Île aux Cerfs vs Blue Bay: Which Lagoon Day?',
+    metaTitle: 'Île aux Cerfs vs Blue Bay: Which Lagoon Day?',
+    metaDescription:
+      'Île aux Cerfs vs Blue Bay compared: how each lagoon day works, who it suits, real EUR prices, snorkelling, seasons and how to get there from your hotel.',
+    excerpt:
+      'A side-by-side, honest comparison of Île aux Cerfs and Blue Bay: what each lagoon day involves, who each suits, what it costs and how to plan the trip.',
+    readMins: 7,
+    sections: [
       {
-        "heading": "Two East-Coast Lagoons, Two Very Different Days",
-        "paragraphs": [
+        heading: 'Two East-Coast Lagoons, Two Very Different Days',
+        paragraphs: [
           "Île aux Cerfs and Blue Bay are both turquoise-lagoon postcards on the eastern side of Mauritius, and they often end up on the same shortlist. They are not interchangeable. Île aux Cerfs is a 100-hectare island off Trou d'Eau Douce on the east coast, reached only by boat, and it has grown into a full day-trip machine built around catamaran cruises, a waterfall stop and watersports. Blue Bay sits further south, just past Mahebourg near the airport, and is a protected marine park you can walk straight into from the shore for some of the clearest, easiest snorkelling on the island.",
-          "Put simply, Île aux Cerfs is the bigger, busier, more produced experience, and Blue Bay is the quieter, more nature-led one. Both are genuinely beautiful. The right choice depends on whether you want a lively boat day with lunch and activity, or a calm half-day floating over living coral. If you are still mapping out where everything sits, our /destinations pages cover both the Trou d'Eau Douce area and the Mahebourg southeast in more detail."
-        ]
+          "Put simply, Île aux Cerfs is the bigger, busier, more produced experience, and Blue Bay is the quieter, more nature-led one. Both are genuinely beautiful. The right choice depends on whether you want a lively boat day with lunch and activity, or a calm half-day floating over living coral. If you are still mapping out where everything sits, our /destinations pages cover both the Trou d'Eau Douce area and the Mahebourg southeast in more detail.",
+        ],
       },
       {
-        "heading": "Île aux Cerfs: The Classic Boat-Trip Day Out",
-        "paragraphs": [
+        heading: 'Île aux Cerfs: The Classic Boat-Trip Day Out',
+        paragraphs: [
           "Île aux Cerfs is the island most visitors picture when they imagine a Mauritian lagoon: powder-white sand, shallow water in twenty shades of blue, and casuarina trees for shade. You cannot drive there. You catch a boat from Trou d'Eau Douce, either a fast speedboat shuttle or, more commonly, a full-day catamaran cruise that includes the crossing, a stop near the GRSE waterfall, snorkelling at a reef spot, a barbecue lunch on board and a few hours of free time on the island itself.",
-          "A shared catamaran day trip typically runs around 45 to 75 EUR per adult, including lunch and soft drinks, and is the best value way to experience the island properly. A simple round-trip speedboat transfer is cheaper, roughly 20 to 35 EUR, but it leaves you to sort out your own food and timing once ashore. On the island you will also find paid extras like parasailing, a banana boat, glass-bottom boat rides and a separate restaurant, so budget a little more if you want to add activities. You can compare current catamaran and watersports options on our /activities page.",
-          "Be honest with yourself about crowds. Île aux Cerfs is popular for good reason, and in high season the main beach can get busy by late morning. The trade-off is that everything is organised for you: one booking covers transport, food and a full day on the water. If you want a sociable, all-in day with minimal planning, this is the easy winner."
-        ]
+          'A shared catamaran day trip typically runs around 45 to 75 EUR per adult, including lunch and soft drinks, and is the best value way to experience the island properly. A simple round-trip speedboat transfer is cheaper, roughly 20 to 35 EUR, but it leaves you to sort out your own food and timing once ashore. On the island you will also find paid extras like parasailing, a banana boat, glass-bottom boat rides and a separate restaurant, so budget a little more if you want to add activities. You can compare current catamaran and watersports options on our /activities page.',
+          'Be honest with yourself about crowds. Île aux Cerfs is popular for good reason, and in high season the main beach can get busy by late morning. The trade-off is that everything is organised for you: one booking covers transport, food and a full day on the water. If you want a sociable, all-in day with minimal planning, this is the easy winner.',
+        ],
       },
       {
-        "heading": "Blue Bay: Snorkelling Over a Protected Reef",
-        "paragraphs": [
-          "Blue Bay is a different proposition. It is a designated marine park covering roughly three square kilometres of shallow, sheltered lagoon, home to dozens of coral species, including some very old, large coral heads, plus parrotfish, sergeant majors, wrasse and the occasional turtle. The headline attraction is the snorkelling, and it is excellent, calm, accessible and rich, which makes it ideal for families and first-time snorkellers.",
+        heading: 'Blue Bay: Snorkelling Over a Protected Reef',
+        paragraphs: [
+          'Blue Bay is a different proposition. It is a designated marine park covering roughly three square kilometres of shallow, sheltered lagoon, home to dozens of coral species, including some very old, large coral heads, plus parrotfish, sergeant majors, wrasse and the occasional turtle. The headline attraction is the snorkelling, and it is excellent, calm, accessible and rich, which makes it ideal for families and first-time snorkellers.',
           "There are two ways to do Blue Bay. You can simply go to the public beach, swim out a little and snorkel for free with your own mask and fins, which suits independent travellers who want a relaxed, low-cost day. Or you can take a glass-bottom boat trip with a brief guided snorkel stop, usually around 15 to 30 EUR per person for an hour or so, which is the better option if you want to reach the healthiest coral without a long swim. Because it is a protected park, do not touch or stand on the coral, and don't buy souvenirs made from it.",
-          "Blue Bay works beautifully as a half-day rather than a full one. Many people pair it with a wander around nearby Mahebourg, its waterfront, Monday market and the small but interesting Naval Museum, to round out the trip. You will find Blue Bay and Mahebourg covered alongside other southeast highlights on our /attractions page."
-        ]
+          'Blue Bay works beautifully as a half-day rather than a full one. Many people pair it with a wander around nearby Mahebourg, its waterfront, Monday market and the small but interesting Naval Museum, to round out the trip. You will find Blue Bay and Mahebourg covered alongside other southeast highlights on our /attractions page.',
+        ],
       },
       {
-        "heading": "Who Each Lagoon Suits Best",
-        "paragraphs": [
-          "Choose Île aux Cerfs if you want a social, activity-packed day, if you like the idea of a catamaran with music and lunch, or if you are travelling as a group that wants one booking to cover everything. It is also the stronger pick for non-swimmers who still want to enjoy the water from a boat, and for anyone who treats the day itself, the cruise, the sandbar, the photos, as the main event rather than the marine life.",
+        heading: 'Who Each Lagoon Suits Best',
+        paragraphs: [
+          'Choose Île aux Cerfs if you want a social, activity-packed day, if you like the idea of a catamaran with music and lunch, or if you are travelling as a group that wants one booking to cover everything. It is also the stronger pick for non-swimmers who still want to enjoy the water from a boat, and for anyone who treats the day itself, the cruise, the sandbar, the photos, as the main event rather than the marine life.',
           "Choose Blue Bay if snorkelling and coral are your priority, if you have children learning to snorkel, or if you prefer a calmer, cheaper, more self-directed day. It rewards people who like to set their own pace and don't need lunch and entertainment laid on. Keen snorkellers and divers consistently rate the underwater life at Blue Bay above the reef stops on the typical Île aux Cerfs cruise.",
-          "If you genuinely cannot choose, the two sit close enough on the east and southeast coasts that energetic travellers do both on separate days. A practical rhythm is a relaxed snorkel half-day at Blue Bay, then a full catamaran day at Île aux Cerfs later in the trip so the big outing doesn't feel rushed."
-        ]
+          "If you genuinely cannot choose, the two sit close enough on the east and southeast coasts that energetic travellers do both on separate days. A practical rhythm is a relaxed snorkel half-day at Blue Bay, then a full catamaran day at Île aux Cerfs later in the trip so the big outing doesn't feel rushed.",
+        ],
       },
       {
-        "heading": "Getting There and Timing Your Day",
-        "paragraphs": [
+        heading: 'Getting There and Timing Your Day',
+        paragraphs: [
           "Île aux Cerfs cruises depart from Trou d'Eau Douce, about a 60 to 75 minute drive from the north or west coasts and far closer if you are staying around Belle Mare or Flacq. Boats generally leave between 9 and 10 in the morning and return mid to late afternoon, so it eats the whole day. Aim to arrive at the jetty 20 to 30 minutes before departure. Blue Bay is near Mahebourg in the southeast, roughly 10 minutes from the airport and around an hour from the north, which makes it a very natural stop on arrival or departure day.",
-          "On timing, get to either lagoon early. Morning brings the calmest water, the clearest snorkelling visibility and the smallest crowds, and the light is kinder for photos. Reliable transfers matter, especially for a fixed-departure catamaran you cannot miss, so a private driver who knows the jetty and the morning traffic is worth it. We arrange both hotel pickups and /airport-transfers, which is handy if you want to snorkel Blue Bay on the way to or from the airport rather than losing the day to travel."
-        ]
+          'On timing, get to either lagoon early. Morning brings the calmest water, the clearest snorkelling visibility and the smallest crowds, and the light is kinder for photos. Reliable transfers matter, especially for a fixed-departure catamaran you cannot miss, so a private driver who knows the jetty and the morning traffic is worth it. We arrange both hotel pickups and /airport-transfers, which is handy if you want to snorkel Blue Bay on the way to or from the airport rather than losing the day to travel.',
+        ],
       },
       {
-        "heading": "Seasons, Costs and a Few Honest Caveats",
-        "paragraphs": [
-          "Both lagoons are doable year-round, but the season shapes the experience. The warm summer (November to April) gives the warmest sea, around 27 to 29 degrees, and the most inviting swimming, though it carries higher humidity and the small chance of a tropical downpour. The cooler, drier winter (May to October) is calmer and clearer overall, but the east and southeast coasts catch the trade winds, so an exposed, breezy day can chop up the water and dent snorkelling visibility. If the southeast is windy on your chosen morning, it is worth checking the forecast and staying flexible.",
-          "On cost, set expectations clearly. A full Île aux Cerfs catamaran day with lunch usually lands around 45 to 75 EUR per adult, while a Blue Bay glass-bottom and snorkel outing is roughly 15 to 30 EUR, and self-guided snorkelling from the public beach is effectively free aside from gear and transport. Bring your own mask if you have one, reef-safe sunscreen, water and cash for small extras. To slot either lagoon sensibly into a wider itinerary with the rest of the east and south, our free /ai-road-trip-planner can build a day-by-day route around your hotel, the weather and the regions you most want to see."
-        ]
-      }
+        heading: 'Seasons, Costs and a Few Honest Caveats',
+        paragraphs: [
+          'Both lagoons are doable year-round, but the season shapes the experience. The warm summer (November to April) gives the warmest sea, around 27 to 29 degrees, and the most inviting swimming, though it carries higher humidity and the small chance of a tropical downpour. The cooler, drier winter (May to October) is calmer and clearer overall, but the east and southeast coasts catch the trade winds, so an exposed, breezy day can chop up the water and dent snorkelling visibility. If the southeast is windy on your chosen morning, it is worth checking the forecast and staying flexible.',
+          'On cost, set expectations clearly. A full Île aux Cerfs catamaran day with lunch usually lands around 45 to 75 EUR per adult, while a Blue Bay glass-bottom and snorkel outing is roughly 15 to 30 EUR, and self-guided snorkelling from the public beach is effectively free aside from gear and transport. Bring your own mask if you have one, reef-safe sunscreen, water and cash for small extras. To slot either lagoon sensibly into a wider itinerary with the rest of the east and south, our free /ai-road-trip-planner can build a day-by-day route around your hotel, the weather and the regions you most want to see.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Which is better for snorkelling, Île aux Cerfs or Blue Bay?",
-        "a": "Blue Bay is the clear winner for snorkelling. It is a protected marine park with healthy coral, abundant fish and calm, shallow water that suits beginners and children. Île aux Cerfs has a snorkel stop on its cruises, but the marine life is generally less impressive than Blue Bay's reef."
+        q: 'Which is better for snorkelling, Île aux Cerfs or Blue Bay?',
+        a: "Blue Bay is the clear winner for snorkelling. It is a protected marine park with healthy coral, abundant fish and calm, shallow water that suits beginners and children. Île aux Cerfs has a snorkel stop on its cruises, but the marine life is generally less impressive than Blue Bay's reef.",
       },
       {
-        "q": "Can you visit Île aux Cerfs without a boat tour?",
-        "a": "No. Île aux Cerfs is an island reached only by boat from Trou d'Eau Douce. The cheapest option is a round-trip speedboat shuttle, about 20 to 35 EUR, which drops you off and collects you later. Most visitors prefer a full catamaran day, around 45 to 75 EUR, which includes the crossing, snorkelling and lunch."
+        q: 'Can you visit Île aux Cerfs without a boat tour?',
+        a: "No. Île aux Cerfs is an island reached only by boat from Trou d'Eau Douce. The cheapest option is a round-trip speedboat shuttle, about 20 to 35 EUR, which drops you off and collects you later. Most visitors prefer a full catamaran day, around 45 to 75 EUR, which includes the crossing, snorkelling and lunch.",
       },
       {
-        "q": "How much does a day at Blue Bay cost?",
-        "a": "Snorkelling from the public beach with your own gear is essentially free apart from transport. A glass-bottom boat trip with a guided snorkel stop usually costs around 15 to 30 EUR per person. Renting a mask and fins locally adds a small extra if you don't bring your own."
+        q: 'How much does a day at Blue Bay cost?',
+        a: "Snorkelling from the public beach with your own gear is essentially free apart from transport. A glass-bottom boat trip with a guided snorkel stop usually costs around 15 to 30 EUR per person. Renting a mask and fins locally adds a small extra if you don't bring your own.",
       },
       {
-        "q": "Can I do both Île aux Cerfs and Blue Bay in one trip?",
-        "a": "Yes, and many visitors do, but on separate days. Treat Île aux Cerfs as a full-day catamaran outing and Blue Bay as a relaxed snorkelling half-day, ideally on a calm, less windy morning. Blue Bay's location near the airport also makes it an easy stop on arrival or departure day."
-      }
-    ]
+        q: 'Can I do both Île aux Cerfs and Blue Bay in one trip?',
+        a: "Yes, and many visitors do, but on separate days. Treat Île aux Cerfs as a full-day catamaran outing and Blue Bay as a relaxed snorkelling half-day, ideally on a calm, less windy morning. Blue Bay's location near the airport also makes it an easy stop on arrival or departure day.",
+      },
+    ],
   },
   {
-    "slug": "day-trips-from-grand-baie",
-    "title": "The Best Day Trips from Grand Baie",
-    "metaTitle": "Best Day Trips from Grand Baie, Mauritius",
-    "metaDescription": "The best day trips from Grand Baie, Mauritius: northern islands, Port Louis, the wild south and a classic north tour, with real prices and how to arrange each.",
-    "excerpt": "Grand Baie is the ideal base for exploring Mauritius. Here are the best day trips north, to the islands, into Port Louis and across the dramatic south, with honest tips and prices.",
-    "readMins": 8,
-    "sections": [
+    slug: 'day-trips-from-grand-baie',
+    title: 'The Best Day Trips from Grand Baie',
+    metaTitle: 'Best Day Trips from Grand Baie, Mauritius',
+    metaDescription:
+      'The best day trips from Grand Baie, Mauritius: northern islands, Port Louis, the wild south and a classic north tour, with real prices and how to arrange each.',
+    excerpt:
+      'Grand Baie is the ideal base for exploring Mauritius. Here are the best day trips north, to the islands, into Port Louis and across the dramatic south, with honest tips and prices.',
+    readMins: 8,
+    sections: [
       {
-        "heading": "Why Grand Baie Makes a Great Base",
-        "paragraphs": [
-          "Grand Baie sits on the sheltered northwest coast, which makes it one of the most practical places on the island to stay if you actually want to get out and see Mauritius rather than only your hotel pool. The north is the driest, most wind-protected corner of the island year-round, so even in the windier winter months from May to October the lagoon here usually stays calm while the exposed east and southeast coasts get blustery. That same shelter is why almost every catamaran and speedboat trip to the northern islets departs from this stretch of coast.",
-          "Distances in Mauritius are short on paper but slow in practice, because the island has only one motorway and plenty of single-lane village roads. From Grand Baie you can reach Port Louis in around 30 to 40 minutes, the central tourist sights near Pamplemousses in 15 minutes, and the far south in roughly two hours. That makes day trips genuinely doable, but it also means an early start is your friend. The four day trips below cover the realistic range, from a gentle half-day on the water to a full loop down to the wild southwest.",
-          "One honest caveat before you plan: Mauritius is bigger and more varied than most people expect, and trying to cram the whole island into one frantic day rarely works. It is usually better to pick two or three of these trips across your stay than to chase everything at once."
-        ]
+        heading: 'Why Grand Baie Makes a Great Base',
+        paragraphs: [
+          'Grand Baie sits on the sheltered northwest coast, which makes it one of the most practical places on the island to stay if you actually want to get out and see Mauritius rather than only your hotel pool. The north is the driest, most wind-protected corner of the island year-round, so even in the windier winter months from May to October the lagoon here usually stays calm while the exposed east and southeast coasts get blustery. That same shelter is why almost every catamaran and speedboat trip to the northern islets departs from this stretch of coast.',
+          'Distances in Mauritius are short on paper but slow in practice, because the island has only one motorway and plenty of single-lane village roads. From Grand Baie you can reach Port Louis in around 30 to 40 minutes, the central tourist sights near Pamplemousses in 15 minutes, and the far south in roughly two hours. That makes day trips genuinely doable, but it also means an early start is your friend. The four day trips below cover the realistic range, from a gentle half-day on the water to a full loop down to the wild southwest.',
+          'One honest caveat before you plan: Mauritius is bigger and more varied than most people expect, and trying to cram the whole island into one frantic day rarely works. It is usually better to pick two or three of these trips across your stay than to chase everything at once.',
+        ],
       },
       {
-        "heading": "The Classic North Tour",
-        "paragraphs": [
-          "The north tour is the easiest day out from Grand Baie because most of it is on your doorstep. A typical loop takes in the Sir Seewoosagur Ramgoolam Botanical Garden at Pamplemousses, famous for its giant Victoria amazonica water lilies and its avenue of talipot palms; the colonial sugar estate and rum distillery sites; and Cap Malheureux with its red-roofed church, one of the most photographed spots in Mauritius, looking out toward Coin de Mire island. Entry to the botanical garden is modest, around 200 Mauritian rupees per adult (roughly 4 EUR), and a guide at the gate is worth the small extra cost to make sense of the trees.",
-          "From there many people fold in Grand Baie itself, the bustling town centre with its shops and waterfront, plus the long, swimmable beaches at Mont Choisy and Trou aux Biches, which are among the best sunset beaches on the island. This is a relaxed half to full day rather than a marathon, and it pairs naturally with an afternoon swim. If you would rather build a route that matches your own pace and interests, the /attractions and /activities pages list what is genuinely worth your time in the north, and you can have a driver-guide handle the logistics so you are not parking in Port Louis traffic."
-        ]
+        heading: 'The Classic North Tour',
+        paragraphs: [
+          'The north tour is the easiest day out from Grand Baie because most of it is on your doorstep. A typical loop takes in the Sir Seewoosagur Ramgoolam Botanical Garden at Pamplemousses, famous for its giant Victoria amazonica water lilies and its avenue of talipot palms; the colonial sugar estate and rum distillery sites; and Cap Malheureux with its red-roofed church, one of the most photographed spots in Mauritius, looking out toward Coin de Mire island. Entry to the botanical garden is modest, around 200 Mauritian rupees per adult (roughly 4 EUR), and a guide at the gate is worth the small extra cost to make sense of the trees.',
+          'From there many people fold in Grand Baie itself, the bustling town centre with its shops and waterfront, plus the long, swimmable beaches at Mont Choisy and Trou aux Biches, which are among the best sunset beaches on the island. This is a relaxed half to full day rather than a marathon, and it pairs naturally with an afternoon swim. If you would rather build a route that matches your own pace and interests, the /attractions and /activities pages list what is genuinely worth your time in the north, and you can have a driver-guide handle the logistics so you are not parking in Port Louis traffic.',
+        ],
       },
       {
-        "heading": "The Northern Islands by Catamaran",
-        "paragraphs": [
+        heading: 'The Northern Islands by Catamaran',
+        paragraphs: [
           "The single most popular day trip from Grand Baie is a boat cruise to the northern islets: Gabriel Island (Île Plate), Round Island, Coin de Mire and the snorkelling reefs around them. A full-day catamaran trip typically runs from around 9am to 4pm and includes snorkelling stops, a barbecue lunch of grilled fish or chicken on board or on Gabriel Island's sandbank, and plenty of swimming time in clear, shallow water. Expect to pay roughly 50 to 90 EUR per adult depending on the operator, boat size and whether drinks are included; speedboat trips are faster and pricier per head but more flexible on timing.",
-          "This trip is at its best from November to April, the warm summer season, when the sea is calm and visibility is good. In winter the north stays the most protected coast, so trips still run, but a strong south-easterly can make the crossing bumpy, so check the forecast and book a flexible date if you can. A practical tip: the catamarans get busy and the popular spots can feel crowded by midday, so a smaller boat or an early departure makes a real difference. Bring reef-safe sunscreen, a hat and motion-sickness tablets if you are prone, because there is no shade on the open water."
-        ]
+          'This trip is at its best from November to April, the warm summer season, when the sea is calm and visibility is good. In winter the north stays the most protected coast, so trips still run, but a strong south-easterly can make the crossing bumpy, so check the forecast and book a flexible date if you can. A practical tip: the catamarans get busy and the popular spots can feel crowded by midday, so a smaller boat or an early departure makes a real difference. Bring reef-safe sunscreen, a hat and motion-sickness tablets if you are prone, because there is no shade on the open water.',
+        ],
       },
       {
-        "heading": "Port Louis and the Central Sights",
-        "paragraphs": [
+        heading: 'Port Louis and the Central Sights',
+        paragraphs: [
           "The capital, Port Louis, is a half-day in itself and an easy run from Grand Baie. The Caudan Waterfront is the obvious anchor, with shops, restaurants and the Blue Penny Museum, home to two of the world's rarest stamps. Nearby, the Central Market is the most authentic stop in the city, a noisy, colourful tangle of fruit, spices, vanilla and street food where a fresh dholl puri costs almost nothing and tastes like the real Mauritius. Aapravasi Ghat, the UNESCO World Heritage immigration depot, tells the moving story of the indentured labourers who shaped modern Mauritius.",
-          "If you want a view, the Citadel (Fort Adelaide) sits above the city for a panorama over the harbour, and just south the Champ de Mars is one of the oldest horse-racing tracks in the world, lively on race days from roughly May to November. Port Louis is hot, busy and not built for tourists, which is part of its appeal, but it is best visited in the morning before the heat peaks and the traffic thickens. Many visitors combine a few hours in the capital with the botanical garden or with the climb up the central plateau, so it slots neatly into a wider /destinations itinerary covering the centre and north."
-        ]
+          'If you want a view, the Citadel (Fort Adelaide) sits above the city for a panorama over the harbour, and just south the Champ de Mars is one of the oldest horse-racing tracks in the world, lively on race days from roughly May to November. Port Louis is hot, busy and not built for tourists, which is part of its appeal, but it is best visited in the morning before the heat peaks and the traffic thickens. Many visitors combine a few hours in the capital with the botanical garden or with the climb up the central plateau, so it slots neatly into a wider /destinations itinerary covering the centre and north.',
+        ],
       },
       {
-        "heading": "The Dramatic South and Southwest",
-        "paragraphs": [
+        heading: 'The Dramatic South and Southwest',
+        paragraphs: [
           "The south is the most scenic day trip and the most ambitious from Grand Baie, since it is around two hours each way, so it genuinely is a full day. The reward is the island's most dramatic scenery: the Seven Coloured Earths and waterfall at Chamarel, the Black River Gorges National Park with its forest trails and viewpoints over the wild interior, and Le Morne Brabant, the UNESCO-listed mountain that rises above one of the finest lagoons on the island. Many trips add Grand Bassin (Ganga Talao), the sacred crater lake and most important Hindu pilgrimage site in Mauritius, watched over by towering statues of Shiva and Durga.",
-          "Because of the driving time, this trip works far better with a private driver-guide than self-driving, especially if you are new to the island's roads and roundabouts. Budget roughly 80 to 130 EUR for a private car and driver for the full south loop, plus small entry fees of a few euros at sites like Chamarel and the national park. Winter, from May to October, gives the clearest, coolest hiking conditions, while summer rains make the waterfalls fuller but the trails muddier. If piecing it all together feels like a lot, the free /ai-road-trip-planner can sketch a sensible south-coast day around the weather and the stops that matter most to you."
-        ]
+          "Because of the driving time, this trip works far better with a private driver-guide than self-driving, especially if you are new to the island's roads and roundabouts. Budget roughly 80 to 130 EUR for a private car and driver for the full south loop, plus small entry fees of a few euros at sites like Chamarel and the national park. Winter, from May to October, gives the clearest, coolest hiking conditions, while summer rains make the waterfalls fuller but the trails muddier. If piecing it all together feels like a lot, the free /ai-road-trip-planner can sketch a sensible south-coast day around the weather and the stops that matter most to you.",
+        ],
       },
       {
-        "heading": "How to Arrange Your Day Trips",
-        "paragraphs": [
+        heading: 'How to Arrange Your Day Trips',
+        paragraphs: [
           "There are three realistic ways to do these trips. The first is a private driver-guide, which is the most comfortable and flexible option: someone collects you from your Grand Baie hotel, handles the driving and parking, and adapts the day to your pace. The second is a shared group excursion, which is cheaper per person and good for the island and catamaran trips, but ties you to a fixed schedule and other people's timings. The third is self-driving a hire car, which gives total freedom for the north and central sights but is less appealing for the long, winding run to the south if you are not used to driving here.",
-          "Whatever you choose, a few practicalities help. Book boat trips and popular tours a day or two ahead in the high season around December to February and over the July to August peak, when demand is strongest. Start early to beat both the heat and the traffic, and keep some rupees in cash for market stalls and small entry fees that do not take cards. If you are arriving or leaving on a tour day, you can line up your airport pickup and drop-off in advance through our /airport-transfers service so the logistics are settled before you land. For everything else, the team at Belle Mare Tours can put together a private day from Grand Baie tailored to what you actually want to see, rather than a one-size-fits-all package."
-        ]
-      }
+          'Whatever you choose, a few practicalities help. Book boat trips and popular tours a day or two ahead in the high season around December to February and over the July to August peak, when demand is strongest. Start early to beat both the heat and the traffic, and keep some rupees in cash for market stalls and small entry fees that do not take cards. If you are arriving or leaving on a tour day, you can line up your airport pickup and drop-off in advance through our /airport-transfers service so the logistics are settled before you land. For everything else, the team at Belle Mare Tours can put together a private day from Grand Baie tailored to what you actually want to see, rather than a one-size-fits-all package.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "What is the best day trip from Grand Baie if I only have time for one?",
-        "a": "For most first-time visitors the catamaran trip to the northern islands is the single best day out, because it leaves right from the Grand Baie area, needs no long drive and shows off the calm northern lagoons at their best. If you prefer scenery over the sea, the full-day south loop to Chamarel, Le Morne and Grand Bassin is the most spectacular, but it is a long drive and works best with a private driver-guide."
+        q: 'What is the best day trip from Grand Baie if I only have time for one?',
+        a: 'For most first-time visitors the catamaran trip to the northern islands is the single best day out, because it leaves right from the Grand Baie area, needs no long drive and shows off the calm northern lagoons at their best. If you prefer scenery over the sea, the full-day south loop to Chamarel, Le Morne and Grand Bassin is the most spectacular, but it is a long drive and works best with a private driver-guide.',
       },
       {
-        "q": "How much should a day trip from Grand Baie cost?",
-        "a": "As a rough guide, a full-day catamaran cruise to the northern islands runs about 50 to 90 EUR per adult including a barbecue lunch, while a private car with a driver-guide for a full south-coast loop is around 80 to 130 EUR for the car, plus small site entry fees of a few euros. The relaxed north tour is cheaper because the sights are close by. Prices vary by season, group size and operator."
+        q: 'How much should a day trip from Grand Baie cost?',
+        a: 'As a rough guide, a full-day catamaran cruise to the northern islands runs about 50 to 90 EUR per adult including a barbecue lunch, while a private car with a driver-guide for a full south-coast loop is around 80 to 130 EUR for the car, plus small site entry fees of a few euros. The relaxed north tour is cheaper because the sights are close by. Prices vary by season, group size and operator.',
       },
       {
-        "q": "Do I need to hire a car to explore from Grand Baie?",
-        "a": "Not necessarily. A hire car is handy for the nearby north and central sights, but the island's narrow roads, roundabouts and long drive to the south put many visitors off self-driving. A private driver-guide or a shared excursion lets you relax and learn about each stop, and most trips include hotel pickup and drop-off in Grand Baie, so a car is optional rather than essential."
+        q: 'Do I need to hire a car to explore from Grand Baie?',
+        a: "Not necessarily. A hire car is handy for the nearby north and central sights, but the island's narrow roads, roundabouts and long drive to the south put many visitors off self-driving. A private driver-guide or a shared excursion lets you relax and learn about each stop, and most trips include hotel pickup and drop-off in Grand Baie, so a car is optional rather than essential.",
       },
       {
-        "q": "When is the best time of year for these day trips?",
-        "a": "Boat trips to the northern islands are best in the warm summer season from November to April, when the sea is calmest and clearest. The cooler, drier winter from May to October is ideal for the south, with better hiking weather in the Black River Gorges and around Le Morne. The north stays sheltered year-round, so the classic north tour and Port Louis work in any season."
-      }
-    ]
+        q: 'When is the best time of year for these day trips?',
+        a: 'Boat trips to the northern islands are best in the warm summer season from November to April, when the sea is calmest and clearest. The cooler, drier winter from May to October is ideal for the south, with better hiking weather in the Black River Gorges and around Le Morne. The north stays sheltered year-round, so the classic north tour and Port Louis work in any season.',
+      },
+    ],
   },
   {
-    "slug": "day-trips-from-flic-en-flac",
-    "title": "The Best Day Trips from Flic-en-Flac",
-    "metaTitle": "Best Day Trips from Flic-en-Flac, Mauritius",
-    "metaDescription": "The best day trips from Flic-en-Flac: Casela, Chamarel, the wild south-west, dolphin swims and Black River Gorges. Real distances, prices and honest timing tips.",
-    "excerpt": "A practical, honest guide to the best day trips from Flic-en-Flac, covering Casela, Chamarel, the south-west coast, dolphin swims and Black River Gorges with real distances and prices.",
-    "readMins": 8,
-    "sections": [
+    slug: 'day-trips-from-flic-en-flac',
+    title: 'The Best Day Trips from Flic-en-Flac',
+    metaTitle: 'Best Day Trips from Flic-en-Flac, Mauritius',
+    metaDescription:
+      'The best day trips from Flic-en-Flac: Casela, Chamarel, the wild south-west, dolphin swims and Black River Gorges. Real distances, prices and honest timing tips.',
+    excerpt:
+      'A practical, honest guide to the best day trips from Flic-en-Flac, covering Casela, Chamarel, the south-west coast, dolphin swims and Black River Gorges with real distances and prices.',
+    readMins: 8,
+    sections: [
       {
-        "heading": "Why Flic-en-Flac Is a Great Base for Day Trips",
-        "paragraphs": [
+        heading: 'Why Flic-en-Flac Is a Great Base for Day Trips',
+        paragraphs: [
           "Flic-en-Flac sits on the sheltered west coast of Mauritius, and that location is its quiet superpower. The west is the driest, calmest corner of the island, so while the east coast around Belle Mare can be whipped by trade winds in winter (May to October), your lagoon here usually stays flat and swimmable. It is also the launch pad for most of the island's best inland and coastal excursions, with the wild south-west, Chamarel, Casela and the dolphin grounds off Tamarin all within easy reach.",
-          "Distances in Mauritius are short on paper but slow in practice. Flic-en-Flac to Chamarel is only about 30 kilometres, yet the climb up the winding plateau road takes the better part of an hour. The motorway north to Port Louis and Grand Baie is fast, but the scenic south-west is all single-lane coast road. As a rule of thumb, nothing on this list is more than about 90 minutes away, and most are 30 to 60. That makes Flic-en-Flac one of the few bases where you can genuinely do a different region every day without spending half of it in the car.",
-          "Getting around is the main decision. Buses are cheap but slow and rarely go directly where tourists want. A private car with a driver-guide is the comfortable option for a full day out and typically runs somewhere around 70 to 120 EUR for the vehicle, depending on the route and the number of stops, which works out very reasonable split between three or four people. If you would rather self-drive or just need a clean run to and from the island, our /airport-transfers and tailored day tours under /activities cover both, and you can sketch a multi-day route for free with the /ai-road-trip-planner."
-        ]
+          'Distances in Mauritius are short on paper but slow in practice. Flic-en-Flac to Chamarel is only about 30 kilometres, yet the climb up the winding plateau road takes the better part of an hour. The motorway north to Port Louis and Grand Baie is fast, but the scenic south-west is all single-lane coast road. As a rule of thumb, nothing on this list is more than about 90 minutes away, and most are 30 to 60. That makes Flic-en-Flac one of the few bases where you can genuinely do a different region every day without spending half of it in the car.',
+          'Getting around is the main decision. Buses are cheap but slow and rarely go directly where tourists want. A private car with a driver-guide is the comfortable option for a full day out and typically runs somewhere around 70 to 120 EUR for the vehicle, depending on the route and the number of stops, which works out very reasonable split between three or four people. If you would rather self-drive or just need a clean run to and from the island, our /airport-transfers and tailored day tours under /activities cover both, and you can sketch a multi-day route for free with the /ai-road-trip-planner.',
+        ],
       },
       {
-        "heading": "Casela Nature Parks: The Family Day Out",
-        "paragraphs": [
-          "Casela, properly Casela Nature Parks, sits just inland at Cascavelle, barely 10 minutes from Flic-en-Flac, which makes it the easiest and most popular day trip of all. It is part safari park, part adventure playground, spread over the foothills of the Rempart mountain. You will find giraffes, zebras, rhinos and ostriches on the savannah section, walk-through aviaries, big cats, and a long menu of paid add-on activities from quad biking and zip-lining to the famous (and pricey) walk or interaction with lions and cheetahs.",
-          "Be clear-eyed about how it is priced. A base entry ticket is roughly 25 to 35 EUR for an adult and less for children, but that covers the parks and the basic experiences only. The headline activities, the Segway safari, the via ferrata, the big-cat encounters, are all charged separately and add up quickly, so a family can easily spend a great deal more than the entry fee suggests. The land train safari included with most tickets is the simple crowd-pleaser. Go early, ideally at opening, both to beat the midday heat and because the animals are far more active in the cooler morning hours. Allow at least half a day, and a full one if you are adding adventures."
-        ]
+        heading: 'Casela Nature Parks: The Family Day Out',
+        paragraphs: [
+          'Casela, properly Casela Nature Parks, sits just inland at Cascavelle, barely 10 minutes from Flic-en-Flac, which makes it the easiest and most popular day trip of all. It is part safari park, part adventure playground, spread over the foothills of the Rempart mountain. You will find giraffes, zebras, rhinos and ostriches on the savannah section, walk-through aviaries, big cats, and a long menu of paid add-on activities from quad biking and zip-lining to the famous (and pricey) walk or interaction with lions and cheetahs.',
+          'Be clear-eyed about how it is priced. A base entry ticket is roughly 25 to 35 EUR for an adult and less for children, but that covers the parks and the basic experiences only. The headline activities, the Segway safari, the via ferrata, the big-cat encounters, are all charged separately and add up quickly, so a family can easily spend a great deal more than the entry fee suggests. The land train safari included with most tickets is the simple crowd-pleaser. Go early, ideally at opening, both to beat the midday heat and because the animals are far more active in the cooler morning hours. Allow at least half a day, and a full one if you are adding adventures.',
+        ],
       },
       {
-        "heading": "The Wild South-West Coast: Le Morne, Tamarin and Black River",
-        "paragraphs": [
+        heading: 'The Wild South-West Coast: Le Morne, Tamarin and Black River',
+        paragraphs: [
           "Heading south from Flic-en-Flac, the coast turns from resort strip to something far more raw and beautiful. The road runs through Tamarin and Black River (Rivière Noire in French) towards Le Morne Brabant, the dramatic basalt monolith that dominates the south-western tip. Le Morne is a UNESCO World Heritage Site, recognised for its history as a refuge for escaped slaves, and the peninsula beneath it holds some of the island's finest beaches and the calmest, most photogenic lagoon water you will see anywhere.",
-          "This stretch rewards an unhurried day rather than a tick-list. Stop at Tamarin Bay, a low-key surf and dolphin town with a wide sandy beach; carry on to the Black River area for seafood lunches and the gateway to the national park; then push on to Le Morne for an afternoon swim or kitesurfing watch. Le Morne is the island's premier kitesurfing spot precisely because of those reliable winter trade winds, so what makes the east coast blustery makes the south-west thrilling for board sports. If you are a serious hiker, the climb up Le Morne Brabant itself is a guided half-day, best attempted in the cooler dry season. You can find the region's marked highlights and beaches grouped under /destinations and /attractions."
-        ]
+          "This stretch rewards an unhurried day rather than a tick-list. Stop at Tamarin Bay, a low-key surf and dolphin town with a wide sandy beach; carry on to the Black River area for seafood lunches and the gateway to the national park; then push on to Le Morne for an afternoon swim or kitesurfing watch. Le Morne is the island's premier kitesurfing spot precisely because of those reliable winter trade winds, so what makes the east coast blustery makes the south-west thrilling for board sports. If you are a serious hiker, the climb up Le Morne Brabant itself is a guided half-day, best attempted in the cooler dry season. You can find the region's marked highlights and beaches grouped under /destinations and /attractions.",
+        ],
       },
       {
-        "heading": "Chamarel: Seven Coloured Earths, Waterfall and Rum",
-        "paragraphs": [
+        heading: 'Chamarel: Seven Coloured Earths, Waterfall and Rum',
+        paragraphs: [
           "A short, steep drive up from the coast brings you to Chamarel, a village on the southern plateau that packs three of the island's signature attractions into one compact loop. The Seven Coloured Earths are the famous draw: undulating dunes of mineral-rich sand in bands of red, ochre, violet and blue that supposedly never mix back together. They are smaller and more roped-off than the postcards suggest, so treat them as one stop among several rather than the whole reason to come. The same ticket, usually around 7 to 12 EUR, also gets you the viewpoint over the Chamarel Waterfall, which at roughly 100 metres is the tallest single-drop fall in Mauritius and far more spectacular than the coloured earths, especially after summer rain.",
-          "Round out the day at the Rhumerie de Chamarel, a working distillery set in sugar-cane fields where you can tour the production and taste agricultural rum made from fresh cane juice, with their restaurant a deservedly popular lunch stop. Chamarel also sits at the southern edge of Black River Gorges, so it pairs naturally with the viewpoints in the next section. The drive up is part of the experience, with sweeping views back over the west coast, but it is genuinely winding, so anyone prone to car sickness should sit in front and take it slowly."
-        ]
+          'Round out the day at the Rhumerie de Chamarel, a working distillery set in sugar-cane fields where you can tour the production and taste agricultural rum made from fresh cane juice, with their restaurant a deservedly popular lunch stop. Chamarel also sits at the southern edge of Black River Gorges, so it pairs naturally with the viewpoints in the next section. The drive up is part of the experience, with sweeping views back over the west coast, but it is genuinely winding, so anyone prone to car sickness should sit in front and take it slowly.',
+        ],
       },
       {
-        "heading": "Swimming with Dolphins off Tamarin",
-        "paragraphs": [
+        heading: 'Swimming with Dolphins off Tamarin',
+        paragraphs: [
           "The bay between Tamarin and Black River is home to resident pods of spinner and bottlenose dolphins, and early-morning boat trips to see them are one of the west coast's standout experiences, all within 20 minutes of Flic-en-Flac. Because the dolphins rest and feed in the calm morning water before heading offshore, these trips leave very early, often around 6 to 7am, so you watch the sunrise over the mountains on the way out. Many operators include a snorkelling stop on the reef and a barbecue or fruit on board, and prices typically land somewhere around 40 to 70 EUR per person depending on boat size and inclusions.",
-          "A word on doing it responsibly. Dolphin watching here has a mixed reputation because, in peak season, too many boats can crowd and chase the pods. Choose an operator that keeps engines off near the animals, limits the number of swimmers in the water at once and does not herd the dolphins, and accept that you are visiting wild animals in the open sea, so sightings are very likely but never guaranteed. The reward, drifting quietly while a pod glides beneath you, is worth getting up at dawn for. This is also dependable year-round, unlike humpback whale watching, which is a separate seasonal trip roughly from July to early November."
-        ]
+          'A word on doing it responsibly. Dolphin watching here has a mixed reputation because, in peak season, too many boats can crowd and chase the pods. Choose an operator that keeps engines off near the animals, limits the number of swimmers in the water at once and does not herd the dolphins, and accept that you are visiting wild animals in the open sea, so sightings are very likely but never guaranteed. The reward, drifting quietly while a pod glides beneath you, is worth getting up at dawn for. This is also dependable year-round, unlike humpback whale watching, which is a separate seasonal trip roughly from July to early November.',
+        ],
       },
       {
-        "heading": "Black River Gorges National Park: The Green Heart",
-        "paragraphs": [
+        heading: 'Black River Gorges National Park: The Green Heart',
+        paragraphs: [
           "Inland and uphill from Flic-en-Flac lies Black River Gorges National Park, the largest protected area in Mauritius and the last big stand of native forest. It is a complete change of scenery from the coast, all misty ravines, endemic birds and waterfalls, and it is the best place on the island for proper walking. There are two main access points: the lower Black River entrance near the west coast and the Pétrin entrance up on the plateau, with the road between Chamarel and Grand Bassin running along its southern flank past the celebrated Black River Peak viewpoint, the island's highest point at 828 metres.",
-          "Trails range from a 20-minute stroll to a viewpoint to all-day treks like the route down to the Tamarind Falls (Tamarin Falls), a series of cascades that are at their fullest after the summer rains. Entry to the park is free, which is rare and welcome. Come in the cooler, drier winter months (May to October) for the most comfortable and reliable hiking; summer (November to April) makes the waterfalls thunder but brings heat, humidity and afternoon downpours up on the plateau. Bring water, proper shoes and a light layer, because it is noticeably cooler and wetter at altitude than down on the beach you left an hour earlier."
-        ]
+          'Trails range from a 20-minute stroll to a viewpoint to all-day treks like the route down to the Tamarind Falls (Tamarin Falls), a series of cascades that are at their fullest after the summer rains. Entry to the park is free, which is rare and welcome. Come in the cooler, drier winter months (May to October) for the most comfortable and reliable hiking; summer (November to April) makes the waterfalls thunder but brings heat, humidity and afternoon downpours up on the plateau. Bring water, proper shoes and a light layer, because it is noticeably cooler and wetter at altitude than down on the beach you left an hour earlier.',
+        ],
       },
       {
-        "heading": "Planning Your Day Trips: A Few Honest Tips",
-        "paragraphs": [
-          "Group your trips by geography rather than trying to cram unconnected sights into one day. The south-west cluster, Chamarel, the Seven Coloured Earths, Black River Gorges and Le Morne, sits together and makes a superb full day with an early start. Casela and a Tamarin dolphin trip both work as half-days close to base, so you can pair a dawn dolphin swim with an afternoon elsewhere. Save the far north, Port Louis, Grand Baie and the islands, for its own dedicated day, as it is a different direction entirely.",
-          "Timing matters more than most visitors expect. Mornings are cooler, quieter and clearer, and many of the best experiences (dolphins, hiking, the Casela safari) are simply better before the midday heat. Carry cash in Mauritian rupees for small entry fees and roadside stalls, keep some flexibility for weather, and remember the two-season rhythm: dry, breezy winter is best for hiking and board sports, warm summer is best for the lagoon and for full waterfalls. If you would rather hand the logistics over, our day tours under /activities and the free /ai-road-trip-planner will assemble a sensible route, and we can provide a driver-guide so you spend the day looking out of the window rather than at the map."
-        ]
-      }
+        heading: 'Planning Your Day Trips: A Few Honest Tips',
+        paragraphs: [
+          'Group your trips by geography rather than trying to cram unconnected sights into one day. The south-west cluster, Chamarel, the Seven Coloured Earths, Black River Gorges and Le Morne, sits together and makes a superb full day with an early start. Casela and a Tamarin dolphin trip both work as half-days close to base, so you can pair a dawn dolphin swim with an afternoon elsewhere. Save the far north, Port Louis, Grand Baie and the islands, for its own dedicated day, as it is a different direction entirely.',
+          'Timing matters more than most visitors expect. Mornings are cooler, quieter and clearer, and many of the best experiences (dolphins, hiking, the Casela safari) are simply better before the midday heat. Carry cash in Mauritian rupees for small entry fees and roadside stalls, keep some flexibility for weather, and remember the two-season rhythm: dry, breezy winter is best for hiking and board sports, warm summer is best for the lagoon and for full waterfalls. If you would rather hand the logistics over, our day tours under /activities and the free /ai-road-trip-planner will assemble a sensible route, and we can provide a driver-guide so you spend the day looking out of the window rather than at the map.',
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Casela from Flic-en-Flac?",
-        "a": "Casela Nature Parks is at Cascavelle, only about 5 to 7 kilometres inland from Flic-en-Flac, roughly a 10-minute drive. That proximity makes it the easiest day trip from the resort and an ideal choice for families, especially if you arrive at opening when the animals are most active and the heat is bearable."
+        q: 'How far is Casela from Flic-en-Flac?',
+        a: 'Casela Nature Parks is at Cascavelle, only about 5 to 7 kilometres inland from Flic-en-Flac, roughly a 10-minute drive. That proximity makes it the easiest day trip from the resort and an ideal choice for families, especially if you arrive at opening when the animals are most active and the heat is bearable.',
       },
       {
-        "q": "Do I need a car for day trips from Flic-en-Flac?",
-        "a": "Not strictly, but it helps a lot. Public buses are cheap yet slow and rarely go directly to attractions like Chamarel or Le Morne. For a full day out, a private car with a driver-guide (around 70 to 120 EUR for the vehicle, shared between your group) is far more comfortable and lets you combine several south-west stops in one trip. Self-drive is also fine if you are confident on winding plateau roads."
+        q: 'Do I need a car for day trips from Flic-en-Flac?',
+        a: 'Not strictly, but it helps a lot. Public buses are cheap yet slow and rarely go directly to attractions like Chamarel or Le Morne. For a full day out, a private car with a driver-guide (around 70 to 120 EUR for the vehicle, shared between your group) is far more comfortable and lets you combine several south-west stops in one trip. Self-drive is also fine if you are confident on winding plateau roads.',
       },
       {
-        "q": "When is the best time of year for these day trips?",
-        "a": "It depends on the activity. The cooler, drier winter (May to October) is best for hiking in Black River Gorges and for kitesurfing at Le Morne. The warm summer (November to April) is best for lagoon swimming and makes the Chamarel and Tamarind waterfalls far more powerful. Dolphin trips off Tamarin run reliably year-round, always early in the morning."
+        q: 'When is the best time of year for these day trips?',
+        a: 'It depends on the activity. The cooler, drier winter (May to October) is best for hiking in Black River Gorges and for kitesurfing at Le Morne. The warm summer (November to April) is best for lagoon swimming and makes the Chamarel and Tamarind waterfalls far more powerful. Dolphin trips off Tamarin run reliably year-round, always early in the morning.',
       },
       {
-        "q": "Is swimming with dolphins in Tamarin ethical?",
-        "a": "It can be, if you choose carefully. The bay has wild resident pods, but in peak season some boats crowd and chase them. Pick an operator that cuts engines near the animals, limits swimmers in the water at once and does not herd the pods. Treat it as visiting wild animals in the open ocean: sightings are very likely but never guaranteed, and a respectful trip is well worth the dawn start."
-      }
-    ]
+        q: 'Is swimming with dolphins in Tamarin ethical?',
+        a: 'It can be, if you choose carefully. The bay has wild resident pods, but in peak season some boats crowd and chase them. Pick an operator that cuts engines near the animals, limits swimmers in the water at once and does not herd the pods. Treat it as visiting wild animals in the open ocean: sightings are very likely but never guaranteed, and a respectful trip is well worth the dawn start.',
+      },
+    ],
   },
   {
-    "slug": "sunset-spots-mauritius",
-    "title": "The Best Sunset Spots in Mauritius",
-    "metaTitle": "The Best Sunset Spots in Mauritius | Belle Mare Tours",
-    "metaDescription": "Where to watch the best sunsets in Mauritius: west coast viewpoints, Le Morne, Tamarin, and catamaran cruises. Honest tips on timing, seasons, and prices.",
-    "excerpt": "A practical, honest guide to the best places to watch the sunset in Mauritius, from the west coast beaches and Le Morne to Tamarin and catamaran cruises.",
-    "readMins": 6,
-    "sections": [
+    slug: 'sunset-spots-mauritius',
+    title: 'The Best Sunset Spots in Mauritius',
+    metaTitle: 'The Best Sunset Spots in Mauritius | Belle Mare Tours',
+    metaDescription:
+      'Where to watch the best sunsets in Mauritius: west coast viewpoints, Le Morne, Tamarin, and catamaran cruises. Honest tips on timing, seasons, and prices.',
+    excerpt:
+      'A practical, honest guide to the best places to watch the sunset in Mauritius, from the west coast beaches and Le Morne to Tamarin and catamaran cruises.',
+    readMins: 6,
+    sections: [
       {
-        "heading": "Why the West Coast Owns the Sunset",
-        "paragraphs": [
-          "Mauritius is small, roughly 65 kilometres long and 45 kilometres wide, but its geography decides where you should be at the end of the day. The sun sets over the Indian Ocean on the western side of the island, which means the east coast (where Belle Mare sits) gets glorious sunrises but a sun that drops behind the hills inland. For the classic image of the sun melting into the sea, you need to be on the west or south-west coast: roughly the stretch from Flic en Flac down through Tamarin, Black River, and around to Le Morne.",
-          "Timing shifts with the season. During the southern-hemisphere summer (November to April), sunset lands late, often around 6:45 to 7:00 pm, and the air is warm and humid with a higher chance of afternoon cloud build-up. In winter (May to October) the sun dips earlier, closer to 5:45 to 6:15 pm, the sky is usually clearer and drier, and the light has a crisper, golden quality. If you are crossing the island from the east, give yourself a full hour of driving time plus a buffer; the trans-island roads can be slow in the late afternoon."
-        ]
+        heading: 'Why the West Coast Owns the Sunset',
+        paragraphs: [
+          'Mauritius is small, roughly 65 kilometres long and 45 kilometres wide, but its geography decides where you should be at the end of the day. The sun sets over the Indian Ocean on the western side of the island, which means the east coast (where Belle Mare sits) gets glorious sunrises but a sun that drops behind the hills inland. For the classic image of the sun melting into the sea, you need to be on the west or south-west coast: roughly the stretch from Flic en Flac down through Tamarin, Black River, and around to Le Morne.',
+          'Timing shifts with the season. During the southern-hemisphere summer (November to April), sunset lands late, often around 6:45 to 7:00 pm, and the air is warm and humid with a higher chance of afternoon cloud build-up. In winter (May to October) the sun dips earlier, closer to 5:45 to 6:15 pm, the sky is usually clearer and drier, and the light has a crisper, golden quality. If you are crossing the island from the east, give yourself a full hour of driving time plus a buffer; the trans-island roads can be slow in the late afternoon.',
+        ],
       },
       {
-        "heading": "Flic en Flac and the Classic West Coast Beaches",
-        "paragraphs": [
-          "Flic en Flac is the most accessible sunset beach on the island and a sensible first choice if you are short on time or travelling with family. It has a long, flat, west-facing stretch of sand, shallow lagoon water, plenty of casuarina-tree shade, and a row of casual restaurants and snack vans behind the beach. You can park, walk straight onto the sand, and watch the colour change with almost no effort. It does get busy, especially at weekends when locals come down for a swim and a picnic, so arrive 30 to 40 minutes early if you want a quiet patch.",
-          "A little further north, Wolmar and the public beach at Albion offer the same west-facing view with fewer crowds. Albion is also home to the island's only working lighthouse open to visitors, the Pointe aux Caves lighthouse, which sits on dramatic black volcanic cliffs and makes a striking foreground for photos. These beaches are free, public, and need no booking. Combine a late-afternoon swim with a sunset here and you have an easy, low-cost evening. If you are planning a wider itinerary, our /attractions and /destinations pages map out what else is worth pairing with the west coast."
-        ]
+        heading: 'Flic en Flac and the Classic West Coast Beaches',
+        paragraphs: [
+          'Flic en Flac is the most accessible sunset beach on the island and a sensible first choice if you are short on time or travelling with family. It has a long, flat, west-facing stretch of sand, shallow lagoon water, plenty of casuarina-tree shade, and a row of casual restaurants and snack vans behind the beach. You can park, walk straight onto the sand, and watch the colour change with almost no effort. It does get busy, especially at weekends when locals come down for a swim and a picnic, so arrive 30 to 40 minutes early if you want a quiet patch.',
+          "A little further north, Wolmar and the public beach at Albion offer the same west-facing view with fewer crowds. Albion is also home to the island's only working lighthouse open to visitors, the Pointe aux Caves lighthouse, which sits on dramatic black volcanic cliffs and makes a striking foreground for photos. These beaches are free, public, and need no booking. Combine a late-afternoon swim with a sunset here and you have an easy, low-cost evening. If you are planning a wider itinerary, our /attractions and /destinations pages map out what else is worth pairing with the west coast.",
+        ],
       },
       {
-        "heading": "Le Morne: The Most Dramatic View on the Island",
-        "paragraphs": [
-          "Le Morne Brabant, the basalt monolith rising 556 metres at the south-western tip, is the most cinematic sunset backdrop in Mauritius. It is a UNESCO World Heritage Site, recognised for its history as a refuge for runaway slaves, and that weight of meaning is worth knowing before you visit. The public beach at Le Morne faces west across a turquoise lagoon with the mountain looming behind you, so you get the sun on the water and a genuinely dramatic silhouette in the same frame.",
-          "This is also kitesurfing country, and on a windy winter afternoon you will share the view with dozens of kites over the lagoon, which adds movement and colour to the scene. The public beach is free and open, though facilities are limited, so bring water and anything you need. The hike up the mountain is a separate, daytime activity that closes well before sunset for safety reasons, so do not plan to summit and catch the sun from the top. For organised half-day visits and beach time around Le Morne, see /activities."
-        ]
+        heading: 'Le Morne: The Most Dramatic View on the Island',
+        paragraphs: [
+          'Le Morne Brabant, the basalt monolith rising 556 metres at the south-western tip, is the most cinematic sunset backdrop in Mauritius. It is a UNESCO World Heritage Site, recognised for its history as a refuge for runaway slaves, and that weight of meaning is worth knowing before you visit. The public beach at Le Morne faces west across a turquoise lagoon with the mountain looming behind you, so you get the sun on the water and a genuinely dramatic silhouette in the same frame.',
+          'This is also kitesurfing country, and on a windy winter afternoon you will share the view with dozens of kites over the lagoon, which adds movement and colour to the scene. The public beach is free and open, though facilities are limited, so bring water and anything you need. The hike up the mountain is a separate, daytime activity that closes well before sunset for safety reasons, so do not plan to summit and catch the sun from the top. For organised half-day visits and beach time around Le Morne, see /activities.',
+        ],
       },
       {
-        "heading": "Tamarin: Sunset, Surf, and Dolphins",
-        "paragraphs": [
-          "Tamarin sits in a wide bay framed by the Rivière Noire (Black River) mountains and has a relaxed, slightly bohemian feel compared with the bigger resort beaches. The mouth of the Tamarin River creates a long sandbar and a surf break that has drawn boarders since the 1970s, so sunsets here often come with the silhouettes of surfers in the lineup. The beach is open and free, and the nearby village has casual bars and restaurants if you want to stay on for dinner.",
-          "Tamarin Bay and the neighbouring waters off Black River are also where wild spinner and bottlenose dolphins gather, though dolphin-watching is strictly a sunrise activity, not a sunset one, since the animals move offshore later in the day. If dolphins are on your list, plan a separate early-morning boat trip. For the evening, simply settle on the sand at Tamarin or drive a few minutes south to La Preneuse beach, which has the same west-facing aspect, calmer water, and the historic Martello Tower nearby."
-        ]
+        heading: 'Tamarin: Sunset, Surf, and Dolphins',
+        paragraphs: [
+          'Tamarin sits in a wide bay framed by the Rivière Noire (Black River) mountains and has a relaxed, slightly bohemian feel compared with the bigger resort beaches. The mouth of the Tamarin River creates a long sandbar and a surf break that has drawn boarders since the 1970s, so sunsets here often come with the silhouettes of surfers in the lineup. The beach is open and free, and the nearby village has casual bars and restaurants if you want to stay on for dinner.',
+          'Tamarin Bay and the neighbouring waters off Black River are also where wild spinner and bottlenose dolphins gather, though dolphin-watching is strictly a sunrise activity, not a sunset one, since the animals move offshore later in the day. If dolphins are on your list, plan a separate early-morning boat trip. For the evening, simply settle on the sand at Tamarin or drive a few minutes south to La Preneuse beach, which has the same west-facing aspect, calmer water, and the historic Martello Tower nearby.',
+        ],
       },
       {
-        "heading": "Catamaran Sunset Cruises: Worth It or Not?",
-        "paragraphs": [
-          "A sunset catamaran cruise is the splurge option, and for many visitors it is the highlight of the trip. Most cruises depart from the west coast, typically Black River, Tamarin, or the Le Morne area, in the late afternoon and run for two to three hours. You sail out beyond the reef, usually with a swim or snorkel stop, drinks and canapés on board, and then turn back so the sun sets over the bow with the mountains behind you. Being on the water, away from the beach crowds, with the light wrapping around you on all sides, is a genuinely different experience from watching from shore.",
-          "Be honest with yourself about budget and conditions. A shared sunset cruise generally runs from around 45 to 70 euros per person depending on the operator and what is included, while a private charter for a small group can climb to several hundred euros. Drinks packages, dinner, and live music push the price up. Sea conditions matter too: the west coast is usually sheltered, but a windy winter afternoon can mean chop once you pass the reef, so mention any seasickness when you book. Always choose a licensed operator with life jackets for everyone on board. We can arrange reputable catamaran cruises through /activities, and if you want to slot one into a full day's plan, the /ai-road-trip-planner can build the rest of the itinerary around your departure time."
-        ]
+        heading: 'Catamaran Sunset Cruises: Worth It or Not?',
+        paragraphs: [
+          'A sunset catamaran cruise is the splurge option, and for many visitors it is the highlight of the trip. Most cruises depart from the west coast, typically Black River, Tamarin, or the Le Morne area, in the late afternoon and run for two to three hours. You sail out beyond the reef, usually with a swim or snorkel stop, drinks and canapés on board, and then turn back so the sun sets over the bow with the mountains behind you. Being on the water, away from the beach crowds, with the light wrapping around you on all sides, is a genuinely different experience from watching from shore.',
+          "Be honest with yourself about budget and conditions. A shared sunset cruise generally runs from around 45 to 70 euros per person depending on the operator and what is included, while a private charter for a small group can climb to several hundred euros. Drinks packages, dinner, and live music push the price up. Sea conditions matter too: the west coast is usually sheltered, but a windy winter afternoon can mean chop once you pass the reef, so mention any seasickness when you book. Always choose a licensed operator with life jackets for everyone on board. We can arrange reputable catamaran cruises through /activities, and if you want to slot one into a full day's plan, the /ai-road-trip-planner can build the rest of the itinerary around your departure time.",
+        ],
       },
       {
-        "heading": "Getting There and Planning Your Evening",
-        "paragraphs": [
+        heading: 'Getting There and Planning Your Evening',
+        paragraphs: [
           "The west and south-west coast is a real drive from the eastern resorts. From Belle Mare or Trou d'Eau Douce, expect 60 to 90 minutes to Tamarin or Le Morne, depending on traffic and which route the motorway versus the coastal road you take. Late-afternoon congestion around Port Louis and Curepipe can add time, so build in a margin and aim to arrive at least half an hour before the listed sunset. After dark the rural roads are narrow, unlit, and sometimes shared with stray dogs and pedestrians, so a careful driver who knows the island is a real advantage.",
-          "If you would rather not drive yourself, a private transfer lets you relax, stay for the full sunset, and travel home safely afterwards without worrying about navigation or parking. We handle airport pickups and point-to-point transfers across the island; details are on /airport-transfers. Whether you go independently or with a driver, the formula is simple: pick a west-facing spot, check that day's sunset time, arrive early, and give yourself time to stay for the afterglow, which often lasts 20 to 30 minutes and is frequently better than the sunset itself."
-        ]
-      }
+          "If you would rather not drive yourself, a private transfer lets you relax, stay for the full sunset, and travel home safely afterwards without worrying about navigation or parking. We handle airport pickups and point-to-point transfers across the island; details are on /airport-transfers. Whether you go independently or with a driver, the formula is simple: pick a west-facing spot, check that day's sunset time, arrive early, and give yourself time to stay for the afterglow, which often lasts 20 to 30 minutes and is frequently better than the sunset itself.",
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "What time does the sun set in Mauritius?",
-        "a": "It depends on the season. In summer (November to April) sunset is late, roughly 6:45 to 7:00 pm. In winter (May to October) it is earlier, around 5:45 to 6:15 pm. Check the exact time for your date and arrive about 30 minutes ahead."
+        q: 'What time does the sun set in Mauritius?',
+        a: 'It depends on the season. In summer (November to April) sunset is late, roughly 6:45 to 7:00 pm. In winter (May to October) it is earlier, around 5:45 to 6:15 pm. Check the exact time for your date and arrive about 30 minutes ahead.',
       },
       {
-        "q": "Where is the best place to watch the sunset in Mauritius?",
-        "a": "Anywhere on the west or south-west coast, since the sun sets over the ocean there. Le Morne gives the most dramatic mountain backdrop, Flic en Flac is the easiest beach, and Tamarin offers a relaxed bay with surfers. The east coast is better for sunrises."
+        q: 'Where is the best place to watch the sunset in Mauritius?',
+        a: 'Anywhere on the west or south-west coast, since the sun sets over the ocean there. Le Morne gives the most dramatic mountain backdrop, Flic en Flac is the easiest beach, and Tamarin offers a relaxed bay with surfers. The east coast is better for sunrises.',
       },
       {
-        "q": "How much does a sunset catamaran cruise cost?",
-        "a": "A shared sunset cruise usually costs around 45 to 70 euros per person, including drinks and snacks, while a private charter can run to several hundred euros for a small group. Prices vary by operator, duration, and what food and drink are included."
+        q: 'How much does a sunset catamaran cruise cost?',
+        a: 'A shared sunset cruise usually costs around 45 to 70 euros per person, including drinks and snacks, while a private charter can run to several hundred euros for a small group. Prices vary by operator, duration, and what food and drink are included.',
       },
       {
-        "q": "Can I see the sunset from the east coast near Belle Mare?",
-        "a": "Not over the sea. The east coast faces the sunrise, so the sun sets behind the island's interior rather than into the ocean. For a sea sunset you need to drive to the west coast, which is about 60 to 90 minutes from Belle Mare."
-      }
-    ]
+        q: 'Can I see the sunset from the east coast near Belle Mare?',
+        a: "Not over the sea. The east coast faces the sunrise, so the sun sets behind the island's interior rather than into the ocean. For a sea sunset you need to drive to the west coast, which is about 60 to 90 minutes from Belle Mare.",
+      },
+    ],
   },
   {
-    "slug": "mauritius-markets-guide",
-    "title": "Mauritius Markets: Port Louis, Flacq & Quatre Bornes",
-    "metaTitle": "Mauritius Markets Guide: Port Louis, Flacq & More",
-    "metaDescription": "A practical guide to Mauritius markets: what to buy, best days, bargaining tips, street food and what to expect at Port Louis, Flacq and Quatre Bornes.",
-    "excerpt": "A practical, honest guide to the island's three best markets, covering what to buy, which days to go, how to bargain, what to eat and what to expect.",
-    "readMins": 6,
-    "sections": [
+    slug: 'mauritius-markets-guide',
+    title: 'Mauritius Markets: Port Louis, Flacq & Quatre Bornes',
+    metaTitle: 'Mauritius Markets Guide: Port Louis, Flacq & More',
+    metaDescription:
+      'A practical guide to Mauritius markets: what to buy, best days, bargaining tips, street food and what to expect at Port Louis, Flacq and Quatre Bornes.',
+    excerpt:
+      "A practical, honest guide to the island's three best markets, covering what to buy, which days to go, how to bargain, what to eat and what to expect.",
+    readMins: 6,
+    sections: [
       {
-        "heading": "Why the markets are worth your time",
-        "paragraphs": [
+        heading: 'Why the markets are worth your time',
+        paragraphs: [
           "Mauritius has plenty of polished shopping malls, but the markets are where you actually feel the island. They are loud, colourful, crowded and entirely unscripted, run by the same Creole, Indo-Mauritian, Chinese and Franco-Mauritian families who shape the island's cooking and culture. You will find fresh produce stacked in pyramids, spices sold by the scoop, pareos and printed cotton, model boats, vanilla and rum, and food stalls turning out snacks for a few rupees. It is the cheapest, most genuine cultural outing on the island.",
-          "This guide focuses on the three markets most worth a visit: the central market in Port Louis, the sprawling weekly fair at Flacq in the east, and the textile-heavy market at Quatre Bornes in the central plateau. Each has a different character and a different best day to visit. If you are still mapping out a wider itinerary, our /attractions and /destinations pages can help you slot a market morning between beaches, gardens and viewpoints."
-        ]
+          'This guide focuses on the three markets most worth a visit: the central market in Port Louis, the sprawling weekly fair at Flacq in the east, and the textile-heavy market at Quatre Bornes in the central plateau. Each has a different character and a different best day to visit. If you are still mapping out a wider itinerary, our /attractions and /destinations pages can help you slot a market morning between beaches, gardens and viewpoints.',
+        ],
       },
       {
-        "heading": "Port Louis Central Market: the classic",
-        "paragraphs": [
-          "The Central Market (Marche Central) in the capital is the one most visitors see, and for good reason. It sits a short walk from the Caudan Waterfront and the Aapravasi Ghat, so it folds easily into a city morning. The market splits roughly into three zones: a fruit-and-vegetable hall, a meat-and-fish section, and an upper craft-and-souvenir area aimed squarely at tourists. The produce hall is the real spectacle, with litchis and pineapples in summer (November to April), and victoria pineapple sellers who will happily cut and salt-chilli a slice for you on the spot.",
-          "For souvenirs, expect printed t-shirts, pareos, spices, vanilla pods, dodo-branded trinkets and bottles of local rum and chilli sauce. Quality is mixed and the upper floor sees the most aggressive selling on the island, so prices start high. It is open daily, but mornings (roughly 6am to around 5pm, earlier closing on Sundays) are best for atmosphere and freshness. Go before 11am to beat the heat and the tour-bus crush."
-        ]
+        heading: 'Port Louis Central Market: the classic',
+        paragraphs: [
+          'The Central Market (Marche Central) in the capital is the one most visitors see, and for good reason. It sits a short walk from the Caudan Waterfront and the Aapravasi Ghat, so it folds easily into a city morning. The market splits roughly into three zones: a fruit-and-vegetable hall, a meat-and-fish section, and an upper craft-and-souvenir area aimed squarely at tourists. The produce hall is the real spectacle, with litchis and pineapples in summer (November to April), and victoria pineapple sellers who will happily cut and salt-chilli a slice for you on the spot.',
+          'For souvenirs, expect printed t-shirts, pareos, spices, vanilla pods, dodo-branded trinkets and bottles of local rum and chilli sauce. Quality is mixed and the upper floor sees the most aggressive selling on the island, so prices start high. It is open daily, but mornings (roughly 6am to around 5pm, earlier closing on Sundays) are best for atmosphere and freshness. Go before 11am to beat the heat and the tour-bus crush.',
+        ],
       },
       {
-        "heading": "Flacq Market: the biggest and most local",
-        "paragraphs": [
-          "Flacq, in the east near Belle Mare, hosts the largest open-air market in Mauritius and one of the largest in the Indian Ocean. Unlike Port Louis, it is overwhelmingly a market for locals: families doing their weekly shop, farmers from the surrounding cane country, and stall after stall of vegetables, household goods, clothing, shoes, kitchenware and street food. The scale is genuinely impressive and prices are noticeably lower than the tourist-facing stalls in the capital.",
-          "The catch is timing. Flacq market runs in full force on Wednesdays and Sundays; on other days it is a fraction of the size. Sunday mornings are the peak. It is hot, dusty and packed, with very little English signage and few concessions to tourists, which is exactly why it is rewarding if you want the real thing. Wear closed shoes, carry small cash, and keep valuables zipped away. For anyone staying on the east coast, it is an easy half-day; our /airport-transfers and private-driver options can drop you at the market and wait while you explore."
-        ]
+        heading: 'Flacq Market: the biggest and most local',
+        paragraphs: [
+          'Flacq, in the east near Belle Mare, hosts the largest open-air market in Mauritius and one of the largest in the Indian Ocean. Unlike Port Louis, it is overwhelmingly a market for locals: families doing their weekly shop, farmers from the surrounding cane country, and stall after stall of vegetables, household goods, clothing, shoes, kitchenware and street food. The scale is genuinely impressive and prices are noticeably lower than the tourist-facing stalls in the capital.',
+          'The catch is timing. Flacq market runs in full force on Wednesdays and Sundays; on other days it is a fraction of the size. Sunday mornings are the peak. It is hot, dusty and packed, with very little English signage and few concessions to tourists, which is exactly why it is rewarding if you want the real thing. Wear closed shoes, carry small cash, and keep valuables zipped away. For anyone staying on the east coast, it is an easy half-day; our /airport-transfers and private-driver options can drop you at the market and wait while you explore.',
+        ],
       },
       {
-        "heading": "Quatre Bornes: the fabric and clothing market",
-        "paragraphs": [
+        heading: 'Quatre Bornes: the fabric and clothing market',
+        paragraphs: [
           "Up on the cooler central plateau, Quatre Bornes is known as la ville des fleurs but is famous among shoppers for fabric and clothing. Its biggest days are Thursdays and Sundays, when the textile market takes over and you can find everything from bolts of cloth and bed linen to cut-price branded clothing, much of it overrun stock from the island's garment factories. If you want a genuine bargain on clothes rather than carved souvenirs, this is the better bet over Port Louis.",
-          "Because it sits inland at higher elevation, Quatre Bornes is a few degrees cooler and gets more cloud and rain in the winter months (May to October), so the weather can be grey even when the coast is sunny. It is less geared to tourists, which keeps prices honest, though you will need patience to sift through the volume. The food stalls here are excellent for a quick, cheap lunch between browsing."
-        ]
+          'Because it sits inland at higher elevation, Quatre Bornes is a few degrees cooler and gets more cloud and rain in the winter months (May to October), so the weather can be grey even when the coast is sunny. It is less geared to tourists, which keeps prices honest, though you will need patience to sift through the volume. The food stalls here are excellent for a quick, cheap lunch between browsing.',
+        ],
       },
       {
-        "heading": "How bargaining actually works",
-        "paragraphs": [
+        heading: 'How bargaining actually works',
+        paragraphs: [
           "Bargaining is expected for souvenirs, crafts, textiles and clothing, but not for fresh food, which is sold at set, already-low prices. In the tourist craft sections, especially the upper floor in Port Louis, opening prices can be inflated two or three times over, so a counter-offer of roughly half is a reasonable starting point. Stay friendly and smiling, name a price you would genuinely pay, and be ready to walk away; you will often be called back. If you are not actually going to buy, do not haggle hard, as it wastes everyone's time.",
-          "A few practical notes. Carry small denominations of Mauritian rupees, as cash is king and big notes invite weak change. Card payment is rare at stalls. Many sellers quote tourists in euros, but you will almost always do better paying in rupees and knowing the rough rate before you go. Compare a few stalls before committing, because identical items sit metres apart at different prices, and buying two or three things from one seller is the easiest way to earn a real discount."
-        ]
+          'A few practical notes. Carry small denominations of Mauritian rupees, as cash is king and big notes invite weak change. Card payment is rare at stalls. Many sellers quote tourists in euros, but you will almost always do better paying in rupees and knowing the rough rate before you go. Compare a few stalls before committing, because identical items sit metres apart at different prices, and buying two or three things from one seller is the easiest way to earn a real discount.',
+        ],
       },
       {
-        "heading": "Street food and what to eat",
-        "paragraphs": [
-          "The food alone justifies a market visit. The icon is the dholl puri, a soft turmeric flatbread filled with ground split peas and served folded with bean curry, pickle and rougaille; two of them with chilli sauce will cost only a euro or two and make a proper lunch. Look also for gateau piment (deep-fried chilli-and-split-pea fritters), samosas, boulettes (steamed dumplings in broth in the Chinese-influenced stalls), and farata wraps. For something sweet, napolitaine biscuits and fresh sugarcane juice are everywhere.",
-          "To drink and cool down, try alouda, a chilled milk drink with basil seeds and agar jelly, sold from carts especially around Port Louis. Hygiene at busy stalls is generally fine because turnover is high and food is cooked to order, but use common sense: pick stalls with a queue of locals, eat food that is hot and freshly made, and be a little more cautious with pre-cut fruit if you have a sensitive stomach. If you would rather pair market browsing with a guided food-and-culture outing, see what is listed on /activities."
-        ]
+        heading: 'Street food and what to eat',
+        paragraphs: [
+          'The food alone justifies a market visit. The icon is the dholl puri, a soft turmeric flatbread filled with ground split peas and served folded with bean curry, pickle and rougaille; two of them with chilli sauce will cost only a euro or two and make a proper lunch. Look also for gateau piment (deep-fried chilli-and-split-pea fritters), samosas, boulettes (steamed dumplings in broth in the Chinese-influenced stalls), and farata wraps. For something sweet, napolitaine biscuits and fresh sugarcane juice are everywhere.',
+          'To drink and cool down, try alouda, a chilled milk drink with basil seeds and agar jelly, sold from carts especially around Port Louis. Hygiene at busy stalls is generally fine because turnover is high and food is cooked to order, but use common sense: pick stalls with a queue of locals, eat food that is hot and freshly made, and be a little more cautious with pre-cut fruit if you have a sensitive stomach. If you would rather pair market browsing with a guided food-and-culture outing, see what is listed on /activities.',
+        ],
       },
       {
-        "heading": "Practical tips and planning",
-        "paragraphs": [
-          "Go early. Markets open around dawn and the best produce, the freshest food and the bearable temperatures are all gone by midday, particularly in the November-to-April summer when humidity is high. Bring a reusable bag, a hat, sunscreen and water, and keep your phone and wallet secure in the crowds; pickpocketing is uncommon but not unheard of in the densest sections. Parking near Port Louis Central Market is difficult, so many visitors arrive by taxi or with a driver.",
-          "If you are combining a market with other stops, think about geography: Flacq pairs naturally with the east-coast beaches, Quatre Bornes with the central plateau and Curepipe, and Port Louis with the waterfront, the botanical garden at Pamplemousses and the city's historic sites. To stitch a market morning into a wider day without backtracking, our /ai-road-trip-planner can build a route around the right market day for your dates, and a licensed operator can handle the driving so you can focus on the haggling."
-        ]
-      }
+        heading: 'Practical tips and planning',
+        paragraphs: [
+          'Go early. Markets open around dawn and the best produce, the freshest food and the bearable temperatures are all gone by midday, particularly in the November-to-April summer when humidity is high. Bring a reusable bag, a hat, sunscreen and water, and keep your phone and wallet secure in the crowds; pickpocketing is uncommon but not unheard of in the densest sections. Parking near Port Louis Central Market is difficult, so many visitors arrive by taxi or with a driver.',
+          "If you are combining a market with other stops, think about geography: Flacq pairs naturally with the east-coast beaches, Quatre Bornes with the central plateau and Curepipe, and Port Louis with the waterfront, the botanical garden at Pamplemousses and the city's historic sites. To stitch a market morning into a wider day without backtracking, our /ai-road-trip-planner can build a route around the right market day for your dates, and a licensed operator can handle the driving so you can focus on the haggling.",
+        ],
+      },
     ],
-    "faq": [
+    faq: [
       {
-        "q": "Which is the best market to visit in Mauritius?",
-        "a": "It depends on what you want. Port Louis Central Market is the most convenient and best for souvenirs and atmosphere. Flacq is the biggest and most authentically local, ideal for produce and a real Mauritian experience. Quatre Bornes is the place for fabric and cheap clothing."
+        q: 'Which is the best market to visit in Mauritius?',
+        a: 'It depends on what you want. Port Louis Central Market is the most convenient and best for souvenirs and atmosphere. Flacq is the biggest and most authentically local, ideal for produce and a real Mauritian experience. Quatre Bornes is the place for fabric and cheap clothing.',
       },
       {
-        "q": "What days are the markets open?",
-        "a": "Port Louis Central Market is open daily, with mornings best and a shorter day on Sundays. Flacq market is at full size on Wednesdays and Sundays. Quatre Bornes has its main textile market on Thursdays and Sundays. Visiting on a peak day makes a big difference to the experience."
+        q: 'What days are the markets open?',
+        a: 'Port Louis Central Market is open daily, with mornings best and a shorter day on Sundays. Flacq market is at full size on Wednesdays and Sundays. Quatre Bornes has its main textile market on Thursdays and Sundays. Visiting on a peak day makes a big difference to the experience.',
       },
       {
-        "q": "Should I bargain, and in which currency should I pay?",
-        "a": "Bargain for crafts, souvenirs, textiles and clothing, but not for fresh food, which is already low and fixed. Start at roughly half the opening price and be willing to walk away. Pay in Mauritian rupees with small notes; you will usually get a better deal than paying in euros."
+        q: 'Should I bargain, and in which currency should I pay?',
+        a: 'Bargain for crafts, souvenirs, textiles and clothing, but not for fresh food, which is already low and fixed. Start at roughly half the opening price and be willing to walk away. Pay in Mauritian rupees with small notes; you will usually get a better deal than paying in euros.',
       },
       {
-        "q": "Is market street food safe to eat?",
-        "a": "Generally yes. Stalls with high local turnover serve food cooked fresh to order, which keeps it safe. Choose busy stalls, eat things that are hot off the pan, and be a little more careful with pre-cut fruit if your stomach is sensitive. Dholl puri, gateau piment and alouda are must-tries."
-      }
-    ]
-  }
+        q: 'Is market street food safe to eat?',
+        a: 'Generally yes. Stalls with high local turnover serve food cooked fresh to order, which keeps it safe. Choose busy stalls, eat things that are hot off the pan, and be a little more careful with pre-cut fruit if your stomach is sensitive. Dholl puri, gateau piment and alouda are must-tries.',
+      },
+    ],
+  },
 ];

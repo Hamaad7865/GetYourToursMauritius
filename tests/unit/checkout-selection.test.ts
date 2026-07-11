@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { selectionHash, shouldRehydrateBooking, type SelectionInput } from '@/lib/checkout/selection';
+import {
+  selectionHash,
+  shouldRehydrateBooking,
+  type SelectionInput,
+} from '@/lib/checkout/selection';
 
 // A representative price-relevant selection. Every field here changes the amount the customer pays
 // (or the booking the server creates), so a change to ANY of them must produce a different hash —
@@ -59,7 +63,9 @@ describe('selectionHash', () => {
   });
 
   it('differs when the pickup text changes', () => {
-    expect(selectionHash({ ...base, pickupText: 'Hotel Trou aux Biches' })).not.toBe(selectionHash(base));
+    expect(selectionHash({ ...base, pickupText: 'Hotel Trou aux Biches' })).not.toBe(
+      selectionHash(base),
+    );
   });
 
   it('differs when the pickup coordinates change', () => {
@@ -108,7 +114,9 @@ describe('shouldRehydrateBooking', () => {
 
   it('does NOT rehydrate when the selection hash differs (different party/config, same occurrence)', () => {
     const other = selectionHash({ ...base, qty: 4 });
-    expect(shouldRehydrateBooking({ storedSel: sel, currentSel: other, from: 'widget' })).toBe(false);
+    expect(shouldRehydrateBooking({ storedSel: sel, currentSel: other, from: 'widget' })).toBe(
+      false,
+    );
     expect(shouldRehydrateBooking({ storedSel: sel, currentSel: other, from: 'cart' })).toBe(false);
   });
 

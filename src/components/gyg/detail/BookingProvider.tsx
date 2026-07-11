@@ -1,6 +1,14 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import type { TourType } from '@/lib/validation/common';
 import type {
@@ -19,7 +27,12 @@ import {
   SIGHTSEEING_SUV_MAX,
 } from '@/lib/services/pricing';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
-import { defaultOptionId, cheapestTier, privateConfig, type PrivateConfig } from '@/lib/catalogue/options';
+import {
+  defaultOptionId,
+  cheapestTier,
+  privateConfig,
+  type PrivateConfig,
+} from '@/lib/catalogue/options';
 import { useToast } from '@/components/site/ToastProvider';
 import { useT } from '@/components/site/PreferencesProvider';
 import { encodeParty, partyGuests } from '@/lib/services/party';
@@ -165,7 +178,8 @@ export function BookingProvider({
   // Resolve the option the widget opens on up-front, so the initial party can default to a private
   // option's covered count (`included`) with no flash from the generic default of 2.
   const initialOptionId = defaultOptionId(activity.options, activity.pricingMode === 'vehicle');
-  const initialOption = activity.options.find((o) => o.id === initialOptionId) ?? activity.options[0] ?? null;
+  const initialOption =
+    activity.options.find((o) => o.id === initialOptionId) ?? activity.options[0] ?? null;
   const initialPrivate = initialOption ? privateConfig(initialOption) : null;
   const [participants, setParticipants] = useState(initialPrivate ? initialPrivate.included : 2);
   const [bandCounts, setBandCounts] = useState<Record<string, number>>({});
@@ -194,9 +208,12 @@ export function BookingProvider({
     if (updTimer.current) clearTimeout(updTimer.current);
     updTimer.current = setTimeout(() => setUpdating(false), 350);
   }, []);
-  useEffect(() => () => {
-    if (updTimer.current) clearTimeout(updTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (updTimer.current) clearTimeout(updTimer.current);
+    },
+    [],
+  );
 
   const isVehicle = activity.pricingMode === 'vehicle';
   const vehicleCfg = activity.vehiclePricing ?? SIGHTSEEING_DEFAULT;
@@ -208,11 +225,14 @@ export function BookingProvider({
     () => activity.options.find((o) => o.id === selectedOptionId) ?? activity.options[0] ?? null,
     [activity.options, selectedOptionId],
   );
-  const setSelectedOption = useCallback((id: string) => {
-    setSelectedOptionId(id);
-    setDate(''); // occurrences differ per option — force a fresh date pick
-    touch();
-  }, [touch]);
+  const setSelectedOption = useCallback(
+    (id: string) => {
+      setSelectedOptionId(id);
+      setDate(''); // occurrences differ per option — force a fresh date pick
+      touch();
+    },
+    [touch],
+  );
 
   // The selected option's cheapest tier drives the per-person/per-group price (and tier caps).
   const selectedTier = useMemo(
@@ -269,7 +289,9 @@ export function BookingProvider({
     setAvailabilityError(false);
     const horizon = new Date(today);
     horizon.setDate(horizon.getDate() + 180);
-    fetch(`/api/v1/activities/${activity.slug}/availability?from=${nominalDayKey(today)}&to=${nominalDayKey(horizon)}`)
+    fetch(
+      `/api/v1/activities/${activity.slug}/availability?from=${nominalDayKey(today)}&to=${nominalDayKey(horizon)}`,
+    )
       .then((r) => r.json())
       .then((body) => {
         if (!active) return;
@@ -304,7 +326,10 @@ export function BookingProvider({
 
   const groupSize = activity.pricingMode === 'per_group' ? (selectedTier?.maxGuests ?? null) : null;
   const seatsLeft = (date ? days?.get(date)?.seatsLeft : undefined) ?? 0;
-  const tierCap = activity.pricingMode === 'per_person' && selectedTier?.maxGuests ? selectedTier.maxGuests : Infinity;
+  const tierCap =
+    activity.pricingMode === 'per_person' && selectedTier?.maxGuests
+      ? selectedTier.maxGuests
+      : Infinity;
   // A private party is capped by its own max group size ONLY — seatsLeft counts trips, not people,
   // so a 1-trip day must still accept a party of 6.
   const maxParticipants = privateCfg
@@ -380,7 +405,8 @@ export function BookingProvider({
         next[lbl] = (next[lbl] ?? 0) - take;
         over -= take;
       }
-      if (over > 0 && primaryLabel) next[primaryLabel] = Math.max(1, (next[primaryLabel] ?? 1) - over);
+      if (over > 0 && primaryLabel)
+        next[primaryLabel] = Math.max(1, (next[primaryLabel] ?? 1) - over);
       return next;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -396,7 +422,11 @@ export function BookingProvider({
     if (childSeats > totalGuests) setChildSeats(totalGuests);
   }, [childSeats, totalGuests]);
   const vehicleQuote = isVehicle
-    ? sightseeingQuote(Math.min(Math.max(participants, 1), vehicleCfg.maxParty), suvActive, vehicleCfg)
+    ? sightseeingQuote(
+        Math.min(Math.max(participants, 1), vehicleCfg.maxParty),
+        suvActive,
+        vehicleCfg,
+      )
     : null;
   // Age-banded: sum each band's count × its own DB price (infant €0 still counts a head). Wrapped so an
   // over-cap transient never throws into render — falls back to null (Continue stays disabled).
@@ -416,7 +446,13 @@ export function BookingProvider({
   const privateTotal = useMemo(() => {
     if (!privateCfg || participants < 1) return null;
     try {
-      return privateQuote(privateCfg.baseEur, privateCfg.included, privateCfg.extraEur, participants, privateCfg.maxGuests);
+      return privateQuote(
+        privateCfg.baseEur,
+        privateCfg.included,
+        privateCfg.extraEur,
+        participants,
+        privateCfg.maxGuests,
+      );
     } catch {
       return null;
     }
@@ -498,7 +534,10 @@ export function BookingProvider({
     // Keep the hold tokens OUT of the URL (they'd leak via Referer / history / a shared checkout
     // link); hand them to checkout via sessionStorage keyed by the occurrence instead.
     try {
-      window.sessionStorage.setItem(`gytm:hold:${occ}`, JSON.stringify({ holdId, expiresAt, idem }));
+      window.sessionStorage.setItem(
+        `gytm:hold:${occ}`,
+        JSON.stringify({ holdId, expiresAt, idem }),
+      );
     } catch {
       /* sessionStorage unavailable — checkout will create the hold at pay */
     }
@@ -561,7 +600,8 @@ export function BookingProvider({
       // (per_person/per_group with pickup) activity. The pickup itself + the transport fee are chosen
       // and priced AT CHECKOUT now, not here.
       pickupcap:
-        (activity.pricingMode === 'per_person' || activity.pricingMode === 'per_group') && activity.pickupAvailable
+        (activity.pricingMode === 'per_person' || activity.pricingMode === 'per_group') &&
+        activity.pickupAvailable
           ? '1'
           : '',
       from: 'widget',

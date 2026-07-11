@@ -53,14 +53,18 @@ export default async function ContactPage() {
               {t('Let’s plan your Mauritius')}
             </h1>
             <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-white/85 sm:text-base">
-              {t('Questions about a tour, a transfer or a rental? Message us — we’re a small local team and we love helping you put together the perfect day.')}
+              {t(
+                'Questions about a tour, a transfer or a rental? Message us — we’re a small local team and we love helping you put together the perfect day.',
+              )}
             </p>
           </div>
         </section>
 
         <div className="mx-auto grid max-w-shell gap-10 px-6 py-12 sm:py-16 lg:grid-cols-[1fr_1.1fr]">
           <div>
-            <h2 className="text-[20px] font-extrabold tracking-tight text-ink">{t('Talk to us directly')}</h2>
+            <h2 className="text-[20px] font-extrabold tracking-tight text-ink">
+              {t('Talk to us directly')}
+            </h2>
             <div className="mt-5 flex flex-col gap-3">
               {channels.map((c) => (
                 <a
@@ -86,7 +90,9 @@ export default async function ContactPage() {
           </div>
 
           <div>
-            <h2 className="text-[20px] font-extrabold tracking-tight text-ink">{t('Send us a message')}</h2>
+            <h2 className="text-[20px] font-extrabold tracking-tight text-ink">
+              {t('Send us a message')}
+            </h2>
             <div className="mt-5">
               <ContactForm />
             </div>

@@ -25,10 +25,7 @@
     "withPriceFrom": 28,
     "withImages": 28,
     "totalImages": 142,
-    "currencies": [
-      "EUR",
-      "MUR"
-    ]
+    "currencies": ["EUR", "MUR"]
   },
   "categories": [
     "Sightseeing",
@@ -212,10 +209,7 @@
         "Personal driver-guide",
         "Pick-up and drop-off at all parts of the island"
       ],
-      "notIncludedOrRequired": [
-        "Admission tickets",
-        "Lunch (driver can recommend restaurants)"
-      ],
+      "notIncludedOrRequired": ["Admission tickets", "Lunch (driver can recommend restaurants)"],
       "highlights": [
         "Trou aux Cerfs volcano (Centre region)",
         "Floréal shopping (Centre region)",
@@ -309,11 +303,7 @@
         "Full day transport to all the mentioned sites",
         "Pick-up and drop-off across the island"
       ],
-      "notIncludedOrRequired": [
-        "Admission tickets",
-        "Lunch",
-        "Guide services"
-      ],
+      "notIncludedOrRequired": ["Admission tickets", "Lunch", "Guide services"],
       "highlights": [
         "23-coloured earth formation",
         "Four waterfalls (Vacoas, Rattan Wood, Angel Hair, Chamouzé)",
@@ -403,10 +393,7 @@
         "Driver-guide services",
         "Pick-up and drop-off at all parts of the island"
       ],
-      "notIncludedOrRequired": [
-        "Admission tickets",
-        "Lunch (driver can recommend restaurants)"
-      ],
+      "notIncludedOrRequired": ["Admission tickets", "Lunch (driver can recommend restaurants)"],
       "highlights": [
         "Port Louis (capital)",
         "Central Market (Marché central)",
@@ -1709,9 +1696,7 @@
         "Complete flight briefing (The Magic)",
         "Access to the elegant lounge (The Magic)"
       ],
-      "notIncludedOrRequired": [
-        "Transport is optional (do not drink if you are going to drive)"
-      ],
+      "notIncludedOrRequired": ["Transport is optional (do not drink if you are going to drive)"],
       "highlights": [
         "The Must: flyover of the northern landscapes and islets, Grand-Baie, Coin de Mire, Ile Plate, Ile d'Ambre (site of the Saint-Geran shipwreck)",
         "The Magic: Port-Louis, Moulin de la Concorde, Ile aux Benitiers, Morne Brabant, the Underwater Waterfall, Chamarel, Ile aux Cerfs, Riviere-Noire, the Tamarin waterfalls, Blue Bay Marine Park, Pieter Both",
@@ -1967,10 +1952,7 @@
           "notes": "Transport"
         }
       ],
-      "included": [
-        "Briefing before boarding",
-        "Pick-up and drop-off at all parts of the island"
-      ],
+      "included": ["Briefing before boarding", "Pick-up and drop-off at all parts of the island"],
       "notIncludedOrRequired": [
         "Do not drink if you are going to drive",
         "Arrive at the boarding point at least 15 minutes before the cruise start time"
@@ -2188,10 +2170,7 @@
           "notes": "Transport"
         }
       ],
-      "included": [
-        "Baby seat (free on demand)",
-        "Pick-up and drop-off at all parts of the island"
-      ],
+      "included": ["Baby seat (free on demand)", "Pick-up and drop-off at all parts of the island"],
       "notIncludedOrRequired": [
         "Do not drink if you are going to drive",
         "Arrive at least 15 minutes before the cruise start time",

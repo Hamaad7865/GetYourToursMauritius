@@ -50,8 +50,8 @@ export default function TermsPage() {
 
         <LegalSection id="who" title="Who we are">
           <P>
-            {SITE.name} is the official booking platform of {SITE.legalName}, a tour operator based in
-            Belle Mare, Mauritius. We operate or directly partner on every experience listed.
+            {SITE.name} is the official booking platform of {SITE.legalName}, a tour operator based
+            in Belle Mare, Mauritius. We operate or directly partner on every experience listed.
           </P>
           <LegalList
             items={[
@@ -104,18 +104,18 @@ export default function TermsPage() {
             ready. Please have it available — on your phone is fine — at check-in.
           </P>
           <P>
-            Arrive or be ready for pickup at the stated time. Departures run to schedule for everyone
-            on board, so we may be unable to wait for late arrivals.
+            Arrive or be ready for pickup at the stated time. Departures run to schedule for
+            everyone on board, so we may be unable to wait for late arrivals.
           </P>
         </LegalSection>
 
         <LegalSection id="cancellations" title="Cancellations & refunds">
           <P>
-            Most activities can be cancelled free of charge until <strong>9:00 AM Mauritius time on
-            the day before</strong> your activity date. After that, bookings are non-refundable. The
-            full policy, worked examples and how refunds are paid are on our{' '}
-            <Link href="/refunds">Cancellations &amp; refunds</Link> page, which forms part of these
-            Terms.
+            Most activities can be cancelled free of charge until{' '}
+            <strong>9:00 AM Mauritius time on the day before</strong> your activity date. After
+            that, bookings are non-refundable. The full policy, worked examples and how refunds are
+            paid are on our <Link href="/refunds">Cancellations &amp; refunds</Link> page, which
+            forms part of these Terms.
           </P>
         </LegalSection>
 
@@ -143,11 +143,11 @@ export default function TermsPage() {
 
         <LegalSection id="safety" title="Safety & health">
           <P>
-            Watersports and excursions carry inherent risks. Our crews are experienced and we provide
-            appropriate safety equipment and briefings, but you take part on the basis that you are in
-            a fit state to do so. We may decline participation, without refund, where someone is
-            visibly unwell, under the influence of alcohol or drugs, or unwilling to follow safety
-            instructions.
+            Watersports and excursions carry inherent risks. Our crews are experienced and we
+            provide appropriate safety equipment and briefings, but you take part on the basis that
+            you are in a fit state to do so. We may decline participation, without refund, where
+            someone is visibly unwell, under the influence of alcohol or drugs, or unwilling to
+            follow safety instructions.
           </P>
         </LegalSection>
 
@@ -165,16 +165,16 @@ export default function TermsPage() {
             ]}
           />
           <P>
-            We strongly recommend you hold suitable travel insurance covering activities, cancellation
-            and personal belongings.
+            We strongly recommend you hold suitable travel insurance covering activities,
+            cancellation and personal belongings.
           </P>
         </LegalSection>
 
         <LegalSection id="privacy" title="Privacy">
           <P>
-            We handle your personal data in line with our <Link href="/privacy">Privacy policy</Link>
-            {' '}and applicable Mauritius data-protection law. Please read it to understand what we
-            collect and why.
+            We handle your personal data in line with our{' '}
+            <Link href="/privacy">Privacy policy</Link> and applicable Mauritius data-protection
+            law. Please read it to understand what we collect and why.
           </P>
         </LegalSection>
 
@@ -185,16 +185,16 @@ export default function TermsPage() {
             unenforceable, the rest continues to apply.
           </P>
           <Callout tone="info" title="These Terms may be updated">
-            We may revise these Terms from time to time. The version in force when you book is the one
-            that applies to your booking. The date at the top shows when this page was last updated.
+            We may revise these Terms from time to time. The version in force when you book is the
+            one that applies to your booking. The date at the top shows when this page was last
+            updated.
           </Callout>
         </LegalSection>
 
         <LegalSection id="contact" title="Contact">
           <P>
-            Questions about these Terms? Email{' '}
-            <a href={`mailto:${SITE.email}`}>{SITE.email}</a>, call{' '}
-            <a href={`tel:${SITE.phone.replace(/\s+/g, '')}`}>{SITE.phone}</a>, or see our{' '}
+            Questions about these Terms? Email <a href={`mailto:${SITE.email}`}>{SITE.email}</a>,
+            call <a href={`tel:${SITE.phone.replace(/\s+/g, '')}`}>{SITE.phone}</a>, or see our{' '}
             <Link href="/help">Help centre</Link>.
           </P>
           <EnquireRow message="Hi Belle Mare Tours! I have a question about your terms of service." />

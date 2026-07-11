@@ -13,7 +13,16 @@ import {
   type CategoryStatus,
 } from '@/lib/admin/categories';
 import { IconChevron, IconPlus } from '@/components/ui/icons';
-import { AdminHeading, Card, Field, AdminError, INPUT_CLS, SELECT_CLS, BTN_PRIMARY, BTN_GHOST } from '@/components/admin/ui';
+import {
+  AdminHeading,
+  Card,
+  Field,
+  AdminError,
+  INPUT_CLS,
+  SELECT_CLS,
+  BTN_PRIMARY,
+  BTN_GHOST,
+} from '@/components/admin/ui';
 
 const EMPTY: CategoryInput = { name: '', imageUrl: '', status: 'active' };
 
@@ -117,7 +126,12 @@ export function AdminCategories() {
             </Field>
           </div>
           <div className="mt-4 flex gap-2">
-            <button type="button" disabled={busy || !form.name.trim()} onClick={() => void save()} className={BTN_PRIMARY}>
+            <button
+              type="button"
+              disabled={busy || !form.name.trim()}
+              onClick={() => void save()}
+              className={BTN_PRIMARY}
+            >
               {busy ? 'Saving…' : 'Save category'}
             </button>
             <button type="button" onClick={() => setEditing(null)} className={BTN_GHOST}>
@@ -131,11 +145,16 @@ export function AdminCategories() {
         {rows === null ? (
           <p className="p-6 text-sm text-ink-muted">Loading…</p>
         ) : rows.length === 0 ? (
-          <p className="p-6 text-sm text-ink-muted">No categories yet. Click “New category” to add one.</p>
+          <p className="p-6 text-sm text-ink-muted">
+            No categories yet. Click “New category” to add one.
+          </p>
         ) : (
           <ul>
             {rows.map((row, i) => (
-              <li key={row.id} className="flex items-center gap-3 border-t border-[#F2F4F6] px-5 py-3 first:border-t-0 hover:bg-[#FAFBFC]">
+              <li
+                key={row.id}
+                className="flex items-center gap-3 border-t border-[#F2F4F6] px-5 py-3 first:border-t-0 hover:bg-[#FAFBFC]"
+              >
                 <div className="flex flex-col">
                   <button
                     type="button"
@@ -158,7 +177,11 @@ export function AdminCategories() {
                 </div>
                 {row.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={row.imageUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-cover" />
+                  <img
+                    src={row.imageUrl}
+                    alt=""
+                    className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                  />
                 ) : (
                   <span className="h-9 w-9 shrink-0 rounded-lg bg-teal/10" />
                 )}
@@ -166,12 +189,18 @@ export function AdminCategories() {
                   <div className="flex items-center gap-2">
                     <span className="truncate font-bold text-ink">{row.name}</span>
                     {row.status === 'hidden' && (
-                      <span className="shrink-0 rounded-full bg-ink/10 px-2 py-0.5 text-[11px] font-bold text-ink-muted">Hidden</span>
+                      <span className="shrink-0 rounded-full bg-ink/10 px-2 py-0.5 text-[11px] font-bold text-ink-muted">
+                        Hidden
+                      </span>
                     )}
                   </div>
                   <p className="truncate text-[12.5px] text-ink-muted">/{row.slug}</p>
                 </div>
-                <button type="button" onClick={() => startEdit(row)} className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-bold text-teal hover:bg-cream">
+                <button
+                  type="button"
+                  onClick={() => startEdit(row)}
+                  className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-bold text-teal hover:bg-cream"
+                >
                   Edit
                 </button>
                 <button

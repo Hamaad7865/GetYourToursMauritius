@@ -116,9 +116,10 @@ export function EmbeddedCheckout({
                 body: JSON.stringify({ checkoutId }),
               });
               if (res.ok) {
-                const body = (await res.json().catch(() => null)) as
-                  | { ok?: boolean; data?: { confirmed?: boolean } }
-                  | null;
+                const body = (await res.json().catch(() => null)) as {
+                  ok?: boolean;
+                  data?: { confirmed?: boolean };
+                } | null;
                 if (body?.data?.confirmed) {
                   confirmed = true;
                   break;

@@ -5,7 +5,15 @@ import { useBooking } from './BookingProvider';
 import { durationLabel } from '@/lib/catalogue/detail';
 import { badgeIcon } from '@/components/ui/badge-icons';
 import { RevealGroup } from '@/components/site/RevealGroup';
-import { IconBolt, IconCalendar, IconClock, IconGlobe, IconPin, IconUsers, IconWallet } from '@/components/ui/icons';
+import {
+  IconBolt,
+  IconCalendar,
+  IconClock,
+  IconGlobe,
+  IconPin,
+  IconUsers,
+  IconWallet,
+} from '@/components/ui/icons';
 
 /**
  * Two-column "at a glance" facts grid, GetYourGuide style. Client, so the Duration + Start-time facts
@@ -52,9 +60,13 @@ export function QuickFacts({
                   {Icon ? <Icon width={22} height={22} /> : null}
                 </span>
                 <span className="min-w-0">
-                  <span className="block text-[15px] font-bold leading-tight text-ink">{b.title}</span>
+                  <span className="block text-[15px] font-bold leading-tight text-ink">
+                    {b.title}
+                  </span>
                   {b.subtitle ? (
-                    <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">{b.subtitle}</span>
+                    <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">
+                      {b.subtitle}
+                    </span>
                   ) : null}
                 </span>
               </div>

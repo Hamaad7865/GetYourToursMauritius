@@ -2,7 +2,12 @@
 
 import { useT } from '@/components/site/PreferencesProvider';
 
-const CHIPS = ['A relaxed day in the south', 'Best beaches up north', 'Waterfalls & viewpoints', 'First time in Mauritius'];
+const CHIPS = [
+  'A relaxed day in the south',
+  'Best beaches up north',
+  'Waterfalls & viewpoints',
+  'First time in Mauritius',
+];
 
 /**
  * Centered hero — the design's "Mauritius, planned by AI." headline, a grounded-data pill, the
@@ -30,24 +35,35 @@ export function HeroSection({
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-50"
-        style={{ background: 'radial-gradient(60% 50% at 50% 120%, rgba(201,138,18,.10), transparent 70%)' }}
+        style={{
+          background: 'radial-gradient(60% 50% at 50% 120%, rgba(201,138,18,.10), transparent 70%)',
+        }}
         aria-hidden
       />
       <div className="relative mx-auto max-w-[1080px] px-[22px] pb-10 pt-[46px] text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-[#EAF2F1] bg-white py-[5px] pl-1.5 pr-3 text-[12.5px] font-semibold text-teal-dark shadow-[0_6px_18px_rgba(10,46,54,.06)]">
           <span className="grid h-5 w-5 place-items-center rounded-md bg-teal-tint text-teal">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M5 13l4 4L19 7" stroke="#0E8C92" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M5 13l4 4L19 7"
+                stroke="#0E8C92"
+                strokeWidth={2.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </span>
           {t('Grounded in real Google Maps drive times')}
         </div>
 
         <h1 className="m-0 mt-[18px] font-display text-[clamp(40px,7vw,74px)] font-semibold leading-[1.02] tracking-[-0.025em] text-ink">
-          {t('Mauritius,')} <span className="font-medium italic text-teal">{t('planned')}</span> {t('by AI.')}
+          {t('Mauritius,')} <span className="font-medium italic text-teal">{t('planned')}</span>{' '}
+          {t('by AI.')}
         </h1>
         <p className="mx-auto mt-[15px] max-w-[560px] text-[clamp(15px,1.9vw,18px)] font-medium leading-[1.5] text-ink-muted">
-          {t('Real places. Real drive times. Driven by locals. Tell ZilAi your perfect day and watch it appear on the map.')}
+          {t(
+            'Real places. Real drive times. Driven by locals. Tell ZilAi your perfect day and watch it appear on the map.',
+          )}
         </p>
 
         <form
@@ -58,8 +74,21 @@ export function HeroSection({
           className="relative mx-auto mt-[26px] max-w-[620px]"
         >
           <div className="flex items-center gap-2 rounded-[18px] border border-[#E3EEEC] bg-white py-2 pl-4 pr-2 shadow-[0_18px_44px_rgba(10,46,54,.10),0_2px_6px_rgba(10,46,54,.04)]">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="shrink-0" aria-hidden>
-              <path d="M9 11a4 4 0 1 1 6 3.5L17 21l-2.2-1.3M9 11l-2 1m2-1a4 4 0 0 0 .8 2.4" stroke="#F76C5E" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              className="shrink-0"
+              aria-hidden
+            >
+              <path
+                d="M9 11a4 4 0 1 1 6 3.5L17 21l-2.2-1.3M9 11l-2 1m2-1a4 4 0 0 0 .8 2.4"
+                stroke="#F76C5E"
+                strokeWidth={1.8}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
               <circle cx={11} cy={11} r={7} stroke="#F76C5E" strokeWidth={1.8} />
             </svg>
             <input
@@ -77,7 +106,13 @@ export function HeroSection({
             >
               {t('Plan my day')}
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M5 12h13m0 0-5-5m5 5-5 5" stroke="#fff" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M5 12h13m0 0-5-5m5 5-5 5"
+                  stroke="#fff"
+                  strokeWidth={2.2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
           </div>

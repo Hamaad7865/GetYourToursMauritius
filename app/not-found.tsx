@@ -18,7 +18,10 @@ export default function NotFound() {
         Tours runs across Mauritius.
       </p>
       <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-        <Link href="/" className="rounded-xl bg-teal px-6 py-3 text-sm font-bold text-white hover:bg-teal-dark">
+        <Link
+          href="/"
+          className="rounded-xl bg-teal px-6 py-3 text-sm font-bold text-white hover:bg-teal-dark"
+        >
           Back home
         </Link>
         <Link

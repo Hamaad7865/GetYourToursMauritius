@@ -15,7 +15,16 @@ import {
   type AirportFareByZone,
   type TripType,
 } from '@/lib/services/pricing';
-import { IconArrowRight, IconCalendar, IconCheck, IconClock, IconMinus, IconPin, IconPlus, IconUsers } from '@/components/ui/icons';
+import {
+  IconArrowRight,
+  IconCalendar,
+  IconCheck,
+  IconClock,
+  IconMinus,
+  IconPin,
+  IconPlus,
+  IconUsers,
+} from '@/components/ui/icons';
 
 const SLUG = 'airport-transfer';
 const MAX_PARTY = 25;
@@ -76,7 +85,9 @@ export function TransferBookingWidget({
   useEffect(() => {
     let active = true;
     fetch(`/api/v1/activities/${SLUG}`)
-      .then((r) => parseApiJson<{ airportFares?: AirportFareByZone; returnDiscountPct?: number }>(r))
+      .then((r) =>
+        parseApiJson<{ airportFares?: AirportFareByZone; returnDiscountPct?: number }>(r),
+      )
       .then((body) => {
         if (!active || !body.ok) return;
         // Only adopt the live matrix if it's the ZONE-keyed shape (zone1/zone2) the quote prices
@@ -84,7 +95,8 @@ export function TransferBookingWidget({
         // zone defaults stand (the server reconciles the price at pay regardless).
         const live = body.data?.airportFares;
         if (live && live.zone1 && live.zone2) setFares(live);
-        if (typeof body.data?.returnDiscountPct === 'number') setReturnPct(body.data.returnDiscountPct);
+        if (typeof body.data?.returnDiscountPct === 'number')
+          setReturnPct(body.data.returnDiscountPct);
       })
       .catch(() => {
         /* offline / not live yet — defaults stand; the server reconciles the price at pay */
@@ -99,7 +111,14 @@ export function TransferBookingWidget({
   const vehicle = airportVehicleLabel(party, effectiveSuv);
   // The destination zone is fixed by the hotel slug (the server re-derives it, zero-trust).
   const zone = airportZoneForSlug(slug);
-  const totalMinor = airportTransferQuoteMinor(zone, party, effectiveSuv, tripType, fares, returnPct);
+  const totalMinor = airportTransferQuoteMinor(
+    zone,
+    party,
+    effectiveSuv,
+    tripType,
+    fares,
+    returnPct,
+  );
   const totalEur = centsToEur(totalMinor);
 
   async function book() {
@@ -114,13 +133,17 @@ export function TransferBookingWidget({
     }
     setBusy(true);
     try {
-      const avail = await fetch(`/api/v1/activities/${SLUG}/availability?from=${date}&to=${date}`).then((r) =>
+      const avail = await fetch(
+        `/api/v1/activities/${SLUG}/availability?from=${date}&to=${date}`,
+      ).then((r) =>
         parseApiJson<Array<{ occurrenceId: string; startsAt: string; seatsLeft: number }>>(r),
       );
       const slots = avail.ok ? (avail.data ?? []) : [];
       const slot = slots.find((s) => (s.seatsLeft ?? 0) >= 1) ?? slots[0];
       if (!slot) {
-        setError(t("That date isn't open yet — please try another day, or contact us to arrange it."));
+        setError(
+          t("That date isn't open yet — please try another day, or contact us to arrange it."),
+        );
         setBusy(false);
         return;
       }
@@ -132,7 +155,12 @@ export function TransferBookingWidget({
         const res = await fetch('/api/v1/holds', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ occurrenceId: occ, expectedSlug: SLUG, people: party, idempotencyKey: idem }),
+          body: JSON.stringify({
+            occurrenceId: occ,
+            expectedSlug: SLUG,
+            people: party,
+            idempotencyKey: idem,
+          }),
         }).then((r) => parseApiJson<{ holdId: string; expiresAt: string }>(r));
         if (res.ok) {
           holdId = res.data.holdId ?? '';
@@ -142,7 +170,10 @@ export function TransferBookingWidget({
         /* checkout will create the hold at pay if this failed */
       }
       try {
-        window.sessionStorage.setItem(`gytm:hold:${occ}`, JSON.stringify({ holdId, expiresAt, idem }));
+        window.sessionStorage.setItem(
+          `gytm:hold:${occ}`,
+          JSON.stringify({ holdId, expiresAt, idem }),
+        );
       } catch {
         /* sessionStorage unavailable — checkout falls back to creating its own hold */
       }
@@ -399,13 +430,16 @@ export function TransferBookingWidget({
 
       <ul className="mt-4 flex flex-col gap-1.5 text-[12.5px] text-ink/80">
         <li className="flex items-center gap-1.5">
-          <IconPin width={14} height={14} className="text-teal" /> {t('Meet & greet at SSR Airport arrivals')}
+          <IconPin width={14} height={14} className="text-teal" />{' '}
+          {t('Meet & greet at SSR Airport arrivals')}
         </li>
         <li className="flex items-center gap-1.5">
-          <IconClock width={14} height={14} className="text-teal" /> {t('Flight tracking — free waiting if you’re delayed')}
+          <IconClock width={14} height={14} className="text-teal" />{' '}
+          {t('Flight tracking — free waiting if you’re delayed')}
         </li>
         <li className="flex items-center gap-1.5">
-          <IconCheck width={14} height={14} className="text-teal" /> {t('Fixed price · free cancellation up to 24h before')}
+          <IconCheck width={14} height={14} className="text-teal" />{' '}
+          {t('Fixed price · free cancellation up to 24h before')}
         </li>
       </ul>
     </div>

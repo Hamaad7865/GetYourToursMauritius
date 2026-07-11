@@ -96,7 +96,9 @@ export async function ReviewList({
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="text-sm font-bold text-ink">{review.author}</div>
-                  <div className="text-xs text-ink-muted">{reviewDate(review.createdAt, locale)}</div>
+                  <div className="text-xs text-ink-muted">
+                    {reviewDate(review.createdAt, locale)}
+                  </div>
                 </div>
                 <Stars value={review.rating} size={13} t={t} />
               </div>

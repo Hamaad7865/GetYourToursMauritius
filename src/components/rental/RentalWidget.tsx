@@ -4,7 +4,14 @@ import { useEffect, useMemo, useState } from 'react';
 import type { RentalVehicle } from '@/lib/validation/rental';
 import { rentalDays, rentalTotalEur } from '@/lib/services/pricing';
 import { whatsappUrl } from '@/lib/seo/site';
-import { IconCalendar, IconCheck, IconChat, IconPin, IconUsers, IconInfo } from '@/components/ui/icons';
+import {
+  IconCalendar,
+  IconCheck,
+  IconChat,
+  IconPin,
+  IconUsers,
+  IconInfo,
+} from '@/components/ui/icons';
 
 /** Friendly label for a vehicle's class (free-text category → display). */
 function categoryLabel(v: RentalVehicle): string {
@@ -42,12 +49,30 @@ function VehicleArt({ vehicle }: { vehicle: RentalVehicle }) {
         <svg width="46" height="46" viewBox="0 0 24 24" fill="none" aria-hidden>
           <circle cx="5.5" cy="17.5" r="2.6" stroke="currentColor" strokeWidth="1.6" />
           <circle cx="18.5" cy="17.5" r="2.6" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M8 17.5h7.9M16 7h2.2l1.6 5.2M16 7l-1 5.5M8 17.5l3-7H7.3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M8 17.5h7.9M16 7h2.2l1.6 5.2M16 7l-1 5.5M8 17.5l3-7H7.3"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       ) : (
         <svg width="50" height="50" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path d="M3 13.5l1.6-4.2A2 2 0 016.5 8h11a2 2 0 011.9 1.3l1.6 4.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M2.5 13.5h19v3.2a1 1 0 01-1 1h-1.3M5.8 17.7H4.5a1 1 0 01-1-1v-3.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M3 13.5l1.6-4.2A2 2 0 016.5 8h11a2 2 0 011.9 1.3l1.6 4.2"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M2.5 13.5h19v3.2a1 1 0 01-1 1h-1.3M5.8 17.7H4.5a1 1 0 01-1-1v-3.2"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
           <circle cx="7" cy="17.7" r="1.9" stroke="currentColor" strokeWidth="1.6" />
           <circle cx="17" cy="17.7" r="1.9" stroke="currentColor" strokeWidth="1.6" />
         </svg>
@@ -169,20 +194,34 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
       <div role="radiogroup" aria-label="Choose a vehicle" className="flex flex-col gap-5">
         {cars.length > 0 && (
           <div>
-            <h3 className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.14em] text-ink-muted">Cars</h3>
+            <h3 className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.14em] text-ink-muted">
+              Cars
+            </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {cars.map((v) => (
-                <VehicleCard key={v.slug} vehicle={v} selected={v.slug === vehicle.slug} onSelect={() => setSelected(v.slug)} />
+                <VehicleCard
+                  key={v.slug}
+                  vehicle={v}
+                  selected={v.slug === vehicle.slug}
+                  onSelect={() => setSelected(v.slug)}
+                />
               ))}
             </div>
           </div>
         )}
         {scooters.length > 0 && (
           <div>
-            <h3 className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.14em] text-ink-muted">Scooters</h3>
+            <h3 className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.14em] text-ink-muted">
+              Scooters
+            </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {scooters.map((v) => (
-                <VehicleCard key={v.slug} vehicle={v} selected={v.slug === vehicle.slug} onSelect={() => setSelected(v.slug)} />
+                <VehicleCard
+                  key={v.slug}
+                  vehicle={v}
+                  selected={v.slug === vehicle.slug}
+                  onSelect={() => setSelected(v.slug)}
+                />
               ))}
             </div>
           </div>

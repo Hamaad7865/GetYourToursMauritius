@@ -177,7 +177,9 @@ export function AccountBookings() {
   return (
     <div className="max-w-2xl">
       <h1 className="font-display text-2xl font-semibold text-ink">{t('My bookings')}</h1>
-      <p className="mt-1 text-sm text-ink-muted">{t('Every trip you’ve booked with Belle Mare Tours.')}</p>
+      <p className="mt-1 text-sm text-ink-muted">
+        {t('Every trip you’ve booked with Belle Mare Tours.')}
+      </p>
 
       {error && (
         <p role="alert" className="mt-6 text-[13px] font-medium text-coral">
@@ -194,7 +196,9 @@ export function AccountBookings() {
       {bookings !== null && (
         <>
           <section className="mt-8">
-            <h2 className="font-display text-lg font-semibold text-ink">{t('Upcoming bookings')}</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">
+              {t('Upcoming bookings')}
+            </h2>
             {upcoming.length === 0 ? (
               <div className="mt-3 rounded-2xl border border-ink/10 bg-white p-8 text-center">
                 <p className="text-sm text-ink-muted">
@@ -217,9 +221,13 @@ export function AccountBookings() {
           </section>
 
           <section className="mt-10">
-            <h2 className="font-display text-lg font-semibold text-ink">{t('Past & cancelled bookings')}</h2>
+            <h2 className="font-display text-lg font-semibold text-ink">
+              {t('Past & cancelled bookings')}
+            </h2>
             {past.length === 0 ? (
-              <p className="mt-3 text-sm text-ink-muted">{t('You don’t have any past bookings.')}</p>
+              <p className="mt-3 text-sm text-ink-muted">
+                {t('You don’t have any past bookings.')}
+              </p>
             ) : (
               <ul className="mt-3 flex flex-col gap-3">
                 {past.map((b) => (

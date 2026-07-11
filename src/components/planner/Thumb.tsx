@@ -24,7 +24,12 @@ export function Thumb({
       <span className="font-display font-semibold text-white/90" style={{ fontSize: size * 0.42 }}>
         {place.name[0]}
       </span>
-      <div className="absolute inset-0" style={{ background: 'radial-gradient(80% 60% at 70% 0%, rgba(255,255,255,.28), transparent)' }} />
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(80% 60% at 70% 0%, rgba(255,255,255,.28), transparent)',
+        }}
+      />
       {showImg && (
         // eslint-disable-next-line @next/next/no-img-element -- dynamic Google photo via our proxy; next/image not suitable for many small thumbs
         <img

@@ -10,11 +10,7 @@ import { getT } from '@/lib/i18n/server';
 export async function SearchFilterBar({ params }: { params: BrowseParams }) {
   const t = await getT();
   return (
-    <form
-      method="get"
-      action="/activities"
-      className="flex items-center gap-2 sm:gap-2.5"
-    >
+    <form method="get" action="/activities" className="flex items-center gap-2 sm:gap-2.5">
       {params.category && <input type="hidden" name="category" value={params.category} />}
       <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-ink/12 bg-white px-3 py-3">
         <IconSearch width={18} height={18} className="shrink-0 text-teal" />

@@ -15,7 +15,10 @@ describe('readSpeechResults', () => {
   });
 
   it('tolerates a result with no alternative', () => {
-    const results = [{ isFinal: true } as unknown as { 0: { transcript: string }; isFinal: boolean }, res('ok', true)];
+    const results = [
+      { isFinal: true } as unknown as { 0: { transcript: string }; isFinal: boolean },
+      res('ok', true),
+    ];
     expect(readSpeechResults(results)).toEqual({ final: 'ok', interim: '' });
   });
 });

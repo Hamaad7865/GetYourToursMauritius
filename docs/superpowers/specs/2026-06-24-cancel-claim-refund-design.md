@@ -4,12 +4,14 @@
 **Status:** approved (owner)
 
 ## Goal
+
 Let a signed-in customer cancel their own confirmed, paid booking from the booking page and start a
 refund — **self-service only when the trip is more than 24 hours away**. The button cancels the booking,
 frees the slot, and flags it `refund_pending`; the **owner then refunds in the Peach dashboard and hits
 "Mark refunded"** (the existing flow). No automated card refund.
 
 ## Decisions (locked with owner)
+
 1. **Refund mechanism:** cancel now → `refund_pending` + notify owner; owner refunds manually in Peach
    and marks it refunded. No Peach refund-API automation.
 2. **24h policy:** self-service only when the earliest occurrence start is `> now() + 24h` **and** the
@@ -19,6 +21,7 @@ frees the slot, and flags it `refund_pending`; the **owner then refunds in the P
    configurable per-activity cutoff is a later enhancement.
 
 ## Flow
+
 ```
 Customer @ /bookings/:ref  (status=confirmed, paid, start > now+24h)
   → "Cancel activity & claim refund" → confirm dialog
@@ -28,6 +31,7 @@ Customer @ /bookings/:ref  (status=confirmed, paid, start > now+24h)
 ```
 
 ## Backend (zero-trust)
+
 - **New RPC `api_cancel_booking(p jsonb)`** — `SECURITY DEFINER`, guards inside (pattern: `api_book`,
   `api_mark_refunded`):
   - `auth.uid()` required; the booking's `user_id = auth.uid()` (owner only; staff may also).
@@ -42,18 +46,20 @@ Customer @ /bookings/:ref  (status=confirmed, paid, start > now+24h)
     the current state without error/double-notify.
   - Returns `{ ref, status }`.
 - **`booking_json`** gains a server-computed **`cancellable` boolean** (`status=confirmed AND
-  payment_state=paid AND earliest start > now()+24h`) so the client shows the button only when eligible.
+payment_state=paid AND earliest start > now()+24h`) so the client shows the button only when eligible.
   Re-apply `booking_json` from the current winning body (migration-revert-drift guard).
 - Migration `supabase/migrations/<ts>_cancel_booking.sql`, mirrored byte-identical into
   `supabase/catch-up.sql` (catch-up-parity test stays green).
 
 ## API
+
 - **`POST /api/v1/bookings/:ref/cancel`** — `runtime = 'edge'`, `requireUser`, ownership via the
   RLS-gated `getBookingStatus`, then call the cancel service → `api_cancel_booking`. Returns the updated
   booking (or status). Typed errors map to 409 (`ConflictError`) with a clear message. OpenAPI entry.
 - Service: `cancelBooking(ctx, ref)` in `src/lib/services/bookings.ts` calling the RPC.
 
 ## Frontend — `src/components/gyg/detail/BookingConfirmation.tsx`
+
 - Booking DTO (`bookingSchema`) gains `cancellable?: boolean` and (for the message) `startsAt?` is not
   required — the `cancellable` flag is enough.
 - In the **paid** branch:
@@ -68,11 +74,13 @@ Customer @ /bookings/:ref  (status=confirmed, paid, start > now+24h)
 - FR i18n for every new string (i18n-coverage gate).
 
 ## Owner side
+
 - `booking_cancellation` notification template enqueued to the owner (email) on cancel. It surfaces the
   ref so the owner can find it. The booking also appears under the admin **`refund_pending`** filter,
   where the existing **"Mark refunded"** action lives — no admin UI change required.
 
 ## Edge cases / safety
+
 - Server is authoritative: even if a stale client shows the button, `api_cancel_booking` re-checks the
   24h window + paid + ownership and rejects otherwise.
 - Idempotent double-click (no double notification, no error).
@@ -81,6 +89,7 @@ Customer @ /bookings/:ref  (status=confirmed, paid, start > now+24h)
 - Capacity: cancelling frees the slot for resale immediately.
 
 ## Tests (PGlite + unit)
+
 - Integration (`api_cancel_booking`): eligible confirmed+paid+>24h → `refund_pending`, slot freed (a new
   booking can take the seat); within 24h → `cancellation_window_passed`; not paid / not confirmed →
   `not_cancellable`; non-owner → rejected; double-cancel → idempotent no-op; an owner `booking_cancellation`
@@ -89,10 +98,12 @@ Customer @ /bookings/:ref  (status=confirmed, paid, start > now+24h)
 - Route/service test for `POST /cancel` (auth + ownership + error mapping) if a harness exists.
 
 ## Owner action
+
 - Re-run `supabase/catch-up.sql` (adds `api_cancel_booking`, the `booking_json` `cancellable` field, and
   the `booking_cancellation` notification template). No env changes. Refunds remain manual in Peach.
 
 ## Out of scope (later)
+
 - Per-activity configurable cancellation cutoff (structured field).
 - The button on the `/account/bookings` list.
 - A customer "cancellation received" email (the on-screen confirmation + the eventual refund email cover

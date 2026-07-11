@@ -82,7 +82,10 @@ export function QuoteModal({
       }}
       className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/50 p-4 backdrop-blur-[4px]"
     >
-      <div ref={dialogRef} className="max-h-[90vh] w-full max-w-[460px] animate-pop overflow-y-auto rounded-[22px] bg-white shadow-[0_24px_60px_rgba(10,46,54,.34)]">
+      <div
+        ref={dialogRef}
+        className="max-h-[90vh] w-full max-w-[460px] animate-pop overflow-y-auto rounded-[22px] bg-white shadow-[0_24px_60px_rgba(10,46,54,.34)]"
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -92,39 +95,85 @@ export function QuoteModal({
         >
           <div className="px-6">
             <div className="mb-1 flex items-center justify-between">
-              <h3 className="m-0 font-display text-[23px] font-semibold text-ink">{t('Get my quote')}</h3>
-              <button type="button" onClick={onClose} aria-label={t('Close')} className="grid h-8 w-8 cursor-pointer place-items-center rounded-[10px] bg-[#F1F6F5]">
+              <h3 className="m-0 font-display text-[23px] font-semibold text-ink">
+                {t('Get my quote')}
+              </h3>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label={t('Close')}
+                className="grid h-8 w-8 cursor-pointer place-items-center rounded-[10px] bg-[#F1F6F5]"
+              >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M6 6l12 12M18 6L6 18" stroke="#51666B" strokeWidth={2} strokeLinecap="round" />
+                  <path
+                    d="M6 6l12 12M18 6L6 18"
+                    stroke="#51666B"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
             </div>
             <p className="mb-4 mt-0.5 text-[13.5px] text-ink-muted">
-              {t('{n} stops · {dur} driving · est.', { n: stops.length, dur: fmtDur(route.totalMinutes) })}{' '}
-              <strong className="text-gold">{estimate != null ? <Price eur={estimate} /> : quoteError}</strong>
+              {t('{n} stops · {dur} driving · est.', {
+                n: stops.length,
+                dur: fmtDur(route.totalMinutes),
+              })}{' '}
+              <strong className="text-gold">
+                {estimate != null ? <Price eur={estimate} /> : quoteError}
+              </strong>
             </p>
 
             <div className="mb-3 grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="q-date" className={labelCls}>{t('Date')}</label>
-                <input id="q-date" required type="date" min={minDate} value={date} onChange={(e) => setDate(e.target.value)} className={inputCls} />
+                <label htmlFor="q-date" className={labelCls}>
+                  {t('Date')}
+                </label>
+                <input
+                  id="q-date"
+                  required
+                  type="date"
+                  min={minDate}
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className={inputCls}
+                />
               </div>
               <div>
-                <label htmlFor="q-time" className={labelCls}>{t('Pick-up time')}</label>
-                <input id="q-time" required type="time" value={time} onChange={(e) => setTime(e.target.value)} className={inputCls} />
+                <label htmlFor="q-time" className={labelCls}>
+                  {t('Pick-up time')}
+                </label>
+                <input
+                  id="q-time"
+                  required
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  className={inputCls}
+                />
               </div>
             </div>
 
             <div className="mb-3">
               <span className={labelCls}>{t('Party size')}</span>
               <div className="flex w-fit items-center gap-3 rounded-[11px] border border-[#E6EFEE] bg-[#F4F8F7] px-3 py-[7px]">
-                <button type="button" onClick={() => setParty(Math.max(1, party - 1))} aria-label={t('Fewer travellers')} className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark">
+                <button
+                  type="button"
+                  onClick={() => setParty(Math.max(1, party - 1))}
+                  aria-label={t('Fewer travellers')}
+                  className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark"
+                >
                   −
                 </button>
                 <span className="min-w-[60px] text-center text-[15px] font-bold tabular-nums">
                   {party > 1 ? t('{n} people', { n: party }) : t('{n} person', { n: party })}
                 </span>
-                <button type="button" onClick={() => setParty(Math.min(maxParty, party + 1))} aria-label={t('More travellers')} className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark">
+                <button
+                  type="button"
+                  onClick={() => setParty(Math.min(maxParty, party + 1))}
+                  aria-label={t('More travellers')}
+                  className="grid h-8 w-8 cursor-pointer place-items-center rounded-[9px] bg-white text-lg font-bold text-teal-dark"
+                >
                   +
                 </button>
               </div>
@@ -132,7 +181,12 @@ export function QuoteModal({
 
             {party <= 4 && (
               <label className="mb-3 flex w-fit cursor-pointer items-center gap-2.5 text-sm text-ink">
-                <input type="checkbox" checked={suv} onChange={(e) => setSuv(e.target.checked)} className="h-4 w-4 accent-teal" />
+                <input
+                  type="checkbox"
+                  checked={suv}
+                  onChange={(e) => setSuv(e.target.checked)}
+                  className="h-4 w-4 accent-teal"
+                />
                 {t('SUV upgrade')}
               </label>
             )}
@@ -143,7 +197,9 @@ export function QuoteModal({
                 <div className="text-[13px] font-bold text-ink">{t('Baby & child seats')}</div>
                 <div className="text-[12px] text-ink-muted">
                   {t('First seat free · {price} each extra', { price: money(CHILD_SEAT_EUR) })}
-                  {seatExtra > 0 && <span className="font-semibold text-teal-dark"> · +{money(seatExtra)}</span>}
+                  {seatExtra > 0 && (
+                    <span className="font-semibold text-teal-dark"> · +{money(seatExtra)}</span>
+                  )}
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-2.5">
@@ -156,7 +212,9 @@ export function QuoteModal({
                 >
                   −
                 </button>
-                <span className="min-w-[20px] text-center text-[15px] font-bold tabular-nums">{seats}</span>
+                <span className="min-w-[20px] text-center text-[15px] font-bold tabular-nums">
+                  {seats}
+                </span>
                 <button
                   type="button"
                   onClick={() => setChildSeats(Math.min(party, seats + 1))}
@@ -175,7 +233,9 @@ export function QuoteModal({
               type="submit"
               disabled={booking || !quote}
               className="w-full cursor-pointer rounded-[13px] py-3.5 text-[15.5px] font-extrabold text-white shadow-[0_10px_24px_rgba(14,140,146,.3)] disabled:opacity-50"
-              style={{ background: booking ? '#0B5C63' : 'linear-gradient(135deg,#13A0A6,#0B5C63)' }}
+              style={{
+                background: booking ? '#0B5C63' : 'linear-gradient(135deg,#13A0A6,#0B5C63)',
+              }}
             >
               {booking ? t('Starting your booking…') : t('Continue to checkout →')}
             </button>

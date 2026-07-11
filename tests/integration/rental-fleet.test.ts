@@ -20,12 +20,13 @@ vi.mock('@/lib/supabase/browser', () => ({
   },
 }));
 
-const { loadRentalFleet, createRentalVehicle, updateRentalVehicle, deleteRentalVehicle } = await import(
-  '@/lib/admin/rental'
-);
+const { loadRentalFleet, createRentalVehicle, updateRentalVehicle, deleteRentalVehicle } =
+  await import('@/lib/admin/rental');
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -38,8 +39,13 @@ describe('rental fleet: public list RPC + admin RLS', () => {
     db = await createTestDb();
     await db.asOwner();
     await db.pg.query(`insert into auth.users (id) values ($1), ($2)`, [STAFF, CUSTOMER]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [STAFF]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Cust', 'customer')`, [CUSTOMER]);
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [
+      STAFF,
+    ]);
+    await db.pg.query(
+      `insert into profiles (id, full_name, role) values ($1, 'Cust', 'customer')`,
+      [CUSTOMER],
+    );
     hoisted.shim = makeSupabaseShim(db.pg);
   });
 
@@ -53,8 +59,13 @@ describe('rental fleet: public list RPC + admin RLS', () => {
     expect(items).toHaveLength(6);
     // Ordered by sort: cars first (€36), then scooters (€20).
     expect(items[0]).toMatchObject({ slug: 'nissan-march', dailyRateEur: 36, seats: 5 });
-    expect(items.find((v) => v.slug === 'suzuki-ertiga')).toMatchObject({ category: 'family', seats: 7 });
-    expect(items.filter((v) => v.category === 'scooter').every((v) => v.dailyRateEur === 20)).toBe(true);
+    expect(items.find((v) => v.slug === 'suzuki-ertiga')).toMatchObject({
+      category: 'family',
+      seats: 7,
+    });
+    expect(items.filter((v) => v.category === 'scooter').every((v) => v.dailyRateEur === 20)).toBe(
+      true,
+    );
   });
 
   it('lets staff create, edit and remove vehicles; the list reflects active only', async () => {

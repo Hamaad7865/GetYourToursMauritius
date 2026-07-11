@@ -17,10 +17,10 @@ export function addRecentSearch(query: string): void {
   const q = query.trim();
   if (!q || typeof window === 'undefined') return;
   try {
-    const next = [q, ...getRecentSearches().filter((x) => x.toLowerCase() !== q.toLowerCase())].slice(
-      0,
-      MAX,
-    );
+    const next = [
+      q,
+      ...getRecentSearches().filter((x) => x.toLowerCase() !== q.toLowerCase()),
+    ].slice(0, MAX);
     window.localStorage.setItem(KEY, JSON.stringify(next));
   } catch {
     /* storage unavailable — non-fatal */

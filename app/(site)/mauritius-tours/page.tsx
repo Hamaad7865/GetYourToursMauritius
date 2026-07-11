@@ -33,7 +33,14 @@ export const metadata: Metadata = {
     'Belle Mare Tours',
   ],
   alternates: { canonical: PATH },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}${PATH}`, locale: 'en_GB', images: [OG_IMAGE] },
+  openGraph: {
+    type: 'website',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: `${SITE.url}${PATH}`,
+    locale: 'en_GB',
+    images: [OG_IMAGE],
+  },
 };
 
 const FAQS = [
@@ -68,10 +75,19 @@ export default async function MauritiusToursPage() {
 
   return (
     <>
-      <JsonLd data={breadcrumbListJsonLd([{ name: 'Home', path: '/' }, { name: 'Mauritius tours', path: PATH }])} />
+      <JsonLd
+        data={breadcrumbListJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Mauritius tours', path: PATH },
+        ])}
+      />
       <JsonLd data={faqPageJsonLd(FAQS)} />
       {featured.length > 0 && (
-        <JsonLd data={itemListJsonLd(featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })))} />
+        <JsonLd
+          data={itemListJsonLd(
+            featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })),
+          )}
+        />
       )}
 
       <InfoPage
@@ -84,15 +100,18 @@ export default async function MauritiusToursPage() {
 
         <ContentSection id="intro" title="Every kind of Mauritius tour, from one local operator">
           <p>
-            Mauritius is small but wonderfully varied: a turquoise lagoon ringed by white-sand beaches, a wild
-            volcanic south, waterfalls and rainforest inland, and busy markets in Port Louis. The best way to see it
-            is a mix of boat trips and private day tours, and {SITE.operator} runs the lot — so you can plan your whole
-            trip with one trusted operator instead of juggling several middlemen.
+            Mauritius is small but wonderfully varied: a turquoise lagoon ringed by white-sand
+            beaches, a wild volcanic south, waterfalls and rainforest inland, and busy markets in
+            Port Louis. The best way to see it is a mix of boat trips and private day tours, and{' '}
+            {SITE.operator} runs the lot — so you can plan your whole trip with one trusted operator
+            instead of juggling several middlemen.
           </p>
           <p>
-            Everything below is bookable online with instant confirmation, transparent EUR pricing and free door-to-door
-            pickup. Browse the full live catalogue on our <InlineLink href="/activities">tours &amp; activities</InlineLink>{' '}
-            page, or read the bigger picture in our <InlineLink href="/mauritius-travel-guide">Mauritius travel guide</InlineLink>.
+            Everything below is bookable online with instant confirmation, transparent EUR pricing
+            and free door-to-door pickup. Browse the full live catalogue on our{' '}
+            <InlineLink href="/activities">tours &amp; activities</InlineLink> page, or read the
+            bigger picture in our{' '}
+            <InlineLink href="/mauritius-travel-guide">Mauritius travel guide</InlineLink>.
           </p>
         </ContentSection>
 
@@ -104,63 +123,75 @@ export default async function MauritiusToursPage() {
 
         <ContentSection id="types" title="The tours we run">
           <p>
-            <strong>Catamaran cruises.</strong> A full day on the water with snorkelling stops and a grilled lunch on
-            board — the signature Mauritius day out. See{' '}
+            <strong>Catamaran cruises.</strong> A full day on the water with snorkelling stops and a
+            grilled lunch on board — the signature Mauritius day out. See{' '}
             <InlineLink href="/mauritius-catamaran-cruise">Mauritius catamaran cruises</InlineLink>.
           </p>
           <p>
-            <strong>Île aux Cerfs day trips.</strong> The famous offshore islet with its lagoon, sandbars and beach
-            barbecue, reached by catamaran or speedboat. See{' '}
+            <strong>Île aux Cerfs day trips.</strong> The famous offshore islet with its lagoon,
+            sandbars and beach barbecue, reached by catamaran or speedboat. See{' '}
             <InlineLink href="/ile-aux-cerfs-tours">Île aux Cerfs tours</InlineLink>.
           </p>
           <p>
-            <strong>Dolphin swims.</strong> An early start to meet wild spinner dolphins in the calm west-coast bays. See{' '}
+            <strong>Dolphin swims.</strong> An early start to meet wild spinner dolphins in the calm
+            west-coast bays. See{' '}
             <InlineLink href="/dolphin-swim-mauritius">dolphin swim in Mauritius</InlineLink>.
           </p>
           <p>
-            <strong>Private sightseeing day tours.</strong> Your own driver-guide and vehicle for a tailor-made day —
-            the south coast, the north, tea country or the highlands. Browse them under{' '}
-            <InlineLink href="/activities?category=Sightseeing tours">sightseeing tours</InlineLink>.
+            <strong>Private sightseeing day tours.</strong> Your own driver-guide and vehicle for a
+            tailor-made day — the south coast, the north, tea country or the highlands. Browse them
+            under{' '}
+            <InlineLink href="/activities?category=Sightseeing tours">sightseeing tours</InlineLink>
+            .
           </p>
           <p>
-            <strong>Sea walks, diving &amp; water sports.</strong> Underwater helmet walks, parasailing and snorkelling
-            for all ages, mostly off the calm east and north coasts. Browse{' '}
-            <InlineLink href="/activities?category=Sea walks & diving">sea walks &amp; diving</InlineLink>.
+            <strong>Sea walks, diving &amp; water sports.</strong> Underwater helmet walks,
+            parasailing and snorkelling for all ages, mostly off the calm east and north coasts.
+            Browse{' '}
+            <InlineLink href="/activities?category=Sea walks & diving">
+              sea walks &amp; diving
+            </InlineLink>
+            .
           </p>
         </ContentSection>
 
         <ContentSection id="private" title="Private, tailor-made & group tours">
           <p>
-            Most of our land tours are fully private: just your party, your own English- and French-speaking
-            driver-guide, and a route you can shape on the day. That suits couples, families and small groups who want
-            to stop where they like rather than follow a fixed coach itinerary.
+            Most of our land tours are fully private: just your party, your own English- and
+            French-speaking driver-guide, and a route you can shape on the day. That suits couples,
+            families and small groups who want to stop where they like rather than follow a fixed
+            coach itinerary.
           </p>
           <p>
-            Travelling as a bigger group, a wedding party or a company outing? We run minibuses and a 25-seat coaster,
-            so we can keep everyone together in one vehicle. Message us with your numbers and dates and we’ll put
-            together a plan and a fixed price. You can also design your own multi-stop day with our free{' '}
+            Travelling as a bigger group, a wedding party or a company outing? We run minibuses and
+            a 25-seat coaster, so we can keep everyone together in one vehicle. Message us with your
+            numbers and dates and we’ll put together a plan and a fixed price. You can also design
+            your own multi-stop day with our free{' '}
             <InlineLink href="/ai-road-trip-planner">AI road-trip planner</InlineLink>.
           </p>
         </ContentSection>
 
         <ContentSection id="pickup" title="Where we pick up">
           <p>
-            We’re based in Belle Mare on the east coast and cover the whole island, door to door: the north (Grand
-            Baie, Pereybère, Trou aux Biches), the west (Flic-en-Flac, Tamarin, Le Morne), the wild south, the central
-            plateau and, of course, the east. Arriving or leaving by air or sea? Add a fixed-price{' '}
-            <InlineLink href="/airport-transfers">airport transfer</InlineLink> to complete the trip. New to the island?
-            Start with our guide to <InlineLink href="/attractions">things to do in Mauritius</InlineLink> and the{' '}
+            We’re based in Belle Mare on the east coast and cover the whole island, door to door:
+            the north (Grand Baie, Pereybère, Trou aux Biches), the west (Flic-en-Flac, Tamarin, Le
+            Morne), the wild south, the central plateau and, of course, the east. Arriving or
+            leaving by air or sea? Add a fixed-price{' '}
+            <InlineLink href="/airport-transfers">airport transfer</InlineLink> to complete the
+            trip. New to the island? Start with our guide to{' '}
+            <InlineLink href="/attractions">things to do in Mauritius</InlineLink> and the{' '}
             <InlineLink href="/destinations">regions of Mauritius</InlineLink>.
           </p>
         </ContentSection>
 
         <ContentSection id="book-direct" title="Why book direct with Belle Mare Tours">
           <p>
-            {SITE.operator} is a licensed Mauritian tour operator (BRN {SITE.brn}) that has run tours and transfers on
-            the island for years, rated 4.8/5 across more than a thousand reviews. Book direct and you deal with the
-            operator — not a reseller adding a markup — so the price stays lower and the same driver-guide looks after
-            you all day. We never make commission stops at souvenir shops, and every price is fixed and shown up front
-            in EUR with free cancellation up to 24 hours before.
+            {SITE.operator} is a licensed Mauritian tour operator (BRN {SITE.brn}) that has run
+            tours and transfers on the island for years, rated 4.8/5 across more than a thousand
+            reviews. Book direct and you deal with the operator — not a reseller adding a markup —
+            so the price stays lower and the same driver-guide looks after you all day. We never
+            make commission stops at souvenir shops, and every price is fixed and shown up front in
+            EUR with free cancellation up to 24 hours before.
           </p>
           <RelatedLinks
             links={[
@@ -180,8 +211,8 @@ export default async function MauritiusToursPage() {
 
         <ContentSection id="book" title="Ready to plan your Mauritius tours?">
           <p>
-            Book online in minutes, or message us and we’ll tailor a day around you. Either way you’re dealing direct
-            with {SITE.operator} in Belle Mare.
+            Book online in minutes, or message us and we’ll tailor a day around you. Either way
+            you’re dealing direct with {SITE.operator} in Belle Mare.
           </p>
           <BookDirectCta />
         </ContentSection>

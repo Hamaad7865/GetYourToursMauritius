@@ -9,7 +9,9 @@ function render(message: NotificationMessage): { subject: string; text: string }
   if (message.template === 'booking_confirmation') {
     const currency = typeof p.currency === 'string' ? p.currency : 'EUR';
     const total =
-      typeof p.totalMinor === 'number' ? ` (total ${currency} ${(p.totalMinor / 100).toFixed(2)})` : '';
+      typeof p.totalMinor === 'number'
+        ? ` (total ${currency} ${(p.totalMinor / 100).toFixed(2)})`
+        : '';
     return {
       subject: `Your Belle Mare Tours booking ${ref} is confirmed`,
       text: `Hi ${name},\n\nGood news — your booking ${ref} is confirmed${total}. We look forward to welcoming you.\n\nBelle Mare Tours`,
@@ -79,7 +81,9 @@ export class ResendNotificationProvider implements NotificationProvider {
 
   async send(message: NotificationMessage): Promise<void> {
     if (message.channel !== 'email') {
-      throw new Error(`Resend cannot deliver channel '${message.channel}' — no provider configured`);
+      throw new Error(
+        `Resend cannot deliver channel '${message.channel}' — no provider configured`,
+      );
     }
     // A fully pre-rendered message (e.g. the invoice/receipt email) carries its own subject/text/html;
     // use those as-is. Otherwise fall back to render() from the template + payload.
@@ -99,7 +103,10 @@ export class ResendNotificationProvider implements NotificationProvider {
     if (message.attachments?.length) {
       // Resend's attachment shape is { filename, content } where content is base64; it infers the
       // MIME type from the filename, so we deliberately omit contentType to stay on the safe shape.
-      body.attachments = message.attachments.map((a) => ({ filename: a.filename, content: a.content }));
+      body.attachments = message.attachments.map((a) => ({
+        filename: a.filename,
+        content: a.content,
+      }));
     }
 
     const res = await fetch('https://api.resend.com/emails', {

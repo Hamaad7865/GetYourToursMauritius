@@ -46,7 +46,9 @@ export function MobileSearch() {
         className="flex w-full items-center gap-2.5 rounded-full border border-ink/10 bg-white px-4 py-2.5 text-left shadow-[0_8px_22px_-12px_rgba(10,46,54,0.5)] active:scale-[0.99] sm:hidden"
       >
         <IconSearch width={19} height={19} className="text-teal" />
-        <span className="text-[14.5px] font-semibold text-ink-muted">{t('Search tours & activities')}</span>
+        <span className="text-[14.5px] font-semibold text-ink-muted">
+          {t('Search tours & activities')}
+        </span>
       </button>
       {open && <SearchSheet onClose={() => setOpen(false)} />}
     </>
@@ -81,7 +83,9 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
   }
 
   const total = adults + kids;
-  const dateLabel = date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : t('Anytime');
+  const dateLabel = date
+    ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : t('Anytime');
 
   return (
     <div
@@ -93,7 +97,9 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
     >
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-ink/10 bg-white px-4 py-2.5">
-        <h2 className="flex-1 font-display text-[20px] font-semibold tracking-tight text-ink">{t('Where to?')}</h2>
+        <h2 className="flex-1 font-display text-[20px] font-semibold tracking-tight text-ink">
+          {t('Where to?')}
+        </h2>
         <button
           type="button"
           onClick={onClose}
@@ -172,9 +178,21 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
         >
           <IconCalendar width={20} height={20} className="text-teal" />
           <span className="flex-1 text-[14.5px] font-semibold text-ink">{dateLabel}</span>
-          <IconChevron width={16} height={16} className={`text-ink-muted transition-transform ${panel === 'date' ? 'rotate-180' : ''}`} />
+          <IconChevron
+            width={16}
+            height={16}
+            className={`text-ink-muted transition-transform ${panel === 'date' ? 'rotate-180' : ''}`}
+          />
         </button>
-        {panel === 'date' && <DateInline selected={date} onPick={(d) => { setDate(d); setPanel(null); }} />}
+        {panel === 'date' && (
+          <DateInline
+            selected={date}
+            onPick={(d) => {
+              setDate(d);
+              setPanel(null);
+            }}
+          />
+        )}
 
         {/* Travellers */}
         <button
@@ -187,13 +205,29 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
           <span className="flex-1 text-[14.5px] font-semibold text-ink">
             {total === 1 ? t('{n} traveller', { n: total }) : t('{n} travellers', { n: total })}
           </span>
-          <IconChevron width={16} height={16} className={`text-ink-muted transition-transform ${panel === 'travellers' ? 'rotate-180' : ''}`} />
+          <IconChevron
+            width={16}
+            height={16}
+            className={`text-ink-muted transition-transform ${panel === 'travellers' ? 'rotate-180' : ''}`}
+          />
         </button>
         {panel === 'travellers' && (
           <div className="mt-2 rounded-2xl border border-ink/10 bg-white p-4">
-            <Stepper label={t('Adults')} hint={t('Ages 18+')} value={adults} min={1} onChange={setAdults} />
+            <Stepper
+              label={t('Adults')}
+              hint={t('Ages 18+')}
+              value={adults}
+              min={1}
+              onChange={setAdults}
+            />
             <div className="h-px bg-ink/10" />
-            <Stepper label={t('Children')} hint={t('Ages 0–17')} value={kids} min={0} onChange={setKids} />
+            <Stepper
+              label={t('Children')}
+              hint={t('Ages 0–17')}
+              value={kids}
+              min={0}
+              onChange={setKids}
+            />
           </div>
         )}
       </div>
@@ -225,7 +259,13 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DateInline({ selected, onPick }: { selected: Date | null; onPick: (d: Date | null) => void }) {
+function DateInline({
+  selected,
+  onPick,
+}: {
+  selected: Date | null;
+  onPick: (d: Date | null) => void;
+}) {
   const t = useT();
   const today = startOfDay(new Date());
   const [view, setView] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -294,7 +334,11 @@ function DateInline({ selected, onPick }: { selected: Date | null; onPick: (d: D
               disabled={past}
               onClick={() => onPick(cell)}
               className={`mx-auto grid h-10 w-10 place-items-center rounded-full text-[13px] font-medium ${
-                isSel ? 'bg-teal text-white' : past ? 'cursor-default text-ink/25' : 'text-ink hover:bg-teal/10'
+                isSel
+                  ? 'bg-teal text-white'
+                  : past
+                    ? 'cursor-default text-ink/25'
+                    : 'text-ink hover:bg-teal/10'
               }`}
             >
               {cell.getDate()}

@@ -48,7 +48,9 @@ export function AIInsights({ stops }: { stops: PlannerPlace[] }) {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({
-            places: stopsRef.current.slice(0, 12).map((s) => ({ name: s.name, category: s.category, region: s.region })),
+            places: stopsRef.current
+              .slice(0, 12)
+              .map((s) => ({ name: s.name, category: s.category, region: s.region })),
           }),
         }).then((r) => r.json());
         if (!active) return;
@@ -77,18 +79,33 @@ export function AIInsights({ stops }: { stops: PlannerPlace[] }) {
     <section className="mx-auto max-w-shell px-[22px] pt-4">
       <div className="rounded-[18px] border border-[#EEF4F3] bg-white p-5 shadow-[0_10px_30px_rgba(10,46,54,.05)]">
         <div className="mb-3 flex items-center gap-2.5">
-          <span className="grid h-9 w-9 place-items-center rounded-xl" style={{ background: 'linear-gradient(140deg,#EAF7F5,#fff)', border: '1px solid #E3EEEC' }}>
+          <span
+            className="grid h-9 w-9 place-items-center rounded-xl"
+            style={{
+              background: 'linear-gradient(140deg,#EAF7F5,#fff)',
+              border: '1px solid #E3EEEC',
+            }}
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3Z" fill="#F76C5E" />
+              <path
+                d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3Z"
+                fill="#F76C5E"
+              />
               <circle cx={18} cy={17} r={1.6} fill="#C98A12" />
               <circle cx={5.5} cy={15.5} r={1.2} fill="#0E8C92" />
             </svg>
           </span>
           <div>
-            <h2 className="font-display text-[18px] font-semibold leading-none text-ink">{t('AI insights for your day')}</h2>
-            <p className="mt-1 text-xs text-ink-muted">{t('Local tips for the places you picked')}</p>
+            <h2 className="font-display text-[18px] font-semibold leading-none text-ink">
+              {t('AI insights for your day')}
+            </h2>
+            <p className="mt-1 text-xs text-ink-muted">
+              {t('Local tips for the places you picked')}
+            </p>
           </div>
-          {loading && <span className="ml-auto text-xs font-semibold text-teal">{t('thinking…')}</span>}
+          {loading && (
+            <span className="ml-auto text-xs font-semibold text-teal">{t('thinking…')}</span>
+          )}
         </div>
 
         {loading ? (
@@ -101,11 +118,15 @@ export function AIInsights({ stops }: { stops: PlannerPlace[] }) {
             ))}
           </div>
         ) : unavailable || !insights ? (
-          <p className="text-sm text-ink-muted">{t('AI insights aren’t available right now — the rest of your plan still works.')}</p>
+          <p className="text-sm text-ink-muted">
+            {t('AI insights aren’t available right now — the rest of your plan still works.')}
+          </p>
         ) : (
           <div className="space-y-3">
             {insights.overall && (
-              <p className="rounded-xl bg-teal-tint px-3.5 py-2.5 text-sm leading-relaxed text-teal-dark">{insights.overall}</p>
+              <p className="rounded-xl bg-teal-tint px-3.5 py-2.5 text-sm leading-relaxed text-teal-dark">
+                {insights.overall}
+              </p>
             )}
             <ul className="space-y-2.5">
               {insights.items.map((it, i) => (

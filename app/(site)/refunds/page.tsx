@@ -37,24 +37,29 @@ export default function RefundsPage() {
       <LegalArticle toc={TOC}>
         <LegalSection id="window" title="Free-cancellation window">
           <P>
-            For most activities, you can cancel <strong>free of charge until 9:00 AM (Mauritius time,
-            GMT+4) on the day before your activity date</strong>. Cancel within that window and you
-            receive a full refund.
+            For most activities, you can cancel{' '}
+            <strong>
+              free of charge until 9:00 AM (Mauritius time, GMT+4) on the day before your activity
+              date
+            </strong>
+            . Cancel within that window and you receive a full refund.
           </P>
           <Callout tone="danger" title="After the cut-off, the booking is non-refundable">
-            From <strong>9:00 AM on the day before</strong> your activity onward — and for no-shows —
-            no refund is due, because by then we have committed your boat seats, guide and vehicle for
-            the day.
+            From <strong>9:00 AM on the day before</strong> your activity onward — and for no-shows
+            — no refund is due, because by then we have committed your boat seats, guide and vehicle
+            for the day.
           </Callout>
           <P>
-            A handful of experiences (private charters, multi-day trips and some third-party tickets)
-            carry their own cancellation terms. Where that&apos;s the case, the difference is shown on
-            the activity page and in your confirmation email before you pay.
+            A handful of experiences (private charters, multi-day trips and some third-party
+            tickets) carry their own cancellation terms. Where that&apos;s the case, the difference
+            is shown on the activity page and in your confirmation email before you pay.
           </P>
         </LegalSection>
 
         <LegalSection id="example" title="A worked example">
-          <P>Say you book an activity for <strong>24 July</strong>:</P>
+          <P>
+            Say you book an activity for <strong>24 July</strong>:
+          </P>
           <Callout tone="success" title="Cancel up to 23 July, 8:59 AM → full refund">
             Any cancellation before 9:00 AM on 23 July (the day before) is refunded in full.
           </Callout>
@@ -87,8 +92,8 @@ export default function RefundsPage() {
             ]}
           />
           <P>
-            Your cancellation takes effect from the time we receive it, so don&apos;t leave it to the
-            last minute around the 9:00 AM cut-off.
+            Your cancellation takes effect from the time we receive it, so don&apos;t leave it to
+            the last minute around the 9:00 AM cut-off.
           </P>
         </LegalSection>
 
@@ -105,8 +110,8 @@ export default function RefundsPage() {
 
         <LegalSection id="we-cancel" title="If we cancel or change">
           <P>
-            Your safety comes first. If we have to cancel for weather, sea conditions, a safety call,
-            or because a minimum group size isn&apos;t met, you choose:
+            Your safety comes first. If we have to cancel for weather, sea conditions, a safety
+            call, or because a minimum group size isn&apos;t met, you choose:
           </P>
           <LegalList
             items={[
@@ -120,9 +125,9 @@ export default function RefundsPage() {
             ]}
           />
           <P>
-            If we need to make a small change to your itinerary or departure time, we&apos;ll let you
-            know as early as we can. We&apos;re not able to refund costs you arrange separately (such
-            as flights, hotels or other transfers).
+            If we need to make a small change to your itinerary or departure time, we&apos;ll let
+            you know as early as we can. We&apos;re not able to refund costs you arrange separately
+            (such as flights, hotels or other transfers).
           </P>
         </LegalSection>
 
@@ -133,8 +138,8 @@ export default function RefundsPage() {
             Changes requested after the cut-off are treated the same as a cancellation.
           </P>
           <P>
-            Add-ons such as baby/child seats follow the same cancellation window as the activity they
-            were booked with.
+            Add-ons such as baby/child seats follow the same cancellation window as the activity
+            they were booked with.
           </P>
         </LegalSection>
 
@@ -148,15 +153,15 @@ export default function RefundsPage() {
             ]}
           />
           <P>
-            This policy doesn&apos;t affect any rights you may have under Mauritius consumer law. See
-            our <Link href="/terms">Terms of service</Link> for the full booking conditions.
+            This policy doesn&apos;t affect any rights you may have under Mauritius consumer law.
+            See our <Link href="/terms">Terms of service</Link> for the full booking conditions.
           </P>
         </LegalSection>
 
         <LegalSection id="help" title="Still need a hand?">
           <P>
-            If anything about your booking or a refund is unclear, talk to a real person — we&apos;re
-            a local team and happy to help. You&apos;ll also find quick answers in our{' '}
+            If anything about your booking or a refund is unclear, talk to a real person —
+            we&apos;re a local team and happy to help. You&apos;ll also find quick answers in our{' '}
             <Link href="/help">Help centre</Link>.
           </P>
           <EnquireRow message="Hi Belle Mare Tours! I have a question about cancelling a booking." />

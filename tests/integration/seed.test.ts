@@ -121,9 +121,10 @@ describe('catalogue seed', () => {
        join activities a on a.id = o.activity_id
        where a.slug = 'private-south-tour-with-pickup' limit 1`,
     );
-    const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 4, 'seed-flatfare')`, [
-      occ[0]!.id,
-    ]);
+    const { rows: h } = await db.pg.query<{ id: string }>(
+      `select * from create_hold($1, 4, 'seed-flatfare')`,
+      [occ[0]!.id],
+    );
     const { rows: b } = await db.pg.query<{ total_minor: number | string }>(
       `select * from create_booking('seed-flatfare-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb)`,
       [h[0]!.id, JSON.stringify([{ price_label: 'Private group', quantity: 4 }])],

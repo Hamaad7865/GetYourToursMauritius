@@ -14,7 +14,10 @@ export interface SpeechResultLike {
  * (`interim`) tail. We read the whole list each event (rebuild, not append) so re-fired results never
  * double-count. The top alternative ([0]) is the recogniser's best guess.
  */
-export function readSpeechResults(results: ArrayLike<SpeechResultLike>): { final: string; interim: string } {
+export function readSpeechResults(results: ArrayLike<SpeechResultLike>): {
+  final: string;
+  interim: string;
+} {
   let final = '';
   let interim = '';
   for (let i = 0; i < results.length; i += 1) {

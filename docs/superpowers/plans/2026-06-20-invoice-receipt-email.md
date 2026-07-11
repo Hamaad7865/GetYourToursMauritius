@@ -23,6 +23,7 @@ The card is charged in USD while the ledger is EUR; the charged amount is comput
 - [ ] **Step 3: Mirror** the column adds (and any new RPC) into `supabase/catch-up.sql`; add the columns to the `payments` Row type in `src/lib/supabase/types.ts` (nullable).
 - [ ] **Step 4: Test** (`tests/integration/payment-charge.test.ts`): create a booking → `createPaymentLink` → assert the payment row now carries `charged_amount_minor` + `charged_currency`. READ an existing payments integration test for the harness. Run `catch-up-parity` too.
 - [ ] **Step 5: Verify + commit** — `npm run typecheck && npx vitest run`.
+
 ```bash
 git add -A && git commit -m "feat(payments): persist the charged amount + currency for receipts"
 ```
@@ -34,21 +35,50 @@ git add -A && git commit -m "feat(payments): persist the charged amount + curren
 **Files:** Create `src/lib/invoice/model.ts`, `tests/unit/invoice-model.test.ts`.
 
 - [ ] **Step 1: Failing test** `tests/unit/invoice-model.test.ts`. First decide the input shape by reading what `booking_json`/the `Booking` validation type returns (items with `priceLabel`/`quantity`/`pax`/`subtotalEur`, `totalEur`, `currency`, `customerName`/`customerEmail`, `pickupLocation`/`dropoffLocation`, `childSeats`, the transport amount field, the activity title + occurrence date — confirm exact names) and the payment shape (`charged_amount_minor`/`charged_currency` from Task 1, paid date, provider ref). Then test `buildInvoice`:
+
 ```typescript
 import { describe, expect, it } from 'vitest';
 import { buildInvoice } from '@/lib/invoice/model';
 
-const business = { legalName: 'Belle Mare Tours Ltd', brn: 'C09091906', vat: '20529965', street: 'Royal Road, Belle Mare', locality: 'Belle Mare', region: 'Flacq', country: 'MU', email: 'hello@x.com', phone: '+230...' };
+const business = {
+  legalName: 'Belle Mare Tours Ltd',
+  brn: 'C09091906',
+  vat: '20529965',
+  street: 'Royal Road, Belle Mare',
+  locality: 'Belle Mare',
+  region: 'Flacq',
+  country: 'MU',
+  email: 'hello@x.com',
+  phone: '+230...',
+};
 
 it('splits a VAT-inclusive total into net + 15% VAT (gross stays exact)', () => {
-  const inv = buildInvoice({
-    ref: 'BMT-1', customerName: 'Jean', customerEmail: 'j@x.com', currency: 'EUR', totalEur: 115,
-    activityTitle: 'Boat Trip', when: '2026-08-09T06:00:00Z', pickupLocation: null, dropoffLocation: null, childSeats: 0,
-    transportEur: 0, items: [{ priceLabel: 'Adult', quantity: 1, pax: null, subtotalEur: 115 }],
-  }, { chargedAmount: 125, chargedCurrency: 'USD', paidAt: '2026-06-20T10:00:00Z', providerRef: 'pe_123' }, business);
+  const inv = buildInvoice(
+    {
+      ref: 'BMT-1',
+      customerName: 'Jean',
+      customerEmail: 'j@x.com',
+      currency: 'EUR',
+      totalEur: 115,
+      activityTitle: 'Boat Trip',
+      when: '2026-08-09T06:00:00Z',
+      pickupLocation: null,
+      dropoffLocation: null,
+      childSeats: 0,
+      transportEur: 0,
+      items: [{ priceLabel: 'Adult', quantity: 1, pax: null, subtotalEur: 115 }],
+    },
+    {
+      chargedAmount: 125,
+      chargedCurrency: 'USD',
+      paidAt: '2026-06-20T10:00:00Z',
+      providerRef: 'pe_123',
+    },
+    business,
+  );
   expect(inv.invoiceNumber).toBe('BMT-1');
   expect(inv.totalGrossEur).toBe(115);
-  expect(inv.subtotalNetEur).toBe(100);          // 115 / 1.15
+  expect(inv.subtotalNetEur).toBe(100); // 115 / 1.15
   expect(inv.vatAmountEur).toBe(15);
   expect(inv.vatRatePct).toBe(15);
   expect(inv.payment.chargedAmount).toBe(125);
@@ -56,17 +86,31 @@ it('splits a VAT-inclusive total into net + 15% VAT (gross stays exact)', () => 
 });
 
 it('builds a transport line and a child-seat line and the lines sum to the total', () => {
-  const inv = buildInvoice({
-    ref: 'BMT-2', customerName: 'A', customerEmail: 'a@x.com', currency: 'EUR', totalEur: 191,
-    activityTitle: 'Tour', when: '2026-08-09T06:00:00Z', pickupLocation: 'Hotel', dropoffLocation: null, childSeats: 2,
-    transportEur: 30, items: [{ priceLabel: 'Adult', quantity: 3, pax: null, subtotalEur: 155 }],
-  }, { chargedAmount: 207, chargedCurrency: 'USD' }, business);
+  const inv = buildInvoice(
+    {
+      ref: 'BMT-2',
+      customerName: 'A',
+      customerEmail: 'a@x.com',
+      currency: 'EUR',
+      totalEur: 191,
+      activityTitle: 'Tour',
+      when: '2026-08-09T06:00:00Z',
+      pickupLocation: 'Hotel',
+      dropoffLocation: null,
+      childSeats: 2,
+      transportEur: 30,
+      items: [{ priceLabel: 'Adult', quantity: 3, pax: null, subtotalEur: 155 }],
+    },
+    { chargedAmount: 207, chargedCurrency: 'USD' },
+    business,
+  );
   const sum = inv.lines.reduce((s, l) => s + l.lineGrossEur, 0);
   expect(sum).toBeCloseTo(191, 2);
   expect(inv.lines.some((l) => /transport/i.test(l.description))).toBe(true);
   expect(inv.lines.some((l) => /child seat/i.test(l.description))).toBe(true);
 });
 ```
+
 (Adapt field names to the REAL booking/payment shapes; the child-seat extra = €6 per extra seat — first free — confirm with `childSeatsCost` in `src/lib/services/pricing.ts`.)
 
 - [ ] **Step 2: Run, expect FAIL.**
@@ -82,6 +126,7 @@ it('builds a transport line and a child-seat line and the lines sum to the total
 
 - [ ] **Step 1: Add the dependency** — `npm install pdf-lib`. Confirm it imports in an edge-compatible way (pure ESM/JS; no Node `fs`).
 - [ ] **Step 2: Failing smoke test** `tests/unit/invoice-pdf.test.ts`:
+
 ```typescript
 import { describe, expect, it } from 'vitest';
 import { renderInvoicePdf } from '@/lib/invoice/pdf';
@@ -94,6 +139,7 @@ it('produces a valid non-empty PDF', async () => {
   expect(String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3])).toBe('%PDF');
 });
 ```
+
 - [ ] **Step 3: Run, expect FAIL.**
 - [ ] **Step 4: Implement `src/lib/invoice/pdf.ts`** — `export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>`. Use `PDFDocument.create()`, `StandardFonts.Helvetica`/`HelveticaBold`, an A4 page. Draw, top→bottom: a business header (legalName, address, `BRN: … · VAT: …`, email/phone); a right-aligned "TAX INVOICE / RECEIPT" + `No. {invoiceNumber}` + `Date {issuedAt}`; a customer block (name, email); a trip block (`Booking {ref}`, activity title, `Date {when}`, pickup/dropoff when present); a line-item table (Description | Qty | Amount) iterating `model.lines` with `EUR {lineGrossEur}`; a totals block (`Subtotal (excl. VAT) EUR {subtotalNetEur}`, `VAT 15% EUR {vatAmountEur}`, bold `Total EUR {totalGrossEur}`); a **PAID** stamp/box with `Paid {chargedCurrency} {chargedAmount}` + `on {paidAt}` + `Ref {providerRef}`. Show currency as the code (`EUR`/`USD`), 2 decimals. Keep it single-page; wrap/truncate long text. Return `await pdf.save()`.
 - [ ] **Step 5: Run → PASS.** Also run `npm run build` to confirm `pdf-lib` doesn't break the edge bundle of any route that will import it (the drain route). If the build flags an edge-incompat, note it and switch the import to dynamic `await import('pdf-lib')` inside the renderer.
@@ -107,7 +153,7 @@ it('produces a valid non-empty PDF', async () => {
 
 - [ ] **Step 1: Failing test** asserting `renderConfirmationEmail(model)` returns `{ subject, html, text }` where: `subject` contains the ref; `html` contains the ref, the activity title, the total (`EUR …`), each line description, and the business `legalName`; `text` is a non-empty plain-text fallback (reuse/keep the current plain-text confirmation wording).
 - [ ] **Step 2: Run, expect FAIL.**
-- [ ] **Step 3: Implement `src/lib/email/booking-confirmation.ts`** — `renderConfirmationEmail(model: InvoiceModel): { subject, html, text }`. A simple, robust, inline-styled HTML (email clients need inline CSS; no external CSS/JS): a header with the operator name, "Your booking is confirmed", the booking ref + activity + date, a compact line-item summary + total, a "Your invoice & receipt are attached as a PDF." note, and the support email/phone. `subject = \`Your Belle Mare Tours booking ${model.invoiceNumber} — invoice & receipt\``. Keep `text` as a clean plain-text fallback. ESCAPE any interpolated customer/DB text into the HTML (a tiny `escapeHtml` helper) to avoid broken markup / injection.
+- [ ] **Step 3: Implement `src/lib/email/booking-confirmation.ts`** — `renderConfirmationEmail(model: InvoiceModel): { subject, html, text }`. A simple, robust, inline-styled HTML (email clients need inline CSS; no external CSS/JS): a header with the operator name, "Your booking is confirmed", the booking ref + activity + date, a compact line-item summary + total, a "Your invoice & receipt are attached as a PDF." note, and the support email/phone. `subject = \`Your Belle Mare Tours booking ${model.invoiceNumber} — invoice & receipt\``. Keep `text`as a clean plain-text fallback. ESCAPE any interpolated customer/DB text into the HTML (a tiny`escapeHtml` helper) to avoid broken markup / injection.
 - [ ] **Step 4: Run → PASS.**
 - [ ] **Step 5: Commit** — `git add src/lib/email/booking-confirmation.ts tests/unit/booking-confirmation-email.test.ts && git commit -m "feat(email): branded HTML booking-confirmation template"`.
 

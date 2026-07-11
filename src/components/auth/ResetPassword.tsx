@@ -104,7 +104,10 @@ export function ResetPassword() {
           <p className="text-sm font-medium text-coral-dark">
             {t('This reset link is invalid or has expired. Please request a new one.')}
           </p>
-          <Link href="/" className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark">
+          <Link
+            href="/"
+            className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark"
+          >
             {t('Back to home')}
           </Link>
         </div>
@@ -116,9 +119,7 @@ export function ResetPassword() {
     <div className="grid min-h-[60vh] place-items-center px-4 py-12">
       <div className="w-full max-w-[420px] rounded-2xl bg-white p-6 shadow-2xl sm:p-8">
         <h1 className="font-display text-2xl font-semibold text-ink">{t('Set a new password')}</h1>
-        <p className="mt-1 text-sm text-ink-muted">
-          {t('Enter a new password for your account.')}
-        </p>
+        <p className="mt-1 text-sm text-ink-muted">{t('Enter a new password for your account.')}</p>
 
         <form onSubmit={submit} className="mt-5 flex flex-col gap-3">
           <Field icon={<IconLock width={18} height={18} />}>
@@ -143,7 +144,11 @@ export function ResetPassword() {
               aria-label={showPassword ? t('Hide password') : t('Show password')}
               className="shrink-0 text-ink-muted hover:text-ink"
             >
-              {showPassword ? <IconEyeOff width={18} height={18} /> : <IconEye width={18} height={18} />}
+              {showPassword ? (
+                <IconEyeOff width={18} height={18} />
+              ) : (
+                <IconEye width={18} height={18} />
+              )}
             </button>
           </Field>
           <Field icon={<IconLock width={18} height={18} />}>

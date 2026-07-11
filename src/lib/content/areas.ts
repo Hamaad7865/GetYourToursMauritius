@@ -27,10 +27,12 @@ export function destinationPath(slug: string): string {
 
 export const AREA_REGION_ORDER: AreaRegion[] = ['North', 'East', 'South', 'West', 'Central'];
 
-export const areas: Area[] = AREAS_RAW.map((a) => ({ ...a, path: destinationPath(a.slug) })).sort((a, b) => {
-  const ci = AREA_REGION_ORDER.indexOf(a.region) - AREA_REGION_ORDER.indexOf(b.region);
-  return ci !== 0 ? ci : a.name.localeCompare(b.name);
-});
+export const areas: Area[] = AREAS_RAW.map((a) => ({ ...a, path: destinationPath(a.slug) })).sort(
+  (a, b) => {
+    const ci = AREA_REGION_ORDER.indexOf(a.region) - AREA_REGION_ORDER.indexOf(b.region);
+    return ci !== 0 ? ci : a.name.localeCompare(b.name);
+  },
+);
 
 export function getArea(slug: string): Area | null {
   return areas.find((a) => a.slug === slug) ?? null;

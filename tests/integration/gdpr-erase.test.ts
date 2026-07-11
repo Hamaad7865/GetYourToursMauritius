@@ -125,9 +125,10 @@ describe('api_erase_user — anonymize-with-retention', () => {
     const totalBefore = Number((await bookingRow(db, confirmedId))!.total_minor);
     // Stamp a transfer-PII field on the retained booking so we can assert it is nulled by erasure
     // (the airport-transfer columns must be stripped alongside name/email/phone).
-    await db.pg.query(`update bookings set special_notes = 'Wheelchair access please' where id = $1`, [
-      confirmedId,
-    ]);
+    await db.pg.query(
+      `update bookings set special_notes = 'Wheelchair access please' where id = $1`,
+      [confirmedId],
+    );
 
     // A lead carrying U's email (PII to hard-delete).
     await db.pg.query(`insert into leads (name, contact) values ('Erase Me', $1)`, [U_EMAIL]);
@@ -148,7 +149,9 @@ describe('api_erase_user — anonymize-with-retention', () => {
     // Profile + the unpaid draft booking + the lead are GONE.
     expect((await db.pg.query(`select 1 from profiles where id = $1`, [U])).rows).toHaveLength(0);
     expect(await bookingRow(db, draftId)).toBeUndefined();
-    expect((await db.pg.query(`select 1 from leads where lower(contact) = $1`, [U_EMAIL])).rows).toHaveLength(0);
+    expect(
+      (await db.pg.query(`select 1 from leads where lower(contact) = $1`, [U_EMAIL])).rows,
+    ).toHaveLength(0);
 
     // The CONFIRMED booking still exists but is anonymized — financials untouched. customer_email is
     // NOT NULL in the schema, so it is redacted to a non-routable sentinel rather than nulled.

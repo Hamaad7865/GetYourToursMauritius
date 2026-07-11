@@ -18,28 +18,28 @@ export function TransferModeSwitch() {
   return (
     <div>
       <div className="mb-6 flex justify-center">
-      <div
-        className="inline-flex rounded-full border p-1"
-        style={{ borderColor: 'rgba(17,32,31,0.15)', background: '#fff' }}
-      >
-        {(
-          [
-            ['airport', 'Airport ↔ Hotel'],
-            ['hotel', 'Location ↔ Location'],
-          ] as const
-        ).map(([m, label]) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMode(m)}
-            aria-pressed={mode === m}
-            className="rounded-full px-5 py-2 text-[14px] font-bold transition"
-            style={mode === m ? { background: TEAL, color: '#fff' } : { color: INK }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+        <div
+          className="inline-flex rounded-full border p-1"
+          style={{ borderColor: 'rgba(17,32,31,0.15)', background: '#fff' }}
+        >
+          {(
+            [
+              ['airport', 'Airport ↔ Hotel'],
+              ['hotel', 'Location ↔ Location'],
+            ] as const
+          ).map(([m, label]) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              aria-pressed={mode === m}
+              className="rounded-full px-5 py-2 text-[14px] font-bold transition"
+              style={mode === m ? { background: TEAL, color: '#fff' } : { color: INK }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
       {mode === 'airport' ? <AirportQuote /> : <HotelToHotelQuote />}
     </div>

@@ -86,7 +86,7 @@ On Checkout, call `create_hold(occurrence, quantity, idempotencyKey)` for each `
 ## 4. Notifications bell (navbar)
 
 A bell icon with an unread count; clicking opens a dropdown of recent alerts, newest first, marked
-read on open. Messages name the tour ("*North Tour* expired"). Purely from the notifications store;
+read on open. Messages name the tour ("_North Tour_ expired"). Purely from the notifications store;
 capped to a small recent list. No new routes or tables.
 
 ## 5. Resume / pay

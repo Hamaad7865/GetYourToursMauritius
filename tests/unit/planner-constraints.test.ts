@@ -57,7 +57,9 @@ describe('dayRegionLabel', () => {
 
 describe('addBlockReason', () => {
   it('returns "full" at the cap (precedence over region)', () => {
-    expect(addBlockReason('North', ['South', 'South', 'South', 'South', 'South', 'South'])).toBe('full');
+    expect(addBlockReason('North', ['South', 'South', 'South', 'South', 'South', 'South'])).toBe(
+      'full',
+    );
   });
   it('returns "far-region" when incompatible and there is room', () => {
     expect(addBlockReason('North', ['South'])).toBe('far-region');

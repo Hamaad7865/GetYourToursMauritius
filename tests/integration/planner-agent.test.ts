@@ -22,7 +22,12 @@ describe('planner agent (no-model fallback)', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    ctx = { db: pgliteRpc(db.pg), payments: new StubPaymentProvider(), ai: createStubAiProvider(), now: () => new Date() };
+    ctx = {
+      db: pgliteRpc(db.pg),
+      payments: new StubPaymentProvider(),
+      ai: createStubAiProvider(),
+      now: () => new Date(),
+    };
   });
   afterAll(async () => {
     await db.close();
@@ -47,8 +52,16 @@ describe('planner agent (no-model fallback)', () => {
  * resolve those existing ids without a re-search — otherwise adding one stop wipes the rest.
  */
 const place = (id: string, name: string, region = 'South'): PlannerPlace => ({
-  id, name, category: 'Landmark', region, lat: -20.4, lng: 57.5,
-  durationMin: 60, closesAt: null, blurb: null, imageUrl: null,
+  id,
+  name,
+  category: 'Landmark',
+  region,
+  lat: -20.4,
+  lng: 57.5,
+  durationMin: 60,
+  closesAt: null,
+  blurb: null,
+  imageUrl: null,
 });
 
 // runPlannerTurn only touches ctx to build the real model, which we override here — a stub is enough.
@@ -76,7 +89,12 @@ function scriptedModel(steps: Array<{ tool: string; args: unknown } | { text: st
         finishReason: 'tool-calls',
         usage: { promptTokens: 0, completionTokens: 0 },
         toolCalls: [
-          { toolCallType: 'function', toolCallId: `c${i}`, toolName: step.tool, args: JSON.stringify(step.args) },
+          {
+            toolCallType: 'function',
+            toolCallId: `c${i}`,
+            toolName: step.tool,
+            args: JSON.stringify(step.args),
+          },
         ],
         rawCall: { rawPrompt: null, rawSettings: {} },
       };
@@ -107,7 +125,12 @@ describe('runPlannerTurn — keeps the current day when adding', () => {
         const u = String(url);
         if (u.includes('routes.googleapis')) return okJson({ routes: [] }); // → haversine estimate
         if (u.includes('/v1/places/') && u.includes('p-new'))
-          return okJson({ id: 'p-new', displayName: { text: 'Curious Mauritius' }, location: { latitude: -20.3, longitude: 57.5 }, types: [] });
+          return okJson({
+            id: 'p-new',
+            displayName: { text: 'Curious Mauritius' },
+            location: { latitude: -20.3, longitude: 57.5 },
+            types: [],
+          });
         return { ok: false, json: async () => ({}) } as unknown as Response;
       }),
     );
@@ -120,7 +143,10 @@ describe('runPlannerTurn — keeps the current day when adding', () => {
 
     const res = await runPlannerTurn(
       stubCtx,
-      { messages: [{ role: 'user', content: 'Add Curious Mauritius and keep the rest.' }], itinerary: [loaded] },
+      {
+        messages: [{ role: 'user', content: 'Add Curious Mauritius and keep the rest.' }],
+        itinerary: [loaded],
+      },
       model,
     );
 
@@ -128,7 +154,10 @@ describe('runPlannerTurn — keeps the current day when adding', () => {
   });
 
   it('tells the model the current itinerary (names + ids) so it can keep it', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => okJson({ routes: [] })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => okJson({ routes: [] })),
+    );
     const loaded = place('p-loaded', 'Le Morne Beach');
     const { model, seenPrompts } = scriptedModel([{ text: 'Sure!' }]);
 
@@ -150,7 +179,12 @@ describe('runPlannerTurn — keeps the current day when adding', () => {
         const u = String(url);
         if (u.includes('routes.googleapis')) return okJson({ routes: [] });
         if (u.includes('/v1/places/') && u.includes('p-north'))
-          return okJson({ id: 'p-north', displayName: { text: 'Cap Malheureux' }, location: { latitude: -20.0, longitude: 57.6 }, types: [] }); // North
+          return okJson({
+            id: 'p-north',
+            displayName: { text: 'Cap Malheureux' },
+            location: { latitude: -20.0, longitude: 57.6 },
+            types: [],
+          }); // North
         return { ok: false, json: async () => ({}) } as unknown as Response;
       }),
     );
@@ -175,7 +209,12 @@ describe('runPlannerTurn — keeps the current day when adding', () => {
         const u = String(url);
         if (u.includes('routes.googleapis')) return okJson({ routes: [] });
         if (u.includes('/v1/places/') && u.includes('p-north'))
-          return okJson({ id: 'p-north', displayName: { text: 'Cap Malheureux' }, location: { latitude: -20.0, longitude: 57.6 }, types: [] }); // North
+          return okJson({
+            id: 'p-north',
+            displayName: { text: 'Cap Malheureux' },
+            location: { latitude: -20.0, longitude: 57.6 },
+            types: [],
+          }); // North
         return { ok: false, json: async () => ({}) } as unknown as Response;
       }),
     );

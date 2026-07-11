@@ -24,7 +24,8 @@ type Glyph = 'car' | 'boat' | 'walk' | 'pin';
 function glyphFor(title: string): Glyph {
   const s = title.toLowerCase();
   if (/\b(car|taxi|van|minibus|bus|drive|driving|transfer|voiture)\b/.test(s)) return 'car';
-  if (/\b(speed ?boat|boat|catamaran|ferry|cruise|kayak|bateau|croisi[eè]re)\b/.test(s)) return 'boat';
+  if (/\b(speed ?boat|boat|catamaran|ferry|cruise|kayak|bateau|croisi[eè]re)\b/.test(s))
+    return 'boat';
   if (/\b(walk|walking|hike|hiking|trek|trekking|marche|randonn[eé]e)\b/.test(s)) return 'walk';
   return 'pin';
 }
@@ -141,7 +142,9 @@ export function ItineraryTimeline({
               <div className="text-[15px] font-bold leading-snug text-ink">{stop.title}</div>
               {stop.area && <div className="mt-0.5 text-[13px] text-ink-muted">{stop.area}</div>}
               {stop.description && (
-                <div className="mt-0.5 text-[13.5px] leading-snug text-ink/70">{stop.description}</div>
+                <div className="mt-0.5 text-[13.5px] leading-snug text-ink/70">
+                  {stop.description}
+                </div>
               )}
               {stop.tags && stop.tags.length > 0 && (
                 <div className="mt-1.5 flex flex-wrap gap-1.5">

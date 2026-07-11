@@ -94,10 +94,13 @@ export function PlannerShell() {
       const region = dayRegionLabel(dayRegions);
       return reason === 'full'
         ? t('Your day is full at {max} stops — remove one to add {name}.', { max: MAX_STOPS, name })
-        : t('{name} is too far from your {region} day — that would be a separate trip. Try somewhere closer.', {
-            name,
-            region: region ?? t('current'),
-          });
+        : t(
+            '{name} is too far from your {region} day — that would be a separate trip. Try somewhere closer.',
+            {
+              name,
+              region: region ?? t('current'),
+            },
+          );
     },
     [dayRegions, t],
   );
@@ -116,7 +119,10 @@ export function PlannerShell() {
   // the shortest round trip whenever this key changes (a stop added/removed, or the pickup changed);
   // since reordering leaves the key unchanged, the optimizer never re-triggers itself (no loop), and a
   // manual drag-reorder stands until the next change.
-  const optimizeKey = useMemo(() => `${pickup.id}|${[...stopIds].sort().join(',')}`, [pickup, stopIds]);
+  const optimizeKey = useMemo(
+    () => `${pickup.id}|${[...stopIds].sort().join(',')}`,
+    [pickup, stopIds],
+  );
 
   let quote: PlannerQuote | null = null;
   let quoteError: string | null = null;
@@ -229,9 +235,12 @@ export function PlannerShell() {
     if (fromTour) {
       (async () => {
         try {
-          const res = await fetch(`/api/planner/from-tour?slug=${encodeURIComponent(fromTour)}`).then((r) => r.json());
-          const tourName: string | null = res.ok ? res.data?.tour ?? null : null;
-          const places: PlannerPlace[] = res.ok && Array.isArray(res.data?.places) ? res.data.places : [];
+          const res = await fetch(
+            `/api/planner/from-tour?slug=${encodeURIComponent(fromTour)}`,
+          ).then((r) => r.json());
+          const tourName: string | null = res.ok ? (res.data?.tour ?? null) : null;
+          const places: PlannerPlace[] =
+            res.ok && Array.isArray(res.data?.places) ? res.data.places : [];
           if (tourName) setBannerTour(tourName.slice(0, 80));
           if (places.length) {
             addToCatalog(places);
@@ -241,7 +250,10 @@ export function PlannerShell() {
               {
                 role: 'assistant',
                 kind: 'text',
-                text: t("You're customizing {tour} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.", { tour: tourName ?? t('this tour') }),
+                text: t(
+                  "You're customizing {tour} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.",
+                  { tour: tourName ?? t('this tour') },
+                ),
               },
             ]);
           } else {
@@ -249,7 +261,10 @@ export function PlannerShell() {
               {
                 role: 'assistant',
                 kind: 'text',
-                text: t("Let's build on {tour}. Tell me what you'd like to see, or browse places and I'll shape the day around them.", { tour: tourName ?? t('this tour') }),
+                text: t(
+                  "Let's build on {tour}. Tell me what you'd like to see, or browse places and I'll shape the day around them.",
+                  { tour: tourName ?? t('this tour') },
+                ),
               },
             ]);
           }
@@ -260,13 +275,18 @@ export function PlannerShell() {
       return;
     }
 
-    const raw = (params.get('stops') ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+    const raw = (params.get('stops') ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
     const tour = params.get('tour');
     if (tour) setBannerTour(tour.slice(0, 80));
     if (raw.length) {
       (async () => {
         try {
-          const res = await fetch(`/api/planner/places?ids=${encodeURIComponent(raw.join(','))}`).then((r) => r.json());
+          const res = await fetch(
+            `/api/planner/places?ids=${encodeURIComponent(raw.join(','))}`,
+          ).then((r) => r.json());
           const places: PlannerPlace[] = res.ok ? res.data : [];
           if (places.length) {
             addToCatalog(places);
@@ -277,7 +297,10 @@ export function PlannerShell() {
                 {
                   role: 'assistant',
                   kind: 'text',
-                  text: t("You're customizing the {tour} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.", { tour: tour.slice(0, 80) }),
+                  text: t(
+                    "You're customizing the {tour} — I've loaded its stops. Add, drop or reorder anything and I'll keep the route and price live.",
+                    { tour: tour.slice(0, 80) },
+                  ),
                 },
               ]);
             }
@@ -300,7 +323,11 @@ export function PlannerShell() {
     if (stopIds.length) params.set('stops', stopsToParam(stopIds));
     else params.delete('stops');
     const qs = params.toString();
-    window.history.replaceState(null, '', qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
+    window.history.replaceState(
+      null,
+      '',
+      qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
+    );
   }, [stopIds]);
 
   // ── stop ops ──
@@ -315,7 +342,14 @@ export function PlannerShell() {
       const place = catalog.get(id);
       const reason = addBlockReason(place?.region ?? null, dayRegions);
       if (reason) {
-        setChat((c) => [...c, { role: 'assistant', kind: 'text', text: blockedMessage(reason, place?.name ?? t('that place')) }]);
+        setChat((c) => [
+          ...c,
+          {
+            role: 'assistant',
+            kind: 'text',
+            text: blockedMessage(reason, place?.name ?? t('that place')),
+          },
+        ]);
         return;
       }
       commitStopId(id);
@@ -327,7 +361,10 @@ export function PlannerShell() {
     (place: PlannerPlace) => {
       const reason = addBlockReason(place.region, dayRegions);
       if (reason) {
-        setChat((c) => [...c, { role: 'assistant', kind: 'text', text: blockedMessage(reason, place.name) }]);
+        setChat((c) => [
+          ...c,
+          { role: 'assistant', kind: 'text', text: blockedMessage(reason, place.name) },
+        ]);
         return;
       }
       addToCatalog([place]);
@@ -335,7 +372,10 @@ export function PlannerShell() {
     },
     [addToCatalog, commitStopId, dayRegions, blockedMessage],
   );
-  const removeStop = useCallback((id: string) => setStopIds((prev) => prev.filter((x) => x !== id)), []);
+  const removeStop = useCallback(
+    (id: string) => setStopIds((prev) => prev.filter((x) => x !== id)),
+    [],
+  );
   const moveStop = useCallback((from: number, to: number) => {
     setStopIds((prev) => {
       const a = [...prev];
@@ -371,7 +411,16 @@ export function PlannerShell() {
       a.splice(1, 0, m!);
       return a;
     });
-    setChat((c) => [...c, { role: 'assistant', kind: 'text', text: t('Done — I moved {place} earlier so you arrive well before it closes.', { place: boost.place }) }]);
+    setChat((c) => [
+      ...c,
+      {
+        role: 'assistant',
+        kind: 'text',
+        text: t('Done — I moved {place} earlier so you arrive well before it closes.', {
+          place: boost.place,
+        }),
+      },
+    ]);
     setBoost(null);
   }
 
@@ -379,7 +428,9 @@ export function PlannerShell() {
   async function sendChat(text: string) {
     const trimmed = text.trim();
     if (!trimmed) return;
-    const history = chat.filter((m): m is Extract<ChatMsg, { kind: 'text' }> => m.kind === 'text').map((m) => ({ role: m.role, content: m.text }));
+    const history = chat
+      .filter((m): m is Extract<ChatMsg, { kind: 'text' }> => m.kind === 'text')
+      .map((m) => ({ role: m.role, content: m.text }));
     setChat((c) => [...c, { role: 'user', kind: 'text', text: trimmed }]);
     setTyping(true);
     setHasBuilt(true);
@@ -415,21 +466,42 @@ export function PlannerShell() {
           setChat((c) => [...c, { role: 'assistant', kind: 'text', text: reply }]);
         }
       } else {
-        setChat((c) => [...c, { role: 'assistant', kind: 'text', text: t("Sorry — I couldn't reach ZilAi just now. Browse places on the left and I'll keep the price live.") }]);
+        setChat((c) => [
+          ...c,
+          {
+            role: 'assistant',
+            kind: 'text',
+            text: t(
+              "Sorry — I couldn't reach ZilAi just now. Browse places on the left and I'll keep the price live.",
+            ),
+          },
+        ]);
       }
     } catch {
       setTyping(false);
-      setChat((c) => [...c, { role: 'assistant', kind: 'text', text: t('Something went wrong — please try again in a moment.') }]);
+      setChat((c) => [
+        ...c,
+        {
+          role: 'assistant',
+          kind: 'text',
+          text: t('Something went wrong — please try again in a moment.'),
+        },
+      ]);
     }
   }
 
   function scrollToPlanner() {
     const el = document.getElementById('planner');
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 60, behavior: 'smooth' });
+    if (el)
+      window.scrollTo({
+        top: el.getBoundingClientRect().top + window.scrollY - 60,
+        behavior: 'smooth',
+      });
   }
 
   function submitHero() {
-    const v = heroValue.trim() || 'A relaxed day in the south — two beaches and a waterfall, back by 5pm.';
+    const v =
+      heroValue.trim() || 'A relaxed day in the south — two beaches and a waterfall, back by 5pm.';
     scrollToPlanner();
     setMobileTab('chat');
     void sendChat(v);
@@ -445,7 +517,16 @@ export function PlannerShell() {
     setBannerTour(null);
     setDrawerOpen(false);
     setMobileTab('day');
-    setChat([{ role: 'assistant', kind: 'text', text: t('Loaded {name} — {n} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.', { name: p.name, n: p.places.length }) }]);
+    setChat([
+      {
+        role: 'assistant',
+        kind: 'text',
+        text: t(
+          'Loaded {name} — {n} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.',
+          { name: p.name, n: p.places.length },
+        ),
+      },
+    ]);
     scrollToPlanner();
   }
 
@@ -454,8 +535,12 @@ export function PlannerShell() {
     setBooking(true);
     setBookError(null);
     try {
-      const avail = await fetch(`/api/v1/activities/${CUSTOM_SLUG}/availability?from=${date}&to=${date}`).then((r) => r.json());
-      const slots: Array<{ occurrenceId: string; startsAt: string; seatsLeft: number }> = avail.ok ? (avail.data ?? []) : [];
+      const avail = await fetch(
+        `/api/v1/activities/${CUSTOM_SLUG}/availability?from=${date}&to=${date}`,
+      ).then((r) => r.json());
+      const slots: Array<{ occurrenceId: string; startsAt: string; seatsLeft: number }> = avail.ok
+        ? (avail.data ?? [])
+        : [];
       const slot = slots.find((s) => utcDayKey(s.startsAt) === date) ?? slots[0];
       if (!slot) {
         setBookError(t("That date isn't open yet — try another day, or contact us to arrange it."));
@@ -469,7 +554,12 @@ export function PlannerShell() {
         const res = await fetch('/api/v1/holds', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ occurrenceId: occ, expectedSlug: CUSTOM_SLUG, people: party, idempotencyKey: idem }),
+          body: JSON.stringify({
+            occurrenceId: occ,
+            expectedSlug: CUSTOM_SLUG,
+            people: party,
+            idempotencyKey: idem,
+          }),
         }).then((r) => r.json());
         if (res.ok) {
           holdId = res.data.holdId;
@@ -479,13 +569,25 @@ export function PlannerShell() {
         /* checkout creates the hold at pay if this failed */
       }
       try {
-        window.sessionStorage.setItem(`gytm:hold:${occ}`, JSON.stringify({ holdId, expiresAt, idem }));
-        const itinerary = stops.map((s) => ({ title: s.name, area: s.region, lat: s.lat, lng: s.lng }));
+        window.sessionStorage.setItem(
+          `gytm:hold:${occ}`,
+          JSON.stringify({ holdId, expiresAt, idem }),
+        );
+        const itinerary = stops.map((s) => ({
+          title: s.name,
+          area: s.region,
+          lat: s.lat,
+          lng: s.lng,
+        }));
         window.sessionStorage.setItem(`gytm:itinerary:${CUSTOM_SLUG}`, JSON.stringify(itinerary));
       } catch {
         /* sessionStorage unavailable — checkout falls back */
       }
-      const dateText = new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+      const dateText = new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
       const q = new URLSearchParams({
         occ,
         label: quote.vehicle,
@@ -605,24 +707,55 @@ export function PlannerShell() {
 
   return (
     <main className="min-h-screen bg-white">
-      <HeroSection value={heroValue} onChange={setHeroValue} onSubmit={submitHero} onChip={(c) => { setHeroValue(c); scrollToPlanner(); setMobileTab('chat'); void sendChat(c); setHeroValue(''); }} />
+      <HeroSection
+        value={heroValue}
+        onChange={setHeroValue}
+        onSubmit={submitHero}
+        onChip={(c) => {
+          setHeroValue(c);
+          scrollToPlanner();
+          setMobileTab('chat');
+          void sendChat(c);
+          setHeroValue('');
+        }}
+      />
 
       <div id="planner" style={{ background: 'linear-gradient(180deg,#FFFFFF, #F6FBFA)' }}>
         {bannerTour && (
           <div className="mx-auto max-w-shell px-[22px] pt-3.5">
-            <div className="flex items-center gap-3 rounded-[14px] border border-[#D8ECEA] px-[15px] py-[11px]" style={{ background: 'linear-gradient(120deg,#EAF7F5,#fff)' }}>
+            <div
+              className="flex items-center gap-3 rounded-[14px] border border-[#D8ECEA] px-[15px] py-[11px]"
+              style={{ background: 'linear-gradient(120deg,#EAF7F5,#fff)' }}
+            >
               <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] bg-coral">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M12 3l2.3 4.7L19.5 8l-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z" fill="#fff" />
+                  <path
+                    d="M12 3l2.3 4.7L19.5 8l-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z"
+                    fill="#fff"
+                  />
                 </svg>
               </span>
               <div className="flex-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-coral">{t('Customizing')}</span>
-                <div className="text-[14.5px] font-bold text-ink">{t('{tour} — make it yours', { tour: bannerTour })}</div>
+                <span className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-coral">
+                  {t('Customizing')}
+                </span>
+                <div className="text-[14.5px] font-bold text-ink">
+                  {t('{tour} — make it yours', { tour: bannerTour })}
+                </div>
               </div>
-              <button type="button" onClick={() => setBannerTour(null)} aria-label={t('Dismiss')} className="cursor-pointer p-1.5 text-ink-muted">
+              <button
+                type="button"
+                onClick={() => setBannerTour(null)}
+                aria-label={t('Dismiss')}
+                className="cursor-pointer p-1.5 text-ink-muted"
+              >
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
+                  <path
+                    d="M6 6l12 12M18 6L6 18"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
             </div>
@@ -632,11 +765,19 @@ export function PlannerShell() {
         {isMobile ? (
           <div className="px-3 pt-2.5">
             <div className="relative h-[calc(100vh-220px)] min-h-[460px] overflow-hidden rounded-[18px] border border-[#EAF2F1] bg-white shadow-[0_14px_34px_rgba(10,46,54,.08)]">
-              <div className="h-full">{mobileTab === 'chat' ? copilot : mobileTab === 'map' ? map : itinerary}</div>
+              <div className="h-full">
+                {mobileTab === 'chat' ? copilot : mobileTab === 'map' ? map : itinerary}
+              </div>
               {drawer}
             </div>
             <div className="sticky bottom-0 mt-2.5 flex gap-1.5 rounded-[16px] border border-[#EAF2F1] bg-white p-1.5 shadow-[0_10px_24px_rgba(10,46,54,.1)]">
-              {([['chat', 'ZilAi'], ['day', 'Your day'], ['map', 'Map']] as const).map(([k, lab]) => (
+              {(
+                [
+                  ['chat', 'ZilAi'],
+                  ['day', 'Your day'],
+                  ['map', 'Map'],
+                ] as const
+              ).map(([k, lab]) => (
                 <button
                   key={k}
                   type="button"
@@ -650,10 +791,21 @@ export function PlannerShell() {
             {stops.length > 0 && (
               <div className="sticky bottom-0 mt-2.5 flex items-center gap-3 rounded-[16px] bg-ink px-3.5 py-[11px] shadow-[0_12px_28px_rgba(10,46,54,.28)]">
                 <div className="flex-1 text-white">
-                  <div className="text-[12.5px] font-bold">{t('{n} stops · {dur} driving', { n: stops.length, dur: fmtDur(route.totalMinutes) })}</div>
-                  <div className="text-xs text-[#9FD2CD]">~{quote ? <Price eur={quote.totalEur} /> : '—'} {t('estimate')}</div>
+                  <div className="text-[12.5px] font-bold">
+                    {t('{n} stops · {dur} driving', {
+                      n: stops.length,
+                      dur: fmtDur(route.totalMinutes),
+                    })}
+                  </div>
+                  <div className="text-xs text-[#9FD2CD]">
+                    ~{quote ? <Price eur={quote.totalEur} /> : '—'} {t('estimate')}
+                  </div>
                 </div>
-                <button type="button" onClick={() => setQuoteOpen(true)} className="cursor-pointer rounded-xl bg-coral px-[18px] py-[11px] text-sm font-extrabold text-white">
+                <button
+                  type="button"
+                  onClick={() => setQuoteOpen(true)}
+                  className="cursor-pointer rounded-xl bg-coral px-[18px] py-[11px] text-sm font-extrabold text-white"
+                >
                   {t('Get quote')}
                 </button>
               </div>
@@ -661,13 +813,20 @@ export function PlannerShell() {
           </div>
         ) : (
           <div className="mx-auto max-w-shell px-[22px] pb-2 pt-[18px]">
-            <div className="grid h-[min(720px,80vh)] gap-4" style={{ gridTemplateColumns: '330px 1fr 0.86fr' }}>
-              <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">{itinerary}</div>
+            <div
+              className="grid h-[min(720px,80vh)] gap-4"
+              style={{ gridTemplateColumns: '330px 1fr 0.86fr' }}
+            >
+              <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">
+                {itinerary}
+              </div>
               <div className="relative overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.08)]">
                 {copilot}
                 {drawer}
               </div>
-              <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">{map}</div>
+              <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">
+                {map}
+              </div>
             </div>
           </div>
         )}

@@ -32,7 +32,14 @@ export const metadata: Metadata = {
     'Ile aux Cerfs Mauritius',
   ],
   alternates: { canonical: PATH },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}${PATH}`, locale: 'en_GB', images: [OG_IMAGE] },
+  openGraph: {
+    type: 'website',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: `${SITE.url}${PATH}`,
+    locale: 'en_GB',
+    images: [OG_IMAGE],
+  },
 };
 
 const FAQS = [
@@ -76,7 +83,11 @@ export default async function IleAuxCerfsToursPage() {
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
       {featured.length > 0 && (
-        <JsonLd data={itemListJsonLd(featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })))} />
+        <JsonLd
+          data={itemListJsonLd(
+            featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })),
+          )}
+        />
       )}
 
       <InfoPage
@@ -95,15 +106,17 @@ export default async function IleAuxCerfsToursPage() {
 
         <ContentSection id="intro" title="The island day trip every Mauritius visitor wants">
           <p>
-            Île aux Cerfs is a small island off the east coast, famous for a lagoon so clear and shallow you can wade
-            out to its sandbars. It’s the picture most people have in mind when they imagine Mauritius — and because
-            we’re based in Belle Mare, just minutes from the Trou d’Eau Douce departure jetty, an Île aux Cerfs day is
-            our home turf.
+            Île aux Cerfs is a small island off the east coast, famous for a lagoon so clear and
+            shallow you can wade out to its sandbars. It’s the picture most people have in mind when
+            they imagine Mauritius — and because we’re based in Belle Mare, just minutes from the
+            Trou d’Eau Douce departure jetty, an Île aux Cerfs day is our home turf.
           </p>
           <p>
-            You can reach it two ways: a relaxed <InlineLink href="/mauritius-catamaran-cruise">catamaran cruise</InlineLink>{' '}
-            with lunch and snorkelling on board, or a faster speedboat that usually adds the dramatic GRSE waterfall.
-            Both are bookable below with instant confirmation and free door-to-door pickup.
+            You can reach it two ways: a relaxed{' '}
+            <InlineLink href="/mauritius-catamaran-cruise">catamaran cruise</InlineLink> with lunch
+            and snorkelling on board, or a faster speedboat that usually adds the dramatic GRSE
+            waterfall. Both are bookable below with instant confirmation and free door-to-door
+            pickup.
           </p>
         </ContentSection>
 
@@ -115,27 +128,30 @@ export default async function IleAuxCerfsToursPage() {
 
         <ContentSection id="do" title="What to do on the island">
           <p>
-            The lagoon is the star: warm, calm and ideal for swimming and snorkelling. Beyond that, you can walk the
-            sandbars, settle on the beach, or get active with parasailing, tubing, a glass-bottom boat or a banana
-            boat. Most of our day trips include a barbecue lunch — grilled fish, chicken and salads — either on the
-            beach or aboard the catamaran. Golfers can play the island’s 18-hole championship course.
+            The lagoon is the star: warm, calm and ideal for swimming and snorkelling. Beyond that,
+            you can walk the sandbars, settle on the beach, or get active with parasailing, tubing,
+            a glass-bottom boat or a banana boat. Most of our day trips include a barbecue lunch —
+            grilled fish, chicken and salads — either on the beach or aboard the catamaran. Golfers
+            can play the island’s 18-hole championship course.
           </p>
         </ContentSection>
 
         <ContentSection id="waterfall" title="The GRSE waterfall & speedboat option">
           <p>
-            On the way to or from the island, speedboat trips detour to the foot of the Grande Rivière Sud-Est
-            waterfall, where freshwater tumbles into the sea among the mangroves — a great photo stop you don’t get on
-            the bigger catamarans. If the waterfall is on your list, choose a speedboat tour; if it’s all about a slow,
-            sociable day on the water, choose a catamaran.
+            On the way to or from the island, speedboat trips detour to the foot of the Grande
+            Rivière Sud-Est waterfall, where freshwater tumbles into the sea among the mangroves — a
+            great photo stop you don’t get on the bigger catamarans. If the waterfall is on your
+            list, choose a speedboat tour; if it’s all about a slow, sociable day on the water,
+            choose a catamaran.
           </p>
         </ContentSection>
 
         <ContentSection id="book-direct" title="Book your Île aux Cerfs day direct">
           <p>
-            Booking direct with {SITE.operator} (BRN {SITE.brn}) means no hotel-desk or reseller markup, a fixed EUR
-            price agreed before you go, and the same local team looking after you from pickup to drop-off. We never add
-            commission stops, and cancellation is free up to 24 hours before.
+            Booking direct with {SITE.operator} (BRN {SITE.brn}) means no hotel-desk or reseller
+            markup, a fixed EUR price agreed before you go, and the same local team looking after
+            you from pickup to drop-off. We never add commission stops, and cancellation is free up
+            to 24 hours before.
           </p>
           <RelatedLinks
             links={[
@@ -153,8 +169,12 @@ export default async function IleAuxCerfsToursPage() {
         </ContentSection>
 
         <ContentSection id="book" title="Ready for your island day?">
-          <p>Pick a catamaran or speedboat trip and book online, or message us for a private charter.</p>
-          <BookDirectCta primary={{ href: '/mauritius-catamaran-cruise', label: 'See catamaran cruises' }} />
+          <p>
+            Pick a catamaran or speedboat trip and book online, or message us for a private charter.
+          </p>
+          <BookDirectCta
+            primary={{ href: '/mauritius-catamaran-cruise', label: 'See catamaran cruises' }}
+          />
         </ContentSection>
 
         <EnquireRow message="Hi Belle Mare Tours! I'd like an Île aux Cerfs day trip. Here are my dates, party size and hotel:" />

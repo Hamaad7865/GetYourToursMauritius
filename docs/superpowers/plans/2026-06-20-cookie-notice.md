@@ -17,6 +17,7 @@
 **Files:** Create `src/lib/consent/notice.ts`, `tests/unit/cookie-notice.test.ts`, `src/components/site/CookieNotice.tsx`; modify `app/(site)/layout.tsx`, `src/lib/i18n/messages.ts`.
 
 - [ ] **Step 1: Failing test** `tests/unit/cookie-notice.test.ts`:
+
 ```typescript
 import { describe, expect, it } from 'vitest';
 import { NOTICE_VERSION, shouldShowNotice, serializeAck } from '@/lib/consent/notice';
@@ -30,10 +31,14 @@ describe('shouldShowNotice', () => {
     expect(shouldShowNotice('{}')).toBe(true);
   });
   it('hides when acknowledged at the current version', () => {
-    expect(shouldShowNotice(JSON.stringify({ acknowledged: true, version: NOTICE_VERSION, ts: 1 }))).toBe(false);
+    expect(
+      shouldShowNotice(JSON.stringify({ acknowledged: true, version: NOTICE_VERSION, ts: 1 })),
+    ).toBe(false);
   });
   it('shows again when the stored version is older', () => {
-    expect(shouldShowNotice(JSON.stringify({ acknowledged: true, version: NOTICE_VERSION - 1, ts: 1 }))).toBe(true);
+    expect(
+      shouldShowNotice(JSON.stringify({ acknowledged: true, version: NOTICE_VERSION - 1, ts: 1 })),
+    ).toBe(true);
   });
 });
 
@@ -48,6 +53,7 @@ describe('serializeAck', () => {
 - [ ] **Step 2: Run, expect FAIL** — `npx vitest run tests/unit/cookie-notice.test.ts`.
 
 - [ ] **Step 3: Implement `src/lib/consent/notice.ts`**:
+
 ```typescript
 /** Stored under localStorage['gytm:cookie-notice']. Bump NOTICE_VERSION to re-show after a policy change. */
 export const NOTICE_VERSION = 1;
@@ -85,6 +91,7 @@ export function serializeAck(now: number): string {
 - [ ] **Step 8: Verify** — `npm run typecheck && npm run lint && npx vitest run` green (report numbers). Reason through: first load shows the bar; Accept hides it + persists; reload keeps it hidden; SSR renders nothing (no flash).
 
 - [ ] **Step 9: Commit**
+
 ```bash
 git add src/lib/consent/notice.ts tests/unit/cookie-notice.test.ts src/components/site/CookieNotice.tsx "app/(site)/layout.tsx" src/lib/i18n/messages.ts
 git commit -m "feat(consent): informational cookie-notice bottom bar"
@@ -108,10 +115,12 @@ git commit -m "feat(consent): informational cookie-notice bottom bar"
 - [ ] **Step 4: i18n** — add the page's headings/labels + the footer link label to EN/FR.
 - [ ] **Step 5: Green gate** — `npm run typecheck && npm run lint && npx vitest run && npm run build` (the build proves the new route compiles on edge). Report real numbers. Reason through: `/cookies` renders EN/FR; the footer link resolves; the banner's link reaches it.
 - [ ] **Step 6: Commit**
+
 ```bash
 git add "app/(site)/cookies/page.tsx" src/components/site/SiteFooter.tsx src/lib/i18n/messages.ts
 git commit -m "feat(consent): dedicated /cookies policy page + footer link"
 ```
+
 - [ ] **Step 7: Review** — request a focused review (accessibility of the bar, no hydration flash, the policy is accurate to what the app actually stores, bilingual coverage, no place-name translation).
 
 ---

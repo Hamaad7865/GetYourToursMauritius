@@ -13,7 +13,9 @@ export const metadata: Metadata = {
 export default async function CheckoutPage() {
   const t = await getT();
   return (
-    <Suspense fallback={<p className="py-20 text-center text-sm text-ink-muted">{t('Loading…')}</p>}>
+    <Suspense
+      fallback={<p className="py-20 text-center text-sm text-ink-muted">{t('Loading…')}</p>}
+    >
       <Checkout />
     </Suspense>
   );

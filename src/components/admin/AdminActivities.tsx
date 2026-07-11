@@ -51,7 +51,11 @@ export function AdminActivities() {
       // Show cards in their public order (sort within a category) so drag-reorder is WYSIWYG.
       .order('sort', { ascending: true })
       .order('created_at', { ascending: false })
-      .returns<Array<Omit<Row, 'imageUrl'> & { activity_images: { url: string; position: number }[] | null }>>();
+      .returns<
+        Array<
+          Omit<Row, 'imageUrl'> & { activity_images: { url: string; position: number }[] | null }
+        >
+      >();
     if (error) setError(error.message);
     else
       setRows(
@@ -68,7 +72,11 @@ export function AdminActivities() {
   }, [isAdmin, load]);
 
   async function remove(row: Row) {
-    if (!window.confirm(`Delete "${row.title}"? This permanently removes the activity and its photos, options and prices.`))
+    if (
+      !window.confirm(
+        `Delete "${row.title}"? This permanently removes the activity and its photos, options and prices.`,
+      )
+    )
       return;
     setBusy(row.id);
     setError(null);
@@ -169,7 +177,10 @@ export function AdminActivities() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 rounded-lg bg-coral/10 px-4 py-3 text-sm font-medium text-coral">
+        <p
+          role="alert"
+          className="mb-4 rounded-lg bg-coral/10 px-4 py-3 text-sm font-medium text-coral"
+        >
           {error}
         </p>
       )}
@@ -177,7 +188,10 @@ export function AdminActivities() {
       {rows === null ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-[18px]">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-[260px] animate-pulse rounded-2xl border border-[#EAEEF0] bg-white" />
+            <div
+              key={i}
+              className="h-[260px] animate-pulse rounded-2xl border border-[#EAEEF0] bg-white"
+            />
           ))}
         </div>
       ) : rows.length === 0 ? (
@@ -216,7 +230,9 @@ export function AdminActivities() {
                   type="button"
                   onClick={() => setStatus(s)}
                   className={`px-3.5 py-2 text-[12.5px] font-bold capitalize ${
-                    status === s ? 'bg-teal text-white' : 'bg-white text-ink-muted hover:bg-[#F7F8FA]'
+                    status === s
+                      ? 'bg-teal text-white'
+                      : 'bg-white text-ink-muted hover:bg-[#F7F8FA]'
                   }`}
                 >
                   {s}
@@ -257,80 +273,94 @@ export function AdminActivities() {
             <>
               {canReorder ? (
                 <p className="mb-3 flex items-center gap-1.5 text-[12.5px] font-semibold text-teal">
-                  <IconMenu width={14} height={14} /> Drag the cards to set their order — it shows on the site for this category.
+                  <IconMenu width={14} height={14} /> Drag the cards to set their order — it shows
+                  on the site for this category.
                 </p>
               ) : category !== 'all' ? (
-                <p className="mb-3 text-[12.5px] text-ink-muted">Clear the search &amp; status filters to drag-reorder this category.</p>
+                <p className="mb-3 text-[12.5px] text-ink-muted">
+                  Clear the search &amp; status filters to drag-reorder this category.
+                </p>
               ) : (
-                <p className="mb-3 text-[12.5px] text-ink-muted">Pick a single category (and clear other filters) to drag-reorder its cards.</p>
+                <p className="mb-3 text-[12.5px] text-ink-muted">
+                  Pick a single category (and clear other filters) to drag-reorder its cards.
+                </p>
               )}
               <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-[18px]">
-              {filtered.map((row) => (
-            <div
-              key={row.id}
-              draggable={canReorder}
-              onDragStart={() => canReorder && setDragId(row.id)}
-              onDragOver={(e) => onDragOverRow(e, row.id)}
-              onDrop={(e) => e.preventDefault()}
-              onDragEnd={onDragEndRow}
-              className={`flex flex-col overflow-hidden rounded-2xl border bg-white shadow-[0_1px_2px_rgba(10,46,54,.04)] transition-shadow hover:shadow-[0_18px_34px_-20px_rgba(10,46,54,.34)] ${
-                canReorder ? 'cursor-move border-teal/30' : 'border-[#EAEEF0]'
-              } ${dragId === row.id ? 'opacity-40 ring-2 ring-teal' : ''}`}
-            >
-              <div className="relative aspect-[16/10] overflow-hidden" style={{ background: grad(row.category) }}>
-                {row.imageUrl ? (
-                  <img
-                    src={row.imageUrl}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  // No photo yet — keep the branded gradient + icon placeholder.
-                  <div className="flex h-full w-full items-center justify-center">
-                    <IconTag width={30} height={30} className="text-white/90" />
+                {filtered.map((row) => (
+                  <div
+                    key={row.id}
+                    draggable={canReorder}
+                    onDragStart={() => canReorder && setDragId(row.id)}
+                    onDragOver={(e) => onDragOverRow(e, row.id)}
+                    onDrop={(e) => e.preventDefault()}
+                    onDragEnd={onDragEndRow}
+                    className={`flex flex-col overflow-hidden rounded-2xl border bg-white shadow-[0_1px_2px_rgba(10,46,54,.04)] transition-shadow hover:shadow-[0_18px_34px_-20px_rgba(10,46,54,.34)] ${
+                      canReorder ? 'cursor-move border-teal/30' : 'border-[#EAEEF0]'
+                    } ${dragId === row.id ? 'opacity-40 ring-2 ring-teal' : ''}`}
+                  >
+                    <div
+                      className="relative aspect-[16/10] overflow-hidden"
+                      style={{ background: grad(row.category) }}
+                    >
+                      {row.imageUrl ? (
+                        <img
+                          src={row.imageUrl}
+                          alt=""
+                          loading="lazy"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        // No photo yet — keep the branded gradient + icon placeholder.
+                        <div className="flex h-full w-full items-center justify-center">
+                          <IconTag width={30} height={30} className="text-white/90" />
+                        </div>
+                      )}
+                      <span
+                        className={`absolute left-3 top-3 rounded-md px-2 py-1 text-[11px] font-bold ${
+                          row.status === 'published'
+                            ? 'bg-white/95 text-emerald-700'
+                            : 'bg-white/95 text-amber-700'
+                        }`}
+                      >
+                        {row.status === 'published' ? 'Published' : 'Draft'}
+                      </span>
+                    </div>
+                    <div className="flex flex-1 flex-col p-4">
+                      <div className="text-[11.5px] font-bold uppercase tracking-wide text-teal">
+                        {row.category}
+                      </div>
+                      <h3 className="mt-1.5 line-clamp-2 min-h-[40px] text-[15px] font-bold leading-snug text-ink">
+                        {row.title}
+                      </h3>
+                      <div className="mt-2.5 flex items-center justify-between border-t border-[#F2F4F6] pt-2.5 text-[12.5px] text-ink-muted">
+                        <span className="capitalize">{row.type}</span>
+                        <span className="truncate">/{row.slug}</span>
+                      </div>
+                      <Link
+                        href={`/admin/activities/${row.id}/edit`}
+                        className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] py-2.5 text-[13px] font-bold text-ink hover:border-teal hover:bg-white hover:text-teal"
+                      >
+                        Edit tour
+                      </Link>
+                      <div className="mt-2 flex items-center justify-between">
+                        <Link
+                          href={`/admin/activities/${row.id}/availability`}
+                          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12.5px] font-bold text-ink-muted hover:text-teal"
+                        >
+                          <IconCalendar width={14} height={14} /> Availability
+                        </Link>
+                        <button
+                          type="button"
+                          disabled={busy === row.id}
+                          onClick={() => remove(row)}
+                          className="rounded-lg px-2 py-1.5 text-[12.5px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
+                        >
+                          {busy === row.id ? '…' : 'Delete'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                )}
-                <span
-                  className={`absolute left-3 top-3 rounded-md px-2 py-1 text-[11px] font-bold ${
-                    row.status === 'published' ? 'bg-white/95 text-emerald-700' : 'bg-white/95 text-amber-700'
-                  }`}
-                >
-                  {row.status === 'published' ? 'Published' : 'Draft'}
-                </span>
-              </div>
-              <div className="flex flex-1 flex-col p-4">
-                <div className="text-[11.5px] font-bold uppercase tracking-wide text-teal">{row.category}</div>
-                <h3 className="mt-1.5 line-clamp-2 min-h-[40px] text-[15px] font-bold leading-snug text-ink">{row.title}</h3>
-                <div className="mt-2.5 flex items-center justify-between border-t border-[#F2F4F6] pt-2.5 text-[12.5px] text-ink-muted">
-                  <span className="capitalize">{row.type}</span>
-                  <span className="truncate">/{row.slug}</span>
-                </div>
-                <Link
-                  href={`/admin/activities/${row.id}/edit`}
-                  className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] py-2.5 text-[13px] font-bold text-ink hover:border-teal hover:bg-white hover:text-teal"
-                >
-                  Edit tour
-                </Link>
-                <div className="mt-2 flex items-center justify-between">
-                  <Link
-                    href={`/admin/activities/${row.id}/availability`}
-                    className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12.5px] font-bold text-ink-muted hover:text-teal"
-                  >
-                    <IconCalendar width={14} height={14} /> Availability
-                  </Link>
-                  <button
-                    type="button"
-                    disabled={busy === row.id}
-                    onClick={() => remove(row)}
-                    className="rounded-lg px-2 py-1.5 text-[12.5px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
-                  >
-                    {busy === row.id ? '…' : 'Delete'}
-                  </button>
-                </div>
-              </div>
-            </div>
-              ))}
+                ))}
               </div>
             </>
           )}

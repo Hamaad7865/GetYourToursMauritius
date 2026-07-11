@@ -11,7 +11,9 @@ import { createTestDb, type TestDb } from '../db/pglite';
  */
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -24,8 +26,11 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
 
@@ -174,7 +179,9 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
   it('zones the newly-added Anantara IKO hotel as Zone 2', async () => {
     await db.asOwner();
     const row = (
-      await db.pg.query<{ zone: string }>(`select zone from airport_transfer_hotels where slug = 'anantara-iko-mauritius'`)
+      await db.pg.query<{ zone: string }>(
+        `select zone from airport_transfer_hotels where slug = 'anantara-iko-mauritius'`,
+      )
     ).rows[0];
     expect(row?.zone).toBe('zone2');
   });

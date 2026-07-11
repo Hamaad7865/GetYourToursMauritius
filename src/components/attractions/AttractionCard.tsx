@@ -17,7 +17,10 @@ export function AttractionCard({ place }: { place: PlannerPlace }) {
         {img ? (
           <AttractionImage url={img.url} alt={place.name} emoji={meta.emoji} />
         ) : (
-          <span aria-hidden className="absolute inset-0 grid place-items-center text-5xl opacity-90">
+          <span
+            aria-hidden
+            className="absolute inset-0 grid place-items-center text-5xl opacity-90"
+          >
             {meta.emoji}
           </span>
         )}
@@ -26,12 +29,16 @@ export function AttractionCard({ place }: { place: PlannerPlace }) {
         </span>
       </div>
       <div className="p-4">
-        <div className="text-[11px] font-bold uppercase tracking-wide text-teal">{place.region} Mauritius</div>
+        <div className="text-[11px] font-bold uppercase tracking-wide text-teal">
+          {place.region} Mauritius
+        </div>
         <h3 className="mt-1 text-[16px] font-extrabold leading-snug text-ink transition group-hover:text-teal">
           {place.name}
         </h3>
         {place.blurb && (
-          <p className="mt-1.5 line-clamp-2 text-[13.5px] leading-snug text-ink/70">{place.blurb}</p>
+          <p className="mt-1.5 line-clamp-2 text-[13.5px] leading-snug text-ink/70">
+            {place.blurb}
+          </p>
         )}
       </div>
     </Link>

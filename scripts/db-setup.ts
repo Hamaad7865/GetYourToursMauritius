@@ -27,10 +27,7 @@ function loadEnvLocal(): Record<string, string> {
     if (eq === -1) continue;
     const key = line.slice(0, eq).trim();
     let val = line.slice(eq + 1).trim();
-    if (
-      (val.startsWith('"') && val.endsWith('"')) ||
-      (val.startsWith("'") && val.endsWith("'"))
-    ) {
+    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
     out[key] = val;
@@ -92,7 +89,10 @@ function locate(position: number): string {
   const from = Math.max(0, line - 3);
   const ctx = all
     .slice(from, line + 1)
-    .map((text, i) => `  ${String(from + i + 1).padStart(5)}${from + i + 1 === line ? ' >' : '  '} ${text}`)
+    .map(
+      (text, i) =>
+        `  ${String(from + i + 1).padStart(5)}${from + i + 1 === line ? ' >' : '  '} ${text}`,
+    )
     .join('\n');
   return `at line ${line}, col ${col}:\n${ctx}`;
 }
@@ -103,9 +103,7 @@ try {
   await client.connect();
   console.log('Connected. Applying supabase/setup.sql …');
   await client.query(sql);
-  const { rows } = await client.query<{ n: number }>(
-    'select count(*)::int as n from activities',
-  );
+  const { rows } = await client.query<{ n: number }>('select count(*)::int as n from activities');
   console.log(`✓ Applied. activities rows: ${rows[0]?.n ?? 0}`);
 } catch (error) {
   const e = error as { code?: string; message?: string; position?: string };
@@ -116,7 +114,7 @@ try {
   }
   if (e.code && ['ENETUNREACH', 'ETIMEDOUT', 'ENOTFOUND', 'EAI_AGAIN'].includes(e.code)) {
     console.error(
-      '\nCouldn\'t reach the host. The direct host (db.<ref>.supabase.co) is often IPv6-only.\n' +
+      "\nCouldn't reach the host. The direct host (db.<ref>.supabase.co) is often IPv6-only.\n" +
         'Use the IPv4 "Session pooler" string from Supabase → Connect → Session pooler\n' +
         '(host like aws-0-<region>.pooler.supabase.com, user like postgres.<ref>).',
     );

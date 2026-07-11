@@ -20,7 +20,10 @@ type RecognitionCtor = new () => RecognitionLike;
 
 function recognitionCtor(): RecognitionCtor | null {
   if (typeof window === 'undefined') return null;
-  const w = window as unknown as { SpeechRecognition?: RecognitionCtor; webkitSpeechRecognition?: RecognitionCtor };
+  const w = window as unknown as {
+    SpeechRecognition?: RecognitionCtor;
+    webkitSpeechRecognition?: RecognitionCtor;
+  };
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
@@ -30,7 +33,15 @@ function recognitionCtor(): RecognitionCtor | null {
  * send. `supported` is resolved after mount so the mic only appears where the API exists, without an
  * SSR/client hydration mismatch.
  */
-export function useVoiceInput({ lang, value, onChange }: { lang: string; value: string; onChange: (text: string) => void }) {
+export function useVoiceInput({
+  lang,
+  value,
+  onChange,
+}: {
+  lang: string;
+  value: string;
+  onChange: (text: string) => void;
+}) {
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const recRef = useRef<RecognitionLike | null>(null);

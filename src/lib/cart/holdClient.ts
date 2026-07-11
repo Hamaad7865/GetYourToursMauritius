@@ -84,8 +84,8 @@ export async function releaseHoldRequest(holdId: string): Promise<void> {
  */
 export async function fetchMyPendingBookings(): Promise<PendingBooking[]> {
   try {
-    const res = await fetch('/api/v1/bookings/pending', { headers: await authHeaders() }).then((r) =>
-      r.json(),
+    const res = await fetch('/api/v1/bookings/pending', { headers: await authHeaders() }).then(
+      (r) => r.json(),
     );
     return res.ok && Array.isArray(res.data) ? (res.data as PendingBooking[]) : [];
   } catch {

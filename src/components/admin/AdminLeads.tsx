@@ -23,8 +23,11 @@ const STATUSES: LeadStatus[] = ['new', 'contacted', 'converted'];
 
 function formatWhen(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) + ', ' +
-    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return (
+    d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) +
+    ', ' +
+    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  );
 }
 
 // The public contact form stores free text in `contact`. Only turn it into a mailto: link when it
@@ -80,10 +83,14 @@ export function AdminLeads() {
           <div className="flex items-center gap-3">
             <h1 className="font-display text-[30px] font-medium tracking-tight text-ink">Leads</h1>
             {newCount > 0 && (
-              <span className="rounded-full bg-coral/10 px-2.5 py-1 text-[12px] font-bold text-coral">{newCount} new</span>
+              <span className="rounded-full bg-coral/10 px-2.5 py-1 text-[12px] font-bold text-coral">
+                {newCount} new
+              </span>
             )}
           </div>
-          <p className="mt-1.5 text-sm text-ink-muted">Enquiries from the contact form and the site.</p>
+          <p className="mt-1.5 text-sm text-ink-muted">
+            Enquiries from the contact form and the site.
+          </p>
         </div>
         <div className="flex flex-wrap gap-1 rounded-xl bg-[#F4F6F7] p-1">
           {(['all', ...STATUSES] as const).map((f) => (
@@ -102,7 +109,10 @@ export function AdminLeads() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 rounded-xl bg-coral/10 px-4 py-3 text-[13px] font-medium text-coral">
+        <p
+          role="alert"
+          className="mb-4 rounded-xl bg-coral/10 px-4 py-3 text-[13px] font-medium text-coral"
+        >
           {error}
         </p>
       )}
@@ -111,8 +121,12 @@ export function AdminLeads() {
         <p className="text-sm text-ink-muted">Loading…</p>
       ) : shown.length === 0 ? (
         <div className="rounded-2xl border border-[#EAEEF0] bg-white px-6 py-14 text-center">
-          <div className="text-[15px] font-bold text-ink">{leads.length === 0 ? 'No enquiries yet' : 'No leads in this view'}</div>
-          <p className="mt-1 text-[13.5px] text-ink-muted">They’ll appear here as people use the contact form.</p>
+          <div className="text-[15px] font-bold text-ink">
+            {leads.length === 0 ? 'No enquiries yet' : 'No leads in this view'}
+          </div>
+          <p className="mt-1 text-[13.5px] text-ink-muted">
+            They’ll appear here as people use the contact form.
+          </p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-2xl border border-[#EAEEF0] bg-white">
@@ -153,8 +167,12 @@ export function AdminLeads() {
                           <span>{lead.contact}</span>
                         )}
                       </td>
-                      <td className="hidden px-4 py-3 text-ink-muted sm:table-cell">{lead.interestActivityTitle ?? '—'}</td>
-                      <td className="hidden whitespace-nowrap px-4 py-3 text-ink-muted md:table-cell">{formatWhen(lead.createdAt)}</td>
+                      <td className="hidden px-4 py-3 text-ink-muted sm:table-cell">
+                        {lead.interestActivityTitle ?? '—'}
+                      </td>
+                      <td className="hidden whitespace-nowrap px-4 py-3 text-ink-muted md:table-cell">
+                        {formatWhen(lead.createdAt)}
+                      </td>
                       <td className="px-4 py-3">
                         <label className="sr-only" htmlFor={`status-${lead.id}`}>
                           Status for {lead.name}

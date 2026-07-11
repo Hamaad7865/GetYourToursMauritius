@@ -17,9 +17,7 @@ export interface Crumb {
 }
 
 /** Breadcrumb links (Home → section → category). The page renders the title separately. */
-export function breadcrumbTrail(
-  activity: Pick<TourDetail, 'type' | 'category'>,
-): Crumb[] {
+export function breadcrumbTrail(activity: Pick<TourDetail, 'type' | 'category'>): Crumb[] {
   return [
     { label: 'Home', href: '/' },
     {

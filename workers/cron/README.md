@@ -3,10 +3,10 @@
 Cloudflare **Pages has no built-in cron**, so this tiny standalone **Worker** runs GYTM's two background
 jobs on a timer by calling the Pages app's protected internal endpoints:
 
-| Schedule | Endpoint | What it does |
-|---|---|---|
-| every 2 min | `POST /api/v1/internal/notifications/drain` | sends queued booking-confirmation emails (via Resend) |
-| every 5 min | `POST /api/v1/internal/maintenance` | releases expired 30-min seat holds, expires abandoned bookings, rolls the availability window forward |
+| Schedule    | Endpoint                                    | What it does                                                                                          |
+| ----------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| every 2 min | `POST /api/v1/internal/notifications/drain` | sends queued booking-confirmation emails (via Resend)                                                 |
+| every 5 min | `POST /api/v1/internal/maintenance`         | releases expired 30-min seat holds, expires abandoned bookings, rolls the availability window forward |
 
 Both endpoints require the shared `INTERNAL_TASK_SECRET`, which this Worker sends as the
 `x-internal-secret` header.

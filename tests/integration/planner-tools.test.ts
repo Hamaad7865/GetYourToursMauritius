@@ -9,11 +9,30 @@ import type { PlannerPlace } from '@/lib/validation/planner';
  * region filtering, the discovered-cache resolution path, Place Details fallback, and the warning.
  */
 const RAW_SOUTH = [
-  { id: 'p-lemorne', displayName: { text: 'Le Morne Beach' }, location: { latitude: -20.45, longitude: 57.31 }, types: ['beach'] },
-  { id: 'p-cham', displayName: { text: 'Chamarel Waterfall' }, location: { latitude: -20.44, longitude: 57.38 }, types: [] },
+  {
+    id: 'p-lemorne',
+    displayName: { text: 'Le Morne Beach' },
+    location: { latitude: -20.45, longitude: 57.31 },
+    types: ['beach'],
+  },
+  {
+    id: 'p-cham',
+    displayName: { text: 'Chamarel Waterfall' },
+    location: { latitude: -20.44, longitude: 57.38 },
+    types: [],
+  },
 ];
 const place = (id: string, lat: number, lng: number): PlannerPlace => ({
-  id, name: id, category: 'Beach', region: 'South', lat, lng, durationMin: 60, closesAt: null, blurb: null, imageUrl: null,
+  id,
+  name: id,
+  category: 'Beach',
+  region: 'South',
+  lat,
+  lng,
+  durationMin: 60,
+  closesAt: null,
+  blurb: null,
+  imageUrl: null,
 });
 const ok = (body: unknown) => ({ ok: true, json: async () => body }) as unknown as Response;
 
@@ -31,7 +50,10 @@ describe('searchPlannerPlaces', () => {
   });
 
   it('maps live results and region-filters', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ok({ places: RAW_SOUTH })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ok({ places: RAW_SOUTH })),
+    );
     const all = await searchPlannerPlaces({ query: 'south' }, 'key');
     expect(all.map((p) => p.id)).toEqual(['p-lemorne', 'p-cham']);
     expect(all.every((p) => p.region === 'South')).toBe(true);
@@ -72,7 +94,12 @@ describe('resolveItinerary', () => {
         const u = String(url);
         if (u.includes('routes.googleapis')) return ok({ routes: [] }); // Routes API → parse fails → haversine
         if (u.includes('/v1/places/') && u.includes('p-cham'))
-          return ok({ id: 'p-cham', displayName: { text: 'Chamarel Waterfall' }, location: { latitude: -20.44, longitude: 57.38 }, types: [] });
+          return ok({
+            id: 'p-cham',
+            displayName: { text: 'Chamarel Waterfall' },
+            location: { latitude: -20.44, longitude: 57.38 },
+            types: [],
+          });
         return { ok: false, json: async () => ({}) } as unknown as Response;
       }),
     );

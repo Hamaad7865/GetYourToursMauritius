@@ -38,7 +38,12 @@ function representativeModel() {
       transportEur: 30,
       items: [{ priceLabel: 'Adult', quantity: 3, pax: null, subtotalEur: 155 }],
     },
-    { chargedAmountMinor: 20700, chargedCurrency: 'USD', paidAt: '2026-06-20T10:00:00Z', providerRef: 'pe_123' },
+    {
+      chargedAmountMinor: 20700,
+      chargedCurrency: 'USD',
+      paidAt: '2026-06-20T10:00:00Z',
+      providerRef: 'pe_123',
+    },
     business,
   );
 }
@@ -130,7 +135,10 @@ describe('renderConfirmationEmail', () => {
   });
 
   it('shows no e-voucher link for a non-transfer booking (or when no bookingUrl is given)', () => {
-    const { html } = renderConfirmationEmail(representativeModel(), 'https://example.com/bookings/BMT-1042');
+    const { html } = renderConfirmationEmail(
+      representativeModel(),
+      'https://example.com/bookings/BMT-1042',
+    );
     expect(html).not.toContain('e-voucher');
   });
 });

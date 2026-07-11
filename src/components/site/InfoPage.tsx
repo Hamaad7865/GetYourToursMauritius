@@ -37,7 +37,12 @@ export function InfoPage({
           {heroImage && (
             <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={heroImage} alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
+              <img
+                src={heroImage}
+                alt=""
+                aria-hidden
+                className="absolute inset-0 h-full w-full object-cover"
+              />
               <div className="absolute inset-0 bg-gradient-to-tr from-[#03262b]/95 via-[#0a4953]/88 to-[#0E8C92]/55" />
             </>
           )}
@@ -52,10 +57,14 @@ export function InfoPage({
                 {eyebrow}
               </p>
             )}
-            <h1 className={`max-w-3xl text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.05] tracking-tight text-white${heroImage ? ' [text-shadow:0_2px_18px_rgba(2,22,24,0.55)]' : ''}`}>
+            <h1
+              className={`max-w-3xl text-[clamp(28px,5vw,52px)] font-extrabold leading-[1.05] tracking-tight text-white${heroImage ? ' [text-shadow:0_2px_18px_rgba(2,22,24,0.55)]' : ''}`}
+            >
               {title}
             </h1>
-            <p className={`mt-4 max-w-2xl text-[15px] leading-relaxed text-white/85 sm:text-base${heroImage ? ' [text-shadow:0_2px_18px_rgba(2,22,24,0.55)]' : ''}`}>
+            <p
+              className={`mt-4 max-w-2xl text-[15px] leading-relaxed text-white/85 sm:text-base${heroImage ? ' [text-shadow:0_2px_18px_rgba(2,22,24,0.55)]' : ''}`}
+            >
               {intro}
             </p>
             {meta && <p className="mt-5 text-[13px] font-medium text-white/65">{meta}</p>}
@@ -73,7 +82,9 @@ export async function EnquireRow({ message }: { message: string }) {
   const t = await getT();
   return (
     <div className="mt-10 flex flex-wrap items-center gap-3 rounded-2xl border border-ink/10 bg-cream/60 p-5">
-      <p className="mr-auto text-[15px] font-bold text-ink">{t('Ready to book or have a question?')}</p>
+      <p className="mr-auto text-[15px] font-bold text-ink">
+        {t('Ready to book or have a question?')}
+      </p>
       <a
         href={whatsappUrl(message)}
         target="_blank"
@@ -103,7 +114,10 @@ export function InfoSection({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-28 border-t border-ink/10 py-9 first:border-t-0 first:pt-0">
+    <section
+      id={id}
+      className="scroll-mt-28 border-t border-ink/10 py-9 first:border-t-0 first:pt-0"
+    >
       <h2 className="text-[22px] font-extrabold tracking-tight text-ink">{title}</h2>
       <div className="mt-4 text-[15px] leading-relaxed text-ink/80">{children}</div>
     </section>

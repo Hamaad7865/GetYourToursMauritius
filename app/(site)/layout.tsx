@@ -22,7 +22,11 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
     getUsdRate(),
   ]);
   return (
-    <PreferencesProvider initialLanguage={locale} initialCurrency={currency} initialUsdRate={usdRate}>
+    <PreferencesProvider
+      initialLanguage={locale}
+      initialCurrency={currency}
+      initialUsdRate={usdRate}
+    >
       <ToastProvider>
         <AuthProvider>{children}</AuthProvider>
       </ToastProvider>

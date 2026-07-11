@@ -29,11 +29,31 @@ function hash(input: string): number {
 }
 
 const REVIEW_POOL: Array<{ author: string; rating: number; text: string }> = [
-  { author: 'Priya R.', rating: 5, text: 'Absolutely the highlight of our trip — the crew were warm and the lagoon was unreal.' },
-  { author: 'James W.', rating: 5, text: 'Smooth from booking to drop-off. Great value booking direct with the operator.' },
-  { author: 'Camille L.', rating: 4, text: 'Beautiful day out. A little crowded at the island but the BBQ made up for it.' },
-  { author: 'Daniel K.', rating: 5, text: 'Punctual pickup and a fantastic guide. Would do it again in a heartbeat.' },
-  { author: 'Sophie M.', rating: 5, text: 'Snorkelling spots were stunning and the team looked after the kids brilliantly.' },
+  {
+    author: 'Priya R.',
+    rating: 5,
+    text: 'Absolutely the highlight of our trip — the crew were warm and the lagoon was unreal.',
+  },
+  {
+    author: 'James W.',
+    rating: 5,
+    text: 'Smooth from booking to drop-off. Great value booking direct with the operator.',
+  },
+  {
+    author: 'Camille L.',
+    rating: 4,
+    text: 'Beautiful day out. A little crowded at the island but the BBQ made up for it.',
+  },
+  {
+    author: 'Daniel K.',
+    rating: 5,
+    text: 'Punctual pickup and a fantastic guide. Would do it again in a heartbeat.',
+  },
+  {
+    author: 'Sophie M.',
+    rating: 5,
+    text: 'Snorkelling spots were stunning and the team looked after the kids brilliantly.',
+  },
 ];
 
 function placeholderImages(activity: SeedActivity) {
@@ -78,7 +98,7 @@ function fromPriceEur(activity: SeedActivity): number | null {
 
 function ratingFor(activity: SeedActivity): { avg: number; count: number } {
   const h = hash(activity.slug);
-  return { avg: 4.6 + ((h % 4) / 10), count: 40 + (h % 1160) };
+  return { avg: 4.6 + (h % 4) / 10, count: 40 + (h % 1160) };
 }
 
 function toSummary(activity: SeedActivity): TourSummary {
@@ -108,7 +128,11 @@ function toDetail(activity: SeedActivity): TourDetail {
     description:
       activity.description ??
       `${activity.summary ?? activity.title} Booked direct with Belle Mare Tours — no reseller markup, instant confirmation and a friendly local team.`,
-    meetingPoint: activity.meeting_point ?? (activity.pickup_available ? 'Hotel pickup across the east coast' : 'Belle Mare public beach'),
+    meetingPoint:
+      activity.meeting_point ??
+      (activity.pickup_available
+        ? 'Hotel pickup across the east coast'
+        : 'Belle Mare public beach'),
     pickupAvailable: activity.pickup_available,
     languages: activity.fr ? ['English', 'French'] : ['English'],
     inclusions: activity.inclusions,

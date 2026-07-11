@@ -11,6 +11,7 @@
 **Spec:** `docs/superpowers/specs/2026-06-17-customizable-itinerary-design.md`
 
 **Grounding facts:**
+
 - Latest `api_book` = `supabase/migrations/20260617130000_sightseeing_vehicle_pricing.sql` (vehicle branch + `suv`). Base the new `api_book` on THAT.
 - Latest `booking_json` = `20260616190000_vehicle_pricing.sql` (has `pax`). Base on THAT.
 - `RouteMap` (`src/components/maps/RouteMap.tsx`) already re-renders on `stops` change and falls back to `MapLinkCard`. `mapsDirectionsUrl(titles[])` already exists. `geocode(title)` exists (`@/lib/maps/geocode`).
@@ -23,6 +24,7 @@
 ## Task 1: Vehicle option card
 
 **Files:**
+
 - Create: `src/components/gyg/detail/VehicleOptionCard.tsx`
 - Modify: `app/activities/[slug]/page.tsx` (render it; add `id="book"` to the widget aside)
 
@@ -123,29 +125,38 @@ export function VehicleOptionCard({
 - [ ] **Step 2: Render it on the detail page + anchor the widget**
 
 In `app/activities/[slug]/page.tsx`:
+
 - Add the import near the other detail imports:
+
 ```tsx
 import { VehicleOptionCard } from '@/components/gyg/detail/VehicleOptionCard';
 ```
+
 - Add `id="book"` to the `<aside>` wrapping `<BookingWidget>` (the `<aside className="mb-8 lg:col-start-2 …">`): change to `<aside id="book" className="mb-8 lg:col-start-2 …">`.
 - Just below the `activity.summary` paragraph block (inside the left column, before `<QuickFacts …/>`'s section), render the card for vehicle tours:
+
 ```tsx
-              {activity.pricingMode === 'vehicle' && activity.vehiclePricing && (
-                <div className="mb-6">
-                  <VehicleOptionCard
-                    title={activity.title}
-                    cfg={activity.vehiclePricing}
-                    durationLabel={durationLabel(activity.durationMinutes)}
-                    pickupAvailable={activity.pickupAvailable}
-                    languages={activity.languages}
-                  />
-                </div>
-              )}
+{
+  activity.pricingMode === 'vehicle' && activity.vehiclePricing && (
+    <div className="mb-6">
+      <VehicleOptionCard
+        title={activity.title}
+        cfg={activity.vehiclePricing}
+        durationLabel={durationLabel(activity.durationMinutes)}
+        pickupAvailable={activity.pickupAvailable}
+        languages={activity.languages}
+      />
+    </div>
+  );
+}
 ```
+
 - Ensure `durationLabel` is imported at the top of `page.tsx`:
+
 ```tsx
 import { durationLabel } from '@/lib/catalogue/detail';
 ```
+
 (If it's already imported, skip.)
 
 - [ ] **Step 3: Typecheck + lint**
@@ -165,6 +176,7 @@ git commit -m "feat(detail): GYG-style vehicle option card for sightseeing tours
 ## Task 2: DTO — optional stops + max in `extra`
 
 **Files:**
+
 - Modify: `src/lib/validation/tours.ts` (extend `activityExtraSchema`)
 - Test: `tests/unit/catalogue.test.ts` (or wherever extra is parsed — add a focused case)
 
@@ -224,6 +236,7 @@ git commit -m "feat(dto): optionalStops + maxStops on the activity extra schema"
 ## Task 3: Migration — `custom_itinerary` column + `api_book` persist + `booking_json` expose
 
 **Files:**
+
 - Create: `supabase/migrations/20260617140000_booking_custom_itinerary.sql`
 - Test: `tests/integration/booking-flow.test.ts` (add a custom-itinerary case)
 
@@ -232,39 +245,39 @@ git commit -m "feat(dto): optionalStops + maxStops on the activity extra schema"
 Add to `tests/integration/booking-flow.test.ts` (it already has `call`, `db`, `occurrenceId`, `CUSTOMER`):
 
 ```ts
-  it('saves and returns a custom itinerary on the booking', async () => {
-    await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const route = [
-      { title: 'Port Louis', area: 'Capital', lat: -20.16, lng: 57.5 },
-      { title: 'Fort Adelaide', area: 'Port Louis' },
-    ];
-    const booking = await call<{ ref: string }>(db, 'api_book', {
-      occurrenceId,
-      party: { Adult: 1 },
-      itinerary: route,
-      customerName: 'Route Tester',
-      customerEmail: 'route@example.com',
-      source: 'web',
-      idempotencyKey: 'flow-route-12345678',
-    });
-    const got = await call<{ customItinerary: typeof route | null }>(db, 'api_get_booking', {
-      ref: booking.ref,
-    });
-    expect(got.customItinerary).toHaveLength(2);
-    expect(got.customItinerary![1]!.title).toBe('Fort Adelaide');
-
-    // A booking with no itinerary returns null.
-    const plain = await call<{ ref: string }>(db, 'api_book', {
-      occurrenceId,
-      party: { Adult: 1 },
-      customerName: 'No Route',
-      customerEmail: 'noroute@example.com',
-      source: 'web',
-      idempotencyKey: 'flow-noroute-1234567',
-    });
-    const got2 = await call<{ customItinerary: unknown }>(db, 'api_get_booking', { ref: plain.ref });
-    expect(got2.customItinerary).toBeNull();
+it('saves and returns a custom itinerary on the booking', async () => {
+  await db.as({ sub: CUSTOMER, role: 'authenticated' });
+  const route = [
+    { title: 'Port Louis', area: 'Capital', lat: -20.16, lng: 57.5 },
+    { title: 'Fort Adelaide', area: 'Port Louis' },
+  ];
+  const booking = await call<{ ref: string }>(db, 'api_book', {
+    occurrenceId,
+    party: { Adult: 1 },
+    itinerary: route,
+    customerName: 'Route Tester',
+    customerEmail: 'route@example.com',
+    source: 'web',
+    idempotencyKey: 'flow-route-12345678',
   });
+  const got = await call<{ customItinerary: typeof route | null }>(db, 'api_get_booking', {
+    ref: booking.ref,
+  });
+  expect(got.customItinerary).toHaveLength(2);
+  expect(got.customItinerary![1]!.title).toBe('Fort Adelaide');
+
+  // A booking with no itinerary returns null.
+  const plain = await call<{ ref: string }>(db, 'api_book', {
+    occurrenceId,
+    party: { Adult: 1 },
+    customerName: 'No Route',
+    customerEmail: 'noroute@example.com',
+    source: 'web',
+    idempotencyKey: 'flow-noroute-1234567',
+  });
+  const got2 = await call<{ customItinerary: unknown }>(db, 'api_get_booking', { ref: plain.ref });
+  expect(got2.customItinerary).toBeNull();
+});
 ```
 
 - [ ] **Step 2: Run it — expect FAIL**
@@ -410,6 +423,7 @@ git commit -m "feat(db): save a customer custom itinerary on the booking (api_bo
 ## Task 4: Booking plumbing — validation + service + checkout
 
 **Files:**
+
 - Modify: `src/lib/validation/booking.ts` (`itinerary` on `createBookingInputSchema` + on `bookingSchema`)
 - Modify: `src/lib/services/bookings.ts` (forward `itinerary`)
 - Modify: `src/components/checkout/Checkout.tsx` (read route from sessionStorage + send)
@@ -420,19 +434,19 @@ git commit -m "feat(db): save a customer custom itinerary on the booking (api_bo
 Add to `tests/integration/services.test.ts` (after the SUV test):
 
 ```ts
-  it('saves a custom itinerary through the service path', async () => {
-    await db.as({ sub: USER, role: 'authenticated' });
-    const booking = await createBooking(ctx, {
-      occurrenceId,
-      party: { 'Private group': 1 },
-      itinerary: [{ title: 'Port Louis' }, { title: 'Apravasi Ghat', area: 'Port Louis' }],
-      customer: { name: 'R', email: 'route-svc@example.com' },
-      idempotencyKey: 'svc-route-1',
-    });
-    const got = await getBookingStatus(ctx, booking.ref);
-    expect(got.customItinerary).toHaveLength(2);
-    expect(got.customItinerary![1]!.title).toBe('Apravasi Ghat');
+it('saves a custom itinerary through the service path', async () => {
+  await db.as({ sub: USER, role: 'authenticated' });
+  const booking = await createBooking(ctx, {
+    occurrenceId,
+    party: { 'Private group': 1 },
+    itinerary: [{ title: 'Port Louis' }, { title: 'Apravasi Ghat', area: 'Port Louis' }],
+    customer: { name: 'R', email: 'route-svc@example.com' },
+    idempotencyKey: 'svc-route-1',
   });
+  const got = await getBookingStatus(ctx, booking.ref);
+  expect(got.customItinerary).toHaveLength(2);
+  expect(got.customItinerary![1]!.title).toBe('Apravasi Ghat');
+});
 ```
 
 - [ ] **Step 2: Run it — expect FAIL**
@@ -443,7 +457,9 @@ Expected: FAIL — `itinerary` is stripped by the input schema / `customItinerar
 - [ ] **Step 3: Add `itinerary` to the booking schemas**
 
 In `src/lib/validation/booking.ts`:
+
 - A reusable route-stop schema + field on `createBookingInputSchema` (after `suv`):
+
 ```ts
   /** The customer's chosen route (sightseeing tours). Free + informational; bounded so a tampered
    *  payload is a clean 400, not a DB blowup. */
@@ -459,7 +475,9 @@ In `src/lib/validation/booking.ts`:
     .max(30)
     .optional(),
 ```
+
 - And expose it on `bookingSchema` (after `items`):
+
 ```ts
   customItinerary: z
     .array(z.object({ title: z.string(), area: z.string().nullish(), lat: z.number().optional(), lng: z.number().optional() }))
@@ -469,6 +487,7 @@ In `src/lib/validation/booking.ts`:
 - [ ] **Step 4: Forward it in the service**
 
 In `src/lib/services/bookings.ts`, in the `api_book` payload (after `suv: input.suv ?? false,`):
+
 ```ts
     itinerary: input.itinerary ?? null,
 ```
@@ -481,21 +500,30 @@ Expected: PASS.
 - [ ] **Step 6: Send the route from checkout**
 
 In `src/components/checkout/Checkout.tsx`:
+
 - After `const suv = params.get('suv') === '1';` add a reader that pulls the route the builder stashed:
+
 ```ts
-  // The route builder on the tour page stashes the chosen stops here (too big for the URL).
-  function readItinerary(): Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null {
-    if (typeof window === 'undefined' || !slug) return null;
-    try {
-      const raw = window.sessionStorage.getItem(`gytm:itinerary:${slug}`);
-      const arr = raw ? JSON.parse(raw) : null;
-      return Array.isArray(arr) && arr.length ? arr : null;
-    } catch {
-      return null;
-    }
+// The route builder on the tour page stashes the chosen stops here (too big for the URL).
+function readItinerary(): Array<{
+  title: string;
+  area?: string | null;
+  lat?: number;
+  lng?: number;
+}> | null {
+  if (typeof window === 'undefined' || !slug) return null;
+  try {
+    const raw = window.sessionStorage.getItem(`gytm:itinerary:${slug}`);
+    const arr = raw ? JSON.parse(raw) : null;
+    return Array.isArray(arr) && arr.length ? arr : null;
+  } catch {
+    return null;
   }
+}
 ```
+
 - In the `POST /api/v1/bookings` body (after `suv,`):
+
 ```ts
             itinerary: readItinerary(),
 ```
@@ -517,6 +545,7 @@ git commit -m "feat(booking): carry the customer custom itinerary through servic
 ## Task 5: Pure route reducer + tests
 
 **Files:**
+
 - Create: `src/lib/itinerary/route.ts`
 - Test: `tests/unit/itinerary-route.test.ts`
 
@@ -623,6 +652,7 @@ git commit -m "feat(itinerary): pure add/remove/move route reducer"
 ## Task 6: Driving route map + animated car
 
 **Files:**
+
 - Modify: `src/components/maps/pin.ts` (add `carIcon`)
 - Modify: `src/components/maps/RouteMap.tsx` (Directions road route + rAF car + `origin`/`animate` props)
 
@@ -672,7 +702,13 @@ async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral 
  * aware). Falls back to a dashed straight-line route, then to a keyless Google Maps link, so it
  * degrades but never breaks. Re-renders when `stops` change.
  */
-export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; animate?: boolean }) {
+export function RouteMap({
+  stops,
+  animate = false,
+}: {
+  stops: ItineraryStop[];
+  animate?: boolean;
+}) {
   const status = useGoogleMaps();
   const elRef = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
@@ -762,7 +798,12 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
       }
 
       // The car: static at the start, or animated along the path on a loop.
-      const car = new google.maps.Marker({ map, position: path[0]!, icon: carIcon(), zIndex: 1000 });
+      const car = new google.maps.Marker({
+        map,
+        position: path[0]!,
+        icon: carIcon(),
+        zIndex: 1000,
+      });
       const reduce =
         typeof window !== 'undefined' &&
         window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -792,7 +833,9 @@ export function RouteMap({ stops, animate = false }: { stops: ItineraryStop[]; a
 
   if (stops.length === 0) return null;
   if (status === 'error' || failed) {
-    return <MapLinkCard href={mapsDirectionsUrl(stops.map((s) => s.title))} label="See the full route" />;
+    return (
+      <MapLinkCard href={mapsDirectionsUrl(stops.map((s) => s.title))} label="See the full route" />
+    );
   }
 
   return (
@@ -823,6 +866,7 @@ git commit -m "feat(map): real driving route + animated car (fallback to straigh
 ## Task 7: ItineraryBuilder + page wiring + widget reads the route
 
 **Files:**
+
 - Create: `src/components/gyg/detail/ItineraryBuilder.tsx`
 - Modify: `app/activities/[slug]/page.tsx` (render builder when optional stops exist)
 - Modify: `src/components/gyg/detail/BookingWidget.tsx` (no change needed — route is read in Checkout via sessionStorage; the builder writes it)
@@ -836,7 +880,14 @@ git commit -m "feat(map): real driving route + animated car (fallback to straigh
 
 import { useEffect, useMemo, useState } from 'react';
 import type { ItineraryStop } from '@/lib/validation/tours';
-import { addStop, moveStop, removeStop, toStops, withIds, type BuilderStop } from '@/lib/itinerary/route';
+import {
+  addStop,
+  moveStop,
+  removeStop,
+  toStops,
+  withIds,
+  type BuilderStop,
+} from '@/lib/itinerary/route';
 import { RouteMap } from '@/components/maps/RouteMap';
 import { PickupMap } from '@/components/maps/PickupMap';
 import { mapsDirectionsUrl } from '@/lib/maps/urls';
@@ -879,7 +930,10 @@ export function ItineraryBuilder({
 
   // The map route: pickup (if entered) as place 1, then the chosen stops.
   const mapStops: ItineraryStop[] = useMemo(
-    () => [...(pickup.trim() ? [{ title: pickup.trim() } as ItineraryStop] : []), ...toStops(selected)],
+    () => [
+      ...(pickup.trim() ? [{ title: pickup.trim() } as ItineraryStop] : []),
+      ...toStops(selected),
+    ],
     [pickup, selected],
   );
 
@@ -889,7 +943,11 @@ export function ItineraryBuilder({
         {/* Pickup origin (preview-only) */}
         <div className="mb-4 rounded-xl border border-ink/10 p-3">
           <div className="text-[13px] font-bold text-ink">Your pickup (start of the route)</div>
-          <PickupMap value={pickup} onChange={setPickup} placeholder="Hotel, Airbnb or cruise port" />
+          <PickupMap
+            value={pickup}
+            onChange={setPickup}
+            placeholder="Hotel, Airbnb or cruise port"
+          />
         </div>
 
         <ol className="relative m-0 list-none p-0">
@@ -946,7 +1004,9 @@ export function ItineraryBuilder({
               <IconPlus width={15} height={15} /> Add a place
             </button>
             {selected.length >= maxStops && (
-              <p className="mt-1.5 text-[12px] text-ink-muted">You&apos;ve reached the maximum of {maxStops} stops.</p>
+              <p className="mt-1.5 text-[12px] text-ink-muted">
+                You&apos;ve reached the maximum of {maxStops} stops.
+              </p>
             )}
             {pickAdd && selected.length < maxStops && (
               <div className="absolute z-20 mt-2 w-full max-w-sm rounded-xl border border-ink/12 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
@@ -995,32 +1055,40 @@ export function ItineraryBuilder({
 - [ ] **Step 2: Render the builder on the detail page**
 
 In `app/activities/[slug]/page.tsx`, add the import:
+
 ```tsx
 import { ItineraryBuilder } from '@/components/gyg/detail/ItineraryBuilder';
 ```
+
 Add an `optionalStops` read next to `itinerary` (~line 103):
+
 ```tsx
-  const optionalStops = activity.extra.optionalStops ?? [];
+const optionalStops = activity.extra.optionalStops ?? [];
 ```
+
 Replace the itinerary section (the `{itinerary.length > 0 && ( … <Itinerary …/> … )}` block ~lines 212-216) with:
+
 ```tsx
-              {(itinerary.length > 0 || optionalStops.length > 0) && (
-                <section className="mt-8">
-                  <SectionTitle>Itinerary</SectionTitle>
-                  {optionalStops.length > 0 ? (
-                    <ItineraryBuilder
-                      slug={activity.slug}
-                      defaultStops={itinerary}
-                      optionalStops={optionalStops}
-                      maxStops={activity.extra.maxStops}
-                      meetingPoint={activity.meetingPoint}
-                    />
-                  ) : (
-                    <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
-                  )}
-                </section>
-              )}
+{
+  (itinerary.length > 0 || optionalStops.length > 0) && (
+    <section className="mt-8">
+      <SectionTitle>Itinerary</SectionTitle>
+      {optionalStops.length > 0 ? (
+        <ItineraryBuilder
+          slug={activity.slug}
+          defaultStops={itinerary}
+          optionalStops={optionalStops}
+          maxStops={activity.extra.maxStops}
+          meetingPoint={activity.meetingPoint}
+        />
+      ) : (
+        <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
+      )}
+    </section>
+  );
+}
 ```
+
 (Keep whatever `<section>`/className wrapper the original used; only the inner conditional changes.)
 
 - [ ] **Step 3: Typecheck + lint**
@@ -1040,23 +1108,30 @@ git commit -m "feat(detail): inline customer itinerary builder with live driving
 ## Task 8: Admin — optional-stops editor + max stops
 
 **Files:**
+
 - Modify: `src/lib/admin/activity-write.ts` (`ActivityFormValues` + `EMPTY_ACTIVITY` + `buildExtra` + `loadActivityForEdit`)
 - Modify: `src/components/admin/ActivityForm.tsx` (reuse `ItineraryEditor` for optional stops + a max-stops input)
 
 - [ ] **Step 1: Carry the fields in the form model**
 
 In `src/lib/admin/activity-write.ts`:
+
 - `ActivityFormValues` — add (after `itinerary: ItineraryStopInput[];`):
+
 ```ts
   optionalStops: ItineraryStopInput[];
   maxStops: number | null;
 ```
+
 - `EMPTY_ACTIVITY` — add:
+
 ```ts
   optionalStops: [],
   maxStops: null,
 ```
+
 - `buildExtra` — extend to write the new fields:
+
 ```ts
 function buildExtra(v: ActivityFormValues) {
   const map = (list: ItineraryStopInput[]) =>
@@ -1077,15 +1152,29 @@ function buildExtra(v: ActivityFormValues) {
   return extra;
 }
 ```
+
 - `loadActivityForEdit` — read them back. Extend the `ExtraShape` interface:
+
 ```ts
 interface ExtraShape {
-  itinerary?: Array<{ title?: string; area?: string | null; description?: string | null; tags?: string[] }>;
-  optionalStops?: Array<{ title?: string; area?: string | null; description?: string | null; tags?: string[] }>;
+  itinerary?: Array<{
+    title?: string;
+    area?: string | null;
+    description?: string | null;
+    tags?: string[];
+  }>;
+  optionalStops?: Array<{
+    title?: string;
+    area?: string | null;
+    description?: string | null;
+    tags?: string[];
+  }>;
   maxStops?: number;
 }
 ```
+
 and in the returned object (after the `itinerary:` mapping) add:
+
 ```ts
     optionalStops: (extra.optionalStops ?? []).map((s) => ({
       title: s.title ?? '',
@@ -1102,23 +1191,23 @@ In `src/components/admin/ActivityForm.tsx`, after the existing Itinerary `<Secti
 `<ItineraryEditor stops={v.itinerary} …/>` one), add:
 
 ```tsx
-      <Section
-        title="Optional stops (customer-customizable)"
-        hint="Places a customer can add to their own route on the tour page (e.g. Fort Adelaide, Apravasi Ghat). Leave empty to keep the itinerary fixed."
-      >
-        <ItineraryEditor stops={v.optionalStops} onChange={(x) => set('optionalStops', x)} />
-        <label className="mt-4 block max-w-[200px] text-[13px] font-semibold text-ink">
-          Max stops a customer can pick
-          <input
-            type="number"
-            min={1}
-            className={`${inputClass} mt-1`}
-            value={v.maxStops ?? ''}
-            onChange={(e) => set('maxStops', e.target.value ? Number(e.target.value) : null)}
-            placeholder="8"
-          />
-        </label>
-      </Section>
+<Section
+  title="Optional stops (customer-customizable)"
+  hint="Places a customer can add to their own route on the tour page (e.g. Fort Adelaide, Apravasi Ghat). Leave empty to keep the itinerary fixed."
+>
+  <ItineraryEditor stops={v.optionalStops} onChange={(x) => set('optionalStops', x)} />
+  <label className="mt-4 block max-w-[200px] text-[13px] font-semibold text-ink">
+    Max stops a customer can pick
+    <input
+      type="number"
+      min={1}
+      className={`${inputClass} mt-1`}
+      value={v.maxStops ?? ''}
+      onChange={(e) => set('maxStops', e.target.value ? Number(e.target.value) : null)}
+      placeholder="8"
+    />
+  </label>
+</Section>
 ```
 
 - [ ] **Step 3: Typecheck + lint**
@@ -1138,13 +1227,16 @@ git commit -m "feat(admin): curate optional stops + max-stops per tour"
 ## Task 9: Operator visibility — voucher + admin
 
 **Files:**
+
 - Modify: `src/components/gyg/detail/BookingConfirmation.tsx` (voucher shows the chosen route)
 - Modify: `src/lib/admin/bookings.ts` (read `custom_itinerary`) + `src/components/admin/AdminBookings.tsx` (render it)
 
 - [ ] **Step 1: Voucher**
 
 In `src/components/gyg/detail/BookingConfirmation.tsx`:
+
 - Extend the `Booking` interface:
+
 ```ts
 interface Booking {
   ref: string;
@@ -1157,39 +1249,51 @@ interface Booking {
   customItinerary?: Array<{ title: string; area?: string | null }> | null;
 }
 ```
+
 - After the `</dl>` totals block (before the `{error && …}`), add:
+
 ```tsx
-        {booking.customItinerary && booking.customItinerary.length > 0 && (
-          <div className="mt-5 border-t border-ink/10 pt-4">
-            <div className="text-[13px] font-bold text-ink">Your route</div>
-            <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-[13px] text-ink/80">
-              {booking.customItinerary.map((s, i) => (
-                <li key={i}>
-                  {s.title}
-                  {s.area ? ` — ${s.area}` : ''}
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
+{
+  booking.customItinerary && booking.customItinerary.length > 0 && (
+    <div className="mt-5 border-t border-ink/10 pt-4">
+      <div className="text-[13px] font-bold text-ink">Your route</div>
+      <ol className="mt-2 flex list-decimal flex-col gap-1 pl-5 text-[13px] text-ink/80">
+        {booking.customItinerary.map((s, i) => (
+          <li key={i}>
+            {s.title}
+            {s.area ? ` — ${s.area}` : ''}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
 ```
 
 - [ ] **Step 2: Admin read**
 
 In `src/lib/admin/bookings.ts`:
+
 - Add `custom_itinerary` to `BOOKING_SELECT` (after `notes, created_at,`):
+
 ```ts
   source, currency, total_minor, notes, custom_itinerary, created_at,
 ```
+
 - Add to `RawBooking`:
+
 ```ts
-  custom_itinerary: Array<{ title: string; area?: string | null }> | null;
+custom_itinerary: Array<{ title: string; area?: string | null }> | null;
 ```
+
 - Add to `BookingRow`:
+
 ```ts
-  customItinerary: Array<{ title: string; area?: string | null }> | null;
+customItinerary: Array<{ title: string; area?: string | null }> | null;
 ```
+
 - In `mapBooking`'s returned object (after `netPaidEur`):
+
 ```ts
     customItinerary: raw.custom_itinerary,
 ```
@@ -1198,20 +1302,24 @@ In `src/lib/admin/bookings.ts`:
 
 In `src/components/admin/AdminBookings.tsx`, in the booking detail drawer (find where `booking.notes`
 or the items list renders), add a route block:
+
 ```tsx
-              {booking.customItinerary && booking.customItinerary.length > 0 && (
-                <div className="mt-4">
-                  <div className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-                    Customer route
-                  </div>
-                  <ol className="mt-1 list-decimal pl-5 text-[13px] text-ink/80">
-                    {booking.customItinerary.map((s, i) => (
-                      <li key={i}>{s.area ? `${s.title} — ${s.area}` : s.title}</li>
-                    ))}
-                  </ol>
-                </div>
-              )}
+{
+  booking.customItinerary && booking.customItinerary.length > 0 && (
+    <div className="mt-4">
+      <div className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+        Customer route
+      </div>
+      <ol className="mt-1 list-decimal pl-5 text-[13px] text-ink/80">
+        {booking.customItinerary.map((s, i) => (
+          <li key={i}>{s.area ? `${s.title} — ${s.area}` : s.title}</li>
+        ))}
+      </ol>
+    </div>
+  );
+}
 ```
+
 (Place it next to the existing notes/items display — read the file to match its detail-drawer markup.)
 
 - [ ] **Step 4: Typecheck + lint**
@@ -1231,6 +1339,7 @@ git commit -m "feat(ops): show the customer route on the voucher + in admin"
 ## Task 10: Catch-up SQL, artifacts, green gate
 
 **Files:**
+
 - Create: `supabase/catch-up-2026-06-17-custom-itinerary.sql`
 - Regenerate: `supabase/setup.sql`, `openapi.json`
 - Modify: `memory/gytm-db-sync.md`
@@ -1282,6 +1391,7 @@ git commit -m "chore(db): catch-up + regenerated artifacts for custom itinerary"
 ## Self-Review
 
 **Spec coverage:**
+
 - Vehicle option card (ladder, scroll-to-book) → Task 1. ✓
 - Optional stops + maxStops in `extra` → Task 2 (DTO), Task 8 (admin). ✓
 - `custom_itinerary` saved via post-create `api_book` UPDATE (no `create_booking` change) → Task 3. ✓
@@ -1305,6 +1415,7 @@ field across Tasks 3, 4. `vehiclePricing`/`VehiclePricing`/`VEHICLE_BANDS` (Task
 already-shipped pricing module.
 
 **Risks during execution:**
+
 - `AdminBookings.tsx` detail-drawer markup must be read to place the route block (Task 9 Step 3) —
   it's the one spot needing the file open first.
 - The Directions API may not be enabled on the live Google key → the map shows the straight-line

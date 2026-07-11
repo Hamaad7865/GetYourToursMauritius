@@ -21,11 +21,15 @@ async function makeBooking(db: TestDb, key: string): Promise<{ id: string; occur
 }
 
 const status = async (db: TestDb, id: string) =>
-  (await db.pg.query<{ status: string }>(`select status from bookings where id = $1`, [id])).rows[0]!
-    .status;
+  (await db.pg.query<{ status: string }>(`select status from bookings where id = $1`, [id]))
+    .rows[0]!.status;
 const paymentState = async (db: TestDb, id: string) =>
-  (await db.pg.query<{ payment_state: string }>(`select payment_state from bookings where id = $1`, [id]))
-    .rows[0]!.payment_state;
+  (
+    await db.pg.query<{ payment_state: string }>(
+      `select payment_state from bookings where id = $1`,
+      [id],
+    )
+  ).rows[0]!.payment_state;
 
 describe('admin booking write guards', () => {
   let db: TestDb;
@@ -93,9 +97,10 @@ describe('admin booking write guards', () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     await db.pg.query(`update bookings set notes = 'called the guest' where id = $1`, [id]);
     await db.asOwner();
-    const { rows } = await db.pg.query<{ notes: string }>(`select notes from bookings where id = $1`, [
-      id,
-    ]);
+    const { rows } = await db.pg.query<{ notes: string }>(
+      `select notes from bookings where id = $1`,
+      [id],
+    );
     expect(rows[0]!.notes).toBe('called the guest');
   });
 
@@ -116,7 +121,10 @@ describe('admin booking write guards', () => {
     const { id } = await makeBooking(db, 'paid-cancel');
     // Owner brings it to confirmed + paid (the webhook/ledger path).
     await db.asOwner();
-    await db.pg.query(`update bookings set status = 'confirmed', payment_state = 'paid' where id = $1`, [id]);
+    await db.pg.query(
+      `update bookings set status = 'confirmed', payment_state = 'paid' where id = $1`,
+      [id],
+    );
 
     // Staff "cancel" → the guard reroutes it so the refund owed is tracked.
     await db.as({ sub: STAFF, role: 'authenticated' });

@@ -22,20 +22,40 @@ describe('haversine fallback', () => {
 
 /** A Routes API (Directions v2) response: one leg per consecutive pair. */
 function routes(legs: Array<{ km: number; min: number }>) {
-  return { routes: [{ legs: legs.map((l) => ({ distanceMeters: l.km * 1000, duration: `${l.min * 60}s` })) }] };
+  return {
+    routes: [
+      { legs: legs.map((l) => ({ distanceMeters: l.km * 1000, duration: `${l.min * 60}s` })) },
+    ],
+  };
 }
 
 describe('getRouteLegsViaRoutes (Routes API)', () => {
   afterEach(() => vi.unstubAllGlobals());
 
   it('parses per-leg km/minutes from the Routes response', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => routes([{ km: 30, min: 45 }, { km: 50, min: 70 }]) })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+        json: async () =>
+          routes([
+            { km: 30, min: 45 },
+            { km: 50, min: 70 },
+          ]),
+      })),
+    );
     const legs = await getRouteLegsViaRoutes([GRAND_BAIE, BELLE_MARE, LE_MORNE], 'KEY');
-    expect(legs).toEqual([{ km: 30, minutes: 45 }, { km: 50, minutes: 70 }]);
+    expect(legs).toEqual([
+      { km: 30, minutes: 45 },
+      { km: 50, minutes: 70 },
+    ]);
   });
 
   it('throws on a non-OK status (planRoute then falls back)', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 403, json: async () => ({}) })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, status: 403, json: async () => ({}) })),
+    );
     await expect(getRouteLegsViaRoutes([GRAND_BAIE, BELLE_MARE], 'KEY')).rejects.toThrow();
   });
 });
@@ -51,7 +71,10 @@ describe('planRoute', () => {
   });
 
   it('uses the Routes API when available (not an estimate)', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => routes([{ km: 42, min: 55 }]) })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: true, json: async () => routes([{ km: 42, min: 55 }]) })),
+    );
     const route = await planRoute([GRAND_BAIE, BELLE_MARE], 'KEY');
     expect(route.estimate).toBe(false);
     expect(route.totalMinutes).toBe(55);
@@ -59,7 +82,10 @@ describe('planRoute', () => {
   });
 
   it('falls back to haversine when the API call fails', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({ ok: false, status: 500, json: async () => ({}) })),
+    );
     const route = await planRoute([GRAND_BAIE, BELLE_MARE], 'KEY');
     expect(route.estimate).toBe(true);
     expect(route.legs).toHaveLength(1);

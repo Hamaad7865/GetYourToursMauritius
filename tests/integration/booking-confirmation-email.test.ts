@@ -62,8 +62,11 @@ describe('booking_confirmation drain → invoice + receipt email', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
 
@@ -106,10 +109,14 @@ describe('booking_confirmation drain → invoice + receipt email', () => {
       source: 'web',
       idempotencyKey: 'receipt-book-12345678',
     });
-    const payment = await call<{ paymentId: string; amountMinor: number }>(db, 'api_create_payment', {
-      bookingRef: booking.ref,
-      idempotencyKey: 'receipt-pay-12345678',
-    });
+    const payment = await call<{ paymentId: string; amountMinor: number }>(
+      db,
+      'api_create_payment',
+      {
+        bookingRef: booking.ref,
+        idempotencyKey: 'receipt-pay-12345678',
+      },
+    );
     // Record the real (USD) card charge, as createPaymentLink does in production.
     await call(db, 'api_record_payment_charge', {
       paymentId: payment.paymentId,

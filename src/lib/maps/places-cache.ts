@@ -66,7 +66,11 @@ export async function cacheGet<T>(key: string): Promise<T | undefined> {
   const db = durableClient();
   if (!db) return undefined;
   try {
-    const { data } = await db.from('places_cache').select('data, expires_at').eq('key', key).maybeSingle();
+    const { data } = await db
+      .from('places_cache')
+      .select('data, expires_at')
+      .eq('key', key)
+      .maybeSingle();
     if (data) {
       const expires = new Date(data.expires_at).getTime();
       if (expires > Date.now()) {
@@ -88,9 +92,11 @@ export async function cacheSet<T>(key: string, value: T, ttlMs: number): Promise
   const db = durableClient();
   if (!db) return;
   try {
-    await db
-      .from('places_cache')
-      .upsert({ key, data: value as unknown as Json, expires_at: new Date(expiresAt).toISOString() });
+    await db.from('places_cache').upsert({
+      key,
+      data: value as unknown as Json,
+      expires_at: new Date(expiresAt).toISOString(),
+    });
   } catch {
     /* L2 unavailable — L1 still holds it */
   }

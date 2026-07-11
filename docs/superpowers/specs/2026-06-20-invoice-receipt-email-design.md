@@ -5,6 +5,7 @@
 > `booking_confirmation` notification flow — no new pipeline.
 
 ## Locked decisions
+
 1. **One combined Invoice + Receipt PDF** (business header + BRN/VAT, itemized lines, VAT breakdown, total,
    a "PAID" stamp with payment date + ref), attached to a branded HTML email.
 2. **VAT-inclusive 15%**: displayed prices already include VAT. Each line: `net = gross ÷ 1.15`,
@@ -16,6 +17,7 @@
 5. **In scope:** the paid `booking_confirmation`. **Out:** turning the refund email into a credit note (stays plain).
 
 ## What already exists (reuse, don't rebuild)
+
 - DB trigger `enqueue_booking_notification` enqueues a `booking_confirmation` outbox row on status → confirmed.
 - Cron → `POST /api/v1/internal/notifications/drain` → `drainNotifications` claims rows + calls
   `provider.send()`. Resend provider currently sends `{ from, to, subject, text }` (plain text only).
@@ -24,11 +26,13 @@
   `createPaymentLink` (`src/lib/services/payments.ts`) but NOT persisted.
 
 ## Architecture
+
 On drain, for a `booking_confirmation`: fetch the full booking (service-role) + its payment → `buildInvoice`
 → render HTML email + PDF → `provider.send({ html, text, attachments:[invoice.pdf] })`. Everything is
 edge-safe (`pdf-lib` is pure JS; no headless browser).
 
 ### Components (small, isolated)
+
 - **`payments.charged_amount_minor` + `charged_currency`** (DB columns, nullable). Written in
   `createPaymentLink` when the charge is computed. Migration + `catch-up.sql` mirror + generated types.
 - **`src/lib/invoice/model.ts` — `buildInvoice(booking, payment, business): InvoiceModel`** (pure). Lines =
@@ -48,18 +52,21 @@ edge-safe (`pdf-lib` is pure JS; no headless browser).
   `attachments` to the API (it supports both).
 - **`drainNotifications` enrichment**: for `booking_confirmation`, fetch booking + payment (a service helper
   `loadBookingForReceipt(bookingId)` using the service-role client → `booking_json` + the payment row), build
-  + render, and send the rich message. Other templates unchanged.
+  - render, and send the rich message. Other templates unchanged.
 
 ## Data flow
+
 paid → `confirmed` → trigger enqueues outbox → cron `/drain` → claim → fetch booking + payment →
 `buildInvoice` → `renderConfirmationEmail` + `renderInvoicePdf` → `provider.send` → `mark_notification('sent')`.
 
 ## Error handling
+
 Per-message try/catch already retries (max 5 attempts). Added: **if `renderInvoicePdf` throws, still send the
 HTML email without the attachment** (log the PDF error) — the confirmation must go out; the PDF is
 best-effort. If the booking fetch fails, the send fails and retries (don't mark sent).
 
 ## Testing
+
 - Unit: `buildInvoice` VAT-inclusive math + rounding + multi-line sums (items + transport + child seats sum
   to total); charged-amount display; invoice number = ref.
 - PDF: `renderInvoicePdf` returns valid `%PDF` bytes and renders without throwing for a representative
@@ -70,6 +77,7 @@ best-effort. If the booking fetch fails, the send fails and retries (don't mark 
   attachment; a thrown PDF render still sends the HTML.
 
 ## Owner config / dependencies (unchanged + new)
+
 - Still gated on `RESEND_API_KEY` + `RESEND_FROM` set and the cron enabled (bug-sweep items) for ANY email to send.
 - New DB columns → **re-run `supabase/catch-up.sql`** on the live DB.
 - New dependency `pdf-lib` (pure JS, edge-safe; verify it fits the drain route's edge bundle at build).

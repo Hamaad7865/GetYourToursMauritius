@@ -4,6 +4,7 @@
 > a dedicated `/cookies` policy page for the EU-facing tours site (bilingual EN/FR).
 
 ## Context (from the codebase audit)
+
 - **No analytics or marketing trackers exist** (no GA, Meta pixel, etc.). Nothing to block.
 - Almost all storage is **strictly necessary + first-party**: Supabase auth (`gytm:auth`), cart
   (`gytm:cart`), booking/checkout stashes (`gytm:hold:*`, `gytm:booking:*`, `gytm:pickup:*`,
@@ -15,6 +16,7 @@
   pages exist; **no cookie policy page yet**. Footer has a Legal column (`SiteFooter.tsx`).
 
 ## Locked decisions
+
 1. **Informational notice only** — a non-blocking bottom bar; Google Maps and other scripts load
    normally (no gating, no per-category toggles). Rationale: there are no trackers; the only
    non-essential cookie source is Google Maps, and the owner chose UX over pre-consent gating.
@@ -22,6 +24,7 @@
 3. **Dedicated `/cookies` page** for the full policy (not folded into `/privacy`).
 
 ## Architecture
+
 - **`src/lib/consent/notice.ts`** (pure, tested): `NOTICE_VERSION` (number) + `shouldShowNotice(stored)`
   (true when nothing stored OR the stored version is older than `NOTICE_VERSION`) + `serializeAck(now)`
   → the JSON to persist. No IO; the component owns localStorage.
@@ -42,15 +45,18 @@
 - **i18n:** add the banner + page strings to EN/FR (`messages`). Never translate place names / DB content.
 
 ## Data flow
+
 First visit → no `gytm:cookie-notice` → bar shows → **Accept** writes `{ acknowledged: true, version:
 NOTICE_VERSION, ts }` → bar hidden. Re-appears only if `NOTICE_VERSION` is bumped (policy change).
 
 ## Error handling
+
 All localStorage reads/writes wrapped in try/catch (private mode safe) — on any error, default to NOT
 showing the bar a second time is wrong, so default to SHOWING it (fail-open to the notice) but never
 crash. The bar is purely additive; nothing else depends on it.
 
 ## Testing
+
 - Unit (`tests/unit/cookie-notice.test.ts`): `shouldShowNotice` — show when stored is null / malformed /
   an older version; hide when acknowledged at the current version. `serializeAck` shape.
 - Render/static: the `/cookies` page renders; the footer link resolves; i18n keys exist in both locales.
@@ -58,5 +64,6 @@ crash. The bar is purely additive; nothing else depends on it.
   keyboard-accessible.
 
 ## Out of scope
+
 Google Maps / Peach gating; granular category toggles; a third-party CMP; analytics (none exist);
 a "reopen preferences" control (nothing to re-configure — the footer link to `/cookies` suffices).

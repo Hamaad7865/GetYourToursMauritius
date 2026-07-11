@@ -12,8 +12,9 @@ choose. `BookingOptionCard` even hardcodes "1 option available". So a second opt
 dropped. This is a widget-layer change only — no DB/API/admin change.
 
 ## Locked decisions
+
 1. **Option picker = selectable cards** (GetYourGuide style), shown at the top of the booking widget
-   (choose *what*, then *how many* / *when*).
+   (choose _what_, then _how many_ / _when_).
 2. **Only render the picker when `activity.options.length > 1`.** Single-option activities are
    unchanged (no visual change for the common case).
 3. **Default selection = the current auto-pick** (globally cheapest tier's option for per_person/
@@ -21,10 +22,11 @@ dropped. This is a widget-layer change only — no DB/API/admin change.
 4. **Pick one option per booking** (like GYG). Mixing options in one booking is out of scope.
 
 ## Behaviour
+
 - A new `selectedOptionId` in `BookingProvider`, initialised to the default auto-pick. `setSelectedOption`
   updates it, resets the chosen `date` to `''` (occurrences differ per option), and calls `touch()`.
 - **Pricing follows the selected option, not the global cheapest.** Today `cheapest` scans every option's
-  tiers; we replace its pricing role with the cheapest tier *within the selected option* (`selectedTier`).
+  tiers; we replace its pricing role with the cheapest tier _within the selected option_ (`selectedTier`).
   `baseTotal`, `unitPriceEur`, `priceLabel`, `groupSize`, and the per-person `tierCap` all read from
   `selectedTier`. (For vehicle mode the selected option's `vehiclePricing` already applies; selection just
   changes which option's id is booked.)
@@ -39,6 +41,7 @@ dropped. This is a widget-layer change only — no DB/API/admin change.
   existing teal selected-state border. Cards are keyboard-operable (radio semantics).
 
 ## Pure helpers (unit-tested) — `src/lib/catalogue/options.ts`
+
 - `cheapestTier(option)` → the option's lowest-priced tier `{ label, amountEur, maxGuests }` (or null if no
   tiers).
 - `defaultOptionId(options, isVehicle)` → `options[0].id` for vehicle, else the id of the option holding the
@@ -47,6 +50,7 @@ dropped. This is a widget-layer change only — no DB/API/admin change.
   (no React; pure, so it's testable and shared by the card + any mirror).
 
 ## Files (verify at plan time)
+
 - `src/lib/catalogue/options.ts` (new, pure helpers) + `tests/unit/options.test.ts`.
 - `src/components/gyg/detail/BookingProvider.tsx` — add `selectedOptionId`/`setSelectedOption`; selected-
   option-driven pricing + availability; expose in context.
@@ -56,10 +60,12 @@ dropped. This is a widget-layer change only — no DB/API/admin change.
 - `src/lib/i18n/messages.ts` — any new labels (French).
 
 ## Testing
+
 - Unit: `cheapestTier`, `defaultOptionId`, `optionCardSummary` (per_person / per_group / vehicle; no-tier
   edge). The existing pricing tests must stay green (selected = default reproduces today's numbers).
 - Manual: a 2-option per-person activity (Deep Sea Fishing) shows two cards; selecting Full Day changes the
   price to €360 × party and re-loads that option's dates; a 1-option activity shows no picker.
 
 ## Out of scope
+
 - Multiple options in one booking; admin option CRUD (already exists); any DB/API change.

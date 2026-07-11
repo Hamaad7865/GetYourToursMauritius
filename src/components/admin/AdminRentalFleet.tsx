@@ -9,7 +9,15 @@ import {
   deleteRentalVehicle,
   type RentalVehicleInput,
 } from '@/lib/admin/rental';
-import { AdminHeading, AdminError, Card, Field, INPUT_CLS, BTN_PRIMARY, BTN_GHOST } from '@/components/admin/ui';
+import {
+  AdminHeading,
+  AdminError,
+  Card,
+  Field,
+  INPUT_CLS,
+  BTN_PRIMARY,
+  BTN_GHOST,
+} from '@/components/admin/ui';
 
 const CATEGORY_HINT = 'scooter · economy · family · suv · van';
 
@@ -48,7 +56,12 @@ function VehicleFields({
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <Field label="Name">
-        <input className={INPUT_CLS} value={v.name} onChange={(e) => patch({ name: e.target.value })} placeholder="Nissan March" />
+        <input
+          className={INPUT_CLS}
+          value={v.name}
+          onChange={(e) => patch({ name: e.target.value })}
+          placeholder="Nissan March"
+        />
       </Field>
       <Field label="Slug" hint={lockSlug ? 'Fixed' : 'Unique id'}>
         <input
@@ -60,7 +73,12 @@ function VehicleFields({
         />
       </Field>
       <Field label="Category" hint={CATEGORY_HINT}>
-        <input className={INPUT_CLS} value={v.category} onChange={(e) => patch({ category: e.target.value })} placeholder="economy" />
+        <input
+          className={INPUT_CLS}
+          value={v.category}
+          onChange={(e) => patch({ category: e.target.value })}
+          placeholder="economy"
+        />
       </Field>
       <Field label="Seats">
         <input
@@ -116,11 +134,21 @@ function VehicleFields({
         />
       </Field>
       <label className="flex items-center gap-2 self-end pb-2.5 text-[13px] font-semibold text-ink">
-        <input type="checkbox" checked={v.airCon} onChange={(e) => patch({ airCon: e.target.checked })} className="h-4 w-4 accent-teal" />
+        <input
+          type="checkbox"
+          checked={v.airCon}
+          onChange={(e) => patch({ airCon: e.target.checked })}
+          className="h-4 w-4 accent-teal"
+        />
         Air-con
       </label>
       <label className="flex items-center gap-2 self-end pb-2.5 text-[13px] font-semibold text-ink">
-        <input type="checkbox" checked={v.active} onChange={(e) => patch({ active: e.target.checked })} className="h-4 w-4 accent-teal" />
+        <input
+          type="checkbox"
+          checked={v.active}
+          onChange={(e) => patch({ active: e.target.checked })}
+          className="h-4 w-4 accent-teal"
+        />
         Active (shown on /rent)
       </label>
     </div>
@@ -206,7 +234,9 @@ export function AdminRentalFleet() {
                   {v.name || v.slug} {!v.active && <span className="text-ink-muted">· hidden</span>}
                 </h2>
                 <div className="flex items-center gap-2">
-                  {saved === v.slug && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+                  {saved === v.slug && (
+                    <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>
+                  )}
                   <button
                     type="button"
                     disabled={busy === v.slug}
@@ -219,13 +249,21 @@ export function AdminRentalFleet() {
                     <button
                       type="button"
                       disabled={busy === `del-${v.slug}`}
-                      onClick={() => void run(`del-${v.slug}`, () => deleteRentalVehicle(v.slug)).then(() => setConfirmDel(null))}
+                      onClick={() =>
+                        void run(`del-${v.slug}`, () => deleteRentalVehicle(v.slug)).then(() =>
+                          setConfirmDel(null),
+                        )
+                      }
                       className="inline-flex items-center justify-center rounded-xl bg-coral px-4 py-2.5 text-[13.5px] font-bold text-white hover:opacity-90 disabled:opacity-50"
                     >
                       Confirm delete
                     </button>
                   ) : (
-                    <button type="button" onClick={() => setConfirmDel(v.slug)} className={BTN_GHOST}>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDel(v.slug)}
+                      className={BTN_GHOST}
+                    >
                       Delete
                     </button>
                   )}
@@ -240,10 +278,17 @@ export function AdminRentalFleet() {
         <Card title="Add a vehicle" className="border-dashed">
           <VehicleFields v={draft} patch={(p) => setDraft({ ...draft, ...p })} lockSlug={false} />
           <div className="mt-4 flex items-center gap-3">
-            <button type="button" disabled={busy === 'new'} onClick={addVehicle} className={BTN_PRIMARY}>
+            <button
+              type="button"
+              disabled={busy === 'new'}
+              onClick={addVehicle}
+              className={BTN_PRIMARY}
+            >
               {busy === 'new' ? 'Adding…' : 'Add vehicle'}
             </button>
-            {saved === 'new' && <span className="text-sm font-semibold text-emerald-700">Added ✓</span>}
+            {saved === 'new' && (
+              <span className="text-sm font-semibold text-emerald-700">Added ✓</span>
+            )}
           </div>
         </Card>
       </div>

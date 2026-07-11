@@ -181,7 +181,9 @@ export function PickupDropoffMap({
         dropoffInputRef.current,
         dropoffMarker,
         onDropoffChangeRef as React.MutableRefObject<(s: string) => void>,
-        onDropoffCoordsRef as React.MutableRefObject<(c: { lat: number; lng: number } | null) => void>,
+        onDropoffCoordsRef as React.MutableRefObject<
+          (c: { lat: number; lng: number } | null) => void
+        >,
       );
     }
     // Stash the drop-off autocomplete so the toggle effect can (re)bind it when the input appears.

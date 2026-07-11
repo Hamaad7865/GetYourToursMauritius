@@ -27,8 +27,8 @@ export function PopularSearches() {
           Popular on Belle Mare Tours
         </h2>
         <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/75">
-          Jump straight to the experiences Mauritius is known for — all bookable direct with the operator, with
-          door-to-door pickup and no reseller markup.
+          Jump straight to the experiences Mauritius is known for — all bookable direct with the
+          operator, with door-to-door pickup and no reseller markup.
         </p>
         <div className="mt-5 flex flex-wrap gap-2.5">
           {LINKS.map((l) => (

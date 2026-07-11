@@ -50,9 +50,10 @@ interface History {
 
 /** Call api_my_bookings directly under the current PGlite identity (set via db.as). */
 async function history(db: TestDb, params: Record<string, unknown> = {}): Promise<History> {
-  const { rows } = await db.pg.query<{ data: History }>(`select api_my_bookings($1::jsonb) as data`, [
-    JSON.stringify(params),
-  ]);
+  const { rows } = await db.pg.query<{ data: History }>(
+    `select api_my_bookings($1::jsonb) as data`,
+    [JSON.stringify(params)],
+  );
   return rows[0]!.data;
 }
 
@@ -87,7 +88,10 @@ describe('GET /api/v1/bookings — booking history', () => {
     await db.asOwner();
 
     for (const id of [USER_A, USER_B]) {
-      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [id, `${id}@example.com`]);
+      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [
+        id,
+        `${id}@example.com`,
+      ]);
       await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [id]);
     }
 
@@ -108,10 +112,30 @@ describe('GET /api/v1/bookings — booking history', () => {
     farOccurrenceId = far[0]!.id;
 
     // USER_A: two near (confirmed + pending) and one far (confirmed, newest). USER_B: one near.
-    await makeBooking(USER_A, { key: 'a1', status: 'confirmed', occurrenceId: nearOccurrenceId, createdAt: plusDays(-3) });
-    await makeBooking(USER_A, { key: 'a2', status: 'payment_pending', occurrenceId: nearOccurrenceId, createdAt: plusDays(-2) });
-    await makeBooking(USER_A, { key: 'a3', status: 'confirmed', occurrenceId: farOccurrenceId, createdAt: plusDays(-1) });
-    await makeBooking(USER_B, { key: 'b1', status: 'confirmed', occurrenceId: nearOccurrenceId, createdAt: plusDays(-1) });
+    await makeBooking(USER_A, {
+      key: 'a1',
+      status: 'confirmed',
+      occurrenceId: nearOccurrenceId,
+      createdAt: plusDays(-3),
+    });
+    await makeBooking(USER_A, {
+      key: 'a2',
+      status: 'payment_pending',
+      occurrenceId: nearOccurrenceId,
+      createdAt: plusDays(-2),
+    });
+    await makeBooking(USER_A, {
+      key: 'a3',
+      status: 'confirmed',
+      occurrenceId: farOccurrenceId,
+      createdAt: plusDays(-1),
+    });
+    await makeBooking(USER_B, {
+      key: 'b1',
+      status: 'confirmed',
+      occurrenceId: nearOccurrenceId,
+      createdAt: plusDays(-1),
+    });
 
     setRouteContext({
       db: pgliteRpc(db.pg),

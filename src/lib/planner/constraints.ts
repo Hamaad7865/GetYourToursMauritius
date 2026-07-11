@@ -1,4 +1,8 @@
-import { regionDistanceBand, REGION_DISTANCE_DEFAULT, type RegionDistanceMap } from '@/lib/services/pricing';
+import {
+  regionDistanceBand,
+  REGION_DISTANCE_DEFAULT,
+  type RegionDistanceMap,
+} from '@/lib/services/pricing';
 
 /**
  * Planner-day guardrails — the single source of truth for both the client and the AI co-pilot:

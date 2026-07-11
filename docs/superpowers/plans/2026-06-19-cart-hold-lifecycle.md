@@ -15,6 +15,7 @@
 ## File structure
 
 **Create:**
+
 - `supabase/migrations/20260720120000_hold_release_authz.sql` — `created_by` on `booking_holds`; `create_hold`/`api_create_hold` set it; owner RLS select policy; `api_release_hold(holdId)`; grants.
 - `src/lib/cart/cart-holds.ts` — pure reducer helpers for hold state (`markHeld`, `markUnavailable`, `dropExpiredHolds`, `expiringSoon`).
 - `src/lib/cart/holdClient.ts` — browser fetch helpers (`createHoldsForLines`, `getHoldStatus`, `releaseHoldRequest`).
@@ -25,6 +26,7 @@
 - Tests: `tests/unit/cart-holds.test.ts`, `tests/unit/notifications-inbox.test.ts`, `tests/integration/hold-release.test.ts`.
 
 **Modify:**
+
 - `src/lib/cart/useCart.ts` — extend `CartItem`; new expiry model; expose `markHeld`/`markUnavailable`/`removeHeld`/`reconcile`.
 - `src/lib/services/holds.ts` — add `releaseHold(ctx, holdId)` and `getHold(ctx, holdId)`.
 - `src/lib/validation/booking.ts` — add `holdStatusSchema`.
@@ -38,6 +40,7 @@
 ## Task 1: Cart line gains hold state + new expiry model
 
 **Files:**
+
 - Modify: `src/lib/cart/useCart.ts`
 - Create: `src/lib/cart/cart-holds.ts`
 - Test: `tests/unit/cart-holds.test.ts`
@@ -52,10 +55,24 @@ import { dropExpiredHolds, expiringSoon, markHeld, markUnavailable } from '@/lib
 import type { CartItem } from '@/lib/cart/useCart';
 
 const line = (over: Partial<CartItem> = {}): CartItem => ({
-  id: 'occ#Adult', slug: 's', title: 'T', image: null, occurrenceId: 'occ',
-  dateLabel: 'Mon', lang: 'English', priceLabel: 'Adult', guests: 2, unitEur: 50,
-  pricingMode: 'per_person', maxGuests: null, seatsLeft: 10, unit: 'per person',
-  addedAt: 0, status: 'saved', idemKey: 'k1', ...over,
+  id: 'occ#Adult',
+  slug: 's',
+  title: 'T',
+  image: null,
+  occurrenceId: 'occ',
+  dateLabel: 'Mon',
+  lang: 'English',
+  priceLabel: 'Adult',
+  guests: 2,
+  unitEur: 50,
+  pricingMode: 'per_person',
+  maxGuests: null,
+  seatsLeft: 10,
+  unit: 'per person',
+  addedAt: 0,
+  status: 'saved',
+  idemKey: 'k1',
+  ...over,
 });
 
 const NOW = 1_000_000;
@@ -66,13 +83,17 @@ describe('dropExpiredHolds', () => {
     expect(dropExpiredHolds(items, NOW).kept).toHaveLength(1);
   });
   it('keeps held lines whose expiresAt is in the future', () => {
-    const items = [line({ status: 'held', holdId: 'h1', expiresAt: new Date(NOW + 60_000).toISOString() })];
+    const items = [
+      line({ status: 'held', holdId: 'h1', expiresAt: new Date(NOW + 60_000).toISOString() }),
+    ];
     const r = dropExpiredHolds(items, NOW);
     expect(r.kept).toHaveLength(1);
     expect(r.expired).toHaveLength(0);
   });
   it('drops held lines whose expiresAt has passed and reports them', () => {
-    const items = [line({ status: 'held', holdId: 'h1', expiresAt: new Date(NOW - 1).toISOString() })];
+    const items = [
+      line({ status: 'held', holdId: 'h1', expiresAt: new Date(NOW - 1).toISOString() }),
+    ];
     const r = dropExpiredHolds(items, NOW);
     expect(r.kept).toHaveLength(0);
     expect(r.expired.map((i) => i.id)).toEqual(['occ#Adult']);
@@ -98,8 +119,17 @@ describe('markHeld / markUnavailable', () => {
 
 describe('expiringSoon', () => {
   it('flags a held line within the 5-minute window', () => {
-    const soon = line({ status: 'held', holdId: 'h', expiresAt: new Date(NOW + 4 * 60_000).toISOString() });
-    const far = line({ id: 'x', status: 'held', holdId: 'h', expiresAt: new Date(NOW + 10 * 60_000).toISOString() });
+    const soon = line({
+      status: 'held',
+      holdId: 'h',
+      expiresAt: new Date(NOW + 4 * 60_000).toISOString(),
+    });
+    const far = line({
+      id: 'x',
+      status: 'held',
+      holdId: 'h',
+      expiresAt: new Date(NOW + 10 * 60_000).toISOString(),
+    });
     expect(expiringSoon([soon, far], NOW).map((i) => i.id)).toEqual(['occ#Adult']);
   });
 });
@@ -143,21 +173,33 @@ export function dropExpiredHolds(items: CartItem[], now: number): ReconcileResul
   const expired: CartItem[] = [];
   const unavailable: CartItem[] = [];
   for (const i of items) {
-    if (i.status === 'unavailable') { unavailable.push(i); continue; }
+    if (i.status === 'unavailable') {
+      unavailable.push(i);
+      continue;
+    }
     if (i.status === 'held' && i.expiresAt && new Date(i.expiresAt).getTime() <= now) {
-      expired.push(i); continue;
+      expired.push(i);
+      continue;
     }
     kept.push(i);
   }
   return { kept, expired, unavailable };
 }
 
-export function markHeld(items: CartItem[], id: string, h: { holdId: string; expiresAt: string }): CartItem[] {
-  return items.map((i) => (i.id === id ? { ...i, status: 'held', holdId: h.holdId, expiresAt: h.expiresAt } : i));
+export function markHeld(
+  items: CartItem[],
+  id: string,
+  h: { holdId: string; expiresAt: string },
+): CartItem[] {
+  return items.map((i) =>
+    i.id === id ? { ...i, status: 'held', holdId: h.holdId, expiresAt: h.expiresAt } : i,
+  );
 }
 
 export function markUnavailable(items: CartItem[], id: string): CartItem[] {
-  return items.map((i) => (i.id === id ? { ...i, status: 'unavailable', holdId: undefined, expiresAt: undefined } : i));
+  return items.map((i) =>
+    i.id === id ? { ...i, status: 'unavailable', holdId: undefined, expiresAt: undefined } : i,
+  );
 }
 
 /** Held lines inside the warning window (and not yet expired). */
@@ -175,6 +217,7 @@ export function expiringSoon(items: CartItem[], now: number): CartItem[] {
 - [ ] **Step 6: Run tests + typecheck** — `npx vitest run tests/unit/cart-holds.test.ts` → PASS; `npm run typecheck` → clean (fix any callers constructing `CartItem` without `status`/`idemKey`).
 
 - [ ] **Step 7: Commit**
+
 ```bash
 git add src/lib/cart/useCart.ts src/lib/cart/cart-holds.ts tests/unit/cart-holds.test.ts
 git commit -m "feat(cart): hold state on cart lines + expiry-by-hold model"
@@ -185,6 +228,7 @@ git commit -m "feat(cart): hold state on cart lines + expiry-by-hold model"
 ## Task 2: Notifications inbox store
 
 **Files:**
+
 - Create: `src/lib/notifications/inbox.ts`
 - Test: `tests/unit/notifications-inbox.test.ts`
 
@@ -195,7 +239,12 @@ import { describe, expect, it } from 'vitest';
 import { addNote, capNotes, unreadCount, type Note } from '@/lib/notifications/inbox';
 
 const note = (over: Partial<Note> = {}): Note => ({
-  id: 'n1', type: 'expired', message: 'X expired', createdAt: 1, read: false, ...over,
+  id: 'n1',
+  type: 'expired',
+  message: 'X expired',
+  createdAt: 1,
+  read: false,
+  ...over,
 });
 
 describe('inbox helpers', () => {
@@ -224,7 +273,13 @@ describe('inbox helpers', () => {
 import { useEffect, useState, useCallback } from 'react';
 
 export type NoteType = 'secured' | 'expiring' | 'expired' | 'unavailable';
-export interface Note { id: string; type: NoteType; message: string; createdAt: number; read: boolean; }
+export interface Note {
+  id: string;
+  type: NoteType;
+  message: string;
+  createdAt: number;
+  read: boolean;
+}
 
 const KEY = 'gytm:inbox';
 const EVENT = 'gytm:inbox';
@@ -243,19 +298,31 @@ export function unreadCount(notes: Note[]): number {
 
 function read(): Note[] {
   if (typeof window === 'undefined') return [];
-  try { return capNotes(JSON.parse(window.localStorage.getItem(KEY) ?? '[]') as Note[]); } catch { return []; }
+  try {
+    return capNotes(JSON.parse(window.localStorage.getItem(KEY) ?? '[]') as Note[]);
+  } catch {
+    return [];
+  }
 }
 function write(notes: Note[]): void {
   try {
     window.localStorage.setItem(KEY, JSON.stringify(capNotes(notes)));
     window.dispatchEvent(new Event(EVENT));
-  } catch { /* private mode — ignore */ }
+  } catch {
+    /* private mode — ignore */
+  }
 }
 
 /** Imperative push (callable outside React, e.g. from the cart reconcile). De-dupes by id. */
 export function pushNotification(type: NoteType, message: string, id?: string): void {
   if (typeof window === 'undefined') return;
-  const n: Note = { id: id ?? `${type}:${message}:${Date.now()}`, type, message, createdAt: Date.now(), read: false };
+  const n: Note = {
+    id: id ?? `${type}:${message}:${Date.now()}`,
+    type,
+    message,
+    createdAt: Date.now(),
+    read: false,
+  };
   write(addNote(read(), n));
 }
 
@@ -266,7 +333,10 @@ export function useInbox() {
     sync();
     window.addEventListener(EVENT, sync);
     window.addEventListener('storage', sync);
-    return () => { window.removeEventListener(EVENT, sync); window.removeEventListener('storage', sync); };
+    return () => {
+      window.removeEventListener(EVENT, sync);
+      window.removeEventListener('storage', sync);
+    };
   }, []);
   const markAllRead = useCallback(() => write(read().map((n) => ({ ...n, read: true }))), []);
   const clear = useCallback(() => write([]), []);
@@ -276,6 +346,7 @@ export function useInbox() {
 
 - [ ] **Step 4: Run tests + typecheck** → PASS / clean.
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/lib/notifications/inbox.ts tests/unit/notifications-inbox.test.ts
 git commit -m "feat(notifications): client inbox store for hold alerts"
@@ -286,6 +357,7 @@ git commit -m "feat(notifications): client inbox store for hold alerts"
 ## Task 3: Notifications bell in the navbar
 
 **Files:**
+
 - Create: `src/components/site/NotificationsBell.tsx`
 - Modify: `src/components/gyg/GygHeader.tsx`
 
@@ -303,13 +375,34 @@ export function NotificationsBell() {
   const { notes, unread, markAllRead } = useInbox();
   const t = useT();
   const [open, setOpen] = useState(false);
-  const toggle = () => { setOpen((o) => { if (!o) markAllRead(); return !o; }); };
+  const toggle = () => {
+    setOpen((o) => {
+      if (!o) markAllRead();
+      return !o;
+    });
+  };
   return (
     <div className="relative">
-      <button type="button" onClick={toggle} aria-label={t('Notifications')} className="relative grid place-items-center">
+      <button
+        type="button"
+        onClick={toggle}
+        aria-label={t('Notifications')}
+        className="relative grid place-items-center"
+      >
         {/* bell icon */}
-        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-          <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0" strokeLinecap="round" strokeLinejoin="round" />
+        <svg
+          width={20}
+          height={20}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.8}
+        >
+          <path
+            d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
         {unread > 0 && (
           <span className="absolute -right-2 -top-1.5 grid h-4 min-w-[1rem] place-items-center rounded-full bg-coral px-1 text-[10px] font-extrabold leading-none text-ink">
@@ -320,11 +413,15 @@ export function NotificationsBell() {
       {open && (
         <div className="absolute right-0 z-50 mt-2 w-80 rounded-xl border border-ink/10 bg-white p-2 shadow-xl">
           {notes.length === 0 ? (
-            <p className="px-3 py-6 text-center text-sm text-ink-muted">{t('No notifications yet')}</p>
+            <p className="px-3 py-6 text-center text-sm text-ink-muted">
+              {t('No notifications yet')}
+            </p>
           ) : (
             <ul className="max-h-96 overflow-auto">
               {notes.map((n) => (
-                <li key={n.id} className="rounded-lg px-3 py-2 text-sm text-ink hover:bg-cream">{n.message}</li>
+                <li key={n.id} className="rounded-lg px-3 py-2 text-sm text-ink hover:bg-cream">
+                  {n.message}
+                </li>
               ))}
             </ul>
           )}
@@ -341,6 +438,7 @@ export function NotificationsBell() {
 
 - [ ] **Step 4: Typecheck + lint** → clean.
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/components/site/NotificationsBell.tsx src/components/gyg/GygHeader.tsx src/lib/i18n/messages.ts
 git commit -m "feat(notifications): navbar bell"
@@ -351,6 +449,7 @@ git commit -m "feat(notifications): navbar bell"
 ## Task 4: Owner-scoped hold release (SQL)
 
 **Files:**
+
 - Create: `supabase/migrations/20260720120000_hold_release_authz.sql`
 - Modify: `supabase/catch-up.sql`
 - Test: `tests/integration/hold-release.test.ts`
@@ -374,8 +473,12 @@ async function used(db: TestDb, occ: string): Promise<number> {
 
 describe('api_release_hold — owner-scoped', () => {
   let db: TestDb;
-  beforeAll(async () => { db = await createTestDb(); });
-  afterAll(async () => { await db.close(); });
+  beforeAll(async () => {
+    db = await createTestDb();
+  });
+  afterAll(async () => {
+    await db.close();
+  });
 
   it('stamps created_by, releases the owner hold and frees capacity', async () => {
     const { occurrenceId } = await seedOccurrence(db, 10);
@@ -400,7 +503,9 @@ describe('api_release_hold — owner-scoped', () => {
     );
     const holdId = made[0]!.holdid;
     await db.as({ sub: BOB, role: 'authenticated' });
-    await expect(db.pg.query(`select api_release_hold($1)`, [holdId])).rejects.toThrow(/forbidden|hold_not_found/);
+    await expect(db.pg.query(`select api_release_hold($1)`, [holdId])).rejects.toThrow(
+      /forbidden|hold_not_found/,
+    );
     await db.as({ sub: ALICE, role: 'authenticated' });
     expect(await used(db, occurrenceId)).toBe(2); // still held
   });
@@ -479,6 +584,7 @@ grant execute on function api_release_hold(uuid) to authenticated, service_role;
 - [ ] **Step 5: Mirror into `supabase/catch-up.sql`** — append the same `alter table` (idempotent `if not exists`), the `create_hold`/`api_create_hold` redefinitions, the RLS policy (`drop policy if exists` + `create policy`), the `api_release_hold` function, and its grants, before the final `commit;`. Run `npx vitest run tests/integration/catch-up-parity.test.ts` → PASS.
 
 - [ ] **Step 6: Commit**
+
 ```bash
 git add supabase/migrations/20260720120000_hold_release_authz.sql supabase/catch-up.sql tests/integration/hold-release.test.ts
 git commit -m "feat(holds): owner-scoped api_release_hold + created_by + RLS"
@@ -489,6 +595,7 @@ git commit -m "feat(holds): owner-scoped api_release_hold + created_by + RLS"
 ## Task 5: Release + status endpoints and service functions
 
 **Files:**
+
 - Modify: `src/lib/services/holds.ts`, `src/lib/validation/booking.ts`, `src/lib/openapi/registry.ts`
 - Create: `app/api/v1/holds/[id]/release/route.ts`, `app/api/v1/holds/[id]/route.ts`
 
@@ -497,7 +604,7 @@ git commit -m "feat(holds): owner-scoped api_release_hold + created_by + RLS"
 ```typescript
 export const holdStatusSchema = z.object({
   holdId: z.string(),
-  status: z.string(),       // 'active' | 'released' | 'expired' | 'booked'
+  status: z.string(), // 'active' | 'released' | 'expired' | 'booked'
   expiresAt: z.string().nullable(),
 });
 export type HoldStatus = z.infer<typeof holdStatusSchema>;
@@ -521,7 +628,11 @@ export async function getHold(ctx: ServiceContext, holdId: string): Promise<Hold
     .eq('id', holdId)
     .maybeSingle();
   if (!rows) return null;
-  return holdStatusSchema.parse({ holdId: rows.id, status: rows.status, expiresAt: rows.expires_at });
+  return holdStatusSchema.parse({
+    holdId: rows.id,
+    status: rows.status,
+    expiresAt: rows.expires_at,
+  });
 }
 ```
 
@@ -547,7 +658,9 @@ export const POST = apiHandler(async (req, { params }: { params: Promise<{ id: s
   return jsonOk({ released: true });
 });
 
-export function OPTIONS(req: Request): Response { return preflightResponse(req); }
+export function OPTIONS(req: Request): Response {
+  return preflightResponse(req);
+}
 ```
 
 - [ ] **Step 4: Status route** — `app/api/v1/holds/[id]/route.ts`:
@@ -571,13 +684,16 @@ export const GET = apiHandler(async (req, { params }: { params: Promise<{ id: st
   return jsonOk(hold);
 });
 
-export function OPTIONS(req: Request): Response { return preflightResponse(req); }
+export function OPTIONS(req: Request): Response {
+  return preflightResponse(req);
+}
 ```
 
 - [ ] **Step 5: Register in OpenAPI** — add `/holds/{id}` (GET → `holdStatusSchema`) and `/holds/{id}/release` (POST → `{released: bool}`) to `src/lib/openapi/registry.ts` so `tests/unit/openapi.test.ts` passes; then `npm run openapi:write`.
 
 - [ ] **Step 6: Typecheck + lint + the openapi test** → clean/PASS.
 - [ ] **Step 7: Commit**
+
 ```bash
 git add src/lib/services/holds.ts src/lib/validation/booking.ts src/lib/openapi/registry.ts "app/api/v1/holds/[id]" openapi.json
 git commit -m "feat(holds): release + status endpoints"
@@ -588,6 +704,7 @@ git commit -m "feat(holds): release + status endpoints"
 ## Task 6: Browser hold client (create / status / release)
 
 **Files:**
+
 - Create: `src/lib/cart/holdClient.ts`
 
 Thin `fetch` wrappers used by the cart, sending the Supabase access token. No new test (covered end-to-end by Task 7's wiring + the endpoint integration tests); keep it tiny.
@@ -602,38 +719,64 @@ import type { CartItem } from './useCart';
 async function authHeaders(): Promise<Record<string, string>> {
   const { data } = await getBrowserSupabase().auth.getSession();
   const token = data.session?.access_token;
-  return token ? { 'content-type': 'application/json', authorization: `Bearer ${token}` } : { 'content-type': 'application/json' };
+  return token
+    ? { 'content-type': 'application/json', authorization: `Bearer ${token}` }
+    : { 'content-type': 'application/json' };
 }
 
-export interface HoldOutcome { id: string; ok: boolean; holdId?: string; expiresAt?: string; }
+export interface HoldOutcome {
+  id: string;
+  ok: boolean;
+  holdId?: string;
+  expiresAt?: string;
+}
 
 /** Create a hold per saved line. Resolves per-line so the caller can mark held vs unavailable. */
 export async function createHoldsForLines(items: CartItem[]): Promise<HoldOutcome[]> {
   const headers = await authHeaders();
-  return Promise.all(items.map(async (i) => {
-    try {
-      const res = await fetch('/api/v1/holds', {
-        method: 'POST', headers,
-        body: JSON.stringify({ occurrenceId: i.occurrenceId, expectedSlug: i.slug, people: i.guests, idempotencyKey: i.idemKey }),
-      }).then((r) => r.json());
-      if (res.ok && res.data?.holdId) return { id: i.id, ok: true, holdId: res.data.holdId, expiresAt: res.data.expiresAt };
-      return { id: i.id, ok: false };
-    } catch { return { id: i.id, ok: false }; }
-  }));
+  return Promise.all(
+    items.map(async (i) => {
+      try {
+        const res = await fetch('/api/v1/holds', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            occurrenceId: i.occurrenceId,
+            expectedSlug: i.slug,
+            people: i.guests,
+            idempotencyKey: i.idemKey,
+          }),
+        }).then((r) => r.json());
+        if (res.ok && res.data?.holdId)
+          return { id: i.id, ok: true, holdId: res.data.holdId, expiresAt: res.data.expiresAt };
+        return { id: i.id, ok: false };
+      } catch {
+        return { id: i.id, ok: false };
+      }
+    }),
+  );
 }
 
-export async function getHoldStatus(holdId: string): Promise<{ status: string; expiresAt: string | null } | null> {
-  const res = await fetch(`/api/v1/holds/${holdId}`, { headers: await authHeaders() }).then((r) => r.json());
+export async function getHoldStatus(
+  holdId: string,
+): Promise<{ status: string; expiresAt: string | null } | null> {
+  const res = await fetch(`/api/v1/holds/${holdId}`, { headers: await authHeaders() }).then((r) =>
+    r.json(),
+  );
   return res.ok ? { status: res.data.status, expiresAt: res.data.expiresAt } : null;
 }
 
 export async function releaseHoldRequest(holdId: string): Promise<void> {
-  await fetch(`/api/v1/holds/${holdId}/release`, { method: 'POST', headers: await authHeaders() }).catch(() => {});
+  await fetch(`/api/v1/holds/${holdId}/release`, {
+    method: 'POST',
+    headers: await authHeaders(),
+  }).catch(() => {});
 }
 ```
 
 - [ ] **Step 2: Typecheck** → clean.
 - [ ] **Step 3: Commit**
+
 ```bash
 git add src/lib/cart/holdClient.ts
 git commit -m "feat(cart): browser hold client (create/status/release)"
@@ -644,6 +787,7 @@ git commit -m "feat(cart): browser hold client (create/status/release)"
 ## Task 7: Wire the lifecycle into the cart store + cart page
 
 **Files:**
+
 - Modify: `src/lib/cart/useCart.ts`, `app/cart/page.tsx` (+ the cart list component it renders)
 
 This is the integration task. Read `app/cart/page.tsx` first to see how lines render today; follow its structure.
@@ -659,10 +803,16 @@ This is the integration task. Read `app/cart/page.tsx` first to see how lines re
 ```typescript
 const saved = items.filter((i) => i.status !== 'unavailable');
 const outcomes = await createHoldsForLines(saved);
-let anyHeld = false, anySoldOut = false;
+let anyHeld = false,
+  anySoldOut = false;
 for (const o of outcomes) {
-  if (o.ok && o.holdId && o.expiresAt) { markHeld(o.id, { holdId: o.holdId, expiresAt: o.expiresAt }); anyHeld = true; }
-  else { markUnavailable(o.id); anySoldOut = true; }
+  if (o.ok && o.holdId && o.expiresAt) {
+    markHeld(o.id, { holdId: o.holdId, expiresAt: o.expiresAt });
+    anyHeld = true;
+  } else {
+    markUnavailable(o.id);
+    anySoldOut = true;
+  }
 }
 if (anySoldOut) pushNotification('unavailable', t('Some spots sold out and were skipped.'));
 if (anyHeld) {
@@ -678,6 +828,7 @@ if (anyHeld) {
 - [ ] **Step 5: Typecheck + lint + full unit/integration suite** — `npm run typecheck && npm run lint && npx vitest run` → all green.
 
 - [ ] **Step 6: Commit**
+
 ```bash
 git add src/lib/cart/useCart.ts app/cart
 git commit -m "feat(cart): hold lifecycle wiring — checkout holds, reconcile, release, notify"

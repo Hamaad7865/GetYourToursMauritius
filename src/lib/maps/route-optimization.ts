@@ -171,7 +171,10 @@ function loadServiceAccount(): ServiceAccount | null {
  * or `null` when optimization is unavailable/fails — in which case the planner keeps its order.
  * Never throws.
  */
-export async function getOptimizedStopOrder(pickup: LatLng, stops: LatLng[]): Promise<number[] | null> {
+export async function getOptimizedStopOrder(
+  pickup: LatLng,
+  stops: LatLng[],
+): Promise<number[] | null> {
   if (stops.length < 2) return null;
   const sa = loadServiceAccount();
   if (!sa) return null;

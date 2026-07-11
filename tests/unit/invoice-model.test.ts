@@ -45,7 +45,12 @@ describe('buildInvoice', () => {
         transportEur: 0,
         items: [{ priceLabel: 'Adult', quantity: 1, pax: null, subtotalEur: 115 }],
       },
-      { chargedAmountMinor: 12500, chargedCurrency: 'USD', paidAt: '2026-06-20T10:00:00Z', providerRef: 'pe_123' },
+      {
+        chargedAmountMinor: 12500,
+        chargedCurrency: 'USD',
+        paidAt: '2026-06-20T10:00:00Z',
+        providerRef: 'pe_123',
+      },
       business,
     );
 

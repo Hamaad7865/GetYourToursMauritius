@@ -24,7 +24,10 @@ interface DetailDto {
   title: string;
   description: string | null;
   images: unknown[];
-  options: Array<{ name: string; prices: Array<{ label: string; amountEur: number; maxGuests: number | null }> }>;
+  options: Array<{
+    name: string;
+    prices: Array<{ label: string; amountEur: number; maxGuests: number | null }>;
+  }>;
   extra: { itinerary?: Array<{ title: string; area: string | null; tags: string[] }> };
 }
 
@@ -35,13 +38,17 @@ describe('admin add-activity → website read', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
     operatorId = (
       await db.pg.query<{ id: string }>(`select id from operators where slug = 'belle-mare-tours'`)
     ).rows[0]!.id;
     // An admin account, so the staff RLS policies grant the writes below.
     await db.pg.query(`insert into auth.users (id) values ($1)`, [STAFF]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [STAFF]);
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [
+      STAFF,
+    ]);
   });
 
   afterAll(async () => {
@@ -49,10 +56,21 @@ describe('admin add-activity → website read', () => {
   });
 
   /** Mirrors activity-write.ts: activity + images + one option with a price tier + itinerary. */
-  async function addActivityAsAdmin(opts: { slug: string; status: 'published' | 'draft'; withChildren?: boolean }) {
+  async function addActivityAsAdmin(opts: {
+    slug: string;
+    status: 'published' | 'draft';
+    withChildren?: boolean;
+  }) {
     await db.as({ sub: STAFF, role: 'authenticated' });
     const extra = JSON.stringify({
-      itinerary: [{ title: 'Port Louis', area: 'Capital', description: 'Central market', tags: ['city', 'market'] }],
+      itinerary: [
+        {
+          title: 'Port Louis',
+          area: 'Capital',
+          description: 'Central market',
+          tags: ['city', 'market'],
+        },
+      ],
     });
     const { rows } = await db.pg.query<{ id: string }>(
       `insert into activities
@@ -127,17 +145,26 @@ describe('admin add-activity → website read', () => {
     await addActivityAsAdmin({ slug: 'admin-draft-demo', status: 'draft' });
 
     await db.as(null);
-    const search = await rpc<{ items: Array<{ slug: string }> }>(db, 'api_search_activities', { pageSize: 100 });
-    expect(search.items.find((i) => i.slug === 'admin-draft-demo'), 'draft must not appear publicly').toBeFalsy();
+    const search = await rpc<{ items: Array<{ slug: string }> }>(db, 'api_search_activities', {
+      pageSize: 100,
+    });
+    expect(
+      search.items.find((i) => i.slug === 'admin-draft-demo'),
+      'draft must not appear publicly',
+    ).toBeFalsy();
 
-    const detail = await rpc<DetailDto | null>(db, 'api_get_activity', { slug: 'admin-draft-demo' });
+    const detail = await rpc<DetailDto | null>(db, 'api_get_activity', {
+      slug: 'admin-draft-demo',
+    });
     expect(detail, 'draft detail must be hidden from anon').toBeFalsy();
   });
 
   it('editing the activity (changing price + republishing) is reflected on the site', async () => {
     // Admin lowers the price and updates the title — mirrors updateActivity's replace.
     await db.as({ sub: STAFF, role: 'authenticated' });
-    await db.pg.query(`update activities set title = 'Admin North Demo (Updated)' where slug = 'admin-north-demo'`);
+    await db.pg.query(
+      `update activities set title = 'Admin North Demo (Updated)' where slug = 'admin-north-demo'`,
+    );
     await db.pg.query(
       `update activity_option_prices set amount_minor = 6000
        where activity_option_id in (

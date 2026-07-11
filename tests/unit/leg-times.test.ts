@@ -3,15 +3,24 @@ import { addMinutesLocal, transferLegs, AIRPORT_DRIVE_MINUTES } from '@/lib/tran
 
 describe('addMinutesLocal', () => {
   it('adds minutes within the same day', () => {
-    expect(addMinutesLocal('2026-06-28', '20:13', 60)).toEqual({ ymd: '2026-06-28', hhmm: '21:13' });
+    expect(addMinutesLocal('2026-06-28', '20:13', 60)).toEqual({
+      ymd: '2026-06-28',
+      hhmm: '21:13',
+    });
   });
 
   it('rolls over midnight to the next day', () => {
-    expect(addMinutesLocal('2026-06-28', '23:40', 60)).toEqual({ ymd: '2026-06-29', hhmm: '00:40' });
+    expect(addMinutesLocal('2026-06-28', '23:40', 60)).toEqual({
+      ymd: '2026-06-29',
+      hhmm: '00:40',
+    });
   });
 
   it('handles end-of-month rollover', () => {
-    expect(addMinutesLocal('2026-06-30', '23:30', 60)).toEqual({ ymd: '2026-07-01', hhmm: '00:30' });
+    expect(addMinutesLocal('2026-06-30', '23:30', 60)).toEqual({
+      ymd: '2026-07-01',
+      hhmm: '00:30',
+    });
   });
 
   it('returns null on malformed input', () => {
@@ -65,8 +74,16 @@ describe('transferLegs', () => {
   });
 
   it('skips a leg whose date/time is missing', () => {
-    expect(transferLegs({ direction: 'arrival', serviceDateIso: null, arrivalTime: '20:13' })).toHaveLength(0);
-    expect(transferLegs({ direction: 'return', serviceDateIso: '2026-06-28T08:00:00Z', arrivalTime: '20:13' })).toHaveLength(1);
+    expect(
+      transferLegs({ direction: 'arrival', serviceDateIso: null, arrivalTime: '20:13' }),
+    ).toHaveLength(0);
+    expect(
+      transferLegs({
+        direction: 'return',
+        serviceDateIso: '2026-06-28T08:00:00Z',
+        arrivalTime: '20:13',
+      }),
+    ).toHaveLength(1);
   });
 
   it('the default drive estimate is the airport-transfer duration', () => {

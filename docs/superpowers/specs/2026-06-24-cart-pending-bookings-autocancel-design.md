@@ -6,7 +6,7 @@
 
 ## Goal
 
-1. **(Option C)** Show the signed-in user's `payment_pending` bookings *inside* the cart, alongside
+1. **(Option C)** Show the signed-in user's `payment_pending` bookings _inside_ the cart, alongside
    saved/held items — each with a live countdown and a **Complete payment** CTA — and reflect them in
    the header cart badge. This closes the "empty cart gives no signal that an unpaid reservation is
    ticking down" gap that prompted the work.
@@ -17,7 +17,7 @@
 ## Verified facts that shape the design
 
 - **The hold is 30 minutes, not 15.** Every `create_hold` definition (winning one:
-  `supabase/catch-up.sql:4866`) inserts the hold *without* an explicit `expires_at`, inheriting the
+  `supabase/catch-up.sql:4866`) inserts the hold _without_ an explicit `expires_at`, inheriting the
   column default — which `supabase/catch-up.sql:2285` altered from 15 → **30 min**. So the cart
   countdown (driven by the hold's real `expires_at`) is truthful, and hold-expiry coincides with the
   booking grace. **No hold-TTL change is required.** (Depends on `catch-up.sql` being applied on prod —
@@ -27,7 +27,7 @@
   (`workers/cron/*` → `POST /api/v1/internal/maintenance`), already expires `payment_pending` bookings
   older than 30 min that have **no settled payment** (`status='expired'`) and releases their holds. The
   missing pieces are: an audit trail, a customer notification, and money-path-safe ordering.
-- **Seat freeing is automatic.** `used_capacity()` counts a `payment_pending` booking *only* via its
+- **Seat freeing is automatic.** `used_capacity()` counts a `payment_pending` booking _only_ via its
   live hold (its `booking_items` don't count until `confirmed`). The instant the hold passes 30 min the
   lazy formula stops counting it, so the seat is resellable immediately. **Auto-cancel is status-only —
   it must not free seats.**
@@ -59,7 +59,7 @@ newest active hold) to the hold's `expires_at`:
 ```
 
 This is the **RLS-safe seam** to expose the hold expiry: `booking_holds` stays staff-read-only; the
-customer reads it *through* this owner-scoped definer function (mirrors the IDOR-guard style of
+customer reads it _through_ this owner-scoped definer function (mirrors the IDOR-guard style of
 `api_record_payment_checkout`). The `title` comes from the booking's item → occurrence → option →
 activity join (single-activity per booking in this model). Exact column names confirmed against schema
 at implementation.
@@ -67,9 +67,10 @@ at implementation.
 **1b. Augment `run_booking_maintenance()`** (create-or-replace in the new migration, keeping its
 signature/return). Keep the existing expire predicate (`payment_state='pending' AND NOT EXISTS settled`)
 and hold-release **unchanged**. For each booking it expires, within the same transaction:
+
 - INSERT one `audit_logs` row: `actor_id = NULL, actor_role = 'system',
-  action = 'auto_expire_booking', entity_type = 'booking', entity_id = <booking id>,
-  summary = 'payment_pending past 30-min grace, no settled payment'`. (Closes the no-audit gap.)
+action = 'auto_expire_booking', entity_type = 'booking', entity_id = <booking id>,
+summary = 'payment_pending past 30-min grace, no settled payment'`. (Closes the no-audit gap.)
 - INSERT one `notification_outbox` row, idempotent on a key like `'booking_autocancel:' || <booking id>`
   (`ON CONFLICT DO NOTHING`), type `booking_expired`, payload `{ ref }`.
 
@@ -117,7 +118,7 @@ abandoned bookings uncleaned). Reconcile confirms any genuinely-paid booking via
 `append_payment_event` (→ `status='confirmed'`), which then fails the expire predicate — closing the
 "paid at minute ~29 but not yet webhook-confirmed" race. **The cart never triggers cancel**;
 countdown-zero on the client only re-fetches and lets the server be authoritative. Residual edge (paid
-*after* expiry) keeps its existing backstop: a late `paid` event on an `expired` booking routes to
+_after_ expiry) keeps its existing backstop: a late `paid` event on an `expired` booking routes to
 `refund_pending` (no double-charge; surfaced for manual refund) — now also audit-logged.
 
 ## Testing

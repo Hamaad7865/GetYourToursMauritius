@@ -78,13 +78,12 @@ export default async function AttractionDetailPage({
   const path = attractionPath(place.id);
   const img = attractionImage(place.id);
 
-  const aboutParas =
-    extra?.body ?? [
-      `${place.name} sits in the ${place.region.toLowerCase()} of Mauritius and is a favourite stop on a day out with ${SITE.operator}. Plan to spend ${formatVisitDuration(
-        place.durationMin,
-      )} here.`,
-      `The easiest way to visit is a private transfer with a local driver-guide — we pick you up at your hotel anywhere on the island, with transparent fixed pricing and no commission stops.`,
-    ];
+  const aboutParas = extra?.body ?? [
+    `${place.name} sits in the ${place.region.toLowerCase()} of Mauritius and is a favourite stop on a day out with ${SITE.operator}. Plan to spend ${formatVisitDuration(
+      place.durationMin,
+    )} here.`,
+    `The easiest way to visit is a private transfer with a local driver-guide — we pick you up at your hotel anywhere on the island, with transparent fixed pricing and no commission stops.`,
+  ];
 
   return (
     <>
@@ -106,7 +105,10 @@ export default async function AttractionDetailPage({
       <InfoPage
         eyebrow={`${meta.label} · ${place.region} Mauritius`}
         title={place.name}
-        intro={place.blurb ?? `Visit ${place.name} in the ${place.region} of Mauritius with ${SITE.operator}.`}
+        intro={
+          place.blurb ??
+          `Visit ${place.name} in the ${place.region} of Mauritius with ${SITE.operator}.`
+        }
       >
         {/* Breadcrumb */}
         <nav
@@ -154,7 +156,10 @@ export default async function AttractionDetailPage({
           <Fact label="Region" value={`${place.region} coast`} />
           <Fact label="Type" value={meta.label} />
           <Fact label="Time to spend" value={formatVisitDuration(place.durationMin)} />
-          <Fact label="Opening hours" value={place.closesAt ? `Until ~${place.closesAt}` : 'Open access'} />
+          <Fact
+            label="Opening hours"
+            value={place.closesAt ? `Until ~${place.closesAt}` : 'Open access'}
+          />
         </div>
 
         {/* About */}
@@ -175,7 +180,10 @@ export default async function AttractionDetailPage({
           {extra?.tips && extra.tips.length > 0 && (
             <ul className="m-0 mt-4 flex list-none flex-col gap-2.5 p-0">
               {extra.tips.map((tip) => (
-                <li key={tip} className="flex items-start gap-2.5 text-[14.5px] leading-snug text-ink/80">
+                <li
+                  key={tip}
+                  className="flex items-start gap-2.5 text-[14.5px] leading-snug text-ink/80"
+                >
                   <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-coral" />
                   {tip}
                 </li>
@@ -186,10 +194,12 @@ export default async function AttractionDetailPage({
 
         {/* Map */}
         <section className="mt-9 border-t border-ink/10 pt-8">
-          <h2 className="text-[22px] font-extrabold tracking-tight text-ink">Where is {place.name}?</h2>
+          <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+            Where is {place.name}?
+          </h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/70">
-            {place.name} is on the {place.region.toLowerCase()} side of Mauritius. We collect you from your
-            hotel anywhere on the island.
+            {place.name} is on the {place.region.toLowerCase()} side of Mauritius. We collect you
+            from your hotel anywhere on the island.
           </p>
           <div className="mt-4">
             <LocationMap query={`${place.name}, ${place.region}, Mauritius`} label={place.name} />
@@ -208,7 +218,10 @@ export default async function AttractionDetailPage({
               'Transparent fixed pricing — no meter, no commission stops',
               'Book online in minutes with instant confirmation',
             ].map((item) => (
-              <li key={item} className="flex items-start gap-2.5 text-[14.5px] leading-snug text-ink/85">
+              <li
+                key={item}
+                className="flex items-start gap-2.5 text-[14.5px] leading-snug text-ink/85"
+              >
                 <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-teal" />
                 {item}
               </li>
@@ -233,7 +246,9 @@ export default async function AttractionDetailPage({
         {/* Nearby */}
         {nearby.length > 0 && (
           <section className="mt-9 border-t border-ink/10 pt-8">
-            <h2 className="text-[22px] font-extrabold tracking-tight text-ink">Nearby attractions</h2>
+            <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+              Nearby attractions
+            </h2>
             <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {nearby.map((p) => (
                 <AttractionCard key={p.id} place={p} />
@@ -244,7 +259,9 @@ export default async function AttractionDetailPage({
 
         {/* FAQ */}
         <section className="mt-9 border-t border-ink/10 pt-8">
-          <h2 className="text-[22px] font-extrabold tracking-tight text-ink">Frequently asked questions</h2>
+          <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+            Frequently asked questions
+          </h2>
           <div className="mt-4 flex flex-col gap-2.5">
             {faqs.map((f) => (
               <details

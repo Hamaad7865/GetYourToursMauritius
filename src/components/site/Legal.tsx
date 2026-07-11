@@ -128,7 +128,11 @@ export function Callout({
 }) {
   const map = {
     info: { wrap: 'border-teal/25 bg-teal/[0.06]', icon: 'text-teal', Icon: IconInfo },
-    success: { wrap: 'border-teal-bright/35 bg-teal-bright/[0.10]', icon: 'text-teal-dark', Icon: IconCheck },
+    success: {
+      wrap: 'border-teal-bright/35 bg-teal-bright/[0.10]',
+      icon: 'text-teal-dark',
+      Icon: IconCheck,
+    },
     danger: { wrap: 'border-coral/30 bg-coral/[0.07]', icon: 'text-coral', Icon: IconX },
   }[tone];
   const Icon = map.Icon;

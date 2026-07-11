@@ -25,11 +25,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
     <div className="mb-7">
       <div className="relative h-[280px] overflow-hidden rounded-card sm:h-[384px]">
         {hero ? (
-          <img
-            src={hero.url}
-            alt={hero.alt ?? title}
-            className="h-full w-full object-cover"
-          />
+          <img src={hero.url} alt={hero.alt ?? title} className="h-full w-full object-cover" />
         ) : (
           <Fallback label={initial} />
         )}
@@ -39,11 +35,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
         <div className="mt-2.5 grid grid-cols-4 gap-2.5">
           {thumbs.map((img) => (
             <div key={img.id} className="relative h-[74px] overflow-hidden rounded-xl sm:h-[90px]">
-              <img
-                src={img.url}
-                alt={img.alt ?? title}
-                className="h-full w-full object-cover"
-              />
+              <img src={img.url} alt={img.alt ?? title} className="h-full w-full object-cover" />
             </div>
           ))}
         </div>

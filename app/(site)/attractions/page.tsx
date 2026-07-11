@@ -48,7 +48,9 @@ export default async function AttractionsIndexPage() {
     { name: 'Home', path: '/' },
     { name: 'Things to do in Mauritius', path: '/attractions' },
   ]);
-  const itemList = itemListJsonLd(places.map((p) => ({ name: p.name, path: attractionPath(p.id) })));
+  const itemList = itemListJsonLd(
+    places.map((p) => ({ name: p.name, path: attractionPath(p.id) })),
+  );
 
   return (
     <>
@@ -73,8 +75,12 @@ export default async function AttractionsIndexPage() {
               key={group.region}
               className="scroll-mt-28 border-t border-ink/10 py-9 first:border-t-0 first:pt-0"
             >
-              <h2 className="text-[22px] font-extrabold tracking-tight text-ink">{group.region} Mauritius</h2>
-              <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-ink/70">{group.intro}</p>
+              <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+                {group.region} Mauritius
+              </h2>
+              <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-ink/70">
+                {group.intro}
+              </p>
               <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {group.items.map((place) => (
                   <AttractionCard key={place.id} place={place} />
@@ -87,8 +93,9 @@ export default async function AttractionsIndexPage() {
         <section className="mt-10 rounded-2xl border border-teal/20 bg-teal-tint/50 p-6 sm:p-8">
           <h2 className="text-[20px] font-extrabold tracking-tight text-ink">See them your way</h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/75">
-            Pick a ready-made sightseeing tour, or design a custom day around the places you choose with our
-            free AI road-trip planner — then book online in minutes with door-to-door pickup.
+            Pick a ready-made sightseeing tour, or design a custom day around the places you choose
+            with our free AI road-trip planner — then book online in minutes with door-to-door
+            pickup.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
             <Link

@@ -3,7 +3,9 @@ import { resolveIdemKey } from '@/lib/checkout/idempotency';
 
 describe('resolveIdemKey', () => {
   it('prefers the persisted key over a hold key and a fresh key', () => {
-    expect(resolveIdemKey({ persisted: 'persisted', fromHold: 'hold', fresh: 'fresh' })).toBe('persisted');
+    expect(resolveIdemKey({ persisted: 'persisted', fromHold: 'hold', fresh: 'fresh' })).toBe(
+      'persisted',
+    );
   });
 
   it('falls back to the hold key when there is no persisted key', () => {
@@ -25,6 +27,8 @@ describe('resolveIdemKey', () => {
   });
 
   it('trims a surviving persisted key so a stray space cannot break server-side dedup', () => {
-    expect(resolveIdemKey({ persisted: '  abc-123  ', fromHold: 'hold', fresh: 'fresh' })).toBe('abc-123');
+    expect(resolveIdemKey({ persisted: '  abc-123  ', fromHold: 'hold', fresh: 'fresh' })).toBe(
+      'abc-123',
+    );
   });
 });

@@ -12,7 +12,9 @@ import { seedOccurrence } from '../db/seed';
 const CUSTOMER = 'e1e1e1e1-e1e1-e1e1-e1e1-e1e1e1e1e1e1';
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -27,7 +29,10 @@ describe('age-band pricing on api_book / api_get_activity', () => {
     const seed = await seedOccurrence(db, 10); // per_person activity with one 'Adult' 7500 tier
     occurrenceId = seed.occurrenceId;
     optionId = seed.optionId;
-    const { rows } = await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [seed.activityId]);
+    const { rows } = await db.pg.query<{ slug: string }>(
+      `select slug from activities where id = $1`,
+      [seed.activityId],
+    );
     slug = rows[0]!.slug;
     // Turn the single tier into three age bands: Adult €56 (11+), Child €28 half (3–10), Infant €0 free (0–3).
     await db.pg.query(
@@ -50,12 +55,31 @@ describe('age-band pricing on api_book / api_get_activity', () => {
   it('api_get_activity ships each tier with its age range', async () => {
     const data = await call<{
       fromPriceEur: number;
-      options: Array<{ prices: Array<{ label: string; amountEur: number; minAge: number | null; maxAge: number | null }> }>;
+      options: Array<{
+        prices: Array<{
+          label: string;
+          amountEur: number;
+          minAge: number | null;
+          maxAge: number | null;
+        }>;
+      }>;
     }>(db, 'api_get_activity', { slug });
     const prices = data.options[0]!.prices;
-    expect(prices.find((p) => p.label === 'Adult')).toMatchObject({ amountEur: 56, minAge: 11, maxAge: null });
-    expect(prices.find((p) => p.label === 'Child')).toMatchObject({ amountEur: 28, minAge: 3, maxAge: 10 });
-    expect(prices.find((p) => p.label === 'Infant')).toMatchObject({ amountEur: 0, minAge: 0, maxAge: 3 });
+    expect(prices.find((p) => p.label === 'Adult')).toMatchObject({
+      amountEur: 56,
+      minAge: 11,
+      maxAge: null,
+    });
+    expect(prices.find((p) => p.label === 'Child')).toMatchObject({
+      amountEur: 28,
+      minAge: 3,
+      maxAge: 10,
+    });
+    expect(prices.find((p) => p.label === 'Infant')).toMatchObject({
+      amountEur: 0,
+      minAge: 0,
+      maxAge: 3,
+    });
     // For an age-banded activity the "From" price is the ADULT (full-price) band €56 — never the free
     // infant €0, and not the discounted child.
     expect(data.fromPriceEur).toBe(56);
@@ -63,9 +87,13 @@ describe('age-band pricing on api_book / api_get_activity', () => {
 
   it('api_search_activities shows the adult from-price for an age-banded activity', async () => {
     await db.asOwner();
-    const res = await call<{ items: Array<{ slug: string; fromPriceEur: number }> }>(db, 'api_search_activities', {
-      pageSize: 50,
-    });
+    const res = await call<{ items: Array<{ slug: string; fromPriceEur: number }> }>(
+      db,
+      'api_search_activities',
+      {
+        pageSize: 50,
+      },
+    );
     const item = res.items.find((i) => i.slug === slug);
     expect(item?.fromPriceEur).toBe(56);
   });
@@ -85,7 +113,9 @@ describe('age-band pricing on api_book / api_get_activity', () => {
 
     await db.asOwner();
     // Everyone (incl. the infant) occupies a seat → 4 held.
-    const { rows: cap } = await db.pg.query<{ u: number }>(`select used_capacity($1) as u`, [occurrenceId]);
+    const { rows: cap } = await db.pg.query<{ u: number }>(`select used_capacity($1) as u`, [
+      occurrenceId,
+    ]);
     expect(Number(cap[0]!.u)).toBe(4);
     // One booking line per band (Adult, Child, Infant).
     const { rows: items } = await db.pg.query<{ n: number }>(

@@ -44,11 +44,12 @@ async function removeRpc(db: TestDb, slug: string) {
   );
   return rows[0]!.data;
 }
-async function listRpc(db: TestDb): Promise<Array<{ slug: string; fromPriceEur: number | null; heroImage: unknown }>> {
-  const { rows } = await db.pg.query<{ data: Array<{ slug: string; fromPriceEur: number | null; heroImage: unknown }> }>(
-    `select api_my_wishlist($1::jsonb) as data`,
-    [JSON.stringify({})],
-  );
+async function listRpc(
+  db: TestDb,
+): Promise<Array<{ slug: string; fromPriceEur: number | null; heroImage: unknown }>> {
+  const { rows } = await db.pg.query<{
+    data: Array<{ slug: string; fromPriceEur: number | null; heroImage: unknown }>;
+  }>(`select api_my_wishlist($1::jsonb) as data`, [JSON.stringify({})]);
   return rows[0]!.data;
 }
 async function countFor(db: TestDb, userId: string): Promise<number> {
@@ -69,7 +70,10 @@ describe('wishlist', () => {
     db = await createTestDb();
     await db.asOwner();
     for (const id of [USER_A, USER_B]) {
-      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [id, `${id}@example.com`]);
+      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [
+        id,
+        `${id}@example.com`,
+      ]);
       await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [id]);
     }
     const seedA = await seedOccurrence(db, 10);
@@ -78,8 +82,16 @@ describe('wishlist', () => {
       `insert into activity_images (activity_id, url, alt, position) values ($1, 'https://img/a.jpg', 'A', 0)`,
       [seedA.activityId],
     );
-    slugA = (await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [seedA.activityId])).rows[0]!.slug;
-    slugB = (await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [seedB.activityId])).rows[0]!.slug;
+    slugA = (
+      await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [
+        seedA.activityId,
+      ])
+    ).rows[0]!.slug;
+    slugB = (
+      await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [
+        seedB.activityId,
+      ])
+    ).rows[0]!.slug;
 
     setRouteContext({
       db: pgliteRpc(db.pg),
@@ -202,7 +214,9 @@ describe('wishlist', () => {
     await db.as({ sub: USER_A, role: 'authenticated' });
     const token = await mintToken(USER_A);
     const res = await wishlistGet(
-      new Request('http://localhost/api/v1/wishlist', { headers: { authorization: `Bearer ${token}` } }),
+      new Request('http://localhost/api/v1/wishlist', {
+        headers: { authorization: `Bearer ${token}` },
+      }),
     );
     expect(res.status).toBe(200);
     const body = await res.json();

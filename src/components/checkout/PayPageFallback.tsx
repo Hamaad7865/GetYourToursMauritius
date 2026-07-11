@@ -12,7 +12,13 @@ import { useResumePayment } from './ResumePaymentButton';
  * fresh checkout and redirect to /pay?cid=… (or the hosted redirectUrl). A manual button backs the
  * auto-attempt for when it can't run (not signed in, or it errored).
  */
-export function PayPageFallback({ bookingRef, returnUrl }: { bookingRef: string; returnUrl: string }) {
+export function PayPageFallback({
+  bookingRef,
+  returnUrl,
+}: {
+  bookingRef: string;
+  returnUrl: string;
+}) {
   const t = useT();
   const { session, loading: authLoading, openAuth } = useAuth();
   const { resume, busy, error, notPayable } = useResumePayment(bookingRef);
@@ -48,8 +54,13 @@ export function PayPageFallback({ bookingRef, returnUrl }: { bookingRef: string;
   if (notPayable) {
     return (
       <div className="rounded-xl border border-teal/30 bg-teal/5 p-4">
-        <p className="text-sm font-medium text-ink">{t('This booking is already paid or has expired.')}</p>
-        <a href={returnUrl} className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark">
+        <p className="text-sm font-medium text-ink">
+          {t('This booking is already paid or has expired.')}
+        </p>
+        <a
+          href={returnUrl}
+          className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark"
+        >
           {t('Back to your booking')}
         </a>
       </div>
@@ -70,7 +81,10 @@ export function PayPageFallback({ bookingRef, returnUrl }: { bookingRef: string;
         >
           {busy ? t('Starting…') : t('Try again')}
         </button>
-        <a href={returnUrl} className="ml-3 inline-block text-sm font-bold text-teal hover:text-teal-dark">
+        <a
+          href={returnUrl}
+          className="ml-3 inline-block text-sm font-bold text-teal hover:text-teal-dark"
+        >
           {t('Back to your booking')}
         </a>
       </div>

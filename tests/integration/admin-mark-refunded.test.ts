@@ -15,7 +15,10 @@ const STAFF = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
 const CUSTOMER = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 
 /** Confirmed + fully-paid booking, then admin-cancelled → refund_pending (the real gap state). */
-async function makeRefundPending(db: TestDb, key: string): Promise<{ id: string; paymentId: string }> {
+async function makeRefundPending(
+  db: TestDb,
+  key: string,
+): Promise<{ id: string; paymentId: string }> {
   await db.asOwner();
   const { occurrenceId } = await seedOccurrence(db, 5);
   const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
@@ -36,10 +39,10 @@ async function makeRefundPending(db: TestDb, key: string): Promise<{ id: string;
   );
   const paymentId = p[0]!.id;
   // A real `paid` provider event confirms the booking (append_payment_event runs as owner here).
-  await db.pg.query(
-    `select append_payment_event($1, 'paid', $2, 7500, now(), '{}'::jsonb)`,
-    [paymentId, `${key}-evt-paid`],
-  );
+  await db.pg.query(`select append_payment_event($1, 'paid', $2, 7500, now(), '{}'::jsonb)`, [
+    paymentId,
+    `${key}-evt-paid`,
+  ]);
 
   // Admin cancels the now confirmed+paid booking → the guard reroutes it to refund_pending.
   await db.as({ sub: STAFF, role: 'authenticated' });
@@ -50,8 +53,8 @@ async function makeRefundPending(db: TestDb, key: string): Promise<{ id: string;
 }
 
 const status = async (db: TestDb, id: string) =>
-  (await db.pg.query<{ status: string }>(`select status from bookings where id = $1`, [id])).rows[0]!
-    .status;
+  (await db.pg.query<{ status: string }>(`select status from bookings where id = $1`, [id]))
+    .rows[0]!.status;
 
 const refundNotifications = async (db: TestDb, id: string) =>
   (

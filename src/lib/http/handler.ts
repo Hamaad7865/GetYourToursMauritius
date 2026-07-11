@@ -72,7 +72,10 @@ export function apiHandler<C = unknown>(
         res = errorToResponse(error, cors, requestId);
       } catch {
         res = new Response(
-          JSON.stringify({ ok: false, error: { code: 'internal_error', message: 'Something went wrong' } }),
+          JSON.stringify({
+            ok: false,
+            error: { code: 'internal_error', message: 'Something went wrong' },
+          }),
           { status: 500, headers: { 'content-type': 'application/json; charset=utf-8', ...cors } },
         );
       }

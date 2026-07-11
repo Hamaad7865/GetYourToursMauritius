@@ -20,7 +20,9 @@ export function AccountSavedCards() {
   return (
     <div className="max-w-xl">
       <h1 className="font-display text-2xl font-semibold text-ink">{t('Saved cards')}</h1>
-      <p className="mt-1 text-sm text-ink-muted">{t('Save a card for faster checkout next time.')}</p>
+      <p className="mt-1 text-sm text-ink-muted">
+        {t('Save a card for faster checkout next time.')}
+      </p>
 
       <div className="mt-5 rounded-2xl border border-dashed border-ink/15 bg-cream/40 p-8 text-center">
         <span className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-teal/10 text-teal">
@@ -36,7 +38,9 @@ export function AccountSavedCards() {
 
       <div className="mt-4 flex items-center justify-center gap-2 text-[12.5px] text-ink-muted">
         <IconShield width={16} height={16} className="text-teal" />
-        <span>{t('Encrypted by Peach Payments — we never see or store your full card number.')}</span>
+        <span>
+          {t('Encrypted by Peach Payments — we never see or store your full card number.')}
+        </span>
       </div>
     </div>
   );

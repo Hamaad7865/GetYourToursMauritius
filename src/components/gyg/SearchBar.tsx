@@ -133,8 +133,11 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   }
 
   const total = adults + kids;
-  const dateLabel = date ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : t('Anytime');
-  const travellersLabel = total === 1 ? t('{n} traveller', { n: total }) : t('{n} travellers', { n: total });
+  const dateLabel = date
+    ? date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    : t('Anytime');
+  const travellersLabel =
+    total === 1 ? t('{n} traveller', { n: total }) : t('{n} travellers', { n: total });
 
   const compact = variant === 'compact';
   const segClass = `flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full font-medium hover:bg-cream ${
@@ -288,7 +291,13 @@ function useAutoFocus() {
   return ref;
 }
 
-function DatePanel({ selected, onPick }: { selected: Date | null; onPick: (d: Date | null) => void }) {
+function DatePanel({
+  selected,
+  onPick,
+}: {
+  selected: Date | null;
+  onPick: (d: Date | null) => void;
+}) {
   const t = useT();
   const today = startOfDay(new Date());
   const [view, setView] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1));
@@ -478,7 +487,13 @@ function TravellersPanel({
       ref={ref}
       className="absolute right-0 top-full z-30 mt-3 w-[min(320px,calc(100vw-2rem))] rounded-3xl border border-ink/10 bg-white p-5 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)]"
     >
-      <Stepper label={t('Adults')} hint={t('Ages 18 and above')} value={adults} min={1} onChange={onAdults} />
+      <Stepper
+        label={t('Adults')}
+        hint={t('Ages 18 and above')}
+        value={adults}
+        min={1}
+        onChange={onAdults}
+      />
       <div className="h-px bg-ink/10" />
       <Stepper label={t('Children')} hint={t('Ages 0–17')} value={kids} min={0} onChange={onKids} />
       <button

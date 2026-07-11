@@ -40,12 +40,14 @@ compare applied vs. on-disk — not yet built.)
 - **Client-side stores** (localStorage + event-synced reactive hooks): cart `gytm:cart` (`src/lib/cart/useCart.ts`), wishlist `gytm:wishlist` (`src/lib/wishlist/useWishlist.ts`).
 
 ### Environment constraints (this Windows machine)
+
 - Use **npm**, not pnpm.
 - `npm run pages:build` FAILS on Windows (next-on-pages CLI bug). `next build` proves edge-compat; run `pages:build` under WSL/CI.
 - **Build clobbers the dev server's `.next`** → always: stop preview → `rm -rf .next` → `npm run build` → `rm -rf .next` → restart preview. Building while the dev server runs causes "Failed to collect page data" errors (corrupted `.next`, not a code bug). Symptom of a corrupted dev `.next`: blank/opacity-0 hero, images not loading — restart preview to fix.
 - Node 24, npm 11, Bash tool = Git Bash. Preview screenshots are flaky after many HMR cycles — a clean restart fixes it. After a preview restart a 1px broken viewport can appear → resize to 1440×900.
 
 ### Green gate (after every change)
+
 `npm run typecheck && npm run lint && npm run test && npm run build` — currently **121 tests, all green** (21 test files).
 
 ---
@@ -55,7 +57,7 @@ compare applied vs. on-disk — not yet built.)
 - **Project ref:** `dwjkfowhrrvdiqligxcj`. `.env.local` (gitignored) has:
   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`,
   `SUPABASE_DB_URL`, `NEXT_PUBLIC_SITE_URL`, **`SUPABASE_JWT_SECRET`** (legacy HS256 secret).
-- **JWT signing is ES256 (asymmetric)** — JWKS at `/auth/v1/.well-known/jwks.json`. The legacy HS256 key is the *previous* key (revoke once old tokens expire). Edge verify (`src/lib/http/auth.ts`) supports **both**: ES256→JWKS, HS256→shared secret.
+- **JWT signing is ES256 (asymmetric)** — JWKS at `/auth/v1/.well-known/jwks.json`. The legacy HS256 key is the _previous_ key (revoke once old tokens expire). Edge verify (`src/lib/http/auth.ts`) supports **both**: ES256→JWKS, HS256→shared secret.
 - **The auto-mode classifier BLOCKS the assistant from live-DB writes** (applying migrations, creating auth users, deleting rows). Workarounds: North Tour photos as a `public/` overlay; the user runs `admin-setup.sql` / `catch-up.sql` themselves.
 - **Live DB has drifted** — see §0. Missing `121600` + `20260616120000`; apply `catch-up.sql`.
 - Secrets were pasted in chat (legacy JWT secret, an old DB password, service_role) — **rotate them**.
@@ -64,29 +66,30 @@ compare applied vs. on-disk — not yet built.)
 
 ## 3. Phase status
 
-| Phase | What | Status |
-|---|---|---|
-| 0 | Scaffold + seams + green gate | ✅ |
-| 1 | 19-table schema + RLS (deny-by-default) + atomic plpgsql RPCs (`create_hold`, `create_booking`, `append_payment_event`, `expire_holds`) + hand-authored `supabase/types.ts` + bilingual `seed/catalogue.json` (23 activities) | ✅ |
-| 2 | Service layer (DB access only via `api_*` RPCs; `DbRpc` port = `supabaseRpc` prod + `pgliteRpc` tests) + `/api/v1` + OpenAPI | ✅ |
-| 3 | Public catalogue: home, browse, **activity detail**, SEO/JSON-LD, sitemap | ✅ |
-| — | **GYG redesign**: home (transparent header over hero + scroll-collapse), detail clone, white bg | ✅ |
-| — | **Animated lagoon hero** (image-free CSS/SVG) + **search-in-navbar** + **per-category home sections** + sliding **photo pile** | ✅ |
-| 4a | **Auth**: email + Google + Apple + Facebook; retained session; profile; bookings history; **login/logout toasts** | ✅ |
-| — | **JWKS edge verify** (ES256) + HS256 fallback | ✅ |
-| — | **Wishlist** (hearts everywhere + `/wishlist`) + **functional cart** (`/cart`, add-to-cart, line items, hold timer) | ✅ |
-| 6 (slice) | **Admin panel**: Activities CRUD + **open-ended daily-capacity availability** | ✅ |
-| 4b | **Booking**: bookable activities, payment webhook, confirmation, 3-step checkout | ✅ |
-| — | **Per-group pricing** (opt-in flag for island tours: `ceil(people/max_guests) × amount`) | ✅ |
-| 5 | AI assistant | ⏳ not started |
-| 6 (rest) | Admin dashboard / bookings table / leads | ⏳ |
-| 7 | Final pass (a11y, deploy, README) | ⏳ |
+| Phase     | What                                                                                                                                                                                                                          | Status         |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+| 0         | Scaffold + seams + green gate                                                                                                                                                                                                 | ✅             |
+| 1         | 19-table schema + RLS (deny-by-default) + atomic plpgsql RPCs (`create_hold`, `create_booking`, `append_payment_event`, `expire_holds`) + hand-authored `supabase/types.ts` + bilingual `seed/catalogue.json` (23 activities) | ✅             |
+| 2         | Service layer (DB access only via `api_*` RPCs; `DbRpc` port = `supabaseRpc` prod + `pgliteRpc` tests) + `/api/v1` + OpenAPI                                                                                                  | ✅             |
+| 3         | Public catalogue: home, browse, **activity detail**, SEO/JSON-LD, sitemap                                                                                                                                                     | ✅             |
+| —         | **GYG redesign**: home (transparent header over hero + scroll-collapse), detail clone, white bg                                                                                                                               | ✅             |
+| —         | **Animated lagoon hero** (image-free CSS/SVG) + **search-in-navbar** + **per-category home sections** + sliding **photo pile**                                                                                                | ✅             |
+| 4a        | **Auth**: email + Google + Apple + Facebook; retained session; profile; bookings history; **login/logout toasts**                                                                                                             | ✅             |
+| —         | **JWKS edge verify** (ES256) + HS256 fallback                                                                                                                                                                                 | ✅             |
+| —         | **Wishlist** (hearts everywhere + `/wishlist`) + **functional cart** (`/cart`, add-to-cart, line items, hold timer)                                                                                                           | ✅             |
+| 6 (slice) | **Admin panel**: Activities CRUD + **open-ended daily-capacity availability**                                                                                                                                                 | ✅             |
+| 4b        | **Booking**: bookable activities, payment webhook, confirmation, 3-step checkout                                                                                                                                              | ✅             |
+| —         | **Per-group pricing** (opt-in flag for island tours: `ceil(people/max_guests) × amount`)                                                                                                                                      | ✅             |
+| 5         | AI assistant                                                                                                                                                                                                                  | ⏳ not started |
+| 6 (rest)  | Admin dashboard / bookings table / leads                                                                                                                                                                                      | ⏳             |
+| 7         | Final pass (a11y, deploy, README)                                                                                                                                                                                             | ⏳             |
 
 ---
 
 ## 4. What THIS session built (newest first)
 
 ### Open-ended availability — the daily-capacity model (replaces the 365-day cap)
+
 - **Problem the user reported:** "every time I have to make it enable again" — the old model
   pre-generated a rolling year of occurrences, so it looked like it reverted, and re-enabling each
   year was annoying.
@@ -99,7 +102,7 @@ compare applied vs. on-disk — not yet built.)
   on read (write-on-read): for a published activity with `daily_capacity > 0` it fills any missing
   day in `[today, today+185]` (one slot/option/day at **noon UTC**), bounded so an anon read can
   never trigger a huge fill; the window rolls forward as `current_date` advances. `seatsLeft =
-  greatest(capacity − used_capacity, 0)`. **Includes today** (same-day bookable). Gated to
+greatest(capacity − used_capacity, 0)`. **Includes today** (same-day bookable). Gated to
   `status='published'` so drafts never leak.
 - **`src/lib/admin/availability-write.ts`** — `setDailyCapacity(activityId, capacity)` (sets
   `daily_capacity` + propagates to future occurrences), `loadAvailabilityState` (reads it),
@@ -117,6 +120,7 @@ compare applied vs. on-disk — not yet built.)
   = same window, no dupes), and same-day (9 tests in that file).
 
 ### Functional cart
+
 - **`src/lib/cart/useCart.ts`** (NEW) — localStorage `gytm:cart`, event-synced reactive hook.
 - **`src/components/cart/CartView.tsx`** + **`/cart`** — line items, hold-timer prune at 00:00,
   **"Estimated total"**, stepper with `lineCap` (seats + tier cap), AA-contrast badge.
@@ -126,15 +130,18 @@ compare applied vs. on-disk — not yet built.)
   `aria-label`, badge `text-ink` contrast, HoldTimer prune, "Estimated total" label.
 
 ### Wishlist
+
 - **`src/lib/wishlist/useWishlist.ts`** (NEW) + **`WishlistView.tsx`** + **`/wishlist`** +
   **`WishHeart.tsx`**; the heart is on the home tiles AND the `/activities` listing **`ActivityCard`**.
 
 ### Account toasts + Bookings icon
+
 - **`AuthProvider`** fires a **login toast** (user-id transition + `hadStored` localStorage check +
   foreground guard) AND a **logout toast**. `ToastProvider` wraps `AuthProvider` in `app/layout.tsx`.
 - Signed-in **Bookings** entry; upcoming/past split; resilient bookings page.
 
 ### Animated lagoon hero (image-free) + search-in-navbar + photo pile
+
 - **`src/components/gyg/GygHero.tsx`** — **no photo**. A pure **CSS/SVG animated backdrop**:
   `isolate` + `-z-10` + `mix-blend-mode:screen` lagoon blobs drifting over a depth gradient, an SVG
   wave, scrims + vignette. (Built in pure CSS deliberately — **not** framer-motion. The `isolate`
@@ -149,6 +156,7 @@ compare applied vs. on-disk — not yet built.)
 - **Per-category home sections** (`ae7791c`) — the home page now groups tiles by category.
 
 ### Per-group pricing (opt-in)
+
 - `c3076ed` — island-tour options can price **per group**: `ceil(people / max_guests) × amount`.
   Gated by a `group_pricing` flag on the activity (scoped opt-in, so per-person tests stay intact).
   Added `daily_capacity` + `group_pricing` to `ActivitiesRow`/`Insert` in `src/lib/supabase/types.ts`.
@@ -160,26 +168,31 @@ compare applied vs. on-disk — not yet built.)
 ## 4-prior. What earlier sessions built (recent → oldest)
 
 ### Cards & photos
+
 - **`PlaceCard`** — static card, **image-only hover zoom**, CSS photo carousel, stretched `<Link>`. Replaced `GygCard` (deleted). framer-motion removed.
 - **North Tour real photos**: 5 in `public/activities/north-tour/`, overlaid via `src/lib/catalogue/local-photos.ts` (`withLocalPhotos`) on home/browse/detail — no Storage upload / DB write. Source folder `Activity Pictures/` is gitignored.
 - `images: TourImage[]` on `TourSummary`; `api_search_activities` returns it (migration `20260615121500_search_images.sql`).
 
 ### Navbar / header (exactly GetYourGuide)
+
 - `GygHeader` navbar = **Wishlist · Cart · EN/EUR € · Profile** (dropped standalone Bookings + Sign in/up buttons).
 - **Profile dropdown**: signed-out → "Log in or sign up"; signed-in → My profile / **My bookings** / Log out. **Bookings only shown when signed in.**
 - **Language/Currency modal** via `PreferencesProvider` — **English + Français**, EUR; persisted; navbar shows "EN/EUR €" ↔ "FR/EUR €". (Selector + persistence only; full content translation = later i18n pass.)
 - Browse page uses `GygHeader` too.
 
 ### Auth (4a) — `src/components/auth/**`
+
 - `AuthProvider`/`useAuth` (persisted session, profile upsert on first sign-in), `AuthDialog` (email + Google/Apple/Facebook, focus-restore + scroll-lock), `/auth/callback`.
 - `/account` (editable profile) + `/account/bookings` (history) — read directly under RLS.
 
 ### Admin (Phase 6 Activities-CRUD slice) — `app/admin/**`, `src/components/admin/**`
+
 - `AdminGuard` (role staff/admin). `/admin/activities` list (New/Edit/**Availability**/Delete).
 - **`ActivityForm`** captures every North-Tour field: basics, slug, category (enum), type, status, location, duration, summary/description, meeting point, cancellation, pickup, highlights/inclusions/exclusions/languages, **photos (Storage upload AND URL paste)**, options + price tiers, itinerary (→ `extra` jsonb).
 - **Writes go DIRECT via the authed admin client** — staff RLS grants full write on activities/images/options/prices, so **no admin RPC/migration**. (`src/lib/admin/activity-write.ts`.)
 
 ### Booking + payment (4b)
+
 - **`BookingWidget`** (GYG look): **Participants** stepper + custom **Date calendar** (greys past/today + full days) + custom **Language** dropdown (English/French). Cheapest tier/option. **"Book now"** (always shown) → `/checkout` with the selection in query params.
 - **`/checkout` — 3 steps** (`src/components/checkout/Checkout.tsx`): (1) **Transport** (pickup radio + hold-spot countdown + spinner on Continue); (2) **Contact** (sign in / create account if needed; auto-advances on session); (3) **Payment** (booking with idempotency key + payment → redirect to `/bookings/[ref]`).
 - **`POST /api/v1/webhooks/payments`** — the ONLY confirm path: verifies the event, appends via `append_payment_event` (service-role), idempotent. **Unauthenticated in stub mode by design** (real Peach signature closes it — don't deploy stub publicly).
@@ -187,6 +200,7 @@ compare applied vs. on-disk — not yet built.)
 - Money-path RPCs (`api_book`, `api_create_payment`, `append_payment_event`, stub) built in Phase 1–2. **Peach stubbed** (no keys).
 
 ### Tests (earlier)
+
 - `tests/integration/admin-catalogue.test.ts`, `tests/integration/booking-flow.test.ts`, `tests/unit/auth-jwt.test.ts` (ES256/JWKS).
 
 ---
@@ -196,13 +210,15 @@ compare applied vs. on-disk — not yet built.)
 **FIRST: apply `supabase/catch-up.sql`** (see §0 — syncs the drifted live DB).
 
 Then **`supabase/admin-setup.sql`** ONCE on the live DB (Supabase SQL editor, or `npx tsx scripts/db-exec.ts supabase/admin-setup.sql`). It:
+
 1. **Deletes all activities except `north-tour`** (permanent — user's choice).
 2. **Makes an account admin** — `update profiles set role='admin'` for `boodoo.sheik786@gmail.com` (must have **signed up in the app first**).
 3. Creates the public **`activity-images` Storage bucket** + staff-write/public-read policies (admin photo uploads).
-> Do **not** run `npm run db:setup` afterward — it re-seeds the 23 demo activities.
+   > Do **not** run `npm run db:setup` afterward — it re-seeds the 23 demo activities.
 
 ### Make an activity bookable live
-`/admin/activities` → **Availability** → set **daily capacity** → **Make bookable**. Then on the site: pick a date → **Book now** (or **Add to cart**) → checkout → sign in → pay → **Complete payment (test)** → confirmed under My bookings. *(Needs `catch-up.sql` applied first, or you'll hit "no `daily_capacity` column".)*
+
+`/admin/activities` → **Availability** → set **daily capacity** → **Make bookable**. Then on the site: pick a date → **Book now** (or **Add to cart**) → checkout → sign in → pay → **Complete payment (test)** → confirmed under My bookings. _(Needs `catch-up.sql` applied first, or you'll hit "no `daily_capacity` column".)_
 
 ---
 

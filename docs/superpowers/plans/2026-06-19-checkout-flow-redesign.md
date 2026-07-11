@@ -15,11 +15,13 @@
 ## File structure
 
 **Create:**
+
 - `supabase/migrations/20260721000000_booking_dropoff.sql` — `dropoff_location` + `pickup_pending` columns; re-define `api_book` (verbatim + the two new fields) and `booking_json`.
 - `src/lib/checkout/pickup.ts` — pure helpers for step-① state (`pickupMode`, `canAdvanceStep1`).
 - Tests: `tests/unit/checkout-pickup.test.ts`, `tests/integration/booking-dropoff.test.ts`.
 
 **Modify:**
+
 - `src/lib/validation/booking.ts` (`createBookingInputSchema` + `bookingSchema`), `src/lib/services/bookings.ts`, `src/lib/supabase/types.ts`, `supabase/catch-up.sql`.
 - `src/components/checkout/Checkout.tsx` (steps ① and ②, the booking body).
 - `src/components/maps/RouteMap.tsx`, `src/components/maps/ItineraryMap.tsx` (remove dashed/coral lines).
@@ -30,6 +32,7 @@
 ## Task 1: Booking data model — distinct drop-off + pickup-pending
 
 **Files:**
+
 - Create: `supabase/migrations/20260721000000_booking_dropoff.sql`, `tests/integration/booking-dropoff.test.ts`
 - Modify: `supabase/catch-up.sql`, `src/lib/validation/booking.ts`, `src/lib/services/bookings.ts`, `src/lib/supabase/types.ts`
 
@@ -40,12 +43,14 @@ Drop-off is concatenated into `pickup_location` today (`"addr → drop-off: X"`)
 - [ ] **Step 2: Run, expect FAIL** — `npx vitest run tests/integration/booking-dropoff.test.ts`.
 
 - [ ] **Step 3: Migration** — `supabase/migrations/20260721000000_booking_dropoff.sql`:
+
 ```sql
 -- Distinct drop-off + a "pickup to be arranged" flag (the cart/checkout redesign records pickup and
 -- drop-off separately instead of concatenating them into pickup_location).
 alter table bookings add column if not exists dropoff_location text;
 alter table bookings add column if not exists pickup_pending boolean not null default false;
 ```
+
 Then re-define `api_book` and `booking_json`. **CRITICAL (migration-revert-drift):** the LATEST `api_book` is NOT the original — it was re-defined by the transport-pricing migration (`20260720000000…`, commit `e716ebb`) and earlier by the audit (`20260719120000_audit_fixes.sql`, the F23 guard). Find the winning `api_book` (grep `function api_book` across `supabase/migrations/*.sql` + `supabase/catch-up.sql`; highest-numbered migration wins) and copy its body **VERBATIM**, adding ONLY: (a) read `p ->> 'dropoffLocation'` and `(p ->> 'pickupPending')::boolean` from the input jsonb, and (b) include `dropoff_location` + `pickup_pending` in the booking `update`/`insert`. Do not re-derive the transport-fee / capacity / F23 logic from memory — copy it. Likewise re-define `booking_json` (winning def) verbatim + add `'dropoffLocation', b.dropoff_location` and `'pickupPending', b.pickup_pending` to the returned object.
 
 - [ ] **Step 4: Run the test** → PASS.
@@ -60,6 +65,7 @@ Then re-define `api_book` and `booking_json`. **CRITICAL (migration-revert-drift
 - [ ] **Step 7: Regression gate** — `npx vitest run tests/integration/booking-flow.test.ts tests/integration/booking-core.test.ts tests/integration/security-fixes.test.ts tests/integration/audit-fixes.test.ts` (proves the F23/transport/oversell logic wasn't reverted) + `npm run typecheck`. All green.
 
 - [ ] **Step 8: Commit**
+
 ```bash
 git add supabase/migrations/20260721000000_booking_dropoff.sql supabase/catch-up.sql src/lib/validation/booking.ts src/lib/services/bookings.ts src/lib/supabase/types.ts tests/integration/booking-dropoff.test.ts
 git commit -m "feat(booking): distinct dropoff_location + pickup_pending"
@@ -70,6 +76,7 @@ git commit -m "feat(booking): distinct dropoff_location + pickup_pending"
 ## Task 2: Remove the dotted/coral route lines (real route + marker fallback)
 
 **Files:**
+
 - Modify: `src/components/maps/RouteMap.tsx`, `src/components/maps/ItineraryMap.tsx` (+ any other dashed-line site you find)
 
 The real driving route (solid teal `DirectionsRenderer`) stays. Remove the dashed coral **return-to-start** leg and the dashed straight-line **fallback**; when Directions fails, show numbered markers + a "View on Google Maps" link instead — never a dashed line.
@@ -83,6 +90,7 @@ The real driving route (solid teal `DirectionsRenderer`) stays. Remove the dashe
 - [ ] **Step 4: Verify** — `npm run typecheck` + `npm run lint` clean. Manually (or by reading) confirm no `border-dashed` coral / dashed route `Polyline` remains in the map components. `npx vitest run` (no test should break; if a snapshot/test references the return leg, update it).
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/components/maps/RouteMap.tsx src/components/maps/ItineraryMap.tsx
 git commit -m "feat(maps): drop the dashed route lines — real route + marker fallback only"
@@ -93,10 +101,12 @@ git commit -m "feat(maps): drop the dashed route lines — real route + marker f
 ## Task 3: Step ① — "want pickup?" prompt + drop-off + read-only route + gating
 
 **Files:**
+
 - Create: `src/lib/checkout/pickup.ts`, `tests/unit/checkout-pickup.test.ts`
 - Modify: `src/components/checkout/Checkout.tsx`
 
 - [ ] **Step 1: Failing unit test** — `tests/unit/checkout-pickup.test.ts` for the pure gating helper:
+
 ```typescript
 import { describe, expect, it } from 'vitest';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
@@ -120,8 +130,13 @@ describe('canAdvanceStep1', () => {
 - [ ] **Step 2: Run, expect FAIL.**
 
 - [ ] **Step 3: Implement `src/lib/checkout/pickup.ts`**:
+
 ```typescript
-export interface Step1State { wantsPickup: boolean; address: string; tbd: boolean; }
+export interface Step1State {
+  wantsPickup: boolean;
+  address: string;
+  tbd: boolean;
+}
 
 /** Step ① can advance unless pickup is wanted with no address and not flagged "I don't know yet". */
 export function canAdvanceStep1(s: Step1State): boolean {
@@ -141,6 +156,7 @@ export function canAdvanceStep1(s: Step1State): boolean {
   - The `'unknown'` legacy state maps to `wantsPickup:false`; the planner pre-fill (`pickupParam`) sets `wantsPickup:true` + address.
 
 - [ ] **Step 6: Update the booking body** (in `pay()`): send **distinct** fields instead of the concatenated string:
+
 ```typescript
 pickupLocation: wantsPickup && !tbd && pickupLoc.trim() ? pickupLoc.trim().slice(0, 200) : null,
 dropoffLocation: wantsPickup && !tbd && dropoffText.trim() ? dropoffText.trim().slice(0, 200) : null,
@@ -148,6 +164,7 @@ pickupPending: wantsPickup && tbd,
 pickupLat: wantsPickup && !tbd && pickupCoords ? pickupCoords.lat : null,
 pickupLng: wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
 ```
+
 (So a TBD pickup sends no coords → the server computes no transport fee, per the spec.)
 
 - [ ] **Step 7: i18n** — add French keys for the new strings ("Do you want pickup?", "Yes, pick me up", "No, I'll make my own way", "Drop-off location", "I don't know yet", "Meet at {location}", the gate hint) to `src/lib/i18n/messages.ts`.
@@ -155,6 +172,7 @@ pickupLng: wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
 - [ ] **Step 8: Verify** — `npm run typecheck && npm run lint && npx vitest run tests/unit/checkout-pickup.test.ts` green. Manually reason through: pickup-capable activity → step ① defaults to the pickup form with a route preview; fixed activity → "Meet at…"; "I don't know yet" lets you continue with no map.
 
 - [ ] **Step 9: Commit**
+
 ```bash
 git add src/lib/checkout/pickup.ts tests/unit/checkout-pickup.test.ts src/components/checkout/Checkout.tsx src/lib/i18n/messages.ts
 git commit -m "feat(checkout): step 1 — want-pickup prompt, drop-off, read-only route, gating"
@@ -165,6 +183,7 @@ git commit -m "feat(checkout): step 1 — want-pickup prompt, drop-off, read-onl
 ## Task 4: Step ② — personal-details form (GetYourGuide-style)
 
 **Files:**
+
 - Modify: `src/components/checkout/Checkout.tsx`, `src/lib/i18n/messages.ts`
 
 Today step ② is sign-in only. After sign-in, show a details form matching the screenshot.
@@ -179,6 +198,7 @@ Today step ② is sign-in only. After sign-in, show a details form matching the 
 - [ ] **Step 4: Verify** — `npm run typecheck && npm run lint && npx vitest run` green. Reason through: signed-in user reaches step ② → sees prefilled details → must add phone when there's a pickup → "Go to payment" → step ③.
 
 - [ ] **Step 5: Commit**
+
 ```bash
 git add src/components/checkout/Checkout.tsx src/lib/i18n/messages.ts
 git commit -m "feat(checkout): step 2 — GYG personal-details form, phone required on pickup"
@@ -189,6 +209,7 @@ git commit -m "feat(checkout): step 2 — GYG personal-details form, phone requi
 ## Task 5: Admin — show pickup, drop-off, itinerary
 
 **Files:**
+
 - Modify: `src/lib/admin/bookings.ts`, `src/components/admin/AdminBookings.tsx`
 
 - [ ] **Step 1: DTO.** In `src/lib/admin/bookings.ts`: add `dropoffLocation: string | null` and `pickupPending: boolean` to `BookingRow`; add `dropoff_location, pickup_pending` to `BOOKING_SELECT`; map them in the row mapper (find where `pickupLocation`/`pickup_location` is mapped and mirror it).
@@ -198,6 +219,7 @@ git commit -m "feat(checkout): step 2 — GYG personal-details form, phone requi
 - [ ] **Step 3: Verify** — `npm run typecheck && npm run lint && npx vitest run` green. (If there's an admin-bookings test, ensure the new fields don't break it; add a small assertion that the DTO carries `dropoffLocation`/`pickupPending` if a test harness exists.)
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add src/lib/admin/bookings.ts src/components/admin/AdminBookings.tsx
 git commit -m "feat(admin): show pickup, drop-off, itinerary on a booking"

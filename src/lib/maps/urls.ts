@@ -16,7 +16,10 @@ export function mapsDirectionsUrl(stops: string[]): string {
   if (pts.length === 1) return mapsSearchUrl(pts[0]!);
   const origin = encodeURIComponent(pts[0]!);
   const destination = encodeURIComponent(pts[pts.length - 1]!);
-  const waypoints = pts.slice(1, -1).map((s) => encodeURIComponent(s)).join('|');
+  const waypoints = pts
+    .slice(1, -1)
+    .map((s) => encodeURIComponent(s))
+    .join('|');
   return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}${
     waypoints ? `&waypoints=${waypoints}` : ''
   }&travelmode=driving`;

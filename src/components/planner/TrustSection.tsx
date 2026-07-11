@@ -10,7 +10,7 @@ interface Testimonial {
 const TESTIMONIALS: Testimonial[] = [
   {
     quote:
-      "\"Told it 'chilled south coast, back by 5' and it built the whole day. Our driver Ashok was brilliant — knew exactly where to stop for photos.\"",
+      '"Told it \'chilled south coast, back by 5\' and it built the whole day. Our driver Ashok was brilliant — knew exactly where to stop for photos."',
     name: 'Hannah & Tom',
     country: 'United Kingdom',
     avatar: 'linear-gradient(135deg,#13A0A6,#0B5C63)',
@@ -42,7 +42,10 @@ function Star() {
 export function TrustSection() {
   const t = useT();
   return (
-    <section className="mt-14 text-white" style={{ background: 'linear-gradient(180deg,#0B5C63,#0A2E36)' }}>
+    <section
+      className="mt-14 text-white"
+      style={{ background: 'linear-gradient(180deg,#0B5C63,#0A2E36)' }}
+    >
       <div className="mx-auto max-w-shell px-[22px] py-[52px]">
         <div className="flex flex-wrap items-center justify-between gap-3.5">
           <div className="flex items-center gap-3.5">
@@ -58,18 +61,38 @@ export function TrustSection() {
           </div>
           <div className="inline-flex items-center gap-[9px] rounded-full border border-white/[0.14] bg-white/[0.08] px-3.5 py-2 text-[13px] font-semibold">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path d="M12 2l7 3v6c0 4.5-3 8.4-7 9-4-.6-7-4.5-7-9V5l7-3Z" stroke="#13A0A6" strokeWidth={2} strokeLinejoin="round" />
-              <path d="M9 12l2 2 4-4" stroke="#13A0A6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+              <path
+                d="M12 2l7 3v6c0 4.5-3 8.4-7 9-4-.6-7-4.5-7-9V5l7-3Z"
+                stroke="#13A0A6"
+                strokeWidth={2}
+                strokeLinejoin="round"
+              />
+              <path
+                d="M9 12l2 2 4-4"
+                stroke="#13A0A6"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
             {t('No random drivers — verified locals')}
           </div>
         </div>
         <div className="mt-[30px] grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {TESTIMONIALS.map((item) => (
-            <figure key={item.name} className="m-0 rounded-[18px] border border-white/10 bg-white/[0.06] p-[22px]">
-              <blockquote className="mb-3.5 text-[15px] leading-[1.6] text-teal-tint">{t(item.quote)}</blockquote>
+            <figure
+              key={item.name}
+              className="m-0 rounded-[18px] border border-white/10 bg-white/[0.06] p-[22px]"
+            >
+              <blockquote className="mb-3.5 text-[15px] leading-[1.6] text-teal-tint">
+                {t(item.quote)}
+              </blockquote>
               <figcaption className="flex items-center gap-2.5 text-[13px]">
-                <span className="h-[34px] w-[34px] rounded-full" style={{ background: item.avatar }} aria-hidden />
+                <span
+                  className="h-[34px] w-[34px] rounded-full"
+                  style={{ background: item.avatar }}
+                  aria-hidden
+                />
                 <span>
                   <strong className="block">{item.name}</strong>
                   <span className="opacity-60">{t(item.country)}</span>

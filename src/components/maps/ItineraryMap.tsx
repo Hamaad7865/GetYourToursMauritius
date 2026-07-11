@@ -26,7 +26,10 @@ function LegendPin({ kind }: { kind: StopKind }) {
   }
   return (
     <svg width="12" height="15" viewBox="0 0 30 38" aria-hidden>
-      <path d="M15 0C6.7 0 0 6.7 0 15c0 9.7 15 23 15 23s15-13.3 15-23C30 6.7 23.3 0 15 0z" fill={color} />
+      <path
+        d="M15 0C6.7 0 0 6.7 0 15c0 9.7 15 23 15 23s15-13.3 15-23C30 6.7 23.3 0 15 0z"
+        fill={color}
+      />
       <circle cx="15" cy="15" r="6" fill="#fff" />
     </svg>
   );

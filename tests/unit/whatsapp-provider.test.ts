@@ -70,14 +70,20 @@ describe('WhatsAppNotificationProvider', () => {
       templateLanguage: 'en_US',
     });
     // The real owner alert is multi-line — sent verbatim, Meta bounces every one of them.
-    await p.send(message({ text: '🔔 New paid booking\nMiguel booked X — €410 (ref BMT-1).\nhttps://x/admin' }));
+    await p.send(
+      message({
+        text: '🔔 New paid booking\nMiguel booked X — €410 (ref BMT-1).\nhttps://x/admin',
+      }),
+    );
 
     const body = JSON.parse(fetchMock.mock.calls[0]![1].body as string);
     expect(body.template.language.code).toBe('en_US');
     const param = body.template.components[0].parameters[0].text as string;
     expect(param).not.toMatch(/[\n\t]/);
     expect(param).toContain('BMT-1');
-    expect(param).toBe('🔔 New paid booking · Miguel booked X — €410 (ref BMT-1). · https://x/admin');
+    expect(param).toBe(
+      '🔔 New paid booking · Miguel booked X — €410 (ref BMT-1). · https://x/admin',
+    );
   });
 
   it('refuses a non-whatsapp channel (never a silent success)', async () => {

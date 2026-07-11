@@ -23,9 +23,22 @@ import { childSeatsCost } from '@/lib/services/pricing';
 // Departures + timestamps are shown in Mauritius local time, so the calendar day is
 // deterministic regardless of the staff member's own browser timezone.
 const TZ = 'Indian/Mauritius';
-const dateFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: TZ });
-const dateShortFmt = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', timeZone: TZ });
-const timeFmt = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: TZ });
+const dateFmt = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  timeZone: TZ,
+});
+const dateShortFmt = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  timeZone: TZ,
+});
+const timeFmt = new Intl.DateTimeFormat('en-GB', {
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: TZ,
+});
 const dateTimeFmt = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
   month: 'short',
@@ -88,7 +101,10 @@ function paymentClosed(state: PaymentState, status: BookingStatus): boolean {
   return state === 'pending' && (status === 'expired' || status === 'cancelled');
 }
 
-function paymentPill(state: PaymentState, status: BookingStatus): { label: string; cls: string; dot: string } {
+function paymentPill(
+  state: PaymentState,
+  status: BookingStatus,
+): { label: string; cls: string; dot: string } {
   if (paymentClosed(state, status)) {
     return { label: 'Not paid', cls: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' };
   }
@@ -107,7 +123,9 @@ function paymentPill(state: PaymentState, status: BookingStatus): { label: strin
 
 function Pill({ p }: { p: { label: string; cls: string; dot: string } }) {
   return (
-    <span className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold ${p.cls}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold ${p.cls}`}
+    >
       <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
       {p.label}
     </span>
@@ -127,7 +145,11 @@ function Avatar({ name }: { name: string }) {
 }
 
 function Badge({ className, children }: { className: string; children: React.ReactNode }) {
-  return <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${className}`}>{children}</span>;
+  return (
+    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold ${className}`}>
+      {children}
+    </span>
+  );
 }
 // Kept for the drawer's compact badges.
 function statusClass(status: BookingStatus): string {
@@ -190,11 +212,35 @@ const SELECT_CLS =
   'rounded-xl border border-[#E2E7EA] bg-white px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-teal cursor-pointer';
 
 function exportCsv(rows: BookingRow[]): void {
-  const head = ['Ref', 'Customer', 'Email', 'Tour', 'Trip date', 'Booked', 'Guests', 'Total EUR', 'Payment', 'Status', 'Source'];
+  const head = [
+    'Ref',
+    'Customer',
+    'Email',
+    'Tour',
+    'Trip date',
+    'Booked',
+    'Guests',
+    'Total EUR',
+    'Payment',
+    'Status',
+    'Source',
+  ];
   const lines = rows.map((b) =>
     // Payment exports the DISPLAYED label ("Not paid" for closed never-paid bookings) — exporting the
     // raw ledger state resurfaced exactly the "expired but Pending" misreading the chip fix removed.
-    [b.ref, b.customerName, b.customerEmail, b.activityTitle, fmtDate(b.startsAt), b.createdAt, b.guests, b.totalEur.toFixed(2), paymentPill(b.paymentState, b.status).label, b.status, b.source]
+    [
+      b.ref,
+      b.customerName,
+      b.customerEmail,
+      b.activityTitle,
+      fmtDate(b.startsAt),
+      b.createdAt,
+      b.guests,
+      b.totalEur.toFixed(2),
+      paymentPill(b.paymentState, b.status).label,
+      b.status,
+      b.source,
+    ]
       .map(csvCell)
       .join(','),
   );
@@ -251,7 +297,8 @@ export function AdminBookings() {
     return [...set].sort();
   }, [rows]);
 
-  const filtersActive = status !== 'all' || pay !== 'all' || tour !== 'all' || dateF !== 'all' || query.trim() !== '';
+  const filtersActive =
+    status !== 'all' || pay !== 'all' || tour !== 'all' || dateF !== 'all' || query.trim() !== '';
   const clearFilters = () => {
     setStatus('all');
     setPay('all');
@@ -287,7 +334,8 @@ export function AdminBookings() {
     return [...list].sort((a, b) => {
       let av: string | number;
       let bv: string | number;
-      if (sortKey === 'customer') [av, bv] = [a.customerName.toLowerCase(), b.customerName.toLowerCase()];
+      if (sortKey === 'customer')
+        [av, bv] = [a.customerName.toLowerCase(), b.customerName.toLowerCase()];
       else if (sortKey === 'total') [av, bv] = [a.totalEur, b.totalEur];
       else if (sortKey === 'ref') [av, bv] = [a.ref, b.ref];
       else if (sortKey === 'booked') [av, bv] = [a.createdAt, b.createdAt];
@@ -325,7 +373,8 @@ export function AdminBookings() {
         <div>
           <h1 className="font-display text-[30px] font-medium tracking-tight text-ink">Bookings</h1>
           <p className="mt-1.5 text-sm text-ink-muted">
-            {rows ? `${filtered.length} of ${rows.length} bookings` : 'Loading…'} · tap a row to open the details
+            {rows ? `${filtered.length} of ${rows.length} bookings` : 'Loading…'} · tap a row to
+            open the details
           </p>
         </div>
         <button
@@ -348,7 +397,9 @@ export function AdminBookings() {
                 type="button"
                 onClick={() => setStatus(f.value)}
                 className={`whitespace-nowrap rounded-lg px-3.5 py-1.5 text-[13px] font-bold ${
-                  status === f.value ? 'bg-ink text-white shadow-sm' : 'text-ink-muted hover:text-ink'
+                  status === f.value
+                    ? 'bg-ink text-white shadow-sm'
+                    : 'text-ink-muted hover:text-ink'
                 }`}
               >
                 {f.label}
@@ -367,7 +418,12 @@ export function AdminBookings() {
               className="w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] py-2.5 pl-9 pr-3 text-[13.5px] text-ink outline-none focus:border-teal focus:bg-white"
             />
           </div>
-          <select value={tour} onChange={(e) => setTour(e.target.value)} aria-label="Filter by tour" className={`${SELECT_CLS} max-w-[190px]`}>
+          <select
+            value={tour}
+            onChange={(e) => setTour(e.target.value)}
+            aria-label="Filter by tour"
+            className={`${SELECT_CLS} max-w-[190px]`}
+          >
             <option value="all">All tours</option>
             {tourOptions.map((t) => (
               <option key={t} value={t}>
@@ -375,14 +431,24 @@ export function AdminBookings() {
               </option>
             ))}
           </select>
-          <select value={pay} onChange={(e) => setPay(e.target.value as 'all' | PaymentState)} aria-label="Filter by payment" className={SELECT_CLS}>
+          <select
+            value={pay}
+            onChange={(e) => setPay(e.target.value as 'all' | PaymentState)}
+            aria-label="Filter by payment"
+            className={SELECT_CLS}
+          >
             {PAY_FILTERS.map((f) => (
               <option key={f.value} value={f.value}>
                 {f.label}
               </option>
             ))}
           </select>
-          <select value={dateF} onChange={(e) => setDateF(e.target.value as DateFilter)} aria-label="Filter by date" className={SELECT_CLS}>
+          <select
+            value={dateF}
+            onChange={(e) => setDateF(e.target.value as DateFilter)}
+            aria-label="Filter by date"
+            className={SELECT_CLS}
+          >
             {DATE_FILTERS.map((f) => (
               <option key={f.value} value={f.value}>
                 {f.label}
@@ -390,7 +456,11 @@ export function AdminBookings() {
             ))}
           </select>
           {filtersActive && (
-            <button type="button" onClick={clearFilters} className="flex items-center gap-1.5 px-2 py-2 text-[13px] font-bold text-coral">
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="flex items-center gap-1.5 px-2 py-2 text-[13px] font-bold text-coral"
+            >
               <IconX width={14} height={14} /> Clear
             </button>
           )}
@@ -398,7 +468,10 @@ export function AdminBookings() {
       </div>
 
       {error && (
-        <p role="alert" className="mb-4 rounded-lg bg-coral/10 px-4 py-3 text-sm font-medium text-coral">
+        <p
+          role="alert"
+          className="mb-4 rounded-lg bg-coral/10 px-4 py-3 text-sm font-medium text-coral"
+        >
           {error}
         </p>
       )}
@@ -431,24 +504,34 @@ export function AdminBookings() {
                       b.id === selectedId ? 'bg-teal/5' : ''
                     }`}
                   >
-                    <td className="whitespace-nowrap px-3 py-3 text-[13px] font-bold text-teal">{b.ref}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-[13px] font-bold text-teal">
+                      {b.ref}
+                    </td>
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-2.5">
                         <Avatar name={b.customerName} />
-                        <span className="whitespace-nowrap text-[13.5px] font-bold text-ink">{b.customerName}</span>
+                        <span className="whitespace-nowrap text-[13.5px] font-bold text-ink">
+                          {b.customerName}
+                        </span>
                       </div>
                     </td>
                     <td className="max-w-[200px] px-3 py-3 text-[13px] text-ink/70">
                       <span className="block truncate">{b.activityTitle}</span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
-                      {b.startsAt ? `${dateShortFmt.format(new Date(b.startsAt))} · ${timeFmt.format(new Date(b.startsAt))}` : '—'}
+                      {b.startsAt
+                        ? `${dateShortFmt.format(new Date(b.startsAt))} · ${timeFmt.format(new Date(b.startsAt))}`
+                        : '—'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
                       {`${dateShortFmt.format(new Date(b.createdAt))} · ${timeFmt.format(new Date(b.createdAt))}`}
                     </td>
-                    <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">{b.guests}</td>
-                    <td className="whitespace-nowrap px-3 py-3 text-right text-[13.5px] font-extrabold text-ink">{euroInt(b.totalEur)}</td>
+                    <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
+                      {b.guests}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 text-right text-[13.5px] font-extrabold text-ink">
+                      {euroInt(b.totalEur)}
+                    </td>
                     <td className="px-3 py-3">
                       <Pill p={paymentPill(b.paymentState, b.status)} />
                     </td>
@@ -472,21 +555,37 @@ export function AdminBookings() {
               {rows.length === 0 ? 'No bookings yet' : 'No bookings match these filters'}
             </div>
             <div className="mt-1 text-[13.5px] text-ink-muted">
-              {rows.length === 0 ? 'They’ll appear here as customers book.' : 'Try widening the date range or clearing filters.'}
+              {rows.length === 0
+                ? 'They’ll appear here as customers book.'
+                : 'Try widening the date range or clearing filters.'}
             </div>
           </div>
         )}
         {rows === null && <p className="p-6 text-sm text-ink-muted">Loading…</p>}
       </div>
 
-      {selectedId && <BookingDrawer id={selectedId} onClose={() => setSelectedId(null)} onChanged={() => void load()} />}
+      {selectedId && (
+        <BookingDrawer
+          id={selectedId}
+          onClose={() => setSelectedId(null)}
+          onChanged={() => void load()}
+        />
+      )}
     </div>
   );
 }
 
 const CANCELLABLE: BookingStatus[] = ['draft', 'held', 'payment_pending', 'confirmed'];
 
-function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => void; onChanged: () => void }) {
+function BookingDrawer({
+  id,
+  onClose,
+  onChanged,
+}: {
+  id: string;
+  onClose: () => void;
+  onChanged: () => void;
+}) {
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
@@ -571,7 +670,12 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      <button type="button" aria-label="Close booking details" onClick={requestClose} className="absolute inset-0 bg-ink/30" />
+      <button
+        type="button"
+        aria-label="Close booking details"
+        onClick={requestClose}
+        className="absolute inset-0 bg-ink/30"
+      />
       <aside
         ref={panelRef}
         role="dialog"
@@ -603,30 +707,45 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                   {paymentPill(booking.paymentState, booking.status).label}
                 </Badge>
               </div>
-              <p className="mt-1 text-[12.5px] text-ink-muted">Booked {fmtDateTime(booking.createdAt)} · via {booking.source}</p>
+              <p className="mt-1 text-[12.5px] text-ink-muted">
+                Booked {fmtDateTime(booking.createdAt)} · via {booking.source}
+              </p>
             </div>
 
             {error && (
-              <p role="alert" className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral">
+              <p
+                role="alert"
+                className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral"
+              >
                 {error}
               </p>
             )}
 
             <section className="rounded-xl border border-ink/10 p-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Customer</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                Customer
+              </h3>
               <p className="mt-1.5 font-bold text-ink">{booking.customerName}</p>
-              <a href={`mailto:${booking.customerEmail}`} className="block text-[13.5px] text-teal hover:underline">
+              <a
+                href={`mailto:${booking.customerEmail}`}
+                className="block text-[13.5px] text-teal hover:underline"
+              >
                 {booking.customerEmail}
               </a>
               {booking.customerPhone && (
-                <a href={`tel:${booking.customerPhone}`} className="block text-[13.5px] text-ink/80">
+                <a
+                  href={`tel:${booking.customerPhone}`}
+                  className="block text-[13.5px] text-ink/80"
+                >
                   {booking.customerPhone}
                 </a>
               )}
             </section>
 
             <section className="rounded-xl border border-ink/10 p-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Items</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                Items
+              </h3>
               <ul className="mt-2 flex flex-col gap-3">
                 {booking.items.map((it, i) => (
                   <li key={i} className="text-sm">
@@ -636,8 +755,10 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                       {it.quantity} × {it.priceLabel} · {eur(it.unitAmountEur)}
                     </p>
                     <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink/70">
-                      <IconCalendar width={13} height={13} className="text-teal" /> {fmtDate(it.startsAt)}
-                      <IconUsers width={13} height={13} className="ml-2 text-teal" /> {it.pax ?? it.quantity}
+                      <IconCalendar width={13} height={13} className="text-teal" />{' '}
+                      {fmtDate(it.startsAt)}
+                      <IconUsers width={13} height={13} className="ml-2 text-teal" />{' '}
+                      {it.pax ?? it.quantity}
                     </p>
                   </li>
                 ))}
@@ -649,10 +770,14 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
             </section>
 
             <section className="rounded-xl border border-ink/10 p-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Pickup &amp; drop-off</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                Pickup &amp; drop-off
+              </h3>
               <dl className="mt-2 flex flex-col gap-2.5">
                 <div>
-                  <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">Pickup</dt>
+                  <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
+                    Pickup
+                  </dt>
                   <dd className="mt-0.5 text-[13px] text-ink/80">
                     {booking.pickupLocation ? (
                       booking.pickupLocation
@@ -667,14 +792,18 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">Drop-off</dt>
+                  <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
+                    Drop-off
+                  </dt>
                   <dd className="mt-0.5 text-[13px] text-ink/80">
-                    {booking.dropoffLocation
-                      ? booking.dropoffLocation
-                      : booking.pickupLocation || booking.pickupPending
-                        ? // A null drop-off WITH a pickup means "same as pickup", not "no drop-off".
-                          <span className="text-ink-muted">Same as pickup</span>
-                        : '—'}
+                    {booking.dropoffLocation ? (
+                      booking.dropoffLocation
+                    ) : booking.pickupLocation || booking.pickupPending ? (
+                      // A null drop-off WITH a pickup means "same as pickup", not "no drop-off".
+                      <span className="text-ink-muted">Same as pickup</span>
+                    ) : (
+                      '—'
+                    )}
                   </dd>
                 </div>
               </dl>
@@ -682,7 +811,9 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
 
             {booking.transfer && (
               <section className="rounded-xl border border-ink/10 p-4">
-                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Transfer details</h3>
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                  Transfer details
+                </h3>
                 <dl className="mt-2 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
                   <dt className="font-semibold text-ink-muted">Trip</dt>
                   <dd className="text-ink/80">
@@ -702,17 +833,26 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                     <>
                       <dt className="font-semibold text-ink-muted">Arrival</dt>
                       <dd className="text-ink/80">
-                        {[booking.transfer.flightNumber, booking.transfer.arrivalTime].filter(Boolean).join(' · ')}
+                        {[booking.transfer.flightNumber, booking.transfer.arrivalTime]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </dd>
                     </>
                   )}
-                  {(booking.transfer.departureFlightNumber || booking.transfer.returnDate || booking.transfer.returnTime) && (
+                  {(booking.transfer.departureFlightNumber ||
+                    booking.transfer.returnDate ||
+                    booking.transfer.returnTime) && (
                     <>
                       <dt className="font-semibold text-ink-muted">Departure</dt>
                       <dd className="text-ink/80">
                         {[
                           booking.transfer.departureFlightNumber,
-                          [booking.transfer.returnDate ? fmtDate(booking.transfer.returnDate) : null, booking.transfer.returnTime]
+                          [
+                            booking.transfer.returnDate
+                              ? fmtDate(booking.transfer.returnDate)
+                              : null,
+                            booking.transfer.returnTime,
+                          ]
                             .filter(Boolean)
                             .join(' '),
                         ]
@@ -763,7 +903,9 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
 
             {booking.childSeats > 0 && (
               <section className="rounded-xl border border-ink/10 p-4">
-                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Baby &amp; child seats</h3>
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                  Baby &amp; child seats
+                </h3>
                 <p className="mt-2 text-[13px] text-ink/80">
                   {booking.childSeats} {booking.childSeats === 1 ? 'seat' : 'seats'}
                   {childSeatsCost(booking.childSeats) > 0
@@ -775,7 +917,9 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
 
             {booking.customItinerary && booking.customItinerary.length > 0 && (
               <section className="rounded-xl border border-ink/10 p-4">
-                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Customer route</h3>
+                <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                  Customer route
+                </h3>
                 <ol className="mt-2 list-decimal pl-5 text-[13px] text-ink/80">
                   {booking.customItinerary.map((s, i) => (
                     <li key={i}>{s.area ? `${s.title} — ${s.area}` : s.title}</li>
@@ -785,7 +929,9 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
             )}
 
             <section className="rounded-xl border border-ink/10 p-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Payments</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                Payments
+              </h3>
               {booking.payments.length === 0 ? (
                 <p className="mt-1.5 text-[13px] text-ink-muted">No payment started yet.</p>
               ) : (
@@ -802,7 +948,8 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                         {p.events.map((e, i) => (
                           <li key={i} className="text-[12px] text-ink-muted">
                             <span className="font-semibold text-ink/80">{titleCase(e.type)}</span>
-                            {e.amountEur ? ` · ${eur(e.amountEur)}` : ''} · {fmtDateTime(e.occurredAt)}
+                            {e.amountEur ? ` · ${eur(e.amountEur)}` : ''} ·{' '}
+                            {fmtDateTime(e.occurredAt)}
                           </li>
                         ))}
                       </ul>
@@ -813,7 +960,9 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
             </section>
 
             <section className="rounded-xl border border-ink/10 p-4">
-              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">Internal note</h3>
+              <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                Internal note
+              </h3>
               <textarea
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -836,7 +985,9 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                 <button
                   type="button"
                   disabled={busy === 'complete'}
-                  onClick={() => void act('complete', () => setBookingStatus(booking.id, 'completed'))}
+                  onClick={() =>
+                    void act('complete', () => setBookingStatus(booking.id, 'completed'))
+                  }
                   className="rounded-full bg-teal px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
                 >
                   {busy === 'complete' ? 'Saving…' : 'Mark as completed'}
@@ -847,13 +998,16 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
                   type="button"
                   disabled={busy === 'cancel'}
                   onClick={() => {
-                    const paid = booking.paymentState === 'paid' || booking.paymentState === 'partially_refunded';
+                    const paid =
+                      booking.paymentState === 'paid' ||
+                      booking.paymentState === 'partially_refunded';
                     const msg = paid
                       ? `Cancel booking ${booking.ref}? It's PAID — this frees the seats and marks it refund-pending. Remember to refund the customer in your payment provider.`
                       : booking.status === 'confirmed'
                         ? `Cancel booking ${booking.ref}? This frees the seats.`
                         : `Cancel booking ${booking.ref}? Any held seats free up when the hold expires.`;
-                    if (window.confirm(msg)) void act('cancel', () => setBookingStatus(booking.id, 'cancelled'));
+                    if (window.confirm(msg))
+                      void act('cancel', () => setBookingStatus(booking.id, 'cancelled'));
                   }}
                   className="rounded-full border border-coral/40 px-4 py-2 text-[13px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
                 >
@@ -862,13 +1016,15 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
               )}
               {(booking.status === 'refund_pending' ||
                 ((booking.status === 'confirmed' || booking.status === 'completed') &&
-                  (booking.paymentState === 'paid' || booking.paymentState === 'partially_refunded'))) && (
+                  (booking.paymentState === 'paid' ||
+                    booking.paymentState === 'partially_refunded'))) && (
                 <button
                   type="button"
                   disabled={busy === 'refund'}
                   onClick={() => {
                     const msg = `Confirm you've refunded ${eur(booking.netPaidEur)} to ${booking.customerName} in Peach. This records the refund in the ledger and emails the customer their refund confirmation.`;
-                    if (window.confirm(msg)) void act('refund', () => markBookingRefunded(booking.id));
+                    if (window.confirm(msg))
+                      void act('refund', () => markBookingRefunded(booking.id));
                   }}
                   className="rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
                 >
@@ -906,13 +1062,16 @@ function BookingDrawer({ id, onClose, onChanged }: { id: string; onClose: () => 
               </button>
             </section>
             {erasedMsg && (
-              <p role="status" className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark">
+              <p
+                role="status"
+                className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark"
+              >
                 {erasedMsg}
               </p>
             )}
             <p className="text-[11.5px] leading-relaxed text-ink-muted">
-              Payment confirmation is handled automatically by the payment provider — staff can mark a booking completed or
-              cancel it, but cannot mark it paid here.
+              Payment confirmation is handled automatically by the payment provider — staff can mark
+              a booking completed or cancel it, but cannot mark it paid here.
             </p>
           </div>
         )}

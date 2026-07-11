@@ -311,7 +311,10 @@ export async function loadBookingDetail(id: string): Promise<BookingDetail | nul
 /** Set an operational status (complete / cancel). The type is narrowed to the only
  *  transitions staff may make; the DB trigger `enforce_booking_admin_update` is the real
  *  enforcement (a hand-crafted PATCH cannot forge payment_state or other statuses). */
-export async function setBookingStatus(id: string, status: 'completed' | 'cancelled'): Promise<void> {
+export async function setBookingStatus(
+  id: string,
+  status: 'completed' | 'cancelled',
+): Promise<void> {
   const { error } = await getBrowserSupabase()
     .from('bookings')
     .update({ status, updated_at: new Date().toISOString() })

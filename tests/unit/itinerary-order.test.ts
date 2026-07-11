@@ -28,7 +28,12 @@ describe('nearestNeighborOrder', () => {
   });
 
   it('returns identity for fewer than 3 stops', () => {
-    expect(nearestNeighborOrder([{ lat: 1, lng: 1 }, { lat: 2, lng: 2 }])).toEqual([0, 1]);
+    expect(
+      nearestNeighborOrder([
+        { lat: 1, lng: 1 },
+        { lat: 2, lng: 2 },
+      ]),
+    ).toEqual([0, 1]);
     expect(nearestNeighborOrder([])).toEqual([]);
   });
 
@@ -46,7 +51,12 @@ describe('nearestNeighborOrder', () => {
   });
 
   it('no-ops (identity) when fewer than 3 stops have coordinates', () => {
-    const points: MaybePoint[] = [{ lat: -20.16, lng: 57.5 }, null, null, { lat: -20.5, lng: 57.5 }];
+    const points: MaybePoint[] = [
+      { lat: -20.16, lng: 57.5 },
+      null,
+      null,
+      { lat: -20.5, lng: 57.5 },
+    ];
     expect(nearestNeighborOrder(points)).toEqual([0, 1, 2, 3]);
   });
 });

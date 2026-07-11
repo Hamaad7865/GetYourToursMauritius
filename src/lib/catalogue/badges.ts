@@ -1,6 +1,10 @@
 import type { ActivityBadge } from '@/lib/validation/tours';
 
-export interface BadgeInput { icon: string; title: string; subtitle: string }
+export interface BadgeInput {
+  icon: string;
+  title: string;
+  subtitle: string;
+}
 
 /** Trim, drop rows missing an icon or title, cap field lengths + the count. The form's source of truth on save. */
 export function normalizeBadges(rows: BadgeInput[]): ActivityBadge[] {

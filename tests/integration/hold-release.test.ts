@@ -26,7 +26,9 @@ async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promi
 }
 
 async function usedCapacity(db: TestDb, occurrenceId: string): Promise<number> {
-  const { rows } = await db.pg.query<{ u: number }>(`select used_capacity($1) as u`, [occurrenceId]);
+  const { rows } = await db.pg.query<{ u: number }>(`select used_capacity($1) as u`, [
+    occurrenceId,
+  ]);
   return Number(rows[0]!.u);
 }
 
@@ -74,9 +76,9 @@ describe('owner-scoped hold release', () => {
 
     // BOB (a different signed-in user) cannot release ALICE's hold.
     await db.as({ sub: BOB, role: 'authenticated' });
-    await expect(
-      db.pg.query(`select api_release_hold($1)`, [hold.holdId]),
-    ).rejects.toThrow(/forbidden|hold_not_found/);
+    await expect(db.pg.query(`select api_release_hold($1)`, [hold.holdId])).rejects.toThrow(
+      /forbidden|hold_not_found/,
+    );
 
     // Capacity is still held after the rejected attempt.
     await db.asOwner();
@@ -94,7 +96,7 @@ describe('owner-scoped hold release', () => {
     expect(await usedCapacity(db, occurrenceId)).toBe(0);
   });
 
-  it('owner SELECT policy: a user can read their own hold but not another user\'s', async () => {
+  it("owner SELECT policy: a user can read their own hold but not another user's", async () => {
     await db.asOwner();
     const { occurrenceId } = await seedOccurrence(db, 10);
 

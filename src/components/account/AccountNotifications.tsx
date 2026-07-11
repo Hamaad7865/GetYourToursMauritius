@@ -38,7 +38,9 @@ export function AccountNotifications() {
           </button>
         )}
       </div>
-      <p className="mt-1 text-sm text-ink-muted">{t('Updates about your cart holds and bookings.')}</p>
+      <p className="mt-1 text-sm text-ink-muted">
+        {t('Updates about your cart holds and bookings.')}
+      </p>
       <div className="mt-5 rounded-2xl border border-ink/10 bg-white p-2">
         <NotificationsList notes={notes} />
       </div>

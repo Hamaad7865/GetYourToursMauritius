@@ -55,7 +55,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     ({ title, description, variant = 'success' }) => {
       const id = (idRef.current += 1);
       setToasts((prev) => [...prev, { id, title, description, variant }]);
-      timers.current.set(id, setTimeout(() => remove(id), 4500));
+      timers.current.set(
+        id,
+        setTimeout(() => remove(id), 4500),
+      );
     },
     [remove],
   );

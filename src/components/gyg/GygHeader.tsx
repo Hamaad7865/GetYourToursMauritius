@@ -87,7 +87,8 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
     setView('updates');
   };
 
-  const itemClass = 'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal';
+  const itemClass =
+    'flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium hover:bg-cream hover:text-teal';
 
   return (
     <div ref={ref} className="relative">
@@ -132,7 +133,9 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
           ) : user ? (
             <>
               <div className="px-3 pb-1 pt-2">
-                <p className="truncate text-sm font-bold text-ink">{profile?.fullName ?? t('Traveller')}</p>
+                <p className="truncate text-sm font-bold text-ink">
+                  {profile?.fullName ?? t('Traveller')}
+                </p>
                 <p className="truncate text-[12px] text-ink-muted">{user.email}</p>
               </div>
               <div className="my-1 h-px bg-ink/10" />
@@ -240,7 +243,12 @@ function PrefsButton({ overHero }: { overHero: boolean }) {
   const { language, currency, openPrefs } = usePreferences();
   const t = useT();
   return (
-    <button type="button" onClick={() => openPrefs('language')} className={navItemClass(overHero)} aria-label={t('Language and currency')}>
+    <button
+      type="button"
+      onClick={() => openPrefs('language')}
+      className={navItemClass(overHero)}
+      aria-label={t('Language and currency')}
+    >
       <IconGlobe width={20} height={20} />
       <span className="hidden lg:block">
         {language.toUpperCase()}/{currency} {CURRENCY_LABELS[currency].symbol}

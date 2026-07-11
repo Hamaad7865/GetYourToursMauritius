@@ -26,15 +26,23 @@ describe('admin atomic writes (staff-only transactional RPCs)', () => {
     ).rows[0]!.id;
     // A staff account (drives is_staff()) and a plain customer (must be rejected).
     await db.pg.query(`insert into auth.users (id) values ($1), ($2)`, [STAFF, CUSTOMER]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [STAFF]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Cust', 'customer')`, [CUSTOMER]);
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [
+      STAFF,
+    ]);
+    await db.pg.query(
+      `insert into profiles (id, full_name, role) values ($1, 'Cust', 'customer')`,
+      [CUSTOMER],
+    );
   });
 
   afterAll(async () => {
     await db.close();
   });
 
-  async function newActivity(slug: string, capacity: number | null): Promise<{ activityId: string; optionId: string }> {
+  async function newActivity(
+    slug: string,
+    capacity: number | null,
+  ): Promise<{ activityId: string; optionId: string }> {
     await db.asOwner();
     const activityId = (
       await db.pg.query<{ id: string }>(
@@ -92,7 +100,10 @@ describe('admin atomic writes (staff-only transactional RPCs)', () => {
       ).rows[0]!.id;
       await db.as({ sub: STAFF, role: 'authenticated' });
       await expect(
-        db.pg.query(`select api_swap_category_positions($1::uuid, '00000000-0000-0000-0000-000000000000'::uuid)`, [a]),
+        db.pg.query(
+          `select api_swap_category_positions($1::uuid, '00000000-0000-0000-0000-000000000000'::uuid)`,
+          [a],
+        ),
       ).rejects.toThrow(/category_not_found/);
     });
 
@@ -106,7 +117,10 @@ describe('admin atomic writes (staff-only transactional RPCs)', () => {
       ).rows;
       await db.as({ sub: CUSTOMER, role: 'authenticated' });
       await expect(
-        db.pg.query(`select api_swap_category_positions($1::uuid, $2::uuid)`, [rows[0]!.id, rows[1]!.id]),
+        db.pg.query(`select api_swap_category_positions($1::uuid, $2::uuid)`, [
+          rows[0]!.id,
+          rows[1]!.id,
+        ]),
       ).rejects.toThrow(/forbidden/);
       await db.asOwner();
     });
@@ -129,9 +143,10 @@ describe('admin atomic writes (staff-only transactional RPCs)', () => {
 
       await db.asOwner();
       const cap = (
-        await db.pg.query<{ daily_capacity: number }>(`select daily_capacity from activities where id = $1`, [
-          activityId,
-        ])
+        await db.pg.query<{ daily_capacity: number }>(
+          `select daily_capacity from activities where id = $1`,
+          [activityId],
+        )
       ).rows[0]!.daily_capacity;
       expect(cap).toBe(9);
 
@@ -194,7 +209,9 @@ describe('admin atomic writes (staff-only transactional RPCs)', () => {
       );
 
       await db.as({ sub: STAFF, role: 'authenticated' });
-      await db.pg.query(`select stop_availability_atomic($1::jsonb)`, [JSON.stringify({ activityId })]);
+      await db.pg.query(`select stop_availability_atomic($1::jsonb)`, [
+        JSON.stringify({ activityId }),
+      ]);
 
       await db.asOwner();
       const cap = (
@@ -205,11 +222,16 @@ describe('admin atomic writes (staff-only transactional RPCs)', () => {
       ).rows[0]!.daily_capacity;
       expect(cap).toBeNull();
 
-      const emptyGone = (await db.pg.query(`select 1 from session_occurrences where id = $1`, [empty])).rows.length;
+      const emptyGone = (
+        await db.pg.query(`select 1 from session_occurrences where id = $1`, [empty])
+      ).rows.length;
       expect(emptyGone).toBe(0); // empty future slot deleted
 
       const bookedStatus = (
-        await db.pg.query<{ status: string }>(`select status from session_occurrences where id = $1`, [booked])
+        await db.pg.query<{ status: string }>(
+          `select status from session_occurrences where id = $1`,
+          [booked],
+        )
       ).rows[0]!.status;
       expect(bookedStatus).toBe('closed'); // booked future slot kept but closed
     });

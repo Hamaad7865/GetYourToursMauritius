@@ -98,10 +98,14 @@ export async function runPlannerTurn(
 
   const tools = {
     search_places: tool({
-      description: 'Search real Mauritius places (live Google Places) by free text, category and/or region.',
+      description:
+        'Search real Mauritius places (live Google Places) by free text, category and/or region.',
       parameters: z.object({
         query: z.string().optional(),
-        category: z.string().optional().describe('Beach|Waterfall|Viewpoint|Nature|Culture|Garden|Island|Market|Landmark|Food'),
+        category: z
+          .string()
+          .optional()
+          .describe('Beach|Waterfall|Viewpoint|Nature|Culture|Garden|Island|Market|Landmark|Food'),
         region: z.string().optional().describe('North|South|East|West|Central'),
       }),
       execute: async (args) => {
@@ -123,7 +127,12 @@ export async function runPlannerTurn(
         'Commit the chosen day as an ordered list of place ids. Returns the real total drive time, any unknown ids, ids rejected as too far from the day, and ids dropped over the 6-stop cap.',
       parameters: z.object({ placeIds: z.array(z.string()).min(1).max(MAX_STOPS) }),
       execute: async ({ placeIds }) => {
-        const resolved = await resolveItinerary(placeIds, discovered, apiKey, input.itinerary ?? []);
+        const resolved = await resolveItinerary(
+          placeIds,
+          discovered,
+          apiKey,
+          input.itinerary ?? [],
+        );
         committed = resolved;
         return {
           stops: resolved.places.map((p) => p.name),

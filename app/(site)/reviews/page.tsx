@@ -10,7 +10,8 @@ import { IconStar } from '@/components/ui/icons';
 
 export const runtime = 'edge';
 
-const TA_URL = 'https://www.tripadvisor.com/Attraction_Review-g298342-d6553120-Reviews-Belle_Mare_Tours-Belle_Mare.html';
+const TA_URL =
+  'https://www.tripadvisor.com/Attraction_Review-g298342-d6553120-Reviews-Belle_Mare_Tours-Belle_Mare.html';
 const GOOGLE_URL = 'https://www.google.com/maps?cid=2271389619635672229';
 
 const TITLE = 'Belle Mare Tours Reviews — 4.8/5 from 1,000+ Guests';
@@ -20,9 +21,21 @@ const DESCRIPTION =
 export const metadata: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
-  keywords: ['Belle Mare Tours reviews', 'Mauritius tour reviews', 'Belle Mare Tours TripAdvisor', 'Mauritius taxi reviews'],
+  keywords: [
+    'Belle Mare Tours reviews',
+    'Mauritius tour reviews',
+    'Belle Mare Tours TripAdvisor',
+    'Mauritius taxi reviews',
+  ],
   alternates: { canonical: '/reviews' },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}/reviews`, locale: 'en_GB', images: [OG_IMAGE] },
+  openGraph: {
+    type: 'website',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: `${SITE.url}/reviews`,
+    locale: 'en_GB',
+    images: [OG_IMAGE],
+  },
 };
 
 function Bar({ stars, count, total }: { stars: number; count: number; total: number }) {
@@ -41,46 +54,74 @@ function Bar({ stars, count, total }: { stars: number; count: number; total: num
 export default function ReviewsPage() {
   const histTotal = Object.values(reviewStats.histogram).reduce((a, b) => a + b, 0) || 1;
   const jsonld = reviewsPageJsonLd(
-    featuredReviews.slice(0, 12).map((r) => ({ author: r.author, rating: r.rating, text: r.text, date: r.date })),
+    featuredReviews
+      .slice(0, 12)
+      .map((r) => ({ author: r.author, rating: r.rating, text: r.text, date: r.date })),
   );
 
   return (
     <>
-      <JsonLd data={breadcrumbListJsonLd([{ name: 'Home', path: '/' }, { name: 'Reviews', path: '/reviews' }])} />
+      <JsonLd
+        data={breadcrumbListJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Reviews', path: '/reviews' },
+        ])}
+      />
       <JsonLd data={jsonld} />
 
       <InfoPage eyebrow="Guest reviews" title="Belle Mare Tours reviews" intro={DESCRIPTION}>
         {/* Summary */}
         <div className="grid gap-6 rounded-2xl border border-ink/10 bg-cream/50 p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-10">
           <div className="text-center">
-            <div className="font-display text-[52px] font-extrabold leading-none text-ink">{reviewStats.average}</div>
+            <div className="font-display text-[52px] font-extrabold leading-none text-ink">
+              {reviewStats.average}
+            </div>
             <div className="mt-1.5 flex justify-center gap-0.5">
               {Array.from({ length: 5 }).map((_, i) => (
                 <IconStar key={i} width={18} height={18} className="text-gold-light" />
               ))}
             </div>
-            <div className="mt-1.5 text-[13px] text-ink-muted">{reviewStats.total.toLocaleString()} reviews</div>
+            <div className="mt-1.5 text-[13px] text-ink-muted">
+              {reviewStats.total.toLocaleString()} reviews
+            </div>
           </div>
           <div className="min-w-0">
             <div className="flex flex-col gap-1.5">
               {[5, 4, 3, 2, 1].map((s) => (
-                <Bar key={s} stars={s} count={reviewStats.histogram[String(s)] ?? 0} total={histTotal} />
+                <Bar
+                  key={s}
+                  stars={s}
+                  count={reviewStats.histogram[String(s)] ?? 0}
+                  total={histTotal}
+                />
               ))}
             </div>
             <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-[13px] text-ink/70">
-              <a href={TA_URL} target="_blank" rel="noopener noreferrer nofollow" className="hover:text-teal">
-                <b className="text-ink">{reviewStats.tripadvisor.rating}</b> · {reviewStats.tripadvisor.count} on TripAdvisor
+              <a
+                href={TA_URL}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="hover:text-teal"
+              >
+                <b className="text-ink">{reviewStats.tripadvisor.rating}</b> ·{' '}
+                {reviewStats.tripadvisor.count} on TripAdvisor
               </a>
-              <a href={GOOGLE_URL} target="_blank" rel="noopener noreferrer nofollow" className="hover:text-teal">
-                <b className="text-ink">{reviewStats.google.rating}</b> · {reviewStats.google.count} on Google
+              <a
+                href={GOOGLE_URL}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="hover:text-teal"
+              >
+                <b className="text-ink">{reviewStats.google.rating}</b> · {reviewStats.google.count}{' '}
+                on Google
               </a>
             </div>
           </div>
         </div>
 
         <p className="mt-5 text-[13.5px] text-ink-muted">
-          These are real, unedited reviews collected on TripAdvisor and Google. Click any review to read it on the
-          original platform.
+          These are real, unedited reviews collected on TripAdvisor and Google. Click any review to
+          read it on the original platform.
         </p>
 
         {/* Reviews grid */}

@@ -31,7 +31,10 @@ export const POST = apiHandler(async (req) => {
   req.headers.forEach((value, key) => {
     headers[key.toLowerCase()] = value;
   });
-  const bookingRef = extractWebhookFields(rawBody, headers['content-type'] ?? '').merchantTransactionId;
+  const bookingRef = extractWebhookFields(
+    rawBody,
+    headers['content-type'] ?? '',
+  ).merchantTransactionId;
 
   if (bookingRef || headers['x-webhook-signature']) {
     try {
@@ -85,11 +88,17 @@ export const POST = apiHandler(async (req) => {
           const event = await provider.getCheckoutStatus(checkoutId);
           await reconcilePaymentEvent(admin, event);
         } catch (err) {
-          console.warn('[webhook] background reconcile failed:', err instanceof Error ? err.message : err);
+          console.warn(
+            '[webhook] background reconcile failed:',
+            err instanceof Error ? err.message : err,
+          );
         }
       });
     } catch (err) {
-      console.warn('[webhook] could not schedule background reconcile:', err instanceof Error ? err.message : err);
+      console.warn(
+        '[webhook] could not schedule background reconcile:',
+        err instanceof Error ? err.message : err,
+      );
     }
   } else {
     console.warn('[webhook] notification without a merchantTransactionId; acknowledging');

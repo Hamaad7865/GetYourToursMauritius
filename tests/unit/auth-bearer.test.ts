@@ -3,7 +3,9 @@ import { getBearerToken } from '@/lib/http/auth';
 
 function req(authorization: string | null): Request {
   return {
-    headers: { get: (name: string) => (name.toLowerCase() === 'authorization' ? authorization : null) },
+    headers: {
+      get: (name: string) => (name.toLowerCase() === 'authorization' ? authorization : null),
+    },
   } as Request;
 }
 

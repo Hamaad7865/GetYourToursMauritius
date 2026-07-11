@@ -30,7 +30,9 @@ describe('parseApiJson', () => {
 
   it('surfaces the x-request-id in the message so it can be traced in the logs', async () => {
     await expect(
-      parseApiJson(res('<!DOCTYPE html>', { status: 502, headers: { 'x-request-id': 'req-abc-123' } })),
+      parseApiJson(
+        res('<!DOCTYPE html>', { status: 502, headers: { 'x-request-id': 'req-abc-123' } }),
+      ),
     ).rejects.toThrow(/req-abc-123/);
   });
 });

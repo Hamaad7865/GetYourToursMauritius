@@ -50,7 +50,8 @@ export function LocationMap({ query, label }: { query: string; label?: string })
   }, [status, query, label]);
 
   if (!query.trim()) return null;
-  if (status === 'error' || failed) return <MapLinkCard href={mapsSearchUrl(query)} label={label || query} />;
+  if (status === 'error' || failed)
+    return <MapLinkCard href={mapsSearchUrl(query)} label={label || query} />;
 
   return (
     // `isolate` contains Google Maps' internal z-indexed layers so the map can't paint over

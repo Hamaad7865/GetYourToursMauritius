@@ -36,12 +36,16 @@ describe('updateActivity preserves option ids on edit', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
     operatorId = (
       await db.pg.query<{ id: string }>(`select id from operators where slug = 'belle-mare-tours'`)
     ).rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [STAFF]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [STAFF]);
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [
+      STAFF,
+    ]);
     hoisted.shim = makeSupabaseShim(db.pg);
   });
 
@@ -50,7 +54,9 @@ describe('updateActivity preserves option ids on edit', () => {
   });
 
   /** Seed an activity + one option (+ price) + one materialised future occurrence. */
-  async function seedActivity(slug: string): Promise<{ activityId: string; optionId: string; occurrenceId: string }> {
+  async function seedActivity(
+    slug: string,
+  ): Promise<{ activityId: string; optionId: string; occurrenceId: string }> {
     await db.asOwner();
     const activityId = (
       await db.pg.query<{ id: string }>(
@@ -103,7 +109,13 @@ describe('updateActivity preserves option ids on edit', () => {
       ...EMPTY_ACTIVITY,
       slug: 'booked-activity',
       title: 'Edited Title',
-      options: [{ id: optionId, name: 'Renamed Option', prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }] }],
+      options: [
+        {
+          id: optionId,
+          name: 'Renamed Option',
+          prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }],
+        },
+      ],
     };
 
     await db.as({ sub: STAFF, role: 'authenticated' });
@@ -143,7 +155,13 @@ describe('updateActivity preserves option ids on edit', () => {
       ...EMPTY_ACTIVITY,
       slug: 'held-activity',
       title: 'A different title',
-      options: [{ id: optionId, name: 'Kept Option', prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }] }],
+      options: [
+        {
+          id: optionId,
+          name: 'Kept Option',
+          prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }],
+        },
+      ],
     };
 
     await db.as({ sub: STAFF, role: 'authenticated' });
@@ -151,7 +169,9 @@ describe('updateActivity preserves option ids on edit', () => {
 
     await db.asOwner();
     const occ = (
-      await db.pg.query<{ id: string }>(`select id from session_occurrences where id = $1`, [occurrenceId])
+      await db.pg.query<{ id: string }>(`select id from session_occurrences where id = $1`, [
+        occurrenceId,
+      ])
     ).rows;
     expect(occ, 'the materialised slot is not cascade-deleted').toHaveLength(1);
     const holds = (
@@ -178,7 +198,13 @@ describe('updateActivity preserves option ids on edit', () => {
       ...EMPTY_ACTIVITY,
       slug: 'removable-activity',
       title: 'Trimmed',
-      options: [{ id: optionId, name: 'Private group', prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }] }],
+      options: [
+        {
+          id: optionId,
+          name: 'Private group',
+          prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }],
+        },
+      ],
     };
 
     await db.as({ sub: STAFF, role: 'authenticated' });
@@ -186,10 +212,15 @@ describe('updateActivity preserves option ids on edit', () => {
 
     await db.asOwner();
     const opts = (
-      await db.pg.query<{ id: string }>(`select id from activity_options where activity_id = $1`, [activityId])
+      await db.pg.query<{ id: string }>(`select id from activity_options where activity_id = $1`, [
+        activityId,
+      ])
     ).rows;
     expect(opts.map((o) => o.id)).toEqual([optionId]);
-    expect(opts.some((o) => o.id === removableId), 'the removed unbooked option is gone').toBe(false);
+    expect(
+      opts.some((o) => o.id === removableId),
+      'the removed unbooked option is gone',
+    ).toBe(false);
   });
 
   it('removing an option that has availability occurrences (but no bookings) deletes it — occurrences cascade', async () => {
@@ -215,7 +246,13 @@ describe('updateActivity preserves option ids on edit', () => {
       ...EMPTY_ACTIVITY,
       slug: 'removable-with-availability',
       title: 'Trimmed',
-      options: [{ id: optionId, name: 'Private group', prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }] }],
+      options: [
+        {
+          id: optionId,
+          name: 'Private group',
+          prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }],
+        },
+      ],
     };
 
     await db.as({ sub: STAFF, role: 'authenticated' });
@@ -223,9 +260,14 @@ describe('updateActivity preserves option ids on edit', () => {
 
     await db.asOwner();
     const opts = (
-      await db.pg.query<{ id: string }>(`select id from activity_options where activity_id = $1`, [activityId])
+      await db.pg.query<{ id: string }>(`select id from activity_options where activity_id = $1`, [
+        activityId,
+      ])
     ).rows;
-    expect(opts.some((o) => o.id === removableId), 'the removed option (availability only) is gone').toBe(false);
+    expect(
+      opts.some((o) => o.id === removableId),
+      'the removed option (availability only) is gone',
+    ).toBe(false);
     const occ = (
       await db.pg.query(`select id from session_occurrences where id = $1`, [removableOcc])
     ).rows;

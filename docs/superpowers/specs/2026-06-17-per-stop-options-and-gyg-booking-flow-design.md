@@ -13,6 +13,7 @@ customer picks exactly one** ("instead of Pamplemousses, choose Fort Adelaide").
 are fixed by the admin.
 
 ### Data model
+
 - `itineraryStopSchema` (in `src/lib/validation/tours.ts`) gains **`options?: AltStop[]`**, where
   `AltStop = { title, area?, lat?, lng? }` (no nested options — one level). The stop's own
   title/area is the **primary/default**; `options` are the alternatives the customer can swap to.
@@ -21,14 +22,16 @@ are fixed by the admin.
   add/remove/reorder builder UI).
 
 ### Admin (`ActivityForm` `ItineraryEditor`)
+
 Each stop row gets an **"Alternatives (customer picks one instead)"** mini-list: rows of
 `title` + `area` the staff can add/remove. `ItineraryStopInput` gains `options: { title; area }[]`;
 `buildExtra` writes them (trimmed, empty dropped); `loadActivityForEdit` reads them.
 
 ### Customer (`ItineraryBuilder` rewrite)
-- A fixed timeline of the admin's stops. For any stop with `options.length > 0`, render the **primary
-  + alternatives as selectable chips** (primary selected by default); the customer taps one. No
-  remove/reorder/add controls.
+
+- A fixed timeline of the admin's stops. For any stop with `options.length > 0`, render the \*\*primary
+  - alternatives as selectable chips\*\* (primary selected by default); the customer taps one. No
+    remove/reorder/add controls.
 - State = `selectedByStop: Record<stopIndex, placeIndex>` (0 = primary, 1.. = `options[n-1]`).
 - The **chosen route** = `stops.map((s, i) => placeFor(i))` → `[{ title, area, lat, lng }]`.
 - Keeps: the **pickup origin** input (preview-only) and the live **RouteMap** (driving route + car).
@@ -36,6 +39,7 @@ Each stop row gets an **"Alternatives (customer picks one instead)"** mini-list:
   all-primaries** (so an untouched route saves no `customItinerary`). Same divergence rule as today.
 
 ### Booking — unchanged from PR #2
+
 The chosen route still saves to `bookings.custom_itinerary` via `api_book` and shows on the
 voucher + admin. No migration change.
 
@@ -54,9 +58,11 @@ screenshot:
    selection into the planning basket (no hold), as today.
 
 ### Shared state (the key architectural change)
+
 The sidebar widget and the left-column card must share one selection. Introduce a client
 **`BookingProvider`** (React context) wrapping the detail page's booking region, holding:
 `participants`, `selectedOccurrence` (date), `lang`, `suv`, `availabilityByDay`, and a `checked` flag.
+
 - The provider owns the availability fetch (moved out of the widget).
 - `BookingWidget` (sidebar) consumes it: renders the controls + "Check availability" → `check()`.
 - `BookingOptionCard` (left column, generalises the current `VehicleOptionCard`) consumes it: hidden
@@ -66,6 +72,7 @@ The sidebar widget and the left-column card must share one selection. Introduce 
   the same state (props are serializable; the provider is `'use client'`).
 
 ### Hold on Continue (move the hold earlier; keep the 30-min timer honest)
+
 - **Recommendation (approved):** do **not** hold at "Add to cart" (abandoned carts would starve a
   small operator's daily capacity). Hold when the customer commits — on **Continue**.
 - **Why a booking can't be created yet:** `api_book` needs a customer email, which we don't have
@@ -86,16 +93,19 @@ The sidebar widget and the left-column card must share one selection. Introduce 
 - "Add to cart" stays a no-hold basket; checking out a cart line creates its hold via the same path.
 
 ### Add to cart placement
+
 The **option card** (step 2, after Check availability) carries both **Continue** and **Add to cart**,
 so add-to-cart is only available once participants + date are chosen — as requested.
 
 ## Out of scope (YAGNI)
+
 - Real-time per-option availability (each itinerary alternative assumed always available).
 - Holding inventory at add-to-cart (explicitly rejected — capacity risk).
 - A separate "create hold" endpoint — Continue reuses the existing `api_book` (create_hold + booking).
 - Multi-select per stop (one pick per stop, confirmed).
 
 ## Tests
+
 - **DTO:** `itineraryStopSchema` parses `options`; older stops without it still parse.
 - **Admin round-trip:** `buildExtra`/`loadActivityForEdit` preserve per-stop `options`.
 - **Pure:** a small `chosenRoute(stops, selectedByStop)` helper (replaces the route reducer) — picks
@@ -105,6 +115,7 @@ so add-to-cart is only available once participants + date are chosen — as requ
 - Green gate + an adversarial review pass.
 
 ## Verification
+
 - Preview (real browser — the headless preview can't render Google Maps): step a per-group and a
   vehicle tour through Check availability → option card (price + SUV-at-4) → Continue (spot held,
   timer running) → checkout; pick an alternative stop and confirm the voucher route + the map update.

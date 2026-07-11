@@ -14,7 +14,9 @@ const CATCH_UP = readFileSync(join(process.cwd(), 'supabase', 'catch-up.sql'), '
 const CUSTOMER = 'd0d0d0d0-d0d0-d0d0-d0d0-d0d0d0d0d0d0';
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -24,7 +26,9 @@ describe('hotel-transfer seed: catch-up.sql creates a bookable activity when the
   beforeAll(async () => {
     db = await createTestDb(); // migrations applied; the migration seed was a no-op (no operator yet)
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
     await db.pg.exec(CATCH_UP); // operator now present -> the seed creates the activity + day-slots

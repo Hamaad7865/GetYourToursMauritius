@@ -49,7 +49,9 @@ export async function loadActivityOptions(activityId: string): Promise<{
 }
 
 /** Open-ended availability state: the activity's daily capacity (null = not bookable). */
-export async function loadAvailabilityState(activityId: string): Promise<{ capacity: number | null }> {
+export async function loadAvailabilityState(
+  activityId: string,
+): Promise<{ capacity: number | null }> {
   const { data, error } = await getBrowserSupabase()
     .from('activities')
     .select('daily_capacity')
@@ -69,7 +71,11 @@ export async function loadAvailabilityState(activityId: string): Promise<{ capac
  * option's trips/day), leaving the other options on the activity's number. The activity-wide
  * form never overwrites an option that has its own pool.
  */
-export async function setDailyCapacity(activityId: string, capacity: number, optionId?: string): Promise<void> {
+export async function setDailyCapacity(
+  activityId: string,
+  capacity: number,
+  optionId?: string,
+): Promise<void> {
   // One atomic RPC: update the activity/option, propagate the capacity to upcoming slots, and
   // materialize the window. Doing this in a single transaction avoids the partial state the old
   // three-call sequence could leave (capacity set but slots un-propagated, or no days materialized).

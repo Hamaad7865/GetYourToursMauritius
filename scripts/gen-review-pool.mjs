@@ -28,10 +28,12 @@ const MAX_PER_TOPIC = 120;
 
 /** Which topics a review's own words put it in. A review can carry several. */
 const TOPIC_PATTERNS = {
-  catamaran: /\b(catamaran|sail(?:ing|boat)?|cruise|boat trip|ile aux cerfs|île aux cerfs|deer island)\b/i,
+  catamaran:
+    /\b(catamaran|sail(?:ing|boat)?|cruise|boat trip|ile aux cerfs|île aux cerfs|deer island)\b/i,
   speedboat: /\b(speed ?boat|speedboat|benitiers|bénitiers|crystal rock)\b/i,
   dolphin: /\bdolphins?\b/i,
-  hiking: /\b(hike|hiking|trek(?:king)?|waterfall|mountain|climb|le morne|black river|gorges|chamarel)\b/i,
+  hiking:
+    /\b(hike|hiking|trek(?:king)?|waterfall|mountain|climb|le morne|black river|gorges|chamarel)\b/i,
   sightseeing: /\b(tour|excursion|driver|guide|sightseeing|day trip|port louis|grand bassin)\b/i,
   transfer: /\b(airport|transfer(?:red|s)?|pick(?:ed|s)?[- ]?up|pickup|driver|chauffeur|taxi)\b/i,
   rental: /\b(scooter|rent(?:al|ed|ing)?|car hire|quad|bike)\b/i,
@@ -106,7 +108,8 @@ function statsOf(set) {
 const statsSrc = readFileSync('src/lib/content/_reviews.gen.ts', 'utf8');
 const totalM = statsSrc.match(/"total":\s*(\d+)/);
 const avgM = statsSrc.match(/"average":\s*([\d.]+)/);
-if (!totalM || !avgM) throw new Error('could not read REVIEW_STATS total/average from _reviews.gen.ts');
+if (!totalM || !avgM)
+  throw new Error('could not read REVIEW_STATS total/average from _reviews.gen.ts');
 const generalStats = { avg: Number(avgM[1]), count: Number(totalM[1]) };
 
 /** Every scraped review mentioning the topic, whatever its rating or language. */

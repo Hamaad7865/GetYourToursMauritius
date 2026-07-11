@@ -19,7 +19,11 @@ export const AIRPORT_DRIVE_MINUTES = 60;
  * midnight. Returns the resulting `{ ymd, hhmm }`, or null if either input is malformed. Pure string/UTC
  * math — `ymd` is treated as a bare calendar date, never a wall-clock instant, so there's no TZ drift.
  */
-export function addMinutesLocal(ymd: string, hhmm: string, minutes: number): { ymd: string; hhmm: string } | null {
+export function addMinutesLocal(
+  ymd: string,
+  hhmm: string,
+  minutes: number,
+): { ymd: string; hhmm: string } | null {
   const tm = /^(\d{1,2}):(\d{2})/.exec(hhmm ?? '');
   if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd ?? '') || !tm) return null;
   const base = new Date(`${ymd}T00:00:00Z`);
@@ -37,7 +41,10 @@ export function addMinutesLocal(ymd: string, hhmm: string, minutes: number): { y
   base.setUTCDate(base.getUTCDate() + dayShift);
   const h = Math.floor(total / 60);
   const m = total % 60;
-  return { ymd: base.toISOString().slice(0, 10), hhmm: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}` };
+  return {
+    ymd: base.toISOString().slice(0, 10),
+    hhmm: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`,
+  };
 }
 
 export interface TransferLeg {

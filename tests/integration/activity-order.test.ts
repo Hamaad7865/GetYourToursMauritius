@@ -11,7 +11,9 @@ const STAFF = 'a5a5a5a5-a5a5-a5a5-a5a5-a5a5a5a5a5a5';
 const CUSTOMER = 'c0c0c0c0-c0c0-c0c0-c0c0-c0c0c0c0c0c0';
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -63,9 +65,15 @@ describe('activity card ordering', () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     // Reorder under a DIFFERENT category: none of these Catamaran ids belong to it, so nothing is
     // renumbered — the previous order is preserved (no cross-category scramble).
-    const before = await (async () => { await db.asOwner(); return catamaranOrder(); })();
+    const before = await (async () => {
+      await db.asOwner();
+      return catamaranOrder();
+    })();
     await db.as({ sub: STAFF, role: 'authenticated' });
-    await call(db, 'api_reorder_activities', { ids: [ids[0]!, ids[1]!, ids[2]!], category: 'Sightseeing tours' });
+    await call(db, 'api_reorder_activities', {
+      ids: [ids[0]!, ids[1]!, ids[2]!],
+      category: 'Sightseeing tours',
+    });
     await db.asOwner();
     expect(await catamaranOrder()).toEqual(before);
   });

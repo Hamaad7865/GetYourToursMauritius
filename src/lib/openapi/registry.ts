@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import type { ZodOpenApiPathsObject, ZodOpenApiResponseObject } from 'zod-openapi';
-import { errorEnvelopeSchema, paginationQuerySchema, successEnvelopeSchema } from '@/lib/validation/common';
+import {
+  errorEnvelopeSchema,
+  paginationQuerySchema,
+  successEnvelopeSchema,
+} from '@/lib/validation/common';
 import {
   availabilityQuerySchema,
   availabilitySlotSchema,
@@ -334,7 +338,10 @@ export const apiPaths: ZodOpenApiPathsObject = {
       security: [{ bearerAuth: [] }],
       requestParams: { path: refParam },
       responses: {
-        '200': { description: 'Invoice PDF', content: { 'application/pdf': { schema: z.string() } } },
+        '200': {
+          description: 'Invoice PDF',
+          content: { 'application/pdf': { schema: z.string() } },
+        },
         '401': errorResponse('Authentication required'),
         '404': errorResponse('Booking not found'),
         '409': errorResponse('Invoice not available until the booking is paid'),
@@ -344,12 +351,16 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/bookings/{ref}/voucher': {
     get: {
       operationId: 'getBookingVoucher',
-      summary: 'Download the airport-transfer e-voucher PDF (owner-or-staff, transfers only, once confirmed)',
+      summary:
+        'Download the airport-transfer e-voucher PDF (owner-or-staff, transfers only, once confirmed)',
       tags: ['Bookings'],
       security: [{ bearerAuth: [] }],
       requestParams: { path: refParam },
       responses: {
-        '200': { description: 'E-voucher PDF', content: { 'application/pdf': { schema: z.string() } } },
+        '200': {
+          description: 'E-voucher PDF',
+          content: { 'application/pdf': { schema: z.string() } },
+        },
         '401': errorResponse('Authentication required'),
         '404': errorResponse('Booking not found'),
         '409': errorResponse('Not a transfer, or not available until the booking is confirmed'),
@@ -359,13 +370,18 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/bookings/{ref}/cancel': {
     post: {
       operationId: 'cancelBooking',
-      summary: 'Customer cancels their own confirmed + paid booking (>24h before the trip) and starts a refund',
+      summary:
+        'Customer cancels their own confirmed + paid booking (>24h before the trip) and starts a refund',
       tags: ['Bookings'],
       security: [{ bearerAuth: [] }],
       requestParams: { path: refParam },
       responses: {
         '200': okJson(
-          z.object({ ref: z.string(), status: z.string(), alreadyCancelled: z.boolean().optional() }),
+          z.object({
+            ref: z.string(),
+            status: z.string(),
+            alreadyCancelled: z.boolean().optional(),
+          }),
           'Cancellation result',
         ),
         '401': errorResponse('Authentication required'),
@@ -394,10 +410,7 @@ export const apiPaths: ZodOpenApiPathsObject = {
       tags: ['Payments'],
       requestBody: jsonBody(syncPaymentInputSchema),
       responses: {
-        '200': okJson(
-          z.object({ outcome: z.string(), confirmed: z.boolean() }),
-          'Sync result',
-        ),
+        '200': okJson(z.object({ outcome: z.string(), confirmed: z.boolean() }), 'Sync result'),
         '403': errorResponse('Not the booking owner'),
         '404': errorResponse('Booking not found'),
       },

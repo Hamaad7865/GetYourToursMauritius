@@ -15,10 +15,12 @@
 ## Task 1: Schema + icon registry + pure normalize helper
 
 **Files:**
+
 - Modify: `src/lib/validation/tours.ts`
 - Create: `src/components/ui/badge-icons.tsx`, `src/lib/catalogue/badges.ts`, `tests/unit/badges.test.ts`
 
 - [ ] **Step 1: Schema.** In `src/lib/validation/tours.ts`, add a badge schema and wire it into `activityExtraSchema` (READ the file to match style; `activityExtraSchema` is a `z.object({ itinerary, importantInfo, availability, startWindow, returnWindow })`):
+
 ```typescript
 export const activityBadgeSchema = z.object({
   icon: z.string(),
@@ -31,11 +33,24 @@ export type ActivityBadge = z.infer<typeof activityBadgeSchema>;
 ```
 
 - [ ] **Step 2: Icon registry** `src/components/ui/badge-icons.tsx`. READ `src/components/ui/icons.tsx` to confirm the exact exported component names. Then:
+
 ```tsx
 import type { SVGProps } from 'react';
 import {
-  IconClock, IconUsers, IconGlobe, IconCheck, IconCalendar, IconBolt, IconShield,
-  IconPin, IconStar, IconHeart, IconWallet, IconTrophy, IconChat, IconTag,
+  IconClock,
+  IconUsers,
+  IconGlobe,
+  IconCheck,
+  IconCalendar,
+  IconBolt,
+  IconShield,
+  IconPin,
+  IconStar,
+  IconHeart,
+  IconWallet,
+  IconTrophy,
+  IconChat,
+  IconTag,
 } from '@/components/ui/icons';
 
 type IconCmp = (p: SVGProps<SVGSVGElement>) => React.ReactElement;
@@ -64,23 +79,36 @@ export function badgeIcon(key: string): IconCmp | null {
   return BY_KEY.get(key) ?? null;
 }
 ```
+
 (If any listed icon doesn't exist in `icons.tsx`, drop it from the list and note which.)
 
 - [ ] **Step 3: Failing test** `tests/unit/badges.test.ts`:
+
 ```typescript
 import { describe, expect, it } from 'vitest';
 import { normalizeBadges } from '@/lib/catalogue/badges';
 
 describe('normalizeBadges', () => {
   it('keeps complete rows and trims', () => {
-    const out = normalizeBadges([{ icon: 'bolt', title: '  Instant  ', subtitle: '  E-voucher  ' }]);
+    const out = normalizeBadges([
+      { icon: 'bolt', title: '  Instant  ', subtitle: '  E-voucher  ' },
+    ]);
     expect(out).toEqual([{ icon: 'bolt', title: 'Instant', subtitle: 'E-voucher' }]);
   });
   it('drops rows missing an icon or a title', () => {
-    expect(normalizeBadges([{ icon: '', title: 'X', subtitle: '' }, { icon: 'pin', title: '', subtitle: '' }])).toEqual([]);
+    expect(
+      normalizeBadges([
+        { icon: '', title: 'X', subtitle: '' },
+        { icon: 'pin', title: '', subtitle: '' },
+      ]),
+    ).toEqual([]);
   });
   it('caps the count at 8', () => {
-    const many = Array.from({ length: 12 }, (_, i) => ({ icon: 'star', title: `T${i}`, subtitle: '' }));
+    const many = Array.from({ length: 12 }, (_, i) => ({
+      icon: 'star',
+      title: `T${i}`,
+      subtitle: '',
+    }));
     expect(normalizeBadges(many)).toHaveLength(8);
   });
 });
@@ -89,10 +117,15 @@ describe('normalizeBadges', () => {
 - [ ] **Step 4: Run, expect FAIL** — `npx vitest run tests/unit/badges.test.ts`.
 
 - [ ] **Step 5: Implement** `src/lib/catalogue/badges.ts`:
+
 ```typescript
 import type { ActivityBadge } from '@/lib/validation/tours';
 
-export interface BadgeInput { icon: string; title: string; subtitle: string }
+export interface BadgeInput {
+  icon: string;
+  title: string;
+  subtitle: string;
+}
 
 /** Trim, drop rows missing an icon or title, cap field lengths + the count. The form's source of truth on save. */
 export function normalizeBadges(rows: BadgeInput[]): ActivityBadge[] {
@@ -112,6 +145,7 @@ export function normalizeBadges(rows: BadgeInput[]): ActivityBadge[] {
 - [ ] **Step 6: Run → PASS.**
 
 - [ ] **Step 7: Verify + commit** — `npm run typecheck && npm run lint && npx vitest run tests/unit/badges.test.ts`.
+
 ```bash
 git add src/lib/validation/tours.ts src/components/ui/badge-icons.tsx src/lib/catalogue/badges.ts tests/unit/badges.test.ts
 git commit -m "feat(catalogue): badge schema, icon registry, normalizeBadges helper"
@@ -122,16 +156,19 @@ git commit -m "feat(catalogue): badge schema, icon registry, normalizeBadges hel
 ## Task 2: Admin — load, edit, save custom badges
 
 **Files:**
+
 - Modify: `src/lib/admin/activity-write.ts`, `src/components/admin/ActivityForm.tsx`
 
 - [ ] **Step 1: Form value type.** In `activity-write.ts` (READ it first): add `badges: BadgeInput[]` to `ActivityFormValues` (import `BadgeInput` from `@/lib/catalogue/badges`); add `badges: []` to `EMPTY_ACTIVITY`; extend the internal `ExtraShape` with `badges?: Array<{ icon?: string; title?: string; subtitle?: string }>`.
 
 - [ ] **Step 2: Load.** In `loadActivityForEdit`, map the stored badges into the form:
+
 ```typescript
 badges: (extra.badges ?? []).map((b) => ({ icon: b.icon ?? '', title: b.title ?? '', subtitle: b.subtitle ?? '' })),
 ```
 
 - [ ] **Step 3: Save.** In `buildExtra`, after the itinerary block, add badges via the Task-1 helper and include only when non-empty (match the existing `itinerary.length ? {...} : {}` idiom):
+
 ```typescript
 import { normalizeBadges } from '@/lib/catalogue/badges';
 // ...
@@ -141,15 +178,19 @@ if (itinerary.length) out.itinerary = itinerary;
 if (badges.length) out.badges = badges;
 return out;
 ```
+
 (Refactor the current `return itinerary.length ? { itinerary } : {}` into this shape. Confirm `buildExtra`'s return type still satisfies its caller `activityRow`.)
 
 - [ ] **Step 4: BadgesEditor UI.** In `ActivityForm.tsx`, add a `BadgesEditor` component modelled on the existing `StringList`/`ItineraryEditor` (READ those for the exact card/add/remove styling + the `set(...)` pattern). Each row: an icon `<select>` (options from `BADGE_ICONS` — `import { BADGE_ICONS } from '@/components/ui/badge-icons'` — `value={row.icon}`, option `value={b.key}` label `{b.label}`), a Title text input, a Subtitle text input, and a remove button; plus an "Add badge" button. Show a tiny preview of the chosen icon next to the select if easy (optional). Wire it into the form body near the existing Highlights/Itinerary editors:
+
 ```tsx
 <BadgesEditor badges={v.badges} onChange={(x) => set('badges', x)} />
 ```
+
 Add a one-line help text: "Custom badges replace the default highlights strip on the activity page. Leave empty to keep the defaults."
 
 - [ ] **Step 5: Verify + commit** — `npm run typecheck && npm run lint && npx vitest run` (all green; report numbers).
+
 ```bash
 git add src/lib/admin/activity-write.ts src/components/admin/ActivityForm.tsx
 git commit -m "feat(admin): custom badges editor (icon + title + subtitle) on the activity form"
@@ -160,9 +201,11 @@ git commit -m "feat(admin): custom badges editor (icon + title + subtitle) on th
 ## Task 3: Render custom badges + page wiring + green gate
 
 **Files:**
+
 - Modify: `src/components/gyg/detail/Sections.tsx`, `app/(site)/activities/[slug]/page.tsx`
 
 - [ ] **Step 1: QuickFacts render.** READ `QuickFacts` in `Sections.tsx` (the badge layout: a `grid sm:grid-cols-2` of `{ icon, title, sub }` rows with a `h-12 w-12` icon tile). Add a `badges?: { icon: string; title: string; subtitle: string }[]` prop. Right after `const t = await getT();`, branch:
+
 ```tsx
 if (badges && badges.length > 0) {
   return (
@@ -176,8 +219,14 @@ if (badges && badges.length > 0) {
                 {Icon ? <Icon width={22} height={22} /> : null}
               </span>
               <span className="min-w-0">
-                <span className="block text-[15px] font-bold leading-tight text-ink">{b.title}</span>
-                {b.subtitle ? <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">{b.subtitle}</span> : null}
+                <span className="block text-[15px] font-bold leading-tight text-ink">
+                  {b.title}
+                </span>
+                {b.subtitle ? (
+                  <span className="mt-0.5 block text-[13px] leading-snug text-ink-muted">
+                    {b.subtitle}
+                  </span>
+                ) : null}
               </span>
             </div>
           );
@@ -188,6 +237,7 @@ if (badges && badges.length > 0) {
 }
 // else: existing derived-strip logic unchanged
 ```
+
 Import `badgeIcon` from `@/components/ui/badge-icons`. Match the EXACT classes the existing strip uses (copy from the current render so custom + default look identical).
 
 - [ ] **Step 2: Page wiring.** In `app/(site)/activities/[slug]/page.tsx`, where `extra` is read (e.g. `const itinerary = activity.extra.itinerary ?? []`), add `const badges = activity.extra.badges ?? [];` and pass `badges={badges}` to `<QuickFacts ... />`.
@@ -195,6 +245,7 @@ Import `badgeIcon` from `@/components/ui/badge-icons`. Match the EXACT classes t
 - [ ] **Step 3: Green gate** — `npm run typecheck && npm run lint && npx vitest run` all green (report real numbers). Reason through: an activity with custom badges renders exactly those (unknown icon key → no icon, text still shows); an activity with none renders the current derived strip unchanged.
 
 - [ ] **Step 4: Commit**
+
 ```bash
 git add src/components/gyg/detail/Sections.tsx "app/(site)/activities/[slug]/page.tsx"
 git commit -m "feat(activity): render custom badges strip when set, else the default highlights"

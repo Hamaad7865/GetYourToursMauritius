@@ -27,7 +27,11 @@ describe('resolveTourStops', () => {
     const searchOne = vi.fn(async (q: string) => byTitle[q] ?? null);
 
     const out = await resolveTourStops(
-      [{ title: 'Port Louis' }, { title: 'Pamplemousses Botanical Garden' }, { title: 'Cap Malheureux' }],
+      [
+        { title: 'Port Louis' },
+        { title: 'Pamplemousses Botanical Garden' },
+        { title: 'Cap Malheureux' },
+      ],
       searchOne,
     );
 
@@ -36,7 +40,9 @@ describe('resolveTourStops', () => {
   });
 
   it('skips stops that do not resolve', async () => {
-    const searchOne = vi.fn(async (q: string) => (q === 'Grand Baie' ? place('g1', 'Grand Baie') : null));
+    const searchOne = vi.fn(async (q: string) =>
+      q === 'Grand Baie' ? place('g1', 'Grand Baie') : null,
+    );
     const out = await resolveTourStops([{ title: 'Nowhere' }, { title: 'Grand Baie' }], searchOne);
     expect(out.map((p) => p.id)).toEqual(['g1']);
   });
@@ -44,7 +50,10 @@ describe('resolveTourStops', () => {
   it('drops duplicate resolutions, keeping the first occurrence', async () => {
     const dup = place('same', 'Central Market');
     const searchOne = vi.fn(async () => dup);
-    const out = await resolveTourStops([{ title: 'Central Market' }, { title: 'Port Louis Market' }], searchOne);
+    const out = await resolveTourStops(
+      [{ title: 'Central Market' }, { title: 'Port Louis Market' }],
+      searchOne,
+    );
     expect(out).toHaveLength(1);
     expect(out[0]!.id).toBe('same');
   });

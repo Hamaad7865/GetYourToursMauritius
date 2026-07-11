@@ -9,14 +9,24 @@ import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
    travel-guide page. */
 
 /** A titled prose block. The first one on a page drops its top border/spacing. */
-export function ContentSection({ id, title, children }: { id?: string; title: string; children: ReactNode }) {
+export function ContentSection({
+  id,
+  title,
+  children,
+}: {
+  id?: string;
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <section
       id={id}
       className="mt-9 scroll-mt-28 border-t border-ink/10 pt-8 first:mt-0 first:border-t-0 first:pt-0"
     >
       <h2 className="text-[24px] font-extrabold tracking-tight text-ink">{title}</h2>
-      <div className="mt-4 flex flex-col gap-3.5 text-[15.5px] leading-relaxed text-ink/80">{children}</div>
+      <div className="mt-4 flex flex-col gap-3.5 text-[15.5px] leading-relaxed text-ink/80">
+        {children}
+      </div>
     </section>
   );
 }
@@ -24,7 +34,10 @@ export function ContentSection({ id, title, children }: { id?: string; title: st
 /** Inline teal text link used inside prose. */
 export function InlineLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <Link href={href} className="font-semibold text-teal underline underline-offset-2 hover:text-teal-dark">
+    <Link
+      href={href}
+      className="font-semibold text-teal underline underline-offset-2 hover:text-teal-dark"
+    >
       {children}
     </Link>
   );

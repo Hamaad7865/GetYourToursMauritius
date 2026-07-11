@@ -82,7 +82,10 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
               className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink/15 px-4 py-2 text-[13.5px] font-bold text-ink transition-colors hover:border-teal hover:text-teal"
             >
               {t('See all')}
-              <span aria-hidden className="transition-transform duration-200 group-hover:translate-x-0.5">
+              <span
+                aria-hidden
+                className="transition-transform duration-200 group-hover:translate-x-0.5"
+              >
                 →
               </span>
             </Link>
@@ -97,7 +100,10 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
             )}
             {/* Leave room for the promo card so the sightseeing rail still shows four cells. */}
             {cat.items.slice(0, isSightseeingCategory(cat.name) ? 3 : 4).map((activity) => (
-              <div key={activity.id} className="h-full w-[80%] shrink-0 snap-start sm:w-auto sm:shrink">
+              <div
+                key={activity.id}
+                className="h-full w-[80%] shrink-0 snap-start sm:w-auto sm:shrink"
+              >
                 <PlaceCard activity={activity} titleAs="h4" />
               </div>
             ))}

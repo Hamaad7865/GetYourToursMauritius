@@ -77,7 +77,13 @@ export function errorToResponse(
     // specifics). Log the real message with a correlation id; return only a generic message + id.
     const errorId = correlationId ?? crypto.randomUUID();
     log.error('service_error', { errorId, code: error.code, message: error.message });
-    return jsonError(error.status, error.code, genericServerMessage(error.code), { errorId }, headers);
+    return jsonError(
+      error.status,
+      error.code,
+      genericServerMessage(error.code),
+      { errorId },
+      headers,
+    );
   }
   // Unhandled error: emit a single structured line (parseable by Cloudflare Logpush / any log sink)
   // with a correlation id, and return that id to the client so a report can be traced — but never the

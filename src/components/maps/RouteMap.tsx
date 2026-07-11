@@ -143,7 +143,9 @@ export function RouteMap({
             return { pos, kind, title: s.title };
           }),
         )
-      ).filter((r): r is { pos: google.maps.LatLngLiteral; kind: StopKind; title: string } => r !== null);
+      ).filter(
+        (r): r is { pos: google.maps.LatLngLiteral; kind: StopKind; title: string } => r !== null,
+      );
       if (cancelled || !mapRef.current) return;
       if (resolved.length === 0) {
         setFailed(true);
@@ -206,7 +208,8 @@ export function RouteMap({
           // "not enabled / denied / disabled" is permanent for this key → stop retrying it this
           // session (every retry just re-spams the console); the straight-line fallback takes over.
           const code = (err as { code?: string })?.code ?? String(err);
-          if (/denied|not.*activated|not.*enabled|disabled|permission/i.test(code)) directionsDenied = true;
+          if (/denied|not.*activated|not.*enabled|disabled|permission/i.test(code))
+            directionsDenied = true;
         }
       }
       if (!drewRoute) {
@@ -276,7 +279,9 @@ export function RouteMap({
 
   if (stops.length === 0) return null;
   if (status === 'error' || failed) {
-    return <MapLinkCard href={mapsDirectionsUrl(stops.map((s) => s.title))} label="See the full route" />;
+    return (
+      <MapLinkCard href={mapsDirectionsUrl(stops.map((s) => s.title))} label="See the full route" />
+    );
   }
 
   return (
@@ -291,7 +296,10 @@ export function RouteMap({
           We never fall back to a dashed line. */}
       {noRoute && stops.length > 1 && (
         <div className="mt-2">
-          <MapLinkCard href={mapsDirectionsUrl(stops.map((s) => s.title))} label="See the full route" />
+          <MapLinkCard
+            href={mapsDirectionsUrl(stops.map((s) => s.title))}
+            label="See the full route"
+          />
         </div>
       )}
     </>

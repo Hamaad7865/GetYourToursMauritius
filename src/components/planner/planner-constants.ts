@@ -39,7 +39,18 @@ const pp = (
   lng: number,
   durationMin: number,
   closesAt: string | null = null,
-): PlannerPlace => ({ id, name, category, region, lat, lng, durationMin, closesAt, blurb: null, imageUrl: null });
+): PlannerPlace => ({
+  id,
+  name,
+  category,
+  region,
+  lat,
+  lng,
+  durationMin,
+  closesAt,
+  blurb: null,
+  imageUrl: null,
+});
 
 export const PRESETS: Preset[] = [
   {
@@ -48,8 +59,26 @@ export const PRESETS: Preset[] = [
     grad: 'linear-gradient(135deg,#0E8C92,#0B5C63)',
     places: [
       pp('preset-le-morne', 'Le Morne Beach', 'Beach', 'South', -20.456, 57.312, 90),
-      pp('preset-chamarel-waterfall', 'Chamarel Waterfall', 'Waterfall', 'South', -20.442, 57.385, 45, '17:00'),
-      pp('preset-seven-earths', 'Seven Coloured Earths', 'Nature', 'South', -20.445, 57.374, 40, '17:00'),
+      pp(
+        'preset-chamarel-waterfall',
+        'Chamarel Waterfall',
+        'Waterfall',
+        'South',
+        -20.442,
+        57.385,
+        45,
+        '17:00',
+      ),
+      pp(
+        'preset-seven-earths',
+        'Seven Coloured Earths',
+        'Nature',
+        'South',
+        -20.445,
+        57.374,
+        40,
+        '17:00',
+      ),
       pp('preset-gris-gris', 'Gris Gris', 'Viewpoint', 'South', -20.511, 57.525, 30),
     ],
   },
@@ -60,7 +89,16 @@ export const PRESETS: Preset[] = [
     places: [
       pp('preset-cap-malheureux', 'Cap Malheureux', 'Culture', 'North', -19.984, 57.615, 30),
       pp('preset-grand-baie', 'Grand Baie', 'Beach', 'North', -20.006, 57.58, 75),
-      pp('preset-pamplemousses', 'Pamplemousses Garden', 'Garden', 'North', -20.104, 57.579, 70, '17:30'),
+      pp(
+        'preset-pamplemousses',
+        'Pamplemousses Garden',
+        'Garden',
+        'North',
+        -20.104,
+        57.579,
+        70,
+        '17:30',
+      ),
     ],
   },
   {
@@ -75,14 +113,31 @@ export const PRESETS: Preset[] = [
 ];
 
 export const PLACE_CATEGORIES = [
-  'All', 'Beach', 'Waterfall', 'Viewpoint', 'Nature', 'Culture', 'Garden', 'Island', 'Landmark', 'Market',
+  'All',
+  'Beach',
+  'Waterfall',
+  'Viewpoint',
+  'Nature',
+  'Culture',
+  'Garden',
+  'Island',
+  'Landmark',
+  'Market',
 ];
 export const PLACE_REGIONS = ['All', 'North', 'South', 'East', 'West', 'Central'];
 
 /** Per-category hue for the colourful gradient thumbnails (the design's `hue`). */
 const CATEGORY_HUE: Record<string, number> = {
-  Beach: 191, Waterfall: 196, Viewpoint: 205, Nature: 135, Culture: 268,
-  Garden: 108, Island: 184, Market: 28, Landmark: 6, Food: 30,
+  Beach: 191,
+  Waterfall: 196,
+  Viewpoint: 205,
+  Nature: 135,
+  Culture: 268,
+  Garden: 108,
+  Island: 184,
+  Market: 28,
+  Landmark: 6,
+  Food: 30,
 };
 
 /** Stable hue for a place (category first, else a hash of the id). */

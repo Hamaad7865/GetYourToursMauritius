@@ -32,7 +32,11 @@ export const GET = apiHandler(async (req) => {
   const ids = url.searchParams.get('ids');
   const places = ids
     ? await placeDetailsByIds(
-        ids.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 25),
+        ids
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 25),
         key,
       )
     : await searchGooglePlaces(

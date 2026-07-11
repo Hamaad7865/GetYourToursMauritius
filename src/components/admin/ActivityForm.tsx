@@ -24,7 +24,9 @@ import {
 export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }) {
   const router = useRouter();
   const categories = useCategories();
-  const [values, setValues] = useState<ActivityFormValues | null>(mode === 'new' ? EMPTY_ACTIVITY : null);
+  const [values, setValues] = useState<ActivityFormValues | null>(
+    mode === 'new' ? EMPTY_ACTIVITY : null,
+  );
   const [loading, setLoading] = useState(mode === 'edit');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +78,13 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               value={v.title}
               onChange={(e) =>
                 setValues((prev) =>
-                  prev ? { ...prev, title: e.target.value, slug: slugLocked ? prev.slug : slugify(e.target.value) } : prev,
+                  prev
+                    ? {
+                        ...prev,
+                        title: e.target.value,
+                        slug: slugLocked ? prev.slug : slugify(e.target.value),
+                      }
+                    : prev,
                 )
               }
               placeholder="North Tour – Port Louis, Pamplemousses & Cap Malheureux"
@@ -94,14 +102,20 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             />
           </Field>
           <Field label="Category" required>
-            <select className={inputClass} value={v.category} onChange={(e) => set('category', e.target.value)}>
+            <select
+              className={inputClass}
+              value={v.category}
+              onChange={(e) => set('category', e.target.value)}
+            >
               {/* Always include the current value so editing an activity in a removed/renamed
                   category still shows it. */}
-              {[...new Set([...categories.map((c) => c.name), v.category].filter(Boolean))].map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
+              {[...new Set([...categories.map((c) => c.name), v.category].filter(Boolean))].map(
+                (c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ),
+              )}
             </select>
           </Field>
           <Field label="Type">
@@ -138,7 +152,9 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               min={0}
               className={inputClass}
               value={v.durationMinutes ?? ''}
-              onChange={(e) => set('durationMinutes', e.target.value ? Number(e.target.value) : null)}
+              onChange={(e) =>
+                set('durationMinutes', e.target.value ? Number(e.target.value) : null)
+              }
               placeholder="480"
             />
           </Field>
@@ -149,13 +165,15 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               max={60}
               className={inputClass}
               value={v.minAdvanceDays}
-              onChange={(e) => set('minAdvanceDays', e.target.value ? Math.max(0, Number(e.target.value)) : 0)}
+              onChange={(e) =>
+                set('minAdvanceDays', e.target.value ? Math.max(0, Number(e.target.value)) : 0)
+              }
               placeholder="1"
             />
             <p className="mt-1.5 text-[12px] text-ink-muted">
-              How many days ahead a customer must book. 1 = next day (the default — no same-day). Raise it
-              for trips that need planning (e.g. 3); the date picker hides any sooner dates and the server
-              rejects them.
+              How many days ahead a customer must book. 1 = next day (the default — no same-day).
+              Raise it for trips that need planning (e.g. 3); the date picker hides any sooner dates
+              and the server rejects them.
             </p>
           </Field>
         </div>
@@ -231,12 +249,16 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               placeholder="e.g. 09:00 or 07:30–09:30"
             />
             <p className="mt-1.5 text-[12px] text-ink-muted">
-              Shown in the “at a glance” facts as the departure time. Leave blank to show “Check availability
-              for start times”.
+              Shown in the “at a glance” facts as the departure time. Leave blank to show “Check
+              availability for start times”.
             </p>
           </Field>
           <Field label="Home region (transport add-on)">
-            <select className={inputClass} value={v.region} onChange={(e) => set('region', e.target.value)}>
+            <select
+              className={inputClass}
+              value={v.region}
+              onChange={(e) => set('region', e.target.value)}
+            >
               <option value="">Auto (from map coordinates)</option>
               <option value="North">North</option>
               <option value="South">South</option>
@@ -245,9 +267,9 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               <option value="Central">Central</option>
             </select>
             <p className="mt-1.5 text-[12px] text-ink-muted">
-              The activity’s boarding region. For per-person / per-group activities with hotel pickup, the
-              door-to-door transport fee scales with how far the customer’s pickup is from this region. Fares
-              live in Vehicle pricing → Activity transport add-on.
+              The activity’s boarding region. For per-person / per-group activities with hotel
+              pickup, the door-to-door transport fee scales with how far the customer’s pickup is
+              from this region. Fares live in Vehicle pricing → Activity transport add-on.
             </p>
           </Field>
           <Field label="Price list (PDF)">
@@ -259,15 +281,17 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               onLabel={(l) => set('priceListLabel', l)}
             />
             <p className="mt-1.5 text-[12px] text-ink-muted">
-              Upload a price-list PDF to show a “Price list” section on the activity page (embedded on
-              desktop, with a download button everywhere). Leave empty to hide it.
+              Upload a price-list PDF to show a “Price list” section on the activity page (embedded
+              on desktop, with a download button everywhere). Leave empty to hide it.
             </p>
           </Field>
           <Field label="Pricing">
             <select
               className={inputClass}
               value={v.pricingMode}
-              onChange={(e) => set('pricingMode', e.target.value as ActivityFormValues['pricingMode'])}
+              onChange={(e) =>
+                set('pricingMode', e.target.value as ActivityFormValues['pricingMode'])
+              }
             >
               <option value="per_person">Per person (price × people)</option>
               <option value="per_group">Per group (one price per group of N)</option>
@@ -282,10 +306,26 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             </p>
           </Field>
           <div className="grid gap-5 sm:grid-cols-2">
-            <StringList label="Highlights" items={v.highlights} onChange={(x) => set('highlights', x)} />
-            <StringList label="Languages" items={v.languages} onChange={(x) => set('languages', x)} />
-            <StringList label="What's included" items={v.inclusions} onChange={(x) => set('inclusions', x)} />
-            <StringList label="Not included" items={v.exclusions} onChange={(x) => set('exclusions', x)} />
+            <StringList
+              label="Highlights"
+              items={v.highlights}
+              onChange={(x) => set('highlights', x)}
+            />
+            <StringList
+              label="Languages"
+              items={v.languages}
+              onChange={(x) => set('languages', x)}
+            />
+            <StringList
+              label="What's included"
+              items={v.inclusions}
+              onChange={(x) => set('inclusions', x)}
+            />
+            <StringList
+              label="Not included"
+              items={v.exclusions}
+              onChange={(x) => set('exclusions', x)}
+            />
           </div>
         </div>
       </Section>
@@ -304,17 +344,17 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         {v.pricingMode === 'vehicle' ? (
           <>
             <p className="rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-              Vehicle-priced tours use the global flat prices (Sedan €70 / SUV €85 / Family €85 / Van
-              €125 / Coaster €225 · max 25). Add a single option (e.g. “Sightseeing”) so dates can be
-              scheduled — no price tiers required.
+              Vehicle-priced tours use the global flat prices (Sedan €70 / SUV €85 / Family €85 /
+              Van €125 / Coaster €225 · max 25). Add a single option (e.g. “Sightseeing”) so dates
+              can be scheduled — no price tiers required.
             </p>
             {v.options.some((o) => o.isPrivateOption) && (
               // The options editor is hidden in vehicle mode, so without this the save error
               // ("private option isn't available on vehicle-priced tours") had no visible fix.
               <div className="mt-2.5 flex flex-wrap items-center gap-3 rounded-lg border border-coral/40 bg-coral/5 px-3 py-2.5 text-[12.5px] text-ink">
                 <span>
-                  This tour still has a <b>Private option</b> — not available with vehicle pricing, so
-                  saving will fail until it&rsquo;s removed.
+                  This tour still has a <b>Private option</b> — not available with vehicle pricing,
+                  so saving will fail until it&rsquo;s removed.
                 </span>
                 <button
                   type="button"
@@ -348,8 +388,16 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         hint="Two lists shown in the “Important information” block on the activity page. “What to bring” is a packing checklist; “Know before you go” holds notes like the infant policy, halal food, or parking. For catamaran & sightseeing tours these merge with the shared defaults (duplicates are removed)."
       >
         <div className="grid gap-5 sm:grid-cols-2">
-          <StringList label="What to bring" items={v.whatToBring} onChange={(x) => set('whatToBring', x)} />
-          <StringList label="Know before you go" items={v.importantInfo} onChange={(x) => set('importantInfo', x)} />
+          <StringList
+            label="What to bring"
+            items={v.whatToBring}
+            onChange={(x) => set('whatToBring', x)}
+          />
+          <StringList
+            label="Know before you go"
+            items={v.importantInfo}
+            onChange={(x) => set('importantInfo', x)}
+          />
         </div>
       </Section>
 
@@ -389,7 +437,15 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
 const inputClass =
   'w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink-muted/70 focus:border-teal focus:bg-white';
 
-function Section({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
   return (
     <section className="rounded-2xl border border-[#EAEEF0] bg-white p-5 sm:p-6">
       <h2 className="text-[15px] font-extrabold text-ink">{title}</h2>
@@ -445,7 +501,10 @@ function StringList({
       <span className="text-[13px] font-bold text-ink">{label}</span>
       <div className="flex flex-wrap gap-1.5">
         {items.map((it, i) => (
-          <span key={`${it}-${i}`} className="flex items-center gap-1 rounded-full bg-cream px-3 py-1 text-[13px] text-ink">
+          <span
+            key={`${it}-${i}`}
+            className="flex items-center gap-1 rounded-full bg-cream px-3 py-1 text-[13px] text-ink"
+          >
             {it}
             <button
               type="button"
@@ -520,7 +579,9 @@ function ImagesEditor({
       }
       onChange([...images, ...added]);
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload failed (is the storage bucket set up?).');
+      setUploadError(
+        err instanceof Error ? err.message : 'Upload failed (is the storage bucket set up?).',
+      );
     } finally {
       setUploading(false);
     }
@@ -569,7 +630,11 @@ function ImagesEditor({
           </div>
           <div className="relative shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={img.url} alt={img.alt || 'preview'} className="h-14 w-20 rounded-lg object-cover" />
+            <img
+              src={img.url}
+              alt={img.alt || 'preview'}
+              className="h-14 w-20 rounded-lg object-cover"
+            />
             <span
               className={`absolute left-1 top-1 grid h-5 min-w-5 place-items-center rounded-full px-1 text-[11px] font-bold ${
                 i < 5 ? 'bg-teal text-white' : 'bg-ink/55 text-white'
@@ -652,7 +717,9 @@ function PriceListEditor({
     try {
       onUrl(await uploadActivityPdf(file, slug));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Upload failed (is the storage bucket set up?).');
+      setError(
+        err instanceof Error ? err.message : 'Upload failed (is the storage bucket set up?).',
+      );
     } finally {
       setUploading(false);
     }
@@ -705,7 +772,13 @@ function PriceListEditor({
   );
 }
 
-function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange: (o: OptionInput[]) => void }) {
+function OptionsEditor({
+  options,
+  onChange,
+}: {
+  options: OptionInput[];
+  onChange: (o: OptionInput[]) => void;
+}) {
   function update(i: number, patch: Partial<OptionInput>) {
     onChange(options.map((o, idx) => (idx === i ? { ...o, ...patch } : o)));
   }
@@ -719,7 +792,13 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
         const half = optBase > 0 ? Math.round((optBase / 2) * 100) / 100 : null;
         const hasReal = opt.prices.some((p) => p.label.trim() || p.amountEur != null);
         const seedBands = [
-          { label: 'Adult', amountEur: optBase > 0 ? optBase : null, maxGuests: null, minAge: 11, maxAge: null },
+          {
+            label: 'Adult',
+            amountEur: optBase > 0 ? optBase : null,
+            maxGuests: null,
+            minAge: 11,
+            maxAge: null,
+          },
           { label: 'Child', amountEur: half, maxGuests: null, minAge: 3, maxAge: 10 },
           { label: 'Infant', amountEur: 0, maxGuests: null, minAge: 0, maxAge: 3 },
         ];
@@ -753,7 +832,9 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                 value={opt.durationMinutes ?? ''}
                 placeholder="mins"
                 aria-label="Option duration in minutes"
-                onChange={(e) => update(i, { durationMinutes: e.target.value ? Number(e.target.value) : null })}
+                onChange={(e) =>
+                  update(i, { durationMinutes: e.target.value ? Number(e.target.value) : null })
+                }
               />
               <span>min ·</span>
               <input
@@ -763,7 +844,9 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                 aria-label="Option start time"
                 onChange={(e) => update(i, { startWindow: e.target.value })}
               />
-              <span className="text-ink-muted/70">blank = use the activity’s duration / start time</span>
+              <span className="text-ink-muted/70">
+                blank = use the activity’s duration / start time
+              </span>
             </div>
             {/* Private option: its own trips-per-day pool + base-covers-N + per-extra-head pricing.
                 Replaces the price tiers entirely (the private fields ARE the pricing). */}
@@ -799,8 +882,9 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
               />
               <span className="text-[12.5px] text-ink">
                 <span className="font-bold">Private option</span> — one booking takes the whole trip
-                (own <span className="font-semibold">trips-per-day</span> pool, set in Availability). A flat
-                base price covers the first N guests; extra guests pay per head.
+                (own <span className="font-semibold">trips-per-day</span> pool, set in
+                Availability). A flat base price covers the first N guests; extra guests pay per
+                head.
               </span>
             </label>
             {opt.isPrivateOption && (
@@ -814,7 +898,9 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                     className="mt-1 w-full rounded-lg border border-ink/15 px-2.5 py-2 text-sm text-ink outline-none"
                     value={opt.privateBaseEur ?? ''}
                     placeholder="90"
-                    onChange={(e) => update(i, { privateBaseEur: e.target.value ? Number(e.target.value) : null })}
+                    onChange={(e) =>
+                      update(i, { privateBaseEur: e.target.value ? Number(e.target.value) : null })
+                    }
                   />
                 </label>
                 <label className="text-[12px] font-semibold text-ink-muted">
@@ -825,7 +911,9 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                     className="mt-1 w-full rounded-lg border border-ink/15 px-2.5 py-2 text-sm text-ink outline-none"
                     value={opt.privateIncluded ?? ''}
                     placeholder="4"
-                    onChange={(e) => update(i, { privateIncluded: e.target.value ? Number(e.target.value) : null })}
+                    onChange={(e) =>
+                      update(i, { privateIncluded: e.target.value ? Number(e.target.value) : null })
+                    }
                   />
                 </label>
                 <label className="text-[12px] font-semibold text-ink-muted">
@@ -837,7 +925,9 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                     className="mt-1 w-full rounded-lg border border-ink/15 px-2.5 py-2 text-sm text-ink outline-none"
                     value={opt.privateExtraEur ?? ''}
                     placeholder="25"
-                    onChange={(e) => update(i, { privateExtraEur: e.target.value ? Number(e.target.value) : null })}
+                    onChange={(e) =>
+                      update(i, { privateExtraEur: e.target.value ? Number(e.target.value) : null })
+                    }
                   />
                 </label>
                 <label className="text-[12px] font-semibold text-ink-muted">
@@ -848,13 +938,17 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                     className="mt-1 w-full rounded-lg border border-ink/15 px-2.5 py-2 text-sm text-ink outline-none"
                     value={opt.privateMaxGuests ?? ''}
                     placeholder="8"
-                    onChange={(e) => update(i, { privateMaxGuests: e.target.value ? Number(e.target.value) : null })}
+                    onChange={(e) =>
+                      update(i, {
+                        privateMaxGuests: e.target.value ? Number(e.target.value) : null,
+                      })
+                    }
                   />
                 </label>
                 <p className="col-span-2 text-[11.5px] text-ink-muted sm:col-span-4">
-                  Example: €90 covers 1–4 guests, €25 per extra guest, max 8 → a party of 6 pays €140. Each
-                  booking uses <span className="font-semibold">1 trip</span> for the day — set how many trips
-                  you run per day on the Availability screen.
+                  Example: €90 covers 1–4 guests, €25 per extra guest, max 8 → a party of 6 pays
+                  €140. Each booking uses <span className="font-semibold">1 trip</span> for the day
+                  — set how many trips you run per day on the Availability screen.
                 </p>
               </div>
             )}
@@ -876,7 +970,11 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                         step="0.01"
                         className="w-full bg-transparent py-2.5 text-sm text-ink outline-none"
                         value={p.amountEur ?? ''}
-                        onChange={(e) => patchTier(pi, { amountEur: e.target.value ? Number(e.target.value) : null })}
+                        onChange={(e) =>
+                          patchTier(pi, {
+                            amountEur: e.target.value ? Number(e.target.value) : null,
+                          })
+                        }
                         placeholder="70"
                       />
                     </div>
@@ -885,10 +983,12 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                       min={1}
                       className="w-24 shrink-0 rounded-xl border border-ink/15 px-3 py-2.5 text-sm text-ink outline-none"
                       value={p.maxGuests ?? ''}
-                      onChange={(e) => patchTier(pi, { maxGuests: e.target.value ? Number(e.target.value) : null })}
+                      onChange={(e) =>
+                        patchTier(pi, { maxGuests: e.target.value ? Number(e.target.value) : null })
+                      }
                       placeholder="Group"
                       aria-label="Group size (max guests) — leave blank for per-person pricing"
-                      title="Group size — set e.g. 4 for &quot;per group up to 4&quot;; leave blank for per-person"
+                      title='Group size — set e.g. 4 for "per group up to 4"; leave blank for per-person'
                     />
                     <button
                       type="button"
@@ -911,7 +1011,9 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                       className="w-14 rounded-lg border border-ink/15 px-2 py-1.5 text-ink outline-none"
                       value={p.minAge ?? ''}
                       placeholder="from"
-                      onChange={(e) => patchTier(pi, { minAge: e.target.value ? Number(e.target.value) : null })}
+                      onChange={(e) =>
+                        patchTier(pi, { minAge: e.target.value ? Number(e.target.value) : null })
+                      }
                     />
                     <span>–</span>
                     <input
@@ -921,16 +1023,30 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                       className="w-14 rounded-lg border border-ink/15 px-2 py-1.5 text-ink outline-none"
                       value={p.maxAge ?? ''}
                       placeholder="to"
-                      onChange={(e) => patchTier(pi, { maxAge: e.target.value ? Number(e.target.value) : null })}
+                      onChange={(e) =>
+                        patchTier(pi, { maxAge: e.target.value ? Number(e.target.value) : null })
+                      }
                     />
                     <span className="mx-1 text-ink/20">|</span>
-                    <button type="button" className={presetBtn} onClick={() => patchTier(pi, { amountEur: optBase || null })}>
+                    <button
+                      type="button"
+                      className={presetBtn}
+                      onClick={() => patchTier(pi, { amountEur: optBase || null })}
+                    >
                       Full
                     </button>
-                    <button type="button" className={presetBtn} onClick={() => patchTier(pi, { amountEur: half })}>
+                    <button
+                      type="button"
+                      className={presetBtn}
+                      onClick={() => patchTier(pi, { amountEur: half })}
+                    >
                       Half
                     </button>
-                    <button type="button" className={presetBtn} onClick={() => patchTier(pi, { amountEur: 0 })}>
+                    <button
+                      type="button"
+                      className={presetBtn}
+                      onClick={() => patchTier(pi, { amountEur: 0 })}
+                    >
                       Free
                     </button>
                   </div>
@@ -939,14 +1055,20 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
               <div className="flex flex-wrap items-center gap-4">
                 <button
                   type="button"
-                  onClick={() => update(i, { prices: [...opt.prices, { label: '', amountEur: null, maxGuests: null }] })}
+                  onClick={() =>
+                    update(i, {
+                      prices: [...opt.prices, { label: '', amountEur: null, maxGuests: null }],
+                    })
+                  }
                   className="text-[13px] font-bold text-teal hover:text-teal-dark"
                 >
                   + Add price tier
                 </button>
                 <button
                   type="button"
-                  onClick={() => update(i, { prices: hasReal ? [...opt.prices, ...seedBands] : seedBands })}
+                  onClick={() =>
+                    update(i, { prices: hasReal ? [...opt.prices, ...seedBands] : seedBands })
+                  }
                   className="text-[13px] font-bold text-teal hover:text-teal-dark"
                 >
                   + Add age bands (Adult / Child / Infant)
@@ -961,7 +1083,12 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
         onClick={() =>
           onChange([
             ...options,
-            { name: '', durationMinutes: null, startWindow: '', prices: [{ label: '', amountEur: null, maxGuests: null }] },
+            {
+              name: '',
+              durationMinutes: null,
+              startWindow: '',
+              prices: [{ label: '', amountEur: null, maxGuests: null }],
+            },
           ])
         }
         className="self-start rounded-full border border-ink/15 px-4 py-2 text-sm font-bold text-ink hover:border-teal hover:text-teal"
@@ -1025,8 +1152,8 @@ function ItineraryEditor({
               Alternatives (the customer picks one instead)
             </div>
             <p className="mb-2 text-[11.5px] text-ink-muted">
-              Leave empty to keep this stop fixed. Add e.g. Fort Adelaide so the customer can swap it
-              for {stop.title.trim() || 'this stop'}.
+              Leave empty to keep this stop fixed. Add e.g. Fort Adelaide so the customer can swap
+              it for {stop.title.trim() || 'this stop'}.
             </p>
             {stop.options.map((opt, oi) => (
               <div key={oi} className="mb-2 flex items-center gap-2">
@@ -1035,7 +1162,9 @@ function ItineraryEditor({
                   value={opt.title}
                   onChange={(e) =>
                     update(i, {
-                      options: stop.options.map((o, idx) => (idx === oi ? { ...o, title: e.target.value } : o)),
+                      options: stop.options.map((o, idx) =>
+                        idx === oi ? { ...o, title: e.target.value } : o,
+                      ),
                     })
                   }
                   placeholder="Alternative place (e.g. Fort Adelaide)"
@@ -1045,7 +1174,9 @@ function ItineraryEditor({
                   value={opt.area}
                   onChange={(e) =>
                     update(i, {
-                      options: stop.options.map((o, idx) => (idx === oi ? { ...o, area: e.target.value } : o)),
+                      options: stop.options.map((o, idx) =>
+                        idx === oi ? { ...o, area: e.target.value } : o,
+                      ),
                     })
                   }
                   placeholder="Area"
@@ -1053,7 +1184,9 @@ function ItineraryEditor({
                 <button
                   type="button"
                   aria-label="Remove alternative"
-                  onClick={() => update(i, { options: stop.options.filter((_, idx) => idx !== oi) })}
+                  onClick={() =>
+                    update(i, { options: stop.options.filter((_, idx) => idx !== oi) })
+                  }
                   className="shrink-0 text-ink-muted hover:text-coral"
                 >
                   <IconX width={16} height={16} />
@@ -1072,7 +1205,9 @@ function ItineraryEditor({
       ))}
       <button
         type="button"
-        onClick={() => onChange([...stops, { title: '', area: '', description: '', tags: [], options: [] }])}
+        onClick={() =>
+          onChange([...stops, { title: '', area: '', description: '', tags: [], options: [] }])
+        }
         className="self-start rounded-full border border-ink/15 px-4 py-2 text-sm font-bold text-ink hover:border-teal hover:text-teal"
       >
         Add stop
@@ -1081,7 +1216,13 @@ function ItineraryEditor({
   );
 }
 
-function BadgesEditor({ badges, onChange }: { badges: BadgeInput[]; onChange: (b: BadgeInput[]) => void }) {
+function BadgesEditor({
+  badges,
+  onChange,
+}: {
+  badges: BadgeInput[];
+  onChange: (b: BadgeInput[]) => void;
+}) {
   function update(i: number, patch: Partial<BadgeInput>) {
     onChange(badges.map((b, idx) => (idx === i ? { ...b, ...patch } : b)));
   }

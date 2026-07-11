@@ -3,877 +3,808 @@ import type { AreaContent } from './areas';
 
 export const AREAS_RAW: AreaContent[] = [
   {
-    "slug": "grand-baie",
-    "name": "Grand Baie",
-    "region": "North",
-    "intro": "Grand Baie is the lively hub of Mauritius' north coast, built around a sheltered turquoise bay that gives the village its name. Once a quiet fishing settlement, it's now the island's busiest resort town, packed with beachfront hotels, restaurants, shopping arcades and the country's best-known nightlife. By day it's a base for water sports, catamaran cruises and diving on the northern reefs; by night, bars and clubs along the Royal Road stay busy late. The calm, swimmable water and easy amenities suit families, while couples and groups come for the dining, sundowner spots and boat trips out to the nearby northern islands.",
-    "highlights": [
-      "Take a catamaran or speedboat cruise to the northern islands - Gabriel, Flat (Île Plate) and Round Island - for snorkelling and a beach barbecue",
-      "Dive or snorkel the northern reefs and dive sites such as the Coral Garden, with several PADI dive centres based in the village",
-      "Browse the Grand Baie Bazaar and La Croisette / Super U shopping mall for souvenirs, textiles and model ships",
-      "Visit the colourful Tamil Surya Oudaya Sangam and other temples around the bay",
+    slug: 'grand-baie',
+    name: 'Grand Baie',
+    region: 'North',
+    intro:
+      "Grand Baie is the lively hub of Mauritius' north coast, built around a sheltered turquoise bay that gives the village its name. Once a quiet fishing settlement, it's now the island's busiest resort town, packed with beachfront hotels, restaurants, shopping arcades and the country's best-known nightlife. By day it's a base for water sports, catamaran cruises and diving on the northern reefs; by night, bars and clubs along the Royal Road stay busy late. The calm, swimmable water and easy amenities suit families, while couples and groups come for the dining, sundowner spots and boat trips out to the nearby northern islands.",
+    highlights: [
+      'Take a catamaran or speedboat cruise to the northern islands - Gabriel, Flat (Île Plate) and Round Island - for snorkelling and a beach barbecue',
+      'Dive or snorkel the northern reefs and dive sites such as the Coral Garden, with several PADI dive centres based in the village',
+      'Browse the Grand Baie Bazaar and La Croisette / Super U shopping mall for souvenirs, textiles and model ships',
+      'Visit the colourful Tamil Surya Oudaya Sangam and other temples around the bay',
       "Enjoy Grand Baie's nightlife along Royal Road - beach bars, restaurants and late-night clubs",
-      "Try kitesurfing, parasailing, stand-up paddle and glass-bottom boat trips from the bay",
-      "Take a sunset cruise across the bay for dolphin-spotting trips run from the nearby north-west coast"
+      'Try kitesurfing, parasailing, stand-up paddle and glass-bottom boat trips from the bay',
+      'Take a sunset cruise across the bay for dolphin-spotting trips run from the nearby north-west coast',
     ],
-    "beaches": [
-      "La Cuvette Beach",
-      "Grand Baie public beach",
-      "Pereybere Beach",
-      "Mont Choisy Beach"
+    beaches: [
+      'La Cuvette Beach',
+      'Grand Baie public beach',
+      'Pereybere Beach',
+      'Mont Choisy Beach',
     ],
-    "gettingThere": "SSR Airport sits in the south-east, so Grand Baie is about 55-65 km away - roughly a 1 hr to 1 hr 15 min drive via the M1/M2 motorway. The simplest option is a pre-booked private transfer that meets you on arrival. Once there, the compact centre is walkable, with taxis and car hire for day trips.",
-    "goodFor": [
-      "Families",
-      "Couples",
-      "Nightlife",
-      "Water sports",
-      "Diving"
+    gettingThere:
+      'SSR Airport sits in the south-east, so Grand Baie is about 55-65 km away - roughly a 1 hr to 1 hr 15 min drive via the M1/M2 motorway. The simplest option is a pre-booked private transfer that meets you on arrival. Once there, the compact centre is walkable, with taxis and car hire for day trips.',
+    goodFor: ['Families', 'Couples', 'Nightlife', 'Water sports', 'Diving'],
+    nearbyAttractions: [
+      'Pereybere Beach',
+      'Mont Choisy Beach',
+      'Cap Malheureux and its red-roofed church (Notre Dame Auxiliatrice)',
+      'Grand Bassin / Pamplemousses - SSR Botanical Garden',
+      'Gabriel and Flat Islands (northern islets)',
+      'Bain Boeuf Beach near Cap Malheureux',
     ],
-    "nearbyAttractions": [
-      "Pereybere Beach",
-      "Mont Choisy Beach",
-      "Cap Malheureux and its red-roofed church (Notre Dame Auxiliatrice)",
-      "Grand Bassin / Pamplemousses - SSR Botanical Garden",
-      "Gabriel and Flat Islands (northern islets)",
-      "Bain Boeuf Beach near Cap Malheureux"
-    ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Grand Baie from the airport?",
-        "a": "SSR Airport is in the south-east, about 55-65 km from Grand Baie on the north coast. The drive takes roughly 1 hour to 1 hour 15 minutes via the motorway, depending on traffic. A pre-booked private transfer is the easiest way to arrive without the airport taxi queue."
+        q: 'How far is Grand Baie from the airport?',
+        a: 'SSR Airport is in the south-east, about 55-65 km from Grand Baie on the north coast. The drive takes roughly 1 hour to 1 hour 15 minutes via the motorway, depending on traffic. A pre-booked private transfer is the easiest way to arrive without the airport taxi queue.',
       },
       {
-        "q": "What is Grand Baie known for?",
-        "a": "Grand Baie is Mauritius' main resort town and is best known for its sheltered turquoise bay, water sports and catamaran cruises to the northern islands, plus the island's liveliest dining, shopping and nightlife scene along Royal Road."
+        q: 'What is Grand Baie known for?',
+        a: "Grand Baie is Mauritius' main resort town and is best known for its sheltered turquoise bay, water sports and catamaran cruises to the northern islands, plus the island's liveliest dining, shopping and nightlife scene along Royal Road.",
       },
       {
-        "q": "What is the best beach in or near Grand Baie?",
-        "a": "For calm swimming, La Cuvette and the Grand Baie public beach are right in the village. Just north, Pereybere is a popular sandy public beach, while Mont Choisy to the west is one of the longest beaches on the island and great for families."
+        q: 'What is the best beach in or near Grand Baie?',
+        a: 'For calm swimming, La Cuvette and the Grand Baie public beach are right in the village. Just north, Pereybere is a popular sandy public beach, while Mont Choisy to the west is one of the longest beaches on the island and great for families.',
       },
       {
-        "q": "When is the best time to visit Grand Baie?",
-        "a": "May to December offers the driest, coolest and sunniest weather and the calmest sea for boat trips and diving. January to March is hotter and wetter with a small cyclone risk, though still warm and good value for a beach stay."
-      }
-    ]
+        q: 'When is the best time to visit Grand Baie?',
+        a: 'May to December offers the driest, coolest and sunniest weather and the calmest sea for boat trips and diving. January to March is hotter and wetter with a small cyclone risk, though still warm and good value for a beach stay.',
+      },
+    ],
   },
   {
-    "slug": "pereybere",
-    "name": "Pereybère",
-    "region": "North",
-    "intro": "Pereybère is a relaxed seaside village on Mauritius's north coast, tucked between lively Grand Baie and the red-roofed chapel of Cap Malheureux. It's best known for its sheltered public beach, where shallow, calm turquoise water and a gentle reef make swimming and snorkelling easy and safe. The village has an unpretentious, local feel: small guesthouses, beachfront snack stalls, dive shops and casual restaurants rather than big resort strips. It suits families, couples and independent travellers who want north-coast convenience and nightlife within walking or a short drive of Grand Baie, but a quieter, more low-key base to come home to in the evening.",
-    "highlights": [
-      "Swim and snorkel at Pereybère Public Beach, where the calm, shallow lagoon and nearby reef are ideal for spotting fish close to shore",
+    slug: 'pereybere',
+    name: 'Pereybère',
+    region: 'North',
+    intro:
+      "Pereybère is a relaxed seaside village on Mauritius's north coast, tucked between lively Grand Baie and the red-roofed chapel of Cap Malheureux. It's best known for its sheltered public beach, where shallow, calm turquoise water and a gentle reef make swimming and snorkelling easy and safe. The village has an unpretentious, local feel: small guesthouses, beachfront snack stalls, dive shops and casual restaurants rather than big resort strips. It suits families, couples and independent travellers who want north-coast convenience and nightlife within walking or a short drive of Grand Baie, but a quieter, more low-key base to come home to in the evening.",
+    highlights: [
+      'Swim and snorkel at Pereybère Public Beach, where the calm, shallow lagoon and nearby reef are ideal for spotting fish close to shore',
       "Take a snorkelling or glass-bottom boat trip out to the northern islands — Île Plate (Flat Island), Gabriel Island and Coin de Mire (Gunner's Quoin)",
-      "Try scuba diving or a discovery dive with one of the local dive centres; the north coast has accessible reef and wreck sites",
-      "Walk or hop a few minutes to Grand Baie for waterfront restaurants, shopping, bars and nightlife",
-      "Visit the iconic red-roofed church of Notre Dame Auxiliatrice at Cap Malheureux, with views across to Coin de Mire",
-      "Browse the Grand Baie Bazaar and beach stalls for local crafts, spices and souvenirs",
-      "Watch the sunset and dine on fresh seafood at one of Pereybère's casual beachfront eateries"
+      'Try scuba diving or a discovery dive with one of the local dive centres; the north coast has accessible reef and wreck sites',
+      'Walk or hop a few minutes to Grand Baie for waterfront restaurants, shopping, bars and nightlife',
+      'Visit the iconic red-roofed church of Notre Dame Auxiliatrice at Cap Malheureux, with views across to Coin de Mire',
+      'Browse the Grand Baie Bazaar and beach stalls for local crafts, spices and souvenirs',
+      "Watch the sunset and dine on fresh seafood at one of Pereybère's casual beachfront eateries",
     ],
-    "beaches": [
-      "Pereybère Public Beach",
-      "Grand Baie Public Beach",
-      "La Cuvette Beach",
-      "Mont Choisy Beach"
+    beaches: [
+      'Pereybère Public Beach',
+      'Grand Baie Public Beach',
+      'La Cuvette Beach',
+      'Mont Choisy Beach',
     ],
-    "gettingThere": "From SSR Airport in the south-east, Pereybère is roughly 70 km away — about a 75 to 90 minute drive via the motorway through Port Louis. The simplest option is a pre-booked private transfer that meets you in arrivals and takes you door-to-door. Locally, walking, short taxi hops and car hire all work well for exploring the north.",
-    "goodFor": [
-      "Families",
-      "Couples",
-      "Snorkelling",
-      "Diving",
-      "Relaxation"
-    ],
-    "nearbyAttractions": [
-      "Grand Baie",
-      "Cap Malheureux and Notre Dame Auxiliatrice church",
-      "Mont Choisy Beach",
+    gettingThere:
+      'From SSR Airport in the south-east, Pereybère is roughly 70 km away — about a 75 to 90 minute drive via the motorway through Port Louis. The simplest option is a pre-booked private transfer that meets you in arrivals and takes you door-to-door. Locally, walking, short taxi hops and car hire all work well for exploring the north.',
+    goodFor: ['Families', 'Couples', 'Snorkelling', 'Diving', 'Relaxation'],
+    nearbyAttractions: [
+      'Grand Baie',
+      'Cap Malheureux and Notre Dame Auxiliatrice church',
+      'Mont Choisy Beach',
       "Coin de Mire (Gunner's Quoin) and the northern islands",
-      "SSR Botanical Garden at Pamplemousses",
-      "Grand Baie Bazaar"
+      'SSR Botanical Garden at Pamplemousses',
+      'Grand Baie Bazaar',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Pereybère from the airport?",
-        "a": "Pereybère is about 70 km from SSR Airport in the south-east of Mauritius. The drive takes roughly 75 to 90 minutes via the motorway through Port Louis, depending on traffic. A pre-booked private transfer is the easiest way to arrive door-to-door without changing taxis."
+        q: 'How far is Pereybère from the airport?',
+        a: 'Pereybère is about 70 km from SSR Airport in the south-east of Mauritius. The drive takes roughly 75 to 90 minutes via the motorway through Port Louis, depending on traffic. A pre-booked private transfer is the easiest way to arrive door-to-door without changing taxis.',
       },
       {
-        "q": "What is Pereybère known for?",
-        "a": "Pereybère is known for its sheltered public beach with calm, shallow, turquoise water that's safe for swimming and good for snorkelling close to shore. It's a quieter, more local-feeling alternative to neighbouring Grand Baie, while still being a short hop from the north coast's restaurants, bars and boat trips."
+        q: 'What is Pereybère known for?',
+        a: "Pereybère is known for its sheltered public beach with calm, shallow, turquoise water that's safe for swimming and good for snorkelling close to shore. It's a quieter, more local-feeling alternative to neighbouring Grand Baie, while still being a short hop from the north coast's restaurants, bars and boat trips.",
       },
       {
-        "q": "Which is the best beach in Pereybère?",
-        "a": "Pereybère Public Beach is the main draw — small, sandy and protected by the reef, with gentle water that suits families and snorkellers. For longer stretches of sand, nearby Mont Choisy and the calm cove at La Cuvette are both a short drive away."
+        q: 'Which is the best beach in Pereybère?',
+        a: 'Pereybère Public Beach is the main draw — small, sandy and protected by the reef, with gentle water that suits families and snorkellers. For longer stretches of sand, nearby Mont Choisy and the calm cove at La Cuvette are both a short drive away.',
       },
       {
-        "q": "Where is a good base to stay near Pereybère?",
-        "a": "Pereybère itself has guesthouses and small hotels for a relaxed stay. If you want more dining and nightlife on your doorstep, nearby Grand Baie offers a wider range of hotels and self-catering options, while Cap Malheureux and Pointe aux Canonniers are quieter alternatives just minutes away."
-      }
-    ]
+        q: 'Where is a good base to stay near Pereybère?',
+        a: 'Pereybère itself has guesthouses and small hotels for a relaxed stay. If you want more dining and nightlife on your doorstep, nearby Grand Baie offers a wider range of hotels and self-catering options, while Cap Malheureux and Pointe aux Canonniers are quieter alternatives just minutes away.',
+      },
+    ],
   },
   {
-    "slug": "trou-aux-biches",
-    "name": "Trou aux Biches",
-    "region": "North",
-    "intro": "Trou aux Biches is a relaxed beach village on the north-west coast of Mauritius, in the Pamplemousses district. It is best known for one of the island's finest public beaches: a long, palm-fringed stretch of soft white sand backing a shallow, calm lagoon that is safe for swimming and ideal for snorkelling. The water is sheltered by the reef, so it stays gentle most of the year, and the west-coast position means warm, dry afternoons and sunsets over the sea. It suits families, couples and first-time snorkellers who want a quieter base than busy Grand Baie, while still being a short drive from its restaurants and nightlife.",
-    "highlights": [
-      "Swim and sunbathe on Trou aux Biches public beach, a long calm-lagoon stretch shaded by casuarina and palm trees",
-      "Snorkel straight off the beach or take a boat trip over the reef to see corals, parrotfish and the occasional turtle",
-      "Scuba dive at well-known north-coast sites; the area has several PADI dive centres for beginners and certified divers",
+    slug: 'trou-aux-biches',
+    name: 'Trou aux Biches',
+    region: 'North',
+    intro:
+      "Trou aux Biches is a relaxed beach village on the north-west coast of Mauritius, in the Pamplemousses district. It is best known for one of the island's finest public beaches: a long, palm-fringed stretch of soft white sand backing a shallow, calm lagoon that is safe for swimming and ideal for snorkelling. The water is sheltered by the reef, so it stays gentle most of the year, and the west-coast position means warm, dry afternoons and sunsets over the sea. It suits families, couples and first-time snorkellers who want a quieter base than busy Grand Baie, while still being a short drive from its restaurants and nightlife.",
+    highlights: [
+      'Swim and sunbathe on Trou aux Biches public beach, a long calm-lagoon stretch shaded by casuarina and palm trees',
+      'Snorkel straight off the beach or take a boat trip over the reef to see corals, parrotfish and the occasional turtle',
+      'Scuba dive at well-known north-coast sites; the area has several PADI dive centres for beginners and certified divers',
       "Take a glass-bottom boat or catamaran cruise out toward the northern islets and Coin de Mire (Gunner's Quoin)",
-      "Watch the sunset over the lagoon, one of the best west-facing sunset spots on the island",
-      "Drive 10 minutes to Mont Choisy, a vast curving public beach with shallow water and shaded picnic lawns",
-      "Explore the bars, shops and seafront restaurants of nearby Grand Baie in the evening"
+      'Watch the sunset over the lagoon, one of the best west-facing sunset spots on the island',
+      'Drive 10 minutes to Mont Choisy, a vast curving public beach with shallow water and shaded picnic lawns',
+      'Explore the bars, shops and seafront restaurants of nearby Grand Baie in the evening',
     ],
-    "beaches": [
-      "Trou aux Biches Beach",
-      "Mont Choisy Beach",
-      "Pointe aux Piments",
-      "Grand Baie public beach"
+    beaches: [
+      'Trou aux Biches Beach',
+      'Mont Choisy Beach',
+      'Pointe aux Piments',
+      'Grand Baie public beach',
     ],
-    "gettingThere": "Trou aux Biches is on the north-west coast, about 60-65 km from SSR International Airport in the south-east, a drive of roughly 60-75 minutes via the M1/M2 motorways past Port Louis. There is no direct public transport from the airport, so the simplest option is a pre-booked private transfer that meets you at arrivals and takes you door to door. Once there, taxis and car hire cover Grand Baie and the north.",
-    "goodFor": [
-      "Families",
-      "Couples",
-      "Snorkelling",
-      "Diving",
-      "Relaxation"
-    ],
-    "nearbyAttractions": [
-      "Grand Baie",
-      "Mont Choisy Beach",
-      "SSR Botanical Garden, Pamplemousses",
-      "Cap Malheureux and its red-roofed church",
+    gettingThere:
+      'Trou aux Biches is on the north-west coast, about 60-65 km from SSR International Airport in the south-east, a drive of roughly 60-75 minutes via the M1/M2 motorways past Port Louis. There is no direct public transport from the airport, so the simplest option is a pre-booked private transfer that meets you at arrivals and takes you door to door. Once there, taxis and car hire cover Grand Baie and the north.',
+    goodFor: ['Families', 'Couples', 'Snorkelling', 'Diving', 'Relaxation'],
+    nearbyAttractions: [
+      'Grand Baie',
+      'Mont Choisy Beach',
+      'SSR Botanical Garden, Pamplemousses',
+      'Cap Malheureux and its red-roofed church',
       "L'Aventure du Sucre sugar museum",
-      "Port Louis and the Caudan Waterfront"
+      'Port Louis and the Caudan Waterfront',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Trou aux Biches from the airport?",
-        "a": "Trou aux Biches is about 60-65 km from SSR International Airport, which sits in the south-east of the island. By private car the drive is usually 60-75 minutes via the motorway past Port Louis, depending on traffic. A pre-booked private transfer is the easiest way to get there door to door."
+        q: 'How far is Trou aux Biches from the airport?',
+        a: 'Trou aux Biches is about 60-65 km from SSR International Airport, which sits in the south-east of the island. By private car the drive is usually 60-75 minutes via the motorway past Port Louis, depending on traffic. A pre-booked private transfer is the easiest way to get there door to door.',
       },
       {
-        "q": "What is Trou aux Biches known for?",
-        "a": "It is known for its beach: a long, calm, shallow lagoon protected by the reef, with soft white sand and shade from palm and casuarina trees. The gentle water makes it one of the island's best spots for swimming, snorkelling and easy diving, and it is a popular sunset beach."
+        q: 'What is Trou aux Biches known for?',
+        a: "It is known for its beach: a long, calm, shallow lagoon protected by the reef, with soft white sand and shade from palm and casuarina trees. The gentle water makes it one of the island's best spots for swimming, snorkelling and easy diving, and it is a popular sunset beach.",
       },
       {
-        "q": "Which is the best beach in or near Trou aux Biches?",
-        "a": "Trou aux Biches public beach itself is the highlight, with its calm lagoon and snorkelling. For a change of scenery, Mont Choisy beach is about 10 minutes north with a wide curving bay and shaded lawns, while Grand Baie offers a livelier seafront with restaurants and boat trips."
+        q: 'Which is the best beach in or near Trou aux Biches?',
+        a: 'Trou aux Biches public beach itself is the highlight, with its calm lagoon and snorkelling. For a change of scenery, Mont Choisy beach is about 10 minutes north with a wide curving bay and shaded lawns, while Grand Baie offers a livelier seafront with restaurants and boat trips.',
       },
       {
-        "q": "When is the best time to visit Trou aux Biches?",
-        "a": "May to December brings cooler, drier and less humid weather, ideal for the beach and water sports. The lagoon stays calm year-round, but the wettest, most humid months are January to March, which is also the cyclone season, so the cooler dry season is generally the most comfortable time to visit."
-      }
-    ]
+        q: 'When is the best time to visit Trou aux Biches?',
+        a: 'May to December brings cooler, drier and less humid weather, ideal for the beach and water sports. The lagoon stays calm year-round, but the wettest, most humid months are January to March, which is also the cyclone season, so the cooler dry season is generally the most comfortable time to visit.',
+      },
+    ],
   },
   {
-    "slug": "mont-choisy",
-    "name": "Mont Choisy",
-    "region": "North",
-    "intro": "Mont Choisy sits on the north coast of Mauritius, tucked between Trou aux Biches and the buzz of Grand Baie. It is best known for its long, gently curving public beach, one of the largest in the country, shaded by casuarina (filao) trees and fronted by a calm, shallow lagoon that is safe for swimming. The mood is relaxed and local: families picnic under the trees at weekends, and the water is ideal for first-time snorkelers and water sports. With easy access to Grand Baie's restaurants and nightlife just minutes away, plus a championship golf course on its doorstep, Mont Choisy suits couples, families and active travelers who want a quieter base without sacrificing things to do.",
-    "highlights": [
-      "Relax on Mont Choisy public beach, a long crescent of calm lagoon shaded by casuarina trees, with shallow water that is excellent for swimming",
-      "Try water sports in the protected lagoon, from kayaking and stand-up paddle to glass-bottom boat trips and parasailing",
-      "Play 18 holes at Mont Choisy Le Golf, a championship course set among sugar-cane fields just inland",
+    slug: 'mont-choisy',
+    name: 'Mont Choisy',
+    region: 'North',
+    intro:
+      "Mont Choisy sits on the north coast of Mauritius, tucked between Trou aux Biches and the buzz of Grand Baie. It is best known for its long, gently curving public beach, one of the largest in the country, shaded by casuarina (filao) trees and fronted by a calm, shallow lagoon that is safe for swimming. The mood is relaxed and local: families picnic under the trees at weekends, and the water is ideal for first-time snorkelers and water sports. With easy access to Grand Baie's restaurants and nightlife just minutes away, plus a championship golf course on its doorstep, Mont Choisy suits couples, families and active travelers who want a quieter base without sacrificing things to do.",
+    highlights: [
+      'Relax on Mont Choisy public beach, a long crescent of calm lagoon shaded by casuarina trees, with shallow water that is excellent for swimming',
+      'Try water sports in the protected lagoon, from kayaking and stand-up paddle to glass-bottom boat trips and parasailing',
+      'Play 18 holes at Mont Choisy Le Golf, a championship course set among sugar-cane fields just inland',
       "Snorkel or take a boat trip out toward Coin de Mire (Gunner's Quoin) and the northern islets",
       "Head into nearby Grand Baie for shopping, beach bars, restaurants and the island's liveliest nightlife",
-      "Take a catamaran day cruise along the north coast, with snorkeling stops, a barbecue lunch and dolphin-watching",
-      "Watch the sunset and browse craft stalls along the casuarina-lined shorefront in the evening"
+      'Take a catamaran day cruise along the north coast, with snorkeling stops, a barbecue lunch and dolphin-watching',
+      'Watch the sunset and browse craft stalls along the casuarina-lined shorefront in the evening',
     ],
-    "beaches": [
-      "Mont Choisy Beach",
-      "Trou aux Biches Beach",
-      "Pereybere Beach",
-      "Grand Baie (La Cuvette) Beach"
+    beaches: [
+      'Mont Choisy Beach',
+      'Trou aux Biches Beach',
+      'Pereybere Beach',
+      'Grand Baie (La Cuvette) Beach',
     ],
-    "gettingThere": "From SSR Airport in the south-east, Mont Choisy is roughly 60 km away on the north coast, about 1 hour 15 minutes by road via the motorway through Port Louis. The simplest option is a pre-booked private transfer that meets you on arrival; once there, taxis and car hire make exploring Grand Baie and the north easy.",
-    "goodFor": [
-      "Families",
-      "Couples",
-      "Water sports",
-      "Relaxation",
-      "Golf"
+    gettingThere:
+      'From SSR Airport in the south-east, Mont Choisy is roughly 60 km away on the north coast, about 1 hour 15 minutes by road via the motorway through Port Louis. The simplest option is a pre-booked private transfer that meets you on arrival; once there, taxis and car hire make exploring Grand Baie and the north easy.',
+    goodFor: ['Families', 'Couples', 'Water sports', 'Relaxation', 'Golf'],
+    nearbyAttractions: [
+      'Grand Baie',
+      'Trou aux Biches',
+      'Pereybere',
+      'Cap Malheureux and the red-roofed Notre Dame Auxiliatrice church',
+      'SSR Botanical Garden at Pamplemousses',
+      "Coin de Mire (Gunner's Quoin) islet",
     ],
-    "nearbyAttractions": [
-      "Grand Baie",
-      "Trou aux Biches",
-      "Pereybere",
-      "Cap Malheureux and the red-roofed Notre Dame Auxiliatrice church",
-      "SSR Botanical Garden at Pamplemousses",
-      "Coin de Mire (Gunner's Quoin) islet"
-    ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Mont Choisy from the airport?",
-        "a": "Mont Choisy is on the north coast, about 60 km from SSR Airport in the south-east, which is roughly a 1 hour 15 minute drive via the motorway through Port Louis. A pre-booked private transfer is the easiest way to arrive."
+        q: 'How far is Mont Choisy from the airport?',
+        a: 'Mont Choisy is on the north coast, about 60 km from SSR Airport in the south-east, which is roughly a 1 hour 15 minute drive via the motorway through Port Louis. A pre-booked private transfer is the easiest way to arrive.',
       },
       {
-        "q": "What is Mont Choisy known for?",
-        "a": "It is best known for its beach, one of the longest public beaches in Mauritius. The wide crescent bay has calm, shallow water shaded by casuarina trees, making it a favorite spot for swimming, family picnics and water sports."
+        q: 'What is Mont Choisy known for?',
+        a: 'It is best known for its beach, one of the longest public beaches in Mauritius. The wide crescent bay has calm, shallow water shaded by casuarina trees, making it a favorite spot for swimming, family picnics and water sports.',
       },
       {
-        "q": "Which is the best beach in or near Mont Choisy?",
-        "a": "Mont Choisy Beach itself is excellent for swimming thanks to its sheltered lagoon. Neighboring Trou aux Biches is famed for sunsets and snorkeling, while Pereybere offers a livelier village-beach atmosphere a short drive away."
+        q: 'Which is the best beach in or near Mont Choisy?',
+        a: 'Mont Choisy Beach itself is excellent for swimming thanks to its sheltered lagoon. Neighboring Trou aux Biches is famed for sunsets and snorkeling, while Pereybere offers a livelier village-beach atmosphere a short drive away.',
       },
       {
-        "q": "Where should I stay near Mont Choisy?",
-        "a": "Mont Choisy and adjacent Trou aux Biches offer calm beachfront hotels and villas, while nearby Grand Baie has a wider choice of resorts, apartments and easy access to restaurants and nightlife."
-      }
-    ]
+        q: 'Where should I stay near Mont Choisy?',
+        a: 'Mont Choisy and adjacent Trou aux Biches offer calm beachfront hotels and villas, while nearby Grand Baie has a wider choice of resorts, apartments and easy access to restaurants and nightlife.',
+      },
+    ],
   },
   {
-    "slug": "cap-malheureux",
-    "name": "Cap Malheureux",
-    "region": "North",
-    "intro": "Cap Malheureux is the northernmost village in Mauritius, a quiet former fishing community best known for the little red-roofed Notre-Dame Auxiliatrice church framed against the sea. From its shoreline you look straight out at the northern islets — Coin de Mire (Gunner's Quoin), Flat Island and Round Island — making this one of the island's most photographed views. It's calmer and more local than buzzy Grand Baie just down the coast, which suits couples, photographers and travellers after a laid-back base near the action. The vibe is relaxed: small guesthouses and a handful of upmarket resorts, gentle lagoon swimming and easy day trips to the north's beaches, gardens and boat departure points.",
-    "highlights": [
-      "Photograph the red-roofed Notre-Dame Auxiliatrice church, the most-photographed chapel in Mauritius, with the northern islets behind it",
-      "Take a catamaran or speedboat day trip to Coin de Mire, Flat Island (Île Plate) and Gabriel Island for snorkelling and a beach barbecue",
+    slug: 'cap-malheureux',
+    name: 'Cap Malheureux',
+    region: 'North',
+    intro:
+      "Cap Malheureux is the northernmost village in Mauritius, a quiet former fishing community best known for the little red-roofed Notre-Dame Auxiliatrice church framed against the sea. From its shoreline you look straight out at the northern islets — Coin de Mire (Gunner's Quoin), Flat Island and Round Island — making this one of the island's most photographed views. It's calmer and more local than buzzy Grand Baie just down the coast, which suits couples, photographers and travellers after a laid-back base near the action. The vibe is relaxed: small guesthouses and a handful of upmarket resorts, gentle lagoon swimming and easy day trips to the north's beaches, gardens and boat departure points.",
+    highlights: [
+      'Photograph the red-roofed Notre-Dame Auxiliatrice church, the most-photographed chapel in Mauritius, with the northern islets behind it',
+      'Take a catamaran or speedboat day trip to Coin de Mire, Flat Island (Île Plate) and Gabriel Island for snorkelling and a beach barbecue',
       "Swim and relax at nearby Bain Boeuf beach, a sheltered family-friendly stretch with views of Gunner's Quoin",
-      "Snorkel or dive the protected northern lagoon and reefs around the islets, rich in coral and marine life",
+      'Snorkel or dive the protected northern lagoon and reefs around the islets, rich in coral and marine life',
       "Spend an evening in nearby Grand Baie for restaurants, bars and the north's best nightlife",
-      "Visit the SSR Botanical Garden at Pamplemousses to see the giant Victoria amazonica water lilies and the talipot palms",
-      "Browse the fishing-village waterfront and watch the pirogues, then catch sunset over the lagoon"
+      'Visit the SSR Botanical Garden at Pamplemousses to see the giant Victoria amazonica water lilies and the talipot palms',
+      'Browse the fishing-village waterfront and watch the pirogues, then catch sunset over the lagoon',
     ],
-    "beaches": [
-      "Bain Boeuf (Pereybere area) — sheltered, shallow and family-friendly with views to Coin de Mire",
-      "Anse la Raie — a calm lagoon beach east of the village, popular for kitesurfing and windsurfing",
-      "Pereybere Beach — a lively public beach with shade, snorkelling and beachfront eateries",
-      "Cap Malheureux foreshore — small local beach by the church, good for sunset photos rather than swimming"
+    beaches: [
+      'Bain Boeuf (Pereybere area) — sheltered, shallow and family-friendly with views to Coin de Mire',
+      'Anse la Raie — a calm lagoon beach east of the village, popular for kitesurfing and windsurfing',
+      'Pereybere Beach — a lively public beach with shade, snorkelling and beachfront eateries',
+      'Cap Malheureux foreshore — small local beach by the church, good for sunset photos rather than swimming',
     ],
-    "gettingThere": "Cap Malheureux sits on the far north coast, roughly 60–70 km from SSR Airport in the south-east — about a 1 hr 15 min to 1 hr 30 min drive via the motorway. There's no airport bus and local transport is slow, so a pre-booked private transfer with Belle Mare Tours is the easiest door-to-door option. A car or driver helps for exploring the north.",
-    "goodFor": [
-      "Couples",
-      "Photography",
-      "Relaxation",
-      "Diving & snorkelling",
-      "Families"
+    gettingThere:
+      "Cap Malheureux sits on the far north coast, roughly 60–70 km from SSR Airport in the south-east — about a 1 hr 15 min to 1 hr 30 min drive via the motorway. There's no airport bus and local transport is slow, so a pre-booked private transfer with Belle Mare Tours is the easiest door-to-door option. A car or driver helps for exploring the north.",
+    goodFor: ['Couples', 'Photography', 'Relaxation', 'Diving & snorkelling', 'Families'],
+    nearbyAttractions: [
+      'Grand Baie (resort town, shopping and nightlife)',
+      'Pereybere Beach',
+      'Coin de Mire / Flat Island & Gabriel Island (boat trips)',
+      'SSR Botanical Garden, Pamplemousses',
+      'Cap Malheureux church (Notre-Dame Auxiliatrice)',
+      'Grand Gaube fishing village',
     ],
-    "nearbyAttractions": [
-      "Grand Baie (resort town, shopping and nightlife)",
-      "Pereybere Beach",
-      "Coin de Mire / Flat Island & Gabriel Island (boat trips)",
-      "SSR Botanical Garden, Pamplemousses",
-      "Cap Malheureux church (Notre-Dame Auxiliatrice)",
-      "Grand Gaube fishing village"
-    ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Cap Malheureux from the airport?",
-        "a": "It's about 60–70 km from SSR Airport in the south-east — roughly a 1 hr 15 min to 1 hr 30 min drive on the motorway. A pre-booked private transfer is the simplest way to get there, as there's no direct airport bus."
+        q: 'How far is Cap Malheureux from the airport?',
+        a: "It's about 60–70 km from SSR Airport in the south-east — roughly a 1 hr 15 min to 1 hr 30 min drive on the motorway. A pre-booked private transfer is the simplest way to get there, as there's no direct airport bus.",
       },
       {
-        "q": "What is Cap Malheureux known for?",
-        "a": "It's famous for the little red-roofed Notre-Dame Auxiliatrice church set against the sea, and for the postcard views of the northern islets — Coin de Mire, Flat Island and Round Island. As Mauritius' northernmost village it's a quiet, scenic spot popular for photos and boat trips."
+        q: 'What is Cap Malheureux known for?',
+        a: "It's famous for the little red-roofed Notre-Dame Auxiliatrice church set against the sea, and for the postcard views of the northern islets — Coin de Mire, Flat Island and Round Island. As Mauritius' northernmost village it's a quiet, scenic spot popular for photos and boat trips.",
       },
       {
-        "q": "Is Cap Malheureux good for swimming and snorkelling?",
-        "a": "The beach by the church is best for photos rather than swimming, but nearby Bain Boeuf and Pereybere offer calm, shallow lagoon water that's great for families. The reefs around the northern islets are excellent for snorkelling and diving, usually reached by boat trip."
+        q: 'Is Cap Malheureux good for swimming and snorkelling?',
+        a: "The beach by the church is best for photos rather than swimming, but nearby Bain Boeuf and Pereybere offer calm, shallow lagoon water that's great for families. The reefs around the northern islets are excellent for snorkelling and diving, usually reached by boat trip.",
       },
       {
-        "q": "Where should I stay near Cap Malheureux?",
-        "a": "Cap Malheureux itself has guesthouses and a few upmarket resorts. Many visitors base in nearby Grand Baie or Pereybere, just a few minutes away, for more restaurants, beaches and nightlife while staying within easy reach of the north's attractions."
-      }
-    ]
+        q: 'Where should I stay near Cap Malheureux?',
+        a: "Cap Malheureux itself has guesthouses and a few upmarket resorts. Many visitors base in nearby Grand Baie or Pereybere, just a few minutes away, for more restaurants, beaches and nightlife while staying within easy reach of the north's attractions.",
+      },
+    ],
   },
   {
-    "slug": "grande-gaube",
-    "name": "Grande Gaube",
-    "region": "North",
-    "intro": "Grande Gaube is a low-key fishing village on the northern tip of Mauritius, just east of busy Grand Baie. Pirogues still pull up on its small public beaches, and the pace stays slow even in high season, which makes it a favourite for couples and travellers who want the north's calm lagoons and warm water without the crowds. It is best known for its two big lagoon resorts, easy boat and kayak access to the mangroves of Île d'Ambre, and some of the best snorkelling and diving in the north. With Grand Baie's restaurants and nightlife a short drive away, it works well as a relaxed base for exploring the whole northern coast.",
-    "highlights": [
+    slug: 'grande-gaube',
+    name: 'Grande Gaube',
+    region: 'North',
+    intro:
+      "Grande Gaube is a low-key fishing village on the northern tip of Mauritius, just east of busy Grand Baie. Pirogues still pull up on its small public beaches, and the pace stays slow even in high season, which makes it a favourite for couples and travellers who want the north's calm lagoons and warm water without the crowds. It is best known for its two big lagoon resorts, easy boat and kayak access to the mangroves of Île d'Ambre, and some of the best snorkelling and diving in the north. With Grand Baie's restaurants and nightlife a short drive away, it works well as a relaxed base for exploring the whole northern coast.",
+    highlights: [
       "Kayak through the mangrove channels of Île d'Ambre, the calm islet just offshore, on a guided half-day paddle with a beach picnic",
-      "Take a catamaran or speedboat cruise to the northern islets - Coin de Mire, Flat Island (Île Plate) and Gabriel Island - for snorkelling and a barbecue lunch",
-      "Snorkel and scuba dive the northern reefs and wrecks; Grande Gaube and nearby Grand Baie are the main dive bases for the region",
-      "Visit Cap Malheureux and photograph the red-roofed Notre-Dame Auxiliatrice church with Coin de Mire in the background",
-      "Spend a half-day at the SSR Botanical Garden in Pamplemousses to see the giant water lilies and the famous palm collection",
+      'Take a catamaran or speedboat cruise to the northern islets - Coin de Mire, Flat Island (Île Plate) and Gabriel Island - for snorkelling and a barbecue lunch',
+      'Snorkel and scuba dive the northern reefs and wrecks; Grande Gaube and nearby Grand Baie are the main dive bases for the region',
+      'Visit Cap Malheureux and photograph the red-roofed Notre-Dame Auxiliatrice church with Coin de Mire in the background',
+      'Spend a half-day at the SSR Botanical Garden in Pamplemousses to see the giant water lilies and the famous palm collection',
       "Drive into Grand Baie for shopping, beach bars, restaurants and the north's main nightlife, about 15 minutes away",
-      "Charter a half-day deep-sea fishing trip from the village or nearby Grand Baie for marlin, tuna and dorado"
+      'Charter a half-day deep-sea fishing trip from the village or nearby Grand Baie for marlin, tuna and dorado',
     ],
-    "beaches": [
-      "Grande Gaube public beach (small village beach with calm shallow water and pirogues)",
-      "La Cuvette beach, Grand Baie (compact, sheltered swimming beach a short drive west)",
-      "Anse la Raie (quiet north-coast beach popular for kitesurfing in season)",
-      "Mont Choisy beach (long curving public beach on the north-west coast, about 20 minutes away)"
+    beaches: [
+      'Grande Gaube public beach (small village beach with calm shallow water and pirogues)',
+      'La Cuvette beach, Grand Baie (compact, sheltered swimming beach a short drive west)',
+      'Anse la Raie (quiet north-coast beach popular for kitesurfing in season)',
+      'Mont Choisy beach (long curving public beach on the north-west coast, about 20 minutes away)',
     ],
-    "gettingThere": "From SSR Airport in the south-east, Grande Gaube is roughly 75 km away, about 1 hour 15 minutes by road via the M2 motorway. There is no convenient public-transport route with luggage, so the simplest option is a pre-booked private transfer that meets you on arrival and drives you straight to your hotel. A car or driver is handy for day trips around the north.",
-    "goodFor": [
-      "Couples",
-      "Families",
-      "Relaxation",
-      "Diving",
-      "Water sports"
-    ],
-    "nearbyAttractions": [
-      "Cap Malheureux and the red-roofed church (about 10 minutes)",
-      "Grand Baie - shopping, restaurants and nightlife (about 15 minutes)",
-      "SSR Botanical Garden, Pamplemousses (about 20 minutes)",
+    gettingThere:
+      'From SSR Airport in the south-east, Grande Gaube is roughly 75 km away, about 1 hour 15 minutes by road via the M2 motorway. There is no convenient public-transport route with luggage, so the simplest option is a pre-booked private transfer that meets you on arrival and drives you straight to your hotel. A car or driver is handy for day trips around the north.',
+    goodFor: ['Couples', 'Families', 'Relaxation', 'Diving', 'Water sports'],
+    nearbyAttractions: [
+      'Cap Malheureux and the red-roofed church (about 10 minutes)',
+      'Grand Baie - shopping, restaurants and nightlife (about 15 minutes)',
+      'SSR Botanical Garden, Pamplemousses (about 20 minutes)',
       "Île d'Ambre and the northern islets (offshore by boat or kayak)",
       "Coin de Mire (Gunner's Quoin), the landmark island off the north coast",
-      "L'Aventure du Sucre sugar museum, Pamplemousses (about 20 minutes)"
+      "L'Aventure du Sucre sugar museum, Pamplemousses (about 20 minutes)",
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Grande Gaube from the airport?",
-        "a": "Grande Gaube is about 75 km from SSR Airport in the south-east, roughly a 1 hour 15 minute drive on the M2 motorway. A pre-booked private transfer is the easiest way to arrive, especially with luggage."
+        q: 'How far is Grande Gaube from the airport?',
+        a: 'Grande Gaube is about 75 km from SSR Airport in the south-east, roughly a 1 hour 15 minute drive on the M2 motorway. A pre-booked private transfer is the easiest way to arrive, especially with luggage.',
       },
       {
-        "q": "What is Grande Gaube known for?",
-        "a": "It is a quiet northern fishing village known for calm lagoon swimming, two large beach resorts, excellent snorkelling and diving, and easy boat and kayak access to Île d'Ambre and the northern islets. It suits travellers who want the north's warm water without Grand Baie's crowds."
+        q: 'What is Grande Gaube known for?',
+        a: "It is a quiet northern fishing village known for calm lagoon swimming, two large beach resorts, excellent snorkelling and diving, and easy boat and kayak access to Île d'Ambre and the northern islets. It suits travellers who want the north's warm water without Grand Baie's crowds.",
       },
       {
-        "q": "What is the best beach in or near Grande Gaube?",
-        "a": "The village beach is small but calm and good for swimming. For a longer stretch of sand, Mont Choisy on the north-west coast is one of the best public beaches on the island and is about 20 minutes' drive away."
+        q: 'What is the best beach in or near Grande Gaube?',
+        a: "The village beach is small but calm and good for swimming. For a longer stretch of sand, Mont Choisy on the north-west coast is one of the best public beaches on the island and is about 20 minutes' drive away.",
       },
       {
-        "q": "When is the best time to visit Grande Gaube?",
-        "a": "The cooler, drier months from May to November are ideal for diving, boat trips and beach days. Mauritian summer (December to April) is hotter and more humid with a chance of cyclones, but the lagoon stays warm year-round."
-      }
-    ]
+        q: 'When is the best time to visit Grande Gaube?',
+        a: 'The cooler, drier months from May to November are ideal for diving, boat trips and beach days. Mauritian summer (December to April) is hotter and more humid with a chance of cyclones, but the lagoon stays warm year-round.',
+      },
+    ],
   },
   {
-    "slug": "pointe-aux-piments",
-    "name": "Pointe aux Piments",
-    "region": "North",
-    "intro": "Pointe aux Piments is a relaxed coastal village on the northwest coast of Mauritius, sitting between Baie du Tombeau and the busier resort strip of Trou aux Biches. It is quieter and more residential than its neighbours, with a reef-sheltered lagoon, calm shallow water and a string of small public beaches fringed by filao trees. The area suits couples and families who want easy access to the north's attractions without the crowds, plus divers drawn to nearby wreck and reef sites. It is best known for the Mauritius Aquarium, gentle swimming conditions, good-value guesthouses alongside a few mid-range resorts, and sunsets over the lagoon.",
-    "highlights": [
-      "Visit the Mauritius Aquarium (La Mauritius Aquarium), home to reef fish, sharks, rays and turtles",
-      "Swim and snorkel in the calm, reef-protected lagoon ideal for beginners and children",
-      "Dive or snorkel the Stella Maru wreck and nearby reef sites offshore",
-      "Take a glass-bottom boat trip or catamaran cruise from the north coast lagoon",
-      "Walk the quiet public beaches lined with filao trees for sunset over the water",
+    slug: 'pointe-aux-piments',
+    name: 'Pointe aux Piments',
+    region: 'North',
+    intro:
+      "Pointe aux Piments is a relaxed coastal village on the northwest coast of Mauritius, sitting between Baie du Tombeau and the busier resort strip of Trou aux Biches. It is quieter and more residential than its neighbours, with a reef-sheltered lagoon, calm shallow water and a string of small public beaches fringed by filao trees. The area suits couples and families who want easy access to the north's attractions without the crowds, plus divers drawn to nearby wreck and reef sites. It is best known for the Mauritius Aquarium, gentle swimming conditions, good-value guesthouses alongside a few mid-range resorts, and sunsets over the lagoon.",
+    highlights: [
+      'Visit the Mauritius Aquarium (La Mauritius Aquarium), home to reef fish, sharks, rays and turtles',
+      'Swim and snorkel in the calm, reef-protected lagoon ideal for beginners and children',
+      'Dive or snorkel the Stella Maru wreck and nearby reef sites offshore',
+      'Take a glass-bottom boat trip or catamaran cruise from the north coast lagoon',
+      'Walk the quiet public beaches lined with filao trees for sunset over the water',
       "Day-trip to Trou aux Biches and Mont Choisy, two of the island's best swimming beaches, just minutes north",
-      "Explore Grand Baie's restaurants, shopping and nightlife, around 20 minutes away"
+      "Explore Grand Baie's restaurants, shopping and nightlife, around 20 minutes away",
     ],
-    "beaches": [
-      "Pointe aux Piments public beach",
-      "Trou aux Biches Beach",
-      "Mont Choisy Beach",
-      "Baie du Tombeau"
+    beaches: [
+      'Pointe aux Piments public beach',
+      'Trou aux Biches Beach',
+      'Mont Choisy Beach',
+      'Baie du Tombeau',
     ],
-    "gettingThere": "Pointe aux Piments is in the northwest, roughly 55-65 km from SSR Airport in the southeast, a 60-75 minute drive depending on traffic around Port Louis. The most comfortable option is a pre-booked private transfer that meets you on arrival. Once there, taxis and a hire car make exploring the north coast easy.",
-    "goodFor": [
-      "Families",
-      "Couples",
-      "Relaxation",
-      "Diving",
-      "Snorkelling"
+    gettingThere:
+      'Pointe aux Piments is in the northwest, roughly 55-65 km from SSR Airport in the southeast, a 60-75 minute drive depending on traffic around Port Louis. The most comfortable option is a pre-booked private transfer that meets you on arrival. Once there, taxis and a hire car make exploring the north coast easy.',
+    goodFor: ['Families', 'Couples', 'Relaxation', 'Diving', 'Snorkelling'],
+    nearbyAttractions: [
+      'Mauritius Aquarium',
+      'Trou aux Biches',
+      'Mont Choisy',
+      'Grand Baie',
+      'Port Louis (Caudan Waterfront and Central Market)',
+      'Pamplemousses Botanical Garden (SSR Botanical Garden)',
     ],
-    "nearbyAttractions": [
-      "Mauritius Aquarium",
-      "Trou aux Biches",
-      "Mont Choisy",
-      "Grand Baie",
-      "Port Louis (Caudan Waterfront and Central Market)",
-      "Pamplemousses Botanical Garden (SSR Botanical Garden)"
-    ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Pointe aux Piments from the airport?",
-        "a": "Pointe aux Piments is about 55-65 km from SSR International Airport, which is in the southeast of the island. The drive takes roughly 60 to 75 minutes, with most of the time spent crossing to the northwest and skirting Port Louis, where traffic can add delays at peak hours. A pre-booked private transfer is the easiest way to arrive."
+        q: 'How far is Pointe aux Piments from the airport?',
+        a: 'Pointe aux Piments is about 55-65 km from SSR International Airport, which is in the southeast of the island. The drive takes roughly 60 to 75 minutes, with most of the time spent crossing to the northwest and skirting Port Louis, where traffic can add delays at peak hours. A pre-booked private transfer is the easiest way to arrive.',
       },
       {
-        "q": "What is Pointe aux Piments known for?",
-        "a": "It is known for its calm, reef-protected lagoon, the Mauritius Aquarium, and quieter beaches compared with nearby Trou aux Biches and Grand Baie. The gentle swimming conditions make it popular with families, while divers come for the Stella Maru wreck and reef sites just offshore."
+        q: 'What is Pointe aux Piments known for?',
+        a: 'It is known for its calm, reef-protected lagoon, the Mauritius Aquarium, and quieter beaches compared with nearby Trou aux Biches and Grand Baie. The gentle swimming conditions make it popular with families, while divers come for the Stella Maru wreck and reef sites just offshore.',
       },
       {
-        "q": "Which beaches are best near Pointe aux Piments?",
-        "a": "The village's own public beaches are calm and uncrowded. For wider stretches of sand and excellent swimming, head a few minutes north to Trou aux Biches and Mont Choisy, two of the most popular beaches on the island's north coast."
+        q: 'Which beaches are best near Pointe aux Piments?',
+        a: "The village's own public beaches are calm and uncrowded. For wider stretches of sand and excellent swimming, head a few minutes north to Trou aux Biches and Mont Choisy, two of the most popular beaches on the island's north coast.",
       },
       {
-        "q": "When is the best time to visit Pointe aux Piments?",
-        "a": "The drier, cooler months from May to November (the austral winter) are ideal, with comfortable temperatures and lower humidity. The north and northwest coasts are sheltered and stay pleasant for swimming and diving year-round, though January to March can bring heavier rain and the occasional cyclone."
-      }
-    ]
+        q: 'When is the best time to visit Pointe aux Piments?',
+        a: 'The drier, cooler months from May to November (the austral winter) are ideal, with comfortable temperatures and lower humidity. The north and northwest coasts are sheltered and stay pleasant for swimming and diving year-round, though January to March can bring heavier rain and the occasional cyclone.',
+      },
+    ],
   },
   {
-    "slug": "balaclava",
-    "name": "Balaclava",
-    "region": "North",
-    "intro": "Balaclava is a quiet, upscale stretch of Mauritius' north-west coast, just north of Port Louis and south of Trou aux Biches. It is best known for Baie aux Tortues (Turtle Bay), a sheltered marine park where boats are restricted, keeping the water calm and clear for swimming and snorkelling. The area is dominated by polished five-star resorts set in landscaped grounds, so it suits couples and families who want resort comfort and a protected bay rather than bars and crowds. History runs through it too: the 18th-century Balaclava Ruins and the old Bain des Dames sit beside the lagoon. Grand Baie's restaurants and nightlife are a short drive north.",
-    "highlights": [
-      "Snorkel the protected Baie aux Tortues (Turtle Bay) marine park, where restricted boat traffic keeps the lagoon calm and clear",
+    slug: 'balaclava',
+    name: 'Balaclava',
+    region: 'North',
+    intro:
+      "Balaclava is a quiet, upscale stretch of Mauritius' north-west coast, just north of Port Louis and south of Trou aux Biches. It is best known for Baie aux Tortues (Turtle Bay), a sheltered marine park where boats are restricted, keeping the water calm and clear for swimming and snorkelling. The area is dominated by polished five-star resorts set in landscaped grounds, so it suits couples and families who want resort comfort and a protected bay rather than bars and crowds. History runs through it too: the 18th-century Balaclava Ruins and the old Bain des Dames sit beside the lagoon. Grand Baie's restaurants and nightlife are a short drive north.",
+    highlights: [
+      'Snorkel the protected Baie aux Tortues (Turtle Bay) marine park, where restricted boat traffic keeps the lagoon calm and clear',
       "Visit the 18th-century Balaclava Ruins, the remains of one of Mauritius' earliest French estates and flour mill beside the bay",
-      "See the historic Bain des Dames, a stone-walled tidal bathing pool fed by the lagoon",
-      "Take a catamaran or speedboat trip from Turtle Bay along the north-west coast and out to swim with dolphins off Tamarin",
-      "Spend a day at the nearby Pamplemousses SSR Botanical Garden, famous for its giant water lilies and palm avenues",
+      'See the historic Bain des Dames, a stone-walled tidal bathing pool fed by the lagoon',
+      'Take a catamaran or speedboat trip from Turtle Bay along the north-west coast and out to swim with dolphins off Tamarin',
+      'Spend a day at the nearby Pamplemousses SSR Botanical Garden, famous for its giant water lilies and palm avenues',
       "Drive 15 minutes north to Trou aux Biches for a long public beach and one of the island's best snorkelling lagoons",
-      "Explore Port Louis just south for the Caudan Waterfront, Central Market and Aapravasi Ghat"
+      'Explore Port Louis just south for the Caudan Waterfront, Central Market and Aapravasi Ghat',
     ],
-    "beaches": [
-      "Baie aux Tortues (Turtle Bay) — a calm, sheltered marine-park bay ideal for swimming and snorkelling",
-      "Maritim / Balaclava public beach access points along the bay",
-      "Trou aux Biches public beach — a long white-sand beach with a shallow lagoon, about 15 minutes north",
-      "Pointe aux Piments beach — a quieter local stretch just south of Trou aux Biches"
+    beaches: [
+      'Baie aux Tortues (Turtle Bay) — a calm, sheltered marine-park bay ideal for swimming and snorkelling',
+      'Maritim / Balaclava public beach access points along the bay',
+      'Trou aux Biches public beach — a long white-sand beach with a shallow lagoon, about 15 minutes north',
+      'Pointe aux Piments beach — a quieter local stretch just south of Trou aux Biches',
     ],
-    "gettingThere": "Balaclava is on the north-west coast, about 55-65 km from SSR International Airport in the south-east — roughly 65-75 minutes by car via the motorway past Port Louis, longer in peak traffic. There is no train, so a pre-booked private transfer with meet-and-greet is the simplest door-to-door option; taxis and hire cars also work.",
-    "goodFor": [
-      "Couples",
-      "Families",
-      "Relaxation",
-      "Snorkelling",
-      "Luxury resorts"
+    gettingThere:
+      'Balaclava is on the north-west coast, about 55-65 km from SSR International Airport in the south-east — roughly 65-75 minutes by car via the motorway past Port Louis, longer in peak traffic. There is no train, so a pre-booked private transfer with meet-and-greet is the simplest door-to-door option; taxis and hire cars also work.',
+    goodFor: ['Couples', 'Families', 'Relaxation', 'Snorkelling', 'Luxury resorts'],
+    nearbyAttractions: [
+      'Trou aux Biches beach and snorkelling lagoon',
+      'SSR Botanical Garden at Pamplemousses',
+      'Grand Baie village, shopping and nightlife',
+      'Port Louis Caudan Waterfront and Central Market',
+      'Château de Labourdonnais estate and rum distillery',
+      'Aquarium of Mauritius at Pointe aux Piments',
     ],
-    "nearbyAttractions": [
-      "Trou aux Biches beach and snorkelling lagoon",
-      "SSR Botanical Garden at Pamplemousses",
-      "Grand Baie village, shopping and nightlife",
-      "Port Louis Caudan Waterfront and Central Market",
-      "Château de Labourdonnais estate and rum distillery",
-      "Aquarium of Mauritius at Pointe aux Piments"
-    ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Balaclava from the airport?",
-        "a": "Balaclava sits on the north-west coast, while SSR International Airport is in the south-east. The drive is about 55-65 km and normally takes 65-75 minutes by private car, mostly on the motorway past Port Louis. Allow extra time during morning and evening peaks around the capital."
+        q: 'How far is Balaclava from the airport?',
+        a: 'Balaclava sits on the north-west coast, while SSR International Airport is in the south-east. The drive is about 55-65 km and normally takes 65-75 minutes by private car, mostly on the motorway past Port Louis. Allow extra time during morning and evening peaks around the capital.',
       },
       {
-        "q": "What is Balaclava known for?",
-        "a": "It is best known for Baie aux Tortues, or Turtle Bay, a protected marine park with calm, clear water that is excellent for swimming and snorkelling. The area is also home to upscale five-star resorts and the historic Balaclava Ruins and Bain des Dames beside the lagoon."
+        q: 'What is Balaclava known for?',
+        a: 'It is best known for Baie aux Tortues, or Turtle Bay, a protected marine park with calm, clear water that is excellent for swimming and snorkelling. The area is also home to upscale five-star resorts and the historic Balaclava Ruins and Bain des Dames beside the lagoon.',
       },
       {
-        "q": "Which is the best beach near Balaclava?",
-        "a": "For calm, sheltered swimming, the marine-park beach inside Turtle Bay is hard to beat. For a longer public beach with a shallow lagoon and good snorkelling, head about 15 minutes north to Trou aux Biches, one of the most popular beaches on the island."
+        q: 'Which is the best beach near Balaclava?',
+        a: 'For calm, sheltered swimming, the marine-park beach inside Turtle Bay is hard to beat. For a longer public beach with a shallow lagoon and good snorkelling, head about 15 minutes north to Trou aux Biches, one of the most popular beaches on the island.',
       },
       {
-        "q": "Where should I stay near Balaclava for restaurants and nightlife?",
-        "a": "Balaclava itself is quiet and resort-focused. For more dining and nightlife, base yourself in or visit Grand Baie, around 20-25 minutes' drive north, which has the north coast's widest choice of restaurants, bars and boat trips."
-      }
-    ]
+        q: 'Where should I stay near Balaclava for restaurants and nightlife?',
+        a: "Balaclava itself is quiet and resort-focused. For more dining and nightlife, base yourself in or visit Grand Baie, around 20-25 minutes' drive north, which has the north coast's widest choice of restaurants, bars and boat trips.",
+      },
+    ],
   },
   {
-    "slug": "belle-mare",
-    "name": "Belle Mare",
-    "region": "East",
-    "intro": "Belle Mare is a long, low-rise stretch of the East coast known for some of Mauritius's whitest sand and a wide turquoise lagoon protected by a distant reef. It has a calmer, more upmarket feel than the busy north, anchored by a cluster of five-star resorts, golf courses and a famous public beach backed by casuarina and filao trees. The coastline catches the morning sun and the cooling south-east trade winds, which keep afternoons fresh and feed steady kitesurfing and windsurfing conditions. It suits couples, families and golfers after a quieter, scenic base, with easy day-trip access to the wild south-east, Île aux Cerfs and the central plateau.",
-    "highlights": [
-      "Relax on Belle Mare Public Beach, a long ribbon of fine white sand and shallow lagoon backed by shady filao trees",
-      "Take a boat or catamaran trip to Île aux Cerfs, the famous offshore island with sandbanks, snorkelling and the GRSE waterfall",
-      "Play a round at championship golf courses nearby, including the links-style course at Anahita and Île aux Cerfs Golf Club",
-      "Kitesurf or windsurf the lagoon, which benefits from steady south-east trade winds and reliable flat-water conditions",
-      "Snorkel or take a glass-bottom boat over the lagoon and reef to spot reef fish and coral",
+    slug: 'belle-mare',
+    name: 'Belle Mare',
+    region: 'East',
+    intro:
+      "Belle Mare is a long, low-rise stretch of the East coast known for some of Mauritius's whitest sand and a wide turquoise lagoon protected by a distant reef. It has a calmer, more upmarket feel than the busy north, anchored by a cluster of five-star resorts, golf courses and a famous public beach backed by casuarina and filao trees. The coastline catches the morning sun and the cooling south-east trade winds, which keep afternoons fresh and feed steady kitesurfing and windsurfing conditions. It suits couples, families and golfers after a quieter, scenic base, with easy day-trip access to the wild south-east, Île aux Cerfs and the central plateau.",
+    highlights: [
+      'Relax on Belle Mare Public Beach, a long ribbon of fine white sand and shallow lagoon backed by shady filao trees',
+      'Take a boat or catamaran trip to Île aux Cerfs, the famous offshore island with sandbanks, snorkelling and the GRSE waterfall',
+      'Play a round at championship golf courses nearby, including the links-style course at Anahita and Île aux Cerfs Golf Club',
+      'Kitesurf or windsurf the lagoon, which benefits from steady south-east trade winds and reliable flat-water conditions',
+      'Snorkel or take a glass-bottom boat over the lagoon and reef to spot reef fish and coral',
       "Visit the salt pans and old sugar heritage of the east, and browse local fishing villages like Trou d'Eau Douce",
-      "Day-trip to the wild south-east coast for kitesurfing at Le Morne-style spots, Blue Bay marine park and waterfalls"
+      'Day-trip to the wild south-east coast for kitesurfing at Le Morne-style spots, Blue Bay marine park and waterfalls',
     ],
-    "beaches": [
-      "Belle Mare Public Beach",
-      "Palmar Beach",
+    beaches: [
+      'Belle Mare Public Beach',
+      'Palmar Beach',
       "Trou d'Eau Douce",
-      "Poste de Flacq (Saint Géran area)"
+      'Poste de Flacq (Saint Géran area)',
     ],
-    "gettingThere": "SSR International Airport sits in the south-east, so Belle Mare is roughly a 45-60 minute drive north up the east coast, depending on traffic. There is no convenient public transport for visitors, so the simplest option is a pre-booked private transfer that meets you on arrival and drives you door-to-door. A rental car or private driver makes day trips easy.",
-    "goodFor": [
-      "Couples",
-      "Families",
-      "Golf",
-      "Kitesurfing & water sports",
-      "Relaxation"
-    ],
-    "nearbyAttractions": [
-      "Île aux Cerfs",
+    gettingThere:
+      'SSR International Airport sits in the south-east, so Belle Mare is roughly a 45-60 minute drive north up the east coast, depending on traffic. There is no convenient public transport for visitors, so the simplest option is a pre-booked private transfer that meets you on arrival and drives you door-to-door. A rental car or private driver makes day trips easy.',
+    goodFor: ['Couples', 'Families', 'Golf', 'Kitesurfing & water sports', 'Relaxation'],
+    nearbyAttractions: [
+      'Île aux Cerfs',
       "Trou d'Eau Douce village and boat jetty",
-      "Grand River South East (GRSE) Waterfall",
-      "Anahita and Île aux Cerfs golf courses",
-      "Centre de Flacq market town",
-      "Bras d'Eau National Park"
-    ],
-    "faq": [
-      {
-        "q": "How far is Belle Mare from the airport?",
-        "a": "Belle Mare is about 45 to 60 minutes by road from SSR International Airport in the south-east, covering roughly 40-50 km up the east coast. A pre-booked private transfer is the easiest way to arrive, with a driver meeting you in the arrivals hall."
-      },
-      {
-        "q": "What is Belle Mare known for?",
-        "a": "Belle Mare is known for its exceptionally long white-sand beach, a wide turquoise lagoon, championship golf courses and a concentration of five-star resorts. It has a quieter, more refined feel than the north and is a launch point for boat trips to Île aux Cerfs."
-      },
-      {
-        "q": "What is the best beach in Belle Mare?",
-        "a": "Belle Mare Public Beach is the standout: a long stretch of soft white sand with calm, shallow lagoon water and shade from filao trees, popular for swimming and picnics. Palmar and the Poste de Flacq area nearby are quieter alternatives."
-      },
-      {
-        "q": "When is the best time to visit Belle Mare?",
-        "a": "May to December brings cooler, drier weather and reliable south-east trade winds that are ideal for kitesurfing and windsurfing. The warmer summer months (December to April) are better for calm-water swimming, though they can be more humid with occasional rain."
-      }
-    ]
-  },
-  {
-    "slug": "trou-deau-douce",
-    "name": "Trou d'Eau Douce",
-    "region": "East",
-    "intro": "Trou d'Eau Douce is a relaxed fishing village on Mauritius's east coast, best known as the main launch point for boat trips to Ile aux Cerfs. Once a quiet harbour, it has grown into a low-key resort area without losing its village feel, with colourful pirogues moored along the waterfront, family-run restaurants and a handful of upscale hotels nearby. The east coast is greener and breezier than the busy north, with a calmer, less-developed atmosphere. It suits couples, families and travellers wanting a base for lagoon excursions, water sports and quiet beach days, away from the crowds while staying close to the island's standout lagoon scenery.",
-    "highlights": [
-      "Catch a speedboat or catamaran from the village jetty to Ile aux Cerfs, the area's headline day trip",
-      "Cruise the GRSE River to see the cascade waterfall and stop at the natural pools",
-      "Snorkel or dive the sheltered east-coast lagoon and reefs",
-      "Wander the working waterfront and watch fishermen bring in the day's catch among the moored pirogues",
-      "Try kitesurfing or windsurfing, with the steady east-coast trade winds ideal for both",
-      "Take a day trip to Ile aux Cerfs golf course or simply relax on its long sand spits",
-      "Sample fresh seafood and Creole cooking at the village's family-run beachside restaurants"
-    ],
-    "beaches": [
-      "Ile aux Cerfs beach",
-      "Trou d'Eau Douce public beach",
-      "Belle Mare beach",
-      "Palmar beach"
-    ],
-    "gettingThere": "Trou d'Eau Douce sits about 40 km from SSR Airport in the south-east, roughly a 45-55 minute drive north up the coast. There is no convenient public transport for visitors, so a pre-booked private transfer is the simplest, most reliable way to arrive; a car or taxi helps for exploring beaches and excursions nearby.",
-    "goodFor": [
-      "Couples",
-      "Families",
-      "Water sports",
-      "Diving",
-      "Relaxation"
-    ],
-    "nearbyAttractions": [
-      "Ile aux Cerfs",
-      "Belle Mare beach",
-      "GRSE River waterfall",
-      "Ile aux Cerfs Golf Club",
+      'Grand River South East (GRSE) Waterfall',
+      'Anahita and Île aux Cerfs golf courses',
+      'Centre de Flacq market town',
       "Bras d'Eau National Park",
-      "Mahebourg waterfront and market"
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Trou d'Eau Douce from the airport?",
-        "a": "It is about 40 km from SSR Airport in the south-east, a drive of roughly 45 to 55 minutes up the east coast. A pre-booked private transfer is the easiest way to get there, as public transport options are limited for visitors."
+        q: 'How far is Belle Mare from the airport?',
+        a: 'Belle Mare is about 45 to 60 minutes by road from SSR International Airport in the south-east, covering roughly 40-50 km up the east coast. A pre-booked private transfer is the easiest way to arrive, with a driver meeting you in the arrivals hall.',
       },
       {
-        "q": "What is Trou d'Eau Douce known for?",
-        "a": "It is best known as the main departure point for boat trips to Ile aux Cerfs, the famous lagoon island. It is also a relaxed fishing village with a working waterfront, fresh seafood, water sports and easy access to the quiet east-coast beaches."
+        q: 'What is Belle Mare known for?',
+        a: 'Belle Mare is known for its exceptionally long white-sand beach, a wide turquoise lagoon, championship golf courses and a concentration of five-star resorts. It has a quieter, more refined feel than the north and is a launch point for boat trips to Île aux Cerfs.',
       },
       {
-        "q": "How do I get to Ile aux Cerfs from Trou d'Eau Douce?",
-        "a": "Boats leave regularly from the village jetty and nearby hotels. You can take a fast speedboat that crosses in about 10 minutes, or a catamaran cruise that often includes the GRSE waterfall, snorkelling stops and a barbecue lunch."
+        q: 'What is the best beach in Belle Mare?',
+        a: 'Belle Mare Public Beach is the standout: a long stretch of soft white sand with calm, shallow lagoon water and shade from filao trees, popular for swimming and picnics. Palmar and the Poste de Flacq area nearby are quieter alternatives.',
       },
       {
-        "q": "When is the best time to visit Trou d'Eau Douce?",
-        "a": "The drier, cooler months from May to December are generally best, with sunny days and good conditions for boat trips. Steady winds in the cooler season also make it a strong period for kitesurfing and windsurfing on the east coast."
-      }
-    ]
+        q: 'When is the best time to visit Belle Mare?',
+        a: 'May to December brings cooler, drier weather and reliable south-east trade winds that are ideal for kitesurfing and windsurfing. The warmer summer months (December to April) are better for calm-water swimming, though they can be more humid with occasional rain.',
+      },
+    ],
   },
   {
-    "slug": "flic-en-flac",
-    "name": "Flic-en-Flac",
-    "region": "West",
-    "intro": "Flic-en-Flac is the West coast's busiest resort village, strung along one of Mauritius' longest white-sand beaches and a calm, reef-protected lagoon. It mixes big beach hotels with a walkable village of supermarkets, casual restaurants, dive shops and street-food stalls, so it suits a wide range of travellers — families wanting safe swimming, couples after sunset dinners, and divers and snorkellers drawn to the reef just offshore. The west catches Mauritius' best sunsets and driest weather, and the flat, shaded coastal road makes it easy to settle in for a few days. It is also a practical base for trips to Casela, Tamarin, Chamarel and Black River Gorges.",
-    "highlights": [
-      "Swim and snorkel the long, shallow Flic-en-Flac lagoon, calm and reef-protected for most of its length",
+    slug: 'trou-deau-douce',
+    name: "Trou d'Eau Douce",
+    region: 'East',
+    intro:
+      "Trou d'Eau Douce is a relaxed fishing village on Mauritius's east coast, best known as the main launch point for boat trips to Ile aux Cerfs. Once a quiet harbour, it has grown into a low-key resort area without losing its village feel, with colourful pirogues moored along the waterfront, family-run restaurants and a handful of upscale hotels nearby. The east coast is greener and breezier than the busy north, with a calmer, less-developed atmosphere. It suits couples, families and travellers wanting a base for lagoon excursions, water sports and quiet beach days, away from the crowds while staying close to the island's standout lagoon scenery.",
+    highlights: [
+      "Catch a speedboat or catamaran from the village jetty to Ile aux Cerfs, the area's headline day trip",
+      'Cruise the GRSE River to see the cascade waterfall and stop at the natural pools',
+      'Snorkel or dive the sheltered east-coast lagoon and reefs',
+      "Wander the working waterfront and watch fishermen bring in the day's catch among the moored pirogues",
+      'Try kitesurfing or windsurfing, with the steady east-coast trade winds ideal for both',
+      'Take a day trip to Ile aux Cerfs golf course or simply relax on its long sand spits',
+      "Sample fresh seafood and Creole cooking at the village's family-run beachside restaurants",
+    ],
+    beaches: [
+      'Ile aux Cerfs beach',
+      "Trou d'Eau Douce public beach",
+      'Belle Mare beach',
+      'Palmar beach',
+    ],
+    gettingThere:
+      "Trou d'Eau Douce sits about 40 km from SSR Airport in the south-east, roughly a 45-55 minute drive north up the coast. There is no convenient public transport for visitors, so a pre-booked private transfer is the simplest, most reliable way to arrive; a car or taxi helps for exploring beaches and excursions nearby.",
+    goodFor: ['Couples', 'Families', 'Water sports', 'Diving', 'Relaxation'],
+    nearbyAttractions: [
+      'Ile aux Cerfs',
+      'Belle Mare beach',
+      'GRSE River waterfall',
+      'Ile aux Cerfs Golf Club',
+      "Bras d'Eau National Park",
+      'Mahebourg waterfront and market',
+    ],
+    faq: [
+      {
+        q: "How far is Trou d'Eau Douce from the airport?",
+        a: 'It is about 40 km from SSR Airport in the south-east, a drive of roughly 45 to 55 minutes up the east coast. A pre-booked private transfer is the easiest way to get there, as public transport options are limited for visitors.',
+      },
+      {
+        q: "What is Trou d'Eau Douce known for?",
+        a: 'It is best known as the main departure point for boat trips to Ile aux Cerfs, the famous lagoon island. It is also a relaxed fishing village with a working waterfront, fresh seafood, water sports and easy access to the quiet east-coast beaches.',
+      },
+      {
+        q: "How do I get to Ile aux Cerfs from Trou d'Eau Douce?",
+        a: 'Boats leave regularly from the village jetty and nearby hotels. You can take a fast speedboat that crosses in about 10 minutes, or a catamaran cruise that often includes the GRSE waterfall, snorkelling stops and a barbecue lunch.',
+      },
+      {
+        q: "When is the best time to visit Trou d'Eau Douce?",
+        a: 'The drier, cooler months from May to December are generally best, with sunny days and good conditions for boat trips. Steady winds in the cooler season also make it a strong period for kitesurfing and windsurfing on the east coast.',
+      },
+    ],
+  },
+  {
+    slug: 'flic-en-flac',
+    name: 'Flic-en-Flac',
+    region: 'West',
+    intro:
+      "Flic-en-Flac is the West coast's busiest resort village, strung along one of Mauritius' longest white-sand beaches and a calm, reef-protected lagoon. It mixes big beach hotels with a walkable village of supermarkets, casual restaurants, dive shops and street-food stalls, so it suits a wide range of travellers — families wanting safe swimming, couples after sunset dinners, and divers and snorkellers drawn to the reef just offshore. The west catches Mauritius' best sunsets and driest weather, and the flat, shaded coastal road makes it easy to settle in for a few days. It is also a practical base for trips to Casela, Tamarin, Chamarel and Black River Gorges.",
+    highlights: [
+      'Swim and snorkel the long, shallow Flic-en-Flac lagoon, calm and reef-protected for most of its length',
       "Dive the offshore reef — sites like Cathedral and the Snake Reef are among the island's best, with dive centres in the village",
       "Walk or cycle the shaded coastal road south past Wolmar to the public beach's casuarina groves",
-      "Take a sunset and dolphin-watching boat trip from nearby Tamarin Bay",
-      "Visit Casela Nature Parks just inland for safari drives, ziplines, big cats and rides",
-      "Spend a half-day at the Seven Coloured Earths and Chamarel Waterfall, an easy run up into the south-west hills",
-      "Browse the village's street-food stalls and casual eateries in the evening for dholl puri, noodles and grilled seafood"
+      'Take a sunset and dolphin-watching boat trip from nearby Tamarin Bay',
+      'Visit Casela Nature Parks just inland for safari drives, ziplines, big cats and rides',
+      'Spend a half-day at the Seven Coloured Earths and Chamarel Waterfall, an easy run up into the south-west hills',
+      "Browse the village's street-food stalls and casual eateries in the evening for dholl puri, noodles and grilled seafood",
     ],
-    "beaches": [
-      "Flic-en-Flac Public Beach",
-      "Wolmar Beach",
-      "La Preneuse Beach (near Tamarin)",
-      "Tamarin Beach"
+    beaches: [
+      'Flic-en-Flac Public Beach',
+      'Wolmar Beach',
+      'La Preneuse Beach (near Tamarin)',
+      'Tamarin Beach',
     ],
-    "gettingThere": "From SSR Airport in the south-east, Flic-en-Flac is roughly 45–55 minutes by car (about 50 km) via the motorway. There is no convenient direct bus, so the simplest option is a pre-booked private transfer that meets you on arrival. Once there, the resort strip is walkable, and a private driver works best for day trips.",
-    "goodFor": [
-      "Families",
-      "Couples",
-      "Diving",
-      "Snorkelling",
-      "Water sports",
-      "Relaxation"
+    gettingThere:
+      'From SSR Airport in the south-east, Flic-en-Flac is roughly 45–55 minutes by car (about 50 km) via the motorway. There is no convenient direct bus, so the simplest option is a pre-booked private transfer that meets you on arrival. Once there, the resort strip is walkable, and a private driver works best for day trips.',
+    goodFor: ['Families', 'Couples', 'Diving', 'Snorkelling', 'Water sports', 'Relaxation'],
+    nearbyAttractions: [
+      'Casela Nature Parks',
+      'Tamarin Bay (dolphin watching)',
+      'Seven Coloured Earths, Chamarel',
+      'Chamarel Waterfall',
+      'Black River Gorges National Park',
+      'Île aux Bénitiers and Crystal Rock',
     ],
-    "nearbyAttractions": [
-      "Casela Nature Parks",
-      "Tamarin Bay (dolphin watching)",
-      "Seven Coloured Earths, Chamarel",
-      "Chamarel Waterfall",
-      "Black River Gorges National Park",
-      "Île aux Bénitiers and Crystal Rock"
-    ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Flic-en-Flac from the airport?",
-        "a": "SSR Airport sits in the south-east, so the drive to Flic-en-Flac on the west coast takes about 45–55 minutes (roughly 50 km) on the motorway. A pre-booked private transfer is the easiest way to arrive, with a driver waiting at the terminal."
+        q: 'How far is Flic-en-Flac from the airport?',
+        a: 'SSR Airport sits in the south-east, so the drive to Flic-en-Flac on the west coast takes about 45–55 minutes (roughly 50 km) on the motorway. A pre-booked private transfer is the easiest way to arrive, with a driver waiting at the terminal.',
       },
       {
-        "q": "What is Flic-en-Flac known for?",
-        "a": "It is known for one of the longest white-sand beaches in Mauritius, a calm reef-protected lagoon ideal for swimming and snorkelling, excellent scuba diving on the offshore reef, and lively West-coast sunsets — all backed by a walkable village of restaurants and shops."
+        q: 'What is Flic-en-Flac known for?',
+        a: 'It is known for one of the longest white-sand beaches in Mauritius, a calm reef-protected lagoon ideal for swimming and snorkelling, excellent scuba diving on the offshore reef, and lively West-coast sunsets — all backed by a walkable village of restaurants and shops.',
       },
       {
-        "q": "What is the best beach in Flic-en-Flac?",
-        "a": "The main Flic-en-Flac public beach is the favourite — a long stretch of soft sand with shade from casuarina trees and shallow, calm water. For a quieter feel, head south toward Wolmar, or drive to La Preneuse and Tamarin nearby."
+        q: 'What is the best beach in Flic-en-Flac?',
+        a: 'The main Flic-en-Flac public beach is the favourite — a long stretch of soft sand with shade from casuarina trees and shallow, calm water. For a quieter feel, head south toward Wolmar, or drive to La Preneuse and Tamarin nearby.',
       },
       {
-        "q": "When is the best time to visit Flic-en-Flac?",
-        "a": "The drier, cooler months from roughly May to November bring the most reliable beach weather on the west coast. December to April is hotter and more humid with occasional heavy showers, though still good for diving and sunshine between the rains."
-      }
-    ]
+        q: 'When is the best time to visit Flic-en-Flac?',
+        a: 'The drier, cooler months from roughly May to November bring the most reliable beach weather on the west coast. December to April is hotter and more humid with occasional heavy showers, though still good for diving and sunshine between the rains.',
+      },
+    ],
   },
   {
-    "slug": "tamarin",
-    "name": "Tamarin",
-    "region": "West",
-    "intro": "Tamarin is a laid-back surf town on Mauritius' west coast, set around a river mouth where the Rivière du Rebek meets the sea. It built its reputation on the \"Tamarin Wave\", a left-hand point break that draws surfers between May and September, and on the resident pods of dolphins that gather in the bay each morning. The vibe is bohemian and unpolished compared with the big northern resorts: a small village centre, the historic Salt Pans, palm-lined beaches and the dramatic backdrop of Le Morne and the Black River mountains. It suits independent travellers, surfers, couples and active families who want sunset swims, early dolphin trips and easy access to the wild south-west, rather than packed beach clubs.",
-    "highlights": [
+    slug: 'tamarin',
+    name: 'Tamarin',
+    region: 'West',
+    intro:
+      'Tamarin is a laid-back surf town on Mauritius\' west coast, set around a river mouth where the Rivière du Rebek meets the sea. It built its reputation on the "Tamarin Wave", a left-hand point break that draws surfers between May and September, and on the resident pods of dolphins that gather in the bay each morning. The vibe is bohemian and unpolished compared with the big northern resorts: a small village centre, the historic Salt Pans, palm-lined beaches and the dramatic backdrop of Le Morne and the Black River mountains. It suits independent travellers, surfers, couples and active families who want sunset swims, early dolphin trips and easy access to the wild south-west, rather than packed beach clubs.',
+    highlights: [
       "Surf the Tamarin Bay point break, one of the island's most famous left-hand waves, best from May to September",
-      "Take an early-morning boat trip to swim with the wild spinner and bottlenose dolphins that frequent Tamarin Bay",
-      "Visit the Tamarin Salt Pans (Les Salines), the working salt evaporation flats that have shaped the village for over a century",
-      "Hike or drive into Black River Gorges National Park for endemic forest, viewpoints and the Black River Peak trail",
-      "Spend a day at Casela Nature Parks nearby for safaris, zip-lines, big cats and family rides",
+      'Take an early-morning boat trip to swim with the wild spinner and bottlenose dolphins that frequent Tamarin Bay',
+      'Visit the Tamarin Salt Pans (Les Salines), the working salt evaporation flats that have shaped the village for over a century',
+      'Hike or drive into Black River Gorges National Park for endemic forest, viewpoints and the Black River Peak trail',
+      'Spend a day at Casela Nature Parks nearby for safaris, zip-lines, big cats and family rides',
       "Go big-game fishing out of Rivière Noire (Black River), Mauritius' main marlin and tuna fishing base",
-      "Watch the sunset over the lagoon from La Preneuse beach with Le Morne on the horizon"
+      'Watch the sunset over the lagoon from La Preneuse beach with Le Morne on the horizon',
     ],
-    "beaches": [
-      "Tamarin Beach (Tamarin Bay)",
-      "La Preneuse Beach",
-      "Flic-en-Flac Beach",
-      "Le Morne Public Beach"
+    beaches: [
+      'Tamarin Beach (Tamarin Bay)',
+      'La Preneuse Beach',
+      'Flic-en-Flac Beach',
+      'Le Morne Public Beach',
     ],
-    "gettingThere": "SSR Airport sits in the south-east, roughly 50-60 km from Tamarin, about a 55-70 minute drive via the M1/M2 motorways. There is no direct public transport, so the simplest option is a pre-booked private transfer that meets you on arrival; once here, a hire car or arranged driver is best for exploring the west coast.",
-    "goodFor": [
-      "Couples",
-      "Surfing & water sports",
-      "Dolphin watching",
-      "Families",
-      "Relaxation"
+    gettingThere:
+      'SSR Airport sits in the south-east, roughly 50-60 km from Tamarin, about a 55-70 minute drive via the M1/M2 motorways. There is no direct public transport, so the simplest option is a pre-booked private transfer that meets you on arrival; once here, a hire car or arranged driver is best for exploring the west coast.',
+    goodFor: ['Couples', 'Surfing & water sports', 'Dolphin watching', 'Families', 'Relaxation'],
+    nearbyAttractions: [
+      'Black River Gorges National Park',
+      'Chamarel Seven Coloured Earths and Waterfall',
+      'Casela Nature Parks',
+      'Le Morne Brabant (UNESCO site)',
+      'Tamarind Falls (Sept Cascades)',
+      'La Vanille / Maconde viewpoint and the south-west coast',
     ],
-    "nearbyAttractions": [
-      "Black River Gorges National Park",
-      "Chamarel Seven Coloured Earths and Waterfall",
-      "Casela Nature Parks",
-      "Le Morne Brabant (UNESCO site)",
-      "Tamarind Falls (Sept Cascades)",
-      "La Vanille / Maconde viewpoint and the south-west coast"
-    ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Tamarin from the airport?",
-        "a": "Tamarin is about 50-60 km from SSR International Airport in the south-east, a 55-70 minute drive depending on traffic. The motorway route is straightforward, and a pre-booked private transfer is the easiest way to arrive."
+        q: 'How far is Tamarin from the airport?',
+        a: 'Tamarin is about 50-60 km from SSR International Airport in the south-east, a 55-70 minute drive depending on traffic. The motorway route is straightforward, and a pre-booked private transfer is the easiest way to arrive.',
       },
       {
-        "q": "What is Tamarin known for?",
-        "a": "Tamarin is best known for surfing the Tamarin Bay point break, for morning boat trips to see and swim with wild dolphins, and for its historic salt pans. It has a relaxed, bohemian feel and is a handy base for the wild south-west."
+        q: 'What is Tamarin known for?',
+        a: 'Tamarin is best known for surfing the Tamarin Bay point break, for morning boat trips to see and swim with wild dolphins, and for its historic salt pans. It has a relaxed, bohemian feel and is a handy base for the wild south-west.',
       },
       {
-        "q": "When is the best time to visit Tamarin?",
-        "a": "May to September brings the cleanest surf and cooler, drier weather, ideal for the Tamarin wave and hiking. For warm-water swimming and the calmest seas, the summer months of November to April are better, though brief tropical showers are common."
+        q: 'When is the best time to visit Tamarin?',
+        a: 'May to September brings the cleanest surf and cooler, drier weather, ideal for the Tamarin wave and hiking. For warm-water swimming and the calmest seas, the summer months of November to April are better, though brief tropical showers are common.',
       },
       {
-        "q": "Where should I stay near Tamarin?",
-        "a": "Tamarin itself has guesthouses, villas and a few small hotels. For more resort choice, nearby Black River, Flic-en-Flac and Le Morne are all within a short drive and keep you close to the west-coast beaches and dolphin trips."
-      }
-    ]
+        q: 'Where should I stay near Tamarin?',
+        a: 'Tamarin itself has guesthouses, villas and a few small hotels. For more resort choice, nearby Black River, Flic-en-Flac and Le Morne are all within a short drive and keep you close to the west-coast beaches and dolphin trips.',
+      },
+    ],
   },
   {
-    "slug": "le-morne",
-    "name": "Le Morne",
-    "region": "West",
-    "intro": "Le Morne is a dramatic peninsula on the south-west tip of Mauritius, dominated by the UNESCO-listed Le Morne Brabant mountain that rises straight out of a turquoise lagoon. The area is best known for world-class kitesurfing and windsurfing, the famous \"Underwater Waterfall\" optical illusion seen from the air, and a string of five-star resorts strung along powder-white beaches. It suits couples after a luxury escape, water-sports enthusiasts chasing reliable trade winds, and travellers drawn to its powerful history as a refuge for escaped slaves. Quieter and more scenic than the busy north, Le Morne delivers postcard sunsets, calm protected swimming, and serious hiking.",
-    "highlights": [
-      "Hike Le Morne Brabant, the UNESCO World Heritage mountain, with a guide for sweeping views over the peninsula and lagoon",
+    slug: 'le-morne',
+    name: 'Le Morne',
+    region: 'West',
+    intro:
+      'Le Morne is a dramatic peninsula on the south-west tip of Mauritius, dominated by the UNESCO-listed Le Morne Brabant mountain that rises straight out of a turquoise lagoon. The area is best known for world-class kitesurfing and windsurfing, the famous "Underwater Waterfall" optical illusion seen from the air, and a string of five-star resorts strung along powder-white beaches. It suits couples after a luxury escape, water-sports enthusiasts chasing reliable trade winds, and travellers drawn to its powerful history as a refuge for escaped slaves. Quieter and more scenic than the busy north, Le Morne delivers postcard sunsets, calm protected swimming, and serious hiking.',
+    highlights: [
+      'Hike Le Morne Brabant, the UNESCO World Heritage mountain, with a guide for sweeping views over the peninsula and lagoon',
       "Kitesurf and windsurf at One Eye, one of the Indian Ocean's most celebrated spots thanks to steady trade winds",
       "Take a helicopter, seaplane or drone flight to see the famous Underwater Waterfall illusion off the peninsula's tip",
-      "Snorkel or dive the protected lagoon and reef, home to colourful coral, turtles and abundant fish",
+      'Snorkel or dive the protected lagoon and reef, home to colourful coral, turtles and abundant fish',
       "Visit Le Morne Village and the Slave Route monument to learn the mountain's poignant history",
-      "Watch the sunset over the lagoon from the beach, one of the best sunset spots on the island",
-      "Try stand-up paddleboarding, glass-bottom boat trips or a catamaran cruise along the south-west coast"
+      'Watch the sunset over the lagoon from the beach, one of the best sunset spots on the island',
+      'Try stand-up paddleboarding, glass-bottom boat trips or a catamaran cruise along the south-west coast',
     ],
-    "beaches": [
-      "Le Morne Public Beach",
-      "Saint Regis / Dinarobin beach stretch",
-      "Petite Riviere Noire beach (nearby)"
+    beaches: [
+      'Le Morne Public Beach',
+      'Saint Regis / Dinarobin beach stretch',
+      'Petite Riviere Noire beach (nearby)',
     ],
-    "gettingThere": "Le Morne sits about 55-65 km from SSR Airport in the south-east, roughly a 60-75 minute drive via the motorway and south-west coast road. There is no convenient public transport for visitors, so the simplest option is a pre-booked private transfer that meets you on arrival and takes you door to door.",
-    "goodFor": [
-      "Couples",
-      "Water sports",
-      "Kitesurfing",
-      "Relaxation",
-      "Diving"
+    gettingThere:
+      'Le Morne sits about 55-65 km from SSR Airport in the south-east, roughly a 60-75 minute drive via the motorway and south-west coast road. There is no convenient public transport for visitors, so the simplest option is a pre-booked private transfer that meets you on arrival and takes you door to door.',
+    goodFor: ['Couples', 'Water sports', 'Kitesurfing', 'Relaxation', 'Diving'],
+    nearbyAttractions: [
+      'Chamarel Seven Coloured Earths Geopark',
+      'Chamarel Waterfall',
+      'Black River Gorges National Park',
+      'La Vanille Nature Park',
+      'Rhumerie de Chamarel distillery',
+      'Tamarin Bay (dolphin watching)',
     ],
-    "nearbyAttractions": [
-      "Chamarel Seven Coloured Earths Geopark",
-      "Chamarel Waterfall",
-      "Black River Gorges National Park",
-      "La Vanille Nature Park",
-      "Rhumerie de Chamarel distillery",
-      "Tamarin Bay (dolphin watching)"
-    ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Le Morne from the airport?",
-        "a": "Le Morne is around 55-65 km from SSR Airport in the south-east, a drive of roughly 60-75 minutes depending on traffic. A pre-booked private transfer is the easiest way to get there, as public transport links are limited."
+        q: 'How far is Le Morne from the airport?',
+        a: 'Le Morne is around 55-65 km from SSR Airport in the south-east, a drive of roughly 60-75 minutes depending on traffic. A pre-booked private transfer is the easiest way to get there, as public transport links are limited.',
       },
       {
-        "q": "What is Le Morne known for?",
-        "a": "Le Morne is famous for the UNESCO-listed Le Morne Brabant mountain, world-class kitesurfing and windsurfing, the Underwater Waterfall optical illusion seen from the air, luxury beach resorts and its powerful history as a refuge for escaped slaves."
+        q: 'What is Le Morne known for?',
+        a: 'Le Morne is famous for the UNESCO-listed Le Morne Brabant mountain, world-class kitesurfing and windsurfing, the Underwater Waterfall optical illusion seen from the air, luxury beach resorts and its powerful history as a refuge for escaped slaves.',
       },
       {
-        "q": "When is the best time to visit Le Morne?",
-        "a": "May to December offers the best conditions, with cooler, drier weather and the reliable south-east trade winds that make Le Morne a kitesurfing hotspot from roughly June to September. For calmer swimming and diving, the warmer months from October onward are ideal."
+        q: 'When is the best time to visit Le Morne?',
+        a: 'May to December offers the best conditions, with cooler, drier weather and the reliable south-east trade winds that make Le Morne a kitesurfing hotspot from roughly June to September. For calmer swimming and diving, the warmer months from October onward are ideal.',
       },
       {
-        "q": "Where should I stay near Le Morne?",
-        "a": "The peninsula is lined with five-star resorts directly on the lagoon, ideal for couples and water-sports lovers. For more variety and a livelier base, nearby Riviere Noire (Black River) and Tamarin offer hotels, guesthouses and restaurants within a short drive."
-      }
-    ]
+        q: 'Where should I stay near Le Morne?',
+        a: 'The peninsula is lined with five-star resorts directly on the lagoon, ideal for couples and water-sports lovers. For more variety and a livelier base, nearby Riviere Noire (Black River) and Tamarin offer hotels, guesthouses and restaurants within a short drive.',
+      },
+    ],
   },
   {
-    "slug": "bel-ombre",
-    "name": "Bel Ombre",
-    "region": "South",
-    "intro": "Bel Ombre is a quiet stretch of Mauritius' unspoilt south coast, where a long lagoon-fronted beach meets sugarcane plains rising into the forested foothills of the Black River Gorges. Once a working sugar estate, it is now best known for its cluster of upscale resorts (Heritage, Sofitel, Outrigger), a championship golf course, and the private Frederica nature reserve behind it. The vibe is calm and green rather than busy or party-driven, which suits couples after seclusion, families wanting a self-contained resort base, golfers, and nature lovers. It is one of the island's most balanced spots: protected beach in front, wild mountains and waterfalls just inland.",
-    "highlights": [
-      "Play the championship Heritage Golf Club, an 18-hole course set between sugarcane and the sea",
-      "Take a 4x4 or quad safari through the Frederica Nature Reserve in the hills above Bel Ombre, spotting deer and waterfalls",
-      "Visit the restored Château de Bel Ombre, a colonial mansion with gardens and a fine-dining restaurant",
+    slug: 'bel-ombre',
+    name: 'Bel Ombre',
+    region: 'South',
+    intro:
+      "Bel Ombre is a quiet stretch of Mauritius' unspoilt south coast, where a long lagoon-fronted beach meets sugarcane plains rising into the forested foothills of the Black River Gorges. Once a working sugar estate, it is now best known for its cluster of upscale resorts (Heritage, Sofitel, Outrigger), a championship golf course, and the private Frederica nature reserve behind it. The vibe is calm and green rather than busy or party-driven, which suits couples after seclusion, families wanting a self-contained resort base, golfers, and nature lovers. It is one of the island's most balanced spots: protected beach in front, wild mountains and waterfalls just inland.",
+    highlights: [
+      'Play the championship Heritage Golf Club, an 18-hole course set between sugarcane and the sea',
+      'Take a 4x4 or quad safari through the Frederica Nature Reserve in the hills above Bel Ombre, spotting deer and waterfalls',
+      'Visit the restored Château de Bel Ombre, a colonial mansion with gardens and a fine-dining restaurant',
       "Explore Black River Gorges National Park, the island's largest tract of native forest, just inland",
       "See Chamarel's Seven Coloured Earths and the 100 m Chamarel Waterfall, a short drive west",
-      "Hike or photograph Le Morne Brabant, the UNESCO World Heritage basalt monolith on the south-west tip",
-      "Drive the wild southern coastline to the Gris Gris cliffs and the natural rock arch at Maconde"
+      'Hike or photograph Le Morne Brabant, the UNESCO World Heritage basalt monolith on the south-west tip',
+      'Drive the wild southern coastline to the Gris Gris cliffs and the natural rock arch at Maconde',
     ],
-    "beaches": [
-      "Bel Ombre public beach (Plage de Bel Ombre), a long calm lagoon beach shared by the resorts",
-      "Saint Félix beach, a quieter sandy bay a few minutes east",
-      "La Prairie beach, a wide white-sand stretch just along the coast",
-      "Le Morne beach, a long swimming and kitesurfing beach about 25 minutes west"
+    beaches: [
+      'Bel Ombre public beach (Plage de Bel Ombre), a long calm lagoon beach shared by the resorts',
+      'Saint Félix beach, a quieter sandy bay a few minutes east',
+      'La Prairie beach, a wide white-sand stretch just along the coast',
+      'Le Morne beach, a long swimming and kitesurfing beach about 25 minutes west',
     ],
-    "gettingThere": "Bel Ombre is about 40-42 km from SSR International Airport in the south-east, roughly a 50-minute drive along the scenic south-coast road through Souillac. There is no train and public buses are slow, so the easiest option is a pre-booked private transfer door to door; a private car or guide is also the simplest way to reach inland sights.",
-    "goodFor": [
-      "Couples",
-      "Families",
-      "Golf",
-      "Relaxation",
-      "Nature lovers"
+    gettingThere:
+      'Bel Ombre is about 40-42 km from SSR International Airport in the south-east, roughly a 50-minute drive along the scenic south-coast road through Souillac. There is no train and public buses are slow, so the easiest option is a pre-booked private transfer door to door; a private car or guide is also the simplest way to reach inland sights.',
+    goodFor: ['Couples', 'Families', 'Golf', 'Relaxation', 'Nature lovers'],
+    nearbyAttractions: [
+      'Black River Gorges National Park',
+      'Chamarel Seven Coloured Earths and Chamarel Waterfall',
+      'Le Morne Brabant (UNESCO World Heritage Site)',
+      'La Vanille Nature Park near Souillac (giant tortoises and crocodiles)',
+      'Gris Gris cliffs and Rochester Falls near Souillac',
+      'Frederica Nature Reserve and Château de Bel Ombre',
     ],
-    "nearbyAttractions": [
-      "Black River Gorges National Park",
-      "Chamarel Seven Coloured Earths and Chamarel Waterfall",
-      "Le Morne Brabant (UNESCO World Heritage Site)",
-      "La Vanille Nature Park near Souillac (giant tortoises and crocodiles)",
-      "Gris Gris cliffs and Rochester Falls near Souillac",
-      "Frederica Nature Reserve and Château de Bel Ombre"
-    ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Bel Ombre from the airport?",
-        "a": "Bel Ombre is roughly 40-42 km from SSR International Airport, about a 50-minute drive along the south-coast road through Souillac. A pre-booked private transfer takes you straight from arrivals to your resort door, with the price fixed before you travel."
+        q: 'How far is Bel Ombre from the airport?',
+        a: 'Bel Ombre is roughly 40-42 km from SSR International Airport, about a 50-minute drive along the south-coast road through Souillac. A pre-booked private transfer takes you straight from arrivals to your resort door, with the price fixed before you travel.',
       },
       {
-        "q": "What is Bel Ombre known for?",
-        "a": "Bel Ombre is known for its luxury beach resorts on a calm lagoon, the Heritage Golf Club, and the Frederica Nature Reserve and Château de Bel Ombre behind them. It's a green, peaceful part of the south coast that pairs a protected swimming beach with easy access to the island's wildest mountain scenery."
+        q: 'What is Bel Ombre known for?',
+        a: "Bel Ombre is known for its luxury beach resorts on a calm lagoon, the Heritage Golf Club, and the Frederica Nature Reserve and Château de Bel Ombre behind them. It's a green, peaceful part of the south coast that pairs a protected swimming beach with easy access to the island's wildest mountain scenery.",
       },
       {
-        "q": "Is Bel Ombre good for families?",
-        "a": "Yes. The lagoon is shielded by the reef so the water is calm and shallow near shore, and the area's large resorts are self-contained with kids' clubs, pools and water sports. Nature safaris in Frederica and the giant tortoises at nearby La Vanille Nature Park are easy family day trips."
+        q: 'Is Bel Ombre good for families?',
+        a: "Yes. The lagoon is shielded by the reef so the water is calm and shallow near shore, and the area's large resorts are self-contained with kids' clubs, pools and water sports. Nature safaris in Frederica and the giant tortoises at nearby La Vanille Nature Park are easy family day trips.",
       },
       {
-        "q": "When is the best time to visit Bel Ombre?",
-        "a": "May to December brings cooler, drier weather and the best conditions for the beach and golf. The southern coast can be breezier and greener than the north, and January to March is warmer and wetter with the small chance of a passing cyclone, though it remains a good time for lush scenery."
-      }
-    ]
+        q: 'When is the best time to visit Bel Ombre?',
+        a: 'May to December brings cooler, drier weather and the best conditions for the beach and golf. The southern coast can be breezier and greener than the north, and January to March is warmer and wetter with the small chance of a passing cyclone, though it remains a good time for lush scenery.',
+      },
+    ],
   },
   {
-    "slug": "blue-bay",
-    "name": "Blue Bay & Mahébourg",
-    "region": "South",
-    "intro": "Blue Bay and Mahébourg sit side by side on Mauritius's south-east coast, a short hop from SSR Airport. Blue Bay is famous for its marine park, a protected lagoon of clear, shallow water and living coral that makes it one of the island's best snorkelling spots. Next door, Mahébourg is a working fishing town with colonial history, a lively Monday street market and waterfront seafood. The mood here is laid-back and authentically Mauritian rather than resort-polished, suiting families, snorkellers, history buffs and travellers who want local character. It also makes an ideal first or last night given how close it is to the airport.",
-    "highlights": [
-      "Snorkel the Blue Bay Marine Park, a protected lagoon with vivid coral gardens and reef fish, by glass-bottom boat or straight off the beach",
-      "Take a glass-bottom boat trip over the coral and out toward the reef",
+    slug: 'blue-bay',
+    name: 'Blue Bay & Mahébourg',
+    region: 'South',
+    intro:
+      "Blue Bay and Mahébourg sit side by side on Mauritius's south-east coast, a short hop from SSR Airport. Blue Bay is famous for its marine park, a protected lagoon of clear, shallow water and living coral that makes it one of the island's best snorkelling spots. Next door, Mahébourg is a working fishing town with colonial history, a lively Monday street market and waterfront seafood. The mood here is laid-back and authentically Mauritian rather than resort-polished, suiting families, snorkellers, history buffs and travellers who want local character. It also makes an ideal first or last night given how close it is to the airport.",
+    highlights: [
+      'Snorkel the Blue Bay Marine Park, a protected lagoon with vivid coral gardens and reef fish, by glass-bottom boat or straight off the beach',
+      'Take a glass-bottom boat trip over the coral and out toward the reef',
       "Explore Mahébourg's waterfront and the National History Museum, which covers the 1810 naval Battle of Grand Port",
-      "Browse the busy Monday market in Mahébourg for produce, spices, street food and crafts",
-      "Boat out to Île aux Aigrettes nature reserve to see giant tortoises and rare endemic plants and birds",
-      "Visit the Rault Biscuit Factory near Mahébourg, where manioc biscuits are still made by hand using a 1870s method",
-      "Picnic and swim at the long public beach in Blue Bay under the filao trees"
+      'Browse the busy Monday market in Mahébourg for produce, spices, street food and crafts',
+      'Boat out to Île aux Aigrettes nature reserve to see giant tortoises and rare endemic plants and birds',
+      'Visit the Rault Biscuit Factory near Mahébourg, where manioc biscuits are still made by hand using a 1870s method',
+      'Picnic and swim at the long public beach in Blue Bay under the filao trees',
     ],
-    "beaches": [
-      "Blue Bay Beach",
-      "Pointe d'Esny Beach",
-      "Mahébourg waterfront"
-    ],
-    "gettingThere": "Blue Bay and Mahébourg are roughly 10-15 minutes (about 8 km) from SSR Airport, the closest beach area to the terminal. A pre-booked private transfer with Belle Mare Tours is the simplest way in, with meet-and-greet at arrivals. Getting around is easy on foot, by taxi or private driver.",
-    "goodFor": [
-      "Families",
-      "Snorkelling",
-      "Diving",
-      "Couples",
-      "Relaxation"
-    ],
-    "nearbyAttractions": [
-      "Blue Bay Marine Park",
-      "Île aux Aigrettes nature reserve",
-      "Mahébourg National History Museum",
-      "Île aux Cerfs (via boat from the south-east)",
+    beaches: ['Blue Bay Beach', "Pointe d'Esny Beach", 'Mahébourg waterfront'],
+    gettingThere:
+      'Blue Bay and Mahébourg are roughly 10-15 minutes (about 8 km) from SSR Airport, the closest beach area to the terminal. A pre-booked private transfer with Belle Mare Tours is the simplest way in, with meet-and-greet at arrivals. Getting around is easy on foot, by taxi or private driver.',
+    goodFor: ['Families', 'Snorkelling', 'Diving', 'Couples', 'Relaxation'],
+    nearbyAttractions: [
+      'Blue Bay Marine Park',
+      'Île aux Aigrettes nature reserve',
+      'Mahébourg National History Museum',
+      'Île aux Cerfs (via boat from the south-east)',
       "Pointe d'Esny wetlands",
-      "La Vanille Nature Park (giant tortoises and crocodiles, near Rivière des Anguilles)"
+      'La Vanille Nature Park (giant tortoises and crocodiles, near Rivière des Anguilles)',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Blue Bay & Mahébourg from the airport?",
-        "a": "Very close. SSR Airport sits in the south-east, so Blue Bay and Mahébourg are only about 8 km away, roughly a 10-15 minute drive. It is the nearest beach area to the airport, which makes it a popular choice for the first or last night of a trip."
+        q: 'How far is Blue Bay & Mahébourg from the airport?',
+        a: 'Very close. SSR Airport sits in the south-east, so Blue Bay and Mahébourg are only about 8 km away, roughly a 10-15 minute drive. It is the nearest beach area to the airport, which makes it a popular choice for the first or last night of a trip.',
       },
       {
-        "q": "What is Blue Bay known for?",
-        "a": "Blue Bay is best known for its marine park, a protected lagoon with clear, shallow water and healthy coral. It is one of the top snorkelling spots in Mauritius, and glass-bottom boat trips let you see the coral and fish without getting in the water."
+        q: 'What is Blue Bay known for?',
+        a: 'Blue Bay is best known for its marine park, a protected lagoon with clear, shallow water and healthy coral. It is one of the top snorkelling spots in Mauritius, and glass-bottom boat trips let you see the coral and fish without getting in the water.',
       },
       {
-        "q": "What is the best beach in Blue Bay & Mahébourg?",
-        "a": "Blue Bay Beach is the standout, with calm turquoise water ideal for families and snorkellers. Neighbouring Pointe d'Esny has a long, quieter stretch of sand lined with villas and is good for a relaxed swim away from the crowds."
+        q: 'What is the best beach in Blue Bay & Mahébourg?',
+        a: "Blue Bay Beach is the standout, with calm turquoise water ideal for families and snorkellers. Neighbouring Pointe d'Esny has a long, quieter stretch of sand lined with villas and is good for a relaxed swim away from the crowds.",
       },
       {
-        "q": "When is the best time to visit?",
-        "a": "May to December brings drier, cooler weather and excellent water clarity for snorkelling and diving. The south-east coast can be breezier and catches the trade winds, so calm mornings are often the best time to be in the lagoon."
-      }
-    ]
+        q: 'When is the best time to visit?',
+        a: 'May to December brings drier, cooler weather and excellent water clarity for snorkelling and diving. The south-east coast can be breezier and catches the trade winds, so calm mornings are often the best time to be in the lagoon.',
+      },
+    ],
   },
   {
-    "slug": "port-louis",
-    "name": "Port Louis",
-    "region": "West",
-    "intro": "Port Louis is the capital of Mauritius and its busiest city, set on the north-west coast against the dramatic backdrop of the Moka mountain range and Le Pouce. This is a working harbour city rather than a beach resort, full of colonial buildings, a buzzing Central Market, mosques, Hindu temples, Chinese pagodas and the restored Caudan Waterfront. It suits travellers who want culture, history, street food and shopping over sunbathing, and works well as a half-day stop within a wider island tour. Port Louis is best known for its UNESCO-listed Aapravasi Ghat, its colourful market, racing at the historic Champ de Mars and panoramic views from the Citadel.",
-    "highlights": [
-      "Caudan Waterfront — restored harbour quarter with shops, cafes, the Blue Penny Museum and the Mauritian rupee photo wall",
-      "Port Louis Central Market — two-storey market for spices, vanilla, street food (dholl puri), fruit and souvenirs",
-      "Aapravasi Ghat — UNESCO World Heritage site marking the arrival of indentured labourers from 1834",
-      "Fort Adelaide (the Citadel) — hilltop fortress with the best panoramic views over the city and harbour",
+    slug: 'port-louis',
+    name: 'Port Louis',
+    region: 'West',
+    intro:
+      'Port Louis is the capital of Mauritius and its busiest city, set on the north-west coast against the dramatic backdrop of the Moka mountain range and Le Pouce. This is a working harbour city rather than a beach resort, full of colonial buildings, a buzzing Central Market, mosques, Hindu temples, Chinese pagodas and the restored Caudan Waterfront. It suits travellers who want culture, history, street food and shopping over sunbathing, and works well as a half-day stop within a wider island tour. Port Louis is best known for its UNESCO-listed Aapravasi Ghat, its colourful market, racing at the historic Champ de Mars and panoramic views from the Citadel.',
+    highlights: [
+      'Caudan Waterfront — restored harbour quarter with shops, cafes, the Blue Penny Museum and the Mauritian rupee photo wall',
+      'Port Louis Central Market — two-storey market for spices, vanilla, street food (dholl puri), fruit and souvenirs',
+      'Aapravasi Ghat — UNESCO World Heritage site marking the arrival of indentured labourers from 1834',
+      'Fort Adelaide (the Citadel) — hilltop fortress with the best panoramic views over the city and harbour',
       "Champ de Mars — the Southern Hemisphere's oldest racecourse, lively on race days (roughly May to November)",
       "Blue Penny Museum — home to the famous 1847 Mauritius 'Post Office' stamps and island history",
-      "Jummah Mosque and Chinatown — ornate 1850s mosque and the lantern-lined streets of the old Chinese quarter"
+      'Jummah Mosque and Chinatown — ornate 1850s mosque and the lantern-lined streets of the old Chinese quarter',
     ],
-    "beaches": [],
-    "gettingThere": "From SSR International Airport in the south-east, Port Louis is roughly 48 km away, about 45–55 minutes by motorway (M1/M2) depending on rush-hour traffic into the capital. The city itself is walkable around Caudan and the market. A pre-booked private transfer with Belle Mare Tours is the easiest door-to-door option, with meet and greet on arrival.",
-    "goodFor": [
-      "Culture",
-      "History",
-      "Shopping",
-      "Foodies",
-      "City sightseeing"
-    ],
-    "nearbyAttractions": [
+    beaches: [],
+    gettingThere:
+      'From SSR International Airport in the south-east, Port Louis is roughly 48 km away, about 45–55 minutes by motorway (M1/M2) depending on rush-hour traffic into the capital. The city itself is walkable around Caudan and the market. A pre-booked private transfer with Belle Mare Tours is the easiest door-to-door option, with meet and greet on arrival.',
+    goodFor: ['Culture', 'History', 'Shopping', 'Foodies', 'City sightseeing'],
+    nearbyAttractions: [
       "Le Pouce mountain hike (one of the island's most accessible summits)",
-      "SSR Botanical Garden at Pamplemousses (giant water lilies, ~12 km north)",
-      "Trou aux Cerfs dormant volcano crater in Curepipe",
+      'SSR Botanical Garden at Pamplemousses (giant water lilies, ~12 km north)',
+      'Trou aux Cerfs dormant volcano crater in Curepipe',
       "Father Laval's Shrine at Sainte-Croix",
-      "Le Caudan and the Aapravasi Ghat heritage trail",
-      "Domaine les Pailles estate at the foot of the Moka range"
+      'Le Caudan and the Aapravasi Ghat heritage trail',
+      'Domaine les Pailles estate at the foot of the Moka range',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How far is Port Louis from the airport?",
-        "a": "Port Louis is about 48 km from SSR International Airport in the south-east. The drive takes roughly 45–55 minutes via the M1/M2 motorway, though traffic into the capital can add time during morning and evening rush hours. A pre-booked private transfer avoids the queues and gets you door to door."
+        q: 'How far is Port Louis from the airport?',
+        a: 'Port Louis is about 48 km from SSR International Airport in the south-east. The drive takes roughly 45–55 minutes via the M1/M2 motorway, though traffic into the capital can add time during morning and evening rush hours. A pre-booked private transfer avoids the queues and gets you door to door.',
       },
       {
-        "q": "What is Port Louis known for?",
-        "a": "Port Louis is the capital and commercial heart of Mauritius. It's known for its colourful Central Market, the Caudan Waterfront, the UNESCO-listed Aapravasi Ghat, the historic Champ de Mars racecourse, and a rich mix of cultures reflected in its mosques, temples, churches and Chinatown."
+        q: 'What is Port Louis known for?',
+        a: "Port Louis is the capital and commercial heart of Mauritius. It's known for its colourful Central Market, the Caudan Waterfront, the UNESCO-listed Aapravasi Ghat, the historic Champ de Mars racecourse, and a rich mix of cultures reflected in its mosques, temples, churches and Chinatown.",
       },
       {
-        "q": "Are there beaches in Port Louis?",
-        "a": "Not really — Port Louis is a working harbour city, so there are no swimming beaches in the centre. For sand and lagoon swimming you'd head north to Trou aux Biches and Mont Choisy (about 30–40 minutes away), which are among the island's best public beaches."
+        q: 'Are there beaches in Port Louis?',
+        a: "Not really — Port Louis is a working harbour city, so there are no swimming beaches in the centre. For sand and lagoon swimming you'd head north to Trou aux Biches and Mont Choisy (about 30–40 minutes away), which are among the island's best public beaches.",
       },
       {
-        "q": "How long do I need in Port Louis?",
-        "a": "A half-day (3–4 hours) is enough to cover the Central Market, Caudan Waterfront, Aapravasi Ghat and the Citadel viewpoint. It pairs well with a morning at Pamplemousses Botanical Garden or as a cultural stop within a full-day private island tour."
-      }
-    ]
-  }
+        q: 'How long do I need in Port Louis?',
+        a: 'A half-day (3–4 hours) is enough to cover the Central Market, Caudan Waterfront, Aapravasi Ghat and the Citadel viewpoint. It pairs well with a morning at Pamplemousses Botanical Garden or as a cultural stop within a full-day private island tour.',
+      },
+    ],
+  },
 ];

@@ -17,9 +17,7 @@ export async function resolveTourStops(
   stops: TourStopLite[],
   searchOne: (query: string) => Promise<PlannerPlace | null>,
 ): Promise<PlannerPlace[]> {
-  const resolved = await Promise.all(
-    stops.map((s) => searchOne(s.title.trim()).catch(() => null)),
-  );
+  const resolved = await Promise.all(stops.map((s) => searchOne(s.title.trim()).catch(() => null)));
   const seen = new Set<string>();
   const out: PlannerPlace[] = [];
   for (const place of resolved) {

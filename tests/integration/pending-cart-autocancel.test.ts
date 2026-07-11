@@ -11,17 +11,21 @@ const ALICE = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
 const BOB = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 
 async function book(db: TestDb, key: string, email = 'cust@example.com'): Promise<string> {
-  const oid = (await db.pg.query<{ id: string }>(`select id from session_occurrences limit 1`)).rows[0]!.id;
-  const { rows } = await db.pg.query<{ data: { ref: string } }>(`select api_book($1::jsonb) as data`, [
-    JSON.stringify({
-      occurrenceId: oid,
-      party: { Adult: 2 },
-      customerName: 'Cust',
-      customerEmail: email,
-      source: 'web',
-      idempotencyKey: key,
-    }),
-  ]);
+  const oid = (await db.pg.query<{ id: string }>(`select id from session_occurrences limit 1`))
+    .rows[0]!.id;
+  const { rows } = await db.pg.query<{ data: { ref: string } }>(
+    `select api_book($1::jsonb) as data`,
+    [
+      JSON.stringify({
+        occurrenceId: oid,
+        party: { Adult: 2 },
+        customerName: 'Cust',
+        customerEmail: email,
+        source: 'web',
+        idempotencyKey: key,
+      }),
+    ],
+  );
   return rows[0]!.data.ref;
 }
 
@@ -32,8 +36,11 @@ describe('pending bookings in cart + safe auto-cancel', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
     for (const uid of [ALICE, BOB]) {
       await db.pg.query(`insert into auth.users (id) values ($1)`, [uid]);
       await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [uid]);
@@ -98,7 +105,9 @@ describe('pending bookings in cart + safe auto-cancel', () => {
     await db.as({ sub: ALICE, role: 'authenticated' });
     const ref = await book(db, 'pend-alice-confirmed');
     await db.asOwner();
-    await db.pg.query(`update bookings set status='confirmed', payment_state='paid' where ref=$1`, [ref]);
+    await db.pg.query(`update bookings set status='confirmed', payment_state='paid' where ref=$1`, [
+      ref,
+    ]);
 
     await db.as({ sub: ALICE, role: 'authenticated' });
     const { rows } = await db.pg.query<{ data: Array<{ ref: string }> }>(
@@ -108,20 +117,27 @@ describe('pending bookings in cart + safe auto-cancel', () => {
 
     // authenticated role but no sub → auth.uid() is null → guarded.
     await db.as({ role: 'authenticated' });
-    await expect(db.pg.query(`select api_my_pending_bookings('{}'::jsonb)`)).rejects.toThrow(/unauthorized/i);
+    await expect(db.pg.query(`select api_my_pending_bookings('{}'::jsonb)`)).rejects.toThrow(
+      /unauthorized/i,
+    );
   });
 
   it('auto-expires a stale unpaid booking: status + hold + one audit row + one expiry email', async () => {
     await db.as({ sub: ALICE, role: 'authenticated' });
     const ref = await book(db, 'pend-stale-1', 'stale@example.com');
     await db.asOwner();
-    await db.pg.query(`update bookings set created_at = now() - interval '2 hours' where ref=$1`, [ref]);
+    await db.pg.query(`update bookings set created_at = now() - interval '2 hours' where ref=$1`, [
+      ref,
+    ]);
 
     const result = await runBookingMaintenance(ctx, 30);
     expect(result.bookingsExpired).toBeGreaterThanOrEqual(1);
 
     const b = (
-      await db.pg.query<{ id: string; status: string }>(`select id, status from bookings where ref=$1`, [ref])
+      await db.pg.query<{ id: string; status: string }>(
+        `select id, status from bookings where ref=$1`,
+        [ref],
+      )
     ).rows[0]!;
     expect(b.status).toBe('expired');
 
@@ -170,9 +186,12 @@ describe('pending bookings in cart + safe auto-cancel', () => {
     await db.as({ sub: ALICE, role: 'authenticated' });
     const ref = await book(db, 'pend-paid-1', 'paid@example.com');
     await db.asOwner();
-    const bid = (await db.pg.query<{ id: string }>(`select id from bookings where ref=$1`, [ref])).rows[0]!.id;
+    const bid = (await db.pg.query<{ id: string }>(`select id from bookings where ref=$1`, [ref]))
+      .rows[0]!.id;
     // Projection still 'pending' (webhook lagging) but a PAID payment row exists — must survive the sweep.
-    await db.pg.query(`update bookings set created_at = now() - interval '2 hours' where ref=$1`, [ref]);
+    await db.pg.query(`update bookings set created_at = now() - interval '2 hours' where ref=$1`, [
+      ref,
+    ]);
     await db.pg.query(
       `insert into payments (booking_id, idempotency_key, amount_minor, status, paid_minor)
        values ($1, $2, 10000, 'paid', 10000)`,
@@ -181,8 +200,9 @@ describe('pending bookings in cart + safe auto-cancel', () => {
 
     await runBookingMaintenance(ctx, 30);
 
-    const status = (await db.pg.query<{ status: string }>(`select status from bookings where ref=$1`, [ref]))
-      .rows[0]!.status;
+    const status = (
+      await db.pg.query<{ status: string }>(`select status from bookings where ref=$1`, [ref])
+    ).rows[0]!.status;
     expect(status).toBe('payment_pending'); // untouched
     const audits = Number(
       (

@@ -69,7 +69,9 @@ const worker = {
     const results = await Promise.allSettled(tasks);
     const failed = results.filter((r) => r.status === 'rejected' || r.value === false).length;
     if (failed > 0) {
-      throw new Error(`[cron] ${failed}/${results.length} task(s) failed after retries — see logs above`);
+      throw new Error(
+        `[cron] ${failed}/${results.length} task(s) failed after retries — see logs above`,
+      );
     }
   },
 

@@ -46,7 +46,10 @@ export async function deleteMyAccount(accessToken: string): Promise<DeleteAccoun
     await eraseAccountData(userServiceContext(accessToken), userId, email);
   } catch (eraseError) {
     // Non-PII: log the code/message only, never the user's email.
-    console.error('gdpr_erase_failed', eraseError instanceof Error ? eraseError.message : String(eraseError));
+    console.error(
+      'gdpr_erase_failed',
+      eraseError instanceof Error ? eraseError.message : String(eraseError),
+    );
     return { ok: false, error: 'erase_failed' };
   }
 

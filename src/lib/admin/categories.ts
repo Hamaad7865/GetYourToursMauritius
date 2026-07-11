@@ -79,7 +79,10 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
     if (clash) {
       throw new Error(`A category named “${newName}” already exists — delete or rename it first.`);
     }
-    const { error: repointErr } = await sb.from('activities').update({ category: newName }).eq('category', oldName);
+    const { error: repointErr } = await sb
+      .from('activities')
+      .update({ category: newName })
+      .eq('category', oldName);
     if (repointErr) throw repointErr;
   }
   const { error } = await sb

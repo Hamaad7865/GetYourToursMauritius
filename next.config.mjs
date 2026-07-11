@@ -23,7 +23,11 @@ const nextConfig = {
   // `/airport-transfer` does NOT match the `/activities/airport-transfer` product or its API route.)
   async redirects() {
     return [
-      { source: '/mauritius-airport-transfers', destination: '/airport-transfers', permanent: true },
+      {
+        source: '/mauritius-airport-transfers',
+        destination: '/airport-transfers',
+        permanent: true,
+      },
       { source: '/mauritius-activities', destination: '/activities', permanent: true },
       { source: '/things-to-do-in-mauritius', destination: '/attractions', permanent: true },
       { source: '/airport-transfer', destination: '/airport-transfers', permanent: true },

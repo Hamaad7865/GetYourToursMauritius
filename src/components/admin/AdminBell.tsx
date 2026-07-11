@@ -99,7 +99,9 @@ export function AdminBell() {
       // Fetch enough to COVER the unread count (up to the API cap) before marking all read —
       // otherwise alerts #11+ get flipped read without ever being rendered.
       const pageSize = Math.min(Math.max(10, unread), 50);
-      const res = await fetch(`/api/v1/notifications?page=1&pageSize=${pageSize}`, { headers: authHeaders() });
+      const res = await fetch(`/api/v1/notifications?page=1&pageSize=${pageSize}`, {
+        headers: authHeaders(),
+      });
       const body = await parseApiJson<FeedNote[]>(res);
       setNotes(body.ok ? body.data : []);
       // Opening the panel is "seeing" the alerts — clear the badge (best-effort).
@@ -139,7 +141,10 @@ export function AdminBell() {
       </button>
 
       {open && (
-        <div id="admin-bell-panel" className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] rounded-2xl border border-[#EAEEF0] bg-white p-2 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+        <div
+          id="admin-bell-panel"
+          className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] rounded-2xl border border-[#EAEEF0] bg-white p-2 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]"
+        >
           <div className="px-3 py-2 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
             Notifications
           </div>
@@ -160,9 +165,13 @@ export function AdminBell() {
                   >
                     <span className="flex items-baseline justify-between gap-2">
                       <span className="text-[13.5px] font-bold text-ink">{n.title}</span>
-                      <span className="shrink-0 text-[11px] text-ink-muted">{timeAgo(n.createdAt)}</span>
+                      <span className="shrink-0 text-[11px] text-ink-muted">
+                        {timeAgo(n.createdAt)}
+                      </span>
                     </span>
-                    <span className="mt-0.5 block text-[12.5px] leading-snug text-ink/75">{n.body}</span>
+                    <span className="mt-0.5 block text-[12.5px] leading-snug text-ink/75">
+                      {n.body}
+                    </span>
                   </button>
                 </li>
               ))}

@@ -13,8 +13,18 @@ const bookings: ExportBookingInput[] = [
     pickup_location: 'Belle Mare Plage',
     dropoff_location: 'SSR Airport',
     items: [
-      { price_label: 'Adult', quantity: 2, starts_at: '2026-02-01T05:30:00.000Z', title: 'Catamaran cruise' },
-      { price_label: 'Child', quantity: 1, starts_at: '2026-02-01T05:30:00.000Z', title: 'Catamaran cruise' },
+      {
+        price_label: 'Adult',
+        quantity: 2,
+        starts_at: '2026-02-01T05:30:00.000Z',
+        title: 'Catamaran cruise',
+      },
+      {
+        price_label: 'Child',
+        quantity: 1,
+        starts_at: '2026-02-01T05:30:00.000Z',
+        title: 'Catamaran cruise',
+      },
     ],
   },
   {
@@ -29,7 +39,12 @@ const bookings: ExportBookingInput[] = [
 
 describe('buildAccountExport', () => {
   it('shapes profile + bookings into clean portable JSON', () => {
-    const out = buildAccountExport(profile, 'asha@example.com', bookings, '2026-06-21T00:00:00.000Z');
+    const out = buildAccountExport(
+      profile,
+      'asha@example.com',
+      bookings,
+      '2026-06-21T00:00:00.000Z',
+    );
 
     expect(out).toEqual({
       exportedAt: '2026-06-21T00:00:00.000Z',
@@ -68,7 +83,12 @@ describe('buildAccountExport', () => {
   });
 
   it('carries no foreign/internal ids and no other-user data', () => {
-    const out = buildAccountExport(profile, 'asha@example.com', bookings, '2026-06-21T00:00:00.000Z');
+    const out = buildAccountExport(
+      profile,
+      'asha@example.com',
+      bookings,
+      '2026-06-21T00:00:00.000Z',
+    );
     const json = JSON.stringify(out);
     // Only the booking ref is an identifier; no row/user/occurrence/payment ids leak through.
     expect(json).not.toMatch(/booking_id|user_id|session_occurrence|activity_option|"id"/);

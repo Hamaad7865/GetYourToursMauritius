@@ -30,7 +30,10 @@ describe('per-stop selection', () => {
   });
 
   it('chosenRoute maps each stop to its selected place, defaulting to primary', () => {
-    expect(chosenRoute(STOPS, { 1: 1 }).map((p) => p.title)).toEqual(['Port Louis', 'Fort Adelaide']);
+    expect(chosenRoute(STOPS, { 1: 1 }).map((p) => p.title)).toEqual([
+      'Port Louis',
+      'Fort Adelaide',
+    ]);
     expect(chosenRoute(STOPS, {}).map((p) => p.title)).toEqual(['Port Louis', 'Pamplemousses']);
   });
 

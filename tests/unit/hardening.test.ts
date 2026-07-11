@@ -20,7 +20,9 @@ describe('F24: 5xx ServiceError messages are not leaked to the client', () => {
   it('hides the internal message of a ConfigError but keeps the code + correlation id', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const res = errorToResponse(new ConfigError('SUPABASE_JWT_SECRET is not configured'));
-    const body = (await res.json()) as { error: { code: string; message: string; details?: { errorId?: string } } };
+    const body = (await res.json()) as {
+      error: { code: string; message: string; details?: { errorId?: string } };
+    };
     expect(res.status).toBe(500);
     expect(body.error.code).toBe('config_error');
     expect(JSON.stringify(body)).not.toContain('SUPABASE_JWT_SECRET');

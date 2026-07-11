@@ -48,9 +48,10 @@ describe('authz & integrity hardening', () => {
   it('F12: blocks an authenticated non-staff user from forging a review', async () => {
     await db.as({ sub: USER_A, role: 'authenticated' });
     await expect(
-      db.pg.query(`insert into reviews (activity_id, author, rating, text) values ($1, 'Hacker', 5, 'fake')`, [
-        activityId,
-      ]),
+      db.pg.query(
+        `insert into reviews (activity_id, author, rating, text) values ($1, 'Hacker', 5, 'fake')`,
+        [activityId],
+      ),
     ).rejects.toThrow();
     await db.asOwner();
   });

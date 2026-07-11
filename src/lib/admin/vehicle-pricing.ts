@@ -154,7 +154,11 @@ export async function loadRegionDistances(): Promise<RegionPairInput[]> {
   return (data ?? []).map((r) => ({ regionA: r.region_a, regionB: r.region_b, band: r.band }));
 }
 
-export async function updateRegionDistance(regionA: string, regionB: string, band: 'near' | 'far'): Promise<void> {
+export async function updateRegionDistance(
+  regionA: string,
+  regionB: string,
+  band: 'near' | 'far',
+): Promise<void> {
   const { error } = await getBrowserSupabase()
     .from('region_zone_distance')
     .update({ band })
@@ -230,7 +234,10 @@ export async function loadAirportReturnDiscount(): Promise<number> {
 export async function updateAirportReturnDiscount(pct: number): Promise<void> {
   const { error } = await getBrowserSupabase()
     .from('airport_transfer_config')
-    .update({ return_discount_pct: Math.max(0, Math.min(90, Math.round(pct))), updated_at: new Date().toISOString() })
+    .update({
+      return_discount_pct: Math.max(0, Math.min(90, Math.round(pct))),
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', true);
   if (error) throw error;
 }
@@ -300,7 +307,10 @@ export async function loadHotelTransferReturnDiscount(): Promise<number> {
 export async function updateHotelTransferReturnDiscount(pct: number): Promise<void> {
   const { error } = await getBrowserSupabase()
     .from('hotel_transfer_config')
-    .update({ return_discount_pct: Math.max(0, Math.min(90, Math.round(pct))), updated_at: new Date().toISOString() })
+    .update({
+      return_discount_pct: Math.max(0, Math.min(90, Math.round(pct))),
+      updated_at: new Date().toISOString(),
+    })
     .eq('id', true);
   if (error) throw error;
 }

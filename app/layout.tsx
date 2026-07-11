@@ -27,7 +27,8 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi | GetYourToursMauritius',
+    default:
+      'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi | GetYourToursMauritius',
     template: '%s | GetYourToursMauritius',
   },
   description:
@@ -38,7 +39,9 @@ export const metadata: Metadata = {
     type: 'website',
     siteName: 'Belle Mare Tours',
     locale: 'en_GB',
-    images: [{ url: '/hero-mauritius.jpg', width: 1200, height: 630, alt: 'Belle Mare Tours — Mauritius' }],
+    images: [
+      { url: '/hero-mauritius.jpg', width: 1200, height: 630, alt: 'Belle Mare Tours — Mauritius' },
+    ],
   },
   twitter: { card: 'summary_large_image', images: ['/hero-mauritius.jpg'] },
   // Google Search Console verification — set NEXT_PUBLIC_GSC_VERIFICATION once you claim the property.

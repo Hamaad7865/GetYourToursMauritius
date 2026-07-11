@@ -66,8 +66,7 @@ function MenuRow({
       <IconChevronRight width={18} height={18} className="text-ink-muted" />
     </>
   );
-  const cls =
-    'flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left active:bg-cream';
+  const cls = 'flex w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left active:bg-cream';
   return href ? (
     <Link href={href} onClick={onClick} className={cls}>
       {inner}
@@ -126,7 +125,13 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
 
       {/* Overlay + panel. Mounted only while open; the panel slides from the right. */}
       {open && (
-        <div ref={dialogRef} className="fixed inset-0 z-[70] sm:hidden" role="dialog" aria-modal="true" aria-label={t('Menu')}>
+        <div
+          ref={dialogRef}
+          className="fixed inset-0 z-[70] sm:hidden"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('Menu')}
+        >
           {/* Non-focusable scrim — click to dismiss; the X button + Escape handle keyboard. */}
           <div aria-hidden onClick={close} className="absolute inset-0 bg-ink/40" />
           {/* Full-width so it fully covers the page header — otherwise the header's logo shows
@@ -180,7 +185,9 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
                     <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-teal/[0.08] text-teal">
                       <IconBell width={18} height={18} />
                     </span>
-                    <span className="flex-1 text-[15.5px] font-semibold text-ink">{t('Updates')}</span>
+                    <span className="flex-1 text-[15.5px] font-semibold text-ink">
+                      {t('Updates')}
+                    </span>
                     {unread > 0 && (
                       <span className="grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-coral px-1 text-[11px] font-extrabold leading-none text-ink">
                         {unread}
@@ -193,8 +200,18 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
                       <NotificationsList notes={notes} />
                     </div>
                   )}
-                  <MenuRow href="/account/bookings" onClick={close} label={t('My bookings')} icon={<IconBookings width={18} height={18} />} />
-                  <MenuRow href="/account" onClick={close} label={t('Settings')} icon={<IconSettings width={18} height={18} />} />
+                  <MenuRow
+                    href="/account/bookings"
+                    onClick={close}
+                    label={t('My bookings')}
+                    icon={<IconBookings width={18} height={18} />}
+                  />
+                  <MenuRow
+                    href="/account"
+                    onClick={close}
+                    label={t('Settings')}
+                    icon={<IconSettings width={18} height={18} />}
+                  />
                   <MenuRow
                     label={t('Log out')}
                     icon={<IconLogOut width={18} height={18} />}
@@ -237,8 +254,18 @@ export function MobileMenu({ light = false }: { light?: boolean }) {
               />
 
               <div className="my-2 h-px bg-ink/10" />
-              <MenuRow href="/wishlist" onClick={close} label={t('Wishlist')} icon={<IconHeart width={18} height={18} />} />
-              <MenuRow href="/cart" onClick={close} label={t('Cart')} icon={<IconCart width={18} height={18} />} />
+              <MenuRow
+                href="/wishlist"
+                onClick={close}
+                label={t('Wishlist')}
+                icon={<IconHeart width={18} height={18} />}
+              />
+              <MenuRow
+                href="/cart"
+                onClick={close}
+                label={t('Cart')}
+                icon={<IconCart width={18} height={18} />}
+              />
             </nav>
           </div>
         </div>

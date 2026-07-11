@@ -41,7 +41,11 @@ const inputClass =
   'w-28 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3 py-2 text-sm text-ink outline-none focus:border-teal focus:bg-white';
 
 /** Vehicle brackets for the airport-fare grid, in column order — keyed to AirportFareInput fields. */
-const AIRPORT_VEHICLES: { key: 'sedanEur' | 'suvEur' | 'familyEur' | 'vanEur' | 'coasterEur'; label: string; hint: string }[] = [
+const AIRPORT_VEHICLES: {
+  key: 'sedanEur' | 'suvEur' | 'familyEur' | 'vanEur' | 'coasterEur';
+  label: string;
+  hint: string;
+}[] = [
   { key: 'sedanEur', label: 'Standard car', hint: '1–4' },
   { key: 'suvEur', label: 'SUV', hint: '1–4 upgrade' },
   { key: 'familyEur', label: 'Family car', hint: '5–6' },
@@ -167,19 +171,53 @@ export function AdminVehiclePricing() {
       {/* Sightseeing tours */}
       <section className="mb-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
         <h2 className="text-[15px] font-extrabold text-ink">Sightseeing tours</h2>
-        <p className="mt-0.5 text-[13px] text-ink-muted">Applies to every vehicle-priced sightseeing tour.</p>
+        <p className="mt-0.5 text-[13px] text-ink-muted">
+          Applies to every vehicle-priced sightseeing tour.
+        </p>
         {sight ? (
           <div className="mt-4 max-w-md">
-            <EuroField label="Sedan" hint="1–4" value={sight.sedanEur} onChange={(n) => setSight({ ...sight, sedanEur: n })} />
-            <EuroField label="SUV" hint="1–4 upgrade" value={sight.suvEur} onChange={(n) => setSight({ ...sight, suvEur: n })} />
-            <EuroField label="Family car" hint="5–6" value={sight.familyEur} onChange={(n) => setSight({ ...sight, familyEur: n })} />
-            <EuroField label="Van" hint="7–14" value={sight.vanEur} onChange={(n) => setSight({ ...sight, vanEur: n })} />
-            <EuroField label="Coaster" hint="15–25" value={sight.coasterEur} onChange={(n) => setSight({ ...sight, coasterEur: n })} />
+            <EuroField
+              label="Sedan"
+              hint="1–4"
+              value={sight.sedanEur}
+              onChange={(n) => setSight({ ...sight, sedanEur: n })}
+            />
+            <EuroField
+              label="SUV"
+              hint="1–4 upgrade"
+              value={sight.suvEur}
+              onChange={(n) => setSight({ ...sight, suvEur: n })}
+            />
+            <EuroField
+              label="Family car"
+              hint="5–6"
+              value={sight.familyEur}
+              onChange={(n) => setSight({ ...sight, familyEur: n })}
+            />
+            <EuroField
+              label="Van"
+              hint="7–14"
+              value={sight.vanEur}
+              onChange={(n) => setSight({ ...sight, vanEur: n })}
+            />
+            <EuroField
+              label="Coaster"
+              hint="15–25"
+              value={sight.coasterEur}
+              onChange={(n) => setSight({ ...sight, coasterEur: n })}
+            />
             <div className="mt-4 flex items-center gap-3">
-              <button type="button" disabled={busy} onClick={() => void run('sight', () => updateSightseeingPricing(sight))} className={BTN_PRIMARY}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void run('sight', () => updateSightseeingPricing(sight))}
+                className={BTN_PRIMARY}
+              >
                 {busy ? 'Saving…' : 'Save sightseeing prices'}
               </button>
-              {saved === 'sight' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+              {saved === 'sight' && (
+                <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>
+              )}
             </div>
           </div>
         ) : (
@@ -193,11 +231,36 @@ export function AdminVehiclePricing() {
         <p className="mt-0.5 text-[13px] text-ink-muted">Used by the AI Road Trip Planner.</p>
         {planner ? (
           <div className="mt-4 max-w-md">
-            <EuroField label="Standard car" hint="1–4" value={planner.standardEur} onChange={(n) => setPlanner({ ...planner, standardEur: n })} />
-            <EuroField label="SUV" hint="1–4 upgrade" value={planner.suvEur} onChange={(n) => setPlanner({ ...planner, suvEur: n })} />
-            <EuroField label="6-seater" hint="5–6" value={planner.sixEur} onChange={(n) => setPlanner({ ...planner, sixEur: n })} />
-            <EuroField label="Van" hint="7–14" value={planner.vanEur} onChange={(n) => setPlanner({ ...planner, vanEur: n })} />
-            <EuroField label="Coach" hint={`15–${planner.maxParty}`} value={planner.coachEur} onChange={(n) => setPlanner({ ...planner, coachEur: n })} />
+            <EuroField
+              label="Standard car"
+              hint="1–4"
+              value={planner.standardEur}
+              onChange={(n) => setPlanner({ ...planner, standardEur: n })}
+            />
+            <EuroField
+              label="SUV"
+              hint="1–4 upgrade"
+              value={planner.suvEur}
+              onChange={(n) => setPlanner({ ...planner, suvEur: n })}
+            />
+            <EuroField
+              label="6-seater"
+              hint="5–6"
+              value={planner.sixEur}
+              onChange={(n) => setPlanner({ ...planner, sixEur: n })}
+            />
+            <EuroField
+              label="Van"
+              hint="7–14"
+              value={planner.vanEur}
+              onChange={(n) => setPlanner({ ...planner, vanEur: n })}
+            />
+            <EuroField
+              label="Coach"
+              hint={`15–${planner.maxParty}`}
+              value={planner.coachEur}
+              onChange={(n) => setPlanner({ ...planner, coachEur: n })}
+            />
             <label className="flex items-center justify-between gap-3 py-1.5">
               <span className="text-sm text-ink">Max party size</span>
               <input
@@ -205,14 +268,23 @@ export function AdminVehiclePricing() {
                 min={1}
                 className={inputClass}
                 value={planner.maxParty}
-                onChange={(e) => setPlanner({ ...planner, maxParty: e.target.value ? Number(e.target.value) : 1 })}
+                onChange={(e) =>
+                  setPlanner({ ...planner, maxParty: e.target.value ? Number(e.target.value) : 1 })
+                }
               />
             </label>
             <div className="mt-4 flex items-center gap-3">
-              <button type="button" disabled={busy} onClick={() => void run('planner', () => updatePlannerPricing(planner))} className={BTN_PRIMARY}>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void run('planner', () => updatePlannerPricing(planner))}
+                className={BTN_PRIMARY}
+              >
                 {busy ? 'Saving…' : 'Save road-trip prices'}
               </button>
-              {saved === 'planner' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+              {saved === 'planner' && (
+                <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>
+              )}
             </div>
           </div>
         ) : (
@@ -224,19 +296,45 @@ export function AdminVehiclePricing() {
       <section className="mt-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
         <h2 className="text-[15px] font-extrabold text-ink">Activity transport add-on</h2>
         <p className="mt-0.5 text-[13px] text-ink-muted">
-          Door-to-door transport for per-person / per-group activities, by how far the pickup is from the
-          activity and the vehicle the party needs. The fee is added only when a customer enters a pickup.
+          Door-to-door transport for per-person / per-group activities, by how far the pickup is
+          from the activity and the vehicle the party needs. The fee is added only when a customer
+          enters a pickup.
         </p>
         {bands ? (
           <div className="mt-4 max-w-md space-y-3">
             {bands.map((bnd, i) => (
               <div key={bnd.band} className="rounded-xl border border-[#EAEEF0] p-3">
                 <div className="text-[13px] font-bold text-ink">{BAND_LABEL[bnd.band]}</div>
-                <EuroField label="Sedan" hint="1–4" value={bnd.sedanEur} onChange={(n) => patchBand(i, { sedanEur: n })} />
-                <EuroField label="SUV" hint="1–4 upgrade" value={bnd.suvEur} onChange={(n) => patchBand(i, { suvEur: n })} />
-                <EuroField label="Family car" hint="5–6" value={bnd.familyEur} onChange={(n) => patchBand(i, { familyEur: n })} />
-                <EuroField label="Van" hint="7–14" value={bnd.vanEur} onChange={(n) => patchBand(i, { vanEur: n })} />
-                <EuroField label="Coaster" hint="15–25" value={bnd.coasterEur} onChange={(n) => patchBand(i, { coasterEur: n })} />
+                <EuroField
+                  label="Sedan"
+                  hint="1–4"
+                  value={bnd.sedanEur}
+                  onChange={(n) => patchBand(i, { sedanEur: n })}
+                />
+                <EuroField
+                  label="SUV"
+                  hint="1–4 upgrade"
+                  value={bnd.suvEur}
+                  onChange={(n) => patchBand(i, { suvEur: n })}
+                />
+                <EuroField
+                  label="Family car"
+                  hint="5–6"
+                  value={bnd.familyEur}
+                  onChange={(n) => patchBand(i, { familyEur: n })}
+                />
+                <EuroField
+                  label="Van"
+                  hint="7–14"
+                  value={bnd.vanEur}
+                  onChange={(n) => patchBand(i, { vanEur: n })}
+                />
+                <EuroField
+                  label="Coaster"
+                  hint="15–25"
+                  value={bnd.coasterEur}
+                  onChange={(n) => patchBand(i, { coasterEur: n })}
+                />
               </div>
             ))}
             <div className="flex items-center gap-3">
@@ -252,7 +350,9 @@ export function AdminVehiclePricing() {
               >
                 {busy ? 'Saving…' : 'Save transport fares'}
               </button>
-              {saved === 'transport' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+              {saved === 'transport' && (
+                <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>
+              )}
             </div>
           </div>
         ) : (
@@ -267,7 +367,10 @@ export function AdminVehiclePricing() {
             </p>
             <div className="mt-3 space-y-1">
               {pairs.map((pr, i) => (
-                <div key={`${pr.regionA}-${pr.regionB}`} className="flex items-center justify-between gap-3 py-1">
+                <div
+                  key={`${pr.regionA}-${pr.regionB}`}
+                  className="flex items-center justify-between gap-3 py-1"
+                >
                   <span className="text-sm text-ink">
                     {pr.regionA} ↔ {pr.regionB}
                   </span>
@@ -278,7 +381,9 @@ export function AdminVehiclePricing() {
                         type="button"
                         onClick={() => setPairBand(i, band)}
                         className={`px-3 py-1.5 text-[12.5px] font-bold capitalize ${
-                          pr.band === band ? 'bg-teal text-white' : 'bg-white text-ink-muted hover:bg-[#F7F8FA]'
+                          pr.band === band
+                            ? 'bg-teal text-white'
+                            : 'bg-white text-ink-muted hover:bg-[#F7F8FA]'
                         }`}
                       >
                         {band}
@@ -301,7 +406,9 @@ export function AdminVehiclePricing() {
               >
                 {busy ? 'Saving…' : 'Save region distances'}
               </button>
-              {saved === 'regions' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+              {saved === 'regions' && (
+                <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>
+              )}
             </div>
           </div>
         )}
@@ -311,27 +418,36 @@ export function AdminVehiclePricing() {
       <section className="mt-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
         <h2 className="text-[15px] font-extrabold text-ink">Airport transfers</h2>
         <p className="mt-0.5 text-[13px] text-ink-muted">
-          Fixed transfer fare from SSR Airport, by the hotel’s zone and the vehicle the party needs. Zone 2
-          is the near-airport south-east cluster; Zone 1 is everywhere else. The return discount applies
-          when a traveller books the return leg at the same time.
+          Fixed transfer fare from SSR Airport, by the hotel’s zone and the vehicle the party needs.
+          Zone 2 is the near-airport south-east cluster; Zone 1 is everywhere else. The return
+          discount applies when a traveller books the return leg at the same time.
         </p>
         {airFares ? (
           <div className="mt-4">
             <p className="mb-3 max-w-2xl text-[12px] text-ink-muted">
-              Zone 2 = near-airport south-east (Mahébourg, Blue Bay, Pointe d&apos;Esny, Grand Port, Ferney +
-              Shandrani/Preskil/Anantara IKO/Holiday Inn/Astroea/Le Peninsula Bay). Zone 1 = the rest of the island.
-              Prices are per vehicle, fixed, in EUR.
+              Zone 2 = near-airport south-east (Mahébourg, Blue Bay, Pointe d&apos;Esny, Grand Port,
+              Ferney + Shandrani/Preskil/Anantara IKO/Holiday Inn/Astroea/Le Peninsula Bay). Zone 1
+              = the rest of the island. Prices are per vehicle, fixed, in EUR.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
-                <caption className="sr-only">Airport transfer fares by zone and vehicle, in euros</caption>
+                <caption className="sr-only">
+                  Airport transfer fares by zone and vehicle, in euros
+                </caption>
                 <thead>
                   <tr>
-                    <th scope="col" className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60">
+                    <th
+                      scope="col"
+                      className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60"
+                    >
                       Zone
                     </th>
                     {AIRPORT_VEHICLES.map((v) => (
-                      <th key={v.key} scope="col" className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60">
+                      <th
+                        key={v.key}
+                        scope="col"
+                        className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60"
+                      >
                         {v.label}
                         <span className="block font-medium text-ink-muted">{v.hint}</span>
                       </th>
@@ -341,7 +457,10 @@ export function AdminVehiclePricing() {
                 <tbody>
                   {airFares.map((f, i) => (
                     <tr key={f.zone} className="border-t border-[#EAEEF0]">
-                      <th scope="row" className="px-2 py-2.5 text-left align-middle text-[13px] font-bold text-ink">
+                      <th
+                        scope="row"
+                        className="px-2 py-2.5 text-left align-middle text-[13px] font-bold text-ink"
+                      >
                         {AIRPORT_ZONE_LABEL[f.zone]}
                       </th>
                       {AIRPORT_VEHICLES.map((v) => (
@@ -355,7 +474,11 @@ export function AdminVehiclePricing() {
                               className={inputClass}
                               aria-label={`${AIRPORT_ZONE_LABEL[f.zone]} — ${v.label} fare in euros`}
                               value={Number.isFinite(f[v.key]) ? f[v.key] : ''}
-                              onChange={(e) => patchFare(i, { [v.key]: e.target.value ? Number(e.target.value) : 0 })}
+                              onChange={(e) =>
+                                patchFare(i, {
+                                  [v.key]: e.target.value ? Number(e.target.value) : 0,
+                                })
+                              }
                             />
                           </span>
                         </td>
@@ -397,7 +520,9 @@ export function AdminVehiclePricing() {
               >
                 {busy ? 'Saving…' : 'Save transfer fares'}
               </button>
-              {saved === 'airport' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+              {saved === 'airport' && (
+                <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>
+              )}
             </div>
           </div>
         ) : (
@@ -409,26 +534,36 @@ export function AdminVehiclePricing() {
       <section className="mt-[18px] rounded-2xl border border-[#EAEEF0] bg-white p-5">
         <h2 className="text-[15px] font-extrabold text-ink">Hotel-to-hotel transfers</h2>
         <p className="mt-0.5 text-[13px] text-ink-muted">
-          Fixed private transfer between two hotels, priced by how far apart the two coasts are (Same /
-          Nearby / Across the island) and the vehicle the party needs. The return discount applies when a
-          traveller books the return leg at the same time. Independent of the airport matrix above.
+          Fixed private transfer between two hotels, priced by how far apart the two coasts are
+          (Same / Nearby / Across the island) and the vehicle the party needs. The return discount
+          applies when a traveller books the return leg at the same time. Independent of the airport
+          matrix above.
         </p>
         {hotelFares ? (
           <div className="mt-4">
             <p className="mb-3 max-w-2xl text-[12px] text-ink-muted">
-              The band is derived from the two hotels’ regions using the same Region distances set in the
-              transport add-on above. Prices are per vehicle, fixed, in EUR.
+              The band is derived from the two hotels’ regions using the same Region distances set
+              in the transport add-on above. Prices are per vehicle, fixed, in EUR.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-sm">
-                <caption className="sr-only">Hotel-to-hotel transfer fares by distance band and vehicle, in euros</caption>
+                <caption className="sr-only">
+                  Hotel-to-hotel transfer fares by distance band and vehicle, in euros
+                </caption>
                 <thead>
                   <tr>
-                    <th scope="col" className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60">
+                    <th
+                      scope="col"
+                      className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60"
+                    >
                       Distance
                     </th>
                     {AIRPORT_VEHICLES.map((v) => (
-                      <th key={v.key} scope="col" className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60">
+                      <th
+                        key={v.key}
+                        scope="col"
+                        className="px-2 py-2 text-left text-[12.5px] font-bold text-ink/60"
+                      >
                         {v.label}
                         <span className="block font-medium text-ink-muted">{v.hint}</span>
                       </th>
@@ -438,7 +573,10 @@ export function AdminVehiclePricing() {
                 <tbody>
                   {hotelFares.map((f, i) => (
                     <tr key={f.band} className="border-t border-[#EAEEF0]">
-                      <th scope="row" className="px-2 py-2.5 text-left align-middle text-[13px] font-bold text-ink">
+                      <th
+                        scope="row"
+                        className="px-2 py-2.5 text-left align-middle text-[13px] font-bold text-ink"
+                      >
                         {HOTEL_BAND_LABEL[f.band]}
                       </th>
                       {AIRPORT_VEHICLES.map((v) => (
@@ -452,7 +590,11 @@ export function AdminVehiclePricing() {
                               className={inputClass}
                               aria-label={`${HOTEL_BAND_LABEL[f.band]} — ${v.label} fare in euros`}
                               value={Number.isFinite(f[v.key]) ? f[v.key] : ''}
-                              onChange={(e) => patchHotelFare(i, { [v.key]: e.target.value ? Number(e.target.value) : 0 })}
+                              onChange={(e) =>
+                                patchHotelFare(i, {
+                                  [v.key]: e.target.value ? Number(e.target.value) : 0,
+                                })
+                              }
                             />
                           </span>
                         </td>
@@ -487,14 +629,17 @@ export function AdminVehiclePricing() {
                 onClick={() =>
                   void run('hotel', async () => {
                     for (const f of hotelFares) await updateHotelTransferFare(f);
-                    if (hotelReturnPct != null) await updateHotelTransferReturnDiscount(hotelReturnPct);
+                    if (hotelReturnPct != null)
+                      await updateHotelTransferReturnDiscount(hotelReturnPct);
                   })
                 }
                 className={BTN_PRIMARY}
               >
                 {busy ? 'Saving…' : 'Save hotel-to-hotel fares'}
               </button>
-              {saved === 'hotel' && <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>}
+              {saved === 'hotel' && (
+                <span className="text-sm font-semibold text-emerald-700">Saved ✓</span>
+              )}
             </div>
           </div>
         ) : (

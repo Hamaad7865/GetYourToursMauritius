@@ -56,7 +56,15 @@ export function Card({
 }
 
 /** A labelled form field. Wrap an input/select/textarea (the label is associated via wrapping). */
-export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+export function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <label className="block">
       <span className="mb-1.5 block text-[12.5px] font-bold text-ink/60">{label}</span>
@@ -68,7 +76,10 @@ export function Field({ label, hint, children }: { label: string; hint?: ReactNo
 
 export function AdminError({ children }: { children: ReactNode }) {
   return (
-    <p role="alert" className="mb-4 rounded-xl bg-coral/10 px-4 py-3 text-[13px] font-medium text-coral">
+    <p
+      role="alert"
+      className="mb-4 rounded-xl bg-coral/10 px-4 py-3 text-[13px] font-medium text-coral"
+    >
       {children}
     </p>
   );

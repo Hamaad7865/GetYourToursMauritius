@@ -3,7 +3,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { CCY_COOKIE, LANG_COOKIE, PREF_MAX_AGE, type Currency, type Locale } from '@/lib/i18n/config';
+import {
+  CCY_COOKIE,
+  LANG_COOKIE,
+  PREF_MAX_AGE,
+  type Currency,
+  type Locale,
+} from '@/lib/i18n/config';
 import { translate } from '@/lib/i18n/translate';
 import { formatMoney } from '@/lib/money/fx';
 import { LangCurrencyModal } from './LangCurrencyModal';
@@ -80,7 +86,10 @@ export function PreferencesProvider({
     [router],
   );
 
-  const openPrefs = useCallback((tab: 'language' | 'currency' = 'language') => setModalTab(tab), []);
+  const openPrefs = useCallback(
+    (tab: 'language' | 'currency' = 'language') => setModalTab(tab),
+    [],
+  );
   const closePrefs = useCallback(() => setModalTab(null), []);
 
   const t = useCallback(
@@ -93,7 +102,17 @@ export function PreferencesProvider({
   );
 
   const value = useMemo<PreferencesValue>(
-    () => ({ language, currency, usdRate, setLanguage, setCurrency, openPrefs, closePrefs, t, money }),
+    () => ({
+      language,
+      currency,
+      usdRate,
+      setLanguage,
+      setCurrency,
+      openPrefs,
+      closePrefs,
+      t,
+      money,
+    }),
     [language, currency, usdRate, setLanguage, setCurrency, openPrefs, closePrefs, t, money],
   );
 

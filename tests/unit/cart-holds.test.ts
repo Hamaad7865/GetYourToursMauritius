@@ -3,10 +3,24 @@ import { dropExpiredHolds, expiringSoon, markHeld, markUnavailable } from '@/lib
 import type { CartItem } from '@/lib/cart/useCart';
 
 const line = (over: Partial<CartItem> = {}): CartItem => ({
-  id: 'occ#Adult', slug: 's', title: 'T', image: null, occurrenceId: 'occ',
-  dateLabel: 'Mon', lang: 'English', priceLabel: 'Adult', guests: 2, unitEur: 50,
-  pricingMode: 'per_person', maxGuests: null, seatsLeft: 10, unit: 'per person',
-  addedAt: 0, status: 'saved', idemKey: 'k1', ...over,
+  id: 'occ#Adult',
+  slug: 's',
+  title: 'T',
+  image: null,
+  occurrenceId: 'occ',
+  dateLabel: 'Mon',
+  lang: 'English',
+  priceLabel: 'Adult',
+  guests: 2,
+  unitEur: 50,
+  pricingMode: 'per_person',
+  maxGuests: null,
+  seatsLeft: 10,
+  unit: 'per person',
+  addedAt: 0,
+  status: 'saved',
+  idemKey: 'k1',
+  ...over,
 });
 
 const NOW = 1_000_000;
@@ -17,13 +31,17 @@ describe('dropExpiredHolds', () => {
     expect(dropExpiredHolds(items, NOW).kept).toHaveLength(1);
   });
   it('keeps held lines whose expiresAt is in the future', () => {
-    const items = [line({ status: 'held', holdId: 'h1', expiresAt: new Date(NOW + 60_000).toISOString() })];
+    const items = [
+      line({ status: 'held', holdId: 'h1', expiresAt: new Date(NOW + 60_000).toISOString() }),
+    ];
     const r = dropExpiredHolds(items, NOW);
     expect(r.kept).toHaveLength(1);
     expect(r.expired).toHaveLength(0);
   });
   it('drops held lines whose expiresAt has passed and reports them', () => {
-    const items = [line({ status: 'held', holdId: 'h1', expiresAt: new Date(NOW - 1).toISOString() })];
+    const items = [
+      line({ status: 'held', holdId: 'h1', expiresAt: new Date(NOW - 1).toISOString() }),
+    ];
     const r = dropExpiredHolds(items, NOW);
     expect(r.kept).toHaveLength(0);
     expect(r.expired.map((i) => i.id)).toEqual(['occ#Adult']);
@@ -49,8 +67,17 @@ describe('markHeld / markUnavailable', () => {
 
 describe('expiringSoon', () => {
   it('flags a held line within the 5-minute window', () => {
-    const soon = line({ status: 'held', holdId: 'h', expiresAt: new Date(NOW + 4 * 60_000).toISOString() });
-    const far = line({ id: 'x', status: 'held', holdId: 'h', expiresAt: new Date(NOW + 10 * 60_000).toISOString() });
+    const soon = line({
+      status: 'held',
+      holdId: 'h',
+      expiresAt: new Date(NOW + 4 * 60_000).toISOString(),
+    });
+    const far = line({
+      id: 'x',
+      status: 'held',
+      holdId: 'h',
+      expiresAt: new Date(NOW + 10 * 60_000).toISOString(),
+    });
     expect(expiringSoon([soon, far], NOW).map((i) => i.id)).toEqual(['occ#Adult']);
   });
 });

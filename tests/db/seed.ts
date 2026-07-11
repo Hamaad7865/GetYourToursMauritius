@@ -62,13 +62,26 @@ export interface PrivateSeedResult {
 export async function seedPrivateOption(
   db: TestDb,
   seeded: SeedResult,
-  cfg: { baseMinor: number; included: number; extraMinor: number; maxGuests: number; tripsPerDay: number },
+  cfg: {
+    baseMinor: number;
+    included: number;
+    extraMinor: number;
+    maxGuests: number;
+    tripsPerDay: number;
+  },
 ): Promise<PrivateSeedResult> {
   const { rows: opt } = await db.pg.query<{ id: string }>(
     `insert into activity_options
        (activity_id, name, private_base_minor, private_included, private_extra_minor, private_max_guests, daily_capacity)
      values ($1, 'Private charter', $2, $3, $4, $5, $6) returning id`,
-    [seeded.activityId, cfg.baseMinor, cfg.included, cfg.extraMinor, cfg.maxGuests, cfg.tripsPerDay],
+    [
+      seeded.activityId,
+      cfg.baseMinor,
+      cfg.included,
+      cfg.extraMinor,
+      cfg.maxGuests,
+      cfg.tripsPerDay,
+    ],
   );
   const optionId = opt[0]!.id;
 

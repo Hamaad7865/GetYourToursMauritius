@@ -83,7 +83,9 @@ export function OptionSelector() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5 text-[14px] font-bold text-ink">
-                    {selected && <IconCheck width={15} height={15} className="shrink-0 text-teal" />}
+                    {selected && (
+                      <IconCheck width={15} height={15} className="shrink-0 text-teal" />
+                    )}
                     {option.name}
                     {summary.isPrivate && (
                       <span className="shrink-0 rounded-full bg-teal/10 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-teal-dark">
@@ -92,12 +94,16 @@ export function OptionSelector() {
                     )}
                   </div>
                   {option.description && (
-                    <div className="mt-0.5 line-clamp-2 text-[12px] text-ink-muted">{option.description}</div>
+                    <div className="mt-0.5 line-clamp-2 text-[12px] text-ink-muted">
+                      {option.description}
+                    </div>
                   )}
                   {(option.durationMinutes != null || option.startWindow) && (
                     <div className="mt-1 flex items-center gap-1.5 text-[12px] text-ink/70">
                       <IconClock width={13} height={13} className="text-teal" />
-                      {[durationLabel(option.durationMinutes ?? null), option.startWindow].filter(Boolean).join(' · ')}
+                      {[durationLabel(option.durationMinutes ?? null), option.startWindow]
+                        .filter(Boolean)
+                        .join(' · ')}
                     </div>
                   )}
                   {summary.maxGuests != null && (

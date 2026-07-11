@@ -40,5 +40,9 @@ export function AdminGuard({ children }: { children: ReactNode }) {
 }
 
 function Centered({ children }: { children: ReactNode }) {
-  return <div className="grid min-h-[60vh] place-items-center px-6 text-center">{<div>{children}</div>}</div>;
+  return (
+    <div className="grid min-h-[60vh] place-items-center px-6 text-center">
+      {<div>{children}</div>}
+    </div>
+  );
 }

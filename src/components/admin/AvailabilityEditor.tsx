@@ -43,7 +43,11 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
     if (cap != null) setCapacity(cap);
     const meta = await loadActivityOptions(activityId);
     setOptions(meta.options);
-    setOptCaps(Object.fromEntries(meta.options.map((o) => [o.id, o.dailyCapacity != null ? String(o.dailyCapacity) : ''])));
+    setOptCaps(
+      Object.fromEntries(
+        meta.options.map((o) => [o.id, o.dailyCapacity != null ? String(o.dailyCapacity) : '']),
+      ),
+    );
   }
 
   useEffect(() => {
@@ -107,7 +111,10 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
       ) : options.length === 0 ? (
         <div className="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5 text-sm text-ink">
           This activity has no booking options yet. Add an option with a price in{' '}
-          <Link href={`/admin/activities/${activityId}/edit`} className="font-bold text-teal hover:text-teal-dark">
+          <Link
+            href={`/admin/activities/${activityId}/edit`}
+            className="font-bold text-teal hover:text-teal-dark"
+          >
             Edit
           </Link>{' '}
           first.
@@ -115,8 +122,13 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
       ) : (
         <div className="max-w-xl rounded-2xl border border-[#EAEEF0] bg-white p-6">
           <div className="flex items-center gap-2.5">
-            <span className={`h-2.5 w-2.5 rounded-full ${open ? 'bg-emerald-500' : 'bg-ink/25'}`} aria-hidden />
-            <h2 className="text-[15px] font-extrabold text-ink">{open ? 'Bookable every day' : 'Not bookable yet'}</h2>
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${open ? 'bg-emerald-500' : 'bg-ink/25'}`}
+              aria-hidden
+            />
+            <h2 className="text-[15px] font-extrabold text-ink">
+              {open ? 'Bookable every day' : 'Not bookable yet'}
+            </h2>
           </div>
           <p className="mt-1.5 text-[13px] text-ink-muted">
             {open
@@ -126,7 +138,9 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
 
           <label className="mt-5 block">
             <span className="mb-1.5 block text-[12.5px] font-bold text-ink/60">
-              {pricingMode === 'vehicle' ? 'Bookings (vehicles) per day' : 'Bookable per day (capacity)'}
+              {pricingMode === 'vehicle'
+                ? 'Bookings (vehicles) per day'
+                : 'Bookable per day (capacity)'}
             </span>
             <input
               type="number"
@@ -141,7 +155,12 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
             <button
               type="button"
               disabled={busy}
-              onClick={() => run(() => setDailyCapacity(activityId, capacity), open ? 'Capacity updated.' : 'Now bookable every day.')}
+              onClick={() =>
+                run(
+                  () => setDailyCapacity(activityId, capacity),
+                  open ? 'Capacity updated.' : 'Now bookable every day.',
+                )
+              }
               className={BTN_PRIMARY}
             >
               {open ? 'Update capacity' : 'Make bookable'}
@@ -160,7 +179,8 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
 
           {open && (
             <p className="mt-4 text-[12px] text-ink-muted">
-              Bookable on every future date — a day fills up once {capacity} {unitNoun()} have booked it.
+              Bookable on every future date — a day fills up once {capacity} {unitNoun()} have
+              booked it.
             </p>
           )}
 
@@ -170,14 +190,18 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
             <div className="mt-6 border-t border-ink/10 pt-5">
               <h3 className="text-[13.5px] font-extrabold text-ink">Per-option capacity</h3>
               <p className="mt-1 text-[12px] text-ink-muted">
-                Each option can have its own daily number. Leave blank to use the activity capacity ({capacity}).
+                Each option can have its own daily number. Leave blank to use the activity capacity
+                ({capacity}).
               </p>
               <div className="mt-3 flex flex-col gap-2.5">
                 {options.map((o) => {
                   const val = optCaps[o.id] ?? '';
                   const overridden = o.dailyCapacity != null;
                   return (
-                    <div key={o.id} className="flex flex-wrap items-center gap-2.5 rounded-xl border border-ink/10 px-3 py-2.5">
+                    <div
+                      key={o.id}
+                      className="flex flex-wrap items-center gap-2.5 rounded-xl border border-ink/10 px-3 py-2.5"
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-[13px] font-bold text-ink">
                           {o.name}
@@ -188,7 +212,9 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
                           )}
                         </div>
                         <div className="text-[11.5px] text-ink-muted">
-                          {overridden ? `${o.dailyCapacity} ${unitNoun(o)} per day` : `Uses activity capacity · ${unitNoun(o)}`}
+                          {overridden
+                            ? `${o.dailyCapacity} ${unitNoun(o)} per day`
+                            : `Uses activity capacity · ${unitNoun(o)}`}
                         </div>
                       </div>
                       <input
@@ -217,7 +243,12 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
                         <button
                           type="button"
                           disabled={busy}
-                          onClick={() => run(() => clearOptionCapacity(activityId, o.id), `${o.name}: uses the activity capacity again.`)}
+                          onClick={() =>
+                            run(
+                              () => clearOptionCapacity(activityId, o.id),
+                              `${o.name}: uses the activity capacity again.`,
+                            )
+                          }
                           className="rounded-lg border border-ink/15 px-3 py-2 text-[12.5px] font-bold text-ink hover:border-teal hover:text-teal disabled:opacity-50"
                         >
                           Use default

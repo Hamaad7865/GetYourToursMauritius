@@ -10,7 +10,9 @@ import { createTestDb, type TestDb } from '../db/pglite';
  */
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -23,8 +25,11 @@ describe('hotel-to-hotel transfer booking: band pricing + zero-trust', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
 
@@ -102,7 +107,11 @@ describe('hotel-to-hotel transfer booking: band pricing + zero-trust', () => {
   it('prices a NEAR return pair (East→North) at €72 (€40 × 2 − 10%)', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     const booking = await book(
-      { pickupSlug: 'lux-belle-mare', dropoffSlug: 'trou-aux-biches-beachcomber', tripType: 'return' },
+      {
+        pickupSlug: 'lux-belle-mare',
+        dropoffSlug: 'trou-aux-biches-beachcomber',
+        tripType: 'return',
+      },
       'h2h-near-ret-0001',
     );
     expect(booking.totalEur).toBe(72); // 40 × 2 × 0.9

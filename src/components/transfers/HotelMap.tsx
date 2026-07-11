@@ -20,7 +20,8 @@ const REGION_COLOR: Record<string, string> = {
 
 /** Every hotel that has coordinates (geocoded into _transfers.gen.ts). */
 const PINNED: Array<Transfer & { lat: number; lng: number }> = transfers.filter(
-  (t): t is Transfer & { lat: number; lng: number } => typeof t.lat === 'number' && typeof t.lng === 'number',
+  (t): t is Transfer & { lat: number; lng: number } =>
+    typeof t.lat === 'number' && typeof t.lng === 'number',
 );
 
 /**
@@ -121,13 +122,21 @@ export function HotelMap() {
       {/* Region legend */}
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-ink/70">
         <span className="flex items-center gap-1.5">
-          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: '#F76C5E' }} /> SSR Airport
+          <span
+            className="inline-block h-2.5 w-2.5 rounded-full"
+            style={{ background: '#F76C5E' }}
+          />{' '}
+          SSR Airport
         </span>
         {Object.entries(REGION_COLOR)
           .filter(([region]) => PINNED.some((h) => h.region === region))
           .map(([region, color]) => (
             <span key={region} className="flex items-center gap-1.5">
-              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: color }} /> {region}
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-full"
+                style={{ background: color }}
+              />{' '}
+              {region}
             </span>
           ))}
       </div>
@@ -135,8 +144,12 @@ export function HotelMap() {
       {/* Selected-hotel card */}
       {selected && (
         <div className="pointer-events-auto absolute left-3 top-3 w-[min(20rem,calc(100%-1.5rem))] rounded-2xl border border-ink/10 bg-white/95 p-4 shadow-lg backdrop-blur">
-          <div className="text-[11px] font-bold uppercase tracking-wide text-teal">{selected.area}</div>
-          <h3 className="mt-0.5 text-[16px] font-extrabold leading-snug text-ink">{selected.hotelName}</h3>
+          <div className="text-[11px] font-bold uppercase tracking-wide text-teal">
+            {selected.area}
+          </div>
+          <h3 className="mt-0.5 text-[16px] font-extrabold leading-snug text-ink">
+            {selected.hotelName}
+          </h3>
           <div className="mt-2 flex items-center gap-3 text-[12.5px] text-ink/70">
             <span>~{selected.durationMinFromAirport} min</span>
             <span>·</span>

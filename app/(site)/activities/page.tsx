@@ -83,9 +83,7 @@ export async function generateMetadata({
   };
 }
 
-async function loadResults(
-  params: BrowseParams,
-): Promise<{ items: TourSummary[]; total: number }> {
+async function loadResults(params: BrowseParams): Promise<{ items: TourSummary[]; total: number }> {
   try {
     const result = await searchActivities(publicServiceContext(), {
       page: params.page,
@@ -124,7 +122,11 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
       />
       {isBase && <JsonLd data={faqPageJsonLd(ACTIVITIES_FAQS)} />}
       {isBase && page === 1 && items.length > 0 && (
-        <JsonLd data={itemListJsonLd(items.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })))} />
+        <JsonLd
+          data={itemListJsonLd(
+            items.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })),
+          )}
+        />
       )}
       <GygHeader showSearch={false} />
       <main className="bg-cream">
@@ -143,9 +145,9 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
             </p>
             {isBase && (
               <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-ink/70">
-                Browse and book the full range of Mauritius activities and tours direct with Belle Mare Tours —
-                catamaran cruises, dolphin swims, Île aux Cerfs trips, sea walks and private island day tours,
-                all with instant confirmation and no reseller markup.
+                Browse and book the full range of Mauritius activities and tours direct with Belle
+                Mare Tours — catamaran cruises, dolphin swims, Île aux Cerfs trips, sea walks and
+                private island day tours, all with instant confirmation and no reseller markup.
               </p>
             )}
           </div>
@@ -161,7 +163,9 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
           <ActivityGrid
             activities={items}
             leadingCard={
-              isSightseeingCategory(params.category) && page === 1 ? <PlannerPromoCard /> : undefined
+              isSightseeingCategory(params.category) && page === 1 ? (
+                <PlannerPromoCard />
+              ) : undefined
             }
           />
 

@@ -11,7 +11,9 @@ import { useT } from '@/components/site/PreferencesProvider';
 export function NotificationsList({ notes }: { notes: Note[] }) {
   const t = useT();
   if (notes.length === 0) {
-    return <p className="px-3 py-6 text-center text-sm text-ink-muted">{t('No notifications yet')}</p>;
+    return (
+      <p className="px-3 py-6 text-center text-sm text-ink-muted">{t('No notifications yet')}</p>
+    );
   }
   return (
     <ul className="max-h-72 overflow-auto">

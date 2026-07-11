@@ -19,7 +19,9 @@ interface Slot {
 }
 
 async function call<T>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -88,7 +90,9 @@ describe('Custom Road Trip bookable activity', () => {
 
   it('is hidden from the public catalogue search', async () => {
     await db.as(null);
-    const res = await call<{ items: Array<{ slug: string }> }>(db, 'api_search_activities', { pageSize: 100 });
+    const res = await call<{ items: Array<{ slug: string }> }>(db, 'api_search_activities', {
+      pageSize: 100,
+    });
     expect(res.items.find((i) => i.slug === 'custom-road-trip')).toBeUndefined();
   });
 });

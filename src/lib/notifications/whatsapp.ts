@@ -40,7 +40,10 @@ export class WhatsAppNotificationProvider implements NotificationProvider {
     // Meta rejects template BODY parameters containing newlines/tabs or 4+ consecutive spaces
     // ("Param text cannot have new-line/tab characters ..."), so the multi-line alert must be
     // flattened for template mode — otherwise every owner alert bounces and burns its retries.
-    const templateParam = text.replace(/[\n\t]+/g, ' · ').replace(/ {2,}/g, ' ').trim();
+    const templateParam = text
+      .replace(/[\n\t]+/g, ' · ')
+      .replace(/ {2,}/g, ' ')
+      .trim();
     const body = this.config.templateName
       ? {
           messaging_product: 'whatsapp',

@@ -12,7 +12,7 @@ surfaces pickup / drop-off / itinerary to admin. Fluent and bug-free.
 
 **Build on, don't rebuild:** the region-based **transport add-on already exists** (commit `e716ebb`:
 `PickupMap`, resolved pickup coordinates → a distance/region transport fee the server enforces). This
-effort *uses* it — the "want pickup?" → pickup path feeds that existing fee. Do not re-implement
+effort _uses_ it — the "want pickup?" → pickup path feeds that existing fee. Do not re-implement
 transport pricing. Likewise the **Peach embedded payment** (step ③) is already built — reuse it.
 
 ## Locked decisions
@@ -34,7 +34,7 @@ The current checkout is already `Transport → Contact → Payment` with the reg
 reshape it to:
 
 - **Step ① "Trip & pickup"** — shown for every booking, adaptive:
-  - A prompt: **"Do you want pickup?"** → *Yes, pick me up* / *No, I'll make my own way*. Default
+  - A prompt: **"Do you want pickup?"** → _Yes, pick me up_ / _No, I'll make my own way_. Default
     sensibly per the activity (a pickup-capable day tour defaults Yes; a fixed-location activity
     defaults No), but always toggleable.
   - **Yes** → the existing pickup type-to-search + map pin (coordinates → the transport fee) → a
@@ -42,7 +42,7 @@ reshape it to:
     stops, if any → drop-off). A transfer with no stops is simply pickup → drop-off. Plus an **"I
     don't know yet"** option: proceed with pickup flagged TBD, no route, no fee.
   - **No** → no pickup, no fee; show "Meet at [activity location]."
-  - **Gate:** cannot advance when *Yes* is selected and the pickup address is empty **and** "I don't
+  - **Gate:** cannot advance when _Yes_ is selected and the pickup address is empty **and** "I don't
     know yet" is not chosen.
 - **Step ② "Your details"** — the GetYourGuide layout from the provided screenshot: pre-filled name +
   email (from the signed-in account), a country selector, a mobile-phone field (**required when the

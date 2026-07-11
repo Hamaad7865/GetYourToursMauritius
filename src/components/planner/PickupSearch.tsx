@@ -6,8 +6,19 @@ import type { PlannerPoint } from './planner-constants';
 
 function PinGlyph() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0 text-teal">
-      <path d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11Z" stroke="currentColor" strokeWidth={1.7} />
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden
+      className="shrink-0 text-teal"
+    >
+      <path
+        d="M12 21s7-5.7 7-11a7 7 0 1 0-14 0c0 5.3 7 11 7 11Z"
+        stroke="currentColor"
+        strokeWidth={1.7}
+      />
       <circle cx="12" cy="10" r="2.4" fill="currentColor" />
     </svg>
   );
@@ -61,9 +72,13 @@ export function PickupSearch({
     let active = true;
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/planner/places?q=${encodeURIComponent(q)}`).then((r) => r.json());
+        const res = await fetch(`/api/planner/places?q=${encodeURIComponent(q)}`).then((r) =>
+          r.json(),
+        );
         if (!active) return;
-        setResults(res.ok && Array.isArray(res.data) ? (res.data as PlannerPlace[]).slice(0, 6) : []);
+        setResults(
+          res.ok && Array.isArray(res.data) ? (res.data as PlannerPlace[]).slice(0, 6) : [],
+        );
       } catch {
         if (active) setResults([]);
       } finally {
@@ -87,11 +102,13 @@ export function PickupSearch({
   return (
     <div ref={boxRef} className="relative">
       <div className="flex items-center gap-2.5 rounded-[11px] border border-[#E6EFEE] bg-[#F4F8F7] px-[11px] py-[9px]">
-        <span className={`grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full ${dotClassName}`}>
+        <span
+          className={`grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full ${dotClassName}`}
+        >
           <span className="h-[7px] w-[7px] rounded-full bg-white" />
         </span>
         <input
-          value={open ? query : value?.name ?? ''}
+          value={open ? query : (value?.name ?? '')}
           onChange={(e) => {
             setQuery(e.target.value);
             if (!open) setOpen(true);
@@ -104,8 +121,21 @@ export function PickupSearch({
           aria-label="Search a location"
           className="min-w-0 flex-1 border-none bg-transparent text-[13.5px] font-semibold text-ink outline-none placeholder:font-semibold placeholder:text-ink/70"
         />
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden className="shrink-0 text-ink-muted">
-          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden
+          className="shrink-0 text-ink-muted"
+        >
+          <path
+            d="M6 9l6 6 6-6"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </div>
 
@@ -130,7 +160,9 @@ export function PickupSearch({
                   {p.name}
                 </button>
               ))}
-              <div className="px-2.5 pb-1 pt-1.5 text-[11px] text-ink-muted">Or type a hotel, town or place…</div>
+              <div className="px-2.5 pb-1 pt-1.5 text-[11px] text-ink-muted">
+                Or type a hotel, town or place…
+              </div>
             </>
           ) : loading ? (
             <div className="px-2.5 py-3 text-[12.5px] text-ink-muted">Searching…</div>
@@ -145,7 +177,9 @@ export function PickupSearch({
               >
                 <PinGlyph />
                 <span className="min-w-0">
-                  <span className="block truncate text-[13px] font-semibold text-ink">{p.name}</span>
+                  <span className="block truncate text-[13px] font-semibold text-ink">
+                    {p.name}
+                  </span>
                   <span className="block truncate text-[11.5px] text-ink-muted">
                     {p.region}
                     {p.category ? ` · ${p.category}` : ''}
@@ -154,7 +188,9 @@ export function PickupSearch({
               </button>
             ))
           ) : (
-            <div className="px-2.5 py-3 text-[12.5px] text-ink-muted">No matches — try a nearby town or hotel name.</div>
+            <div className="px-2.5 py-3 text-[12.5px] text-ink-muted">
+              No matches — try a nearby town or hotel name.
+            </div>
           )}
         </div>
       )}

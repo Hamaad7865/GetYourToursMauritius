@@ -23,8 +23,11 @@ describe('booking drop-off: distinct dropoff_location + pickup_pending', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Dropoff Tours', 'dropoff-tours')`);
-    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Dropoff Tours', 'dropoff-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
 
@@ -73,11 +76,11 @@ describe('booking drop-off: distinct dropoff_location + pickup_pending', () => {
       idempotencyKey: 'drop-distinct-12345678',
     });
 
-    const got = await call<{ pickupLocation: string | null; dropoffLocation: string | null; pickupPending: boolean }>(
-      db,
-      'api_get_booking',
-      { ref: booking.ref },
-    );
+    const got = await call<{
+      pickupLocation: string | null;
+      dropoffLocation: string | null;
+      pickupPending: boolean;
+    }>(db, 'api_get_booking', { ref: booking.ref });
     // Drop-off round-trips on its own field.
     expect(got.dropoffLocation).toBe('SSR International Airport');
     // The pickup address is the pickup address — drop-off was NOT merged into it.
@@ -99,9 +102,13 @@ describe('booking drop-off: distinct dropoff_location + pickup_pending', () => {
       idempotencyKey: 'drop-pending-12345678',
     });
 
-    const got = await call<{ pickupLocation: string | null; pickupPending: boolean }>(db, 'api_get_booking', {
-      ref: booking.ref,
-    });
+    const got = await call<{ pickupLocation: string | null; pickupPending: boolean }>(
+      db,
+      'api_get_booking',
+      {
+        ref: booking.ref,
+      },
+    );
     expect(got.pickupPending).toBe(true);
     expect(got.pickupLocation).toBeNull();
   });
@@ -117,9 +124,13 @@ describe('booking drop-off: distinct dropoff_location + pickup_pending', () => {
       idempotencyKey: 'drop-plain-123456789',
     });
 
-    const got = await call<{ dropoffLocation: string | null; pickupPending: boolean }>(db, 'api_get_booking', {
-      ref: booking.ref,
-    });
+    const got = await call<{ dropoffLocation: string | null; pickupPending: boolean }>(
+      db,
+      'api_get_booking',
+      {
+        ref: booking.ref,
+      },
+    );
     expect(got.dropoffLocation).toBeNull();
     expect(got.pickupPending).toBe(false);
   });

@@ -39,12 +39,16 @@ export function buildSetupSql(root: string = process.cwd()): string {
     parts.push('\n-- ==================== seed.sql (catalogue) ====================');
     parts.push(readFileSync(seedPath, 'utf8').trimEnd());
   } else {
-    parts.push('\n-- (seed.sql not found — run `npm run seed:gen` first to include catalogue data)');
+    parts.push(
+      '\n-- (seed.sql not found — run `npm run seed:gen` first to include catalogue data)',
+    );
   }
 
   // Planner data (the bookable Custom Road Trip activity) — applied after the catalogue so the operator exists.
   if (existsSync(seedPlannerPath)) {
-    parts.push('\n-- ==================== seed-planner.sql (Custom Road Trip) ====================');
+    parts.push(
+      '\n-- ==================== seed-planner.sql (Custom Road Trip) ====================',
+    );
     parts.push(readFileSync(seedPlannerPath, 'utf8').trimEnd());
   }
 
@@ -59,10 +63,15 @@ function migrationCount(root: string = process.cwd()): number {
 }
 
 // CLI entry: write the bundle to supabase/setup.sql.
-if (import.meta.url === `file://${process.argv[1]}` || process.argv[1]?.endsWith('build-setup-sql.ts')) {
+if (
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith('build-setup-sql.ts')
+) {
   const root = process.cwd();
   const outPath = join(root, 'supabase', 'setup.sql');
   writeFileSync(outPath, buildSetupSql(root), 'utf8');
   const seedExists = existsSync(join(root, 'supabase', 'seed.sql'));
-  console.log(`Wrote ${outPath} (${migrationCount(root)} migrations${seedExists ? ' + seed' : ''}).`);
+  console.log(
+    `Wrote ${outPath} (${migrationCount(root)} migrations${seedExists ? ' + seed' : ''}).`,
+  );
 }

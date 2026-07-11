@@ -62,7 +62,13 @@ export interface DashboardData {
 }
 
 const TZ = 'Indian/Mauritius';
-const NOT_ACTIVE = new Set<BookingStatus>(['cancelled', 'expired', 'failed', 'refunded', 'refund_pending']);
+const NOT_ACTIVE = new Set<BookingStatus>([
+  'cancelled',
+  'expired',
+  'failed',
+  'refunded',
+  'refund_pending',
+]);
 
 /** YYYY-MM-DD for an instant, in Mauritius local time. */
 function mauDay(iso: string | Date): string {
@@ -70,7 +76,11 @@ function mauDay(iso: string | Date): string {
 }
 /** HH:MM for an instant, in Mauritius local time. */
 function mauTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', { timeZone: TZ, hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString('en-GB', {
+    timeZone: TZ,
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 }
 function addDays(day: string, n: number): string {
   const d = new Date(`${day}T00:00:00Z`);
@@ -85,7 +95,9 @@ export function euro(n: number): string {
 /** Pure: turn the booking list into the dashboard view-model as of `now`. */
 export function computeDashboard(bookings: BookingRow[], now: Date): DashboardData {
   const today = mauDay(now);
-  const hour = Number(now.toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }));
+  const hour = Number(
+    now.toLocaleString('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }),
+  );
   const greetingPart = hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
   const todayLabel = now.toLocaleDateString('en-GB', {
     timeZone: TZ,
@@ -130,7 +142,9 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
   }));
 
   // Needs attention: payment still pending.
-  const pendingAll = bookings.filter((b) => b.paymentState === 'pending' && !NOT_ACTIVE.has(b.status));
+  const pendingAll = bookings.filter(
+    (b) => b.paymentState === 'pending' && !NOT_ACTIVE.has(b.status),
+  );
   const pendingTotalEur = pendingAll.reduce((s, b) => s + b.totalEur, 0);
   const pending: PendingRow[] = pendingAll.slice(0, 4).map((b) => ({
     id: b.id,
@@ -156,10 +170,34 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
   }));
 
   const stats: DashStat[] = [
-    { key: 'today', label: 'Departures today', value: String(departures.length), hint: today === mauDay(now) ? 'scheduled' : '', tone: 'teal' },
-    { key: 'revenue', label: 'Revenue this week', value: euro(revenueWeekEur), hint: 'last 7 days', tone: 'green' },
-    { key: 'pending', label: 'Pending payments', value: euro(pendingTotalEur), hint: `${pendingAll.length} open`, tone: 'amber' },
-    { key: 'upcoming', label: 'Upcoming departures', value: String(upcoming7), hint: 'next 7 days', tone: 'ink' },
+    {
+      key: 'today',
+      label: 'Departures today',
+      value: String(departures.length),
+      hint: today === mauDay(now) ? 'scheduled' : '',
+      tone: 'teal',
+    },
+    {
+      key: 'revenue',
+      label: 'Revenue this week',
+      value: euro(revenueWeekEur),
+      hint: 'last 7 days',
+      tone: 'green',
+    },
+    {
+      key: 'pending',
+      label: 'Pending payments',
+      value: euro(pendingTotalEur),
+      hint: `${pendingAll.length} open`,
+      tone: 'amber',
+    },
+    {
+      key: 'upcoming',
+      label: 'Upcoming departures',
+      value: String(upcoming7),
+      hint: 'next 7 days',
+      tone: 'ink',
+    },
   ];
 
   return {

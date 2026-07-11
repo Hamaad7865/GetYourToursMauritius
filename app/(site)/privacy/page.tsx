@@ -39,10 +39,10 @@ export default function PrivacyPage() {
       <LegalArticle toc={TOC}>
         <LegalSection id="controller" title="Who controls your data">
           <P>
-            {SITE.legalName} (&quot;we&quot;, &quot;us&quot;) is the data controller for personal data
-            collected through {SITE.name}. We handle it in line with the{' '}
-            <strong>Mauritius Data Protection Act 2017</strong>, and with the EU GDPR where it applies
-            to visitors in the European Economic Area.
+            {SITE.legalName} (&quot;we&quot;, &quot;us&quot;) is the data controller for personal
+            data collected through {SITE.name}. We handle it in line with the{' '}
+            <strong>Mauritius Data Protection Act 2017</strong>, and with the EU GDPR where it
+            applies to visitors in the European Economic Area.
           </P>
           <LegalList
             items={[
@@ -61,7 +61,8 @@ export default function PrivacyPage() {
 
         <LegalSection id="collect" title="What we collect">
           <P>
-            We collect only what we need to take your booking and run your trip. Concretely, that is:
+            We collect only what we need to take your booking and run your trip. Concretely, that
+            is:
           </P>
           <LegalList
             items={[
@@ -76,27 +77,27 @@ export default function PrivacyPage() {
               </>,
               <>
                 <strong>Payment confirmation</strong> — the amount, currency, payment status and a
-                reference from our payment provider. We do <strong>not</strong> receive or store your
-                full card number.
+                reference from our payment provider. We do <strong>not</strong> receive or store
+                your full card number.
               </>,
               <>
-                <strong>Enquiries</strong> — if you send us an enquiry or contact us about an activity,
-                we keep your name and the email or phone number you contacted us on, so we can reply
-                and follow up.
+                <strong>Enquiries</strong> — if you send us an enquiry or contact us about an
+                activity, we keep your name and the email or phone number you contacted us on, so we
+                can reply and follow up.
               </>,
               <>
-                <strong>Account details</strong> — creating an account is optional. If you do, we hold
-                your email, an optional name and phone number, and a secured password we never see in
-                plain text (handled by our authentication provider).
+                <strong>Account details</strong> — creating an account is optional. If you do, we
+                hold your email, an optional name and phone number, and a secured password we never
+                see in plain text (handled by our authentication provider).
               </>,
               <>
-                <strong>Trip planner</strong> — if you use the AI road-trip planner, your messages are
-                sent to our AI provider to generate suggestions for that session. We don&apos;t use
-                them to build a marketing profile of you.
+                <strong>Trip planner</strong> — if you use the AI road-trip planner, your messages
+                are sent to our AI provider to generate suggestions for that session. We don&apos;t
+                use them to build a marketing profile of you.
               </>,
               <>
-                <strong>Usage data</strong> — basic, mostly anonymous information about how the site is
-                used, to keep it secure and working well.
+                <strong>Usage data</strong> — basic, mostly anonymous information about how the site
+                is used, to keep it secure and working well.
               </>,
             ]}
           />
@@ -138,13 +139,14 @@ export default function PrivacyPage() {
         <LegalSection id="sharing" title="Who we share it with">
           <P>
             We don&apos;t sell your data. We share it only with the trusted service providers
-            (&quot;processors&quot;) that help us run the platform, and only as far as each one needs:
+            (&quot;processors&quot;) that help us run the platform, and only as far as each one
+            needs:
           </P>
           <LegalList
             items={[
               <>
-                <strong>Supabase</strong> — hosting and database for your booking, account and enquiry
-                data.
+                <strong>Supabase</strong> — hosting and database for your booking, account and
+                enquiry data.
               </>,
               <>
                 <strong>Resend</strong> — sends your transactional email, such as booking
@@ -160,23 +162,23 @@ export default function PrivacyPage() {
                 results.
               </>,
               <>
-                <strong>Cloudflare</strong> — hosting and content delivery (CDN) that serves the site
-                securely and quickly.
+                <strong>Cloudflare</strong> — hosting and content delivery (CDN) that serves the
+                site securely and quickly.
               </>,
               <>
-                <strong>Guides, skippers and drivers</strong> who run your specific activity, with just
-                the details they need to find you and deliver it.
+                <strong>Guides, skippers and drivers</strong> who run your specific activity, with
+                just the details they need to find you and deliver it.
               </>,
               <>
-                <strong>Authorities or professional advisers</strong> where we are legally required to,
-                or to establish or defend legal claims.
+                <strong>Authorities or professional advisers</strong> where we are legally required
+                to, or to establish or defend legal claims.
               </>,
             ]}
           />
           <P>
-            Some of these providers process data outside Mauritius and the EU. Where that happens, we
-            rely on appropriate safeguards — such as standard contractual clauses — so your data keeps
-            a comparable level of protection. See{' '}
+            Some of these providers process data outside Mauritius and the EU. Where that happens,
+            we rely on appropriate safeguards — such as standard contractual clauses — so your data
+            keeps a comparable level of protection. See{' '}
             <a href="#transfers">International transfers</a> below.
           </P>
         </LegalSection>
@@ -212,13 +214,13 @@ export default function PrivacyPage() {
                 figures we&apos;re obliged to keep remain.
               </>,
               <>
-                <strong>Enquiries, draft bookings and your profile</strong> — non-essential data like
-                this is kept while it&apos;s useful and is deleted when you ask us to, or when you
-                delete your account.
+                <strong>Enquiries, draft bookings and your profile</strong> — non-essential data
+                like this is kept while it&apos;s useful and is deleted when you ask us to, or when
+                you delete your account.
               </>,
               <>
-                <strong>Browser-stored data</strong> — your cart and preferences live on your device,
-                not on our servers, and clear when you sign out.
+                <strong>Browser-stored data</strong> — your cart and preferences live on your
+                device, not on our servers, and clear when you sign out.
               </>,
             ]}
           />
@@ -235,23 +237,24 @@ export default function PrivacyPage() {
                 <strong>Rectify</strong> anything that is inaccurate or incomplete.
               </>,
               <>
-                <strong>Erase</strong> your data where we no longer need it (financial records we are
-                legally required to keep are anonymised rather than deleted).
+                <strong>Erase</strong> your data where we no longer need it (financial records we
+                are legally required to keep are anonymised rather than deleted).
               </>,
               <>
                 <strong>Port</strong> your data — receive it in a portable, machine-readable format
                 where that right applies.
               </>,
               <>
-                <strong>Object to or restrict</strong> certain uses, and withdraw any consent you gave.
+                <strong>Object to or restrict</strong> certain uses, and withdraw any consent you
+                gave.
               </>,
             ]}
           />
           <Callout tone="info" title="How to exercise your rights">
             <P>
               <strong>If you have an account</strong>, the quickest way is the{' '}
-              <a href="/account/privacy">Data &amp; privacy</a> section of your account. There you can{' '}
-              <strong>Download my data</strong> (a copy of your profile and booking history) or{' '}
+              <a href="/account/privacy">Data &amp; privacy</a> section of your account. There you
+              can <strong>Download my data</strong> (a copy of your profile and booking history) or{' '}
               <strong>Delete my account</strong> (which removes your personal details; paid bookings
               are anonymised for the legal reasons above).
             </P>
@@ -265,10 +268,11 @@ export default function PrivacyPage() {
 
         <LegalSection id="transfers" title="International transfers">
           <P>
-            Some of our providers — including Supabase, Resend, Peach Payments, Google and Cloudflare —
-            operate outside Mauritius and the EU. Where your data is transferred abroad, we rely on
-            appropriate safeguards, such as <strong>standard contractual clauses</strong>, so it keeps
-            a level of protection consistent with applicable data-protection law.
+            Some of our providers — including Supabase, Resend, Peach Payments, Google and
+            Cloudflare — operate outside Mauritius and the EU. Where your data is transferred
+            abroad, we rely on appropriate safeguards, such as{' '}
+            <strong>standard contractual clauses</strong>, so it keeps a level of protection
+            consistent with applicable data-protection law.
           </P>
         </LegalSection>
 

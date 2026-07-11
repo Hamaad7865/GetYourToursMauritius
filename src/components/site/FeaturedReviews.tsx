@@ -15,7 +15,8 @@ export function FeaturedReviews() {
             What our guests say
           </h2>
           <p className="mt-1 text-[14.5px] text-ink/70">
-            Rated {reviewStats.average}/5 from {reviewStats.total.toLocaleString()} reviews on TripAdvisor &amp; Google.
+            Rated {reviewStats.average}/5 from {reviewStats.total.toLocaleString()} reviews on
+            TripAdvisor &amp; Google.
           </p>
         </div>
         <Link href="/reviews" className="text-sm font-bold text-teal hover:text-teal-dark">

@@ -18,7 +18,10 @@ function loadEnvLocal(): Record<string, string> {
     if (!line || line.startsWith('#')) continue;
     const eq = line.indexOf('=');
     if (eq === -1) continue;
-    out[line.slice(0, eq).trim()] = line.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+    out[line.slice(0, eq).trim()] = line
+      .slice(eq + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, '');
   }
   return out;
 }
@@ -40,7 +43,14 @@ function buildClientConfig(url: string): pg.ClientConfig {
     hostPart = hostPart.slice(0, slash);
   }
   const [host, portStr] = hostPart.split(':');
-  return { host, port: portStr ? Number(portStr) : 5432, user, password, database, ssl: { rejectUnauthorized: false } };
+  return {
+    host,
+    port: portStr ? Number(portStr) : 5432,
+    user,
+    password,
+    database,
+    ssl: { rejectUnauthorized: false },
+  };
 }
 
 const env = { ...loadEnvLocal(), ...process.env };

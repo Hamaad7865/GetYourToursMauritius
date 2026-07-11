@@ -99,8 +99,12 @@ export function BookingBar({
         <div className="ml-auto text-right">
           {quote ? (
             <>
-              <p className="text-xs text-ink-muted">{quote.vehicle} · {t('all-in')}</p>
-              <p className="font-display text-2xl leading-none text-ink"><Price eur={quote.totalEur} /></p>
+              <p className="text-xs text-ink-muted">
+                {quote.vehicle} · {t('all-in')}
+              </p>
+              <p className="font-display text-2xl leading-none text-ink">
+                <Price eur={quote.totalEur} />
+              </p>
             </>
           ) : (
             <p className="max-w-[14rem] text-sm text-ink-muted">{quoteError}</p>
@@ -116,7 +120,11 @@ export function BookingBar({
         disabled={!canBook || !quote || booking}
         className="mt-4 w-full rounded-full bg-coral py-3 text-base font-semibold text-white transition hover:brightness-105 disabled:opacity-40"
       >
-        {booking ? t('Starting your booking…') : canBook ? t('Book this day') : t('Add a stop to book')}
+        {booking
+          ? t('Starting your booking…')
+          : canBook
+            ? t('Book this day')
+            : t('Add a stop to book')}
       </button>
       <p className="mt-2 text-center text-xs text-ink-muted">
         {t('One flat price per vehicle · instant confirmation · free cancellation')}

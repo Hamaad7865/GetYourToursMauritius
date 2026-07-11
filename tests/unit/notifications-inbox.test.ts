@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { addNote, capNotes, unreadCount, type Note } from '@/lib/notifications/inbox';
 
 const note = (over: Partial<Note> = {}): Note => ({
-  id: 'n1', type: 'expired', message: 'X expired', createdAt: 1, read: false, ...over,
+  id: 'n1',
+  type: 'expired',
+  message: 'X expired',
+  createdAt: 1,
+  read: false,
+  ...over,
 });
 
 describe('inbox helpers', () => {

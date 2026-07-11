@@ -25,6 +25,7 @@
 - [ ] **Step 2: Run, expect FAIL.**
 
 - [ ] **Step 3: Migration `20260727000000_gdpr_erase.sql`** (dated after the latest). Define `api_erase_user(p jsonb)` SECURITY DEFINER. READ the REAL schema (the explore mapped it) to get exact table/column names + the booking status enum values. Shape:
+
 ```sql
 create or replace function api_erase_user(p jsonb)
 returns jsonb language plpgsql security definer set search_path = public as $$
@@ -69,6 +70,7 @@ end; $$;
 revoke execute on function api_erase_user(jsonb) from anon;
 grant execute on function api_erase_user(jsonb) to authenticated, service_role;
 ```
+
 Adapt EVERY table/column/enum to the real schema (the pseudo-SQL above is a sketch — verify `leads.contact` vs `email`, the `reviews` linkage, the `audit_logs` columns, the booking status values). Keep it idempotent (re-running anonymized rows is a no-op; deletes of already-gone rows are no-ops). Mirror the whole function into `supabase/catch-up.sql`; add to `tests/db/rpc.ts` allow-list; add the RPC signature to `src/lib/supabase/types.ts`.
 
 - [ ] **Step 4: Run → PASS.** Run `catch-up-parity.test.ts` too.
@@ -89,6 +91,7 @@ Adapt EVERY table/column/enum to the real schema (the pseudo-SQL above is a sket
 - [ ] **Step 3: Server action** `app/(site)/account/actions.ts` `'use server'` `deleteMyAccount()` — re-validate the session (get the user + email server-side), call `createServiceRoleClient().rpc('api_erase_user', { p: { userId, email } })`, then `createServiceRoleClient().auth.admin.deleteUser(userId)`. Order: DB erasure FIRST (if it throws, do NOT delete auth); on auth-delete failure, log (no PII) + still return success (data is already anonymized). READ `src/lib/supabase/admin.ts` + how other server-side auth is validated.
 - [ ] **Step 4: Nav + i18n** — add a "Data & privacy" tab to `AccountNav` (`AccountChrome.tsx`) linking `/account/privacy`; add the new strings to EN/FR.
 - [ ] **Step 5: Verify + commit** — `npm run typecheck && npm run lint && npx vitest run` green.
+
 ```bash
 git add "app/(site)/account/privacy/page.tsx" src/components/account/AccountPrivacy.tsx "app/(site)/account/actions.ts" src/lib/account/export.ts tests/unit/account-export.test.ts src/components/account/AccountChrome.tsx src/lib/i18n/messages.ts
 git commit -m "feat(gdpr): self-serve data export + account deletion in /account"
@@ -102,6 +105,7 @@ git commit -m "feat(gdpr): self-serve data export + account deletion in /account
 
 - [ ] **Step 1:** In the AdminBookings booking drawer, add a staff-only **"Erase customer data"** action with a confirm dialog ("Permanently anonymize {email}'s personal data across all their bookings. Use only for a verified erasure request."). It calls `api_erase_user({ email: booking.customerEmail })` via the admin/service path (READ how `markBookingRefunded` calls its RPC — mirror it). On success, refresh. Match the existing admin action pattern + confirm style.
 - [ ] **Step 2: Verify + commit** — `npm run typecheck && npm run lint && npx vitest run` green.
+
 ```bash
 git add src/components/admin/AdminBookings.tsx src/lib/admin/bookings.ts
 git commit -m "feat(gdpr): admin erase-customer-data action for guest requests"
@@ -114,11 +118,12 @@ git commit -m "feat(gdpr): admin erase-customer-data action for guest requests"
 **Files:** modify `app/(site)/privacy/page.tsx`; create `docs/legal/records-of-processing.md`, `docs/legal/breach-response-checklist.md`, `docs/legal/processor-dpa-tracker.md`.
 
 - [ ] **Step 1: Privacy page.** READ `app/(site)/privacy/page.tsx`. Update/extend it to clearly state: the **processors** (Supabase = hosting/DB, Resend = email, Peach = payments, Google = maps/AI) and that data may be processed outside Mauritius/the EU under appropriate safeguards; the **data rights** (access, erasure, rectification, portability, objection); **how to exercise them** (the self-serve `/account` controls for account-holders + a privacy contact email for guests/written requests, fulfilled within 30 days); **retention** (paid-booking financial records kept for the legal tax-retention period then anonymized; non-essential data deleted on request); and a note that browser-stored data (cart/preferences) is device-local and cleared on sign-out. Bilingual (mirror the page's existing i18n approach). Use the real business contact from `src/lib/seo/site.ts`. Do NOT invent specific retention YEARS as legal fact — phrase as "for the period required by Mauritius tax/accounting law" and flag for the owner to set the exact number with their accountant.
-- [ ] **Step 2: Draft docs** (markdown, clearly marked "DRAFT — for legal review, not filed"): 
+- [ ] **Step 2: Draft docs** (markdown, clearly marked "DRAFT — for legal review, not filed"):
   - `records-of-processing.md` — a RoPA table: each processing activity (bookings, payments, email, leads, planner/AI), the data categories, purpose, lawful basis, recipients/processors, transfers, retention.
   - `breach-response-checklist.md` — detect → contain → assess → notify (the Mauritius Data Protection Office + affected individuals where required, with the 72-hour GDPR target) → document.
   - `processor-dpa-tracker.md` — a checklist of each sub-processor (Supabase, Resend, Peach, Google, Cloudflare) with columns for "DPA signed?", "SCCs in place?", "location", "what they process".
 - [ ] **Step 3: Verify + commit** — `npm run typecheck && npm run lint && npm run build` green (the privacy route compiles).
+
 ```bash
 git add "app/(site)/privacy/page.tsx" docs/legal/ src/lib/i18n/messages.ts
 git commit -m "docs(gdpr): privacy policy data-rights section + RoPA/breach/DPA drafts"

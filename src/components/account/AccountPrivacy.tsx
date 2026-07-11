@@ -78,7 +78,11 @@ export function AccountPrivacy() {
   const confirmInputRef = useRef<HTMLInputElement>(null);
   // APG modal behaviour for the destructive confirm: scroll-lock, Escape, focus the DELETE
   // input on open, trap Tab, and restore focus to the trigger on close.
-  const dialogRef = useDialog(confirmOpen, () => setConfirmOpen(false), () => confirmInputRef.current);
+  const dialogRef = useDialog(
+    confirmOpen,
+    () => setConfirmOpen(false),
+    () => confirmInputRef.current,
+  );
 
   if (loading) return <AccountSpinner />;
   if (!user) return <SignedOutPrompt message={t('Sign in to manage your data and privacy.')} />;
@@ -148,7 +152,9 @@ export function AccountPrivacy() {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setExportError(err instanceof Error ? err.message : t('Could not prepare your data. Please try again.'));
+      setExportError(
+        err instanceof Error ? err.message : t('Could not prepare your data. Please try again.'),
+      );
     } finally {
       setExporting(false);
     }
@@ -163,7 +169,9 @@ export function AccountPrivacy() {
     try {
       const { data } = await getBrowserSupabase()
         .from('bookings')
-        .select('ref, status, total_minor, currency, created_at, pickup_location, dropoff_location, booking_items(price_label, quantity, session_occurrences(starts_at, activity_options(activities(title))))')
+        .select(
+          'ref, status, total_minor, currency, created_at, pickup_location, dropoff_location, booking_items(price_label, quantity, session_occurrences(starts_at, activity_options(activities(title))))',
+        )
         .returns<PrivacyBookingRow[]>();
       setUpcomingWarning(hasUpcomingConfirmed(data ?? []));
     } catch {

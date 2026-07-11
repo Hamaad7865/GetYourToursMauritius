@@ -28,7 +28,9 @@ describe('planner vehicle_custom booking', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
     const opId = (
       await db.pg.query<{ id: string }>(`select id from operators where slug = 'belle-mare-tours'`)
     ).rows[0]!.id;

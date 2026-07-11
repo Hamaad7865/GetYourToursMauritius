@@ -18,14 +18,21 @@ describe('place insights (no-model fallback)', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    ctx = { db: pgliteRpc(db.pg), payments: new StubPaymentProvider(), ai: createStubAiProvider(), now: () => new Date() };
+    ctx = {
+      db: pgliteRpc(db.pg),
+      payments: new StubPaymentProvider(),
+      ai: createStubAiProvider(),
+      now: () => new Date(),
+    };
   });
   afterAll(async () => {
     await db.close();
   });
 
   it('returns null when no Gemini model is configured', async () => {
-    const r = await generatePlaceInsights(ctx, [{ name: 'Le Morne', category: 'Beach', region: 'South' }]);
+    const r = await generatePlaceInsights(ctx, [
+      { name: 'Le Morne', category: 'Beach', region: 'South' },
+    ]);
     expect(r).toBeNull();
   });
 

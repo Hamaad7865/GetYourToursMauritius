@@ -18,7 +18,9 @@ export async function Hero() {
         </h1>
 
         <p className="mt-5 max-w-[610px] text-lg leading-relaxed text-cream/85">
-          {t('Catamaran cruises, sea walks, dolphin swims and island days across Mauritius’s east coast — run by Belle Mare Tours, booked here without the reseller markup.')}
+          {t(
+            'Catamaran cruises, sea walks, dolphin swims and island days across Mauritius’s east coast — run by Belle Mare Tours, booked here without the reseller markup.',
+          )}
         </p>
 
         <form

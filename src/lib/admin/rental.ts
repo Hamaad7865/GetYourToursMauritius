@@ -25,7 +25,9 @@ function eurToMinor(eur: number): number {
 export async function loadRentalFleet(): Promise<RentalVehicleInput[]> {
   const { data, error } = await getBrowserSupabase()
     .from('rental_vehicles')
-    .select('slug, name, category, seats, transmission, air_con, image_url, daily_rate_minor, deposit_minor, sort, active')
+    .select(
+      'slug, name, category, seats, transmission, air_con, image_url, daily_rate_minor, deposit_minor, sort, active',
+    )
     .order('sort', { ascending: true });
   if (error) throw error;
   return (data ?? [])

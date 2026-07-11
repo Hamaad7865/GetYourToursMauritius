@@ -133,5 +133,11 @@ export function optionCardSummary(
         : type === 'transport'
           ? 'per vehicle'
           : 'per person';
-  return { name: option.name, fromPriceEur: t?.amountEur ?? null, maxGuests, unitNote, isPrivate: false };
+  return {
+    name: option.name,
+    fromPriceEur: t?.amountEur ?? null,
+    maxGuests,
+    unitNote,
+    isPrivate: false,
+  };
 }

@@ -61,12 +61,23 @@ describe('transfers (read endpoints)', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
-    airportOccurrenceId = await seedTransferProduct(operatorId, 'airport-transfer', 'is_airport_transfer');
-    hotelOccurrenceId = await seedTransferProduct(operatorId, 'hotel-transfer', 'is_hotel_transfer');
+    airportOccurrenceId = await seedTransferProduct(
+      operatorId,
+      'airport-transfer',
+      'is_airport_transfer',
+    );
+    hotelOccurrenceId = await seedTransferProduct(
+      operatorId,
+      'hotel-transfer',
+      'is_hotel_transfer',
+    );
 
     setRouteContext({
       db: pgliteRpc(db.pg),
@@ -130,7 +141,9 @@ describe('transfers (read endpoints)', () => {
     expect(body.data).toMatchObject({ tripType: 'one_way', zoneOrBand: 'zone2', vehicle: 'Sedan' });
     expect(body.data.totalEur).toBe(35);
 
-    const bad = await quoteGet(new Request('http://localhost/api/v1/transfers/quote?transferSlug=bus'));
+    const bad = await quoteGet(
+      new Request('http://localhost/api/v1/transfers/quote?transferSlug=bus'),
+    );
     expect(bad.status).toBe(400);
   });
 
@@ -176,7 +189,10 @@ describe('transfers (read endpoints)', () => {
         dropoffSlug: 'shandrani-beachcomber',
         tripDirection: 'arrival',
       });
-      const q = await quote({ transferSlug: 'airport-transfer', dropoffSlug: 'shandrani-beachcomber' });
+      const q = await quote({
+        transferSlug: 'airport-transfer',
+        dropoffSlug: 'shandrani-beachcomber',
+      });
       expect(q.totalEur).toBe(charged);
       expect(charged).toBe(35);
     });

@@ -74,7 +74,13 @@ export function nearestTransfer(lat: number, lng: number): Transfer {
   return best;
 }
 
-export const TRANSFER_REGION_ORDER: TransferRegion[] = ['North', 'East', 'South', 'West', 'Central'];
+export const TRANSFER_REGION_ORDER: TransferRegion[] = [
+  'North',
+  'East',
+  'South',
+  'West',
+  'Central',
+];
 
 export function transferMetaTitle(t: Transfer): string {
   // Root template appends the site name — don't repeat the brand here.

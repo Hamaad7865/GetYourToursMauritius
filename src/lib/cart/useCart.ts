@@ -8,7 +8,12 @@ import {
   markHeld as markHeldItems,
   markUnavailable as markUnavailableItems,
 } from './cart-holds';
-import { getHoldStatus, releaseHoldRequest, fetchMyPendingBookings, type PendingBooking } from './holdClient';
+import {
+  getHoldStatus,
+  releaseHoldRequest,
+  fetchMyPendingBookings,
+  type PendingBooking,
+} from './holdClient';
 import { pushNotification } from '@/lib/notifications/inbox';
 
 const KEY = 'gytm:cart';
@@ -73,12 +78,15 @@ export interface CartItem {
 export function itemTotal(i: CartItem): number {
   // Age-banded (and vehicle) lines carry the whole price in `unitEur` — a flat line, never ×guests.
   if (i.pricingMode === 'vehicle' || i.party) {
-    return Math.round((i.unitEur + childSeatsCost(Math.min(i.childSeats ?? 0, i.guests))) * 100) / 100;
+    return (
+      Math.round((i.unitEur + childSeatsCost(Math.min(i.childSeats ?? 0, i.guests))) * 100) / 100
+    );
   }
   // A child seat only makes sense per traveller, so the add-on can never exceed the party size —
   // important when guests are lowered on a cart line without re-touching the seat count.
   const childExtra = childSeatsCost(Math.min(i.childSeats ?? 0, i.guests));
-  const groups = i.pricingMode === 'per_group' && i.maxGuests ? Math.ceil(i.guests / i.maxGuests) : i.guests;
+  const groups =
+    i.pricingMode === 'per_group' && i.maxGuests ? Math.ceil(i.guests / i.maxGuests) : i.guests;
   return Math.round((i.unitEur * groups + childExtra) * 100) / 100;
 }
 
@@ -140,7 +148,11 @@ export function useCart(opts?: { withPending?: boolean }) {
     const { kept, expired, unavailable } = dropExpiredHolds(readRaw(), Date.now());
     if (expired.length === 0 && unavailable.length === 0) return;
     for (const i of expired) {
-      pushNotification('expired', `${i.title} — your held spot expired`, `expired:${i.holdId ?? i.id}`);
+      pushNotification(
+        'expired',
+        `${i.title} — your held spot expired`,
+        `expired:${i.holdId ?? i.id}`,
+      );
     }
     for (const i of unavailable) {
       pushNotification('unavailable', `${i.title} — no longer available`, `unavail:${i.id}`);
@@ -173,13 +185,21 @@ export function useCart(opts?: { withPending?: boolean }) {
     let cancelled = false;
     (async () => {
       const held = read().filter(
-        (i) => i.status === 'held' && i.holdId && i.expiresAt && new Date(i.expiresAt).getTime() > Date.now(),
+        (i) =>
+          i.status === 'held' &&
+          i.holdId &&
+          i.expiresAt &&
+          new Date(i.expiresAt).getTime() > Date.now(),
       );
       for (const i of held) {
         const res = await getHoldStatus(i.holdId!);
         if (cancelled) return;
         if (res && res.status !== 'active') {
-          pushNotification('expired', `${i.title} — your held spot expired`, `expired:${i.holdId ?? i.id}`);
+          pushNotification(
+            'expired',
+            `${i.title} — your held spot expired`,
+            `expired:${i.holdId ?? i.id}`,
+          );
           write(read().filter((x) => x.id !== i.id));
         }
       }
@@ -232,7 +252,10 @@ export function useCart(opts?: { withPending?: boolean }) {
 
   const add = useCallback((item: Omit<CartItem, 'addedAt' | 'status' | 'idemKey'>) => {
     const current = read().filter((i) => i.id !== item.id);
-    write([...current, { ...item, addedAt: Date.now(), status: 'saved', idemKey: crypto.randomUUID() }]);
+    write([
+      ...current,
+      { ...item, addedAt: Date.now(), status: 'saved', idemKey: crypto.randomUUID() },
+    ]);
   }, []);
 
   // Insert (or refresh) an already-HELD line — the held twin of `add`, for the Book-now → checkout path
@@ -288,7 +311,8 @@ export function useCart(opts?: { withPending?: boolean }) {
 
   // Accumulate in integer cents so a basket of several lines can't drift (0.1 + 0.2 ≠ 0.3 in
   // floating point); each itemTotal is already cent-rounded, so *100 is exact.
-  const subtotal = Math.round(items.reduce((sum, i) => sum + Math.round(itemTotal(i) * 100), 0)) / 100;
+  const subtotal =
+    Math.round(items.reduce((sum, i) => sum + Math.round(itemTotal(i) * 100), 0)) / 100;
 
   return {
     items,
@@ -307,4 +331,3 @@ export function useCart(opts?: { withPending?: boolean }) {
     subtotal,
   };
 }
-

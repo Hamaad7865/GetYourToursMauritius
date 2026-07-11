@@ -20,11 +20,15 @@ export interface PlaceInsights {
 }
 
 const SCHEMA = z.object({
-  overall: z.string().describe('One short tip for doing these places in a day (order, timing, what to bring).'),
+  overall: z
+    .string()
+    .describe('One short tip for doing these places in a day (order, timing, what to bring).'),
   items: z.array(
     z.object({
       name: z.string().describe('Exactly the place name given.'),
-      insight: z.string().describe('One sentence: best time to visit, a local tip, or what makes it special.'),
+      insight: z
+        .string()
+        .describe('One sentence: best time to visit, a local tip, or what makes it special.'),
     }),
   ),
 });

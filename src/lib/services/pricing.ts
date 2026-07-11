@@ -150,12 +150,18 @@ export interface SightseeingQuote {
  * (`create_booking`) is authoritative; this mirrors it for the widget and unit tests. Throws outside
  * 1..maxParty.
  */
-export function sightseeingQuote(people: number, suv: boolean, cfg: SightseeingPricing): SightseeingQuote {
+export function sightseeingQuote(
+  people: number,
+  suv: boolean,
+  cfg: SightseeingPricing,
+): SightseeingQuote {
   if (!Number.isInteger(people) || people < 1 || people > cfg.maxParty) {
     throw new ValidationError(`Party of ${people} is outside 1–${cfg.maxParty}`);
   }
   if (people <= 4) {
-    return suv ? { vehicle: 'SUV', totalEur: cfg.suvEur } : { vehicle: 'Sedan', totalEur: cfg.sedanEur };
+    return suv
+      ? { vehicle: 'SUV', totalEur: cfg.suvEur }
+      : { vehicle: 'Sedan', totalEur: cfg.sedanEur };
   }
   if (people <= 6) return { vehicle: 'Family car', totalEur: cfg.familyEur };
   if (people <= 14) return { vehicle: 'Van', totalEur: cfg.vanEur };
@@ -215,8 +221,20 @@ export type RegionDistanceMap = Record<string, 'near' | 'far'>;
 /** Defaults mirroring the migration seed — used as a fallback and by the unit tests. */
 export const TRANSPORT_BANDS_DEFAULT: TransportBandPricing = {
   same: { sedanMinor: 1500, suvMinor: 2000, familyMinor: 2500, vanMinor: 4000, coasterMinor: 7000 },
-  near: { sedanMinor: 3000, suvMinor: 3800, familyMinor: 4500, vanMinor: 7000, coasterMinor: 12000 },
-  far: { sedanMinor: 5000, suvMinor: 6000, familyMinor: 7000, vanMinor: 11000, coasterMinor: 18000 },
+  near: {
+    sedanMinor: 3000,
+    suvMinor: 3800,
+    familyMinor: 4500,
+    vanMinor: 7000,
+    coasterMinor: 12000,
+  },
+  far: {
+    sedanMinor: 5000,
+    suvMinor: 6000,
+    familyMinor: 7000,
+    vanMinor: 11000,
+    coasterMinor: 18000,
+  },
 };
 
 /** Region-pair distances mirroring the migration seed (lo|hi keys). */
@@ -235,7 +253,11 @@ export const REGION_DISTANCE_DEFAULT: RegionDistanceMap = {
 
 /** Distance band for two regions: 'same' if equal, else the seeded near/far for the unordered pair
  *  ('far' when missing — fail safe to the higher fare). Mirrors region_distance_band() in SQL. */
-export function regionDistanceBand(a: string | null, b: string | null, distances: RegionDistanceMap): ZoneBand {
+export function regionDistanceBand(
+  a: string | null,
+  b: string | null,
+  distances: RegionDistanceMap,
+): ZoneBand {
   if (!a || !b) return 'far';
   if (a === b) return 'same';
   const [lo, hi] = a < b ? [a, b] : [b, a];
@@ -295,7 +317,10 @@ export type AirportZone = 'zone1' | 'zone2';
 /** Hotel slugs in Zone 2 (the near-airport south-east cluster). The DB (airport_transfer_hotels.zone) is
  *  AUTHORITATIVE — api_book re-derives the zone from the slug. This mirror only feeds the client widget's
  *  display quote; keep it in sync with the migration when hotels are added/reclassified. */
-export const AIRPORT_ZONE2_SLUGS: ReadonlySet<string> = new Set(['shandrani-beachcomber', 'preskil-island-resort']);
+export const AIRPORT_ZONE2_SLUGS: ReadonlySet<string> = new Set([
+  'shandrani-beachcomber',
+  'preskil-island-resort',
+]);
 
 /** The pricing zone for a hotel slug (Zone 2 for the near-airport cluster, else Zone 1). Display-only;
  *  the server is authoritative. */
@@ -337,8 +362,20 @@ export type AirportFareByZone = Record<string, AirportFare>;
 /** Defaults mirroring the migration seed — used as a fallback and by the unit tests. Zone 2 standard
  *  car = €35 (confirmed); every other cell is an owner-tunable placeholder set in the admin screen. */
 export const AIRPORT_FARE_DEFAULT: AirportFareByZone = {
-  zone2: { sedanMinor: 3500, suvMinor: 4800, familyMinor: 5500, vanMinor: 8500, coasterMinor: 14500 },
-  zone1: { sedanMinor: 5500, suvMinor: 7000, familyMinor: 8000, vanMinor: 12000, coasterMinor: 20000 },
+  zone2: {
+    sedanMinor: 3500,
+    suvMinor: 4800,
+    familyMinor: 5500,
+    vanMinor: 8500,
+    coasterMinor: 14500,
+  },
+  zone1: {
+    sedanMinor: 5500,
+    suvMinor: 7000,
+    familyMinor: 8000,
+    vanMinor: 12000,
+    coasterMinor: 20000,
+  },
 };
 
 /** Default return-trip discount (%) — mirrors airport_transfer_config.return_discount_pct. */
@@ -419,9 +456,27 @@ export type HotelTransferFareByBand = Record<string, TransportBandFare>;
 /** Defaults mirroring the migration seed — fallback + unit tests. Placeholders until the owner sets the
  *  real Same/Near/Far rates in the admin screen. */
 export const HOTEL_TRANSFER_FARE_DEFAULT: HotelTransferFareByBand = {
-  same: { sedanMinor: 2500, suvMinor: 3500, familyMinor: 4000, vanMinor: 6500, coasterMinor: 11000 },
-  near: { sedanMinor: 4000, suvMinor: 5200, familyMinor: 6000, vanMinor: 9500, coasterMinor: 16000 },
-  far: { sedanMinor: 6000, suvMinor: 7500, familyMinor: 8500, vanMinor: 13000, coasterMinor: 22000 },
+  same: {
+    sedanMinor: 2500,
+    suvMinor: 3500,
+    familyMinor: 4000,
+    vanMinor: 6500,
+    coasterMinor: 11000,
+  },
+  near: {
+    sedanMinor: 4000,
+    suvMinor: 5200,
+    familyMinor: 6000,
+    vanMinor: 9500,
+    coasterMinor: 16000,
+  },
+  far: {
+    sedanMinor: 6000,
+    suvMinor: 7500,
+    familyMinor: 8500,
+    vanMinor: 13000,
+    coasterMinor: 22000,
+  },
 };
 
 /** Default return-trip discount (%) — mirrors hotel_transfer_config.return_discount_pct. */
@@ -479,7 +534,16 @@ export function hotelTransferQuote(
   returnDiscountPct: number,
 ): number {
   return centsToEur(
-    hotelTransferQuoteMinor(pickupRegion, dropoffRegion, pax, suv, tripType, fares, distances, returnDiscountPct),
+    hotelTransferQuoteMinor(
+      pickupRegion,
+      dropoffRegion,
+      pax,
+      suv,
+      tripType,
+      fares,
+      distances,
+      returnDiscountPct,
+    ),
   );
 }
 
@@ -492,34 +556,68 @@ export function hotelTransferQuote(
  * only for a typed-in area. Keep IN SYNC with the SQL whenever places are added/reclassified.
  */
 export function areaRegion(area: string | null | undefined): string | null {
-  const v = (area ?? '')
-    .toLowerCase()
-    .trim()
-    .replace(/[éèê]/g, 'e')
-    .replace(/['’`]/g, '');
+  const v = (area ?? '').toLowerCase().trim().replace(/[éèê]/g, 'e').replace(/['’`]/g, '');
   if (!v) return null;
   const has = (...subs: string[]) => subs.some((s) => v.includes(s));
   if (
     has(
-      'grand baie', 'grand bay', 'pereybere', 'cap malheureux', 'trou aux biches', 'mont choisy',
-      'canonniers', 'balaclava', 'pointe aux piments', 'calodyne', 'grand gaube', 'port louis',
+      'grand baie',
+      'grand bay',
+      'pereybere',
+      'cap malheureux',
+      'trou aux biches',
+      'mont choisy',
+      'canonniers',
+      'balaclava',
+      'pointe aux piments',
+      'calodyne',
+      'grand gaube',
+      'port louis',
     )
   )
     return 'North';
-  if (has('belle mare', 'trou deau douce', 'palmar', 'poste lafayette', 'roches noires', 'flacq', 'bel air'))
+  if (
+    has(
+      'belle mare',
+      'trou deau douce',
+      'palmar',
+      'poste lafayette',
+      'roches noires',
+      'flacq',
+      'bel air',
+    )
+  )
     return 'East';
   if (
-    has('mahebourg', 'blue bay', 'pointe desny', 'bel ombre', 'souillac', 'chamarel', 'ferney', 'grand port')
+    has(
+      'mahebourg',
+      'blue bay',
+      'pointe desny',
+      'bel ombre',
+      'souillac',
+      'chamarel',
+      'ferney',
+      'grand port',
+    )
   )
     return 'South';
   if (
     has(
-      'flic en flac', 'flic-en-flac', 'tamarin', 'riviere noire', 'black river', 'le morne', 'wolmar',
-      'albion', 'la gaulette',
+      'flic en flac',
+      'flic-en-flac',
+      'tamarin',
+      'riviere noire',
+      'black river',
+      'le morne',
+      'wolmar',
+      'albion',
+      'la gaulette',
     )
   )
     return 'West';
-  if (has('curepipe', 'quatre bornes', 'moka', 'vacoas', 'ebene', 'floreal', 'rose hill', 'phoenix'))
+  if (
+    has('curepipe', 'quatre bornes', 'moka', 'vacoas', 'ebene', 'floreal', 'rose hill', 'phoenix')
+  )
     return 'Central';
   return null;
 }
@@ -551,7 +649,10 @@ export function rentalTotalEur(dailyEur: number, days: number): number {
 
 /** Human age-range label for a price tier, e.g. "Age 3–10", "Age 11+", "Age 0–3". Empty string when the
  *  tier has no age metadata (a normal, non-age tier). */
-export function ageBandLabel(minAge: number | null | undefined, maxAge: number | null | undefined): string {
+export function ageBandLabel(
+  minAge: number | null | undefined,
+  maxAge: number | null | undefined,
+): string {
   const min = minAge ?? null;
   const max = maxAge ?? null;
   if (min == null && max == null) return '';
@@ -587,5 +688,7 @@ export function privateQuote(
   guests: number,
   maxGuests: number,
 ): number {
-  return centsToEur(privateQuoteMinor(eurToCents(baseEur), included, eurToCents(extraEur), guests, maxGuests));
+  return centsToEur(
+    privateQuoteMinor(eurToCents(baseEur), included, eurToCents(extraEur), guests, maxGuests),
+  );
 }

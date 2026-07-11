@@ -34,8 +34,11 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
 
@@ -74,34 +77,39 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
 
   it('a signed-in customer books, the webhook confirms it, and availability drops', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string; status: string; paymentState: string; totalEur: number }>(
-      db,
-      'api_book',
-      {
-        occurrenceId,
-        party: { Adult: 2 },
-        customerName: 'Test Traveller',
-        customerEmail: 'test@example.com',
-        customerPhone: null,
-        source: 'web',
-        idempotencyKey: 'flow-key-12345678',
-      },
-    );
+    const booking = await call<{
+      ref: string;
+      status: string;
+      paymentState: string;
+      totalEur: number;
+    }>(db, 'api_book', {
+      occurrenceId,
+      party: { Adult: 2 },
+      customerName: 'Test Traveller',
+      customerEmail: 'test@example.com',
+      customerPhone: null,
+      source: 'web',
+      idempotencyKey: 'flow-key-12345678',
+    });
     expect(booking.status).toBe('payment_pending');
     expect(booking.totalEur).toBe(140); // 2 × €70
 
-    const payment = await call<{ paymentId: string; amountMinor: number }>(db, 'api_create_payment', {
-      bookingRef: booking.ref,
-      idempotencyKey: 'flow-pay-12345678',
-    });
+    const payment = await call<{ paymentId: string; amountMinor: number }>(
+      db,
+      'api_create_payment',
+      {
+        bookingRef: booking.ref,
+        idempotencyKey: 'flow-pay-12345678',
+      },
+    );
     expect(payment.amountMinor).toBe(14000);
 
     // The webhook (service-role) appends the verified 'paid' event → confirms the booking.
     await db.as({ sub: 'service', role: 'service_role' });
-    await db.pg.query(`select append_payment_event($1::uuid, 'paid', 'evt-flow-1', $2::int, now(), '{}'::jsonb)`, [
-      payment.paymentId,
-      payment.amountMinor,
-    ]);
+    await db.pg.query(
+      `select append_payment_event($1::uuid, 'paid', 'evt-flow-1', $2::int, now(), '{}'::jsonb)`,
+      [payment.paymentId, payment.amountMinor],
+    );
 
     // The customer now sees a confirmed, paid booking.
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
@@ -113,9 +121,13 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
 
     // Availability dropped by 2 (the public sees the reduced seat count).
     await db.as(null);
-    const slots = await call<Array<{ occurrenceId: string; seatsLeft: number }>>(db, 'api_list_availability', {
-      slug: 'flow-tour',
-    });
+    const slots = await call<Array<{ occurrenceId: string; seatsLeft: number }>>(
+      db,
+      'api_list_availability',
+      {
+        slug: 'flow-tour',
+      },
+    );
     expect(slots.find((s) => s.occurrenceId === occurrenceId)?.seatsLeft).toBe(18);
   });
 
@@ -149,7 +161,9 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       source: 'web',
       idempotencyKey: 'flow-noroute-1234567',
     });
-    const got2 = await call<{ customItinerary: unknown }>(db, 'api_get_booking', { ref: plain.ref });
+    const got2 = await call<{ customItinerary: unknown }>(db, 'api_get_booking', {
+      ref: plain.ref,
+    });
     expect(got2.customItinerary).toBeNull();
   });
 
@@ -164,7 +178,9 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       source: 'web',
       idempotencyKey: 'flow-pickup-12345678',
     });
-    const got = await call<{ pickupLocation: string | null }>(db, 'api_get_booking', { ref: booking.ref });
+    const got = await call<{ pickupLocation: string | null }>(db, 'api_get_booking', {
+      ref: booking.ref,
+    });
     expect(got.pickupLocation).toBe('Flic en Flac, Le Cardinal Villa');
 
     // A booking with no pickup location returns null.
@@ -204,7 +220,9 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       idempotencyKey: 'flow-cs-seats-1234',
     });
     expect(seats.totalEur).toBe(146);
-    expect((await call<{ childSeats: number }>(db, 'api_get_booking', { ref: seats.ref })).childSeats).toBe(2);
+    expect(
+      (await call<{ childSeats: number }>(db, 'api_get_booking', { ref: seats.ref })).childSeats,
+    ).toBe(2);
 
     // An idempotency replay must NOT charge the seat again.
     const replay = await call<{ totalEur: number }>(db, 'api_book', {
@@ -229,16 +247,22 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       idempotencyKey: 'flow-cs-one-1234',
     });
     expect(one.totalEur).toBe(140);
-    expect((await call<{ childSeats: number }>(db, 'api_get_booking', { ref: one.ref })).childSeats).toBe(1);
+    expect(
+      (await call<{ childSeats: number }>(db, 'api_get_booking', { ref: one.ref })).childSeats,
+    ).toBe(1);
   });
 
   it('api_create_hold reserves N seats by mode, and api_book reuses the hold', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const hold = await call<{ holdId: string; quantity: number; expiresAt: string }>(db, 'api_create_hold', {
-      occurrenceId,
-      people: 3,
-      idempotencyKey: 'hold-pp-1',
-    });
+    const hold = await call<{ holdId: string; quantity: number; expiresAt: string }>(
+      db,
+      'api_create_hold',
+      {
+        occurrenceId,
+        people: 3,
+        idempotencyKey: 'hold-pp-1',
+      },
+    );
     expect(hold.quantity).toBe(3);
     expect(hold.holdId).toBeTruthy();
 
@@ -348,9 +372,10 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     });
     // The customer lingered past the hold TTL — expire the Continue hold.
     await db.asOwner();
-    await db.pg.query(`update booking_holds set expires_at = now() - interval '1 minute' where id = $1`, [
-      hold.holdId,
-    ]);
+    await db.pg.query(
+      `update booking_holds set expires_at = now() - interval '1 minute' where id = $1`,
+      [hold.holdId],
+    );
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     // api_book must NOT reuse the expired hold and must NOT collide with its key → it books fine.
     const booking = await call<{ totalEur: number }>(db, 'api_book', {
@@ -395,13 +420,15 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
        join bookings b on b.id = p.booking_id where b.customer_email = 'test@example.com' limit 1`,
     );
     await db.as({ sub: 'service', role: 'service_role' });
-    await db.pg.query(`select append_payment_event($1::uuid, 'paid', 'evt-flow-1', $2::int, now(), '{}'::jsonb)`, [
-      pr[0]!.id,
-      pr[0]!.amount_minor,
-    ]);
+    await db.pg.query(
+      `select append_payment_event($1::uuid, 'paid', 'evt-flow-1', $2::int, now(), '{}'::jsonb)`,
+      [pr[0]!.id, pr[0]!.amount_minor],
+    );
     await db.asOwner();
     const after = (
-      await db.pg.query<{ paid_minor: number }>(`select paid_minor from payments where id = $1`, [pr[0]!.id])
+      await db.pg.query<{ paid_minor: number }>(`select paid_minor from payments where id = $1`, [
+        pr[0]!.id,
+      ])
     ).rows[0]!;
     expect(after.paid_minor).toBe(before.paid_minor); // unchanged — not double-credited
   });

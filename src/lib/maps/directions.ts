@@ -45,6 +45,9 @@ export async function getRouteLegsViaRoutes(points: LatLng[], apiKey: string): P
   return legs.map((l) => {
     const meters = l.distanceMeters ?? 0;
     const secs = parseInt(String(l.duration ?? '0').replace('s', ''), 10) || 0;
-    return { km: Math.max(1, Math.round(meters / 1000)), minutes: Math.max(1, Math.round(secs / 60)) };
+    return {
+      km: Math.max(1, Math.round(meters / 1000)),
+      minutes: Math.max(1, Math.round(secs / 60)),
+    };
   });
 }

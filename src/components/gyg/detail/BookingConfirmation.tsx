@@ -151,7 +151,13 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
         setConfirming(false);
         return;
       }
-      if (!shouldKeepPolling({ status, elapsedMs: Date.now() - startedAt, maxMs: CONFIRM_POLL_MAX_MS })) {
+      if (
+        !shouldKeepPolling({
+          status,
+          elapsedMs: Date.now() - startedAt,
+          maxMs: CONFIRM_POLL_MAX_MS,
+        })
+      ) {
         setConfirming(false);
         setPollExhausted(true);
         return;
@@ -220,7 +226,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('Could not download the invoice. Please try again.'));
+      setError(
+        err instanceof Error ? err.message : t('Could not download the invoice. Please try again.'),
+      );
     } finally {
       setDownloading(false);
     }
@@ -257,7 +265,11 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
       a.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('Could not download the e-voucher. Please try again.'));
+      setError(
+        err instanceof Error
+          ? err.message
+          : t('Could not download the e-voucher. Please try again.'),
+      );
     } finally {
       setDownloadingVoucher(false);
     }
@@ -289,7 +301,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
       setConfirmingCancel(false);
       await fetchBooking(); // status is now refund_pending
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('Could not cancel the booking. Please try again.'));
+      setError(
+        err instanceof Error ? err.message : t('Could not cancel the booking. Please try again.'),
+      );
     } finally {
       setCancelling(false);
     }
@@ -303,7 +317,11 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
       const res = await fetch('/api/v1/webhooks/payments', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ bookingRef, outcome: 'paid', providerReference: `stub_ref_${bookingRef}` }),
+        body: JSON.stringify({
+          bookingRef,
+          outcome: 'paid',
+          providerReference: `stub_ref_${bookingRef}`,
+        }),
       }).then((r) => r.json());
       if (!res.ok) throw new Error(res.error?.message ?? t('Payment could not be completed.'));
       await fetchBooking();
@@ -321,7 +339,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   if (!user) {
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-ink-muted">{t('Sign in to view booking {ref}.', { ref: bookingRef })}</p>
+        <p className="text-sm text-ink-muted">
+          {t('Sign in to view booking {ref}.', { ref: bookingRef })}
+        </p>
         <button
           type="button"
           onClick={() => openAuth('signin')}
@@ -385,7 +405,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           <div className="flex justify-between text-[12px] text-ink-muted">
             <dt>{t('Includes VAT ({pct}%)', { pct: 15 })}</dt>
             <dd>
-              <Price eur={Math.round((booking.totalEur - booking.totalEur / (1 + VAT_RATE)) * 100) / 100} />
+              <Price
+                eur={Math.round((booking.totalEur - booking.totalEur / (1 + VAT_RATE)) * 100) / 100}
+              />
             </dd>
           </div>
         </dl>
@@ -432,8 +454,11 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                     : booking.tripDirection === 'return'
                       ? t('Return (both directions)')
                       : t('Arrival (airport to hotel)');
-                const rows: Array<{ label: string; value: string }> = [{ label: t('Direction'), value: dir }];
-                if (booking.roomOrCabin) rows.push({ label: t('Room or cabin'), value: booking.roomOrCabin });
+                const rows: Array<{ label: string; value: string }> = [
+                  { label: t('Direction'), value: dir },
+                ];
+                if (booking.roomOrCabin)
+                  rows.push({ label: t('Room or cabin'), value: booking.roomOrCabin });
                 // Each leg: pickup date·time (with the flight no.) + an APPROX drop-off (pickup + the ~60-min
                 // drive). The hotel drop-off time isn't booked, so it's always shown with a "~" and "approx".
                 const fmtDate = (ymd: string) =>
@@ -451,10 +476,14 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                 });
                 if (legs.length) {
                   for (const leg of legs) {
-                    const flight = leg.kind === 'arrival' ? booking.flightNumber : booking.departureFlightNumber;
+                    const flight =
+                      leg.kind === 'arrival' ? booking.flightNumber : booking.departureFlightNumber;
                     rows.push({
                       label: leg.kind === 'arrival' ? t('Arrival') : t('Departure'),
-                      value: [`${fmtDate(leg.pickupYmd)} · ${leg.pickupTime}`, flight ? `${t('flight')} ${flight}` : '']
+                      value: [
+                        `${fmtDate(leg.pickupYmd)} · ${leg.pickupTime}`,
+                        flight ? `${t('flight')} ${flight}` : '',
+                      ]
                         .filter(Boolean)
                         .join(' · '),
                     });
@@ -467,7 +496,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                   }
                 } else {
                   // No service date (older booking) — fall back to the flight numbers + times only.
-                  const arr = [booking.flightNumber, booking.arrivalTime].filter(Boolean).join(' · ');
+                  const arr = [booking.flightNumber, booking.arrivalTime]
+                    .filter(Boolean)
+                    .join(' · ');
                   if (arr) rows.push({ label: t('Arrival flight'), value: arr });
                   const dep = [
                     booking.departureFlightNumber,
@@ -477,10 +508,14 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                     .join(' · ');
                   if (dep) rows.push({ label: t('Return flight'), value: dep });
                 }
-                if (booking.luggageDetails) rows.push({ label: t('Luggage'), value: booking.luggageDetails });
-                if (booking.childSeatAge != null) rows.push({ label: t('Child seat age'), value: String(booking.childSeatAge) });
-                if (booking.travellerCountry) rows.push({ label: t('Country'), value: booking.travellerCountry });
-                if (booking.specialNotes) rows.push({ label: t('Special requests'), value: booking.specialNotes });
+                if (booking.luggageDetails)
+                  rows.push({ label: t('Luggage'), value: booking.luggageDetails });
+                if (booking.childSeatAge != null)
+                  rows.push({ label: t('Child seat age'), value: String(booking.childSeatAge) });
+                if (booking.travellerCountry)
+                  rows.push({ label: t('Country'), value: booking.travellerCountry });
+                if (booking.specialNotes)
+                  rows.push({ label: t('Special requests'), value: booking.specialNotes });
                 return rows.map((r) => (
                   <div key={r.label} className="flex justify-between gap-4">
                     <dt className="text-ink-muted">{r.label}</dt>
@@ -491,7 +526,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             </dl>
             {paid && (
               <p className="mt-2 text-[12px] text-ink-muted">
-                {t('Your e-voucher with the meeting-point details and a QR is attached to your confirmation email.')}
+                {t(
+                  'Your e-voucher with the meeting-point details and a QR is attached to your confirmation email.',
+                )}
               </p>
             )}
           </div>
@@ -530,15 +567,24 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
         )}
 
         {isRefundFlow ? (
-          <div role="status" className="mt-6 rounded-xl bg-teal/10 px-4 py-3 text-sm text-teal-dark">
+          <div
+            role="status"
+            className="mt-6 rounded-xl bg-teal/10 px-4 py-3 text-sm text-teal-dark"
+          >
             {booking.status === 'refunded'
-              ? t('Your refund has been processed. Please allow a few days for it to appear on your statement.')
-              : t('Your cancellation is confirmed and your refund is being processed. We’ll email you once it’s done.')}
+              ? t(
+                  'Your refund has been processed. Please allow a few days for it to appear on your statement.',
+                )
+              : t(
+                  'Your cancellation is confirmed and your refund is being processed. We’ll email you once it’s done.',
+                )}
           </div>
         ) : paid ? (
           <div className="mt-6">
             <p className="rounded-xl bg-teal/10 px-4 py-3 text-sm font-medium text-teal-dark">
-              {t('Payment received — we’ve emailed your confirmation. See it any time in your bookings.')}
+              {t(
+                'Payment received — we’ve emailed your confirmation. See it any time in your bookings.',
+              )}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               <button
@@ -572,7 +618,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                   className="mt-4 rounded-xl border border-coral/30 bg-coral/[0.06] p-4"
                 >
                   <p className="text-[13px] text-ink">
-                    {t('Cancel this booking and claim a refund? Your refund is processed back to your card within a few business days.')}
+                    {t(
+                      'Cancel this booking and claim a refund? Your refund is processed back to your card within a few business days.',
+                    )}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
@@ -607,7 +655,11 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
               <p className="mt-4 text-[13px] text-ink-muted">
                 {t('Free cancellation has passed.')}{' '}
                 <a
-                  href={whatsappUrl(t('Hi Belle Mare Tours! I need to cancel my booking {ref}.', { ref: booking.ref }))}
+                  href={whatsappUrl(
+                    t('Hi Belle Mare Tours! I need to cancel my booking {ref}.', {
+                      ref: booking.ref,
+                    }),
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-bold text-teal hover:text-teal-dark"
@@ -649,7 +701,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
           <div className="mt-6 rounded-xl bg-gold-light/20 px-4 py-3 text-sm text-ink">
             <p>
               {pollExhausted
-                ? t('We haven’t received confirmation of your payment yet. It can take a little longer to settle.')
+                ? t(
+                    'We haven’t received confirmation of your payment yet. It can take a little longer to settle.',
+                  )
                 : t('This booking is awaiting payment.')}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">

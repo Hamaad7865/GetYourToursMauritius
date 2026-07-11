@@ -41,10 +41,14 @@ const NAV: NavItem[] = [
   { href: '/admin/leads', label: 'Leads', icon: IconUsers },
 ];
 
-const BOTTOM_NAV = NAV.filter((n) => ['/admin', '/admin/bookings', '/admin/activities', '/admin/leads'].includes(n.href));
+const BOTTOM_NAV = NAV.filter((n) =>
+  ['/admin', '/admin/bookings', '/admin/activities', '/admin/leads'].includes(n.href),
+);
 
 function isActive(pathname: string, item: NavItem): boolean {
-  return item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+  return item.exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
 /** The dark-teal back-office shell: sticky sidebar (desktop), frosted top bar, and a slide-in
@@ -66,7 +70,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   };
 
   const name = profile?.fullName || user?.email?.split('@')[0] || 'Staff';
-  const role = profile?.role ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : 'Staff';
+  const role = profile?.role
+    ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
+    : 'Staff';
   const { initials, hue } = avatar(name);
 
   const NavList = ({ onNavigate }: { onNavigate?: () => void }) => (
@@ -126,7 +132,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
       {/* ===== Mobile drawer ===== */}
       {drawer && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-ink/50" onClick={() => setDrawer(false)} aria-hidden />
+          <div
+            className="absolute inset-0 bg-ink/50"
+            onClick={() => setDrawer(false)}
+            aria-hidden
+          />
           <aside className="absolute inset-y-0 left-0 flex w-[260px] max-w-[82%] flex-col bg-ink text-cream/70 shadow-2xl">
             <div className="flex items-center justify-between pr-2">
               <SidebarHeader />
@@ -155,7 +165,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
           >
             <IconMenu width={19} height={19} />
           </button>
-          <form onSubmit={submitSearch} role="search" className="relative hidden max-w-md flex-1 sm:block">
+          <form
+            onSubmit={submitSearch}
+            role="search"
+            className="relative hidden max-w-md flex-1 sm:block"
+          >
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted">
               <IconSearch width={17} height={17} />
             </span>
@@ -236,8 +250,12 @@ function SidebarHeader() {
         <IconGrid width={20} height={20} />
       </span>
       <span className="flex flex-col leading-tight">
-        <span className="whitespace-nowrap text-[15px] font-extrabold tracking-tight text-white">Belle Mare Tours</span>
-        <span className="mt-1 text-[9px] font-bold tracking-[0.32em] text-teal-bright">BACK OFFICE</span>
+        <span className="whitespace-nowrap text-[15px] font-extrabold tracking-tight text-white">
+          Belle Mare Tours
+        </span>
+        <span className="mt-1 text-[9px] font-bold tracking-[0.32em] text-teal-bright">
+          BACK OFFICE
+        </span>
       </span>
     </div>
   );

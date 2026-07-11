@@ -112,7 +112,9 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     text(addressLine, { size: 9, color: MUTED });
     y -= 12;
   }
-  const ids = [b.brn ? `BRN: ${b.brn}` : '', b.vat ? `VAT: ${b.vat}` : ''].filter(Boolean).join('  .  ');
+  const ids = [b.brn ? `BRN: ${b.brn}` : '', b.vat ? `VAT: ${b.vat}` : '']
+    .filter(Boolean)
+    .join('  .  ');
   if (ids) {
     text(ids, { size: 9, color: MUTED });
     y -= 12;
@@ -130,7 +132,10 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   y -= 16;
   textRight(`Invoice No: ${model.invoiceNumber}`, CONTENT_RIGHT, { size: 9, color: MUTED });
   y -= 12;
-  textRight(`Date: ${formatMauritiusDate(model.issuedAt)}`, CONTENT_RIGHT, { size: 9, color: MUTED });
+  textRight(`Date: ${formatMauritiusDate(model.issuedAt)}`, CONTENT_RIGHT, {
+    size: 9,
+    color: MUTED,
+  });
   // Resume below whichever block (left header / right title) ended lower.
   y = Math.min(savedY, y) - 22;
 
@@ -167,7 +172,10 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     y -= 13;
   }
   if (trip.pickup) {
-    text(fitText(`Pickup: ${trip.pickup}`, font, 10, CONTENT_RIGHT - MARGIN), { size: 10, color: MUTED });
+    text(fitText(`Pickup: ${trip.pickup}`, font, 10, CONTENT_RIGHT - MARGIN), {
+      size: 10,
+      color: MUTED,
+    });
     y -= 13;
   }
   if (trip.dropoff) {
@@ -254,10 +262,14 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     color: MUTED,
   });
   y -= 14;
-  textRight(`VAT ${model.vatRatePct}%: ${currency} ${model.vatAmountEur.toFixed(2)}`, CONTENT_RIGHT, {
-    size: 10,
-    color: MUTED,
-  });
+  textRight(
+    `VAT ${model.vatRatePct}%: ${currency} ${model.vatAmountEur.toFixed(2)}`,
+    CONTENT_RIGHT,
+    {
+      size: 10,
+      color: MUTED,
+    },
+  );
   y -= 16;
   textRight(`Total: ${currency} ${model.totalGrossEur.toFixed(2)}`, CONTENT_RIGHT, {
     size: 12,
@@ -284,7 +296,9 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   page.drawText('PAID', { x: boxX + 12, y: by, size: 16, font: bold, color: ACCENT });
   const chargeParts: string[] = [];
   if (pay && typeof pay.chargedAmount === 'number') {
-    chargeParts.push(`${toWinAnsi(pay.chargedCurrency || currency)} ${pay.chargedAmount.toFixed(2)}`);
+    chargeParts.push(
+      `${toWinAnsi(pay.chargedCurrency || currency)} ${pay.chargedAmount.toFixed(2)}`,
+    );
   }
   if (pay?.paidAt) chargeParts.push(`on ${formatMauritiusDate(pay.paidAt)}`);
   by -= 20;

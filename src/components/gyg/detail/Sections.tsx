@@ -18,7 +18,13 @@ import {
  *  every private sightseeing tour (using the operator aggregate when the tour has no reviews of its
  *  own) and for any other activity whose own rating clears 4.5. Kept separate from QuickFacts so the
  *  custom-badges branch can't hide it. */
-export async function LovedBanner({ ratingAvg, ratingCount }: { ratingAvg: number; ratingCount: number }) {
+export async function LovedBanner({
+  ratingAvg,
+  ratingCount,
+}: {
+  ratingAvg: number;
+  ratingCount: number;
+}) {
   const t = await getT();
   return (
     // mt-6 so the card never butts up against the highlights box above when the option card (which
@@ -28,7 +34,8 @@ export async function LovedBanner({ ratingAvg, ratingCount }: { ratingAvg: numbe
         <IconTrophy width={22} height={22} />
       </span>
       <p className="m-0 text-[14px] leading-snug text-ink/80">
-        <b className="text-ink">{t('Loved by travellers')}</b>{' — '}
+        <b className="text-ink">{t('Loved by travellers')}</b>
+        {' — '}
         {t('rated {avg}★ by {n} guests', { avg: ratingAvg.toFixed(1), n: ratingCount })}
       </p>
     </div>
@@ -40,7 +47,11 @@ export async function LovedBanner({ ratingAvg, ratingCount }: { ratingAvg: numbe
  * private vehicle, free child seat, flexible start. Rendered for vehicle-mode tours only. The
  * duration is the tour's own; the rest are fixed operator policy.
  */
-export async function SightseeingHighlights({ durationMinutes }: { durationMinutes: number | null }) {
+export async function SightseeingHighlights({
+  durationMinutes,
+}: {
+  durationMinutes: number | null;
+}) {
   const t = await getT();
   const duration = durationLabel(durationMinutes);
   const items: Array<{ icon: React.ReactNode; title: string; sub: string }> = [
@@ -147,12 +158,23 @@ export async function Itinerary({
   // Render the list + map through RoutedItinerary so both are drawn in ONE proximity-optimised order:
   // the route never zig-zags, and the numbered list, the pins and the route always agree.
   return (
-    <RoutedItinerary nodes={nodes} stops={mapStops} kinds={mapKinds} collapseAt={meetingPoint ? 4 : 3} />
+    <RoutedItinerary
+      nodes={nodes}
+      stops={mapStops}
+      kinds={mapKinds}
+      collapseAt={meetingPoint ? 4 : 3}
+    />
   );
 }
 
 /** "Includes" — green checks for what's included, muted ✕ for what isn't. */
-export function Includes({ inclusions, exclusions }: { inclusions: string[]; exclusions: string[] }) {
+export function Includes({
+  inclusions,
+  exclusions,
+}: {
+  inclusions: string[];
+  exclusions: string[];
+}) {
   if (inclusions.length === 0 && exclusions.length === 0) return null;
   return (
     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -167,7 +189,10 @@ export function Includes({ inclusions, exclusions }: { inclusions: string[]; exc
       {exclusions.length > 0 && (
         <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
           {exclusions.map((ex) => (
-            <li key={ex} className="flex items-start gap-2.5 text-[14.5px] leading-snug text-ink-muted">
+            <li
+              key={ex}
+              className="flex items-start gap-2.5 text-[14.5px] leading-snug text-ink-muted"
+            >
               <IconX width={18} height={18} className="mt-0.5 shrink-0 text-coral" />
               {ex}
             </li>

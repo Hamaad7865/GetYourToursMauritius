@@ -16,7 +16,9 @@ export function getBrowserSupabase(): SupabaseClient<Database> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anonKey) {
-    throw new Error('Supabase browser client is not configured (NEXT_PUBLIC_SUPABASE_URL/ANON_KEY).');
+    throw new Error(
+      'Supabase browser client is not configured (NEXT_PUBLIC_SUPABASE_URL/ANON_KEY).',
+    );
   }
   client = createClient<Database>(url, anonKey, {
     auth: {

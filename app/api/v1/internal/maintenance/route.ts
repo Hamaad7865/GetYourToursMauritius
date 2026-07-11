@@ -32,11 +32,16 @@ export const POST = apiHandler(async (req) => {
   // isolated in its own try/catch so one failure (e.g. the provider is briefly unreachable) never blocks
   // the others; the failed step simply re-runs on the next cron tick.
   const log = (step: string, err: unknown) =>
-    console.error(`[maintenance] ${step} failed:`, err instanceof Error ? err.message : 'unknown error');
+    console.error(
+      `[maintenance] ${step} failed:`,
+      err instanceof Error ? err.message : 'unknown error',
+    );
 
   // 1) Webhook-less safety net: re-query the provider for stuck `payment_pending` bookings and confirm
   //    the ones that paid (idempotent via append_payment_event) — FIRST, so the next step can't expire them.
-  let payments: Awaited<ReturnType<typeof reconcilePaymentsPending>> | { errored: true } = { errored: true };
+  let payments: Awaited<ReturnType<typeof reconcilePaymentsPending>> | { errored: true } = {
+    errored: true,
+  };
   try {
     payments = await reconcilePaymentsPending(ctx);
   } catch (err) {
@@ -44,7 +49,9 @@ export const POST = apiHandler(async (req) => {
   }
 
   // 2) Sweep stale holds + expire genuinely-abandoned bookings (now that any real payment is confirmed).
-  let result: Awaited<ReturnType<typeof runBookingMaintenance>> | { errored: true } = { errored: true };
+  let result: Awaited<ReturnType<typeof runBookingMaintenance>> | { errored: true } = {
+    errored: true,
+  };
   try {
     result = await runBookingMaintenance(ctx);
   } catch (err) {

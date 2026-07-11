@@ -55,7 +55,9 @@ describe('service layer (via PGlite rpc)', () => {
   it('searchActivities returns a paginated catalogue with transfers excluded', async () => {
     const all = await searchActivities(ctx, { page: 1, pageSize: 100 });
     // Dedicated transfer products (airport-transfer / hotel-transfer) never appear in the tour catalogue.
-    expect(all.items.some((i) => i.slug === 'airport-transfer' || i.slug === 'hotel-transfer')).toBe(false);
+    expect(
+      all.items.some((i) => i.slug === 'airport-transfer' || i.slug === 'hotel-transfer'),
+    ).toBe(false);
     // Every other published seed activity is still listed; the count matches the trimmed item list.
     expect(all.total).toBe(all.items.length);
     expect(all.items.length).toBeGreaterThan(0);
@@ -109,7 +111,9 @@ describe('service layer (via PGlite rpc)', () => {
         `select pricing_mode from activities where slug = 'private-south-tour-with-pickup'`,
       )
     ).rows[0]!.pricing_mode;
-    await db.pg.query(`update activities set pricing_mode = 'vehicle' where slug = 'private-south-tour-with-pickup'`);
+    await db.pg.query(
+      `update activities set pricing_mode = 'vehicle' where slug = 'private-south-tour-with-pickup'`,
+    );
     await db.as({ sub: USER, role: 'authenticated' });
 
     const booking = await createBooking(ctx, {
@@ -126,7 +130,10 @@ describe('service layer (via PGlite rpc)', () => {
     expect(booking.items[0]!.quantity).toBe(1); // one vehicle slot
 
     await db.asOwner();
-    await db.pg.query(`update activities set pricing_mode = $1 where slug = 'private-south-tour-with-pickup'`, [orig]);
+    await db.pg.query(
+      `update activities set pricing_mode = $1 where slug = 'private-south-tour-with-pickup'`,
+      [orig],
+    );
     await db.as({ sub: USER, role: 'authenticated' });
   });
 
@@ -163,7 +170,9 @@ describe('service layer (via PGlite rpc)', () => {
         `select pricing_mode from activities where slug = 'private-south-tour-with-pickup'`,
       )
     ).rows[0]!.pricing_mode;
-    await db.pg.query(`update activities set pricing_mode = 'vehicle' where slug = 'private-south-tour-with-pickup'`);
+    await db.pg.query(
+      `update activities set pricing_mode = 'vehicle' where slug = 'private-south-tour-with-pickup'`,
+    );
     await db.as({ sub: USER, role: 'authenticated' });
 
     const err = await createBooking(ctx, {
@@ -176,7 +185,10 @@ describe('service layer (via PGlite rpc)', () => {
     expect((err as ServiceError).status).toBe(400); // 400 validation, NOT 502 provider
 
     await db.asOwner();
-    await db.pg.query(`update activities set pricing_mode = $1 where slug = 'private-south-tour-with-pickup'`, [orig]);
+    await db.pg.query(
+      `update activities set pricing_mode = $1 where slug = 'private-south-tour-with-pickup'`,
+      [orig],
+    );
     await db.as({ sub: USER, role: 'authenticated' });
   });
 

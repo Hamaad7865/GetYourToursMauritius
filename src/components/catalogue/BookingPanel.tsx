@@ -54,7 +54,7 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
 
   const selectedOption = options[optionIdx];
   const unit = isTransport
-    ? (selectedOption ? optionFrom(selectedOption) : null) ?? fromPriceEur
+    ? ((selectedOption ? optionFrom(selectedOption) : null) ?? fromPriceEur)
     : fromPriceEur;
 
   const quantity = isTransport ? 1 : participants;
@@ -222,11 +222,14 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
 
         <div className="mt-4 flex flex-col gap-2.5">
           <div className="flex items-center gap-2.5 text-[13px] text-ink/80">
-            <IconCheck width={16} height={16} className="text-teal" /> {t('Free cancellation up to 24 hours before')}
+            <IconCheck width={16} height={16} className="text-teal" />{' '}
+            {t('Free cancellation up to 24 hours before')}
           </div>
           <div className="flex items-center gap-2.5 text-[13px] text-ink/80">
             <IconCheck width={16} height={16} className="text-teal" />
-            {isTransport ? t('Meet & greet — fuel & tolls included') : t('Instant confirmation & e-voucher')}
+            {isTransport
+              ? t('Meet & greet — fuel & tolls included')
+              : t('Instant confirmation & e-voucher')}
           </div>
         </div>
       </div>

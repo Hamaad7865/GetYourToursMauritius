@@ -11,7 +11,9 @@ const CUSTOMER = 'c9c9c9c9-c9c9-c9c9-c9c9-c9c9c9c9c9c9';
 const OTHER = 'd1d1d1d1-d1d1-d1d1-d1d1-d1d1d1d1d1d1';
 
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
@@ -42,21 +44,24 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
       source: 'web',
       idempotencyKey: `book-${idem}`,
     });
-    const payment = await call<{ paymentId: string; amountMinor: number }>(db, 'api_create_payment', {
-      bookingRef: booking.ref,
-      idempotencyKey: `pay-${idem}`,
-    });
+    const payment = await call<{ paymentId: string; amountMinor: number }>(
+      db,
+      'api_create_payment',
+      {
+        bookingRef: booking.ref,
+        idempotencyKey: `pay-${idem}`,
+      },
+    );
     await call(db, 'api_record_payment_charge', {
       paymentId: payment.paymentId,
       chargedAmountMinor: payment.amountMinor,
       chargedCurrency: 'USD',
     });
     await db.as({ sub: 'service', role: 'service_role' });
-    await db.pg.query(`select append_payment_event($1::uuid, 'paid', $2, $3::int, now(), '{}'::jsonb)`, [
-      payment.paymentId,
-      `pe-${idem}`,
-      payment.amountMinor,
-    ]);
+    await db.pg.query(
+      `select append_payment_event($1::uuid, 'paid', $2, $3::int, now(), '{}'::jsonb)`,
+      [payment.paymentId, `pe-${idem}`, payment.amountMinor],
+    );
     return booking.ref;
   }
 
@@ -76,11 +81,14 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
   // Reads run as the owner (staff) so RLS never hides ground truth from the assertion.
   const statusOf = async (ref: string): Promise<string> => {
     await db.asOwner();
-    return (await db.pg.query<{ status: string }>(`select status from bookings where ref = $1`, [ref])).rows[0]!.status;
+    return (
+      await db.pg.query<{ status: string }>(`select status from bookings where ref = $1`, [ref])
+    ).rows[0]!.status;
   };
   const usedCap = async (occ: string): Promise<number> => {
     await db.asOwner();
-    return (await db.pg.query<{ n: number }>(`select used_capacity($1::uuid) as n`, [occ])).rows[0]!.n;
+    return (await db.pg.query<{ n: number }>(`select used_capacity($1::uuid) as n`, [occ])).rows[0]!
+      .n;
   };
   const cancellableFlag = async (ref: string): Promise<boolean> => {
     await db.asOwner();
@@ -113,8 +121,11 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!
+      .id;
     for (const u of [CUSTOMER, OTHER]) {
       await db.pg.query(`insert into auth.users (id) values ($1)`, [u]);
       await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [u]);
@@ -171,7 +182,11 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     await call(db, 'api_cancel_booking', { ref });
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const second = await call<{ alreadyCancelled: boolean; status: string }>(db, 'api_cancel_booking', { ref });
+    const second = await call<{ alreadyCancelled: boolean; status: string }>(
+      db,
+      'api_cancel_booking',
+      { ref },
+    );
     expect(second.alreadyCancelled).toBe(true);
     expect(second.status).toBe('refund_pending');
     expect(await cancellationNotifs(ref)).toBe(1); // still exactly one cancellation heads-up
@@ -182,12 +197,17 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
     const ref = await bookConfirm(occ, 'near');
     // Simulate the trip approaching: move the occurrence to 6 hours away.
     await db.asOwner();
-    await db.pg.query(`update session_occurrences set starts_at = now() + interval '6 hours' where id = $1`, [occ]);
+    await db.pg.query(
+      `update session_occurrences set starts_at = now() + interval '6 hours' where id = $1`,
+      [occ],
+    );
     // booking_json reflects the closed window.
     expect(await cancellableFlag(ref)).toBe(false);
 
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    await expect(call(db, 'api_cancel_booking', { ref })).rejects.toThrow(/cancellation_window_passed/);
+    await expect(call(db, 'api_cancel_booking', { ref })).rejects.toThrow(
+      /cancellation_window_passed/,
+    );
     expect(await statusOf(ref)).toBe('confirmed'); // untouched
   });
 

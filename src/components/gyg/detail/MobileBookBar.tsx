@@ -13,9 +13,8 @@ export function MobileBookBar() {
   const t = useT();
   const b = useBooking();
   const price = activityFromPriceEur(b.activity);
-  const unitLabelText = b.groupSize != null
-    ? t('per group up to {n}', { n: b.groupSize })
-    : t(b.unitLabel);
+  const unitLabelText =
+    b.groupSize != null ? t('per group up to {n}', { n: b.groupSize }) : t(b.unitLabel);
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">

@@ -54,7 +54,8 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
         {duration && <div className="mt-2 text-[13px] text-ink-muted">{duration}</div>}
         {activity.minAdvanceDays > 1 && (
           <span className="mt-2 inline-flex w-fit items-center gap-1 rounded-md bg-teal/10 px-1.5 py-0.5 text-[11px] font-bold text-teal-dark">
-            <IconCalendar width={11} height={11} /> {t('Book {n}+ days ahead', { n: activity.minAdvanceDays })}
+            <IconCalendar width={11} height={11} />{' '}
+            {t('Book {n}+ days ahead', { n: activity.minAdvanceDays })}
           </span>
         )}
 
@@ -68,7 +69,8 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
             <span>
               {activity.fromPriceEur != null ? (
                 <>
-                  {t('from')} <Price eur={activity.fromPriceEur} className="text-[19px] font-bold text-ink" />
+                  {t('from')}{' '}
+                  <Price eur={activity.fromPriceEur} className="text-[19px] font-bold text-ink" />
                 </>
               ) : (
                 <b className="text-ink">{t('On request')}</b>

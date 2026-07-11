@@ -3,2033 +3,2078 @@ import type { TransferContent } from './transfers';
 
 export const TRANSFERS_RAW: TransferContent[] = [
   {
-    "slug": "lux-belle-mare",
-    "hotelName": "LUX* Belle Mare",
-    "area": "Belle Mare",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "Start your stay at LUX* Belle Mare the easy way with a pre-booked private transfer from SSR International Airport. The drive up the east coast takes roughly 50 minutes, so you reach the hotel relaxed and on time. Your local driver-guide speaks English and French, greets you at arrivals, helps with your bags and takes you straight to the door. The price is fixed and transparent, agreed when you book, with no meter and no surprises. Just confirm your flight details and we handle the rest, door to door.",
-    "included": [
-      "Meet and greet at arrivals with a personalised name board",
-      "Flight tracking so your pickup adjusts automatically to delays",
-      "Free first child or baby seat on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in the vehicle",
-      "Door-to-door drop-off at LUX* Belle Mare with instant email confirmation"
+    slug: 'lux-belle-mare',
+    hotelName: 'LUX* Belle Mare',
+    area: 'Belle Mare',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      'Start your stay at LUX* Belle Mare the easy way with a pre-booked private transfer from SSR International Airport. The drive up the east coast takes roughly 50 minutes, so you reach the hotel relaxed and on time. Your local driver-guide speaks English and French, greets you at arrivals, helps with your bags and takes you straight to the door. The price is fixed and transparent, agreed when you book, with no meter and no surprises. Just confirm your flight details and we handle the rest, door to door.',
+    included: [
+      'Meet and greet at arrivals with a personalised name board',
+      'Flight tracking so your pickup adjusts automatically to delays',
+      'Free first child or baby seat on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in the vehicle',
+      'Door-to-door drop-off at LUX* Belle Mare with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Belle Mare Beach",
-      "Île aux Cerfs",
-      "Centre de Flacq market",
-      "Belle Mare Plage golf course",
-      "Poste Lafayette",
-      "Bras d'Eau National Park"
+    nearbyAttractions: [
+      'Belle Mare Beach',
+      'Île aux Cerfs',
+      'Centre de Flacq market',
+      'Belle Mare Plage golf course',
+      'Poste Lafayette',
+      "Bras d'Eau National Park",
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to LUX* Belle Mare?",
-        "a": "The drive from SSR International Airport to LUX* Belle Mare is around 45 km and normally takes about 50 minutes by private car, depending on traffic and the time of day."
+        q: 'How long is the transfer to LUX* Belle Mare?',
+        a: 'The drive from SSR International Airport to LUX* Belle Mare is around 45 km and normally takes about 50 minutes by private car, depending on traffic and the time of day.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is free of charge, just tell us the child's age when you book so we can fit the right type. Extra seats can be added on request."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is free of charge, just tell us the child's age when you book so we can fit the right type. Extra seats can be added on request.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time at no extra cost."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time at no extra cost.',
       },
       {
-        "q": "Can I book a return or departure transfer?",
-        "a": "Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. For departures we schedule the pickup to fit your check-in, with comfortable time to reach SSR."
-      }
+        q: 'Can I book a return or departure transfer?',
+        a: 'Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. For departures we schedule the pickup to fit your check-in, with comfortable time to reach SSR.',
+      },
     ],
-    "lat": -20.1916,
-    "lng": 57.7725
+    lat: -20.1916,
+    lng: 57.7725,
   },
   {
-    "slug": "constance-belle-mare-plage",
-    "hotelName": "Constance Belle Mare Plage",
-    "area": "Belle Mare",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "Constance Belle Mare Plage sits on the east coast, about 45 km from SSR International Airport in the south-east. The drive takes roughly 50 minutes via Plaine Magnien and the east-coast road. We run a door-to-door private transfer with a local driver who speaks English and French, so there's no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage, and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises on arrival.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking, so your driver adjusts the pickup time if your flight is early or delayed",
-      "One free child or baby seat on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in the vehicle",
-      "Door-to-door drop-off at the hotel entrance with instant email confirmation"
+    slug: 'constance-belle-mare-plage',
+    hotelName: 'Constance Belle Mare Plage',
+    area: 'Belle Mare',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      "Constance Belle Mare Plage sits on the east coast, about 45 km from SSR International Airport in the south-east. The drive takes roughly 50 minutes via Plaine Magnien and the east-coast road. We run a door-to-door private transfer with a local driver who speaks English and French, so there's no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage, and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises on arrival.",
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking, so your driver adjusts the pickup time if your flight is early or delayed',
+      'One free child or baby seat on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in the vehicle',
+      'Door-to-door drop-off at the hotel entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Belle Mare public beach and lagoon",
-      "Ile aux Cerfs island and its beaches",
+    nearbyAttractions: [
+      'Belle Mare public beach and lagoon',
+      'Ile aux Cerfs island and its beaches',
       "Bras d'Eau National Park",
-      "Poste Lafayette and the north-east coastline",
+      'Poste Lafayette and the north-east coastline',
       "Trou d'Eau Douce fishing village",
-      "Centre de Flacq market"
+      'Centre de Flacq market',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Constance Belle Mare Plage?",
-        "a": "The drive from SSR International Airport to Constance Belle Mare Plage is about 45 km and usually takes around 50 minutes, depending on traffic and the time of day. Your private driver takes the most direct route along the east coast."
+        q: 'How long is the transfer to Constance Belle Mare Plage?',
+        a: 'The drive from SSR International Airport to Constance Belle Mare Plage is about 45 km and usually takes around 50 minutes, depending on traffic and the time of day. Your private driver takes the most direct route along the east coast.',
       },
       {
-        "q": "How much luggage can I bring?",
-        "a": "A standard car comfortably fits two passengers with two large suitcases plus hand luggage. If you are travelling as a family or group, or with golf bags or extra cases, just tell us the number of passengers and bags when booking and we'll send a larger vehicle."
+        q: 'How much luggage can I bring?',
+        a: "A standard car comfortably fits two passengers with two large suitcases plus hand luggage. If you are travelling as a family or group, or with golf bags or extra cases, just tell us the number of passengers and bags when booking and we'll send a larger vehicle.",
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. If you need more than one, let us know the children's ages when you book so we can fit the correct seats before pickup."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free on request. If you need more than one, let us know the children's ages when you book so we can fit the correct seats before pickup.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so your driver adjusts the pickup time automatically if you land early or late. You also have up to 60 minutes of free waiting after landing while you clear immigration and collect your bags, so there's no need to worry about delays at no extra cost."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: "We track your flight, so your driver adjusts the pickup time automatically if you land early or late. You also have up to 60 minutes of free waiting after landing while you clear immigration and collect your bags, so there's no need to worry about delays at no extra cost.",
+      },
     ],
-    "lat": -20.1989,
-    "lng": 57.7745
+    lat: -20.1989,
+    lng: 57.7745,
   },
   {
-    "slug": "long-beach-mauritius",
-    "hotelName": "Long Beach Mauritius",
-    "area": "Belle Mare / Poste de Flacq",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "Belle Mare Tours runs pre-booked private airport transfers from SSR International Airport to Long Beach Mauritius in Belle Mare on the east coast. The drive takes about 50 minutes through the sugar-cane plains and coastal villages of Poste de Flacq. Your local driver-guide, who speaks English and French, meets you at arrivals with a name board and takes you door to door in a private air-conditioned car. The price is fixed and agreed when you book, with no meter and no surprises. Just send your flight details and we handle the rest, from landing to your hotel reception.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time to any delay",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the car",
-      "Door-to-door drop-off at the Long Beach Mauritius reception",
-      "Instant email confirmation with your driver and trip details"
+    slug: 'long-beach-mauritius',
+    hotelName: 'Long Beach Mauritius',
+    area: 'Belle Mare / Poste de Flacq',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      'Belle Mare Tours runs pre-booked private airport transfers from SSR International Airport to Long Beach Mauritius in Belle Mare on the east coast. The drive takes about 50 minutes through the sugar-cane plains and coastal villages of Poste de Flacq. Your local driver-guide, who speaks English and French, meets you at arrivals with a name board and takes you door to door in a private air-conditioned car. The price is fixed and agreed when you book, with no meter and no surprises. Just send your flight details and we handle the rest, from landing to your hotel reception.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time to any delay',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the car',
+      'Door-to-door drop-off at the Long Beach Mauritius reception',
+      'Instant email confirmation with your driver and trip details',
     ],
-    "nearbyAttractions": [
-      "Belle Mare public beach and lagoon",
-      "Île aux Cerfs and its offshore lagoon",
-      "Centre de Flacq market",
-      "Poste de Flacq and the Sagar Shiv Mandir temple by the sea",
+    nearbyAttractions: [
+      'Belle Mare public beach and lagoon',
+      'Île aux Cerfs and its offshore lagoon',
+      'Centre de Flacq market',
+      'Poste de Flacq and the Sagar Shiv Mandir temple by the sea',
       "Bras d'Eau National Park",
-      "Anahita and Belle Mare Plage golf courses"
+      'Anahita and Belle Mare Plage golf courses',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Long Beach Mauritius?",
-        "a": "The private transfer from SSR Airport to Long Beach Mauritius in Belle Mare covers roughly 45 km and takes about 50 minutes by car, depending on traffic and the time of day."
+        q: 'How long is the transfer to Long Beach Mauritius?',
+        a: 'The private transfer from SSR Airport to Long Beach Mauritius in Belle Mare covers roughly 45 km and takes about 50 minutes by car, depending on traffic and the time of day.',
       },
       {
-        "q": "How much luggage can the car take?",
-        "a": "A standard saloon car comfortably fits two large suitcases plus two cabin bags for two passengers. If you are travelling with more luggage, a family, or sports equipment such as golf bags, just tell us when booking and we will send a larger vehicle."
+        q: 'How much luggage can the car take?',
+        a: 'A standard saloon car comfortably fits two large suitcases plus two cabin bags for two passengers. If you are travelling with more luggage, a family, or sports equipment such as golf bags, just tell us when booking and we will send a larger vehicle.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first baby or child seat is free on request, and additional seats can be arranged. Let us know your children's ages when booking so we fit the correct seat."
+        q: 'Are child seats available?',
+        a: "Yes. The first baby or child seat is free on request, and additional seats can be arranged. Let us know your children's ages when booking so we fit the correct seat.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so your driver automatically adjusts the pickup time to your actual landing. You also get up to 60 minutes of free waiting after touchdown, so there is no need to worry about delays at immigration or baggage."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight, so your driver automatically adjusts the pickup time to your actual landing. You also get up to 60 minutes of free waiting after touchdown, so there is no need to worry about delays at immigration or baggage.',
+      },
     ],
-    "lat": -20.2069,
-    "lng": 57.7785
+    lat: -20.2069,
+    lng: 57.7785,
   },
   {
-    "slug": "shangri-la-le-touessrok",
-    "hotelName": "Shangri-La Le Touessrok",
-    "area": "Trou d'Eau Douce",
-    "region": "East",
-    "distanceKmFromAirport": 50,
-    "durationMinFromAirport": 55,
-    "intro": "Shangri-La Le Touessrok sits on the east coast at Trou d'Eau Douce, about 50 km from SSR International Airport in the south-east. We run a door-to-door private transfer in a comfortable air-conditioned car, so you skip the taxi queue and ride straight to the resort with a local English- and French-speaking driver. The price is fixed and agreed when you book, with no meter and no surprises on arrival. Your driver meets you inside the arrivals hall with a name board and helps with the luggage. The scenic drive north through the villages takes roughly 55 minutes.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personal name board",
-      "Flight tracking so your pickup time adjusts automatically to any delay",
-      "Free first child or baby seat fitted on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water on board",
-      "Door-to-door drop-off at the entrance of Shangri-La Le Touessrok with instant email confirmation"
+    slug: 'shangri-la-le-touessrok',
+    hotelName: 'Shangri-La Le Touessrok',
+    area: "Trou d'Eau Douce",
+    region: 'East',
+    distanceKmFromAirport: 50,
+    durationMinFromAirport: 55,
+    intro:
+      "Shangri-La Le Touessrok sits on the east coast at Trou d'Eau Douce, about 50 km from SSR International Airport in the south-east. We run a door-to-door private transfer in a comfortable air-conditioned car, so you skip the taxi queue and ride straight to the resort with a local English- and French-speaking driver. The price is fixed and agreed when you book, with no meter and no surprises on arrival. Your driver meets you inside the arrivals hall with a name board and helps with the luggage. The scenic drive north through the villages takes roughly 55 minutes.",
+    included: [
+      'Meet and greet inside the arrivals hall with a personal name board',
+      'Flight tracking so your pickup time adjusts automatically to any delay',
+      'Free first child or baby seat fitted on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water on board',
+      'Door-to-door drop-off at the entrance of Shangri-La Le Touessrok with instant email confirmation',
     ],
-    "nearbyAttractions": [
+    nearbyAttractions: [
       "Île aux Cerfs island and its lagoon, reached by boat from Trou d'Eau Douce",
-      "Grand River South East (GRSE) Waterfall boat trip",
-      "Belle Mare public beach and the long east-coast sands",
+      'Grand River South East (GRSE) Waterfall boat trip',
+      'Belle Mare public beach and the long east-coast sands',
       "Bras d'Eau National Park for forest walks and birdwatching",
-      "Poste Lafayette and the kitesurfing flats further north",
-      "Centre de Flacq market for local food and shopping"
+      'Poste Lafayette and the kitesurfing flats further north',
+      'Centre de Flacq market for local food and shopping',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to Shangri-La Le Touessrok?",
-        "a": "The drive from SSR Airport to Trou d'Eau Douce is about 50 km and usually takes around 55 minutes in our private car, depending on traffic and the time of day."
+        q: 'How long is the transfer from the airport to Shangri-La Le Touessrok?',
+        a: "The drive from SSR Airport to Trou d'Eau Douce is about 50 km and usually takes around 55 minutes in our private car, depending on traffic and the time of day.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup to your actual landing time. You also get up to 60 minutes of free waiting after you land at no extra cost."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup to your actual landing time. You also get up to 60 minutes of free waiting after you land at no extra cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is free, fitted to your child's age on request. Just tell us the ages when you book so we bring the right seat."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is free, fitted to your child's age on request. Just tell us the ages when you book so we bring the right seat.",
       },
       {
-        "q": "Can I book a return or departure transfer back to the airport?",
-        "a": "Yes. You can add a departure transfer when you book, and we will pick you up from the hotel at a time that gets you to the airport with comfortable check-in margin."
-      }
+        q: 'Can I book a return or departure transfer back to the airport?',
+        a: 'Yes. You can add a departure transfer when you book, and we will pick you up from the hotel at a time that gets you to the airport with comfortable check-in margin.',
+      },
     ],
-    "lat": -20.27,
-    "lng": 57.7905
+    lat: -20.27,
+    lng: 57.7905,
   },
   {
-    "slug": "ambre-mauritius",
-    "hotelName": "Ambre Mauritius",
-    "area": "Palmar",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "Ambre Mauritius sits on the calm east-coast beach at Palmar, just south of Belle Mare. From SSR International Airport in the south-east it is roughly a 45 km drive, about 50 minutes up the coast road. We run a door-to-door private transfer in a comfortable air-conditioned car with a local, English- and French-speaking driver who meets you in the arrivals hall by name. The price is fixed and agreed when you book — no meter, no surprises — so you can step off your flight and head straight to the hotel.",
-    "included": [
-      "Meet & greet inside the arrivals hall with a name board",
-      "Flight tracking so your driver adjusts the pickup time if you land early or late",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting after you land",
-      "Bottled water in the car",
-      "Door-to-door drop-off at the Ambre Mauritius entrance with instant email confirmation"
+    slug: 'ambre-mauritius',
+    hotelName: 'Ambre Mauritius',
+    area: 'Palmar',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      'Ambre Mauritius sits on the calm east-coast beach at Palmar, just south of Belle Mare. From SSR International Airport in the south-east it is roughly a 45 km drive, about 50 minutes up the coast road. We run a door-to-door private transfer in a comfortable air-conditioned car with a local, English- and French-speaking driver who meets you in the arrivals hall by name. The price is fixed and agreed when you book — no meter, no surprises — so you can step off your flight and head straight to the hotel.',
+    included: [
+      'Meet & greet inside the arrivals hall with a name board',
+      'Flight tracking so your driver adjusts the pickup time if you land early or late',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting after you land',
+      'Bottled water in the car',
+      'Door-to-door drop-off at the Ambre Mauritius entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Belle Mare Beach",
-      "Île aux Cerfs",
+    nearbyAttractions: [
+      'Belle Mare Beach',
+      'Île aux Cerfs',
       "Trou d'Eau Douce fishing village",
-      "Grand River South East Waterfall",
-      "Centre de Flacq market",
-      "Île aux Aigrettes nature reserve"
+      'Grand River South East Waterfall',
+      'Centre de Flacq market',
+      'Île aux Aigrettes nature reserve',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to Ambre Mauritius?",
-        "a": "The drive from SSR Airport to Ambre Mauritius in Palmar is about 45 km and usually takes around 50 minutes in a private car, depending on traffic and the time of day."
+        q: 'How long is the transfer from the airport to Ambre Mauritius?',
+        a: 'The drive from SSR Airport to Ambre Mauritius in Palmar is about 45 km and usually takes around 50 minutes in a private car, depending on traffic and the time of day.',
       },
       {
-        "q": "How much luggage can I bring?",
-        "a": "A standard car comfortably fits two adults with two large suitcases and hand luggage. If you are travelling with extra bags, golf clubs or a larger group, tell us when you book and we will send a bigger vehicle at no surprise to you."
+        q: 'How much luggage can I bring?',
+        a: 'A standard car comfortably fits two adults with two large suitcases and hand luggage. If you are travelling with extra bags, golf clubs or a larger group, tell us when you book and we will send a bigger vehicle at no surprise to you.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. We provide the first baby or child seat free of charge — just add your child's age when booking so we fit the right type. Additional seats can be arranged on request."
+        q: 'Are child seats available?',
+        a: "Yes. We provide the first baby or child seat free of charge — just add your child's age when booking so we fit the right type. Additional seats can be arranged on request.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight number, so your driver automatically adjusts to the new landing time. You also get up to 60 minutes of free waiting after you clear the arrivals hall, with no extra charge for normal delays."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight number, so your driver automatically adjusts to the new landing time. You also get up to 60 minutes of free waiting after you clear the arrivals hall, with no extra charge for normal delays.',
+      },
     ],
-    "lat": -20.2331,
-    "lng": 57.7806
+    lat: -20.2331,
+    lng: 57.7806,
   },
   {
-    "slug": "paradis-beachcomber",
-    "hotelName": "Paradis Beachcomber",
-    "area": "Le Morne",
-    "region": "West",
-    "distanceKmFromAirport": 55,
-    "durationMinFromAirport": 65,
-    "intro": "Paradis Beachcomber sits at the foot of Le Morne Brabant on the south-west coast, about 55 km from SSR Airport. Belle Mare Tours runs a door-to-door private transfer for this route, so a local English- and French-speaking driver meets you at the arrivals hall and takes you straight to the resort with no stops or shared vans. You pay a fixed, transparent price agreed when you book, with no meter and no surprises on arrival. The drive takes roughly 65 minutes through the south of the island, and your driver greets you by name at the airport.",
-    "included": [
-      "Meet and greet at the arrivals hall with a name board",
-      "Flight tracking so your pickup adjusts automatically to delays",
-      "One free child or baby seat on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the car",
-      "Door-to-door drop-off at the Paradis Beachcomber reception",
-      "Instant email confirmation with your driver's details"
+    slug: 'paradis-beachcomber',
+    hotelName: 'Paradis Beachcomber',
+    area: 'Le Morne',
+    region: 'West',
+    distanceKmFromAirport: 55,
+    durationMinFromAirport: 65,
+    intro:
+      'Paradis Beachcomber sits at the foot of Le Morne Brabant on the south-west coast, about 55 km from SSR Airport. Belle Mare Tours runs a door-to-door private transfer for this route, so a local English- and French-speaking driver meets you at the arrivals hall and takes you straight to the resort with no stops or shared vans. You pay a fixed, transparent price agreed when you book, with no meter and no surprises on arrival. The drive takes roughly 65 minutes through the south of the island, and your driver greets you by name at the airport.',
+    included: [
+      'Meet and greet at the arrivals hall with a name board',
+      'Flight tracking so your pickup adjusts automatically to delays',
+      'One free child or baby seat on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the car',
+      'Door-to-door drop-off at the Paradis Beachcomber reception',
+      "Instant email confirmation with your driver's details",
     ],
-    "nearbyAttractions": [
-      "Le Morne Brabant UNESCO World Heritage mountain",
-      "Le Morne public beach and kitesurfing lagoon",
-      "La Gaulette fishing village",
-      "Black River Gorges National Park",
-      "Chamarel Seven Coloured Earths and waterfall",
-      "Île aux Bénitiers boat trips and the Crystal Rock"
+    nearbyAttractions: [
+      'Le Morne Brabant UNESCO World Heritage mountain',
+      'Le Morne public beach and kitesurfing lagoon',
+      'La Gaulette fishing village',
+      'Black River Gorges National Park',
+      'Chamarel Seven Coloured Earths and waterfall',
+      'Île aux Bénitiers boat trips and the Crystal Rock',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to Paradis Beachcomber?",
-        "a": "The drive from SSR Airport to Paradis Beachcomber at Le Morne is about 55 km and usually takes around 65 minutes by private car, depending on traffic and the time of day."
+        q: 'How long is the transfer from the airport to Paradis Beachcomber?',
+        a: 'The drive from SSR Airport to Paradis Beachcomber at Le Morne is about 55 km and usually takes around 65 minutes by private car, depending on traffic and the time of day.',
       },
       {
-        "q": "Are child and baby seats available?",
-        "a": "Yes. The first child or baby seat is free when you request it at booking. Just tell us the child's age and we will fit the correct seat before pickup."
+        q: 'Are child and baby seats available?',
+        a: "Yes. The first child or baby seat is free when you request it at booking. Just tell us the child's age and we will fit the correct seat before pickup.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup to your actual landing time. You also get up to 60 minutes of free waiting after you clear arrivals at no extra cost."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup to your actual landing time. You also get up to 60 minutes of free waiting after you clear arrivals at no extra cost.',
       },
       {
-        "q": "Can I book a return or departure transfer too?",
-        "a": "Yes. You can add a return transfer from Paradis Beachcomber back to the airport in the same booking, and we will schedule the pickup to suit your check-in time."
-      }
+        q: 'Can I book a return or departure transfer too?',
+        a: 'Yes. You can add a return transfer from Paradis Beachcomber back to the airport in the same booking, and we will schedule the pickup to suit your check-in time.',
+      },
     ],
-    "lat": -20.453,
-    "lng": 57.3206
+    lat: -20.453,
+    lng: 57.3206,
   },
   {
-    "slug": "dinarobin-beachcomber",
-    "hotelName": "Dinarobin Beachcomber",
-    "area": "Le Morne",
-    "region": "West",
-    "distanceKmFromAirport": 55,
-    "durationMinFromAirport": 70,
-    "intro": "Start your stay at Dinarobin Beachcomber the easy way with a pre-booked private transfer from SSR International Airport. Tucked beneath the iconic Le Morne Brabant on the south-west coast, the resort sits about 55 km from the airport, a scenic drive of around 70 minutes past the south coast. Your local English and French-speaking driver meets you at arrivals with a name board, helps with your bags and takes you door to door. The price is fixed and transparent, agreed before you travel, with no meter and no surprises on arrival.",
-    "included": [
-      "Meet and greet at the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time to any delays",
-      "First child or baby seat provided free on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in an air-conditioned vehicle",
-      "Door-to-door drop-off at the Dinarobin Beachcomber entrance with instant email confirmation"
+    slug: 'dinarobin-beachcomber',
+    hotelName: 'Dinarobin Beachcomber',
+    area: 'Le Morne',
+    region: 'West',
+    distanceKmFromAirport: 55,
+    durationMinFromAirport: 70,
+    intro:
+      'Start your stay at Dinarobin Beachcomber the easy way with a pre-booked private transfer from SSR International Airport. Tucked beneath the iconic Le Morne Brabant on the south-west coast, the resort sits about 55 km from the airport, a scenic drive of around 70 minutes past the south coast. Your local English and French-speaking driver meets you at arrivals with a name board, helps with your bags and takes you door to door. The price is fixed and transparent, agreed before you travel, with no meter and no surprises on arrival.',
+    included: [
+      'Meet and greet at the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time to any delays',
+      'First child or baby seat provided free on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in an air-conditioned vehicle',
+      'Door-to-door drop-off at the Dinarobin Beachcomber entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Le Morne Brabant UNESCO World Heritage mountain hike",
-      "Le Morne public beach and kitesurfing lagoon",
-      "Chamarel Seven Coloured Earth and Chamarel Waterfall",
-      "Black River Gorges National Park viewpoints",
-      "Casela Nature Parks near Cascavelle",
-      "La Gaulette village and boat trips to Île aux Bénitiers"
+    nearbyAttractions: [
+      'Le Morne Brabant UNESCO World Heritage mountain hike',
+      'Le Morne public beach and kitesurfing lagoon',
+      'Chamarel Seven Coloured Earth and Chamarel Waterfall',
+      'Black River Gorges National Park viewpoints',
+      'Casela Nature Parks near Cascavelle',
+      'La Gaulette village and boat trips to Île aux Bénitiers',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Dinarobin Beachcomber?",
-        "a": "The drive from SSR International Airport to Dinarobin Beachcomber in Le Morne is roughly 55 km and takes about 70 minutes in normal traffic, mostly along the motorway and the scenic south coast road. Travel times can be a little longer at peak hours or in heavy rain."
+        q: 'How long is the transfer to Dinarobin Beachcomber?',
+        a: 'The drive from SSR International Airport to Dinarobin Beachcomber in Le Morne is roughly 55 km and takes about 70 minutes in normal traffic, mostly along the motorway and the scenic south coast road. Travel times can be a little longer at peak hours or in heavy rain.',
       },
       {
-        "q": "How much luggage can the vehicle carry?",
-        "a": "A standard private car comfortably fits two to three passengers with two large suitcases and hand luggage. If you are travelling with a larger group, extra bags, golf clubs or bulky equipment, just tell us when booking and we will assign a larger vehicle such as an SUV or minivan."
+        q: 'How much luggage can the vehicle carry?',
+        a: 'A standard private car comfortably fits two to three passengers with two large suitcases and hand luggage. If you are travelling with a larger group, extra bags, golf clubs or bulky equipment, just tell us when booking and we will assign a larger vehicle such as an SUV or minivan.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. We provide your first child or baby seat free of charge on request, with options for infants, toddlers and boosters. Please add the ages of any children when you book so the right seat is fitted and ready in the car."
+        q: 'Are child seats available?',
+        a: 'Yes. We provide your first child or baby seat free of charge on request, with options for infants, toddlers and boosters. Please add the ages of any children when you book so the right seat is fitted and ready in the car.',
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight number, so your driver automatically adjusts to the new landing time at no extra cost. You also get up to 60 minutes of free waiting after touchdown, giving you time to clear immigration and collect your bags without worry."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight number, so your driver automatically adjusts to the new landing time at no extra cost. You also get up to 60 minutes of free waiting after touchdown, giving you time to clear immigration and collect your bags without worry.',
+      },
     ],
-    "lat": -20.456,
-    "lng": 57.3186
+    lat: -20.456,
+    lng: 57.3186,
   },
   {
-    "slug": "lux-le-morne",
-    "hotelName": "LUX* Le Morne",
-    "area": "Le Morne",
-    "region": "West",
-    "distanceKmFromAirport": 58,
-    "durationMinFromAirport": 70,
-    "intro": "LUX* Le Morne sits on the wild south-western tip of Mauritius, beneath the UNESCO-listed Le Morne Brabant mountain. Belle Mare Tours runs pre-booked, door-to-door private transfers from SSR International Airport straight to the resort — roughly a 70-minute drive along the south coast. Your local, English- and French-speaking driver meets you at arrivals with a name board, helps with the luggage and takes you directly to the hotel. The price is fixed and agreed in advance, so there is no meter and no surprises. Just book ahead, send your flight number, and relax.",
-    "included": [
-      "Meet & greet at the arrivals hall with a personalised name board",
-      "Flight tracking, so your pickup time adjusts automatically if your flight is early or delayed",
-      "Free first child or baby seat on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in the car",
-      "Door-to-door drop-off at the LUX* Le Morne entrance with instant email confirmation"
+    slug: 'lux-le-morne',
+    hotelName: 'LUX* Le Morne',
+    area: 'Le Morne',
+    region: 'West',
+    distanceKmFromAirport: 58,
+    durationMinFromAirport: 70,
+    intro:
+      'LUX* Le Morne sits on the wild south-western tip of Mauritius, beneath the UNESCO-listed Le Morne Brabant mountain. Belle Mare Tours runs pre-booked, door-to-door private transfers from SSR International Airport straight to the resort — roughly a 70-minute drive along the south coast. Your local, English- and French-speaking driver meets you at arrivals with a name board, helps with the luggage and takes you directly to the hotel. The price is fixed and agreed in advance, so there is no meter and no surprises. Just book ahead, send your flight number, and relax.',
+    included: [
+      'Meet & greet at the arrivals hall with a personalised name board',
+      'Flight tracking, so your pickup time adjusts automatically if your flight is early or delayed',
+      'Free first child or baby seat on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in the car',
+      'Door-to-door drop-off at the LUX* Le Morne entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Le Morne Brabant (UNESCO World Heritage hike)",
-      "Le Morne public beach and kitesurfing lagoon",
-      "Chamarel Seven Coloured Earths and Chamarel Waterfall",
-      "Black River Gorges National Park",
-      "La Gaulette village and boat trips to Île aux Bénitiers",
-      "Crystal Rock in the Le Morne lagoon"
+    nearbyAttractions: [
+      'Le Morne Brabant (UNESCO World Heritage hike)',
+      'Le Morne public beach and kitesurfing lagoon',
+      'Chamarel Seven Coloured Earths and Chamarel Waterfall',
+      'Black River Gorges National Park',
+      'La Gaulette village and boat trips to Île aux Bénitiers',
+      'Crystal Rock in the Le Morne lagoon',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to LUX* Le Morne?",
-        "a": "The drive from SSR International Airport to LUX* Le Morne is about 58 km and usually takes around 70 minutes, depending on traffic and the time of day. The route runs along the scenic south coast of the island."
+        q: 'How long is the transfer from the airport to LUX* Le Morne?',
+        a: 'The drive from SSR International Airport to LUX* Le Morne is about 58 km and usually takes around 70 minutes, depending on traffic and the time of day. The route runs along the scenic south coast of the island.',
       },
       {
-        "q": "How much luggage fits in the car?",
-        "a": "A standard private car comfortably takes two large suitcases plus hand luggage for up to three passengers. If you are travelling with more bags, golf clubs or a larger group, let us know when you book and we will assign a bigger vehicle."
+        q: 'How much luggage fits in the car?',
+        a: 'A standard private car comfortably takes two large suitcases plus hand luggage for up to three passengers. If you are travelling with more bags, golf clubs or a larger group, let us know when you book and we will assign a bigger vehicle.',
       },
       {
-        "q": "Are child and baby seats available?",
-        "a": "Yes. Your first child or baby seat is free of charge — just tell us the child's age when booking so we fit the correct seat. Additional seats can be arranged on request."
+        q: 'Are child and baby seats available?',
+        a: "Yes. Your first child or baby seat is free of charge — just tell us the child's age when booking so we fit the correct seat. Additional seats can be arranged on request.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so your driver's pickup time adjusts automatically to the actual landing time. You also get up to 60 minutes of free waiting after touchdown, giving you time to clear immigration and collect your bags at no extra cost."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: "We track your flight, so your driver's pickup time adjusts automatically to the actual landing time. You also get up to 60 minutes of free waiting after touchdown, giving you time to clear immigration and collect your bags at no extra cost.",
+      },
     ],
-    "lat": -20.4491,
-    "lng": 57.3219
+    lat: -20.4491,
+    lng: 57.3219,
   },
   {
-    "slug": "st-regis-mauritius",
-    "hotelName": "The St. Regis Mauritius Resort",
-    "area": "Le Morne",
-    "region": "West",
-    "distanceKmFromAirport": 58,
-    "durationMinFromAirport": 70,
-    "intro": "The St. Regis Mauritius Resort sits at the foot of Le Morne Brabant on the island's southwest peninsula, about a 70-minute drive from SSR International Airport. Belle Mare Tours runs a private, door-to-door transfer straight to the resort lobby with a licensed local driver who speaks English and French. You travel in a comfortable air-conditioned car at a fixed, transparent price agreed before you book, with no meter and no surprises. Your driver meets you in the arrivals hall with a name board, helps with your luggage and takes the scenic south-coast route to Le Morne.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personal name board",
-      "Flight tracking so your pickup time adjusts automatically to early or delayed arrivals",
-      "One complimentary child or baby seat on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Bottled water on board your air-conditioned vehicle",
-      "Door-to-door drop-off at The St. Regis Mauritius Resort reception, with instant email confirmation"
+    slug: 'st-regis-mauritius',
+    hotelName: 'The St. Regis Mauritius Resort',
+    area: 'Le Morne',
+    region: 'West',
+    distanceKmFromAirport: 58,
+    durationMinFromAirport: 70,
+    intro:
+      "The St. Regis Mauritius Resort sits at the foot of Le Morne Brabant on the island's southwest peninsula, about a 70-minute drive from SSR International Airport. Belle Mare Tours runs a private, door-to-door transfer straight to the resort lobby with a licensed local driver who speaks English and French. You travel in a comfortable air-conditioned car at a fixed, transparent price agreed before you book, with no meter and no surprises. Your driver meets you in the arrivals hall with a name board, helps with your luggage and takes the scenic south-coast route to Le Morne.",
+    included: [
+      'Meet and greet inside the arrivals hall with a personal name board',
+      'Flight tracking so your pickup time adjusts automatically to early or delayed arrivals',
+      'One complimentary child or baby seat on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Bottled water on board your air-conditioned vehicle',
+      'Door-to-door drop-off at The St. Regis Mauritius Resort reception, with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Le Morne Brabant UNESCO World Heritage mountain hike",
-      "Le Morne public beach and lagoon kitesurfing spots",
-      "Underwater Waterfall viewpoint near the peninsula",
-      "Black River Gorges National Park",
-      "La Vanille Nature Park and Chamarel Seven Coloured Earths",
-      "Chamarel Waterfall and Rhumerie de Chamarel"
+    nearbyAttractions: [
+      'Le Morne Brabant UNESCO World Heritage mountain hike',
+      'Le Morne public beach and lagoon kitesurfing spots',
+      'Underwater Waterfall viewpoint near the peninsula',
+      'Black River Gorges National Park',
+      'La Vanille Nature Park and Chamarel Seven Coloured Earths',
+      'Chamarel Waterfall and Rhumerie de Chamarel',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to The St. Regis Mauritius Resort?",
-        "a": "The drive from SSR International Airport to Le Morne is roughly 58 km and takes about 70 minutes in a private car, depending on traffic and the time of day. Your driver takes the most comfortable route along the south coast."
+        q: 'How long is the transfer from the airport to The St. Regis Mauritius Resort?',
+        a: 'The drive from SSR International Airport to Le Morne is roughly 58 km and takes about 70 minutes in a private car, depending on traffic and the time of day. Your driver takes the most comfortable route along the south coast.',
       },
       {
-        "q": "How much luggage can I bring?",
-        "a": "A standard saloon car comfortably fits two large suitcases plus hand luggage for up to three passengers. If you are travelling as a family or group, or carrying golf bags, surfboards or extra cases, just tell us when booking and we will assign a larger vehicle at no surprise cost."
+        q: 'How much luggage can I bring?',
+        a: 'A standard saloon car comfortably fits two large suitcases plus hand luggage for up to three passengers. If you are travelling as a family or group, or carrying golf bags, surfboards or extra cases, just tell us when booking and we will assign a larger vehicle at no surprise cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is free of charge, fitted and ready in the car when you arrive. Let us know your children's ages at booking so we can bring the correct infant, toddler or booster seat for the journey to Le Morne."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is free of charge, fitted and ready in the car when you arrive. Let us know your children's ages at booking so we can bring the correct infant, toddler or booster seat for the journey to Le Morne.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight number, so your driver always knows the real landing time and adjusts the pickup automatically. There is no extra charge for delays, and you get up to 60 minutes of free waiting time after touchdown while you clear immigration and collect your bags."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight number, so your driver always knows the real landing time and adjusts the pickup automatically. There is no extra charge for delays, and you get up to 60 minutes of free waiting time after touchdown while you clear immigration and collect your bags.',
+      },
     ],
-    "lat": -20.4575,
-    "lng": 57.316
+    lat: -20.4575,
+    lng: 57.316,
   },
   {
-    "slug": "sugar-beach-mauritius",
-    "hotelName": "Sugar Beach Mauritius",
-    "area": "Flic-en-Flac / Wolmar",
-    "region": "West",
-    "distanceKmFromAirport": 48,
-    "durationMinFromAirport": 55,
-    "intro": "Sugar Beach Mauritius sits on the soft sands of Wolmar, just south of Flic-en-Flac on the island's west coast. From SSR International Airport in the south-east the drive takes roughly 55 minutes across the central plateau and down to the coast. Belle Mare Tours runs a door-to-door private transfer with a local, English- and French-speaking driver, so there is no waiting for a shared shuttle and no taxi meter. You pay one fixed, transparent price agreed when you book, and your driver meets you personally at arrivals with a name board for a smooth start to your holiday.",
-    "included": [
-      "Meet & greet at the arrivals hall with a personalised name board",
-      "Flight tracking so your pickup time adjusts automatically if your flight is early or delayed",
-      "One child or baby seat free of charge on request",
-      "Up to 60 minutes free waiting time after you land",
-      "Complimentary bottled water in the vehicle",
-      "Door-to-door drop-off at the entrance of Sugar Beach Mauritius with instant email confirmation"
+    slug: 'sugar-beach-mauritius',
+    hotelName: 'Sugar Beach Mauritius',
+    area: 'Flic-en-Flac / Wolmar',
+    region: 'West',
+    distanceKmFromAirport: 48,
+    durationMinFromAirport: 55,
+    intro:
+      "Sugar Beach Mauritius sits on the soft sands of Wolmar, just south of Flic-en-Flac on the island's west coast. From SSR International Airport in the south-east the drive takes roughly 55 minutes across the central plateau and down to the coast. Belle Mare Tours runs a door-to-door private transfer with a local, English- and French-speaking driver, so there is no waiting for a shared shuttle and no taxi meter. You pay one fixed, transparent price agreed when you book, and your driver meets you personally at arrivals with a name board for a smooth start to your holiday.",
+    included: [
+      'Meet & greet at the arrivals hall with a personalised name board',
+      'Flight tracking so your pickup time adjusts automatically if your flight is early or delayed',
+      'One child or baby seat free of charge on request',
+      'Up to 60 minutes free waiting time after you land',
+      'Complimentary bottled water in the vehicle',
+      'Door-to-door drop-off at the entrance of Sugar Beach Mauritius with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Flic-en-Flac public beach and lagoon",
-      "Casela Nature Parks",
-      "Tamarin Bay and its dolphin-watching trips",
-      "Black River Gorges National Park",
-      "La Preneuse beach and Martello Tower",
-      "Chamarel Seven Coloured Earths and waterfall"
+    nearbyAttractions: [
+      'Flic-en-Flac public beach and lagoon',
+      'Casela Nature Parks',
+      'Tamarin Bay and its dolphin-watching trips',
+      'Black River Gorges National Park',
+      'La Preneuse beach and Martello Tower',
+      'Chamarel Seven Coloured Earths and waterfall',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Sugar Beach Mauritius?",
-        "a": "The private transfer from SSR International Airport to Sugar Beach in Wolmar covers around 48 km and takes about 55 minutes in normal traffic. Your driver takes the most direct route via the motorway and central plateau, and the journey is non-stop unless you ask for a comfort break."
+        q: 'How long is the transfer to Sugar Beach Mauritius?',
+        a: 'The private transfer from SSR International Airport to Sugar Beach in Wolmar covers around 48 km and takes about 55 minutes in normal traffic. Your driver takes the most direct route via the motorway and central plateau, and the journey is non-stop unless you ask for a comfort break.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. We provide one child or baby seat free of charge when you request it at the time of booking. Just tell us the child's age so we can fit the right type of seat. Additional seats for larger families can also be arranged in advance."
+        q: 'Are child seats available?',
+        a: "Yes. We provide one child or baby seat free of charge when you request it at the time of booking. Just tell us the child's age so we can fit the right type of seat. Additional seats for larger families can also be arranged in advance.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so there is nothing for you to do. If your arrival is early or delayed, your driver adjusts the pickup time to match the new landing time and will be waiting for you at arrivals. You also have up to 60 minutes of free waiting time after you land."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight, so there is nothing for you to do. If your arrival is early or delayed, your driver adjusts the pickup time to match the new landing time and will be waiting for you at arrivals. You also have up to 60 minutes of free waiting time after you land.',
       },
       {
-        "q": "Can I book a return or departure transfer?",
-        "a": "Absolutely. You can book your return transfer from Sugar Beach back to the airport at the same time, and we recommend it so your departure is already arranged. Your driver collects you from the hotel at an agreed time to get you to the airport with plenty of margin before check-in."
-      }
+        q: 'Can I book a return or departure transfer?',
+        a: 'Absolutely. You can book your return transfer from Sugar Beach back to the airport at the same time, and we recommend it so your departure is already arranged. Your driver collects you from the hotel at an agreed time to get you to the airport with plenty of margin before check-in.',
+      },
     ],
-    "lat": -20.2872,
-    "lng": 57.3641
+    lat: -20.2872,
+    lng: 57.3641,
   },
   {
-    "slug": "sofitel-so-mauritius",
-    "hotelName": "Sofitel So Mauritius",
-    "area": "Bel Ombre",
-    "region": "South",
-    "distanceKmFromAirport": 40,
-    "durationMinFromAirport": 50,
-    "intro": "Sofitel So Mauritius sits on the unspoilt south coast at Bel Ombre, roughly 40 km from SSR International Airport. Our pre-booked private transfer takes you door to door in about 50 minutes, with a friendly local driver who speaks English and French. You travel in a comfortable air-conditioned car at a fixed, transparent price agreed when you book, so there is no meter and no surprises on arrival. Your driver meets you inside the arrivals hall with a name board, helps with your bags and drives you straight to the hotel entrance.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your pickup time adjusts automatically if your flight is delayed",
-      "First child or baby seat free of charge on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water on board",
-      "Door-to-door drop-off at the Sofitel So Mauritius entrance with instant email confirmation"
+    slug: 'sofitel-so-mauritius',
+    hotelName: 'Sofitel So Mauritius',
+    area: 'Bel Ombre',
+    region: 'South',
+    distanceKmFromAirport: 40,
+    durationMinFromAirport: 50,
+    intro:
+      'Sofitel So Mauritius sits on the unspoilt south coast at Bel Ombre, roughly 40 km from SSR International Airport. Our pre-booked private transfer takes you door to door in about 50 minutes, with a friendly local driver who speaks English and French. You travel in a comfortable air-conditioned car at a fixed, transparent price agreed when you book, so there is no meter and no surprises on arrival. Your driver meets you inside the arrivals hall with a name board, helps with your bags and drives you straight to the hotel entrance.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your pickup time adjusts automatically if your flight is delayed',
+      'First child or baby seat free of charge on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water on board',
+      'Door-to-door drop-off at the Sofitel So Mauritius entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Bel Ombre Nature Reserve and Frederica Reserve",
-      "Sept Cascades (Seven Waterfalls) hiking trails near Henrietta",
-      "Chamarel Seven Coloured Earth and Chamarel Waterfall",
-      "Black River Gorges National Park",
-      "Le Morne Brabant UNESCO World Heritage mountain",
-      "Heritage Golf Club at Bel Ombre"
+    nearbyAttractions: [
+      'Bel Ombre Nature Reserve and Frederica Reserve',
+      'Sept Cascades (Seven Waterfalls) hiking trails near Henrietta',
+      'Chamarel Seven Coloured Earth and Chamarel Waterfall',
+      'Black River Gorges National Park',
+      'Le Morne Brabant UNESCO World Heritage mountain',
+      'Heritage Golf Club at Bel Ombre',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Sofitel So Mauritius?",
-        "a": "The drive from SSR International Airport to Sofitel So Mauritius in Bel Ombre is about 40 km and takes roughly 50 minutes in normal traffic. The route runs along the south coast, so timing can vary slightly depending on conditions and time of day."
+        q: 'How long is the transfer to Sofitel So Mauritius?',
+        a: 'The drive from SSR International Airport to Sofitel So Mauritius in Bel Ombre is about 40 km and takes roughly 50 minutes in normal traffic. The route runs along the south coast, so timing can vary slightly depending on conditions and time of day.',
       },
       {
-        "q": "How much luggage can I bring?",
-        "a": "Our standard car comfortably fits two large suitcases and two cabin bags for up to three passengers. If you are travelling with extra luggage, golf clubs or a larger group, let us know when booking and we will assign a bigger vehicle at no surprise cost."
+        q: 'How much luggage can I bring?',
+        a: 'Our standard car comfortably fits two large suitcases and two cabin bags for up to three passengers. If you are travelling with extra luggage, golf clubs or a larger group, let us know when booking and we will assign a bigger vehicle at no surprise cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is provided free of charge when you request it during booking. Just tell us your child's age so we can fit the correct seat, and add a note if you need more than one."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is provided free of charge when you request it during booking. Just tell us your child's age so we can fit the correct seat, and add a note if you need more than one.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup to your actual landing time at no extra charge. You also have up to 60 minutes of free waiting time after you clear immigration and collect your bags."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup to your actual landing time at no extra charge. You also have up to 60 minutes of free waiting time after you clear immigration and collect your bags.',
+      },
     ],
-    "lat": -20.5012,
-    "lng": 57.406
+    lat: -20.5012,
+    lng: 57.406,
   },
   {
-    "slug": "heritage-le-telfair",
-    "hotelName": "Heritage Le Telfair",
-    "area": "Bel Ombre",
-    "region": "South",
-    "distanceKmFromAirport": 42,
-    "durationMinFromAirport": 50,
-    "intro": "Heritage Le Telfair sits on the unspoilt south coast at Bel Ombre, about a 50-minute drive from SSR International Airport along the scenic south-coast road. Belle Mare Tours runs a private, door-to-door transfer straight to the resort entrance — no shared shuttles, no waiting around. A licensed local driver who speaks English and French meets you at arrivals, helps with your bags, and drives you to the hotel at one fixed, transparent price agreed before you travel. There is no meter and no surprise surcharge, so you know the cost the moment you book.",
-    "included": [
-      "Meet & greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your pickup time adjusts automatically if your flight is delayed",
-      "One child or baby seat free of charge on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water on board",
-      "Door-to-door drop-off at the Heritage Le Telfair entrance with instant email confirmation"
+    slug: 'heritage-le-telfair',
+    hotelName: 'Heritage Le Telfair',
+    area: 'Bel Ombre',
+    region: 'South',
+    distanceKmFromAirport: 42,
+    durationMinFromAirport: 50,
+    intro:
+      'Heritage Le Telfair sits on the unspoilt south coast at Bel Ombre, about a 50-minute drive from SSR International Airport along the scenic south-coast road. Belle Mare Tours runs a private, door-to-door transfer straight to the resort entrance — no shared shuttles, no waiting around. A licensed local driver who speaks English and French meets you at arrivals, helps with your bags, and drives you to the hotel at one fixed, transparent price agreed before you travel. There is no meter and no surprise surcharge, so you know the cost the moment you book.',
+    included: [
+      'Meet & greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your pickup time adjusts automatically if your flight is delayed',
+      'One child or baby seat free of charge on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water on board',
+      'Door-to-door drop-off at the Heritage Le Telfair entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Bel Ombre Nature Reserve and Frederica Reserve safaris",
-      "Château de Bel Ombre and its colonial gardens",
-      "Heritage Golf Club Bel Ombre",
-      "Rochester Falls near Souillac",
-      "Gris Gris cliffs and the wild southern coastline",
-      "La Vanille Nature Park (giant tortoises and crocodiles)"
+    nearbyAttractions: [
+      'Bel Ombre Nature Reserve and Frederica Reserve safaris',
+      'Château de Bel Ombre and its colonial gardens',
+      'Heritage Golf Club Bel Ombre',
+      'Rochester Falls near Souillac',
+      'Gris Gris cliffs and the wild southern coastline',
+      'La Vanille Nature Park (giant tortoises and crocodiles)',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to Heritage Le Telfair?",
-        "a": "The drive from SSR International Airport to Heritage Le Telfair in Bel Ombre is roughly 42 km and takes about 50 minutes by private car, following the south-coast road through Souillac. Travel time can vary slightly with traffic and weather."
+        q: 'How long is the transfer from the airport to Heritage Le Telfair?',
+        a: 'The drive from SSR International Airport to Heritage Le Telfair in Bel Ombre is roughly 42 km and takes about 50 minutes by private car, following the south-coast road through Souillac. Travel time can vary slightly with traffic and weather.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. We provide one baby or child seat free of charge on request — just tell us the child's age when you book so we fit the correct seat. Additional seats can be arranged for larger families at no extra cost."
+        q: 'Are child seats available?',
+        a: "Yes. We provide one baby or child seat free of charge on request — just tell us the child's age when you book so we fit the correct seat. Additional seats can be arranged for larger families at no extra cost.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup to your actual landing time. There is no penalty for delays, and you get up to 60 minutes of free waiting after touchdown to clear immigration and collect your bags."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup to your actual landing time. There is no penalty for delays, and you get up to 60 minutes of free waiting after touchdown to clear immigration and collect your bags.',
       },
       {
-        "q": "Can I book a return or departure transfer as well?",
-        "a": "Absolutely. Most guests book a round trip so we collect you from Heritage Le Telfair and bring you back to the airport in good time for check-in. Share your departure flight details and we'll set the pickup time for you."
-      }
+        q: 'Can I book a return or departure transfer as well?',
+        a: "Absolutely. Most guests book a round trip so we collect you from Heritage Le Telfair and bring you back to the airport in good time for check-in. Share your departure flight details and we'll set the pickup time for you.",
+      },
     ],
-    "lat": -20.504,
-    "lng": 57.3902
+    lat: -20.504,
+    lng: 57.3902,
   },
   {
-    "slug": "trou-aux-biches-beachcomber",
-    "hotelName": "Trou aux Biches Beachcomber",
-    "area": "Trou aux Biches",
-    "region": "North",
-    "distanceKmFromAirport": 60,
-    "durationMinFromAirport": 70,
-    "intro": "Trou aux Biches Beachcomber sits on one of the finest stretches of sand on Mauritius' north-west coast, roughly 60 km from SSR Airport. The drive north along the motorway takes about 70 minutes in normal traffic. Belle Mare Tours runs a door-to-door private transfer in a comfortable air-conditioned car with a local, English and French-speaking driver who meets you at arrivals. You pay one fixed, transparent price agreed at booking, with no meter and no surprises, and travel straight to your hotel reception. It is a calm, reliable start to your stay.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time if your plane is early or delayed",
-      "One complimentary child or baby seat on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water on board",
-      "Door-to-door drop-off at Trou aux Biches Beachcomber reception, with instant email confirmation"
+    slug: 'trou-aux-biches-beachcomber',
+    hotelName: 'Trou aux Biches Beachcomber',
+    area: 'Trou aux Biches',
+    region: 'North',
+    distanceKmFromAirport: 60,
+    durationMinFromAirport: 70,
+    intro:
+      "Trou aux Biches Beachcomber sits on one of the finest stretches of sand on Mauritius' north-west coast, roughly 60 km from SSR Airport. The drive north along the motorway takes about 70 minutes in normal traffic. Belle Mare Tours runs a door-to-door private transfer in a comfortable air-conditioned car with a local, English and French-speaking driver who meets you at arrivals. You pay one fixed, transparent price agreed at booking, with no meter and no surprises, and travel straight to your hotel reception. It is a calm, reliable start to your stay.",
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time if your plane is early or delayed',
+      'One complimentary child or baby seat on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water on board',
+      'Door-to-door drop-off at Trou aux Biches Beachcomber reception, with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Trou aux Biches public beach and lagoon, ideal for swimming and snorkelling",
-      "Mont Choisy Beach, a long curve of sand a short drive north",
-      "Grand Baie village for restaurants, shopping and boat trips",
-      "Pamplemousses Sir Seewoosagur Ramgoolam Botanical Garden",
-      "Cap Malheureux and its iconic red-roofed church",
-      "Catamaran cruises to the northern islands such as Gabriel and Flat Island"
+    nearbyAttractions: [
+      'Trou aux Biches public beach and lagoon, ideal for swimming and snorkelling',
+      'Mont Choisy Beach, a long curve of sand a short drive north',
+      'Grand Baie village for restaurants, shopping and boat trips',
+      'Pamplemousses Sir Seewoosagur Ramgoolam Botanical Garden',
+      'Cap Malheureux and its iconic red-roofed church',
+      'Catamaran cruises to the northern islands such as Gabriel and Flat Island',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to Trou aux Biches Beachcomber?",
-        "a": "The drive from SSR Airport to Trou aux Biches Beachcomber is about 60 km and normally takes around 70 minutes. Travel time can vary slightly with traffic around Port Louis, and your driver takes the fastest sensible route on the day."
+        q: 'How long is the transfer from the airport to Trou aux Biches Beachcomber?',
+        a: 'The drive from SSR Airport to Trou aux Biches Beachcomber is about 60 km and normally takes around 70 minutes. Travel time can vary slightly with traffic around Port Louis, and your driver takes the fastest sensible route on the day.',
       },
       {
-        "q": "How much luggage can the car take?",
-        "a": "A standard private car comfortably fits two large suitcases plus hand luggage for up to three passengers. If you are travelling as a larger group or with extra bags, golf clubs or a baby buggy, just tell us when booking and we will assign a larger vehicle."
+        q: 'How much luggage can the car take?',
+        a: 'A standard private car comfortably fits two large suitcases plus hand luggage for up to three passengers. If you are travelling as a larger group or with extra bags, golf clubs or a baby buggy, just tell us when booking and we will assign a larger vehicle.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. We provide one suitable child or baby seat free of charge on request. Please tell us your child's age when you book so we fit the right seat, and let us know if you need more than one."
+        q: 'Are child seats available?',
+        a: "Yes. We provide one suitable child or baby seat free of charge on request. Please tell us your child's age when you book so we fit the right seat, and let us know if you need more than one.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so your driver adjusts the pickup time automatically if you land early or late. You also have up to 60 minutes of free waiting after touchdown, which covers immigration and baggage collection at no extra cost."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight, so your driver adjusts the pickup time automatically if you land early or late. You also have up to 60 minutes of free waiting after touchdown, which covers immigration and baggage collection at no extra cost.',
+      },
     ],
-    "lat": -20.0331,
-    "lng": 57.5455
+    lat: -20.0331,
+    lng: 57.5455,
   },
   {
-    "slug": "canonnier-beachcomber",
-    "hotelName": "Canonnier Beachcomber",
-    "area": "Pointe aux Cannoniers",
-    "region": "North",
-    "distanceKmFromAirport": 70,
-    "durationMinFromAirport": 80,
-    "intro": "Canonnier Beachcomber sits on the headland of Pointe aux Cannoniers on the north coast, roughly 70 km from SSR Airport in the south-east, a drive of around 80 minutes via the motorway. We provide a pre-booked, door-to-door private transfer straight to the hotel entrance, with a local English- and French-speaking driver-guide who meets you inside arrivals. The price is fixed and agreed when you book, so there is no meter and no surprises on arrival. After a long flight, you simply step out, find your name board, and ride in comfort to your room.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your pickup adjusts automatically if your flight is early or delayed",
-      "One complimentary child or baby seat on request (extra seats available)",
-      "Up to 60 minutes of free waiting time after your flight lands",
-      "Bottled water in the vehicle for every passenger",
-      "Door-to-door drop-off at the Canonnier Beachcomber reception, plus instant email confirmation"
+    slug: 'canonnier-beachcomber',
+    hotelName: 'Canonnier Beachcomber',
+    area: 'Pointe aux Cannoniers',
+    region: 'North',
+    distanceKmFromAirport: 70,
+    durationMinFromAirport: 80,
+    intro:
+      'Canonnier Beachcomber sits on the headland of Pointe aux Cannoniers on the north coast, roughly 70 km from SSR Airport in the south-east, a drive of around 80 minutes via the motorway. We provide a pre-booked, door-to-door private transfer straight to the hotel entrance, with a local English- and French-speaking driver-guide who meets you inside arrivals. The price is fixed and agreed when you book, so there is no meter and no surprises on arrival. After a long flight, you simply step out, find your name board, and ride in comfort to your room.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your pickup adjusts automatically if your flight is early or delayed',
+      'One complimentary child or baby seat on request (extra seats available)',
+      'Up to 60 minutes of free waiting time after your flight lands',
+      'Bottled water in the vehicle for every passenger',
+      'Door-to-door drop-off at the Canonnier Beachcomber reception, plus instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Grand Baie village, beach and waterfront restaurants",
-      "La Cuvette public beach",
-      "Cap Malheureux and its iconic red-roofed church",
-      "Mont Choisy beach and its long stretch of sand",
-      "Pereybere beach and snorkelling spots",
-      "Boat trips to Île aux Cerfs and the northern islands from Grand Baie"
+    nearbyAttractions: [
+      'Grand Baie village, beach and waterfront restaurants',
+      'La Cuvette public beach',
+      'Cap Malheureux and its iconic red-roofed church',
+      'Mont Choisy beach and its long stretch of sand',
+      'Pereybere beach and snorkelling spots',
+      'Boat trips to Île aux Cerfs and the northern islands from Grand Baie',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Canonnier Beachcomber?",
-        "a": "The drive from SSR Airport to Canonnier Beachcomber in Pointe aux Cannoniers is about 70 km and normally takes around 80 minutes. Times can vary slightly with traffic around Port Louis and the time of day, but your driver takes the fastest sensible route via the motorway."
+        q: 'How long is the transfer to Canonnier Beachcomber?',
+        a: 'The drive from SSR Airport to Canonnier Beachcomber in Pointe aux Cannoniers is about 70 km and normally takes around 80 minutes. Times can vary slightly with traffic around Port Louis and the time of day, but your driver takes the fastest sensible route via the motorway.',
       },
       {
-        "q": "How much luggage fits in the vehicle?",
-        "a": "A standard saloon car comfortably takes up to 3 passengers with 3 large suitcases plus hand luggage. If you are travelling as a family or group, or have surfboards, golf bags or extra cases, just tell us when booking and we will send a larger vehicle such as an SUV or minivan."
+        q: 'How much luggage fits in the vehicle?',
+        a: 'A standard saloon car comfortably takes up to 3 passengers with 3 large suitcases plus hand luggage. If you are travelling as a family or group, or have surfboards, golf bags or extra cases, just tell us when booking and we will send a larger vehicle such as an SUV or minivan.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first baby or child seat is included free of charge, and we carry infant, toddler and booster options. Please tell us your children's ages when you book so the correct seat is fitted and ready in the vehicle on arrival."
+        q: 'Are child seats available?',
+        a: "Yes. Your first baby or child seat is included free of charge, and we carry infant, toddler and booster options. Please tell us your children's ages when you book so the correct seat is fitted and ready in the vehicle on arrival.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so there is nothing for you to do. Your driver adjusts the pickup time automatically to match the new landing time, and you also get up to 60 minutes of free waiting after touchdown while you clear immigration and collect your bags at no extra cost."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight, so there is nothing for you to do. Your driver adjusts the pickup time automatically to match the new landing time, and you also get up to 60 minutes of free waiting after touchdown while you clear immigration and collect your bags at no extra cost.',
+      },
     ],
-    "lat": -20.0067,
-    "lng": 57.5681
+    lat: -20.0067,
+    lng: 57.5681,
   },
   {
-    "slug": "lux-grand-gaube",
-    "hotelName": "LUX* Grand Gaube",
-    "area": "Grand Gaube",
-    "region": "North",
-    "distanceKmFromAirport": 70,
-    "durationMinFromAirport": 80,
-    "intro": "LUX* Grand Gaube sits on the quiet northern tip of Mauritius, around 70 km from SSR International Airport, a drive of roughly 80 minutes via the motorway. Belle Mare Tours runs a door-to-door private transfer with a licensed, English- and French-speaking local driver who meets you in the arrivals hall and carries your bags to the car. You travel in a private, air-conditioned vehicle, not a shared shuttle, for one fixed and transparent price agreed when you book. There is no meter and no surprise at the end of the trip.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a name board",
-      "Flight tracking so your pickup adjusts automatically to delays or early landings",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water on board",
-      "Door-to-door drop-off at LUX* Grand Gaube reception",
-      "Instant confirmation by email with your driver's details"
+    slug: 'lux-grand-gaube',
+    hotelName: 'LUX* Grand Gaube',
+    area: 'Grand Gaube',
+    region: 'North',
+    distanceKmFromAirport: 70,
+    durationMinFromAirport: 80,
+    intro:
+      'LUX* Grand Gaube sits on the quiet northern tip of Mauritius, around 70 km from SSR International Airport, a drive of roughly 80 minutes via the motorway. Belle Mare Tours runs a door-to-door private transfer with a licensed, English- and French-speaking local driver who meets you in the arrivals hall and carries your bags to the car. You travel in a private, air-conditioned vehicle, not a shared shuttle, for one fixed and transparent price agreed when you book. There is no meter and no surprise at the end of the trip.',
+    included: [
+      'Meet and greet inside the arrivals hall with a name board',
+      'Flight tracking so your pickup adjusts automatically to delays or early landings',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water on board',
+      'Door-to-door drop-off at LUX* Grand Gaube reception',
+      "Instant confirmation by email with your driver's details",
     ],
-    "nearbyAttractions": [
-      "Grand Gaube fishing village and waterfront",
-      "Cap Malheureux and its red-roofed chapel",
+    nearbyAttractions: [
+      'Grand Gaube fishing village and waterfront',
+      'Cap Malheureux and its red-roofed chapel',
       "Île d'Ambre boat and kayak trips through the mangroves",
-      "Grand Baie for shopping, restaurants and nightlife",
-      "Pereybere public beach",
-      "Mont Choisy beach and coastal road"
+      'Grand Baie for shopping, restaurants and nightlife',
+      'Pereybere public beach',
+      'Mont Choisy beach and coastal road',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to LUX* Grand Gaube?",
-        "a": "The drive from SSR International Airport to LUX* Grand Gaube is about 70 km and normally takes around 80 minutes. Most of the route is on the M1/M2 motorway, with the last stretch on coastal roads through the north. Times can be a little longer during weekday rush hours."
+        q: 'How long is the transfer from the airport to LUX* Grand Gaube?',
+        a: 'The drive from SSR International Airport to LUX* Grand Gaube is about 70 km and normally takes around 80 minutes. Most of the route is on the M1/M2 motorway, with the last stretch on coastal roads through the north. Times can be a little longer during weekday rush hours.',
       },
       {
-        "q": "How much luggage can you carry?",
-        "a": "A standard sedan comfortably takes two large suitcases plus hand luggage for two passengers. If you are travelling as a family or group, or with golf bags, surfboards or extra cases, just tell us your numbers when booking and we will send a larger vehicle such as an SUV or minivan at no surprise cost."
+        q: 'How much luggage can you carry?',
+        a: 'A standard sedan comfortably takes two large suitcases plus hand luggage for two passengers. If you are travelling as a family or group, or with golf bags, surfboards or extra cases, just tell us your numbers when booking and we will send a larger vehicle such as an SUV or minivan at no surprise cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first baby or child seat is free on request. Please tell us the child's age and weight when you book so we fit the correct seat. Additional seats can be arranged for a small charge and are confirmed in your booking email."
+        q: 'Are child seats available?',
+        a: "Yes. The first baby or child seat is free on request. Please tell us the child's age and weight when you book so we fit the correct seat. Additional seats can be arranged for a small charge and are confirmed in your booking email.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight number, so your driver's pickup time adjusts automatically if you land early or late, with no penalty. You also get up to 60 minutes of free waiting time after touchdown to clear passport control and collect your bags, which covers most delays at arrivals."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: "We track your flight number, so your driver's pickup time adjusts automatically if you land early or late, with no penalty. You also get up to 60 minutes of free waiting time after touchdown to clear passport control and collect your bags, which covers most delays at arrivals.",
+      },
     ],
-    "lat": -19.9876,
-    "lng": 57.6566
+    lat: -19.9876,
+    lng: 57.6566,
   },
   {
-    "slug": "ravenala-attitude",
-    "hotelName": "The Ravenala Attitude",
-    "area": "Balaclava",
-    "region": "North",
-    "distanceKmFromAirport": 65,
-    "durationMinFromAirport": 75,
-    "intro": "The Ravenala Attitude sits on the calm Turtle Bay coast at Balaclava, in the north-west of Mauritius. From SSR Airport in the south-east, the drive across the island takes around 75 minutes via the motorway and Port Louis ring road. Belle Mare Tours offers a pre-booked, door-to-door private transfer in an air-conditioned car with a licensed local driver who speaks English and French. You travel for a fixed, transparent price agreed at booking, with no meter and no surprises. Your driver meets you in the arrivals hall and takes you straight to the hotel reception.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a name board",
-      "Flight tracking so your pickup adjusts automatically to early or delayed arrivals",
-      "One free child or baby seat on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in the vehicle",
-      "Door-to-door drop-off at The Ravenala Attitude reception with instant email confirmation"
+    slug: 'ravenala-attitude',
+    hotelName: 'The Ravenala Attitude',
+    area: 'Balaclava',
+    region: 'North',
+    distanceKmFromAirport: 65,
+    durationMinFromAirport: 75,
+    intro:
+      'The Ravenala Attitude sits on the calm Turtle Bay coast at Balaclava, in the north-west of Mauritius. From SSR Airport in the south-east, the drive across the island takes around 75 minutes via the motorway and Port Louis ring road. Belle Mare Tours offers a pre-booked, door-to-door private transfer in an air-conditioned car with a licensed local driver who speaks English and French. You travel for a fixed, transparent price agreed at booking, with no meter and no surprises. Your driver meets you in the arrivals hall and takes you straight to the hotel reception.',
+    included: [
+      'Meet and greet inside the arrivals hall with a name board',
+      'Flight tracking so your pickup adjusts automatically to early or delayed arrivals',
+      'One free child or baby seat on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in the vehicle',
+      'Door-to-door drop-off at The Ravenala Attitude reception with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Baie aux Tortues (Turtle Bay) and Maritim beach",
-      "Trou aux Biches public beach",
-      "Pointe aux Piments and the Aquarium of Mauritius",
-      "Grand Baie shops, restaurants and nightlife",
-      "Caudan Waterfront and central Port Louis",
-      "Pamplemousses Botanical Garden (SSR Garden)"
+    nearbyAttractions: [
+      'Baie aux Tortues (Turtle Bay) and Maritim beach',
+      'Trou aux Biches public beach',
+      'Pointe aux Piments and the Aquarium of Mauritius',
+      'Grand Baie shops, restaurants and nightlife',
+      'Caudan Waterfront and central Port Louis',
+      'Pamplemousses Botanical Garden (SSR Garden)',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to The Ravenala Attitude?",
-        "a": "The drive from SSR Airport to Balaclava is about 65 km and takes roughly 75 minutes in normal traffic, using the motorway and the Port Louis ring road. Times can be a little longer at peak hours around the capital."
+        q: 'How long is the transfer from the airport to The Ravenala Attitude?',
+        a: 'The drive from SSR Airport to Balaclava is about 65 km and takes roughly 75 minutes in normal traffic, using the motorway and the Port Louis ring road. Times can be a little longer at peak hours around the capital.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is free of charge. Just tell us the child's age when you book so the driver can fit the correct seat in advance."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is free of charge. Just tell us the child's age when you book so the driver can fit the correct seat in advance.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so your pickup time adjusts automatically to the actual landing time. You also have up to 60 minutes of free waiting after the plane lands, at no extra cost."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight, so your pickup time adjusts automatically to the actual landing time. You also have up to 60 minutes of free waiting after the plane lands, at no extra cost.',
       },
       {
-        "q": "Can I book a return transfer back to the airport?",
-        "a": "Yes. You can book a one-way arrival transfer or add a departure transfer back to SSR Airport. For the return leg we agree a pickup time at the hotel that gives you comfortable time to check in for your flight."
-      }
+        q: 'Can I book a return transfer back to the airport?',
+        a: 'Yes. You can book a one-way arrival transfer or add a departure transfer back to SSR Airport. For the return leg we agree a pickup time at the hotel that gives you comfortable time to check in for your flight.',
+      },
     ],
-    "lat": -20.0874,
-    "lng": 57.5167
+    lat: -20.0874,
+    lng: 57.5167,
   },
   {
-    "slug": "westin-turtle-bay",
-    "hotelName": "The Westin Turtle Bay Resort & Spa",
-    "area": "Balaclava",
-    "region": "North",
-    "distanceKmFromAirport": 55,
-    "durationMinFromAirport": 65,
-    "intro": "The Westin Turtle Bay Resort & Spa sits on the sheltered bay at Balaclava, on the northwest coast of Mauritius, about 55 km from SSR International Airport in the southeast. The drive takes roughly an hour and five minutes via the motorway past Port Louis. Belle Mare Tours runs a door-to-door private transfer with a licensed, English and French-speaking local driver. You pay a fixed, transparent price agreed at booking, with no meter and no surprises. Your driver meets you in the arrivals hall with a name board and takes you straight to the resort.",
-    "included": [
-      "Meet and greet in the arrivals hall with a personalised name board",
-      "Flight tracking so your pickup adjusts automatically if your flight is delayed",
-      "Free first child or baby seat on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the vehicle",
-      "Door-to-door drop-off at The Westin Turtle Bay Resort & Spa with instant email confirmation"
+    slug: 'westin-turtle-bay',
+    hotelName: 'The Westin Turtle Bay Resort & Spa',
+    area: 'Balaclava',
+    region: 'North',
+    distanceKmFromAirport: 55,
+    durationMinFromAirport: 65,
+    intro:
+      'The Westin Turtle Bay Resort & Spa sits on the sheltered bay at Balaclava, on the northwest coast of Mauritius, about 55 km from SSR International Airport in the southeast. The drive takes roughly an hour and five minutes via the motorway past Port Louis. Belle Mare Tours runs a door-to-door private transfer with a licensed, English and French-speaking local driver. You pay a fixed, transparent price agreed at booking, with no meter and no surprises. Your driver meets you in the arrivals hall with a name board and takes you straight to the resort.',
+    included: [
+      'Meet and greet in the arrivals hall with a personalised name board',
+      'Flight tracking so your pickup adjusts automatically if your flight is delayed',
+      'Free first child or baby seat on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the vehicle',
+      'Door-to-door drop-off at The Westin Turtle Bay Resort & Spa with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Balaclava Ruins and the historic Bain des Dames",
-      "Baie aux Tortues (Turtle Bay) marine park for snorkelling",
-      "Maritim Château de Labourdonnais area and northern beaches at Trou aux Biches",
-      "Port Louis Caudan Waterfront and Central Market",
-      "Pamplemousses Sir Seewoosagur Ramgoolam Botanical Garden",
-      "Grand Baie shopping, restaurants and nightlife"
+    nearbyAttractions: [
+      'Balaclava Ruins and the historic Bain des Dames',
+      'Baie aux Tortues (Turtle Bay) marine park for snorkelling',
+      'Maritim Château de Labourdonnais area and northern beaches at Trou aux Biches',
+      'Port Louis Caudan Waterfront and Central Market',
+      'Pamplemousses Sir Seewoosagur Ramgoolam Botanical Garden',
+      'Grand Baie shopping, restaurants and nightlife',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to The Westin Turtle Bay Resort & Spa?",
-        "a": "The drive from SSR International Airport to Balaclava is about 55 km and takes roughly an hour and five minutes by private car, mostly on the motorway past Port Louis. Travel time can vary slightly with traffic around Port Louis during peak hours."
+        q: 'How long is the transfer to The Westin Turtle Bay Resort & Spa?',
+        a: 'The drive from SSR International Airport to Balaclava is about 55 km and takes roughly an hour and five minutes by private car, mostly on the motorway past Port Louis. Travel time can vary slightly with traffic around Port Louis during peak hours.',
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight using your flight number, so your driver adjusts the pickup time automatically. There is no need to call or rebook. You also get up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight using your flight number, so your driver adjusts the pickup time automatically. There is no need to call or rebook. You also get up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. Just tell us the age of your child when you book so we can fit the right seat. Additional seats can be arranged for larger families."
+        q: 'Are child seats available?',
+        a: 'Yes. The first child or baby seat is free on request. Just tell us the age of your child when you book so we can fit the right seat. Additional seats can be arranged for larger families.',
       },
       {
-        "q": "Can I book a return or departure transfer back to the airport?",
-        "a": "Yes. You can book a one-way transfer or a return, and we will pick you up from The Westin Turtle Bay Resort & Spa at an agreed time for your departure flight, allowing for the roughly hour-long drive back to SSR Airport."
-      }
+        q: 'Can I book a return or departure transfer back to the airport?',
+        a: 'Yes. You can book a one-way transfer or a return, and we will pick you up from The Westin Turtle Bay Resort & Spa at an agreed time for your departure flight, allowing for the roughly hour-long drive back to SSR Airport.',
+      },
     ],
-    "lat": -20.0884,
-    "lng": 57.5152
+    lat: -20.0884,
+    lng: 57.5152,
   },
   {
-    "slug": "le-meridien-ile-maurice",
-    "hotelName": "Le Méridien Ile Maurice",
-    "area": "Pointe aux Piments",
-    "region": "North",
-    "distanceKmFromAirport": 62,
-    "durationMinFromAirport": 75,
-    "intro": "Arrive at Le Méridien Ile Maurice in Pointe aux Piments without the stress of finding a taxi. Our pre-booked private transfer takes you door to door from SSR International Airport, a drive of roughly 62 km up the west coast that usually takes about 75 minutes via the motorway through Port Louis. A friendly local driver who speaks English and French meets you in the arrivals hall with a name board, helps with your bags, and drives you straight to the hotel. You pay one fixed, transparent price agreed when you book, with no meter and no surprises on arrival.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Live flight tracking so your pickup is adjusted automatically if your flight is early or delayed",
-      "First child or baby seat free of charge on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water on board",
-      "Door-to-door drop-off at the entrance of Le Méridien Ile Maurice with instant email confirmation of your booking"
+    slug: 'le-meridien-ile-maurice',
+    hotelName: 'Le Méridien Ile Maurice',
+    area: 'Pointe aux Piments',
+    region: 'North',
+    distanceKmFromAirport: 62,
+    durationMinFromAirport: 75,
+    intro:
+      'Arrive at Le Méridien Ile Maurice in Pointe aux Piments without the stress of finding a taxi. Our pre-booked private transfer takes you door to door from SSR International Airport, a drive of roughly 62 km up the west coast that usually takes about 75 minutes via the motorway through Port Louis. A friendly local driver who speaks English and French meets you in the arrivals hall with a name board, helps with your bags, and drives you straight to the hotel. You pay one fixed, transparent price agreed when you book, with no meter and no surprises on arrival.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Live flight tracking so your pickup is adjusted automatically if your flight is early or delayed',
+      'First child or baby seat free of charge on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water on board',
+      'Door-to-door drop-off at the entrance of Le Méridien Ile Maurice with instant email confirmation of your booking',
     ],
-    "nearbyAttractions": [
-      "Trou aux Biches public beach and snorkelling lagoon",
-      "Mauritius Aquarium at Pointe aux Piments",
+    nearbyAttractions: [
+      'Trou aux Biches public beach and snorkelling lagoon',
+      'Mauritius Aquarium at Pointe aux Piments',
       "Triolet Shivala (Maheswarnath Mandir), the island's largest Hindu temple",
-      "Grand Baie shopping, restaurants and nightlife",
-      "Pamplemousses (SSR) Botanical Garden",
-      "Boat trips to the northern islands from Trou aux Biches"
+      'Grand Baie shopping, restaurants and nightlife',
+      'Pamplemousses (SSR) Botanical Garden',
+      'Boat trips to the northern islands from Trou aux Biches',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Le Méridien Ile Maurice?",
-        "a": "Pointe aux Piments is on the north-west coast, while the airport is in the south-east. The drive is about 62 km and normally takes around 75 minutes by private car via the motorway through Port Louis. Allow a little extra during Port Louis rush hour in the morning and late afternoon."
+        q: 'How long is the transfer to Le Méridien Ile Maurice?',
+        a: 'Pointe aux Piments is on the north-west coast, while the airport is in the south-east. The drive is about 62 km and normally takes around 75 minutes by private car via the motorway through Port Louis. Allow a little extra during Port Louis rush hour in the morning and late afternoon.',
       },
       {
-        "q": "How much luggage can the car take?",
-        "a": "A standard car comfortably fits two passengers with two large suitcases plus cabin bags. If you are travelling as a family or group, or with golf clubs, surfboards or extra bags, just tell us when you book and we will assign a larger vehicle so everything and everyone fits in comfort."
+        q: 'How much luggage can the car take?',
+        a: 'A standard car comfortably fits two passengers with two large suitcases plus cabin bags. If you are travelling as a family or group, or with golf clubs, surfboards or extra bags, just tell us when you book and we will assign a larger vehicle so everything and everyone fits in comfort.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. We carry baby and child seats and the first seat is free of charge. Please let us know your child's age and the seat type you need when booking so the correct seat is fitted and ready in the car before you arrive."
+        q: 'Are child seats available?',
+        a: "Yes. We carry baby and child seats and the first seat is free of charge. Please let us know your child's age and the seat type you need when booking so the correct seat is fitted and ready in the car before you arrive.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup to your actual landing time at no extra cost. You also have up to 60 minutes of free waiting after you land, which covers immigration and baggage collection, so your driver will be waiting whenever you reach the arrivals hall."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup to your actual landing time at no extra cost. You also have up to 60 minutes of free waiting after you land, which covers immigration and baggage collection, so your driver will be waiting whenever you reach the arrivals hall.',
+      },
     ],
-    "lat": -20.0606,
-    "lng": 57.5226
+    lat: -20.0606,
+    lng: 57.5226,
   },
   {
-    "slug": "victoria-beachcomber",
-    "hotelName": "Victoria Beachcomber",
-    "area": "Pointe aux Piments",
-    "region": "North",
-    "distanceKmFromAirport": 63,
-    "durationMinFromAirport": 75,
-    "intro": "Victoria Beachcomber sits on the calm north-west coast at Pointe aux Piments, about 63 km from SSR International Airport in the south-east. Our private door-to-door transfer takes roughly 75 minutes via the motorway past Port Louis, with no shared stops or detours. A licensed, English- and French-speaking local driver meets you at arrivals with a name board and carries your bags straight to a clean, air-conditioned car. You pay one fixed, transparent price agreed at booking, with no meter and no surprises, and travel directly to the hotel reception.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time to any delay",
-      "First child or baby seat free on request",
-      "Up to 60 minutes free waiting time after landing",
-      "Complimentary bottled water on board",
-      "Door-to-door drop-off at Victoria Beachcomber reception",
-      "Instant email confirmation with your driver and price details"
+    slug: 'victoria-beachcomber',
+    hotelName: 'Victoria Beachcomber',
+    area: 'Pointe aux Piments',
+    region: 'North',
+    distanceKmFromAirport: 63,
+    durationMinFromAirport: 75,
+    intro:
+      'Victoria Beachcomber sits on the calm north-west coast at Pointe aux Piments, about 63 km from SSR International Airport in the south-east. Our private door-to-door transfer takes roughly 75 minutes via the motorway past Port Louis, with no shared stops or detours. A licensed, English- and French-speaking local driver meets you at arrivals with a name board and carries your bags straight to a clean, air-conditioned car. You pay one fixed, transparent price agreed at booking, with no meter and no surprises, and travel directly to the hotel reception.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time to any delay',
+      'First child or baby seat free on request',
+      'Up to 60 minutes free waiting time after landing',
+      'Complimentary bottled water on board',
+      'Door-to-door drop-off at Victoria Beachcomber reception',
+      'Instant email confirmation with your driver and price details',
     ],
-    "nearbyAttractions": [
-      "Aquarium of Mauritius at Pointe aux Piments",
-      "Public beach and snorkelling at Trou aux Biches",
-      "Mont Choisy beach and sands",
-      "Pamplemousses (SSR) Botanical Garden",
-      "Port Louis Caudan Waterfront and Central Market",
-      "Day trips north to Grand Baie"
+    nearbyAttractions: [
+      'Aquarium of Mauritius at Pointe aux Piments',
+      'Public beach and snorkelling at Trou aux Biches',
+      'Mont Choisy beach and sands',
+      'Pamplemousses (SSR) Botanical Garden',
+      'Port Louis Caudan Waterfront and Central Market',
+      'Day trips north to Grand Baie',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Victoria Beachcomber?",
-        "a": "The drive from SSR Airport to Victoria Beachcomber at Pointe aux Piments is about 63 km and takes roughly 75 minutes in normal traffic, using the motorway past Port Louis. Heavy rush-hour traffic around the capital can add 15 to 20 minutes."
+        q: 'How long is the transfer to Victoria Beachcomber?',
+        a: 'The drive from SSR Airport to Victoria Beachcomber at Pointe aux Piments is about 63 km and takes roughly 75 minutes in normal traffic, using the motorway past Port Louis. Heavy rush-hour traffic around the capital can add 15 to 20 minutes.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free when you request it at booking, and we can supply infant, toddler or booster seats. Just tell us your children's ages and we will fit the correct seat before pickup."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free when you request it at booking, and we can supply infant, toddler or booster seats. Just tell us your children's ages and we will fit the correct seat before pickup.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so your driver adjusts the pickup time automatically to the actual landing. There is no extra charge for normal delays, and up to 60 minutes of free waiting time after you land is included while you clear immigration and collect your bags."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight, so your driver adjusts the pickup time automatically to the actual landing. There is no extra charge for normal delays, and up to 60 minutes of free waiting time after you land is included while you clear immigration and collect your bags.',
       },
       {
-        "q": "Can I book a return or departure transfer?",
-        "a": "Yes. You can book a one-way airport-to-hotel trip, a hotel-to-airport departure, or both as a round trip. For departures we set the pickup time based on your flight so you reach the airport with comfortable time to spare."
-      }
+        q: 'Can I book a return or departure transfer?',
+        a: 'Yes. You can book a one-way airport-to-hotel trip, a hotel-to-airport departure, or both as a round trip. For departures we set the pickup time based on your flight so you reach the airport with comfortable time to spare.',
+      },
     ],
-    "lat": -20.0641,
-    "lng": 57.5212
+    lat: -20.0641,
+    lng: 57.5212,
   },
   {
-    "slug": "radisson-blu-azuri",
-    "hotelName": "Radisson Blu Azuri Resort & Spa",
-    "area": "Roches Noires",
-    "region": "East",
-    "distanceKmFromAirport": 62,
-    "durationMinFromAirport": 70,
-    "intro": "Start your holiday at Radisson Blu Azuri Resort & Spa in Roches Noires the easy way, with a pre-booked private transfer from SSR International Airport. Your local English- and French-speaking driver meets you at arrivals with a name board, helps with your luggage and drives you straight to the resort, no shared shuttle or waiting around. The roughly 70-minute journey up the east coast is at a fixed, transparent price agreed when you book, so there is no meter and no surprises on arrival. Just door-to-door comfort after a long flight.",
-    "included": [
-      "Meet & greet at the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts pickup to any delay or early landing",
-      "Free first child or baby seat on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in an air-conditioned vehicle",
-      "Door-to-door drop-off at Radisson Blu Azuri Resort & Spa with instant email confirmation"
+    slug: 'radisson-blu-azuri',
+    hotelName: 'Radisson Blu Azuri Resort & Spa',
+    area: 'Roches Noires',
+    region: 'East',
+    distanceKmFromAirport: 62,
+    durationMinFromAirport: 70,
+    intro:
+      'Start your holiday at Radisson Blu Azuri Resort & Spa in Roches Noires the easy way, with a pre-booked private transfer from SSR International Airport. Your local English- and French-speaking driver meets you at arrivals with a name board, helps with your luggage and drives you straight to the resort, no shared shuttle or waiting around. The roughly 70-minute journey up the east coast is at a fixed, transparent price agreed when you book, so there is no meter and no surprises on arrival. Just door-to-door comfort after a long flight.',
+    included: [
+      'Meet & greet at the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts pickup to any delay or early landing',
+      'Free first child or baby seat on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in an air-conditioned vehicle',
+      'Door-to-door drop-off at Radisson Blu Azuri Resort & Spa with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Roches Noires public beach and lagoon",
-      "Roches Noires sea caves (lava tunnels)",
-      "Poste Lafayette beach and kitesurfing spots",
+    nearbyAttractions: [
+      'Roches Noires public beach and lagoon',
+      'Roches Noires sea caves (lava tunnels)',
+      'Poste Lafayette beach and kitesurfing spots',
       "Bras d'Eau National Park",
       "Île d'Ambre (kayaking and mangrove trips)",
-      "Grand Baie shops, restaurants and nightlife (north coast)"
+      'Grand Baie shops, restaurants and nightlife (north coast)',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Radisson Blu Azuri Resort & Spa?",
-        "a": "The drive from SSR International Airport to Roches Noires is about 62 km and takes around 70 minutes in a private car, depending on traffic and the time of day. Your driver takes the fastest sensible route up the east coast so you reach the resort comfortably."
+        q: 'How long is the transfer to Radisson Blu Azuri Resort & Spa?',
+        a: 'The drive from SSR International Airport to Roches Noires is about 62 km and takes around 70 minutes in a private car, depending on traffic and the time of day. Your driver takes the fastest sensible route up the east coast so you reach the resort comfortably.',
       },
       {
-        "q": "How much luggage can I bring?",
-        "a": "A standard saloon car comfortably fits two large suitcases plus hand luggage for up to three passengers. Travelling as a family or group, or with extra bags, golf clubs or a baby buggy? Just tell us when you book and we will assign a larger vehicle at no surprise cost."
+        q: 'How much luggage can I bring?',
+        a: 'A standard saloon car comfortably fits two large suitcases plus hand luggage for up to three passengers. Travelling as a family or group, or with extra bags, golf clubs or a baby buggy? Just tell us when you book and we will assign a larger vehicle at no surprise cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. We provide your first baby or child seat free of charge. Let us know your child's age when booking and we will fit the correct seat so your little ones travel safely to the resort."
+        q: 'Are child seats available?',
+        a: "Yes. We provide your first baby or child seat free of charge. Let us know your child's age when booking and we will fit the correct seat so your little ones travel safely to the resort.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so if it lands early or late your driver adjusts the pickup automatically. You also get up to 60 minutes of free waiting time after landing, with no extra charge for normal delays."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so if it lands early or late your driver adjusts the pickup automatically. You also get up to 60 minutes of free waiting time after landing, with no extra charge for normal delays.',
+      },
     ],
-    "lat": -20.1083,
-    "lng": 57.7203
+    lat: -20.1083,
+    lng: 57.7203,
   },
   {
-    "slug": "royal-palm-beachcomber",
-    "hotelName": "Royal Palm Beachcomber Luxury",
-    "area": "Grand Baie",
-    "region": "North",
-    "distanceKmFromAirport": 60,
-    "durationMinFromAirport": 75,
-    "intro": "Royal Palm Beachcomber Luxury sits on the north coast at Grand Baie, about 60 km from SSR International Airport in the south-east. The drive takes roughly 75 minutes, mostly on the motorway through Port Louis. We run a private, door-to-door transfer with a licensed local driver-guide who speaks English and French, so there is no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises on arrival.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking, so your pickup adjusts automatically if your flight is early or delayed",
-      "One free child or baby seat on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in the vehicle",
-      "Door-to-door drop-off at Royal Palm Beachcomber Luxury with instant email confirmation"
+    slug: 'royal-palm-beachcomber',
+    hotelName: 'Royal Palm Beachcomber Luxury',
+    area: 'Grand Baie',
+    region: 'North',
+    distanceKmFromAirport: 60,
+    durationMinFromAirport: 75,
+    intro:
+      'Royal Palm Beachcomber Luxury sits on the north coast at Grand Baie, about 60 km from SSR International Airport in the south-east. The drive takes roughly 75 minutes, mostly on the motorway through Port Louis. We run a private, door-to-door transfer with a licensed local driver-guide who speaks English and French, so there is no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises on arrival.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking, so your pickup adjusts automatically if your flight is early or delayed',
+      'One free child or baby seat on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in the vehicle',
+      'Door-to-door drop-off at Royal Palm Beachcomber Luxury with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Grand Baie village, beach and shops",
-      "La Cuvette public beach",
-      "Cap Malheureux and its red-roofed church",
-      "Pereybère beach",
-      "Mont Choisy beach and golf course",
-      "Grand Baie La Croisette shopping mall"
+    nearbyAttractions: [
+      'Grand Baie village, beach and shops',
+      'La Cuvette public beach',
+      'Cap Malheureux and its red-roofed church',
+      'Pereybère beach',
+      'Mont Choisy beach and golf course',
+      'Grand Baie La Croisette shopping mall',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Royal Palm Beachcomber Luxury?",
-        "a": "The drive from SSR International Airport to Royal Palm Beachcomber Luxury in Grand Baie is about 60 km and usually takes around 75 minutes, depending on traffic through Port Louis and the time of day. Your private driver takes the motorway for the fastest, most comfortable route to the north coast."
+        q: 'How long is the transfer to Royal Palm Beachcomber Luxury?',
+        a: 'The drive from SSR International Airport to Royal Palm Beachcomber Luxury in Grand Baie is about 60 km and usually takes around 75 minutes, depending on traffic through Port Louis and the time of day. Your private driver takes the motorway for the fastest, most comfortable route to the north coast.',
       },
       {
-        "q": "Will the driver be waiting when I land?",
-        "a": "Yes. Your driver meets you inside the arrivals hall with a name board showing your name. We track your flight in real time, so the pickup is timed to your actual landing, and you have up to 60 minutes of free waiting while you clear immigration and collect your bags."
+        q: 'Will the driver be waiting when I land?',
+        a: 'Yes. Your driver meets you inside the arrivals hall with a name board showing your name. We track your flight in real time, so the pickup is timed to your actual landing, and you have up to 60 minutes of free waiting while you clear immigration and collect your bags.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. If you need more than one, let us know the children's ages when you book so we can fit the correct seats before pickup."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free on request. If you need more than one, let us know the children's ages when you book so we can fit the correct seats before pickup.",
       },
       {
-        "q": "Can I book a return or departure transfer?",
-        "a": "Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time to reach SSR from Grand Baie, around 75 minutes plus a margin for traffic."
-      }
+        q: 'Can I book a return or departure transfer?',
+        a: 'Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time to reach SSR from Grand Baie, around 75 minutes plus a margin for traffic.',
+      },
     ],
-    "lat": -20.0033,
-    "lng": 57.5806
+    lat: -20.0033,
+    lng: 57.5806,
   },
   {
-    "slug": "mauricia-beachcomber",
-    "hotelName": "Mauricia Beachcomber Resort & Spa",
-    "area": "Grand Baie",
-    "region": "North",
-    "distanceKmFromAirport": 60,
-    "durationMinFromAirport": 75,
-    "intro": "Mauricia Beachcomber Resort & Spa sits right in the heart of Grand Baie on the north coast, about 60 km from SSR International Airport in the south-east. The drive takes roughly 75 minutes on the motorway, so pre-booking a private transfer is by far the easiest way to start your holiday. Your local driver-guide speaks English and French, meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter, no shared shuttle and no surprises on arrival.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking, so your driver adjusts the pickup time if your flight is early or delayed",
-      "One free child or baby seat on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in the air-conditioned vehicle",
-      "Door-to-door drop-off at the hotel entrance with instant email confirmation"
+    slug: 'mauricia-beachcomber',
+    hotelName: 'Mauricia Beachcomber Resort & Spa',
+    area: 'Grand Baie',
+    region: 'North',
+    distanceKmFromAirport: 60,
+    durationMinFromAirport: 75,
+    intro:
+      'Mauricia Beachcomber Resort & Spa sits right in the heart of Grand Baie on the north coast, about 60 km from SSR International Airport in the south-east. The drive takes roughly 75 minutes on the motorway, so pre-booking a private transfer is by far the easiest way to start your holiday. Your local driver-guide speaks English and French, meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter, no shared shuttle and no surprises on arrival.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking, so your driver adjusts the pickup time if your flight is early or delayed',
+      'One free child or baby seat on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in the air-conditioned vehicle',
+      'Door-to-door drop-off at the hotel entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Grand Baie village, shops and restaurants",
-      "La Cuvette and Pereybere public beaches",
-      "Cap Malheureux and its red-roofed church",
-      "Grand Baie La Croisette shopping mall",
-      "Boat trips to Coin de Mire and the northern islands",
-      "Pamplemousses Botanical Garden (SSR Garden)"
+    nearbyAttractions: [
+      'Grand Baie village, shops and restaurants',
+      'La Cuvette and Pereybere public beaches',
+      'Cap Malheureux and its red-roofed church',
+      'Grand Baie La Croisette shopping mall',
+      'Boat trips to Coin de Mire and the northern islands',
+      'Pamplemousses Botanical Garden (SSR Garden)',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Mauricia Beachcomber Resort & Spa?",
-        "a": "The drive from SSR International Airport to Mauricia Beachcomber Resort & Spa in Grand Baie is about 60 km and normally takes around 75 minutes by private car, depending on traffic and the time of day. Your driver takes the most direct route on the motorway across the island to the north coast."
+        q: 'How long is the transfer to Mauricia Beachcomber Resort & Spa?',
+        a: 'The drive from SSR International Airport to Mauricia Beachcomber Resort & Spa in Grand Baie is about 60 km and normally takes around 75 minutes by private car, depending on traffic and the time of day. Your driver takes the most direct route on the motorway across the island to the north coast.',
       },
       {
-        "q": "Will my driver be waiting if my flight is delayed?",
-        "a": "Yes. We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time after landing at no extra cost."
+        q: 'Will my driver be waiting if my flight is delayed?',
+        a: 'Yes. We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time after landing at no extra cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is free of charge, just tell us the child's age when you book so we can fit the right type. Extra seats can be added on request for larger families."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is free of charge, just tell us the child's age when you book so we can fit the right type. Extra seats can be added on request for larger families.",
       },
       {
-        "q": "Can I book a return transfer back to the airport?",
-        "a": "Yes. You can book a one-way transfer or add the return leg from Grand Baie back to SSR at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time for the 75-minute drive south."
-      }
+        q: 'Can I book a return transfer back to the airport?',
+        a: 'Yes. You can book a one-way transfer or add the return leg from Grand Baie back to SSR at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time for the 75-minute drive south.',
+      },
     ],
-    "lat": -20.012,
-    "lng": 57.5841
+    lat: -20.012,
+    lng: 57.5841,
   },
   {
-    "slug": "veranda-grand-baie",
-    "hotelName": "Veranda Grand Baie",
-    "area": "Grand Baie",
-    "region": "North",
-    "distanceKmFromAirport": 60,
-    "durationMinFromAirport": 75,
-    "intro": "Veranda Grand Baie sits right in the heart of Grand Baie on the lively north coast, about 60 km from SSR International Airport in the south-east. The drive north along the motorway takes roughly 75 minutes in normal traffic. Belle Mare Tours runs a door-to-door private transfer in a comfortable air-conditioned car with a local, English- and French-speaking driver who meets you at arrivals with a name board and helps with your bags. The price is fixed and agreed when you book, so there is no meter and no surprises, just a relaxed ride straight to the hotel.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time if your flight is early or delayed",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the vehicle",
-      "Door-to-door drop-off at Veranda Grand Baie reception, with instant email confirmation"
+    slug: 'veranda-grand-baie',
+    hotelName: 'Veranda Grand Baie',
+    area: 'Grand Baie',
+    region: 'North',
+    distanceKmFromAirport: 60,
+    durationMinFromAirport: 75,
+    intro:
+      'Veranda Grand Baie sits right in the heart of Grand Baie on the lively north coast, about 60 km from SSR International Airport in the south-east. The drive north along the motorway takes roughly 75 minutes in normal traffic. Belle Mare Tours runs a door-to-door private transfer in a comfortable air-conditioned car with a local, English- and French-speaking driver who meets you at arrivals with a name board and helps with your bags. The price is fixed and agreed when you book, so there is no meter and no surprises, just a relaxed ride straight to the hotel.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time if your flight is early or delayed',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the vehicle',
+      'Door-to-door drop-off at Veranda Grand Baie reception, with instant email confirmation',
     ],
-    "nearbyAttractions": [
+    nearbyAttractions: [
       "Grand Baie public beach and lagoon, right on the hotel's doorstep",
-      "Grand Baie village for restaurants, shopping and nightlife",
-      "Pereybere beach and snorkelling spots",
-      "Cap Malheureux and its iconic red-roofed church",
-      "Mont Choisy beach and its long curve of sand",
-      "Catamaran cruises to the northern islands such as Gabriel and Flat Island"
+      'Grand Baie village for restaurants, shopping and nightlife',
+      'Pereybere beach and snorkelling spots',
+      'Cap Malheureux and its iconic red-roofed church',
+      'Mont Choisy beach and its long curve of sand',
+      'Catamaran cruises to the northern islands such as Gabriel and Flat Island',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to Veranda Grand Baie?",
-        "a": "The drive from SSR International Airport to Veranda Grand Baie is about 60 km and normally takes around 75 minutes. Most of the route is on the M1/M2 motorway, with the final stretch through Grand Baie. Times can be a little longer during weekday rush hours or around Port Louis, and your driver takes the fastest sensible route on the day."
+        q: 'How long is the transfer from the airport to Veranda Grand Baie?',
+        a: 'The drive from SSR International Airport to Veranda Grand Baie is about 60 km and normally takes around 75 minutes. Most of the route is on the M1/M2 motorway, with the final stretch through Grand Baie. Times can be a little longer during weekday rush hours or around Port Louis, and your driver takes the fastest sensible route on the day.',
       },
       {
-        "q": "How much luggage can the car take?",
-        "a": "A standard private car comfortably fits up to three passengers with three large suitcases plus hand luggage. If you are travelling as a larger group or with extra bags, golf clubs or a baby buggy, just tell us when booking and we will assign a larger vehicle such as an SUV or minivan."
+        q: 'How much luggage can the car take?',
+        a: 'A standard private car comfortably fits up to three passengers with three large suitcases plus hand luggage. If you are travelling as a larger group or with extra bags, golf clubs or a baby buggy, just tell us when booking and we will assign a larger vehicle such as an SUV or minivan.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is included free of charge on request, and we carry infant, toddler and booster options. Please tell us your child's age when you book so the correct seat is fitted and ready in the vehicle, and let us know if you need more than one."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is included free of charge on request, and we carry infant, toddler and booster options. Please tell us your child's age when you book so the correct seat is fitted and ready in the vehicle, and let us know if you need more than one.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so there is nothing for you to do. Your driver adjusts the pickup automatically to match the new landing time, and you also have up to 60 minutes of free waiting after touchdown while you clear immigration and collect your bags, at no extra cost."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so there is nothing for you to do. Your driver adjusts the pickup automatically to match the new landing time, and you also have up to 60 minutes of free waiting after touchdown while you clear immigration and collect your bags, at no extra cost.',
+      },
     ],
-    "lat": -20.0061,
-    "lng": 57.5876
+    lat: -20.0061,
+    lng: 57.5876,
   },
   {
-    "slug": "lagoon-attitude",
-    "hotelName": "Lagoon Attitude",
-    "area": "Anse la Raie",
-    "region": "North",
-    "distanceKmFromAirport": 62,
-    "durationMinFromAirport": 75,
-    "intro": "Lagoon Attitude sits in Anse la Raie at the quiet northern tip of Mauritius, around 62 km from SSR International Airport in the south-east. The drive takes roughly 75 minutes via the motorway and the north-coast road past Grand Baie. Belle Mare Tours runs a door-to-door private transfer with a licensed local driver-guide who speaks English and French, so there is no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time to any early arrival or delay",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the air-conditioned car",
-      "Door-to-door drop-off at the Lagoon Attitude reception with instant email confirmation"
+    slug: 'lagoon-attitude',
+    hotelName: 'Lagoon Attitude',
+    area: 'Anse la Raie',
+    region: 'North',
+    distanceKmFromAirport: 62,
+    durationMinFromAirport: 75,
+    intro:
+      'Lagoon Attitude sits in Anse la Raie at the quiet northern tip of Mauritius, around 62 km from SSR International Airport in the south-east. The drive takes roughly 75 minutes via the motorway and the north-coast road past Grand Baie. Belle Mare Tours runs a door-to-door private transfer with a licensed local driver-guide who speaks English and French, so there is no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time to any early arrival or delay',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the air-conditioned car',
+      'Door-to-door drop-off at the Lagoon Attitude reception with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Anse la Raie beach and kitesurfing lagoon",
-      "Cap Malheureux and its iconic red-roofed church",
-      "Grand Baie village, shops and nightlife",
+    nearbyAttractions: [
+      'Anse la Raie beach and kitesurfing lagoon',
+      'Cap Malheureux and its iconic red-roofed church',
+      'Grand Baie village, shops and nightlife',
       "Gunner's Quoin (Coin de Mire) island viewpoint",
-      "Bain Boeuf and Pereybere public beaches",
-      "Boat trips to Île Plate and Îlot Gabriel"
+      'Bain Boeuf and Pereybere public beaches',
+      'Boat trips to Île Plate and Îlot Gabriel',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Lagoon Attitude?",
-        "a": "The private transfer from SSR International Airport to Lagoon Attitude in Anse la Raie covers about 62 km and usually takes around 75 minutes by car, depending on traffic and the time of day. Your driver takes the most direct route via the motorway and the north-coast road past Grand Baie."
+        q: 'How long is the transfer to Lagoon Attitude?',
+        a: 'The private transfer from SSR International Airport to Lagoon Attitude in Anse la Raie covers about 62 km and usually takes around 75 minutes by car, depending on traffic and the time of day. Your driver takes the most direct route via the motorway and the north-coast road past Grand Baie.',
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup automatically if you land early or late and is there when you arrive. You also have up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags, at no extra cost."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup automatically if you land early or late and is there when you arrive. You also have up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags, at no extra cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. Just tell us the children's ages when you book so we can fit the correct seats before pickup. Additional seats can be added for a small charge."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free on request. Just tell us the children's ages when you book so we can fit the correct seats before pickup. Additional seats can be added for a small charge.",
       },
       {
-        "q": "Can I book a return or departure transfer?",
-        "a": "Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. For departures we schedule the pickup to suit your check-in, allowing comfortable time for the roughly 75-minute drive back to SSR."
-      }
+        q: 'Can I book a return or departure transfer?',
+        a: 'Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. For departures we schedule the pickup to suit your check-in, allowing comfortable time for the roughly 75-minute drive back to SSR.',
+      },
     ],
-    "lat": -19.9836,
-    "lng": 57.6427
+    lat: -19.9836,
+    lng: 57.6427,
   },
   {
-    "slug": "zilwa-attitude",
-    "hotelName": "Zilwa Attitude",
-    "area": "Calodyne",
-    "region": "North",
-    "distanceKmFromAirport": 62,
-    "durationMinFromAirport": 75,
-    "intro": "Start your holiday relaxed with a private door-to-door airport transfer from SSR Airport to Zilwa Attitude in Calodyne, on Mauritius' north coast. Your local English- and French-speaking driver-guide meets you in the arrivals hall with a name board, helps with your luggage, and drives you straight to the resort in a clean, air-conditioned vehicle. The price is fixed and agreed in advance, with no meter and no surprises. We track your flight, so even if you land early or late your driver is ready and waiting. Book in seconds and receive instant confirmation.",
-    "included": [
-      "Meet & greet in the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts to early or delayed landings",
-      "First child seat or booster free on request",
-      "Around 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in the vehicle",
-      "Private door-to-door transfer with instant booking confirmation"
+    slug: 'zilwa-attitude',
+    hotelName: 'Zilwa Attitude',
+    area: 'Calodyne',
+    region: 'North',
+    distanceKmFromAirport: 62,
+    durationMinFromAirport: 75,
+    intro:
+      "Start your holiday relaxed with a private door-to-door airport transfer from SSR Airport to Zilwa Attitude in Calodyne, on Mauritius' north coast. Your local English- and French-speaking driver-guide meets you in the arrivals hall with a name board, helps with your luggage, and drives you straight to the resort in a clean, air-conditioned vehicle. The price is fixed and agreed in advance, with no meter and no surprises. We track your flight, so even if you land early or late your driver is ready and waiting. Book in seconds and receive instant confirmation.",
+    included: [
+      'Meet & greet in the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts to early or delayed landings',
+      'First child seat or booster free on request',
+      'Around 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in the vehicle',
+      'Private door-to-door transfer with instant booking confirmation',
     ],
-    "nearbyAttractions": [
-      "Grand Baie beach, shops and nightlife",
-      "Cap Malheureux and its red-roofed Notre-Dame Auxiliatrice church",
-      "Pereybere public beach",
+    nearbyAttractions: [
+      'Grand Baie beach, shops and nightlife',
+      'Cap Malheureux and its red-roofed Notre-Dame Auxiliatrice church',
+      'Pereybere public beach',
       "Boat trips to the northern islands (Gabriel, Flat and Gunner's Quoin)",
-      "Mont Choisy beach and seafront",
-      "Pamplemousses Botanical Garden (SSR Botanical Garden)"
+      'Mont Choisy beach and seafront',
+      'Pamplemousses Botanical Garden (SSR Botanical Garden)',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long does the transfer from the airport to Zilwa Attitude take?",
-        "a": "Zilwa Attitude is in Calodyne on the far north coast, while SSR Airport is in the south-east near Mahebourg. The drive across the island is about 62 km and normally takes around 75 minutes, depending on traffic and the time of day."
+        q: 'How long does the transfer from the airport to Zilwa Attitude take?',
+        a: 'Zilwa Attitude is in Calodyne on the far north coast, while SSR Airport is in the south-east near Mahebourg. The drive across the island is about 62 km and normally takes around 75 minutes, depending on traffic and the time of day.',
       },
       {
-        "q": "Where will I meet my driver after I land?",
-        "a": "Your driver waits in the arrivals hall just after you clear customs, holding a name board with your name on it. If you cannot find them, simply call the number on your confirmation and we will guide you straight to your driver."
+        q: 'Where will I meet my driver after I land?',
+        a: 'Your driver waits in the arrivals hall just after you clear customs, holding a name board with your name on it. If you cannot find them, simply call the number on your confirmation and we will guide you straight to your driver.',
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time and adjust the pickup automatically, so there is no need to let us know about a delay. You also get around 60 minutes of free waiting time after landing while you collect your bags and clear immigration, at no extra charge."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time and adjust the pickup automatically, so there is no need to let us know about a delay. You also get around 60 minutes of free waiting time after landing while you collect your bags and clear immigration, at no extra charge.',
       },
       {
-        "q": "Is the price fixed and can I bring child seats?",
-        "a": "Yes. You pay a fixed price agreed when you book, with no meter and no hidden fees for luggage or tolls. The first child seat or booster is free on request, so just tell us your children's ages when booking and we will have it fitted before you arrive."
-      }
+        q: 'Is the price fixed and can I bring child seats?',
+        a: "Yes. You pay a fixed price agreed when you book, with no meter and no hidden fees for luggage or tolls. The first child seat or booster is free on request, so just tell us your children's ages when booking and we will have it fitted before you arrive.",
+      },
     ],
-    "lat": -19.9758,
-    "lng": 57.6431
+    lat: -19.9758,
+    lng: 57.6431,
   },
   {
-    "slug": "recif-attitude",
-    "hotelName": "Recif Attitude",
-    "area": "Pointe aux Piments",
-    "region": "North",
-    "distanceKmFromAirport": 62,
-    "durationMinFromAirport": 75,
-    "intro": "Arrive in Mauritius and step straight into a private, door-to-door transfer from SSR Airport to Recif Attitude in Pointe aux Piments. Your licensed local driver-guide, fluent in English and French, meets you in arrivals with a name board and helps with your luggage. The fare is fixed and agreed in advance, with no surprises and no shared waiting. We track your flight, so a delay is never a problem, and drive you comfortably across the island to your hotel, ready to start your North-coast holiday relaxed.",
-    "included": [
-      "Meet & greet in the arrivals hall with a personalised name board",
-      "Free flight tracking so we adjust pickup to your actual landing time",
-      "Free first child seat or booster on request",
-      "Around 60 minutes of free waiting time after landing",
-      "Complimentary bottled water on board",
-      "Door-to-door private transfer with instant booking confirmation"
+    slug: 'recif-attitude',
+    hotelName: 'Recif Attitude',
+    area: 'Pointe aux Piments',
+    region: 'North',
+    distanceKmFromAirport: 62,
+    durationMinFromAirport: 75,
+    intro:
+      'Arrive in Mauritius and step straight into a private, door-to-door transfer from SSR Airport to Recif Attitude in Pointe aux Piments. Your licensed local driver-guide, fluent in English and French, meets you in arrivals with a name board and helps with your luggage. The fare is fixed and agreed in advance, with no surprises and no shared waiting. We track your flight, so a delay is never a problem, and drive you comfortably across the island to your hotel, ready to start your North-coast holiday relaxed.',
+    included: [
+      'Meet & greet in the arrivals hall with a personalised name board',
+      'Free flight tracking so we adjust pickup to your actual landing time',
+      'Free first child seat or booster on request',
+      'Around 60 minutes of free waiting time after landing',
+      'Complimentary bottled water on board',
+      'Door-to-door private transfer with instant booking confirmation',
     ],
-    "nearbyAttractions": [
-      "Mauritius Aquarium, a short drive away in Pointe aux Piments",
-      "Trou aux Biches public beach and lagoon",
-      "Pamplemousses (SSR) Botanical Garden",
-      "Port Louis Central Market and the Caudan Waterfront",
-      "Mont Choisy beach, ideal for swimming and sunset walks",
-      "L'Aventure du Sucre sugar museum near Pamplemousses"
+    nearbyAttractions: [
+      'Mauritius Aquarium, a short drive away in Pointe aux Piments',
+      'Trou aux Biches public beach and lagoon',
+      'Pamplemousses (SSR) Botanical Garden',
+      'Port Louis Central Market and the Caudan Waterfront',
+      'Mont Choisy beach, ideal for swimming and sunset walks',
+      "L'Aventure du Sucre sugar museum near Pamplemousses",
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long does the transfer from the airport to Recif Attitude take?",
-        "a": "The drive from SSR Airport in the south-east to Recif Attitude in Pointe aux Piments is roughly 62 km and takes about 75 minutes via the motorway, depending on traffic and time of day. Your driver knows the best route across the island."
+        q: 'How long does the transfer from the airport to Recif Attitude take?',
+        a: 'The drive from SSR Airport in the south-east to Recif Attitude in Pointe aux Piments is roughly 62 km and takes about 75 minutes via the motorway, depending on traffic and time of day. Your driver knows the best route across the island.',
       },
       {
-        "q": "Where will my driver meet me?",
-        "a": "Your driver waits in the arrivals hall just past customs, holding a name board with your name. We track your flight in advance, so even if you land early or late, your driver will be there ready to help with your bags."
+        q: 'Where will my driver meet me?',
+        a: 'Your driver waits in the arrivals hall just past customs, holding a name board with your name. We track your flight in advance, so even if you land early or late, your driver will be there ready to help with your bags.',
       },
       {
-        "q": "Is the price fixed, and what does it cover?",
-        "a": "Yes. You pay one fixed price agreed when you book, covering the private vehicle, your driver, fuel, tolls and around 60 minutes of free waiting time. There are no per-person surcharges or hidden extras, and you receive instant confirmation."
+        q: 'Is the price fixed, and what does it cover?',
+        a: 'Yes. You pay one fixed price agreed when you book, covering the private vehicle, your driver, fuel, tolls and around 60 minutes of free waiting time. There are no per-person surcharges or hidden extras, and you receive instant confirmation.',
       },
       {
-        "q": "Can you provide a child seat?",
-        "a": "Yes. We provide the first child seat or booster free of charge. Just tell us your children's ages and the number of seats you need when booking, and we will have them fitted and ready for your arrival."
-      }
+        q: 'Can you provide a child seat?',
+        a: "Yes. We provide the first child seat or booster free of charge. Just tell us your children's ages and the number of seats you need when booking, and we will have them fitted and ready for your arrival.",
+      },
     ],
-    "lat": -20.0556,
-    "lng": 57.5226
+    lat: -20.0556,
+    lng: 57.5226,
   },
   {
-    "slug": "coin-de-mire-attitude",
-    "hotelName": "Coin de Mire Attitude",
-    "area": "Bain Boeuf",
-    "region": "North",
-    "distanceKmFromAirport": 62,
-    "durationMinFromAirport": 75,
-    "intro": "Start your holiday the easy way with a private door-to-door transfer from SSR Airport to Coin de Mire Attitude in Bain Boeuf. Your local English- and French-speaking driver-guide meets you in arrivals with a name board, helps with your luggage and drives you straight to your hotel on the north coast, around 62 km away. The price is fixed and agreed before you travel, with no meter and no surprises. It is a comfortable, air-conditioned ride of about 75 minutes, with flight tracking and instant confirmation so your car is always waiting.",
-    "included": [
-      "Meet and greet in the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts for early or delayed arrivals",
-      "First child or booster seat free on request",
-      "Around 60 minutes of free waiting time after landing",
-      "Complimentary bottled water on board",
-      "Private door-to-door transfer with instant booking confirmation"
+    slug: 'coin-de-mire-attitude',
+    hotelName: 'Coin de Mire Attitude',
+    area: 'Bain Boeuf',
+    region: 'North',
+    distanceKmFromAirport: 62,
+    durationMinFromAirport: 75,
+    intro:
+      'Start your holiday the easy way with a private door-to-door transfer from SSR Airport to Coin de Mire Attitude in Bain Boeuf. Your local English- and French-speaking driver-guide meets you in arrivals with a name board, helps with your luggage and drives you straight to your hotel on the north coast, around 62 km away. The price is fixed and agreed before you travel, with no meter and no surprises. It is a comfortable, air-conditioned ride of about 75 minutes, with flight tracking and instant confirmation so your car is always waiting.',
+    included: [
+      'Meet and greet in the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts for early or delayed arrivals',
+      'First child or booster seat free on request',
+      'Around 60 minutes of free waiting time after landing',
+      'Complimentary bottled water on board',
+      'Private door-to-door transfer with instant booking confirmation',
     ],
-    "nearbyAttractions": [
-      "Bain Boeuf public beach",
-      "Coin de Mire islet and Cap Malheureux",
-      "Notre Dame Auxiliatrice red-roofed church, Cap Malheureux",
-      "Grand Baie village, shops and nightlife",
-      "La Cuvette and Pereybere beaches",
-      "Boat trips to Gabriel Island and Flat Island"
+    nearbyAttractions: [
+      'Bain Boeuf public beach',
+      'Coin de Mire islet and Cap Malheureux',
+      'Notre Dame Auxiliatrice red-roofed church, Cap Malheureux',
+      'Grand Baie village, shops and nightlife',
+      'La Cuvette and Pereybere beaches',
+      'Boat trips to Gabriel Island and Flat Island',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long does the transfer from the airport to Coin de Mire Attitude take?",
-        "a": "The drive from SSR Airport in the south-east to Coin de Mire Attitude in Bain Boeuf is about 62 km and usually takes around 75 minutes, depending on traffic and the time of day. Your driver knows the fastest route across the island, including the motorway through Port Louis."
+        q: 'How long does the transfer from the airport to Coin de Mire Attitude take?',
+        a: 'The drive from SSR Airport in the south-east to Coin de Mire Attitude in Bain Boeuf is about 62 km and usually takes around 75 minutes, depending on traffic and the time of day. Your driver knows the fastest route across the island, including the motorway through Port Louis.',
       },
       {
-        "q": "Will the driver wait if my flight is delayed?",
-        "a": "Yes. We track your flight in real time and adjust the pickup automatically, so there is no need to call us if you are early or late. You also get around 60 minutes of free waiting time after landing, which covers immigration and baggage collection."
+        q: 'Will the driver wait if my flight is delayed?',
+        a: 'Yes. We track your flight in real time and adjust the pickup automatically, so there is no need to call us if you are early or late. You also get around 60 minutes of free waiting time after landing, which covers immigration and baggage collection.',
       },
       {
-        "q": "Is the price fixed or is there a meter?",
-        "a": "The price is fixed and confirmed when you book, with no meter and no hidden charges. The fare covers the full private journey for your group, your luggage and a child seat on request, so you know the exact cost before you travel."
+        q: 'Is the price fixed or is there a meter?',
+        a: 'The price is fixed and confirmed when you book, with no meter and no hidden charges. The fare covers the full private journey for your group, your luggage and a child seat on request, so you know the exact cost before you travel.',
       },
       {
-        "q": "Can you provide a child seat and fit our luggage?",
-        "a": "Yes. Your first child or booster seat is free when you request it at booking, and additional seats can be arranged. Our vehicles are sized to your group, so please tell us the number of passengers and large suitcases and we will send a car with enough space."
-      }
+        q: 'Can you provide a child seat and fit our luggage?',
+        a: 'Yes. Your first child or booster seat is free when you request it at booking, and additional seats can be arranged. Our vehicles are sized to your group, so please tell us the number of passengers and large suitcases and we will send a car with enough space.',
+      },
     ],
-    "lat": -19.9869,
-    "lng": 57.6135
+    lat: -19.9869,
+    lng: 57.6135,
   },
   {
-    "slug": "veranda-pointe-aux-biches",
-    "hotelName": "Veranda Pointe aux Biches",
-    "area": "Pointe aux Piments",
-    "region": "North",
-    "distanceKmFromAirport": 60,
-    "durationMinFromAirport": 75,
-    "intro": "Veranda Pointe aux Biches sits on the north-west coast in Pointe aux Piments, about 60 km from SSR International Airport down in the south-east near Mahébourg. The drive across the island takes roughly 75 minutes via the motorway and Port Louis bypass. Belle Mare Tours runs a private door-to-door transfer with a licensed local driver who speaks English and French, so there's no taxi queue and no shared shuttle. Your driver meets you at arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking, so your driver adjusts the pickup time if your flight is early or delayed",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the air-conditioned vehicle",
-      "Door-to-door drop-off at the Veranda Pointe aux Biches reception with instant email confirmation"
+    slug: 'veranda-pointe-aux-biches',
+    hotelName: 'Veranda Pointe aux Biches',
+    area: 'Pointe aux Piments',
+    region: 'North',
+    distanceKmFromAirport: 60,
+    durationMinFromAirport: 75,
+    intro:
+      "Veranda Pointe aux Biches sits on the north-west coast in Pointe aux Piments, about 60 km from SSR International Airport down in the south-east near Mahébourg. The drive across the island takes roughly 75 minutes via the motorway and Port Louis bypass. Belle Mare Tours runs a private door-to-door transfer with a licensed local driver who speaks English and French, so there's no taxi queue and no shared shuttle. Your driver meets you at arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises.",
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking, so your driver adjusts the pickup time if your flight is early or delayed',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the air-conditioned vehicle',
+      'Door-to-door drop-off at the Veranda Pointe aux Biches reception with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Pointe aux Piments beach and lagoon",
-      "Mauritius Aquarium",
-      "Tortoise and crocodile park (La Vanille is further south; nearby Balaclava ruins)",
+    nearbyAttractions: [
+      'Pointe aux Piments beach and lagoon',
+      'Mauritius Aquarium',
+      'Tortoise and crocodile park (La Vanille is further south; nearby Balaclava ruins)',
       "Baie de l'Arsenal and the historic Balaclava ruins",
-      "Trou aux Biches beach and snorkelling reef",
-      "Grand Baie shops, restaurants and nightlife",
-      "Port Louis Caudan Waterfront and central market"
+      'Trou aux Biches beach and snorkelling reef',
+      'Grand Baie shops, restaurants and nightlife',
+      'Port Louis Caudan Waterfront and central market',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Veranda Pointe aux Biches?",
-        "a": "The drive from SSR International Airport to Veranda Pointe aux Biches in Pointe aux Piments is around 60 km and usually takes about 75 minutes by private car, depending on traffic through Port Louis and the time of day. Your driver takes the fastest route via the motorway."
+        q: 'How long is the transfer to Veranda Pointe aux Biches?',
+        a: 'The drive from SSR International Airport to Veranda Pointe aux Biches in Pointe aux Piments is around 60 km and usually takes about 75 minutes by private car, depending on traffic through Port Louis and the time of day. Your driver takes the fastest route via the motorway.',
       },
       {
-        "q": "Will my driver be waiting if my flight is delayed?",
-        "a": "Yes. We track your flight in real time and adjust the pickup automatically if you land early or late, so your driver is there when you arrive. You also get up to 60 minutes of free waiting after landing while you clear immigration and collect your bags, at no extra cost."
+        q: 'Will my driver be waiting if my flight is delayed?',
+        a: 'Yes. We track your flight in real time and adjust the pickup automatically if you land early or late, so your driver is there when you arrive. You also get up to 60 minutes of free waiting after landing while you clear immigration and collect your bags, at no extra cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. Just tell us the child's age when you book so we can fit the right type, and let us know if you need more than one."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free on request. Just tell us the child's age when you book so we can fit the right type, and let us know if you need more than one.",
       },
       {
-        "q": "Is the price fixed, and how do I pay?",
-        "a": "The fare is fixed and agreed when you book, per car rather than per person, with no meter. You can settle directly with your licensed driver in cash or by card on the day, and you receive instant email confirmation with your trip and driver details after booking."
-      }
+        q: 'Is the price fixed, and how do I pay?',
+        a: 'The fare is fixed and agreed when you book, per car rather than per person, with no meter. You can settle directly with your licensed driver in cash or by card on the day, and you receive instant email confirmation with your trip and driver details after booking.',
+      },
     ],
-    "lat": -20.0492,
-    "lng": 57.523
+    lat: -20.0492,
+    lng: 57.523,
   },
   {
-    "slug": "anahita-golf-spa",
-    "hotelName": "Anahita Golf & Spa Resort",
-    "area": "Beau Champ",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "Anahita Golf & Spa Resort sits on the east coast at Beau Champ, about 45 km from SSR International Airport in the south-east. The drive takes roughly 50 minutes via Plaine Magnien and the east-coast road. Belle Mare Tours runs a door-to-door private transfer with a local driver who speaks English and French, so there is no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the resort. The price is fixed and agreed when you book, with no meter and no surprises on arrival.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time if your flight is early or delayed",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the vehicle",
-      "Door-to-door drop-off at the Anahita Golf & Spa Resort entrance with instant email confirmation"
+    slug: 'anahita-golf-spa',
+    hotelName: 'Anahita Golf & Spa Resort',
+    area: 'Beau Champ',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      'Anahita Golf & Spa Resort sits on the east coast at Beau Champ, about 45 km from SSR International Airport in the south-east. The drive takes roughly 50 minutes via Plaine Magnien and the east-coast road. Belle Mare Tours runs a door-to-door private transfer with a local driver who speaks English and French, so there is no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the resort. The price is fixed and agreed when you book, with no meter and no surprises on arrival.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time if your flight is early or delayed',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the vehicle',
+      'Door-to-door drop-off at the Anahita Golf & Spa Resort entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Île aux Cerfs island and its lagoon",
-      "Anahita Golf Course (Ernie Els signature course)",
-      "Grand River South East (GRSE) Waterfall boat trip",
+    nearbyAttractions: [
+      'Île aux Cerfs island and its lagoon',
+      'Anahita Golf Course (Ernie Els signature course)',
+      'Grand River South East (GRSE) Waterfall boat trip',
       "Trou d'Eau Douce fishing village",
-      "Belle Mare public beach and lagoon",
-      "Bras d'Eau National Park"
+      'Belle Mare public beach and lagoon',
+      "Bras d'Eau National Park",
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Anahita Golf & Spa Resort?",
-        "a": "The drive from SSR International Airport to Anahita Golf & Spa Resort in Beau Champ is about 45 km and usually takes around 50 minutes, depending on traffic and the time of day. Your private driver takes the most direct route along the east coast."
+        q: 'How long is the transfer to Anahita Golf & Spa Resort?',
+        a: 'The drive from SSR International Airport to Anahita Golf & Spa Resort in Beau Champ is about 45 km and usually takes around 50 minutes, depending on traffic and the time of day. Your private driver takes the most direct route along the east coast.',
       },
       {
-        "q": "How much luggage can I bring?",
-        "a": "A standard car comfortably fits two passengers with two large suitcases plus hand luggage. If you are travelling as a family or group, or with golf bags or extra cases, just tell us the number of passengers and bags when booking and we'll send a larger vehicle."
+        q: 'How much luggage can I bring?',
+        a: "A standard car comfortably fits two passengers with two large suitcases plus hand luggage. If you are travelling as a family or group, or with golf bags or extra cases, just tell us the number of passengers and bags when booking and we'll send a larger vehicle.",
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. If you need more than one, let us know the children's ages when you book so we can fit the correct seats before pickup."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free on request. If you need more than one, let us know the children's ages when you book so we can fit the correct seats before pickup.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so your driver adjusts the pickup time automatically if you land early or late. You also have up to 60 minutes of free waiting after landing while you clear immigration and collect your bags, so there's no need to worry about delays at no extra cost."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: "We track your flight, so your driver adjusts the pickup time automatically if you land early or late. You also have up to 60 minutes of free waiting after landing while you clear immigration and collect your bags, so there's no need to worry about delays at no extra cost.",
+      },
     ],
-    "lat": -20.282,
-    "lng": 57.7785
+    lat: -20.282,
+    lng: 57.7785,
   },
   {
-    "slug": "four-seasons-anahita",
-    "hotelName": "Four Seasons Resort Mauritius at Anahita",
-    "area": "Beau Champ",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "Arrive in style at the Four Seasons Resort Mauritius at Anahita in Beau Champ with a private, door-to-door airport transfer from Belle Mare Tours. Your licensed, English- and French-speaking driver-guide meets you in the arrivals hall with a name board, helps with your luggage, and drives you straight to the resort in a clean, air-conditioned vehicle. No queues, no shared shuttles and no surprises: you pay one fixed price agreed in advance. The scenic drive up Mauritius's east coast takes around 50 minutes, so you can relax after your flight.",
-    "included": [
-      "Meet and greet in the arrivals hall with a personalised name board",
-      "Live flight tracking so we adjust pickup if your flight is early or delayed",
-      "Free first child seat or booster on request (more available on request)",
-      "Around 60 minutes of free waiting time after landing",
-      "Complimentary bottled water on board",
-      "Private door-to-door transfer with instant booking confirmation"
+    slug: 'four-seasons-anahita',
+    hotelName: 'Four Seasons Resort Mauritius at Anahita',
+    area: 'Beau Champ',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      "Arrive in style at the Four Seasons Resort Mauritius at Anahita in Beau Champ with a private, door-to-door airport transfer from Belle Mare Tours. Your licensed, English- and French-speaking driver-guide meets you in the arrivals hall with a name board, helps with your luggage, and drives you straight to the resort in a clean, air-conditioned vehicle. No queues, no shared shuttles and no surprises: you pay one fixed price agreed in advance. The scenic drive up Mauritius's east coast takes around 50 minutes, so you can relax after your flight.",
+    included: [
+      'Meet and greet in the arrivals hall with a personalised name board',
+      'Live flight tracking so we adjust pickup if your flight is early or delayed',
+      'Free first child seat or booster on request (more available on request)',
+      'Around 60 minutes of free waiting time after landing',
+      'Complimentary bottled water on board',
+      'Private door-to-door transfer with instant booking confirmation',
     ],
-    "nearbyAttractions": [
-      "Ile aux Cerfs island and lagoon",
-      "GRSE / Grande Rivière Sud-Est Waterfall",
-      "Anahita Golf Course (Ernie Els designed)",
+    nearbyAttractions: [
+      'Ile aux Cerfs island and lagoon',
+      'GRSE / Grande Rivière Sud-Est Waterfall',
+      'Anahita Golf Course (Ernie Els designed)',
       "Trou d'Eau Douce fishing village",
-      "Belle Mare public beach",
-      "Bras d'Eau National Park"
-    ],
-    "faq": [
-      {
-        "q": "How long is the transfer from SSR Airport to the Four Seasons at Anahita?",
-        "a": "The drive from Sir Seewoosagur Ramgoolam (SSR) International Airport, near Mahébourg in the south-east, to the Four Seasons Resort at Anahita in Beau Champ is about 45 km and takes roughly 50 minutes, depending on traffic and the time of day."
-      },
-      {
-        "q": "Will the driver wait if my flight is delayed?",
-        "a": "Yes. We track your flight in real time and adjust the pickup automatically, so you will not be charged for delays. We also include around 60 minutes of free waiting time after you land to allow for immigration and baggage collection."
-      },
-      {
-        "q": "Is the price fixed, and how do I pay?",
-        "a": "The price is fixed and confirmed before your trip, with no hidden extras or per-bag charges. You can usually pay the driver in cash (EUR, USD or MUR) or by card on arrival; we confirm the exact options when you book."
-      },
-      {
-        "q": "Can you provide a child seat?",
-        "a": "Yes. The first child seat or booster is free on request, and additional seats can be arranged at no extra cost. Just tell us the children's ages when booking so we can fit the right seats."
-      }
-    ],
-    "lat": -20.2862,
-    "lng": 57.7793
-  },
-  {
-    "slug": "one-only-le-saint-geran",
-    "hotelName": "One&Only Le Saint Géran",
-    "area": "Poste de Flacq",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "One&Only Le Saint Géran sits on its own peninsula in Poste de Flacq on the east coast, about 45 km from SSR International Airport in the south-east. Belle Mare Tours runs a pre-booked private door-to-door transfer for the roughly 50-minute drive up the coast. Your local driver-guide speaks English and French, meets you inside arrivals with a name board and helps with your luggage. The price is fixed and agreed when you book, with no meter and no surprises. Just send your flight details and we handle the rest, from landing to the resort entrance.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time to any delay",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the air-conditioned vehicle",
-      "Door-to-door drop-off at One&Only Le Saint Géran with instant email confirmation"
-    ],
-    "nearbyAttractions": [
-      "Belle Mare public beach and lagoon",
-      "Île aux Cerfs and its offshore lagoon",
-      "Centre de Flacq market",
-      "Poste de Flacq village and the Sagar Shiv Mandir seaside temple",
+      'Belle Mare public beach',
       "Bras d'Eau National Park",
-      "Belle Mare Plage golf course"
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to One&Only Le Saint Géran?",
-        "a": "The drive from SSR International Airport to One&Only Le Saint Géran in Poste de Flacq is around 45 km and normally takes about 50 minutes by private car, depending on traffic and the time of day. Your driver takes the most direct route up the east coast."
+        q: 'How long is the transfer from SSR Airport to the Four Seasons at Anahita?',
+        a: 'The drive from Sir Seewoosagur Ramgoolam (SSR) International Airport, near Mahébourg in the south-east, to the Four Seasons Resort at Anahita in Beau Champ is about 45 km and takes roughly 50 minutes, depending on traffic and the time of day.',
       },
       {
-        "q": "Where will my driver meet me?",
-        "a": "Your driver waits inside the arrivals hall after baggage reclaim, holding a name board with your name. You have up to 60 minutes of free waiting while you clear immigration and collect your bags, and we track your flight so the driver is there even if you land early or late."
+        q: 'Will the driver wait if my flight is delayed?',
+        a: 'Yes. We track your flight in real time and adjust the pickup automatically, so you will not be charged for delays. We also include around 60 minutes of free waiting time after you land to allow for immigration and baggage collection.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. Just tell us each child's age when you book so we can fit the correct seat before pickup, and let us know if you need more than one."
+        q: 'Is the price fixed, and how do I pay?',
+        a: 'The price is fixed and confirmed before your trip, with no hidden extras or per-bag charges. You can usually pay the driver in cash (EUR, USD or MUR) or by card on arrival; we confirm the exact options when you book.',
       },
       {
-        "q": "Can I book a return transfer back to the airport?",
-        "a": "Yes. You can book a one-way transfer or add the return leg from One&Only Le Saint Géran back to SSR at the same time. For departures we schedule the pickup to fit your check-in, with comfortable time for the roughly 50-minute drive south."
-      }
+        q: 'Can you provide a child seat?',
+        a: "Yes. The first child seat or booster is free on request, and additional seats can be arranged at no extra cost. Just tell us the children's ages when booking so we can fit the right seats.",
+      },
     ],
-    "lat": -20.1646,
-    "lng": 57.78
+    lat: -20.2862,
+    lng: 57.7793,
   },
   {
-    "slug": "the-residence-mauritius",
-    "hotelName": "The Residence Mauritius",
-    "area": "Belle Mare",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "Travel in comfort with a private, door-to-door airport transfer from SSR International Airport to The Residence Mauritius in Belle Mare on the East coast. Your licensed, local English- and French-speaking driver-guide meets you in the arrivals hall with a name board, helps with your luggage, and drives you straight to the hotel in an air-conditioned vehicle. The price is fixed and confirmed in advance with no hidden costs or surge charges. The scenic drive takes around 50 minutes, covering roughly 45 km. Sit back, relax, and start your holiday the moment you land.",
-    "included": [
-      "Meet & greet in the arrivals hall with a personalised name board",
-      "Flight tracking, so your driver adjusts for early or delayed arrivals",
-      "One free child seat or booster on request",
-      "Around 60 minutes of free waiting time after landing",
-      "Complimentary bottled water on board",
-      "Private door-to-door service in an air-conditioned vehicle with instant booking confirmation"
+    slug: 'one-only-le-saint-geran',
+    hotelName: 'One&Only Le Saint Géran',
+    area: 'Poste de Flacq',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      'One&Only Le Saint Géran sits on its own peninsula in Poste de Flacq on the east coast, about 45 km from SSR International Airport in the south-east. Belle Mare Tours runs a pre-booked private door-to-door transfer for the roughly 50-minute drive up the coast. Your local driver-guide speaks English and French, meets you inside arrivals with a name board and helps with your luggage. The price is fixed and agreed when you book, with no meter and no surprises. Just send your flight details and we handle the rest, from landing to the resort entrance.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time to any delay',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the air-conditioned vehicle',
+      'Door-to-door drop-off at One&Only Le Saint Géran with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Belle Mare Public Beach",
-      "Île aux Cerfs island and lagoon",
-      "Centre de Flacq market",
-      "Poste Lafayette and the East-coast lagoon",
+    nearbyAttractions: [
+      'Belle Mare public beach and lagoon',
+      'Île aux Cerfs and its offshore lagoon',
+      'Centre de Flacq market',
+      'Poste de Flacq village and the Sagar Shiv Mandir seaside temple',
       "Bras d'Eau National Park",
-      "Belle Mare Plage golf courses"
+      'Belle Mare Plage golf course',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long does the transfer from the airport to The Residence Mauritius take?",
-        "a": "The drive from SSR International Airport to The Residence in Belle Mare takes about 50 minutes, covering roughly 45 km, depending on traffic and your exact arrival time."
+        q: 'How long is the transfer to One&Only Le Saint Géran?',
+        a: 'The drive from SSR International Airport to One&Only Le Saint Géran in Poste de Flacq is around 45 km and normally takes about 50 minutes by private car, depending on traffic and the time of day. Your driver takes the most direct route up the east coast.',
       },
       {
-        "q": "Where will I meet my driver after landing?",
-        "a": "Your driver waits in the arrivals hall just outside baggage claim, holding a name board with your name on it. We track your flight, so if you land early or late your driver will still be there waiting for you."
+        q: 'Where will my driver meet me?',
+        a: 'Your driver waits inside the arrivals hall after baggage reclaim, holding a name board with your name. You have up to 60 minutes of free waiting while you clear immigration and collect your bags, and we track your flight so the driver is there even if you land early or late.',
       },
       {
-        "q": "Is the price fixed, and how do I pay?",
-        "a": "Yes, the price is fixed and confirmed when you book, with no hidden fees or surge charges. You receive instant confirmation and can settle directly with your driver, with payment details arranged at the time of booking."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free on request. Just tell us each child's age when you book so we can fit the correct seat before pickup, and let us know if you need more than one.",
       },
       {
-        "q": "Do you provide child seats?",
-        "a": "Yes. We provide one child seat or booster free of charge on request. Just let us know your child's age when booking and we will have the right seat fitted and ready for your arrival."
-      }
+        q: 'Can I book a return transfer back to the airport?',
+        a: 'Yes. You can book a one-way transfer or add the return leg from One&Only Le Saint Géran back to SSR at the same time. For departures we schedule the pickup to fit your check-in, with comfortable time for the roughly 50-minute drive south.',
+      },
     ],
-    "lat": -20.205,
-    "lng": 57.7773
+    lat: -20.1646,
+    lng: 57.78,
   },
   {
-    "slug": "emeraude-beach-attitude",
-    "hotelName": "Émeraude Beach Attitude",
-    "area": "Belle Mare",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "Émeraude Beach Attitude sits on the east coast in Belle Mare, about 45 km from SSR International Airport in the south-east. Belle Mare Tours runs a door-to-door private transfer with a local driver-guide who speaks English and French, so there is no airport queue and no shared shuttle. The drive takes roughly 50 minutes via Plaine Magnien and the east-coast road. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises on arrival.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time to any delay",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the air-conditioned car",
-      "Door-to-door drop-off at Émeraude Beach Attitude with instant email confirmation"
+    slug: 'the-residence-mauritius',
+    hotelName: 'The Residence Mauritius',
+    area: 'Belle Mare',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      'Travel in comfort with a private, door-to-door airport transfer from SSR International Airport to The Residence Mauritius in Belle Mare on the East coast. Your licensed, local English- and French-speaking driver-guide meets you in the arrivals hall with a name board, helps with your luggage, and drives you straight to the hotel in an air-conditioned vehicle. The price is fixed and confirmed in advance with no hidden costs or surge charges. The scenic drive takes around 50 minutes, covering roughly 45 km. Sit back, relax, and start your holiday the moment you land.',
+    included: [
+      'Meet & greet in the arrivals hall with a personalised name board',
+      'Flight tracking, so your driver adjusts for early or delayed arrivals',
+      'One free child seat or booster on request',
+      'Around 60 minutes of free waiting time after landing',
+      'Complimentary bottled water on board',
+      'Private door-to-door service in an air-conditioned vehicle with instant booking confirmation',
     ],
-    "nearbyAttractions": [
-      "Belle Mare public beach and lagoon",
-      "Île aux Cerfs and its offshore lagoon",
+    nearbyAttractions: [
+      'Belle Mare Public Beach',
+      'Île aux Cerfs island and lagoon',
+      'Centre de Flacq market',
+      'Poste Lafayette and the East-coast lagoon',
+      "Bras d'Eau National Park",
+      'Belle Mare Plage golf courses',
+    ],
+    faq: [
+      {
+        q: 'How long does the transfer from the airport to The Residence Mauritius take?',
+        a: 'The drive from SSR International Airport to The Residence in Belle Mare takes about 50 minutes, covering roughly 45 km, depending on traffic and your exact arrival time.',
+      },
+      {
+        q: 'Where will I meet my driver after landing?',
+        a: 'Your driver waits in the arrivals hall just outside baggage claim, holding a name board with your name on it. We track your flight, so if you land early or late your driver will still be there waiting for you.',
+      },
+      {
+        q: 'Is the price fixed, and how do I pay?',
+        a: 'Yes, the price is fixed and confirmed when you book, with no hidden fees or surge charges. You receive instant confirmation and can settle directly with your driver, with payment details arranged at the time of booking.',
+      },
+      {
+        q: 'Do you provide child seats?',
+        a: "Yes. We provide one child seat or booster free of charge on request. Just let us know your child's age when booking and we will have the right seat fitted and ready for your arrival.",
+      },
+    ],
+    lat: -20.205,
+    lng: 57.7773,
+  },
+  {
+    slug: 'emeraude-beach-attitude',
+    hotelName: 'Émeraude Beach Attitude',
+    area: 'Belle Mare',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      'Émeraude Beach Attitude sits on the east coast in Belle Mare, about 45 km from SSR International Airport in the south-east. Belle Mare Tours runs a door-to-door private transfer with a local driver-guide who speaks English and French, so there is no airport queue and no shared shuttle. The drive takes roughly 50 minutes via Plaine Magnien and the east-coast road. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises on arrival.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time to any delay',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the air-conditioned car',
+      'Door-to-door drop-off at Émeraude Beach Attitude with instant email confirmation',
+    ],
+    nearbyAttractions: [
+      'Belle Mare public beach and lagoon',
+      'Île aux Cerfs and its offshore lagoon',
       "Trou d'Eau Douce fishing village",
-      "Centre de Flacq market",
+      'Centre de Flacq market',
       "Bras d'Eau National Park",
-      "Belle Mare Plage golf course"
+      'Belle Mare Plage golf course',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Émeraude Beach Attitude?",
-        "a": "The drive from SSR International Airport to Émeraude Beach Attitude in Belle Mare is about 45 km and usually takes around 50 minutes by private car, depending on traffic and the time of day. Your driver takes the most direct route up the east coast."
+        q: 'How long is the transfer to Émeraude Beach Attitude?',
+        a: 'The drive from SSR International Airport to Émeraude Beach Attitude in Belle Mare is about 45 km and usually takes around 50 minutes by private car, depending on traffic and the time of day. Your driver takes the most direct route up the east coast.',
       },
       {
-        "q": "Where will I meet my driver at the airport?",
-        "a": "Your driver waits inside the arrivals hall, just past baggage reclaim and customs, holding a name board with your name on it. There is no need to look for a taxi rank or a shared shuttle, you go straight to your private car."
+        q: 'Where will I meet my driver at the airport?',
+        a: 'Your driver waits inside the arrivals hall, just past baggage reclaim and customs, holding a name board with your name on it. There is no need to look for a taxi rank or a shared shuttle, you go straight to your private car.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. Tell us the child's age when you book so we can fit the correct type, and let us know if you need more than one seat."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free on request. Tell us the child's age when you book so we can fit the correct type, and let us know if you need more than one seat.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup automatically if you land early or late. You also get up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags, at no extra cost."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup automatically if you land early or late. You also get up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags, at no extra cost.',
+      },
     ],
-    "lat": -20.2122,
-    "lng": 57.776
+    lat: -20.2122,
+    lng: 57.776,
   },
   {
-    "slug": "tropical-attitude",
-    "hotelName": "Tropical Attitude",
-    "area": "Trou d'Eau Douce",
-    "region": "East",
-    "distanceKmFromAirport": 50,
-    "durationMinFromAirport": 55,
-    "intro": "Tropical Attitude sits in the fishing village of Trou d'Eau Douce on the east coast, about 50 km from SSR International Airport in the south-east. The drive takes roughly 55 minutes via Plaine Magnien and the east-coast road. We run a door-to-door private transfer with a local driver-guide who speaks English and French, so there's no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises on arrival.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking, so your driver adjusts the pickup if your flight is early or delayed",
-      "One free child or baby seat on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in the vehicle",
-      "Door-to-door drop-off at the hotel entrance with instant email confirmation"
+    slug: 'tropical-attitude',
+    hotelName: 'Tropical Attitude',
+    area: "Trou d'Eau Douce",
+    region: 'East',
+    distanceKmFromAirport: 50,
+    durationMinFromAirport: 55,
+    intro:
+      "Tropical Attitude sits in the fishing village of Trou d'Eau Douce on the east coast, about 50 km from SSR International Airport in the south-east. The drive takes roughly 55 minutes via Plaine Magnien and the east-coast road. We run a door-to-door private transfer with a local driver-guide who speaks English and French, so there's no airport queue and no shared shuttle. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the hotel. The price is fixed and agreed when you book, with no meter and no surprises on arrival.",
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking, so your driver adjusts the pickup if your flight is early or delayed',
+      'One free child or baby seat on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in the vehicle',
+      'Door-to-door drop-off at the hotel entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Île aux Cerfs island and its beaches",
+    nearbyAttractions: [
+      'Île aux Cerfs island and its beaches',
       "Trou d'Eau Douce fishing village and waterfront",
-      "Belle Mare public beach and lagoon",
-      "GRSE Waterfall and the east-coast lagoon boat trips",
-      "Centre de Flacq market",
-      "Bras d'Eau National Park"
+      'Belle Mare public beach and lagoon',
+      'GRSE Waterfall and the east-coast lagoon boat trips',
+      'Centre de Flacq market',
+      "Bras d'Eau National Park",
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Tropical Attitude?",
-        "a": "The drive from SSR International Airport to Tropical Attitude in Trou d'Eau Douce is about 50 km and usually takes around 55 minutes, depending on traffic and the time of day. Your private driver takes the most direct route up the east coast."
+        q: 'How long is the transfer to Tropical Attitude?',
+        a: "The drive from SSR International Airport to Tropical Attitude in Trou d'Eau Douce is about 50 km and usually takes around 55 minutes, depending on traffic and the time of day. Your private driver takes the most direct route up the east coast.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time after landing at no extra cost."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time after landing at no extra cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is free of charge — just tell us the child's age when you book so we can fit the right type. Additional seats can be added on request."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is free of charge — just tell us the child's age when you book so we can fit the right type. Additional seats can be added on request.",
       },
       {
-        "q": "Can I book a return or departure transfer back to the airport?",
-        "a": "Yes. You can book a one-way transfer or add the return leg at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time to reach SSR from Trou d'Eau Douce."
-      }
+        q: 'Can I book a return or departure transfer back to the airport?',
+        a: "Yes. You can book a one-way transfer or add the return leg at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time to reach SSR from Trou d'Eau Douce.",
+      },
     ],
-    "lat": -20.2456,
-    "lng": 57.7875
+    lat: -20.2456,
+    lng: 57.7875,
   },
   {
-    "slug": "solana-beach",
-    "hotelName": "Solana Beach Mauritius",
-    "area": "Belle Mare",
-    "region": "East",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 50,
-    "intro": "Belle Mare Tours runs pre-booked private airport transfers from SSR International Airport to Solana Beach Mauritius in Belle Mare on the east coast. The airport sits in the south-east near Mahebourg, so the drive up the coast is about 45 km and takes roughly 50 minutes. Your local driver-guide, who speaks English and French, meets you inside arrivals with a name board, helps with your bags and takes you door to door in a private air-conditioned car. The price is fixed and agreed when you book, with no meter and no surprises. Just send your flight details and we handle the rest.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time to any delay",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the car",
-      "Door-to-door drop-off at the Solana Beach Mauritius entrance with instant email confirmation"
+    slug: 'solana-beach',
+    hotelName: 'Solana Beach Mauritius',
+    area: 'Belle Mare',
+    region: 'East',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 50,
+    intro:
+      'Belle Mare Tours runs pre-booked private airport transfers from SSR International Airport to Solana Beach Mauritius in Belle Mare on the east coast. The airport sits in the south-east near Mahebourg, so the drive up the coast is about 45 km and takes roughly 50 minutes. Your local driver-guide, who speaks English and French, meets you inside arrivals with a name board, helps with your bags and takes you door to door in a private air-conditioned car. The price is fixed and agreed when you book, with no meter and no surprises. Just send your flight details and we handle the rest.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time to any delay',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the car',
+      'Door-to-door drop-off at the Solana Beach Mauritius entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Belle Mare public beach and lagoon",
-      "Ile aux Cerfs island and its beaches",
-      "Centre de Flacq market",
+    nearbyAttractions: [
+      'Belle Mare public beach and lagoon',
+      'Ile aux Cerfs island and its beaches',
+      'Centre de Flacq market',
       "Trou d'Eau Douce fishing village",
       "Bras d'Eau National Park",
-      "Belle Mare Plage golf course"
+      'Belle Mare Plage golf course',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Solana Beach Mauritius?",
-        "a": "The drive from SSR International Airport to Solana Beach Mauritius in Belle Mare is about 45 km and usually takes around 50 minutes by private car, depending on traffic and the time of day. SSR is in the south-east near Mahebourg, so your driver heads up the east coast to reach Belle Mare."
+        q: 'How long is the transfer to Solana Beach Mauritius?',
+        a: 'The drive from SSR International Airport to Solana Beach Mauritius in Belle Mare is about 45 km and usually takes around 50 minutes by private car, depending on traffic and the time of day. SSR is in the south-east near Mahebourg, so your driver heads up the east coast to reach Belle Mare.',
       },
       {
-        "q": "Where will my driver meet me?",
-        "a": "Your driver waits inside the arrivals hall holding a name board with your name on it, so you are easy to find once you clear immigration and collect your bags. There is no shared shuttle and no airport queue, just a private car ready to take you straight to the hotel."
+        q: 'Where will my driver meet me?',
+        a: 'Your driver waits inside the arrivals hall holding a name board with your name on it, so you are easy to find once you clear immigration and collect your bags. There is no shared shuttle and no airport queue, just a private car ready to take you straight to the hotel.',
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time after landing at no extra cost while you clear immigration and collect your luggage."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time after landing at no extra cost while you clear immigration and collect your luggage.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. Just tell us the child's age when you book so we can fit the correct type before pickup, and let us know if you need more than one."
-      }
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free on request. Just tell us the child's age when you book so we can fit the correct type before pickup, and let us know if you need more than one.",
+      },
     ],
-    "lat": -20.215,
-    "lng": 57.777
+    lat: -20.215,
+    lng: 57.777,
   },
   {
-    "slug": "preskil-island-resort",
-    "hotelName": "Preskil Island Resort",
-    "area": "Mahébourg",
-    "region": "South",
-    "distanceKmFromAirport": 10,
-    "durationMinFromAirport": 15,
-    "intro": "Preskil Island Resort sits on the Pointe Jérôme peninsula near Mahébourg on the south-east coast, just 10 km from SSR International Airport. That makes it one of the shortest transfers on the island, a door-to-door drive of about 15 minutes. Belle Mare Tours runs a private transfer with a licensed local driver who speaks English and French, so there is no taxi queue and no shared shuttle. Your driver meets you inside the arrivals hall with a name board, helps with your bags and takes you straight to the resort. The price is fixed and agreed when you book, with no meter and no surprises.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your pickup time adjusts automatically if your flight is early or delayed",
-      "First child or baby seat free of charge on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the air-conditioned vehicle",
-      "Door-to-door drop-off at the Preskil Island Resort entrance with instant email confirmation"
+    slug: 'preskil-island-resort',
+    hotelName: 'Preskil Island Resort',
+    area: 'Mahébourg',
+    region: 'South',
+    distanceKmFromAirport: 10,
+    durationMinFromAirport: 15,
+    intro:
+      'Preskil Island Resort sits on the Pointe Jérôme peninsula near Mahébourg on the south-east coast, just 10 km from SSR International Airport. That makes it one of the shortest transfers on the island, a door-to-door drive of about 15 minutes. Belle Mare Tours runs a private transfer with a licensed local driver who speaks English and French, so there is no taxi queue and no shared shuttle. Your driver meets you inside the arrivals hall with a name board, helps with your bags and takes you straight to the resort. The price is fixed and agreed when you book, with no meter and no surprises.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your pickup time adjusts automatically if your flight is early or delayed',
+      'First child or baby seat free of charge on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the air-conditioned vehicle',
+      'Door-to-door drop-off at the Preskil Island Resort entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Blue Bay Marine Park for snorkelling over the coral",
-      "Île aux Aigrettes nature reserve and its giant tortoises",
-      "Mahébourg waterfront and the Monday street market",
-      "National History Museum at Mahébourg",
+    nearbyAttractions: [
+      'Blue Bay Marine Park for snorkelling over the coral',
+      'Île aux Aigrettes nature reserve and its giant tortoises',
+      'Mahébourg waterfront and the Monday street market',
+      'National History Museum at Mahébourg',
       "Pointe d'Esny beach and lagoon",
-      "Rault Biscuit Factory (manioc biscuits made the traditional way)"
+      'Rault Biscuit Factory (manioc biscuits made the traditional way)',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to Preskil Island Resort?",
-        "a": "The drive from SSR International Airport to Preskil Island Resort at Pointe Jérôme is only about 10 km and usually takes around 15 minutes by private car. It is one of the closest resorts to the airport, so you reach your room very soon after landing."
+        q: 'How long is the transfer from the airport to Preskil Island Resort?',
+        a: 'The drive from SSR International Airport to Preskil Island Resort at Pointe Jérôme is only about 10 km and usually takes around 15 minutes by private car. It is one of the closest resorts to the airport, so you reach your room very soon after landing.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is free of charge on request. Just tell us the child's age when you book so we fit the correct infant, toddler or booster seat. Additional seats can be arranged for larger families."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is free of charge on request. Just tell us the child's age when you book so we fit the correct infant, toddler or booster seat. Additional seats can be arranged for larger families.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup to your actual landing time at no extra charge. You also get up to 60 minutes of free waiting after you land while you clear immigration and collect your bags."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup to your actual landing time at no extra charge. You also get up to 60 minutes of free waiting after you land while you clear immigration and collect your bags.',
       },
       {
-        "q": "Can I book a return or departure transfer back to the airport?",
-        "a": "Yes. You can book a one-way arrival transfer or add the return leg back to SSR Airport in the same booking. As the airport is so close, the departure pickup is short, but we still allow comfortable time for check-in."
-      }
+        q: 'Can I book a return or departure transfer back to the airport?',
+        a: 'Yes. You can book a one-way arrival transfer or add the return leg back to SSR Airport in the same booking. As the airport is so close, the departure pickup is short, but we still allow comfortable time for check-in.',
+      },
     ],
-    "lat": -20.4181,
-    "lng": 57.7019
+    lat: -20.4181,
+    lng: 57.7019,
   },
   {
-    "slug": "shandrani-beachcomber",
-    "hotelName": "Shandrani Beachcomber Resort & Spa",
-    "area": "Blue Bay",
-    "region": "South",
-    "distanceKmFromAirport": 10,
-    "durationMinFromAirport": 15,
-    "intro": "Shandrani Beachcomber Resort & Spa sits on its own peninsula in Blue Bay, just a short hop from SSR International Airport in the south-east. The private transfer covers only about 10 km and takes roughly 15 minutes, so you are at the hotel almost as soon as you land. Your local driver-guide speaks English and French, meets you inside arrivals with a name board, helps with your bags and takes you straight to the door. The price is fixed and agreed when you book, with no meter and no surprises on arrival.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking, so your driver adjusts the pickup time if your flight is early or delayed",
-      "One free child or baby seat on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in the air-conditioned vehicle",
-      "Door-to-door drop-off at the Shandrani entrance with instant email confirmation"
+    slug: 'shandrani-beachcomber',
+    hotelName: 'Shandrani Beachcomber Resort & Spa',
+    area: 'Blue Bay',
+    region: 'South',
+    distanceKmFromAirport: 10,
+    durationMinFromAirport: 15,
+    intro:
+      'Shandrani Beachcomber Resort & Spa sits on its own peninsula in Blue Bay, just a short hop from SSR International Airport in the south-east. The private transfer covers only about 10 km and takes roughly 15 minutes, so you are at the hotel almost as soon as you land. Your local driver-guide speaks English and French, meets you inside arrivals with a name board, helps with your bags and takes you straight to the door. The price is fixed and agreed when you book, with no meter and no surprises on arrival.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking, so your driver adjusts the pickup time if your flight is early or delayed',
+      'One free child or baby seat on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in the air-conditioned vehicle',
+      'Door-to-door drop-off at the Shandrani entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Blue Bay Marine Park and its glass-bottom boat trips",
-      "Blue Bay public beach",
-      "Île aux Aigrettes nature reserve",
-      "Mahébourg waterfront and Monday market",
+    nearbyAttractions: [
+      'Blue Bay Marine Park and its glass-bottom boat trips',
+      'Blue Bay public beach',
+      'Île aux Aigrettes nature reserve',
+      'Mahébourg waterfront and Monday market',
       "Pointe d'Esny beach and lagoon",
-      "National History Museum, Mahébourg"
+      'National History Museum, Mahébourg',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Shandrani Beachcomber Resort & Spa?",
-        "a": "The drive from SSR International Airport to Shandrani in Blue Bay is only about 10 km and usually takes around 15 minutes by private car, depending on traffic. It is one of the closest hotels to the airport, so you reach reception very quickly after landing."
+        q: 'How long is the transfer to Shandrani Beachcomber Resort & Spa?',
+        a: 'The drive from SSR International Airport to Shandrani in Blue Bay is only about 10 km and usually takes around 15 minutes by private car, depending on traffic. It is one of the closest hotels to the airport, so you reach reception very quickly after landing.',
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time and adjust the pickup automatically, so your driver is there when you land even if you arrive early or late. You also have up to 60 minutes of free waiting time at no extra cost while you clear immigration and collect your bags."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time and adjust the pickup automatically, so your driver is there when you land even if you arrive early or late. You also have up to 60 minutes of free waiting time at no extra cost while you clear immigration and collect your bags.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is free on request. Just tell us the child's age when you book so we can fit the right type, and let us know if you need more than one seat."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is free on request. Just tell us the child's age when you book so we can fit the right type, and let us know if you need more than one seat.",
       },
       {
-        "q": "Can I book a return or departure transfer?",
-        "a": "Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. Because Shandrani is so close to SSR, departures are quick and stress-free, and we schedule the pickup to fit your check-in with comfortable time to spare."
-      }
+        q: 'Can I book a return or departure transfer?',
+        a: 'Yes. You can book a one-way transfer or add the return leg back to the airport at the same time. Because Shandrani is so close to SSR, departures are quick and stress-free, and we schedule the pickup to fit your check-in with comfortable time to spare.',
+      },
     ],
-    "lat": -20.4432,
-    "lng": 57.6975
+    lat: -20.4432,
+    lng: 57.6975,
   },
   {
-    "slug": "tamassa-bel-ombre",
-    "hotelName": "Tamassa Bel Ombre",
-    "area": "Bel Ombre",
-    "region": "South",
-    "distanceKmFromAirport": 40,
-    "durationMinFromAirport": 50,
-    "intro": "Tamassa Bel Ombre sits on the unspoilt south coast at Bel Ombre, about 40 km from SSR International Airport. Belle Mare Tours runs a private, door-to-door transfer straight to the resort entrance in roughly 50 minutes along the scenic south-coast road. A licensed local driver who speaks English and French meets you inside arrivals, helps with your bags and drives you in a comfortable air-conditioned car. The price is fixed and agreed when you book, so there is no meter and no surprise surcharge on arrival.",
-    "included": [
-      "Meet & greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your pickup time adjusts automatically if your flight is delayed",
-      "First child or baby seat free of charge on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water on board",
-      "Private door-to-door drop-off at the Tamassa entrance with instant email confirmation"
+    slug: 'tamassa-bel-ombre',
+    hotelName: 'Tamassa Bel Ombre',
+    area: 'Bel Ombre',
+    region: 'South',
+    distanceKmFromAirport: 40,
+    durationMinFromAirport: 50,
+    intro:
+      'Tamassa Bel Ombre sits on the unspoilt south coast at Bel Ombre, about 40 km from SSR International Airport. Belle Mare Tours runs a private, door-to-door transfer straight to the resort entrance in roughly 50 minutes along the scenic south-coast road. A licensed local driver who speaks English and French meets you inside arrivals, helps with your bags and drives you in a comfortable air-conditioned car. The price is fixed and agreed when you book, so there is no meter and no surprise surcharge on arrival.',
+    included: [
+      'Meet & greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your pickup time adjusts automatically if your flight is delayed',
+      'First child or baby seat free of charge on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water on board',
+      'Private door-to-door drop-off at the Tamassa entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Bel Ombre Nature Reserve and Frederica Reserve safaris",
-      "Heritage Golf Club Bel Ombre",
-      "Château de Bel Ombre and its colonial gardens",
-      "Rochester Falls near Souillac",
-      "Gris Gris cliffs and the wild southern coastline",
-      "La Vanille Nature Park (giant tortoises and crocodiles)"
+    nearbyAttractions: [
+      'Bel Ombre Nature Reserve and Frederica Reserve safaris',
+      'Heritage Golf Club Bel Ombre',
+      'Château de Bel Ombre and its colonial gardens',
+      'Rochester Falls near Souillac',
+      'Gris Gris cliffs and the wild southern coastline',
+      'La Vanille Nature Park (giant tortoises and crocodiles)',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer from the airport to Tamassa Bel Ombre?",
-        "a": "The drive from SSR International Airport to Tamassa in Bel Ombre is about 40 km and takes roughly 50 minutes by private car, following the south-coast road through Souillac. Travel time can vary slightly with traffic and weather."
+        q: 'How long is the transfer from the airport to Tamassa Bel Ombre?',
+        a: 'The drive from SSR International Airport to Tamassa in Bel Ombre is about 40 km and takes roughly 50 minutes by private car, following the south-coast road through Souillac. Travel time can vary slightly with traffic and weather.',
       },
       {
-        "q": "Where will my driver meet me?",
-        "a": "Your driver waits inside the arrivals hall holding a name board with your name, just after you clear immigration and collect your bags. We track your flight, so if you land early or late the pickup time adjusts automatically at no extra charge."
+        q: 'Where will my driver meet me?',
+        a: 'Your driver waits inside the arrivals hall holding a name board with your name, just after you clear immigration and collect your bags. We track your flight, so if you land early or late the pickup time adjusts automatically at no extra charge.',
       },
       {
-        "q": "Is the price fixed, or is there a meter?",
-        "a": "The price is fixed and agreed when you book, for the whole car rather than per person. There is no meter and no surprise surcharge on arrival, so you know the exact cost before you travel."
+        q: 'Is the price fixed, or is there a meter?',
+        a: 'The price is fixed and agreed when you book, for the whole car rather than per person. There is no meter and no surprise surcharge on arrival, so you know the exact cost before you travel.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is provided free of charge when you request it during booking. Just tell us your child's age so we fit the correct seat, and we can add more seats for larger families at no extra cost."
-      }
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is provided free of charge when you request it during booking. Just tell us your child's age so we fit the correct seat, and we can add more seats for larger families at no extra cost.",
+      },
     ],
-    "lat": -20.5031,
-    "lng": 57.398
+    lat: -20.5031,
+    lng: 57.398,
   },
   {
-    "slug": "outrigger-mauritius",
-    "hotelName": "Outrigger Mauritius Beach Resort",
-    "area": "Bel Ombre",
-    "region": "South",
-    "distanceKmFromAirport": 40,
-    "durationMinFromAirport": 50,
-    "intro": "Outrigger Mauritius Beach Resort sits on the unspoilt south coast at Bel Ombre, about 40 km from SSR International Airport in the south-east. The drive takes roughly 50 minutes along the scenic southern coast road, so you arrive relaxed and ready for your stay. We run a private, door-to-door transfer with a licensed local driver-guide who speaks English and French. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the resort. The price is fixed and agreed when you book, with no meter and no surprises.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking, so your pickup adjusts automatically if your flight is early or delayed",
-      "One free child or baby seat on request",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in an air-conditioned vehicle",
-      "Door-to-door drop-off at the resort entrance with instant email confirmation"
+    slug: 'outrigger-mauritius',
+    hotelName: 'Outrigger Mauritius Beach Resort',
+    area: 'Bel Ombre',
+    region: 'South',
+    distanceKmFromAirport: 40,
+    durationMinFromAirport: 50,
+    intro:
+      'Outrigger Mauritius Beach Resort sits on the unspoilt south coast at Bel Ombre, about 40 km from SSR International Airport in the south-east. The drive takes roughly 50 minutes along the scenic southern coast road, so you arrive relaxed and ready for your stay. We run a private, door-to-door transfer with a licensed local driver-guide who speaks English and French. Your driver meets you inside arrivals with a name board, helps with your luggage and takes you straight to the resort. The price is fixed and agreed when you book, with no meter and no surprises.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking, so your pickup adjusts automatically if your flight is early or delayed',
+      'One free child or baby seat on request',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in an air-conditioned vehicle',
+      'Door-to-door drop-off at the resort entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Bel Ombre public beach and lagoon",
-      "Frederica Nature Reserve at Bel Ombre",
-      "Heritage Golf Club, Bel Ombre",
-      "Black River Gorges National Park",
-      "Chamarel Seven Coloured Earths and waterfall",
-      "Le Morne Brabant and its UNESCO heritage beach"
+    nearbyAttractions: [
+      'Bel Ombre public beach and lagoon',
+      'Frederica Nature Reserve at Bel Ombre',
+      'Heritage Golf Club, Bel Ombre',
+      'Black River Gorges National Park',
+      'Chamarel Seven Coloured Earths and waterfall',
+      'Le Morne Brabant and its UNESCO heritage beach',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Outrigger Mauritius Beach Resort?",
-        "a": "The drive from SSR International Airport to Outrigger Mauritius Beach Resort in Bel Ombre is about 40 km and usually takes around 50 minutes, depending on traffic and the time of day. Your private driver takes the most direct route along the south coast."
+        q: 'How long is the transfer to Outrigger Mauritius Beach Resort?',
+        a: 'The drive from SSR International Airport to Outrigger Mauritius Beach Resort in Bel Ombre is about 40 km and usually takes around 50 minutes, depending on traffic and the time of day. Your private driver takes the most direct route along the south coast.',
       },
       {
-        "q": "Where will my driver meet me at the airport?",
-        "a": "Your driver waits inside the arrivals hall, just past baggage reclaim and customs, holding a personalised name board. They help with your luggage and walk you to the vehicle, so there is no queue and no shared shuttle."
+        q: 'Where will my driver meet me at the airport?',
+        a: 'Your driver waits inside the arrivals hall, just past baggage reclaim and customs, holding a personalised name board. They help with your luggage and walk you to the vehicle, so there is no queue and no shared shuttle.',
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time after touchdown at no extra cost."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time and adjust the pickup automatically, so your driver is there when you land. You also get up to 60 minutes of free waiting time after touchdown at no extra cost.',
       },
       {
-        "q": "Can I book a return transfer back to the airport?",
-        "a": "Yes. You can book a one-way transfer or add the return leg from Bel Ombre back to SSR Airport at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time for the south-coast drive."
-      }
+        q: 'Can I book a return transfer back to the airport?',
+        a: 'Yes. You can book a one-way transfer or add the return leg from Bel Ombre back to SSR Airport at the same time. For departures we schedule the pickup to fit your check-in, allowing comfortable time for the south-coast drive.',
+      },
     ],
-    "lat": -20.5052,
-    "lng": 57.3852
+    lat: -20.5052,
+    lng: 57.3852,
   },
   {
-    "slug": "hilton-mauritius",
-    "hotelName": "Hilton Mauritius Resort & Spa",
-    "area": "Flic-en-Flac",
-    "region": "West",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 55,
-    "intro": "Hilton Mauritius Resort & Spa sits on the lively west-coast beach at Flic-en-Flac, about 45 km from SSR International Airport in the south-east. The drive takes roughly 55 minutes across the central plateau and down to the coast. Belle Mare Tours runs a door-to-door private transfer with a local, English- and French-speaking driver, so there is no taxi queue and no shared shuttle. Your driver meets you inside the arrivals hall with a name board, helps with your luggage, and takes you straight to the resort. The price is fixed and agreed when you book, with no meter and no surprises on arrival.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time if your flight is early or delayed",
-      "First child or baby seat free of charge on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the air-conditioned vehicle",
-      "Door-to-door drop-off at the Hilton Mauritius Resort & Spa entrance with instant email confirmation"
+    slug: 'hilton-mauritius',
+    hotelName: 'Hilton Mauritius Resort & Spa',
+    area: 'Flic-en-Flac',
+    region: 'West',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 55,
+    intro:
+      'Hilton Mauritius Resort & Spa sits on the lively west-coast beach at Flic-en-Flac, about 45 km from SSR International Airport in the south-east. The drive takes roughly 55 minutes across the central plateau and down to the coast. Belle Mare Tours runs a door-to-door private transfer with a local, English- and French-speaking driver, so there is no taxi queue and no shared shuttle. Your driver meets you inside the arrivals hall with a name board, helps with your luggage, and takes you straight to the resort. The price is fixed and agreed when you book, with no meter and no surprises on arrival.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time if your flight is early or delayed',
+      'First child or baby seat free of charge on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the air-conditioned vehicle',
+      'Door-to-door drop-off at the Hilton Mauritius Resort & Spa entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Flic-en-Flac public beach and lagoon",
-      "Casela Nature Parks",
-      "Tamarin Bay and its dolphin-watching trips",
-      "Black River Gorges National Park",
-      "La Preneuse beach and the Martello Tower",
-      "Chamarel Seven Coloured Earths and waterfall"
+    nearbyAttractions: [
+      'Flic-en-Flac public beach and lagoon',
+      'Casela Nature Parks',
+      'Tamarin Bay and its dolphin-watching trips',
+      'Black River Gorges National Park',
+      'La Preneuse beach and the Martello Tower',
+      'Chamarel Seven Coloured Earths and waterfall',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Hilton Mauritius Resort & Spa?",
-        "a": "The drive from SSR International Airport to Hilton Mauritius Resort & Spa in Flic-en-Flac is about 45 km and usually takes around 55 minutes, depending on traffic and the time of day. Your private driver takes the most direct route via the motorway and central plateau."
+        q: 'How long is the transfer to Hilton Mauritius Resort & Spa?',
+        a: 'The drive from SSR International Airport to Hilton Mauritius Resort & Spa in Flic-en-Flac is about 45 km and usually takes around 55 minutes, depending on traffic and the time of day. Your private driver takes the most direct route via the motorway and central plateau.',
       },
       {
-        "q": "How much luggage can the car take?",
-        "a": "A standard car comfortably fits two passengers with two large suitcases plus hand luggage. If you are travelling as a family or group, or with golf bags or extra cases, just tell us the number of passengers and bags when booking and we will send a larger vehicle."
+        q: 'How much luggage can the car take?',
+        a: 'A standard car comfortably fits two passengers with two large suitcases plus hand luggage. If you are travelling as a family or group, or with golf bags or extra cases, just tell us the number of passengers and bags when booking and we will send a larger vehicle.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. The first child or baby seat is free on request. Just tell us your child's age when you book so we fit the correct seat, and let us know if you need more than one."
+        q: 'Are child seats available?',
+        a: "Yes. The first child or baby seat is free on request. Just tell us your child's age when you book so we fit the correct seat, and let us know if you need more than one.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup automatically if you land early or late. You also get up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags, at no extra cost."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup automatically if you land early or late. You also get up to 60 minutes of free waiting time after landing while you clear immigration and collect your bags, at no extra cost.',
+      },
     ],
-    "lat": -20.292,
-    "lng": 57.3648
+    lat: -20.292,
+    lng: 57.3648,
   },
   {
-    "slug": "la-pirogue",
-    "hotelName": "La Pirogue Mauritius",
-    "area": "Flic-en-Flac",
-    "region": "West",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 55,
-    "intro": "La Pirogue Mauritius sits on the sunset coast at Wolmar, just south of Flic-en-Flac on the island's west side. From SSR International Airport in the south-east the drive takes roughly 55 minutes across the central plateau and down to the lagoon. Belle Mare Tours runs a door-to-door private transfer with a local, English- and French-speaking driver, so there is no shared shuttle and no taxi meter. You pay one fixed, transparent price agreed when you book, and your driver meets you personally at arrivals with a name board for a relaxed start to your holiday.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your pickup time adjusts automatically if your flight is early or delayed",
-      "First child or baby seat free of charge on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the air-conditioned vehicle",
-      "Door-to-door drop-off at the La Pirogue Mauritius entrance with instant email confirmation"
+    slug: 'la-pirogue',
+    hotelName: 'La Pirogue Mauritius',
+    area: 'Flic-en-Flac',
+    region: 'West',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 55,
+    intro:
+      "La Pirogue Mauritius sits on the sunset coast at Wolmar, just south of Flic-en-Flac on the island's west side. From SSR International Airport in the south-east the drive takes roughly 55 minutes across the central plateau and down to the lagoon. Belle Mare Tours runs a door-to-door private transfer with a local, English- and French-speaking driver, so there is no shared shuttle and no taxi meter. You pay one fixed, transparent price agreed when you book, and your driver meets you personally at arrivals with a name board for a relaxed start to your holiday.",
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your pickup time adjusts automatically if your flight is early or delayed',
+      'First child or baby seat free of charge on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the air-conditioned vehicle',
+      'Door-to-door drop-off at the La Pirogue Mauritius entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Flic-en-Flac public beach and lagoon",
-      "Casela Nature Parks near Cascavelle",
-      "Tamarin Bay and its dolphin-watching trips",
-      "Black River Gorges National Park",
-      "Chamarel Seven Coloured Earths and waterfall",
-      "La Preneuse beach and the Martello Tower museum"
+    nearbyAttractions: [
+      'Flic-en-Flac public beach and lagoon',
+      'Casela Nature Parks near Cascavelle',
+      'Tamarin Bay and its dolphin-watching trips',
+      'Black River Gorges National Park',
+      'Chamarel Seven Coloured Earths and waterfall',
+      'La Preneuse beach and the Martello Tower museum',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to La Pirogue Mauritius?",
-        "a": "The private transfer from SSR International Airport to La Pirogue Mauritius in Wolmar, Flic-en-Flac covers around 45 km and takes about 55 minutes in normal traffic. Your driver takes the most direct route via the motorway and central plateau, and the journey is non-stop unless you ask for a comfort break."
+        q: 'How long is the transfer to La Pirogue Mauritius?',
+        a: 'The private transfer from SSR International Airport to La Pirogue Mauritius in Wolmar, Flic-en-Flac covers around 45 km and takes about 55 minutes in normal traffic. Your driver takes the most direct route via the motorway and central plateau, and the journey is non-stop unless you ask for a comfort break.',
       },
       {
-        "q": "How much luggage can the car take?",
-        "a": "A standard car comfortably fits two passengers with two large suitcases plus hand luggage. If you are travelling as a family or group, or with golf clubs or extra cases, just tell us the number of passengers and bags when booking and we will send a larger vehicle at no surprise cost."
+        q: 'How much luggage can the car take?',
+        a: 'A standard car comfortably fits two passengers with two large suitcases plus hand luggage. If you are travelling as a family or group, or with golf clubs or extra cases, just tell us the number of passengers and bags when booking and we will send a larger vehicle at no surprise cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. We provide your first child or baby seat free of charge when you request it at booking. Just tell us the child's age so we can fit the correct seat, and additional seats for larger families can also be arranged in advance."
+        q: 'Are child seats available?',
+        a: "Yes. We provide your first child or baby seat free of charge when you request it at booking. Just tell us the child's age so we can fit the correct seat, and additional seats for larger families can also be arranged in advance.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so there is nothing for you to do. If your arrival is early or delayed, your driver adjusts the pickup to match the new landing time. You also have up to 60 minutes of free waiting time after you land while you clear immigration and collect your bags, at no extra cost."
-      }
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so there is nothing for you to do. If your arrival is early or delayed, your driver adjusts the pickup to match the new landing time. You also have up to 60 minutes of free waiting time after you land while you clear immigration and collect your bags, at no extra cost.',
+      },
     ],
-    "lat": -20.2884,
-    "lng": 57.3645
+    lat: -20.2884,
+    lng: 57.3645,
   },
   {
-    "slug": "sands-suites",
-    "hotelName": "Sands Suites Resort & Spa",
-    "area": "Flic-en-Flac",
-    "region": "West",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 55,
-    "intro": "Sands Suites Resort & Spa sits on the white-sand lagoon of Flic-en-Flac on the island's west coast. From SSR International Airport in the south-east, the drive takes roughly 55 minutes across the central plateau and down to the coast. Belle Mare Tours runs a door-to-door private transfer with a local driver who speaks English and French, so there is no shared shuttle and no taxi meter. You pay one fixed, transparent price agreed when you book, and your driver greets you personally at arrivals with a name board for a relaxed start to your holiday.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your pickup time adjusts automatically if your flight is early or delayed",
-      "First child or baby seat free of charge on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the air-conditioned vehicle",
-      "Door-to-door drop-off at the Sands Suites Resort & Spa entrance with instant email confirmation"
+    slug: 'sands-suites',
+    hotelName: 'Sands Suites Resort & Spa',
+    area: 'Flic-en-Flac',
+    region: 'West',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 55,
+    intro:
+      "Sands Suites Resort & Spa sits on the white-sand lagoon of Flic-en-Flac on the island's west coast. From SSR International Airport in the south-east, the drive takes roughly 55 minutes across the central plateau and down to the coast. Belle Mare Tours runs a door-to-door private transfer with a local driver who speaks English and French, so there is no shared shuttle and no taxi meter. You pay one fixed, transparent price agreed when you book, and your driver greets you personally at arrivals with a name board for a relaxed start to your holiday.",
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your pickup time adjusts automatically if your flight is early or delayed',
+      'First child or baby seat free of charge on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the air-conditioned vehicle',
+      'Door-to-door drop-off at the Sands Suites Resort & Spa entrance with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Flic-en-Flac public beach and lagoon",
-      "Casela Nature Parks",
-      "Tamarin Bay and its dolphin-watching trips",
-      "Black River Gorges National Park",
-      "Chamarel Seven Coloured Earths and waterfall",
-      "La Preneuse beach and the Martello Tower museum"
+    nearbyAttractions: [
+      'Flic-en-Flac public beach and lagoon',
+      'Casela Nature Parks',
+      'Tamarin Bay and its dolphin-watching trips',
+      'Black River Gorges National Park',
+      'Chamarel Seven Coloured Earths and waterfall',
+      'La Preneuse beach and the Martello Tower museum',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Sands Suites Resort & Spa?",
-        "a": "The private transfer from SSR International Airport to Sands Suites Resort & Spa in Flic-en-Flac covers around 45 km and takes about 55 minutes in normal traffic. Your driver takes the most direct route via the motorway and central plateau, and the journey is non-stop unless you ask for a comfort break."
+        q: 'How long is the transfer to Sands Suites Resort & Spa?',
+        a: 'The private transfer from SSR International Airport to Sands Suites Resort & Spa in Flic-en-Flac covers around 45 km and takes about 55 minutes in normal traffic. Your driver takes the most direct route via the motorway and central plateau, and the journey is non-stop unless you ask for a comfort break.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. We provide your first child or baby seat free of charge when you request it at the time of booking. Just tell us the child's age so we can fit the right type of seat, and additional seats for larger families can be arranged in advance."
+        q: 'Are child seats available?',
+        a: "Yes. We provide your first child or baby seat free of charge when you request it at the time of booking. Just tell us the child's age so we can fit the right type of seat, and additional seats for larger families can be arranged in advance.",
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight, so there is nothing for you to do. If your arrival is early or delayed, your driver adjusts the pickup time to match the new landing time and will be waiting for you at arrivals. You also have up to 60 minutes of free waiting time after you land."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight, so there is nothing for you to do. If your arrival is early or delayed, your driver adjusts the pickup time to match the new landing time and will be waiting for you at arrivals. You also have up to 60 minutes of free waiting time after you land.',
       },
       {
-        "q": "Can I book a return or departure transfer?",
-        "a": "Absolutely. You can book your return transfer from Sands Suites back to the airport at the same time, and we recommend it so your departure is already arranged. Your driver collects you from the hotel at an agreed time to reach SSR with comfortable margin before check-in."
-      }
+        q: 'Can I book a return or departure transfer?',
+        a: 'Absolutely. You can book your return transfer from Sands Suites back to the airport at the same time, and we recommend it so your departure is already arranged. Your driver collects you from the hotel at an agreed time to reach SSR with comfortable margin before check-in.',
+      },
     ],
-    "lat": -20.296,
-    "lng": 57.366
+    lat: -20.296,
+    lng: 57.366,
   },
   {
-    "slug": "maradiva-villas",
-    "hotelName": "Maradiva Villas Resort & Spa",
-    "area": "Wolmar",
-    "region": "West",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 55,
-    "intro": "Belle Mare Tours runs pre-booked private airport transfers from SSR International Airport in the south-east to Maradiva Villas Resort & Spa in Wolmar on the west coast. The drive covers about 45 km and takes roughly 55 minutes via Plaine Magnien and the motorway towards Flic-en-Flac. Your local driver-guide, who speaks English and French, meets you inside arrivals with a name board, helps with your luggage and takes you door to door in a private air-conditioned car. The price is fixed and agreed when you book, with no meter and no surprises. Just send your flight details and we handle the rest.",
-    "included": [
-      "Meet and greet inside the arrivals hall with a personalised name board",
-      "Flight tracking so your driver adjusts the pickup time to any delay",
-      "First child or baby seat free on request",
-      "Up to 60 minutes of free waiting time after you land",
-      "Complimentary bottled water in the air-conditioned car",
-      "Door-to-door drop-off at the Maradiva Villas reception with instant email confirmation"
+    slug: 'maradiva-villas',
+    hotelName: 'Maradiva Villas Resort & Spa',
+    area: 'Wolmar',
+    region: 'West',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 55,
+    intro:
+      'Belle Mare Tours runs pre-booked private airport transfers from SSR International Airport in the south-east to Maradiva Villas Resort & Spa in Wolmar on the west coast. The drive covers about 45 km and takes roughly 55 minutes via Plaine Magnien and the motorway towards Flic-en-Flac. Your local driver-guide, who speaks English and French, meets you inside arrivals with a name board, helps with your luggage and takes you door to door in a private air-conditioned car. The price is fixed and agreed when you book, with no meter and no surprises. Just send your flight details and we handle the rest.',
+    included: [
+      'Meet and greet inside the arrivals hall with a personalised name board',
+      'Flight tracking so your driver adjusts the pickup time to any delay',
+      'First child or baby seat free on request',
+      'Up to 60 minutes of free waiting time after you land',
+      'Complimentary bottled water in the air-conditioned car',
+      'Door-to-door drop-off at the Maradiva Villas reception with instant email confirmation',
     ],
-    "nearbyAttractions": [
-      "Flic-en-Flac Beach and lagoon",
-      "Tamarin Bay and dolphin-watching trips",
-      "Casela Nature Parks",
-      "Black River Gorges National Park",
-      "Chamarel Seven Coloured Earths and waterfall",
-      "La Preneuse beach and Martello Tower"
+    nearbyAttractions: [
+      'Flic-en-Flac Beach and lagoon',
+      'Tamarin Bay and dolphin-watching trips',
+      'Casela Nature Parks',
+      'Black River Gorges National Park',
+      'Chamarel Seven Coloured Earths and waterfall',
+      'La Preneuse beach and Martello Tower',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long is the transfer to Maradiva Villas Resort & Spa?",
-        "a": "The drive from SSR International Airport to Maradiva Villas in Wolmar is about 45 km and usually takes around 55 minutes by private car, depending on traffic and the time of day. Your driver takes the most direct route across the island towards the west coast."
+        q: 'How long is the transfer to Maradiva Villas Resort & Spa?',
+        a: 'The drive from SSR International Airport to Maradiva Villas in Wolmar is about 45 km and usually takes around 55 minutes by private car, depending on traffic and the time of day. Your driver takes the most direct route across the island towards the west coast.',
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver adjusts the pickup time automatically if you land early or late. You also get up to 60 minutes of free waiting time after touchdown while you clear immigration and collect your bags, at no extra cost."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver adjusts the pickup time automatically if you land early or late. You also get up to 60 minutes of free waiting time after touchdown while you clear immigration and collect your bags, at no extra cost.',
       },
       {
-        "q": "Are child seats available?",
-        "a": "Yes. Your first child or baby seat is free on request. Just tell us the child's age when you book so we can fit the correct type, and let us know if you need more than one seat."
+        q: 'Are child seats available?',
+        a: "Yes. Your first child or baby seat is free on request. Just tell us the child's age when you book so we can fit the correct type, and let us know if you need more than one seat.",
       },
       {
-        "q": "Can I book a return transfer back to the airport?",
-        "a": "Yes. You can add the return leg from Maradiva Villas back to SSR Airport in the same booking. For departures we schedule the pickup to suit your check-in time, allowing comfortable time for the roughly 55-minute drive."
-      }
+        q: 'Can I book a return transfer back to the airport?',
+        a: 'Yes. You can add the return leg from Maradiva Villas back to SSR Airport in the same booking. For departures we schedule the pickup to suit your check-in time, allowing comfortable time for the roughly 55-minute drive.',
+      },
     ],
-    "lat": -20.2905,
-    "lng": 57.3651
+    lat: -20.2905,
+    lng: 57.3651,
   },
   {
-    "slug": "pearle-beach",
-    "hotelName": "Pearle Beach Resort & Spa",
-    "area": "Flic-en-Flac",
-    "region": "West",
-    "distanceKmFromAirport": 45,
-    "durationMinFromAirport": 55,
-    "intro": "Start your holiday the easy way with a private door-to-door airport transfer from SSR Airport to Pearle Beach Resort & Spa in Flic-en-Flac. Belle Mare Tours is a licensed Mauritian driver-guide service, and your friendly local driver speaks both English and French. We greet you in arrivals with a name board, carry your luggage and drive you straight to your hotel in a clean, air-conditioned vehicle. The price is fixed and confirmed in advance, with no hidden extras and no haggling. The drive across the island takes roughly 55 minutes, so you can relax and watch Mauritius go by.",
-    "included": [
-      "Meet & greet in the arrivals hall with a personalised name board",
-      "Free flight tracking so we adjust pickup if your flight is early or delayed",
-      "One free child seat or booster on request (additional seats available)",
-      "Up to 60 minutes of free waiting time after landing",
-      "Complimentary bottled water in an air-conditioned vehicle",
-      "Door-to-door service with instant booking confirmation"
+    slug: 'pearle-beach',
+    hotelName: 'Pearle Beach Resort & Spa',
+    area: 'Flic-en-Flac',
+    region: 'West',
+    distanceKmFromAirport: 45,
+    durationMinFromAirport: 55,
+    intro:
+      'Start your holiday the easy way with a private door-to-door airport transfer from SSR Airport to Pearle Beach Resort & Spa in Flic-en-Flac. Belle Mare Tours is a licensed Mauritian driver-guide service, and your friendly local driver speaks both English and French. We greet you in arrivals with a name board, carry your luggage and drive you straight to your hotel in a clean, air-conditioned vehicle. The price is fixed and confirmed in advance, with no hidden extras and no haggling. The drive across the island takes roughly 55 minutes, so you can relax and watch Mauritius go by.',
+    included: [
+      'Meet & greet in the arrivals hall with a personalised name board',
+      'Free flight tracking so we adjust pickup if your flight is early or delayed',
+      'One free child seat or booster on request (additional seats available)',
+      'Up to 60 minutes of free waiting time after landing',
+      'Complimentary bottled water in an air-conditioned vehicle',
+      'Door-to-door service with instant booking confirmation',
     ],
-    "nearbyAttractions": [
-      "Flic-en-Flac public beach and lagoon",
-      "Casela Nature Parks",
-      "Tamarin Bay and dolphin-watching spots",
-      "Black River Gorges National Park",
-      "La Preneuse beach and Martello Tower",
-      "Cascavelle Shopping Village"
+    nearbyAttractions: [
+      'Flic-en-Flac public beach and lagoon',
+      'Casela Nature Parks',
+      'Tamarin Bay and dolphin-watching spots',
+      'Black River Gorges National Park',
+      'La Preneuse beach and Martello Tower',
+      'Cascavelle Shopping Village',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long does the transfer from the airport to Pearle Beach Resort & Spa take?",
-        "a": "The drive from SSR Airport in the south-east to Pearle Beach Resort & Spa in Flic-en-Flac is about 45 km and takes around 55 minutes, depending on traffic and the time of day."
+        q: 'How long does the transfer from the airport to Pearle Beach Resort & Spa take?',
+        a: 'The drive from SSR Airport in the south-east to Pearle Beach Resort & Spa in Flic-en-Flac is about 45 km and takes around 55 minutes, depending on traffic and the time of day.',
       },
       {
-        "q": "What happens if my flight is delayed?",
-        "a": "We track your flight in real time, so your driver knows your actual landing time and will be waiting for you. There is no extra charge if your flight is early or late, and you get up to 60 minutes of free waiting time after landing."
+        q: 'What happens if my flight is delayed?',
+        a: 'We track your flight in real time, so your driver knows your actual landing time and will be waiting for you. There is no extra charge if your flight is early or late, and you get up to 60 minutes of free waiting time after landing.',
       },
       {
-        "q": "Where will I meet my driver at SSR Airport?",
-        "a": "Your driver waits in the arrivals hall just outside the baggage claim area, holding a name board with your name on it. If you have any trouble finding each other, simply call the number on your confirmation."
+        q: 'Where will I meet my driver at SSR Airport?',
+        a: 'Your driver waits in the arrivals hall just outside the baggage claim area, holding a name board with your name on it. If you have any trouble finding each other, simply call the number on your confirmation.',
       },
       {
-        "q": "Is the price fixed, and how do I pay?",
-        "a": "Yes, the price is fixed and confirmed when you book, with no hidden fees or surge pricing. You can pay the driver in cash (MUR or EUR) on arrival, or arrange card or online payment in advance when you book."
-      }
+        q: 'Is the price fixed, and how do I pay?',
+        a: 'Yes, the price is fixed and confirmed when you book, with no hidden fees or surge pricing. You can pay the driver in cash (MUR or EUR) on arrival, or arrange card or online payment in advance when you book.',
+      },
     ],
-    "lat": -20.274,
-    "lng": 57.3651
+    lat: -20.274,
+    lng: 57.3651,
   },
   {
-    "slug": "riu-le-morne",
-    "hotelName": "Riu Le Morne",
-    "area": "Le Morne",
-    "region": "West",
-    "distanceKmFromAirport": 55,
-    "durationMinFromAirport": 70,
-    "intro": "Travel in comfort from SSR Airport to Riu Le Morne with Belle Mare Tours, your licensed private driver-guide in Mauritius. We offer a private, door-to-door transfer in an air-conditioned vehicle with a friendly local driver who speaks English and French. Your driver meets you in the arrivals hall with a name board, helps with your luggage, and takes you straight to your hotel on the south-west coast. Enjoy a fixed price with no hidden costs, flight tracking, and instant confirmation. The scenic drive to Le Morne takes around 70 minutes.",
-    "included": [
-      "Meet and greet in arrivals with a personalised name board",
-      "Flight tracking so we adjust to delays or early landings",
-      "Free first child seat or booster on request",
-      "Around 60 minutes free waiting time after landing",
-      "Complimentary bottled water on board",
-      "Private door-to-door service with instant confirmation"
+    slug: 'riu-le-morne',
+    hotelName: 'Riu Le Morne',
+    area: 'Le Morne',
+    region: 'West',
+    distanceKmFromAirport: 55,
+    durationMinFromAirport: 70,
+    intro:
+      'Travel in comfort from SSR Airport to Riu Le Morne with Belle Mare Tours, your licensed private driver-guide in Mauritius. We offer a private, door-to-door transfer in an air-conditioned vehicle with a friendly local driver who speaks English and French. Your driver meets you in the arrivals hall with a name board, helps with your luggage, and takes you straight to your hotel on the south-west coast. Enjoy a fixed price with no hidden costs, flight tracking, and instant confirmation. The scenic drive to Le Morne takes around 70 minutes.',
+    included: [
+      'Meet and greet in arrivals with a personalised name board',
+      'Flight tracking so we adjust to delays or early landings',
+      'Free first child seat or booster on request',
+      'Around 60 minutes free waiting time after landing',
+      'Complimentary bottled water on board',
+      'Private door-to-door service with instant confirmation',
     ],
-    "nearbyAttractions": [
-      "Le Morne Brabant (UNESCO World Heritage mountain)",
-      "Le Morne public beach and lagoon",
-      "Crystal Rock in the lagoon",
-      "Kitesurfing and One Eye surf spot",
-      "Chamarel Seven Coloured Earths",
-      "Chamarel Waterfall"
+    nearbyAttractions: [
+      'Le Morne Brabant (UNESCO World Heritage mountain)',
+      'Le Morne public beach and lagoon',
+      'Crystal Rock in the lagoon',
+      'Kitesurfing and One Eye surf spot',
+      'Chamarel Seven Coloured Earths',
+      'Chamarel Waterfall',
     ],
-    "faq": [
+    faq: [
       {
-        "q": "How long does the transfer from SSR Airport to Riu Le Morne take?",
-        "a": "The drive from Sir Seewoosagur Ramgoolam International Airport to Riu Le Morne takes approximately 70 minutes, covering about 55 km across the south of the island to the west coast. Travel time can vary slightly with traffic and weather."
+        q: 'How long does the transfer from SSR Airport to Riu Le Morne take?',
+        a: 'The drive from Sir Seewoosagur Ramgoolam International Airport to Riu Le Morne takes approximately 70 minutes, covering about 55 km across the south of the island to the west coast. Travel time can vary slightly with traffic and weather.',
       },
       {
-        "q": "Will the driver wait if my flight is delayed?",
-        "a": "Yes. We track your flight in real time and adjust your pickup automatically, so there is no need to worry about delays or an early arrival. We also include around 60 minutes of free waiting time after you land while you clear immigration and collect your bags."
+        q: 'Will the driver wait if my flight is delayed?',
+        a: 'Yes. We track your flight in real time and adjust your pickup automatically, so there is no need to worry about delays or an early arrival. We also include around 60 minutes of free waiting time after you land while you clear immigration and collect your bags.',
       },
       {
-        "q": "Where will I meet my driver at the airport?",
-        "a": "Your driver will be waiting in the arrivals hall holding a name board with your name on it. They will help with your luggage and walk you to the vehicle. If you cannot find your driver, simply call the number on your confirmation and we will guide you straight to them."
+        q: 'Where will I meet my driver at the airport?',
+        a: 'Your driver will be waiting in the arrivals hall holding a name board with your name on it. They will help with your luggage and walk you to the vehicle. If you cannot find your driver, simply call the number on your confirmation and we will guide you straight to them.',
       },
       {
-        "q": "Is the price fixed and do you provide child seats?",
-        "a": "Yes, you pay a fixed, agreed price with no hidden fees, no surge pricing, and no meter. The first child seat or booster is free on request, so please share your children's ages when booking and we will have the right seat ready for you."
-      }
+        q: 'Is the price fixed and do you provide child seats?',
+        a: "Yes, you pay a fixed, agreed price with no hidden fees, no surge pricing, and no meter. The first child seat or booster is free on request, so please share your children's ages when booking and we will have the right seat ready for you.",
+      },
     ],
-    "lat": -20.448,
-    "lng": 57.3222
-  }
+    lat: -20.448,
+    lng: 57.3222,
+  },
 ];

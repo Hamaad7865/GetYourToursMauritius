@@ -61,7 +61,9 @@ async function fetchPeach(url: string, init: RequestInit): Promise<Response> {
   } catch (error) {
     const timedOut = error instanceof Error && error.name === 'AbortError';
     throw new ProviderError(
-      timedOut ? `Peach request timed out after ${PEACH_TIMEOUT_MS}ms` : 'Peach request failed (network)',
+      timedOut
+        ? `Peach request timed out after ${PEACH_TIMEOUT_MS}ms`
+        : 'Peach request failed (network)',
       { url, timedOut },
     );
   } finally {
@@ -141,7 +143,9 @@ export class PeachPaymentProvider implements PaymentProvider {
     if (!this.config.webhookSecret) {
       // Fail closed: no HMAC secret in this env (dev/CI, or a prod misconfig). HMAC is enabled in
       // production, so reaching here on the live site means PEACH_WEBHOOK_SECRET is unset/not redeployed.
-      throw new ProviderError('Peach webhook HMAC secret not configured — cannot verify the signature');
+      throw new ProviderError(
+        'Peach webhook HMAC secret not configured — cannot verify the signature',
+      );
     }
 
     // Peach signs `${timestamp}.${webhookId}.${url}.${payload}` with HMAC-SHA256 (hex).
@@ -192,7 +196,11 @@ export class PeachPaymentProvider implements PaymentProvider {
   /** Cached OAuth bearer token; refreshes shortly before expiry. */
   private async accessToken(): Promise<string> {
     const now = Date.now();
-    if (tokenCache && tokenCache.key === this.config.clientId && tokenCache.expiresAt > now + 5_000) {
+    if (
+      tokenCache &&
+      tokenCache.key === this.config.clientId &&
+      tokenCache.expiresAt > now + 5_000
+    ) {
       return tokenCache.token;
     }
     const res = await fetchPeach(`${trimSlash(this.config.authBaseUrl)}/api/oauth/token`, {

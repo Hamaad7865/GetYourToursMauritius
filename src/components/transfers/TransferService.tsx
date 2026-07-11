@@ -1,4 +1,13 @@
-import { IconCalendar, IconCheck, IconClock, IconGlobe, IconPin, IconShield, IconUsers, IconWallet } from '@/components/ui/icons';
+import {
+  IconCalendar,
+  IconCheck,
+  IconClock,
+  IconGlobe,
+  IconPin,
+  IconShield,
+  IconUsers,
+  IconWallet,
+} from '@/components/ui/icons';
 
 const FEATURES = [
   {
@@ -49,14 +58,17 @@ export function TransferService() {
     <section className="mt-12 border-t border-ink/10 pt-9">
       <h2 className="text-[22px] font-extrabold tracking-tight text-ink">More about our service</h2>
       <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/75">
-        Everything you’d want from an airport transfer in Mauritius — and the reasons travellers book direct
-        with Belle Mare Tours instead of a hotel desk or an airport taxi.
+        Everything you’d want from an airport transfer in Mauritius — and the reasons travellers
+        book direct with Belle Mare Tours instead of a hotel desk or an airport taxi.
       </p>
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {FEATURES.map((f) => {
           const Icon = f.icon;
           return (
-            <div key={f.title} className="flex gap-3.5 rounded-2xl border border-ink/10 bg-white p-5">
+            <div
+              key={f.title}
+              className="flex gap-3.5 rounded-2xl border border-ink/10 bg-white p-5"
+            >
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-teal/10 text-teal">
                 <Icon width={19} height={19} />
               </span>

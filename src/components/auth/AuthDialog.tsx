@@ -156,7 +156,9 @@ export function AuthDialog({
       }
     }
     // No user enumeration: same neutral confirmation whether or not the email exists.
-    setNotice(t("If an account exists for that email, we've sent a password reset link. Check your inbox."));
+    setNotice(
+      t("If an account exists for that email, we've sent a password reset link. Check your inbox."),
+    );
     setBusy(false);
   }
 
@@ -171,7 +173,9 @@ export function AuthDialog({
       if (error) throw error;
       // Success redirects the browser away; nothing more to do here.
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('Could not continue with {provider}.', { provider }));
+      setError(
+        err instanceof Error ? err.message : t('Could not continue with {provider}.', { provider }),
+      );
       setBusy(false);
     }
   }
@@ -183,7 +187,11 @@ export function AuthDialog({
       role="dialog"
       aria-modal="true"
       aria-label={
-        view === 'forgot' ? t('Reset your password') : signup ? t('Create an account') : t('Sign in')
+        view === 'forgot'
+          ? t('Reset your password')
+          : signup
+            ? t('Create an account')
+            : t('Sign in')
       }
       onMouseDown={onClose}
     >
@@ -203,7 +211,10 @@ export function AuthDialog({
         {done ? (
           <div className="flex flex-col items-center justify-center px-2 py-10 text-center">
             <span className="relative grid h-20 w-20 place-items-center">
-              <span aria-hidden className="animate-ring-echo absolute h-16 w-16 rounded-full bg-teal/25" />
+              <span
+                aria-hidden
+                className="animate-ring-echo absolute h-16 w-16 rounded-full bg-teal/25"
+              />
               <span className="animate-pop grid h-20 w-20 place-items-center rounded-full bg-teal text-white shadow-[0_16px_34px_-12px_rgba(14,140,146,0.75)]">
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" aria-hidden>
                   <path
@@ -217,243 +228,261 @@ export function AuthDialog({
                 </svg>
               </span>
             </span>
-            <h2 role="status" aria-live="polite" className="animate-float-in mt-5 font-display text-2xl font-semibold text-ink">
+            <h2
+              role="status"
+              aria-live="polite"
+              className="animate-float-in mt-5 font-display text-2xl font-semibold text-ink"
+            >
               {done}
             </h2>
             <p className="animate-float-in mt-1 text-sm text-ink-muted">{t('Taking you back…')}</p>
           </div>
         ) : (
-        <>
-        <h2 className="font-display text-2xl font-semibold text-ink">
-          {view === 'forgot' ? t('Reset your password') : signup ? t('Create your account') : t('Welcome back')}
-        </h2>
-        <p className="mt-1 text-sm text-ink-muted">
-          {view === 'forgot'
-            ? t("Enter your email and we'll send you a link to reset your password.")
-            : signup
-              ? t('Book direct with Belle Mare Tours and track every trip.')
-              : t('Sign in to manage your bookings.')}
-        </p>
-
-        {view === 'auth' && (
           <>
-            <div className="mt-5 flex flex-col gap-2">
-              {OAUTH.map((o) => (
+            <h2 className="font-display text-2xl font-semibold text-ink">
+              {view === 'forgot'
+                ? t('Reset your password')
+                : signup
+                  ? t('Create your account')
+                  : t('Welcome back')}
+            </h2>
+            <p className="mt-1 text-sm text-ink-muted">
+              {view === 'forgot'
+                ? t("Enter your email and we'll send you a link to reset your password.")
+                : signup
+                  ? t('Book direct with Belle Mare Tours and track every trip.')
+                  : t('Sign in to manage your bookings.')}
+            </p>
+
+            {view === 'auth' && (
+              <>
+                <div className="mt-5 flex flex-col gap-2">
+                  {OAUTH.map((o) => (
+                    <button
+                      key={o.provider}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => oauth(o.provider)}
+                      className="flex items-center justify-center gap-2.5 rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-cream disabled:opacity-60"
+                    >
+                      {o.icon}
+                      {t(o.label)}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="my-5 flex items-center gap-3 text-[12px] font-semibold uppercase tracking-wide text-ink-muted">
+                  <span className="h-px flex-1 bg-ink/10" />
+                  {t('or')}
+                  <span className="h-px flex-1 bg-ink/10" />
+                </div>
+              </>
+            )}
+
+            {view === 'forgot' ? (
+              <form onSubmit={submitForgot} className="mt-5 flex flex-col gap-3">
+                <Field icon={<IconMail width={18} height={18} />}>
+                  <input
+                    ref={emailRef}
+                    type="email"
+                    required
+                    aria-required="true"
+                    aria-label={t('Email address')}
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={error ? 'auth-error' : undefined}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('Email address')}
+                    autoComplete="email"
+                    className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+                  />
+                </Field>
+
+                {error && (
+                  <p
+                    id="auth-error"
+                    role="alert"
+                    aria-live="assertive"
+                    className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral-dark"
+                  >
+                    {error}
+                  </p>
+                )}
+                {notice && (
+                  <p
+                    role="status"
+                    className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark"
+                  >
+                    {notice}
+                  </p>
+                )}
+
                 <button
-                  key={o.provider}
-                  type="button"
+                  type="submit"
                   disabled={busy}
-                  onClick={() => oauth(o.provider)}
-                  className="flex items-center justify-center gap-2.5 rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-cream disabled:opacity-60"
+                  className="mt-1 rounded-xl bg-teal-dark px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
                 >
-                  {o.icon}
-                  {t(o.label)}
+                  {busy ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <span
+                        aria-hidden
+                        className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                      />
+                      {t('Sending…')}
+                    </span>
+                  ) : (
+                    t('Send reset link')
+                  )}
                 </button>
-              ))}
-            </div>
-
-            <div className="my-5 flex items-center gap-3 text-[12px] font-semibold uppercase tracking-wide text-ink-muted">
-              <span className="h-px flex-1 bg-ink/10" />
-              {t('or')}
-              <span className="h-px flex-1 bg-ink/10" />
-            </div>
-          </>
-        )}
-
-        {view === 'forgot' ? (
-          <form onSubmit={submitForgot} className="mt-5 flex flex-col gap-3">
-            <Field icon={<IconMail width={18} height={18} />}>
-              <input
-                ref={emailRef}
-                type="email"
-                required
-                aria-required="true"
-                aria-label={t('Email address')}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? 'auth-error' : undefined}
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('Email address')}
-                autoComplete="email"
-                className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
-              />
-            </Field>
-
-            {error && (
-              <p
-                id="auth-error"
-                role="alert"
-                aria-live="assertive"
-                className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral-dark"
-              >
-                {error}
-              </p>
-            )}
-            {notice && (
-              <p
-                role="status"
-                className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark"
-              >
-                {notice}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={busy}
-              className="mt-1 rounded-xl bg-teal-dark px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
-            >
-              {busy ? (
-                <span className="inline-flex items-center justify-center gap-2">
-                  <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                  {t('Sending…')}
-                </span>
-              ) : (
-                t('Send reset link')
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                setNotice(null);
-                setView('auth');
-              }}
-              className="text-center text-sm font-bold text-teal-dark hover:text-teal-dark/80"
-            >
-              {t('Back to sign in')}
-            </button>
-          </form>
-        ) : (
-        <form onSubmit={submitEmail} className="flex flex-col gap-3">
-          {signup && (
-            <Field icon={<IconUser width={18} height={18} />}>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                aria-label={t('Full name')}
-                placeholder={t('Full name')}
-                autoComplete="name"
-                className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
-              />
-            </Field>
-          )}
-          <Field icon={<IconMail width={18} height={18} />}>
-            <input
-              ref={emailRef}
-              type="email"
-              required
-              aria-required="true"
-              aria-label={t('Email address')}
-              aria-invalid={error ? true : undefined}
-              aria-describedby={error ? 'auth-error' : undefined}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder={t('Email address')}
-              autoComplete="email"
-              className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
-            />
-          </Field>
-          <Field icon={<IconLock width={18} height={18} />}>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              required
-              minLength={6}
-              aria-required="true"
-              aria-label={t('Password')}
-              aria-invalid={error ? true : undefined}
-              aria-describedby={`auth-password-hint${error ? ' auth-error' : ''}`}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder={t('Password')}
-              autoComplete={signup ? 'new-password' : 'current-password'}
-              className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((s) => !s)}
-              aria-label={showPassword ? t('Hide password') : t('Show password')}
-              className="shrink-0 text-ink-muted hover:text-ink"
-            >
-              {showPassword ? <IconEyeOff width={18} height={18} /> : <IconEye width={18} height={18} />}
-            </button>
-          </Field>
-          <span id="auth-password-hint" className="sr-only">
-            {t('Password must be at least 6 characters.')}
-          </span>
-
-          {!signup && (
-            <div className="-mt-1 flex justify-end">
-              <button
-                type="button"
-                onClick={() => {
-                  setError(null);
-                  setNotice(null);
-                  setView('forgot');
-                }}
-                className="text-[13px] font-semibold text-teal-dark hover:text-teal-dark/80"
-              >
-                {t('Forgot password?')}
-              </button>
-            </div>
-          )}
-
-          {error && (
-            <p
-              id="auth-error"
-              role="alert"
-              aria-live="assertive"
-              className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral-dark"
-            >
-              {error}
-            </p>
-          )}
-          {notice && (
-            <p
-              role="status"
-              className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark"
-            >
-              {notice}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="mt-1 rounded-xl bg-teal-dark px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
-          >
-            {busy ? (
-              <span className="inline-flex items-center justify-center gap-2">
-                <span aria-hidden className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-                {signup ? t('Creating your account…') : t('Signing you in…')}
-              </span>
-            ) : signup ? (
-              t('Create account')
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setNotice(null);
+                    setView('auth');
+                  }}
+                  className="text-center text-sm font-bold text-teal-dark hover:text-teal-dark/80"
+                >
+                  {t('Back to sign in')}
+                </button>
+              </form>
             ) : (
-              t('Sign in')
-            )}
-          </button>
-        </form>
-        )}
+              <form onSubmit={submitEmail} className="flex flex-col gap-3">
+                {signup && (
+                  <Field icon={<IconUser width={18} height={18} />}>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      aria-label={t('Full name')}
+                      placeholder={t('Full name')}
+                      autoComplete="name"
+                      className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+                    />
+                  </Field>
+                )}
+                <Field icon={<IconMail width={18} height={18} />}>
+                  <input
+                    ref={emailRef}
+                    type="email"
+                    required
+                    aria-required="true"
+                    aria-label={t('Email address')}
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={error ? 'auth-error' : undefined}
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={t('Email address')}
+                    autoComplete="email"
+                    className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+                  />
+                </Field>
+                <Field icon={<IconLock width={18} height={18} />}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    minLength={6}
+                    aria-required="true"
+                    aria-label={t('Password')}
+                    aria-invalid={error ? true : undefined}
+                    aria-describedby={`auth-password-hint${error ? ' auth-error' : ''}`}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={t('Password')}
+                    autoComplete={signup ? 'new-password' : 'current-password'}
+                    className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((s) => !s)}
+                    aria-label={showPassword ? t('Hide password') : t('Show password')}
+                    className="shrink-0 text-ink-muted hover:text-ink"
+                  >
+                    {showPassword ? (
+                      <IconEyeOff width={18} height={18} />
+                    ) : (
+                      <IconEye width={18} height={18} />
+                    )}
+                  </button>
+                </Field>
+                <span id="auth-password-hint" className="sr-only">
+                  {t('Password must be at least 6 characters.')}
+                </span>
 
-        {view === 'auth' && (
-          <p className="mt-5 text-center text-sm text-ink-muted">
-            {signup ? t('Already have an account?') : t('New to Belle Mare Tours?')}{' '}
-            <button
-              type="button"
-              onClick={() => {
-                setError(null);
-                setNotice(null);
-                onSwitch(signup ? 'signin' : 'signup');
-              }}
-              className="font-bold text-teal-dark hover:text-teal-dark/80"
-            >
-              {signup ? t('Sign in') : t('Create one')}
-            </button>
-          </p>
-        )}
-        </>
+                {!signup && (
+                  <div className="-mt-1 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError(null);
+                        setNotice(null);
+                        setView('forgot');
+                      }}
+                      className="text-[13px] font-semibold text-teal-dark hover:text-teal-dark/80"
+                    >
+                      {t('Forgot password?')}
+                    </button>
+                  </div>
+                )}
+
+                {error && (
+                  <p
+                    id="auth-error"
+                    role="alert"
+                    aria-live="assertive"
+                    className="rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-medium text-coral-dark"
+                  >
+                    {error}
+                  </p>
+                )}
+                {notice && (
+                  <p
+                    role="status"
+                    className="rounded-lg bg-teal/10 px-3 py-2 text-[13px] font-medium text-teal-dark"
+                  >
+                    {notice}
+                  </p>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className="mt-1 rounded-xl bg-teal-dark px-4 py-2.5 text-sm font-bold text-white transition hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
+                >
+                  {busy ? (
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <span
+                        aria-hidden
+                        className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+                      />
+                      {signup ? t('Creating your account…') : t('Signing you in…')}
+                    </span>
+                  ) : signup ? (
+                    t('Create account')
+                  ) : (
+                    t('Sign in')
+                  )}
+                </button>
+              </form>
+            )}
+
+            {view === 'auth' && (
+              <p className="mt-5 text-center text-sm text-ink-muted">
+                {signup ? t('Already have an account?') : t('New to Belle Mare Tours?')}{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setError(null);
+                    setNotice(null);
+                    onSwitch(signup ? 'signin' : 'signup');
+                  }}
+                  className="font-bold text-teal-dark hover:text-teal-dark/80"
+                >
+                  {signup ? t('Sign in') : t('Create one')}
+                </button>
+              </p>
+            )}
+          </>
         )}
       </div>
     </div>

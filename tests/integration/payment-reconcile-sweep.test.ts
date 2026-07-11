@@ -26,7 +26,9 @@ const CUSTOMER = 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1';
 
 /** Stubs getCheckoutStatus to a fixed outcome per checkout id, echoing the booking ref the sweep needs. */
 class SweepStubProvider extends StubPaymentProvider implements PaymentProvider {
-  constructor(private readonly statuses: Record<string, { outcome: PaymentEvent['outcome']; ref: string }>) {
+  constructor(
+    private readonly statuses: Record<string, { outcome: PaymentEvent['outcome']; ref: string }>,
+  ) {
     super();
   }
   override async getCheckoutStatus(checkoutId: string): Promise<PaymentEvent> {
@@ -48,7 +50,10 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
   let operatorId: string;
 
   /** Book + create a payment (as the customer) and stamp a checkout id (as owner). Returns ref + paymentId. */
-  async function seedPending(key: string, checkoutId: string | null): Promise<{ ref: string; paymentId: string }> {
+  async function seedPending(
+    key: string,
+    checkoutId: string | null,
+  ): Promise<{ ref: string; paymentId: string }> {
     await db.asOwner();
     const occId = (
       await db.pg.query<{ id: string }>(
@@ -72,9 +77,10 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
       ])
     ).rows[0]!.data;
     const payment = (
-      await db.pg.query<{ data: { paymentId: string } }>(`select api_create_payment($1::jsonb) as data`, [
-        JSON.stringify({ bookingRef: booking.ref, idempotencyKey: `${key}-pay` }),
-      ])
+      await db.pg.query<{ data: { paymentId: string } }>(
+        `select api_create_payment($1::jsonb) as data`,
+        [JSON.stringify({ bookingRef: booking.ref, idempotencyKey: `${key}-pay` })],
+      )
     ).rows[0]!.data;
 
     if (checkoutId) {
@@ -88,8 +94,11 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!
+      .id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
     const actId = (
@@ -123,7 +132,10 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
     const c = await seedPending('sweep-c', null);
     const d = await seedPending('sweep-d', 'chk_old');
     await db.asOwner();
-    await db.pg.query(`update bookings set created_at = now() - interval '10 hours' where ref = $1`, [d.ref]);
+    await db.pg.query(
+      `update bookings set created_at = now() - interval '10 hours' where ref = $1`,
+      [d.ref],
+    );
 
     const provider = new SweepStubProvider({
       chk_paid: { outcome: 'paid', ref: a.ref },

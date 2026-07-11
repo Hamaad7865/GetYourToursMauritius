@@ -193,7 +193,10 @@ export async function drainNotifications(
       resolveOwnerRecipient(message);
       if (message.template === 'booking_confirmation') {
         await enrichBookingConfirmation(ctx, message);
-      } else if (message.template === 'owner_new_booking' || message.template === 'owner_refund_pending') {
+      } else if (
+        message.template === 'owner_new_booking' ||
+        message.template === 'owner_refund_pending'
+      ) {
         await enrichOwnerNewBooking(ctx, message);
       }
       await provider.send(message);

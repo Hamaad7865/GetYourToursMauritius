@@ -8,7 +8,9 @@ import {
 
 describe('shouldKeepPolling', () => {
   it('keeps polling while payment_pending and within the window', () => {
-    expect(shouldKeepPolling({ status: 'payment_pending', elapsedMs: 0, maxMs: 90_000 })).toBe(true);
+    expect(shouldKeepPolling({ status: 'payment_pending', elapsedMs: 0, maxMs: 90_000 })).toBe(
+      true,
+    );
     expect(shouldKeepPolling({ status: 'payment_pending', elapsedMs: 30_000, maxMs: 90_000 })).toBe(
       true,
     );
@@ -29,9 +31,9 @@ describe('shouldKeepPolling', () => {
     expect(shouldKeepPolling({ status: 'payment_pending', elapsedMs: 90_000, maxMs: 90_000 })).toBe(
       false,
     );
-    expect(shouldKeepPolling({ status: 'payment_pending', elapsedMs: 120_000, maxMs: 90_000 })).toBe(
-      false,
-    );
+    expect(
+      shouldKeepPolling({ status: 'payment_pending', elapsedMs: 120_000, maxMs: 90_000 }),
+    ).toBe(false);
   });
 });
 

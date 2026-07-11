@@ -15,9 +15,13 @@ export function dropExpiredHolds(items: CartItem[], now: number): ReconcileResul
   const expired: CartItem[] = [];
   const unavailable: CartItem[] = [];
   for (const i of items) {
-    if (i.status === 'unavailable') { unavailable.push(i); continue; }
+    if (i.status === 'unavailable') {
+      unavailable.push(i);
+      continue;
+    }
     if (i.status === 'held' && i.expiresAt && new Date(i.expiresAt).getTime() <= now) {
-      expired.push(i); continue;
+      expired.push(i);
+      continue;
     }
     kept.push(i);
   }
@@ -30,9 +34,7 @@ export function markHeld(
   h: { holdId: string; expiresAt: string },
 ): CartItem[] {
   return items.map((i) =>
-    i.id === id
-      ? { ...i, status: 'held' as const, holdId: h.holdId, expiresAt: h.expiresAt }
-      : i,
+    i.id === id ? { ...i, status: 'held' as const, holdId: h.holdId, expiresAt: h.expiresAt } : i,
   );
 }
 

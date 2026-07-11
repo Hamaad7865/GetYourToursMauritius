@@ -47,7 +47,7 @@ The booking widget root in `page.tsx` gets `id="book"` so the button can scroll 
 - **Chosen route saves to the booking:**
   - New migration: `alter table bookings add column if not exists custom_itinerary jsonb;`
   - `api_book` writes it **after** `create_booking` returns (one `update bookings set custom_itinerary
-    = p->'itinerary' where id = v_booking.id` — runs in the SECURITY DEFINER frame, so **no change to
+= p->'itinerary' where id = v_booking.id` — runs in the SECURITY DEFINER frame, so **no change to
     `create_booking`'s signature**).
   - `booking_json` exposes `customItinerary`.
   - Validation: `createBookingInputSchema` gains `itinerary` — a bounded array
@@ -101,7 +101,7 @@ to an actual **driving route**:
 ### Operator visibility
 
 - **Voucher** (`BookingConfirmation`) and **admin booking detail** (`AdminBookings` / `src/lib/admin/
-  bookings.ts`) render `customItinerary` as a numbered list when present ("Your route:" / "Customer
+bookings.ts`) render `customItinerary` as a numbered list when present ("Your route:" / "Customer
   route:"), falling back to the standard itinerary text when null.
 
 ### Admin — curate the pool

@@ -29,7 +29,14 @@ const TIERS = [
   { label: 'Private group', amountEur: 110, maxGuests: 6 },
 ];
 
-const SIGHTSEEING = { sedanEur: 70, suvEur: 85, familyEur: 85, vanEur: 125, coasterEur: 225, maxParty: 25 };
+const SIGHTSEEING = {
+  sedanEur: 70,
+  suvEur: 85,
+  familyEur: 85,
+  vanEur: 125,
+  coasterEur: 225,
+  maxParty: 25,
+};
 
 describe('sightseeingQuote', () => {
   it('charges a flat price per vehicle bracket', () => {
@@ -169,10 +176,14 @@ describe('transportFareMinor', () => {
   it('prices each vehicle bracket within a band (same)', () => {
     // pax -> expected minor for the "same" band
     const cases: Array<[number, number]> = [
-      [1, 1500], [4, 1500], // Sedan
-      [5, 2500], [6, 2500], // Family
-      [7, 4000], [14, 4000], // Van
-      [15, 7000], [25, 7000], // Coaster
+      [1, 1500],
+      [4, 1500], // Sedan
+      [5, 2500],
+      [6, 2500], // Family
+      [7, 4000],
+      [14, 4000], // Van
+      [15, 7000],
+      [25, 7000], // Coaster
     ];
     for (const [pax, minor] of cases) {
       expect(transportFareMinor('West', 'West', pax, false, B, D)).toBe(minor);
@@ -266,7 +277,14 @@ describe('airportTransferQuoteMinor (one-way vs return)', () => {
     expect(airportTransferQuoteMinor('zone1', 8, false, 'return', AF, 10)).toBe(21600);
     // zone2 standard 3500 → return @10% = round(3500*2*0.9) = 6300; @ default pct
     expect(
-      airportTransferQuoteMinor('zone2', 2, false, 'return', AF, AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT),
+      airportTransferQuoteMinor(
+        'zone2',
+        2,
+        false,
+        'return',
+        AF,
+        AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
+      ),
     ).toBe(6300);
     // 0% discount → exactly double
     expect(airportTransferQuoteMinor('zone2', 2, false, 'return', AF, 0)).toBe(7000);
@@ -338,7 +356,12 @@ describe('age-band party quote (infant free but takes a seat)', () => {
     const quote = quoteTotal(BANDS, { Adult: 2, Child: 1, Infant: 1 });
     expect(quote.totalEur).toBe(140); // 2*56 + 1*28 + 1*0
     expect(quote.totalGuests).toBe(4); // infant still occupies a seat
-    expect(quote.lines).toContainEqual({ label: 'Infant', unitAmountEur: 0, quantity: 1, subtotalEur: 0 });
+    expect(quote.lines).toContainEqual({
+      label: 'Infant',
+      unitAmountEur: 0,
+      quantity: 1,
+      subtotalEur: 0,
+    });
   });
 });
 

@@ -9,16 +9,21 @@ import { runBookingMaintenance } from '@/lib/services/maintenance';
 const CUSTOMER = 'a2a2a2a2-a2a2-a2a2-a2a2-a2a2a2a2a2a2';
 
 async function book(db: TestDb, key: string): Promise<string> {
-  const { rows } = await db.pg.query<{ data: { ref: string } }>(`select api_book($1::jsonb) as data`, [
-    JSON.stringify({
-      occurrenceId: (await db.pg.query<{ id: string }>(`select id from session_occurrences limit 1`)).rows[0]!.id,
-      party: { Adult: 2 },
-      customerName: 'Abandoner',
-      customerEmail: 'abandon@example.com',
-      source: 'web',
-      idempotencyKey: key,
-    }),
-  ]);
+  const { rows } = await db.pg.query<{ data: { ref: string } }>(
+    `select api_book($1::jsonb) as data`,
+    [
+      JSON.stringify({
+        occurrenceId: (
+          await db.pg.query<{ id: string }>(`select id from session_occurrences limit 1`)
+        ).rows[0]!.id,
+        party: { Adult: 2 },
+        customerName: 'Abandoner',
+        customerEmail: 'abandon@example.com',
+        source: 'web',
+        idempotencyKey: key,
+      }),
+    ],
+  );
   return rows[0]!.data.ref;
 }
 
@@ -28,8 +33,11 @@ describe('run_booking_maintenance: sweep holds + expire abandoned bookings', () 
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
-    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`)).rows[0]!.id;
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
     await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
     const actId = (
@@ -68,7 +76,10 @@ describe('run_booking_maintenance: sweep holds + expire abandoned bookings', () 
     // Backdate the stale booking past the grace window (as owner — the admin guard lets the
     // owner/SECURITY DEFINER path through).
     await db.asOwner();
-    await db.pg.query(`update bookings set created_at = now() - interval '2 hours' where ref = $1`, [staleRef]);
+    await db.pg.query(
+      `update bookings set created_at = now() - interval '2 hours' where ref = $1`,
+      [staleRef],
+    );
 
     const ctx: ServiceContext = {
       db: pgliteRpc(db.pg),
@@ -79,8 +90,16 @@ describe('run_booking_maintenance: sweep holds + expire abandoned bookings', () 
     const result = await runBookingMaintenance(ctx, 30);
     expect(result.bookingsExpired).toBe(1);
 
-    const stale = (await db.pg.query<{ status: string }>(`select status from bookings where ref = $1`, [staleRef])).rows[0]!;
-    const fresh = (await db.pg.query<{ status: string }>(`select status from bookings where ref = $1`, [freshRef])).rows[0]!;
+    const stale = (
+      await db.pg.query<{ status: string }>(`select status from bookings where ref = $1`, [
+        staleRef,
+      ])
+    ).rows[0]!;
+    const fresh = (
+      await db.pg.query<{ status: string }>(`select status from bookings where ref = $1`, [
+        freshRef,
+      ])
+    ).rows[0]!;
     expect(stale.status).toBe('expired');
     expect(fresh.status).toBe('payment_pending');
 

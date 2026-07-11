@@ -40,7 +40,9 @@ describe('topicFor', () => {
 
   it('matches whole words only — "Subscooter" is not a scooter rental', () => {
     // Regression: /scooter/ (unbounded) put the submarine tour in the scooter-rental bucket.
-    expect(topicFor(act('Sea & water activities', 'Blue Safari Submarine & Subscooter'))).toBe('water');
+    expect(topicFor(act('Sea & water activities', 'Blue Safari Submarine & Subscooter'))).toBe(
+      'water',
+    );
     expect(topicFor(act('Car & scooter rental', 'Scooter Rental'))).toBe('rental'); // still matches
   });
 
@@ -57,7 +59,9 @@ describe('topicFor', () => {
 
 describe('activityRating', () => {
   it("returns the activity's OWN rating whenever it has one", () => {
-    expect(activityRating({ category: 'Catamaran cruises', ratingAvg: 4.2, ratingCount: 7 })).toEqual({
+    expect(
+      activityRating({ category: 'Catamaran cruises', ratingAvg: 4.2, ratingCount: 7 }),
+    ).toEqual({
       avg: 4.2,
       count: 7,
     });
@@ -127,6 +131,9 @@ describe('review pool stays out of the client bundle', () => {
       const importsPool = /_review-pool\.gen|activity-reviews-pool/.test(src);
       return isClient && importsPool;
     });
-    expect(offenders, `client components must not import the ${Math.round(JSON.stringify(REVIEW_POOL).length / 1024)}KB review pool`).toEqual([]);
+    expect(
+      offenders,
+      `client components must not import the ${Math.round(JSON.stringify(REVIEW_POOL).length / 1024)}KB review pool`,
+    ).toEqual([]);
   });
 });

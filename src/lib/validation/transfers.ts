@@ -62,7 +62,10 @@ export const transferQuoteQuerySchema = z
     (q) =>
       q.transferSlug !== 'hotel-transfer' ||
       (Boolean(q.pickupSlug || q.pickupArea) && Boolean(q.dropoffSlug || q.dropoffArea)),
-    { message: 'hotel-transfer requires both a pickup and a dropoff (slug or area)', path: ['dropoffArea'] },
+    {
+      message: 'hotel-transfer requires both a pickup and a dropoff (slug or area)',
+      path: ['dropoffArea'],
+    },
   );
 export type TransferQuoteQuery = z.infer<typeof transferQuoteQuerySchema>;
 

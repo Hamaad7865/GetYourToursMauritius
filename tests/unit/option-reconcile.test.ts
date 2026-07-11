@@ -11,7 +11,9 @@ describe('planOptionReconcile — FK-safe option editing', () => {
         { id: 'C', name: 'VIP', prices: [] }, // existing → update in place
       ],
     );
-    expect(toUpsert.map((u) => ({ id: u.option.id ?? null, isNew: u.isNew, position: u.position }))).toEqual([
+    expect(
+      toUpsert.map((u) => ({ id: u.option.id ?? null, isNew: u.isNew, position: u.position })),
+    ).toEqual([
       { id: 'A', isNew: false, position: 0 },
       { id: null, isNew: true, position: 1 },
       { id: 'C', isNew: false, position: 2 },
@@ -20,7 +22,10 @@ describe('planOptionReconcile — FK-safe option editing', () => {
   });
 
   it('treats an id that no longer exists as a new insert, not an update', () => {
-    const { toUpsert, removedIds } = planOptionReconcile(['A'], [{ id: 'ghost', name: 'X', prices: [] }]);
+    const { toUpsert, removedIds } = planOptionReconcile(
+      ['A'],
+      [{ id: 'ghost', name: 'X', prices: [] }],
+    );
     expect(toUpsert[0]!.isNew).toBe(true);
     expect(removedIds).toEqual(['A']);
   });

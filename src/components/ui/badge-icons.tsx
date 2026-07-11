@@ -1,7 +1,19 @@
 import type { SVGProps } from 'react';
 import {
-  IconClock, IconUsers, IconGlobe, IconCheck, IconCalendar, IconBolt, IconShield,
-  IconPin, IconStar, IconHeart, IconWallet, IconTrophy, IconChat, IconTag,
+  IconClock,
+  IconUsers,
+  IconGlobe,
+  IconCheck,
+  IconCalendar,
+  IconBolt,
+  IconShield,
+  IconPin,
+  IconStar,
+  IconHeart,
+  IconWallet,
+  IconTrophy,
+  IconChat,
+  IconTag,
 } from '@/components/ui/icons';
 
 type IconCmp = (p: SVGProps<SVGSVGElement>) => React.ReactElement;

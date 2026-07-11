@@ -135,14 +135,17 @@ describe('security & integrity fixes', () => {
         `insert into activity_option_prices (activity_option_id, label, amount_minor, max_guests) values ($1, 'Island group', 7000, 4)`,
         [optionId],
       );
-      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, $2, $3)`, [
-        occurrenceId,
-        people,
-        `grp-${people}`,
-      ]);
+      const { rows: h } = await db.pg.query<{ id: string }>(
+        `select * from create_hold($1, $2, $3)`,
+        [occurrenceId, people, `grp-${people}`],
+      );
       const { rows: b } = await db.pg.query<{ total_minor: number | string }>(
         `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb)`,
-        [`grp-bk-${people}`, h[0]!.id, JSON.stringify([{ price_label: 'Island group', quantity: people }])],
+        [
+          `grp-bk-${people}`,
+          h[0]!.id,
+          JSON.stringify([{ price_label: 'Island group', quantity: people }]),
+        ],
       );
       expect(Number(b[0]!.total_minor)).toBe(groups * 7000); // 4->70, 5->140, 8->140, 9->210
     }
@@ -162,14 +165,16 @@ describe('security & integrity fixes', () => {
       [optionId],
     );
     // Drop the default 'Adult' tier seedOccurrence adds, so 'Private group' is the ONLY (cheapest) tier.
-    await db.pg.query(`delete from activity_option_prices where activity_option_id = $1 and label = 'Adult'`, [
-      optionId,
-    ]);
+    await db.pg.query(
+      `delete from activity_option_prices where activity_option_id = $1 and label = 'Adult'`,
+      [optionId],
+    );
 
     // The fix: Add-to-cart sends the tour's REAL cheapest-tier label -> booking succeeds (flat group price).
-    const { rows: hGood } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 4, 'lbl-good')`, [
-      occurrenceId,
-    ]);
+    const { rows: hGood } = await db.pg.query<{ id: string }>(
+      `select * from create_hold($1, 4, 'lbl-good')`,
+      [occurrenceId],
+    );
     const { rows: b } = await db.pg.query<{ total_minor: number | string }>(
       `select * from create_booking('lbl-good-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb)`,
       [hGood[0]!.id, JSON.stringify([{ price_label: 'Private group', quantity: 4 }])],
@@ -178,9 +183,10 @@ describe('security & integrity fixes', () => {
 
     // The old bug: Add-to-cart hardcoded { 'Adult': N }. The tour has no 'Adult' tier, so the server
     // rejects the booking at the payment step. (Asserted LAST so the rolled-back call can't affect the rest.)
-    const { rows: hBad } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 4, 'lbl-bad')`, [
-      occurrenceId,
-    ]);
+    const { rows: hBad } = await db.pg.query<{ id: string }>(
+      `select * from create_hold($1, 4, 'lbl-bad')`,
+      [occurrenceId],
+    );
     await expect(
       db.pg.query(
         `select * from create_booking('lbl-bad-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb)`,
@@ -189,7 +195,9 @@ describe('security & integrity fixes', () => {
     ).rejects.toThrow(/unknown_price_tier/);
   });
 
-  async function seedVehicle(capacity: number): Promise<{ occurrenceId: string; optionId: string }> {
+  async function seedVehicle(
+    capacity: number,
+  ): Promise<{ occurrenceId: string; optionId: string }> {
     const { occurrenceId, optionId } = await seedOccurrence(db, capacity);
     await db.pg.query(
       `update activities set pricing_mode = 'vehicle' where id = (select activity_id from activity_options where id = $1)`,
@@ -213,13 +221,18 @@ describe('security & integrity fixes', () => {
     ] as const) {
       await db.asOwner();
       const { occurrenceId } = await seedVehicle(10);
-      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
-        occurrenceId,
-        `veh-${people}-${suv}`,
-      ]);
+      const { rows: h } = await db.pg.query<{ id: string }>(
+        `select * from create_hold($1, 1, $2)`,
+        [occurrenceId, `veh-${people}-${suv}`],
+      );
       const { rows: b } = await db.pg.query<{ id: string; total_minor: number | string }>(
         `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb, $4)`,
-        [`veh-bk-${people}-${suv}`, h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: people }]), suv],
+        [
+          `veh-bk-${people}-${suv}`,
+          h[0]!.id,
+          JSON.stringify([{ price_label: 'Vehicle', quantity: people }]),
+          suv,
+        ],
       );
       expect(Number(b[0]!.total_minor)).toBe(expectMinor);
       const { rows: item } = await db.pg.query<{
@@ -227,7 +240,10 @@ describe('security & integrity fixes', () => {
         pax: number;
         subtotal_minor: number | string;
         price_label: string;
-      }>(`select quantity, pax, subtotal_minor, price_label from booking_items where booking_id = $1`, [b[0]!.id]);
+      }>(
+        `select quantity, pax, subtotal_minor, price_label from booking_items where booking_id = $1`,
+        [b[0]!.id],
+      );
       expect(item[0]!.quantity).toBe(1); // one vehicle slot
       expect(item[0]!.pax).toBe(people); // people on board
       expect(item[0]!.price_label).toBe(vehicle);
@@ -238,9 +254,10 @@ describe('security & integrity fixes', () => {
   it('rejects a sightseeing party larger than 25', async () => {
     await db.asOwner();
     const { occurrenceId } = await seedVehicle(50);
-    const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, 'veh-over')`, [
-      occurrenceId,
-    ]);
+    const { rows: h } = await db.pg.query<{ id: string }>(
+      `select * from create_hold($1, 1, 'veh-over')`,
+      [occurrenceId],
+    );
     await expect(
       db.pg.query(
         `select * from create_booking('veh-over-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb, false)`,
@@ -253,17 +270,19 @@ describe('security & integrity fixes', () => {
     await db.asOwner();
     const { occurrenceId } = await seedVehicle(2); // two vehicle slots
     for (const n of [1, 2]) {
-      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
-        occurrenceId,
-        `cap-${n}`,
-      ]);
+      const { rows: h } = await db.pg.query<{ id: string }>(
+        `select * from create_hold($1, 1, $2)`,
+        [occurrenceId, `cap-${n}`],
+      );
       await db.pg.query(
         `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb, false)`,
         [`cap-bk-${n}`, h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: 10 }])],
       );
     }
     // A third vehicle can't be held even though only "2" of the people-capacity is nominally used.
-    await expect(db.pg.query(`select * from create_hold($1, 1, 'cap-3')`, [occurrenceId])).rejects.toThrow();
+    await expect(
+      db.pg.query(`select * from create_hold($1, 1, 'cap-3')`, [occurrenceId]),
+    ).rejects.toThrow();
   });
 
   it('catalogue exposes the global vehicle pricing config (from €70) for vehicle mode', async () => {

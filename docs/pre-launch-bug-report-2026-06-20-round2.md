@@ -17,6 +17,7 @@ date with a different party/options is charged for the OLD selection while the U
 ## 2. P0 — LAUNCH BLOCKER
 
 ### P0-1 · Re-checkout of the same date with a changed party/options charges the OLD booking while showing the NEW price
+
 **Files:** `src/components/checkout/Checkout.tsx` (readBooking 121-130, rehydrate 207-210, pay() 299-394), `src/components/gyg/detail/BookingProvider.tsx:333`
 The duplicate-booking fix persists `{idemKey, bookingRef}` in `gytm:booking:${occ}` **keyed by occurrence
 only** — not party/label/childSeats/pickup. The occurrence id is party-independent (derived from date+option).
@@ -35,6 +36,7 @@ charge == party-4 total).
 ## 3. P1 — FIX BEFORE LAUNCH
 
 ### P1-1 · `refund_pending` is a dead-end — no code issues the Peach refund or clears it
+
 `supabase/catch-up.sql:2406` (admin cancel → `refund_pending`), only path to `refunded` is a `refunded`
 provider webhook event (`reconcile.ts:50`). A manual admin cancel is a pure DB flip — Peach never hears about
 it, so the booking sits in `refund_pending` forever and the customer never gets the `booking_refunded` email.
@@ -43,6 +45,7 @@ not, add an admin "Mark refunded" action calling a service-role RPC that writes 
 (so the ledger + email fire). Needs an owner decision before the first paid cancellation.
 
 ### P1-2 · Invoice PDF + confirmation email print trip time in UTC, not Mauritius (4h wrong)
+
 `src/lib/invoice/pdf.ts:61-70,184` + `src/lib/email/booking-confirmation.ts:37-44,84` format `when` with raw
 UTC accessors + a hardcoded "UTC" label. Occurrences are stored at noon Mauritius (08:00 UTC), so a noon tour
 prints `08:00 UTC` on the tax invoice PDF + the confirmation email; a 00:00–03:59 MUT occurrence prints the
@@ -51,6 +54,7 @@ date one day early. Admin surfaces format with `timeZone:'Indian/Mauritius'` cor
 `formatWhen`/`formatDate`. Add a test (08:00Z → `12:00 MUT`).
 
 ### P1-3 · `api_record_payment_charge` — unguarded SECURITY DEFINER writer (authenticated IDOR write)
+
 `supabase/catch-up.sql:4424-4448` + `supabase/migrations/20260723000000_payment_charge.sql`. Granted to
 `authenticated`, SECURITY DEFINER, updates `payments.charged_amount_minor/currency` by `paymentId` with **no
 owner/staff check** — bypasses RLS + the `forbid_public_write` trigger. A signed-in user can falsify the PAID
@@ -61,6 +65,7 @@ catch-up.sql; or revoke the `authenticated` grant (service_role only — its sol
 `api_create_payment`). Also: never overwrite an already-recorded charge (fixes the P2 FX-drift below).
 
 ### P1-4 · Drain re-sends duplicate invoice emails on a transient failure (no Resend Idempotency-Key)
+
 `src/lib/services/notifications.ts:123-130` + `src/lib/notifications/resend.ts:63-70`. `send()` then
 `mark_notification('sent')`; if the edge worker dies between them (CPU/wall-time limit mid-batch — each
 message does loadBooking + buildInvoice + PDF + base64 + fetch), the row re-claims after the lease and
@@ -68,6 +73,7 @@ re-sends. Resend POST sets no `Idempotency-Key`, so the customer gets a 2nd iden
 **Fix:** set `Idempotency-Key: notif:${message.id}` on the Resend POST (the id is already on the message).
 
 ### P1-5 · "Complete payment" on the confirmation page is a dead end
+
 `BookingConfirmation.tsx:341-346` links to `/bookings/${ref}/pay` with no `cid`; the pay page only mounts the
 widget when `cid` exists, and only `POST /api/v1/payments` creates one (never the pay page). A returning
 customer (email link / new tab, sessionStorage gone) has no working way to pay an unpaid booking.
@@ -75,12 +81,14 @@ customer (email link / new tab, sessionStorage gone) has no working way to pay a
 "Pay now" affordance to AccountBookings for `payment_pending`.
 
 ### P1-6 · CookieNotice z-40 bottom bar covers the mobile sticky CTAs
+
 `src/components/site/CookieNotice.tsx:42` is `fixed bottom-0 z-40`; the mobile Pay/Proceed/Book bars are also
 `z-40`, so a first-time mobile visitor sees the cookie bar paint over the primary CTA until they Accept. Also
 missing `pb-[env(safe-area-inset-bottom)]`.
 **Fix:** `z-40` → `z-30` (below the CTA bars) + add the safe-area inset; verify on a device.
 
 ## 4. P2 / POST-LAUNCH
+
 - **FX-drift receipt mismatch** — `createPaymentLink` overwrites the charge with a fresh FX rate + mints a new
   checkout on every POST; paying an older checkout makes the PAID-USD a few dollars off the card (EUR correct).
   Fix with P1-3 (don't overwrite a recorded charge).
@@ -97,12 +105,14 @@ missing `pb-[env(safe-area-inset-bottom)]`.
 - **No account-deletion / data-erasure path** (GDPR — see §6).
 
 ## 5. UNCERTAIN — NEEDS YOUR EYES
+
 - **P1-1 refund leg:** does Peach emit a refund webhook for **dashboard-issued** refunds your status-requery
   would catch? If yes, the gap is just the missing email + temporary stuck state; if no, you need the "Mark
   refunded" action before launch. (Cannot resolve from code — depends on Peach + your process.)
 - **Cron `SITE_URL` value:** confirm the configured origin equals the live customer origin exactly.
 
 ## 6. COVERAGE & RESIDUAL RISK
+
 **Audited & SOUND:** admin/customer direct-table RLS (every admin table `*_staff` gated by `is_staff()`; the
 `bookings` column-pinning trigger + `forbid_public_write`; AccountProfile pinned to `auth.uid()`); a Google
 Maps outage does NOT block checkout (the address inputs render unconditionally); the payment-confirmation
@@ -115,6 +125,7 @@ capacity (not traced). **Email pipeline concurrency** — the at-least-once drai
 (P1-4) is the real residual risk.
 
 ## 7. RECOMMENDED FIX ORDER
+
 1. **P0-1** — config-scoped booking stash key + re-run price-reconciliation on the rehydrated-ref path. (Blocks launch.)
 2. **P1-3** — owner/staff guard on `api_record_payment_charge` (one-line SQL, both files; also stop overwriting recorded charges → fixes P2 FX drift).
 3. **P1-1** — decide the refund process (Peach webhook? runbook or "Mark refunded" action).

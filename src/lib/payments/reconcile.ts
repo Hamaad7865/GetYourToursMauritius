@@ -56,7 +56,8 @@ export async function reconcilePaymentEvent(
   // Whether THIS event fully satisfies the total (drives the caller's response flag; the DB confirm
   // is decided independently by append_payment_event summing credited amounts).
   const fullyPaid =
-    event.outcome === 'paid' && (event.amountMinor == null || event.amountMinor >= payment.amount_minor);
+    event.outcome === 'paid' &&
+    (event.amountMinor == null || event.amountMinor >= payment.amount_minor);
 
   const { error: rpcErr } = await admin.rpc('append_payment_event', {
     p_payment_id: payment.id,

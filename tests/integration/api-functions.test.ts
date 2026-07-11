@@ -124,18 +124,28 @@ describe('api_* service functions', () => {
     const to = toDate.toISOString().slice(0, 10);
 
     // The read NO LONGER writes — before materialization there are no slots.
-    const empty = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
-    expect(empty.length).toBe(0);
-
-    // Materialize as the service-role cron would (now restricted to staff / service_role), then read.
-    await db.as({ role: 'service_role' });
-    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: a[0]!.id })]);
-    await db.asOwner();
-    const slots = await rpc<{ seatsLeft: number; capacity: number }[]>(db, 'api_list_availability', {
+    const empty = await rpc<unknown[]>(db, 'api_list_availability', {
       slug: 'open-ended-tour',
       from,
       to,
     });
+    expect(empty.length).toBe(0);
+
+    // Materialize as the service-role cron would (now restricted to staff / service_role), then read.
+    await db.as({ role: 'service_role' });
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [
+      JSON.stringify({ activityId: a[0]!.id }),
+    ]);
+    await db.asOwner();
+    const slots = await rpc<{ seatsLeft: number; capacity: number }[]>(
+      db,
+      'api_list_availability',
+      {
+        slug: 'open-ended-tour',
+        from,
+        to,
+      },
+    );
     expect(slots.length).toBeGreaterThan(5);
     expect(slots.every((s) => s.capacity === 8 && s.seatsLeft === 8)).toBe(true);
 
@@ -152,9 +162,15 @@ describe('api_* service functions', () => {
 
     // Materialization is idempotent — a second run creates no duplicates.
     await db.as({ role: 'service_role' });
-    await db.pg.query(`select materialize_availability($1::jsonb)`, [JSON.stringify({ activityId: a[0]!.id })]);
+    await db.pg.query(`select materialize_availability($1::jsonb)`, [
+      JSON.stringify({ activityId: a[0]!.id }),
+    ]);
     await db.asOwner();
-    const again = await rpc<unknown[]>(db, 'api_list_availability', { slug: 'open-ended-tour', from, to });
+    const again = await rpc<unknown[]>(db, 'api_list_availability', {
+      slug: 'open-ended-tour',
+      from,
+      to,
+    });
     expect(again.length).toBe(slots.length);
   });
 
@@ -220,7 +236,10 @@ describe('api_* service functions', () => {
     });
     expect(pending.status).toBe('payment_pending');
     await expect(
-      rpc(db, 'api_create_payment', { bookingRef: pending.ref, idempotencyKey: 'guard-pending-pay' }),
+      rpc(db, 'api_create_payment', {
+        bookingRef: pending.ref,
+        idempotencyKey: 'guard-pending-pay',
+      }),
     ).resolves.toMatchObject({ bookingRef: pending.ref });
 
     // Confirmed (paid) booking → refused. Simulate the webhook outcome by flipping the cached state.
@@ -231,7 +250,10 @@ describe('api_* service functions', () => {
     );
     await db.as({ sub: USER, role: 'authenticated' });
     await expect(
-      rpc(db, 'api_create_payment', { bookingRef: pending.ref, idempotencyKey: 'guard-paid-again' }),
+      rpc(db, 'api_create_payment', {
+        bookingRef: pending.ref,
+        idempotencyKey: 'guard-paid-again',
+      }),
     ).rejects.toThrow(/booking_not_payable/);
 
     // Expired (terminal, never paid) booking → also refused.
@@ -244,7 +266,10 @@ describe('api_* service functions', () => {
     const expiredRef = expired.rows[0]!.ref;
     await db.as({ sub: USER, role: 'authenticated' });
     await expect(
-      rpc(db, 'api_create_payment', { bookingRef: expiredRef, idempotencyKey: 'guard-expired-pay' }),
+      rpc(db, 'api_create_payment', {
+        bookingRef: expiredRef,
+        idempotencyKey: 'guard-expired-pay',
+      }),
     ).rejects.toThrow(/booking_not_payable/);
 
     await db.asOwner();

@@ -29,13 +29,13 @@ the vehicle bands, and the cap (25) are fixed constants.
 
 ### Vehicle bands (fixed; affect the displayed name + the SUV option, NOT the price)
 
-| People | Vehicle name | Notes |
-|--------|--------------|-------|
+| People | Vehicle name                   | Notes                                   |
+| ------ | ------------------------------ | --------------------------------------- |
 | 1–4    | `Sedan` (or `SUV` if upgraded) | only tier with a choice; SUV = flat €85 |
-| 5–6    | `Family car` | one option |
-| 7–14   | `Minibus`    | one option |
-| 15–25  | `Coaster`    | one option |
-| 26+    | —            | "Contact us to arrange more than 25" |
+| 5–6    | `Family car`                   | one option                              |
+| 7–14   | `Minibus`                      | one option                              |
+| 15–25  | `Coaster`                      | one option                              |
+| 26+    | —                              | "Contact us to arrange more than 25"    |
 
 Resulting prices: 1–4 €70 (SUV €85) · 5–8 €140 · 9–12 €210 · 13–16 €280 · 17–20 €350 · 21–24 €420 · 25 €490.
 (Family car caps at 6 and minibus at 14, so e.g. 7–8 = €140 in a minibus, not a family car.)

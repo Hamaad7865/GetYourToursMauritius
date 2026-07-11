@@ -149,7 +149,8 @@ async function operatorId(): Promise<string> {
     .eq('slug', 'belle-mare-tours')
     .maybeSingle();
   if (error) throw error;
-  if (!data) throw new Error('Operator "belle-mare-tours" not found — run the admin setup SQL first.');
+  if (!data)
+    throw new Error('Operator "belle-mare-tours" not found — run the admin setup SQL first.');
   return data.id;
 }
 
@@ -177,7 +178,9 @@ function buildExtra(v: ActivityFormValues) {
         description: s.description.trim() || null,
         tags: s.tags.filter((t) => t.trim()),
         // Preserve hand-placed pins; omit the keys entirely when unset (schema treats them as optional).
-        ...(typeof s.lat === 'number' && typeof s.lng === 'number' ? { lat: s.lat, lng: s.lng } : {}),
+        ...(typeof s.lat === 'number' && typeof s.lng === 'number'
+          ? { lat: s.lat, lng: s.lng }
+          : {}),
       };
       const options = s.options
         .filter((o) => o.title.trim())
@@ -238,7 +241,10 @@ function activityRow(v: ActivityFormValues, opId: string) {
 export function planOptionReconcile(
   existingIds: string[],
   formOptions: OptionInput[],
-): { toUpsert: Array<{ option: OptionInput; position: number; isNew: boolean }>; removedIds: string[] } {
+): {
+  toUpsert: Array<{ option: OptionInput; position: number; isNew: boolean }>;
+  removedIds: string[];
+} {
   const existing = new Set(existingIds);
   const kept = new Set<string>();
   const toUpsert = formOptions
@@ -268,7 +274,12 @@ async function replaceImages(activityId: string, images: ImageInput[]): Promise<
   if (readErr) throw readErr;
   const rows = images
     .filter((i) => i.url.trim())
-    .map((img, position) => ({ activity_id: activityId, url: img.url.trim(), alt: img.alt.trim() || null, position }));
+    .map((img, position) => ({
+      activity_id: activityId,
+      url: img.url.trim(),
+      alt: img.alt.trim() || null,
+      position,
+    }));
   if (rows.length) {
     const { error } = await sb.from('activity_images').insert(rows);
     if (error) throw error;
@@ -334,7 +345,10 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
     .select('id')
     .eq('activity_id', activityId);
   if (readErr) throw readErr;
-  const { toUpsert, removedIds } = planOptionReconcile((existing ?? []).map((o) => o.id), formOptions);
+  const { toUpsert, removedIds } = planOptionReconcile(
+    (existing ?? []).map((o) => o.id),
+    formOptions,
+  );
 
   for (const { option, position, isNew } of toUpsert) {
     // Private option: the four private_* columns ARE its pricing (all-null when the toggle is off,
@@ -427,12 +441,16 @@ function assertPricingValid(v: ActivityFormValues): void {
       );
     }
     if (o.privateBaseEur == null || o.privateBaseEur <= 0) {
-      throw new Error(`Private option "${o.name || 'unnamed'}": set a base price (must be more than €0).`);
+      throw new Error(
+        `Private option "${o.name || 'unnamed'}": set a base price (must be more than €0).`,
+      );
     }
     const included = o.privateIncluded ?? 0;
     const max = o.privateMaxGuests ?? 0;
     if (included < 1) {
-      throw new Error(`Private option "${o.name}": "base covers up to N guests" must be at least 1.`);
+      throw new Error(
+        `Private option "${o.name}": "base covers up to N guests" must be at least 1.`,
+      );
     }
     if ((o.privateExtraEur ?? -1) < 0) {
       throw new Error(`Private option "${o.name}": set the price per extra guest (€0 is fine).`);
@@ -462,7 +480,9 @@ function assertPricingValid(v: ActivityFormValues): void {
   }
   if (v.pricingMode !== 'per_group') return;
   const uncapped = v.options.some((o) =>
-    o.prices.some((p) => p.label.trim() && p.amountEur != null && (p.maxGuests == null || p.maxGuests <= 0)),
+    o.prices.some(
+      (p) => p.label.trim() && p.amountEur != null && (p.maxGuests == null || p.maxGuests <= 0),
+    ),
   );
   if (uncapped) {
     throw new Error(
@@ -512,7 +532,11 @@ export async function updateActivity(id: string, v: ActivityFormValues): Promise
   const opId = await operatorId();
   // Moving to another category keeps the old `sort` otherwise — a sort-0 tour would jump ahead of
   // the destination category's arranged order. Re-file it at the end, like a newly created tour.
-  const { data: cur, error: curErr } = await sb.from('activities').select('category').eq('id', id).maybeSingle();
+  const { data: cur, error: curErr } = await sb
+    .from('activities')
+    .select('category')
+    .eq('id', id)
+    .maybeSingle();
   if (curErr) throw curErr;
   const row =
     cur && cur.category !== v.category
@@ -536,7 +560,9 @@ export async function uploadActivityImage(file: File, slug: string): Promise<str
   const sb = getBrowserSupabase();
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
   const path = `${slugify(slug) || 'activity'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await sb.storage.from('activity-images').upload(path, file, { cacheControl: '3600', upsert: false });
+  const { error } = await sb.storage
+    .from('activity-images')
+    .upload(path, file, { cacheControl: '3600', upsert: false });
   if (error) throw error;
   return sb.storage.from('activity-images').getPublicUrl(path).data.publicUrl;
 }
@@ -547,9 +573,11 @@ export async function uploadActivityPdf(file: File, slug: string): Promise<strin
   const sb = getBrowserSupabase();
   const ext = (file.name.split('.').pop() || 'pdf').toLowerCase().replace(/[^a-z0-9]/g, '');
   const path = `${slugify(slug) || 'activity'}/pricelist-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await sb.storage
-    .from('activity-images')
-    .upload(path, file, { cacheControl: '3600', upsert: false, contentType: file.type || 'application/pdf' });
+  const { error } = await sb.storage.from('activity-images').upload(path, file, {
+    cacheControl: '3600',
+    upsert: false,
+    contentType: file.type || 'application/pdf',
+  });
   if (error) throw error;
   return sb.storage.from('activity-images').getPublicUrl(path).data.publicUrl;
 }
@@ -667,7 +695,11 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       lng: s.lng ?? null,
       options: (s.options ?? []).map((o) => ({ title: o.title ?? '', area: o.area ?? '' })),
     })),
-    badges: (extra.badges ?? []).map((b) => ({ icon: b.icon ?? '', title: b.title ?? '', subtitle: b.subtitle ?? '' })),
+    badges: (extra.badges ?? []).map((b) => ({
+      icon: b.icon ?? '',
+      title: b.title ?? '',
+      subtitle: b.subtitle ?? '',
+    })),
     priceListUrl: extra.priceList?.url ?? '',
     priceListLabel: extra.priceList?.label ?? '',
     sourceExtra: (act.extra ?? {}) as Record<string, unknown>,

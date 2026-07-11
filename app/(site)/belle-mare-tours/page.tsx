@@ -32,7 +32,14 @@ export const metadata: Metadata = {
     'east coast Mauritius tours',
   ],
   alternates: { canonical: PATH },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}${PATH}`, locale: 'en_GB', images: [OG_IMAGE] },
+  openGraph: {
+    type: 'website',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: `${SITE.url}${PATH}`,
+    locale: 'en_GB',
+    images: [OG_IMAGE],
+  },
 };
 
 const FAQS = [
@@ -46,7 +53,12 @@ const FAQS = [
   },
   {
     q: 'Are you licensed and insured?',
-    a: 'Yes. Belle Mare Tours Ltd is a registered Mauritian company (BRN ' + SITE.brn + ', VAT ' + SITE.vat + ') operating licensed, insured vehicles with professional driver-guides.',
+    a:
+      'Yes. Belle Mare Tours Ltd is a registered Mauritian company (BRN ' +
+      SITE.brn +
+      ', VAT ' +
+      SITE.vat +
+      ') operating licensed, insured vehicles with professional driver-guides.',
   },
   {
     q: 'What does “book direct” actually save me?',
@@ -54,7 +66,10 @@ const FAQS = [
   },
   {
     q: 'How do I reach you?',
-    a: 'Book online any time, or message us on WhatsApp at ' + SITE.phone + ' for a quick quote or a tailor-made day. We reply in English and French.',
+    a:
+      'Book online any time, or message us on WhatsApp at ' +
+      SITE.phone +
+      ' for a quick quote or a tailor-made day. We reply in English and French.',
   },
 ];
 
@@ -63,10 +78,19 @@ export default async function BelleMareToursPage() {
 
   return (
     <>
-      <JsonLd data={breadcrumbListJsonLd([{ name: 'Home', path: '/' }, { name: 'Belle Mare Tours', path: PATH }])} />
+      <JsonLd
+        data={breadcrumbListJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Belle Mare Tours', path: PATH },
+        ])}
+      />
       <JsonLd data={faqPageJsonLd(FAQS)} />
       {featured.length > 0 && (
-        <JsonLd data={itemListJsonLd(featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })))} />
+        <JsonLd
+          data={itemListJsonLd(
+            featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })),
+          )}
+        />
       )}
 
       <InfoPage
@@ -79,15 +103,17 @@ export default async function BelleMareToursPage() {
 
         <ContentSection id="who" title="A local operator who knows the island">
           <p>
-            {SITE.operator} is a licensed Mauritian tour and airport-transfer operator based in Belle Mare, on the
-            island’s calm east coast. Run by veteran driver-guide Noorani and his team, we’ve spent years showing
-            visitors the Mauritius beyond the resort gate — the hidden bays, the best lunch spots, the back roads to the
-            waterfalls — and we’re rated 4.8/5 across more than a thousand <InlineLink href="/reviews">guest reviews</InlineLink>.
+            {SITE.operator} is a licensed Mauritian tour and airport-transfer operator based in
+            Belle Mare, on the island’s calm east coast. Run by veteran driver-guide Noorani and his
+            team, we’ve spent years showing visitors the Mauritius beyond the resort gate — the
+            hidden bays, the best lunch spots, the back roads to the waterfalls — and we’re rated
+            4.8/5 across more than a thousand <InlineLink href="/reviews">guest reviews</InlineLink>
+            .
           </p>
           <p>
-            This site is our own booking platform. Reserve directly with us and you’re dealing with the people who
-            actually run the tour — not a reseller — so prices stay fair and someone who knows your booking is always a
-            WhatsApp message away.
+            This site is our own booking platform. Reserve directly with us and you’re dealing with
+            the people who actually run the tour — not a reseller — so prices stay fair and someone
+            who knows your booking is always a WhatsApp message away.
           </p>
         </ContentSection>
 
@@ -103,20 +129,24 @@ export default async function BelleMareToursPage() {
             <InlineLink href="/mauritius-catamaran-cruise">catamaran cruises</InlineLink> to{' '}
             <InlineLink href="/ile-aux-cerfs-tours">Île aux Cerfs</InlineLink>, early-morning{' '}
             <InlineLink href="/dolphin-swim-mauritius">dolphin swims</InlineLink>, private{' '}
-            <InlineLink href="/activities?category=Sightseeing tours">sightseeing day tours</InlineLink> of the south and
-            north, sea walks and snorkelling, plus fixed-price{' '}
-            <InlineLink href="/airport-transfers">airport transfers</InlineLink> to and from SSR International Airport.
-            See everything on the <InlineLink href="/mauritius-tours">Mauritius tours</InlineLink> page or the live{' '}
+            <InlineLink href="/activities?category=Sightseeing tours">
+              sightseeing day tours
+            </InlineLink>{' '}
+            of the south and north, sea walks and snorkelling, plus fixed-price{' '}
+            <InlineLink href="/airport-transfers">airport transfers</InlineLink> to and from SSR
+            International Airport. See everything on the{' '}
+            <InlineLink href="/mauritius-tours">Mauritius tours</InlineLink> page or the live{' '}
             <InlineLink href="/activities">catalogue</InlineLink>.
           </p>
         </ContentSection>
 
         <ContentSection id="east-coast" title="Belle Mare & the east coast">
           <p>
-            Belle Mare is known for one of the island’s longest, calmest white-sand beaches and its turquoise lagoon,
-            with Île aux Cerfs and Trou d’Eau Douce just down the coast. Being based here means quick, unhurried pickups
-            for eastern resorts and an easy run to the boat jetties — but we collect from anywhere on the island. Read
-            more about the area and its neighbours in our guide to the{' '}
+            Belle Mare is known for one of the island’s longest, calmest white-sand beaches and its
+            turquoise lagoon, with Île aux Cerfs and Trou d’Eau Douce just down the coast. Being
+            based here means quick, unhurried pickups for eastern resorts and an easy run to the
+            boat jetties — but we collect from anywhere on the island. Read more about the area and
+            its neighbours in our guide to the{' '}
             <InlineLink href="/destinations">regions of Mauritius</InlineLink>.
           </p>
           <RelatedLinks
@@ -137,8 +167,8 @@ export default async function BelleMareToursPage() {
 
         <ContentSection id="book" title="Plan your trip with us">
           <p>
-            Tell us your dates and where you’re staying and we’ll put together the right mix of tours and transfers —
-            or book any experience online right now.
+            Tell us your dates and where you’re staying and we’ll put together the right mix of
+            tours and transfers — or book any experience online right now.
           </p>
           <BookDirectCta primary={{ href: '/mauritius-tours', label: 'See our tours' }} />
         </ContentSection>

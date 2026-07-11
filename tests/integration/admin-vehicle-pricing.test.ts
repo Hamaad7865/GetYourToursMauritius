@@ -32,8 +32,13 @@ describe('admin vehicle pricing editors', () => {
     db = await createTestDb();
     await db.asOwner();
     await db.pg.query(`insert into auth.users (id) values ($1), ($2)`, [STAFF, CUSTOMER]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [STAFF]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Cust', 'customer')`, [CUSTOMER]);
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [
+      STAFF,
+    ]);
+    await db.pg.query(
+      `insert into profiles (id, full_name, role) values ($1, 'Cust', 'customer')`,
+      [CUSTOMER],
+    );
     hoisted.shim = makeSupabaseShim(db.pg);
   });
 
@@ -52,8 +57,21 @@ describe('admin vehicle pricing editors', () => {
 
   it('lets staff update both configs', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
-    await updateSightseeingPricing({ sedanEur: 80, suvEur: 95, familyEur: 90, vanEur: 130, coasterEur: 240 });
-    await updatePlannerPricing({ standardEur: 99, suvEur: 105, sixEur: 115, vanEur: 160, coachEur: 260, maxParty: 20 });
+    await updateSightseeingPricing({
+      sedanEur: 80,
+      suvEur: 95,
+      familyEur: 90,
+      vanEur: 130,
+      coasterEur: 240,
+    });
+    await updatePlannerPricing({
+      standardEur: 99,
+      suvEur: 105,
+      sixEur: 115,
+      vanEur: 160,
+      coachEur: 260,
+      maxParty: 20,
+    });
 
     await db.as(null);
     expect((await loadSightseeingPricing()).sedanEur).toBe(80);
@@ -64,10 +82,19 @@ describe('admin vehicle pricing editors', () => {
 
   it('silently denies a non-staff update (RLS)', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    await updatePlannerPricing({ standardEur: 1, suvEur: 1, sixEur: 1, vanEur: 1, coachEur: 1, maxParty: 1 });
+    await updatePlannerPricing({
+      standardEur: 1,
+      suvEur: 1,
+      sixEur: 1,
+      vanEur: 1,
+      coachEur: 1,
+      maxParty: 1,
+    });
 
     await db.asOwner();
-    const { rows } = await db.pg.query<{ standard_minor: number }>(`select standard_minor from planner_pricing limit 1`);
+    const { rows } = await db.pg.query<{ standard_minor: number }>(
+      `select standard_minor from planner_pricing limit 1`,
+    );
     expect(rows[0]!.standard_minor).toBe(9900); // unchanged from the staff update, not 100
   });
 });

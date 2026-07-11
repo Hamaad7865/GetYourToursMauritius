@@ -15,7 +15,10 @@ const SITE = trim(env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000');
 console.log('AUTH base    :', AUTH);
 console.log('CHECKOUT base:', CHECKOUT);
 console.log('SITE         :', SITE);
-console.log('entityId set :', env.PEACH_ENTITY_ID ? `yes (${env.PEACH_ENTITY_ID.slice(0, 4)}…)` : 'NO');
+console.log(
+  'entityId set :',
+  env.PEACH_ENTITY_ID ? `yes (${env.PEACH_ENTITY_ID.slice(0, 4)}…)` : 'NO',
+);
 
 const tokenRes = await fetch(`${AUTH}/api/oauth/token`, {
   method: 'POST',
@@ -58,7 +61,9 @@ for (const currency of ['EUR', 'MUR', 'USD']) {
   });
   const text = await coRes.text();
   let hosted = '';
-  try { hosted = JSON.parse(text).redirectUrl || ''; } catch {}
+  try {
+    hosted = JSON.parse(text).redirectUrl || '';
+  } catch {}
   console.log(`\n=== ${currency} -> HTTP ${coRes.status} ===`);
   console.log(hosted || text.slice(0, 400));
 }

@@ -125,7 +125,9 @@ export function BookingOptionCard() {
       </div>
 
       <div className="mt-4 border-t border-ink/10 pt-3">
-        <div className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">{t('Starting time')}</div>
+        <div className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+          {t('Starting time')}
+        </div>
         <div className="text-[15px] font-semibold text-ink">{whenText}</div>
       </div>
 
@@ -175,50 +177,53 @@ export function BookingOptionCard() {
         {/* Baby/child seats — first free, €6 each extra. Editable; capped at the party size.
             Hidden for adults-only activities (e.g. hiking — no children allowed). */}
         {!b.activity.adultsOnly && (
-        <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-ink/10 px-3 py-2.5">
-          <div className="min-w-0">
-            <div className="text-[13px] font-bold text-ink">{t('Baby & child seats')}</div>
-            <div className="text-[12px] text-ink-muted">
-              {t('First seat free · {price} each extra', { price: money(CHILD_SEAT_EUR) })}
-              {b.childSeatsExtra > 0 && (
-                <span className="font-semibold text-teal-dark"> · +{money(b.childSeatsExtra)}</span>
-              )}
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-ink/10 px-3 py-2.5">
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-ink">{t('Baby & child seats')}</div>
+              <div className="text-[12px] text-ink-muted">
+                {t('First seat free · {price} each extra', { price: money(CHILD_SEAT_EUR) })}
+                {b.childSeatsExtra > 0 && (
+                  <span className="font-semibold text-teal-dark">
+                    {' '}
+                    · +{money(b.childSeatsExtra)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                aria-label={t('Remove child seat')}
+                onClick={() => b.setChildSeats(Math.max(0, b.childSeats - 1))}
+                disabled={b.childSeats <= 0}
+                className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+              >
+                <IconMinus width={14} height={14} />
+              </button>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={b.totalGuests}
+                value={b.childSeats}
+                aria-label={t('Number of child seats')}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value, 10);
+                  if (!Number.isNaN(n)) b.setChildSeats(Math.max(0, Math.min(b.totalGuests, n)));
+                }}
+                className="h-8 w-12 rounded-lg border border-ink/15 text-center text-[14px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button
+                type="button"
+                aria-label={t('Add child seat')}
+                onClick={() => b.setChildSeats(Math.min(b.totalGuests, b.childSeats + 1))}
+                disabled={b.childSeats >= b.totalGuests}
+                className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+              >
+                <IconPlus width={14} height={14} />
+              </button>
             </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              aria-label={t('Remove child seat')}
-              onClick={() => b.setChildSeats(Math.max(0, b.childSeats - 1))}
-              disabled={b.childSeats <= 0}
-              className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
-            >
-              <IconMinus width={14} height={14} />
-            </button>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={b.totalGuests}
-              value={b.childSeats}
-              aria-label={t('Number of child seats')}
-              onChange={(e) => {
-                const n = parseInt(e.target.value, 10);
-                if (!Number.isNaN(n)) b.setChildSeats(Math.max(0, Math.min(b.totalGuests, n)));
-              }}
-              className="h-8 w-12 rounded-lg border border-ink/15 text-center text-[14px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-            />
-            <button
-              type="button"
-              aria-label={t('Add child seat')}
-              onClick={() => b.setChildSeats(Math.min(b.totalGuests, b.childSeats + 1))}
-              disabled={b.childSeats >= b.totalGuests}
-              className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
-            >
-              <IconPlus width={14} height={14} />
-            </button>
-          </div>
-        </div>
         )}
 
         <div className="mt-4 flex items-end justify-between gap-3 border-t border-ink/10 pt-4">
@@ -249,7 +254,8 @@ export function BookingOptionCard() {
       </div>
 
       <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
-        <IconCheck width={15} height={15} className="text-teal" /> {t('Free cancellation up to 24 hours before')}
+        <IconCheck width={15} height={15} className="text-teal" />{' '}
+        {t('Free cancellation up to 24 hours before')}
       </div>
     </div>
   );

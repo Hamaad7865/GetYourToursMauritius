@@ -31,14 +31,24 @@ async function mintToken(sub: string): Promise<string> {
     .sign(new TextEncoder().encode(SECRET));
 }
 async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
-function reviewReq(slug: string, token: string | null, body: unknown): [Request, { params: Promise<{ slug: string }> }] {
+function reviewReq(
+  slug: string,
+  token: string | null,
+  body: unknown,
+): [Request, { params: Promise<{ slug: string }> }] {
   const headers: Record<string, string> = { 'content-type': 'application/json' };
   if (token) headers.authorization = `Bearer ${token}`;
   return [
-    new Request(`http://localhost/api/v1/activities/${slug}/reviews`, { method: 'POST', headers, body: JSON.stringify(body) }),
+    new Request(`http://localhost/api/v1/activities/${slug}/reviews`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    }),
     { params: Promise.resolve({ slug }) },
   ];
 }
@@ -60,7 +70,15 @@ describe('reviews + filters', () => {
     const act = await db.pg.query<{ id: string }>(
       `insert into activities (operator_id, slug, title, category, status, pricing_mode, duration_minutes, rating_avg, rating_count)
        values ($1, $2, $3, $4, 'published', 'per_person', $5, $6, $7) returning id`,
-      [operatorId, opts.slug, opts.slug, opts.category ?? 'Catamaran cruises', opts.duration, opts.ratingAvg, opts.ratingCount],
+      [
+        operatorId,
+        opts.slug,
+        opts.slug,
+        opts.category ?? 'Catamaran cruises',
+        opts.duration,
+        opts.ratingAvg,
+        opts.ratingCount,
+      ],
     );
     const opt = await db.pg.query<{ id: string }>(
       `insert into activity_options (activity_id, name) values ($1, 'Standard') returning id`,
@@ -79,15 +97,29 @@ describe('reviews + filters', () => {
     db = await createTestDb();
     await db.asOwner();
     for (const id of [USER_A, USER_B]) {
-      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [id, `${id}@example.com`]);
-      await db.pg.query(`insert into profiles (id, role, full_name) values ($1, 'customer', $2)`, [id, `User ${id.slice(0, 4)}`]);
+      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [
+        id,
+        `${id}@example.com`,
+      ]);
+      await db.pg.query(`insert into profiles (id, role, full_name) values ($1, 'customer', $2)`, [
+        id,
+        `User ${id.slice(0, 4)}`,
+      ]);
     }
     operatorId = (
-      await db.pg.query<{ id: string }>(`insert into operators (name, slug) values ('Op', 'op') returning id`)
+      await db.pg.query<{ id: string }>(
+        `insert into operators (name, slug) values ('Op', 'op') returning id`,
+      )
     ).rows[0]!.id;
 
     // Reviewable activity + a confirmed booking for USER_A (the booking gate).
-    const rev = await makeActivity({ slug: 'reviewable', priceMinor: 7500, duration: 90, ratingAvg: null, ratingCount: 0 });
+    const rev = await makeActivity({
+      slug: 'reviewable',
+      priceMinor: 7500,
+      duration: 90,
+      ratingAvg: null,
+      ratingCount: 0,
+    });
     reviewOptId = rev.optId;
     reviewOccId = (
       await db.pg.query<{ id: string }>(
@@ -108,15 +140,43 @@ describe('reviews + filters', () => {
     );
 
     // Filter activities: cheap/mid/pricey with distinct price/duration/rating.
-    await makeActivity({ slug: 'cheap', priceMinor: 5000, duration: 60, ratingAvg: 3.0, ratingCount: 4 });
-    await makeActivity({ slug: 'mid', priceMinor: 10000, duration: 120, ratingAvg: 4.5, ratingCount: 9 });
-    await makeActivity({ slug: 'pricey', priceMinor: 20000, duration: 240, ratingAvg: 5.0, ratingCount: 2 });
+    await makeActivity({
+      slug: 'cheap',
+      priceMinor: 5000,
+      duration: 60,
+      ratingAvg: 3.0,
+      ratingCount: 4,
+    });
+    await makeActivity({
+      slug: 'mid',
+      priceMinor: 10000,
+      duration: 120,
+      ratingAvg: 4.5,
+      ratingCount: 9,
+    });
+    await makeActivity({
+      slug: 'pricey',
+      priceMinor: 20000,
+      duration: 240,
+      ratingAvg: 5.0,
+      ratingCount: 2,
+    });
     // Published but with NO price rows + null duration (ignored by facet min/max) — must drop out of any
     // price-bounded query rather than slip in as a €0 row.
-    await makeActivity({ slug: 'freebie', priceMinor: null, duration: null, ratingAvg: null, ratingCount: 0 });
+    await makeActivity({
+      slug: 'freebie',
+      priceMinor: null,
+      duration: null,
+      ratingAvg: null,
+      ratingCount: 0,
+    });
 
-    await db.pg.query(`insert into categories (name, slug, position, status) values ('Cruises', 'cruises', 1, 'active')`);
-    await db.pg.query(`insert into categories (name, slug, position, status) values ('Hidden', 'hidden', 2, 'hidden')`);
+    await db.pg.query(
+      `insert into categories (name, slug, position, status) values ('Cruises', 'cruises', 1, 'active')`,
+    );
+    await db.pg.query(
+      `insert into categories (name, slug, position, status) values ('Hidden', 'hidden', 2, 'hidden')`,
+    );
 
     setRouteContext({
       db: pgliteRpc(db.pg),
@@ -134,7 +194,9 @@ describe('reviews + filters', () => {
   // ---- reviews ----
   it('rejects a review from a user without a confirmed booking (403)', async () => {
     await db.as({ sub: USER_B, role: 'authenticated' });
-    const res = await reviewPost(...reviewReq('reviewable', await mintToken(USER_B), { rating: 5 }));
+    const res = await reviewPost(
+      ...reviewReq('reviewable', await mintToken(USER_B), { rating: 5 }),
+    );
     expect(res.status).toBe(403);
   });
 
@@ -149,7 +211,9 @@ describe('reviews + filters', () => {
 
   it('accepts a booking-gated review (201) and recomputes the rating', async () => {
     await db.as({ sub: USER_A, role: 'authenticated' });
-    const res = await reviewPost(...reviewReq('reviewable', await mintToken(USER_A), { rating: 4, text: 'Lovely' }));
+    const res = await reviewPost(
+      ...reviewReq('reviewable', await mintToken(USER_A), { rating: 4, text: 'Lovely' }),
+    );
     expect(res.status).toBe(201);
     const body = await res.json();
     expect(body.data).toMatchObject({ rating: 4, text: 'Lovely', author: expect.any(String) });
@@ -164,7 +228,9 @@ describe('reviews + filters', () => {
 
   it('upserts one review per user (re-submit updates, does not duplicate)', async () => {
     await db.as({ sub: USER_A, role: 'authenticated' });
-    const res = await reviewPost(...reviewReq('reviewable', await mintToken(USER_A), { rating: 2, text: 'Changed my mind' }));
+    const res = await reviewPost(
+      ...reviewReq('reviewable', await mintToken(USER_A), { rating: 2, text: 'Changed my mind' }),
+    );
     expect(res.status).toBe(201);
     await db.asOwner();
     const rows = await db.pg.query<{ n: number }>(
@@ -172,7 +238,9 @@ describe('reviews + filters', () => {
       [USER_A],
     );
     expect(rows.rows[0]!.n).toBe(1); // still one row
-    const agg = await db.pg.query<{ rating_avg: string }>(`select rating_avg from activities where slug = 'reviewable'`);
+    const agg = await db.pg.query<{ rating_avg: string }>(
+      `select rating_avg from activities where slug = 'reviewable'`,
+    );
     expect(Number(agg.rows[0]!.rating_avg)).toBe(2);
   });
 
@@ -180,7 +248,9 @@ describe('reviews + filters', () => {
     // USER_A even has a confirmed booking, but a direct PostgREST-style insert must still be denied:
     // the booking gate lives only in api_submit_review, so the table has no permissive insert policy.
     await db.as({ sub: USER_A, role: 'authenticated' });
-    const actId = (await db.pg.query<{ id: string }>(`select id from activities where slug = 'reviewable'`)).rows[0]!.id;
+    const actId = (
+      await db.pg.query<{ id: string }>(`select id from activities where slug = 'reviewable'`)
+    ).rows[0]!.id;
     await expect(
       db.pg.query(
         `insert into reviews (activity_id, user_id, author, rating, text) values ($1, $2, 'Hacker', 5, 'forged')`,
@@ -192,16 +262,24 @@ describe('reviews + filters', () => {
   it('My reviews is owner-scoped', async () => {
     await db.as({ sub: USER_A, role: 'authenticated' });
     const a = await myReviewsGet(
-      new Request('http://localhost/api/v1/account/reviews', { headers: { authorization: `Bearer ${await mintToken(USER_A)}` } }),
+      new Request('http://localhost/api/v1/account/reviews', {
+        headers: { authorization: `Bearer ${await mintToken(USER_A)}` },
+      }),
     );
     expect(a.status).toBe(200);
     const aBody = await a.json();
     expect(aBody.data).toHaveLength(1);
-    expect(aBody.data[0]).toMatchObject({ activitySlug: 'reviewable', activityTitle: 'reviewable', rating: 2 });
+    expect(aBody.data[0]).toMatchObject({
+      activitySlug: 'reviewable',
+      activityTitle: 'reviewable',
+      rating: 2,
+    });
 
     await db.as({ sub: USER_B, role: 'authenticated' });
     const b = await myReviewsGet(
-      new Request('http://localhost/api/v1/account/reviews', { headers: { authorization: `Bearer ${await mintToken(USER_B)}` } }),
+      new Request('http://localhost/api/v1/account/reviews', {
+        headers: { authorization: `Bearer ${await mintToken(USER_B)}` },
+      }),
     );
     expect((await b.json()).data).toHaveLength(0);
 
@@ -213,7 +291,13 @@ describe('reviews + filters', () => {
   it('filters activities by price / duration / rating', async () => {
     await db.as(null);
     const slugs = async (params: Record<string, unknown>) =>
-      (await call<{ items: Array<{ slug: string }> }>(db, 'api_search_activities', { page: 1, pageSize: 50, ...params })).items
+      (
+        await call<{ items: Array<{ slug: string }> }>(db, 'api_search_activities', {
+          page: 1,
+          pageSize: 50,
+          ...params,
+        })
+      ).items
         .map((i) => i.slug)
         .filter((s) => ['cheap', 'mid', 'pricey'].includes(s));
 
@@ -228,9 +312,13 @@ describe('reviews + filters', () => {
   it('excludes unpriced activities from price-bounded results (not coalesced to €0)', async () => {
     await db.as(null);
     const present = async (params: Record<string, unknown>) =>
-      (await call<{ items: Array<{ slug: string }> }>(db, 'api_search_activities', { page: 1, pageSize: 50, ...params })).items.some(
-        (i) => i.slug === 'freebie',
-      );
+      (
+        await call<{ items: Array<{ slug: string }> }>(db, 'api_search_activities', {
+          page: 1,
+          pageSize: 50,
+          ...params,
+        })
+      ).items.some((i) => i.slug === 'freebie');
     expect(await present({})).toBe(true); // no price filter → shown
     expect(await present({ priceMax: 1000 })).toBe(false); // would have slipped in as €0 before the fix
     expect(await present({ priceMin: 0 })).toBe(false); // a price bound excludes an unpriced row

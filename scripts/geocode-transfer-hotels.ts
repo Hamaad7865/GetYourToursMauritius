@@ -82,7 +82,9 @@ async function geocode(name: string, key: string): Promise<{ lat: number; lng: n
     `${name}, Mauritius`,
   )}&region=mu&key=${key}`;
   const res = await fetch(url);
-  const j = (await res.json()) as { results?: Array<{ geometry?: { location?: { lat: number; lng: number } } }> };
+  const j = (await res.json()) as {
+    results?: Array<{ geometry?: { location?: { lat: number; lng: number } } }>;
+  };
   const loc = j.results?.[0]?.geometry?.location;
   return loc ? { lat: loc.lat, lng: loc.lng } : null;
 }
@@ -114,7 +116,9 @@ async function main(): Promise<void> {
 
   const out = src.slice(0, start) + JSON.stringify(arr, null, 2) + src.slice(end + 1);
   writeFileSync(FILE, out, 'utf8');
-  console.log(`Wrote coords for ${filled}/${arr.length} hotels${useApi && key ? ' (geocoded)' : ' (curated)'}.`);
+  console.log(
+    `Wrote coords for ${filled}/${arr.length} hotels${useApi && key ? ' (geocoded)' : ' (curated)'}.`,
+  );
 }
 
 void main();

@@ -39,7 +39,11 @@ function statusPill(status: BookingStatus): { label: string; cls: string; dot: s
   switch (status) {
     case 'confirmed':
     case 'completed':
-      return { label: status === 'completed' ? 'Completed' : 'Confirmed', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
+      return {
+        label: status === 'completed' ? 'Completed' : 'Confirmed',
+        cls: 'bg-emerald-50 text-emerald-700',
+        dot: 'bg-emerald-500',
+      };
     case 'cancelled':
     case 'expired':
     case 'failed':
@@ -78,7 +82,13 @@ function Sparkline({ data }: { data: number[] }) {
   const area = `${line} L${xs(data.length - 1).toFixed(1)} ${h} L${xs(0).toFixed(1)} ${h} Z`;
   const last = pts[pts.length - 1];
   return (
-    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="block overflow-visible">
+    <svg
+      width="100%"
+      height={h}
+      viewBox={`0 0 ${w} ${h}`}
+      preserveAspectRatio="none"
+      className="block overflow-visible"
+    >
       <defs>
         <linearGradient id="spk" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="rgb(var(--color-teal))" stopOpacity={0.22} />
@@ -86,14 +96,34 @@ function Sparkline({ data }: { data: number[] }) {
         </linearGradient>
       </defs>
       <path d={area} fill="url(#spk)" />
-      <path d={line} fill="none" stroke="rgb(var(--color-teal))" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" />
-      {last && <circle cx={last[0]} cy={last[1]} r={4} fill="rgb(var(--color-teal))" stroke="#fff" strokeWidth={2} />}
+      <path
+        d={line}
+        fill="none"
+        stroke="rgb(var(--color-teal))"
+        strokeWidth={2.4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {last && (
+        <circle
+          cx={last[0]}
+          cy={last[1]}
+          r={4}
+          fill="rgb(var(--color-teal))"
+          stroke="#fff"
+          strokeWidth={2}
+        />
+      )}
     </svg>
   );
 }
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <section className={`rounded-2xl border border-[#EAEEF0] bg-white ${className}`}>{children}</section>;
+  return (
+    <section className={`rounded-2xl border border-[#EAEEF0] bg-white ${className}`}>
+      {children}
+    </section>
+  );
 }
 
 export function AdminDashboard() {
@@ -105,7 +135,9 @@ export function AdminDashboard() {
     let active = true;
     loadDashboard()
       .then((d) => active && setData(d))
-      .catch((e) => active && setError(e instanceof Error ? e.message : 'Could not load the dashboard.'));
+      .catch(
+        (e) => active && setError(e instanceof Error ? e.message : 'Could not load the dashboard.'),
+      );
     return () => {
       active = false;
     };
@@ -115,13 +147,20 @@ export function AdminDashboard() {
   const sparkData = useMemo(() => data?.spark.map((s) => s.value) ?? [], [data]);
 
   if (error) {
-    return <p className="rounded-2xl border border-coral/30 bg-coral/5 p-4 text-sm font-medium text-coral">{error}</p>;
+    return (
+      <p className="rounded-2xl border border-coral/30 bg-coral/5 p-4 text-sm font-medium text-coral">
+        {error}
+      </p>
+    );
   }
   if (!data) {
     return (
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-[116px] animate-pulse rounded-2xl border border-[#EAEEF0] bg-white" />
+          <div
+            key={i}
+            className="h-[116px] animate-pulse rounded-2xl border border-[#EAEEF0] bg-white"
+          />
         ))}
       </div>
     );
@@ -152,14 +191,23 @@ export function AdminDashboard() {
         {data.stats.map((s) => {
           const Icon = STAT_ICON[s.key as keyof typeof STAT_ICON] ?? IconBookings;
           return (
-            <div key={s.key} className="rounded-2xl border border-[#EAEEF0] bg-white p-[18px] shadow-[0_1px_2px_rgba(10,46,54,.04)]">
+            <div
+              key={s.key}
+              className="rounded-2xl border border-[#EAEEF0] bg-white p-[18px] shadow-[0_1px_2px_rgba(10,46,54,.04)]"
+            >
               <div className="flex items-center justify-between">
-                <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${STAT_TONE[s.tone]}`}>
+                <span
+                  className={`flex h-10 w-10 items-center justify-center rounded-xl ${STAT_TONE[s.tone]}`}
+                >
                   <Icon width={19} height={19} />
                 </span>
-                {s.hint && <span className="text-[12px] font-semibold text-ink-muted">{s.hint}</span>}
+                {s.hint && (
+                  <span className="text-[12px] font-semibold text-ink-muted">{s.hint}</span>
+                )}
               </div>
-              <div className="mt-3.5 text-[28px] font-extrabold leading-none tracking-tight text-ink">{s.value}</div>
+              <div className="mt-3.5 text-[28px] font-extrabold leading-none tracking-tight text-ink">
+                {s.value}
+              </div>
               <div className="mt-1.5 text-[13px] font-medium text-ink-muted">{s.label}</div>
             </div>
           );
@@ -175,17 +223,26 @@ export function AdminDashboard() {
               <h2 className="flex items-center gap-2.5 text-[15px] font-extrabold text-ink">
                 <IconClock width={17} height={17} className="text-teal" /> Today&apos;s departures
               </h2>
-              <span className="text-[12.5px] text-ink-muted">{data.departures.length} scheduled</span>
+              <span className="text-[12.5px] text-ink-muted">
+                {data.departures.length} scheduled
+              </span>
             </div>
             {data.departures.length === 0 ? (
-              <div className="px-[18px] py-10 text-center text-sm text-ink-muted">No departures today. Enjoy the calm.</div>
+              <div className="px-[18px] py-10 text-center text-sm text-ink-muted">
+                No departures today. Enjoy the calm.
+              </div>
             ) : (
               data.departures.map((d) => {
                 const pill = statusPill(d.status);
                 return (
-                  <div key={d.id} className="flex items-center gap-3.5 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0">
+                  <div
+                    key={d.id}
+                    className="flex items-center gap-3.5 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0"
+                  >
                     <div className="w-12 shrink-0 text-center">
-                      <div className="text-[15px] font-extrabold tracking-tight text-ink">{d.time}</div>
+                      <div className="text-[15px] font-extrabold tracking-tight text-ink">
+                        {d.time}
+                      </div>
                     </div>
                     <div className="h-9 w-px self-stretch bg-[#EEF1F3]" />
                     <div className="min-w-0 flex-1">
@@ -205,7 +262,9 @@ export function AdminDashboard() {
                         )}
                       </div>
                     </div>
-                    <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${pill.cls}`}>
+                    <span
+                      className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${pill.cls}`}
+                    >
                       <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
                       {pill.label}
                     </span>
@@ -219,7 +278,10 @@ export function AdminDashboard() {
           <Card className="overflow-hidden">
             <div className="flex items-center justify-between border-b border-[#EEF1F3] px-[18px] py-4">
               <h2 className="text-[15px] font-extrabold text-ink">Recent bookings</h2>
-              <Link href="/admin/bookings" className="text-[12.5px] font-bold text-teal hover:text-teal-dark">
+              <Link
+                href="/admin/bookings"
+                className="text-[12.5px] font-bold text-teal hover:text-teal-dark"
+              >
                 See all
               </Link>
             </div>
@@ -242,17 +304,25 @@ export function AdminDashboard() {
                           <div className="flex items-center gap-2.5">
                             <Avatar name={r.customer} />
                             <span className="min-w-0">
-                              <span className="block whitespace-nowrap text-[13.5px] font-bold text-ink">{r.customer}</span>
-                              <span className="block text-[11.5px] capitalize text-ink-muted">{r.source}</span>
+                              <span className="block whitespace-nowrap text-[13.5px] font-bold text-ink">
+                                {r.customer}
+                              </span>
+                              <span className="block text-[11.5px] capitalize text-ink-muted">
+                                {r.source}
+                              </span>
                             </span>
                           </div>
                         </td>
                         <td className="max-w-[170px] px-3 py-3 text-[13px] text-ink/70">
                           <span className="block truncate">{r.tour}</span>
                         </td>
-                        <td className="whitespace-nowrap px-3 py-3 text-[13.5px] font-bold text-ink">{euro(r.totalEur)}</td>
+                        <td className="whitespace-nowrap px-3 py-3 text-[13.5px] font-bold text-ink">
+                          {euro(r.totalEur)}
+                        </td>
                         <td className="px-[18px] py-3">
-                          <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${pill.cls}`}>
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold ${pill.cls}`}
+                          >
                             <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
                             {pill.label}
                           </span>
@@ -262,7 +332,10 @@ export function AdminDashboard() {
                   })}
                   {data.recent.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-[18px] py-10 text-center text-sm text-ink-muted">
+                      <td
+                        colSpan={4}
+                        className="px-[18px] py-10 text-center text-sm text-ink-muted"
+                      >
                         No bookings yet.
                       </td>
                     </tr>
@@ -286,7 +359,9 @@ export function AdminDashboard() {
                 <IconTrendUp width={14} height={14} /> 7d
               </span>
             </div>
-            <div className="mt-3 text-[30px] font-extrabold leading-none tracking-tight text-ink">{euro(data.revenueWeekEur)}</div>
+            <div className="mt-3 text-[30px] font-extrabold leading-none tracking-tight text-ink">
+              {euro(data.revenueWeekEur)}
+            </div>
             <div className="mt-3.5">
               <Sparkline data={sparkData} />
             </div>
@@ -308,7 +383,9 @@ export function AdminDashboard() {
               </span>
             </div>
             {data.pending.length === 0 ? (
-              <div className="px-[18px] py-10 text-center text-sm text-ink-muted">No pending payments. All settled.</div>
+              <div className="px-[18px] py-10 text-center text-sm text-ink-muted">
+                No pending payments. All settled.
+              </div>
             ) : (
               data.pending.map((p) => (
                 <Link
@@ -321,7 +398,9 @@ export function AdminDashboard() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-[13.5px] font-bold text-ink">{p.customer}</div>
-                    <div className="mt-0.5 text-[12px] text-ink-muted">{p.ref} · payment pending</div>
+                    <div className="mt-0.5 text-[12px] text-ink-muted">
+                      {p.ref} · payment pending
+                    </div>
                   </div>
                   <span className="text-sm font-extrabold text-ink">{euro(p.totalEur)}</span>
                 </Link>

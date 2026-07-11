@@ -35,20 +35,33 @@ describe('itemTotal — child-seat add-on never exceeds the party', () => {
   });
   it('per_group: caps child seats to guests, not the group count', () => {
     expect(
-      itemTotal({ ...base, pricingMode: 'per_group', unitEur: 110, maxGuests: 4, guests: 1, childSeats: 4 }),
+      itemTotal({
+        ...base,
+        pricingMode: 'per_group',
+        unitEur: 110,
+        maxGuests: 4,
+        guests: 1,
+        childSeats: 4,
+      }),
     ).toBe(110); // 1 group flat, child capped to 1 → €0 extra
   });
 });
 
 describe('lineCap — a full slot caps the stepper (no falsy-zero → Infinity)', () => {
   it('caps at seatsLeft when the slot has room', () => {
-    expect(lineCap({ ...base, pricingMode: 'per_person', maxGuests: null, guests: 2, seatsLeft: 5 })).toBe(5);
+    expect(
+      lineCap({ ...base, pricingMode: 'per_person', maxGuests: null, guests: 2, seatsLeft: 5 }),
+    ).toBe(5);
   });
   it('seatsLeft=0 (slot filled after add) holds at the current size, never widens to Infinity', () => {
-    expect(lineCap({ ...base, pricingMode: 'per_person', maxGuests: null, guests: 3, seatsLeft: 0 })).toBe(3);
+    expect(
+      lineCap({ ...base, pricingMode: 'per_person', maxGuests: null, guests: 3, seatsLeft: 0 }),
+    ).toBe(3);
   });
   it('still honours the per-person tier cap', () => {
-    expect(lineCap({ ...base, pricingMode: 'per_person', maxGuests: 4, guests: 2, seatsLeft: 10 })).toBe(4);
+    expect(
+      lineCap({ ...base, pricingMode: 'per_person', maxGuests: 4, guests: 2, seatsLeft: 10 }),
+    ).toBe(4);
   });
 });
 

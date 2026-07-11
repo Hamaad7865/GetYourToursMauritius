@@ -26,9 +26,9 @@ describe('parseStopsParam', () => {
   });
 
   it('trims whitespace and de-duplicates while preserving first position', () => {
-    expect(parseStopsParam(' grand-baie-beach , chamarel-waterfall ,grand-baie-beach', VALID)).toEqual(
-      ['grand-baie-beach', 'chamarel-waterfall'],
-    );
+    expect(
+      parseStopsParam(' grand-baie-beach , chamarel-waterfall ,grand-baie-beach', VALID),
+    ).toEqual(['grand-baie-beach', 'chamarel-waterfall']);
   });
 });
 

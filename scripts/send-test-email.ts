@@ -60,7 +60,9 @@ async function main() {
   const apiKey = env.RESEND_API_KEY;
   const from = env.RESEND_FROM;
   if (!apiKey || !from) {
-    console.error('Missing RESEND_API_KEY and/or RESEND_FROM in .env.local — see .env.example lines 82-86.');
+    console.error(
+      'Missing RESEND_API_KEY and/or RESEND_FROM in .env.local — see .env.example lines 82-86.',
+    );
     console.error('RESEND_FROM must use a domain verified in your Resend dashboard.');
     process.exit(1);
   }
@@ -91,7 +93,12 @@ async function main() {
       transportEur: 30,
       items: [{ priceLabel: 'Adult', quantity: 3, pax: null, subtotalEur: 155 }],
     },
-    { chargedAmountMinor: 20700, chargedCurrency: 'USD', paidAt: '2026-06-20T10:15:00Z', providerRef: 'test_ref' },
+    {
+      chargedAmountMinor: 20700,
+      chargedCurrency: 'USD',
+      paidAt: '2026-06-20T10:15:00Z',
+      providerRef: 'test_ref',
+    },
     business,
   );
 
@@ -110,18 +117,33 @@ async function main() {
     channel: 'email',
     recipient,
     template: 'booking_confirmation',
-    payload: { ref: model.invoiceNumber, customerName: model.customer.name, totalMinor: 19100, currency: 'EUR' },
+    payload: {
+      ref: model.invoiceNumber,
+      customerName: model.customer.name,
+      totalMinor: 19100,
+      currency: 'EUR',
+    },
     subject: email.subject,
     text: email.text,
     html: email.html,
-    attachments: [{ filename: `invoice-${model.invoiceNumber}.pdf`, content: bytesToBase64(pdf), contentType: 'application/pdf' }],
+    attachments: [
+      {
+        filename: `invoice-${model.invoiceNumber}.pdf`,
+        content: bytesToBase64(pdf),
+        contentType: 'application/pdf',
+      },
+    ],
   });
 
-  console.log('\n✓ Resend accepted the email. Check the inbox (and the Resend dashboard → Emails).');
+  console.log(
+    '\n✓ Resend accepted the email. Check the inbox (and the Resend dashboard → Emails).',
+  );
 }
 
 main().catch((err) => {
   console.error('\n✗ Send failed:', err instanceof Error ? err.message : err);
-  console.error('Common causes: unverified RESEND_FROM domain, wrong API key, or the from-address not on a verified domain.');
+  console.error(
+    'Common causes: unverified RESEND_FROM domain, wrong API key, or the from-address not on a verified domain.',
+  );
   process.exit(1);
 });

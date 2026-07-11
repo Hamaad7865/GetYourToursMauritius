@@ -1,9 +1,7 @@
 import { z } from 'zod';
 
 /** POST /wishlist body — the activity slug to save. `.strict()` rejects unknown keys. */
-export const wishlistInputSchema = z
-  .object({ slug: z.string().trim().min(1).max(120) })
-  .strict();
+export const wishlistInputSchema = z.object({ slug: z.string().trim().min(1).max(120) }).strict();
 export type WishlistInput = z.infer<typeof wishlistInputSchema>;
 
 /** POST /wishlist response data. `saved` is always true on success; the 201-vs-200 status conveys

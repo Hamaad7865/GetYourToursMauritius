@@ -17,7 +17,9 @@ function normalise(fields: LogFields): LogFields {
   for (const [key, value] of Object.entries(fields)) {
     if (value === undefined) continue;
     out[key] =
-      value instanceof Error ? { name: value.name, message: value.message, stack: value.stack } : value;
+      value instanceof Error
+        ? { name: value.name, message: value.message, stack: value.stack }
+        : value;
   }
   return out;
 }
@@ -28,7 +30,12 @@ function emit(level: LogLevel, event: string, fields: LogFields = {}): void {
     line = JSON.stringify({ level, event, time: new Date().toISOString(), ...normalise(fields) });
   } catch {
     // A field had a circular ref or otherwise wouldn't serialise — never let logging throw.
-    line = JSON.stringify({ level, event, time: new Date().toISOString(), msg: 'unserializable log fields' });
+    line = JSON.stringify({
+      level,
+      event,
+      time: new Date().toISOString(),
+      msg: 'unserializable log fields',
+    });
   }
   // Edge/Workers route console.error/warn to stderr-style streams; keep the level mapping so log
   // sinks can filter by severity.

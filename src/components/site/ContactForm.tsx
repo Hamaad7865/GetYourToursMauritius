@@ -30,7 +30,12 @@ export function ContactForm() {
       const res = await fetch('/api/v1/leads', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ name: name.trim() || 'Website enquiry', contact, source: 'web', company }),
+        body: JSON.stringify({
+          name: name.trim() || 'Website enquiry',
+          contact,
+          source: 'web',
+          company,
+        }),
       }).then((r) => r.json());
       if (!res.ok) throw new Error(res.error?.message ?? t('Could not send your message.'));
       setState('sent');
@@ -45,7 +50,9 @@ export function ContactForm() {
       <div className="rounded-2xl border border-teal/30 bg-teal/5 p-6 text-center">
         <p className="text-lg font-bold text-ink">{t('Thank you — message received!')}</p>
         <p className="mt-1.5 text-sm text-ink-muted">
-          {t('We’ll get back to you shortly. For anything urgent, WhatsApp us for the fastest reply.')}
+          {t(
+            'We’ll get back to you shortly. For anything urgent, WhatsApp us for the fastest reply.',
+          )}
         </p>
       </div>
     );
@@ -57,7 +64,10 @@ export function ContactForm() {
   return (
     <form onSubmit={submit} className="flex flex-col gap-3">
       {/* Honeypot: off-screen, not for humans. Bots that auto-fill every field trip it. */}
-      <div aria-hidden="true" className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden">
+      <div
+        aria-hidden="true"
+        className="absolute left-[-9999px] top-[-9999px] h-0 w-0 overflow-hidden"
+      >
         <label>
           {t('Company (leave this empty)')}
           <input
@@ -72,7 +82,12 @@ export function ContactForm() {
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1 block text-[13px] font-bold text-ink">{t('Name')}</span>
-          <input className={field} value={name} onChange={(e) => setName(e.target.value)} required />
+          <input
+            className={field}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
         </label>
         <label className="block">
           <span className="mb-1 block text-[13px] font-bold text-ink">{t('Email')}</span>
@@ -86,7 +101,9 @@ export function ContactForm() {
         </label>
       </div>
       <label className="block">
-        <span className="mb-1 block text-[13px] font-bold text-ink">{t('Phone / WhatsApp (optional)')}</span>
+        <span className="mb-1 block text-[13px] font-bold text-ink">
+          {t('Phone / WhatsApp (optional)')}
+        </span>
         <input className={field} value={phone} onChange={(e) => setPhone(e.target.value)} />
       </label>
       <label className="block">

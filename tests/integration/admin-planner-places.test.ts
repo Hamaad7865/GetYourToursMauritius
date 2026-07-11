@@ -18,9 +18,8 @@ vi.mock('@/lib/supabase/browser', () => ({
   },
 }));
 
-const { loadPlannerPlaces, createPlannerPlace, updatePlannerPlace, deletePlannerPlace } = await import(
-  '@/lib/admin/planner-places'
-);
+const { loadPlannerPlaces, createPlannerPlace, updatePlannerPlace, deletePlannerPlace } =
+  await import('@/lib/admin/planner-places');
 
 const NEW = {
   name: 'QA Test Cove',
@@ -40,8 +39,13 @@ describe('admin planner places', () => {
     db = await createTestDb();
     await db.asOwner();
     await db.pg.query(`insert into auth.users (id) values ($1), ($2)`, [STAFF, CUSTOMER]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [STAFF]);
-    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Cust', 'customer')`, [CUSTOMER]);
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [
+      STAFF,
+    ]);
+    await db.pg.query(
+      `insert into profiles (id, full_name, role) values ($1, 'Cust', 'customer')`,
+      [CUSTOMER],
+    );
     hoisted.shim = makeSupabaseShim(db.pg);
   });
   afterAll(async () => {
@@ -68,7 +72,9 @@ describe('admin planner places', () => {
 
   it('denies a non-staff create (RLS rejects the insert)', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    await expect(createPlannerPlace({ ...NEW, name: 'Sneaky Place' })).rejects.toThrow(/row-level security/);
+    await expect(createPlannerPlace({ ...NEW, name: 'Sneaky Place' })).rejects.toThrow(
+      /row-level security/,
+    );
     await db.asOwner();
     const { rows } = await db.pg.query<{ n: number }>(
       `select count(*)::int as n from planner_places where id = 'sneaky-place'`,

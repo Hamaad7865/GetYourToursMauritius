@@ -124,7 +124,8 @@ export function PlaceCard({
         {meta && !compact && <div className="mt-1.5 text-[12.5px] text-ink-muted">{meta}</div>}
         {activity.minAdvanceDays > 1 && !compact && (
           <span className="mt-1.5 inline-flex w-fit items-center gap-1 rounded-md bg-teal/10 px-1.5 py-0.5 text-[11px] font-bold text-teal-dark">
-            <IconCalendar width={11} height={11} /> {t('Book {n}+ days ahead', { n: activity.minAdvanceDays })}
+            <IconCalendar width={11} height={11} />{' '}
+            {t('Book {n}+ days ahead', { n: activity.minAdvanceDays })}
           </span>
         )}
 
@@ -137,7 +138,8 @@ export function PlaceCard({
           <span className="text-right text-[12.5px] text-ink-muted">
             {activity.fromPriceEur != null ? (
               <>
-                {t('From')} <Price eur={activity.fromPriceEur} className="text-[18px] font-bold text-ink" />
+                {t('From')}{' '}
+                <Price eur={activity.fromPriceEur} className="text-[18px] font-bold text-ink" />
                 <span className="block text-[11px] leading-tight">{unit}</span>
               </>
             ) : (
@@ -148,7 +150,11 @@ export function PlaceCard({
       </div>
 
       {/* Stretched link to detail — above the content, below the heart control. */}
-      <Link href={`/activities/${activity.slug}`} aria-label={activity.title} className="absolute inset-0 z-0" />
+      <Link
+        href={`/activities/${activity.slug}`}
+        aria-label={activity.title}
+        className="absolute inset-0 z-0"
+      />
     </div>
   );
 }

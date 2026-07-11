@@ -93,7 +93,10 @@ function drawQr(page: PDFPage, data: string, x: number, yTop: number, size: numb
   }
 }
 
-export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string): Promise<Uint8Array> {
+export async function renderVoucherPdf(
+  model: InvoiceModel,
+  bookingUrl: string,
+): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
   const font = await pdf.embedFont(StandardFonts.Helvetica);
@@ -125,26 +128,49 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
     const size = opts.size ?? 10;
     const f = opts.font ?? font;
     const clean = toWinAnsi(value);
-    page.drawText(clean, { x: rightX - f.widthOfTextAtSize(clean, size), y, size, font: f, color: opts.color ?? INK });
+    page.drawText(clean, {
+      x: rightX - f.widthOfTextAtSize(clean, size),
+      y,
+      size,
+      font: f,
+      color: opts.color ?? INK,
+    });
   };
 
   // ── 1. Brand header band ───────────────────────────────────────────────────
-  page.drawRectangle({ x: 0, y: PAGE_HEIGHT - HEADER_H, width: PAGE_WIDTH, height: HEADER_H, color: TEAL_DARK });
+  page.drawRectangle({
+    x: 0,
+    y: PAGE_HEIGHT - HEADER_H,
+    width: PAGE_WIDTH,
+    height: HEADER_H,
+    color: TEAL_DARK,
+  });
   const bandTop = PAGE_HEIGHT - 44;
   draw(BRAND_NAME, bandTop, { size: 17, font: bold, color: WHITE });
   draw(b.legalName, bandTop - 17, { size: 9.5, color: LIGHT_TEAL });
   draw('Licensed - Mauritius Tourism Authority', bandTop - 33, { size: 9.5, color: GOLD });
 
-  drawRight('AIRPORT TRANSFER - E-VOUCHER', CONTENT_RIGHT, bandTop, { size: 9.5, font: bold, color: LIGHT_TEAL });
+  drawRight('AIRPORT TRANSFER - E-VOUCHER', CONTENT_RIGHT, bandTop, {
+    size: 9.5,
+    font: bold,
+    color: LIGHT_TEAL,
+  });
   drawRight(model.booking.ref, CONTENT_RIGHT, bandTop - 22, { size: 19, font: bold, color: WHITE });
-  drawRight('CONFIRMED - PAID', CONTENT_RIGHT, bandTop - 38, { size: 9.5, font: bold, color: GOLD });
+  drawRight('CONFIRMED - PAID', CONTENT_RIGHT, bandTop - 38, {
+    size: 9.5,
+    font: bold,
+    color: GOLD,
+  });
 
   // ── 2. Show-to-driver row + booking QR ─────────────────────────────────────
   let y = PAGE_HEIGHT - HEADER_H - 30;
   const qrSize = 96;
   const qrX = CONTENT_RIGHT - qrSize;
   drawQr(page, bookingUrl, qrX, y + 6, qrSize);
-  drawRight('Scan to view booking', CONTENT_RIGHT, y + 6 - qrSize - 11, { size: 7.5, color: MUTED });
+  drawRight('Scan to view booking', CONTENT_RIGHT, y + 6 - qrSize - 11, {
+    size: 7.5,
+    color: MUTED,
+  });
 
   const textRightEdge = qrX - 18;
   draw('Show this voucher to your driver', y, { size: 13, font: bold });
@@ -158,7 +184,12 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
   }
   y = Math.min(y, PAGE_HEIGHT - HEADER_H - 30 - qrSize - 26) - 8;
 
-  page.drawLine({ start: { x: MARGIN, y }, end: { x: CONTENT_RIGHT, y }, thickness: 0.75, color: RULE });
+  page.drawLine({
+    start: { x: MARGIN, y },
+    end: { x: CONTENT_RIGHT, y },
+    thickness: 0.75,
+    color: RULE,
+  });
   y -= 24;
 
   // ── 3. Run-sheet ───────────────────────────────────────────────────────────
@@ -171,7 +202,8 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
   const valW = CONTENT_RIGHT - FIELD_X;
   const field = (label: string, value: string, maxLines = 1) => {
     draw(label, y, { size: 9.5, color: MUTED });
-    let lines = maxLines <= 1 ? [fitText(value, font, 10.5, valW)] : wrapText(value, font, 10.5, valW);
+    let lines =
+      maxLines <= 1 ? [fitText(value, font, 10.5, valW)] : wrapText(value, font, 10.5, valW);
     if (lines.length > maxLines) {
       const last = lines[maxLines - 1] ?? '';
       lines = lines.slice(0, maxLines);
@@ -219,7 +251,10 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
   } else {
     const arrival = [tr?.flightNumber, tr?.arrivalTime].filter(Boolean).join(' at ');
     if (arrival) field('Arrival flight', arrival);
-    const departure = [tr?.departureFlightNumber, [tr?.returnDate, tr?.returnTime].filter(Boolean).join(' ')]
+    const departure = [
+      tr?.departureFlightNumber,
+      [tr?.returnDate, tr?.returnTime].filter(Boolean).join(' '),
+    ]
       .filter(Boolean)
       .join(' - ');
     if (departure) field('Departure flight', departure);
@@ -231,7 +266,12 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
   if (tr?.specialNotes) field('Notes', tr.specialNotes, 4);
 
   y -= 4;
-  page.drawLine({ start: { x: MARGIN, y }, end: { x: CONTENT_RIGHT, y }, thickness: 0.5, color: RULE });
+  page.drawLine({
+    start: { x: MARGIN, y },
+    end: { x: CONTENT_RIGHT, y },
+    thickness: 0.5,
+    color: RULE,
+  });
   y -= 22;
 
   // ── 4. Driver contact ──────────────────────────────────────────────────────
@@ -253,10 +293,19 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
   // ── 5. Price (secondary) + cancellation ────────────────────────────────────
   // Floor the price band so it (and the fixed-y footer) can never collide, even if the run-sheet ran long.
   if (y < MARGIN + 96) y = MARGIN + 96;
-  page.drawLine({ start: { x: MARGIN, y }, end: { x: CONTENT_RIGHT, y }, thickness: 0.5, color: RULE });
+  page.drawLine({
+    start: { x: MARGIN, y },
+    end: { x: CONTENT_RIGHT, y },
+    thickness: 0.5,
+    color: RULE,
+  });
   y -= 20;
   draw('Total paid', y, { size: 9.5, color: MUTED });
-  drawRight(`${currency} ${model.totalGrossEur.toFixed(2)}`, CONTENT_RIGHT, y, { size: 13, font: bold, color: TEAL_DARK });
+  drawRight(`${currency} ${model.totalGrossEur.toFixed(2)}`, CONTENT_RIGHT, y, {
+    size: 13,
+    font: bold,
+    color: TEAL_DARK,
+  });
   y -= 15;
   draw(
     `Includes VAT (${model.vatRatePct}%) ${currency} ${model.vatAmountEur.toFixed(2)}. A full tax receipt is attached to your confirmation email.`,
@@ -264,7 +313,11 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
     { size: 9, color: MUTED },
   );
   y -= 16;
-  draw('Free cancellation up to 24 hours before pick-up.', y, { size: 9.5, font: bold, color: CORAL });
+  draw('Free cancellation up to 24 hours before pick-up.', y, {
+    size: 9.5,
+    font: bold,
+    color: CORAL,
+  });
 
   // ── 6. Footer ──────────────────────────────────────────────────────────────
   const footY = MARGIN;
@@ -283,7 +336,11 @@ export async function renderVoucherPdf(model: InvoiceModel, bookingUrl: string):
   const stamp = new Date(model.issuedAt || model.booking.when || 0);
   pdf.setTitle(`E-Voucher ${model.booking.ref}`);
   pdf.setAuthor(b.legalName);
-  pdf.setSubject(model.booking.when ? `Transfer ${formatMauritiusDateTime(model.booking.when)}` : 'Airport transfer');
+  pdf.setSubject(
+    model.booking.when
+      ? `Transfer ${formatMauritiusDateTime(model.booking.when)}`
+      : 'Airport transfer',
+  );
   pdf.setKeywords(['airport transfer', 'e-voucher', model.booking.ref]);
   pdf.setProducer('GetYourToursMauritius');
   pdf.setCreator('GetYourToursMauritius');

@@ -17,7 +17,15 @@ import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { selectionHash, shouldRehydrateBooking } from '@/lib/checkout/selection';
 import { useCart } from '@/lib/cart/useCart';
 import { parseApiJson } from '@/lib/http/fetch-json';
-import { IconCalendar, IconCheck, IconClock, IconGlobe, IconPin, IconSearch, IconUsers } from '@/components/ui/icons';
+import {
+  IconCalendar,
+  IconCheck,
+  IconClock,
+  IconGlobe,
+  IconPin,
+  IconSearch,
+  IconUsers,
+} from '@/components/ui/icons';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 
@@ -111,7 +119,10 @@ export function Checkout() {
   const suv = params.get('suv') === '1';
   // Child seats chosen (first free, €6 each extra). Clamp to [0,25] AND to the party (qty): the server
   // caps child_seats at the booked party, so a stale/hand-edited URL must not show or charge more.
-  const childSeats = Math.max(0, Math.min(25, qty, parseInt(params.get('childSeats') ?? '0', 10) || 0));
+  const childSeats = Math.max(
+    0,
+    Math.min(25, qty, parseInt(params.get('childSeats') ?? '0', 10) || 0),
+  );
   // Continue ("Book now", from=widget) carries a custom route stashed by slug; a cart line carries its
   // OWN route, staged by occurrence (from=cart). Either may be present; neither inherits the other's.
   const fromWidget = params.get('from') === 'widget';
@@ -124,12 +135,14 @@ export function Checkout() {
   // "expired" and its idem could replay the earlier booking). A past expiry is treated as no hold, so the
   // fresh path mints its own key and creates its own hold at pay.
   function readHold(): { holdId: string; expiresAt: string; idem: string } {
-    if (typeof window === 'undefined' || !occ || !(fromWidget || fromCart)) return { holdId: '', expiresAt: '', idem: '' };
+    if (typeof window === 'undefined' || !occ || !(fromWidget || fromCart))
+      return { holdId: '', expiresAt: '', idem: '' };
     try {
       const raw = window.sessionStorage.getItem(`gytm:hold:${occ}`);
       const h = raw ? JSON.parse(raw) : null;
       const exp = h?.expiresAt || '';
-      if (exp && new Date(exp).getTime() <= Date.now()) return { holdId: '', expiresAt: '', idem: '' };
+      if (exp && new Date(exp).getTime() <= Date.now())
+        return { holdId: '', expiresAt: '', idem: '' };
       return { holdId: h?.holdId || '', expiresAt: exp, idem: h?.idem || '' };
     } catch {
       return { holdId: '', expiresAt: '', idem: '' };
@@ -161,7 +174,12 @@ export function Checkout() {
   }
   // The chosen route is stashed in sessionStorage (too big for the URL): by slug from Continue, by
   // occurrence from a cart line. Read whichever applies to this checkout — never the other's key.
-  function readItinerary(): Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null {
+  function readItinerary(): Array<{
+    title: string;
+    area?: string | null;
+    lat?: number;
+    lng?: number;
+  }> | null {
     if (typeof window === 'undefined') return null;
     const key =
       fromWidget && slug
@@ -209,7 +227,8 @@ export function Checkout() {
   const dropoffLngParam = coordNum(params.get('dropoffLng'));
   // Trip type (priced) is derived from the customer-facing direction below; the URL still carries the
   // widget's one_way/return as a prefill hint for the direction.
-  const tripTypeParam: 'one_way' | 'return' = params.get('tripType') === 'return' ? 'return' : 'one_way';
+  const tripTypeParam: 'one_way' | 'return' =
+    params.get('tripType') === 'return' ? 'return' : 'one_way';
   const returnDateParam = (params.get('retDate') ?? '').slice(0, 40);
 
   // The PRICE-RELEVANT selection, hashed from inputs that are STABLE across a Back/reload of this
@@ -282,9 +301,11 @@ export function Checkout() {
   // This activity's region + transport fare tables, fetched once for the slug. Lets checkout show the
   // LIVE region-based transport fee as the customer enters their pickup (transport is chosen + priced
   // HERE now, not on the activity page). The server still re-derives + enforces the fee from the coords.
-  const [fares, setFares] = useState<{ region: string; bands: TransportBands; distances: RegionDistances } | null>(
-    null,
-  );
+  const [fares, setFares] = useState<{
+    region: string;
+    bands: TransportBands;
+    distances: RegionDistances;
+  } | null>(null);
   // Airport-transfer flight details (collected HERE so travellers "save time on arrival"). They don't
   // affect the fare, so they're captured at checkout rather than before the hold.
   const [flightNumber, setFlightNumber] = useState('');
@@ -303,7 +324,9 @@ export function Checkout() {
   // Hotel / drop-off chosen from the transfer-hotel search. dropoffSlug sets the priced zone (server
   // re-derives it). "My hotel isn't listed" switches to a free-text name + area → the server prices Zone 1
   // unless the area is a Zone 2 area. Prefilled from the widget's deep-link (slug + name).
-  const widgetHotel = dropoffSlugParam ? transfers.find((tt) => tt.slug === dropoffSlugParam) ?? null : null;
+  const widgetHotel = dropoffSlugParam
+    ? (transfers.find((tt) => tt.slug === dropoffSlugParam) ?? null)
+    : null;
   const [dropoffSlug, setDropoffSlug] = useState(dropoffSlugParam);
   const [dropoffName, setDropoffName] = useState(widgetHotel?.hotelName ?? dropoffParam);
   const [dropoffArea, setDropoffArea] = useState(widgetHotel?.area ?? '');
@@ -418,7 +441,14 @@ export function Checkout() {
     if (!slug) return;
     let active = true;
     fetch(`/api/v1/activities/${slug}`)
-      .then((r) => parseApiJson<{ pricingMode?: string; region?: string; transportBands?: TransportBands; regionDistances?: RegionDistances }>(r))
+      .then((r) =>
+        parseApiJson<{
+          pricingMode?: string;
+          region?: string;
+          transportBands?: TransportBands;
+          regionDistances?: RegionDistances;
+        }>(r),
+      )
       .then((body) => {
         if (!active || !body.ok) return;
         const a = body.data;
@@ -456,8 +486,13 @@ export function Checkout() {
   if (!occ || !slug) {
     return (
       <div className="py-20 text-center">
-        <p className="text-sm text-ink-muted">{t('Your selection expired — please choose your date again.')}</p>
-        <Link href={slug ? `/activities/${slug}` : '/activities'} className="mt-3 inline-block text-sm font-bold text-teal-dark">
+        <p className="text-sm text-ink-muted">
+          {t('Your selection expired — please choose your date again.')}
+        </p>
+        <Link
+          href={slug ? `/activities/${slug}` : '/activities'}
+          className="mt-3 inline-block text-sm font-bold text-teal-dark"
+        >
           {t('Back to the activity')}
         </Link>
       </div>
@@ -472,18 +507,30 @@ export function Checkout() {
   // Airport transfer: a hotel/drop-off is always required (slug-selected or a free-text "not listed"
   // name), plus the leg fields for the chosen direction — arrival needs the arrival flight + date + time;
   // departure needs the departure date + time + flight; return needs both legs.
-  const hotelChosen = hotelNotListed ? dropoffName.trim().length > 0 : dropoffSlug.trim().length > 0;
-  const arrivalLegOk = flightNumber.trim().length > 0 && arrivalDate.trim().length > 0 && arrivalTime.trim().length > 0;
+  const hotelChosen = hotelNotListed
+    ? dropoffName.trim().length > 0
+    : dropoffSlug.trim().length > 0;
+  const arrivalLegOk =
+    flightNumber.trim().length > 0 &&
+    arrivalDate.trim().length > 0 &&
+    arrivalTime.trim().length > 0;
   const departureLegOk =
-    departureFlight.trim().length > 0 && departureDate.trim().length > 0 && returnTime.trim().length > 0;
+    departureFlight.trim().length > 0 &&
+    departureDate.trim().length > 0 &&
+    returnTime.trim().length > 0;
   const airportLegsOk =
-    tripDirection === 'arrival' ? arrivalLegOk : tripDirection === 'departure' ? departureLegOk : arrivalLegOk && departureLegOk;
+    tripDirection === 'arrival'
+      ? arrivalLegOk
+      : tripDirection === 'departure'
+        ? departureLegOk
+        : arrivalLegOk && departureLegOk;
   // Step ① can advance unless pickup is wanted with no address and not "I don't know yet" — or, for an
   // airport transfer, until the hotel + the required leg fields are entered.
   // Hotel-to-hotel: the route is already chosen in the console; step ① just confirms the pickup date
   // (and the return date when it's a return trip), both prefilled.
   const hotelTransferLegsOk =
-    arrivalDate.trim().length > 0 && (tripTypeParam !== 'return' || departureDate.trim().length > 0);
+    arrivalDate.trim().length > 0 &&
+    (tripTypeParam !== 'return' || departureDate.trim().length > 0);
   const canAdvance = isAirport
     ? hotelChosen && airportLegsOk
     : isHotelTransfer
@@ -532,7 +579,9 @@ export function Checkout() {
     const baseline = serverTotal ?? expectedTotal;
     if (srv != null) setServerTotal(srv);
     if (srv != null && baseline != null && Math.abs(srv - baseline) >= 0.005) {
-      setError(t('The price for this date is {price}. Tap Pay again to continue.', { price: money(srv) }));
+      setError(
+        t('The price for this date is {price}. Tap Pay again to continue.', { price: money(srv) }),
+      );
       setBusy(false);
       return true;
     }
@@ -548,7 +597,10 @@ export function Checkout() {
     setBusy(true);
     setError(null);
     try {
-      const headers = { 'content-type': 'application/json', authorization: `Bearer ${session.access_token}` };
+      const headers = {
+        'content-type': 'application/json',
+        authorization: `Bearer ${session.access_token}`,
+      };
       // The selection hash scopes the persisted booking identity to the FULL price-relevant config, so
       // a later re-checkout of the same occurrence with a different party can't rehydrate this ref. The
       // SAME urlSelectionHash() recomputed on a remount is what gates the rehydration (see above).
@@ -560,7 +612,8 @@ export function Checkout() {
         // reuses the same key on the retry (server then dedups → no duplicate booking), and a remount
         // only rehydrates when the selection still matches. Updated with the ref once it lands.
         try {
-          if (occ) window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey, sel }));
+          if (occ)
+            window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey, sel }));
         } catch {
           /* sessionStorage unavailable — the key is still stable for the lifetime of this mount */
         }
@@ -593,7 +646,7 @@ export function Checkout() {
             // free-text "not listed" name. Hotel-to-hotel: the chosen drop-off location label. Otherwise
             // the customer's distinct sightseeing drop-off.
             dropoffLocation: isAirport
-              ? (dropoffName.trim() || dropoffParam || null)
+              ? dropoffName.trim() || dropoffParam || null
               : isHotelTransfer
                 ? dropoffParam || null
                 : wantsPickup && !tbd && !dropoffSame && dropoffText.trim()
@@ -605,8 +658,16 @@ export function Checkout() {
             // A TBD pickup — or either transfer product (fixed band fare) — sends no coords → no transport fee.
             // Hotel-to-hotel carries the pickup-end coords from its Google Places pick; otherwise it's the
             // per_person/per_group transport pickup. Airport sends none (its fare is zone, not region).
-            pickupLat: isHotelTransfer ? pickupLatParam : !isAirport && wantsPickup && !tbd && pickupCoords ? pickupCoords.lat : null,
-            pickupLng: isHotelTransfer ? pickupLngParam : !isAirport && wantsPickup && !tbd && pickupCoords ? pickupCoords.lng : null,
+            pickupLat: isHotelTransfer
+              ? pickupLatParam
+              : !isAirport && wantsPickup && !tbd && pickupCoords
+                ? pickupCoords.lat
+                : null,
+            pickupLng: isHotelTransfer
+              ? pickupLngParam
+              : !isAirport && wantsPickup && !tbd && pickupCoords
+                ? pickupCoords.lng
+                : null,
             // Hotel-to-hotel drop-off-end coords (the server derives its region from them, zero-trust).
             dropoffLat: isHotelTransfer ? dropoffLatParam : undefined,
             dropoffLng: isHotelTransfer ? dropoffLngParam : undefined,
@@ -619,14 +680,19 @@ export function Checkout() {
               : isAirport && !hotelNotListed
                 ? dropoffSlug || null
                 : null,
-            dropoffArea: isHotelTransfer ? dropoffAreaParam || null : isAirport ? dropoffArea.trim() || null : undefined,
+            dropoffArea: isHotelTransfer
+              ? dropoffAreaParam || null
+              : isAirport
+                ? dropoffArea.trim() || null
+                : undefined,
             // Hotel-to-hotel only: the pickup end (the server re-derives its region the same zero-trust way).
             pickupSlug: isHotelTransfer ? pickupSlugParam || null : undefined,
             pickupArea: isHotelTransfer ? pickupAreaParam || null : undefined,
             // Hotel-to-hotel prices by tripType directly; airport derives it from tripDirection below.
             tripType: isHotelTransfer ? tripTypeParam : undefined,
             tripDirection: isAirport ? tripDirection : undefined,
-            flightNumber: isAirport && tripDirection !== 'departure' ? flightNumber.trim() || null : undefined,
+            flightNumber:
+              isAirport && tripDirection !== 'departure' ? flightNumber.trim() || null : undefined,
             // The pickup/arrival time: airport (arrival/return legs) AND hotel-to-hotel both collect it
             // in step ①; without the htransfer case the point-to-point pickup time the customer enters
             // is silently dropped (no run-sheet/voucher/receipt time → mis-timed pickups).
@@ -650,10 +716,15 @@ export function Checkout() {
               : isHotelTransfer && tripTypeParam === 'return'
                 ? returnTime.trim() || null
                 : undefined,
-            departureFlightNumber: isAirport && tripDirection !== 'arrival' ? departureFlight.trim() || null : undefined,
+            departureFlightNumber:
+              isAirport && tripDirection !== 'arrival' ? departureFlight.trim() || null : undefined,
             roomOrCabin: isAirport || isHotelTransfer ? roomOrCabin.trim() || null : undefined,
-            luggageDetails: isAirport || isHotelTransfer ? luggageDetails.trim() || null : undefined,
-            childSeatAge: isAirport && childSeatWanted && childSeatAge.trim() ? Number(childSeatAge) : undefined,
+            luggageDetails:
+              isAirport || isHotelTransfer ? luggageDetails.trim() || null : undefined,
+            childSeatAge:
+              isAirport && childSeatWanted && childSeatAge.trim()
+                ? Number(childSeatAge)
+                : undefined,
             customer: {
               // Name + phone come from the step-② details form (falling back to the profile);
               // email is always the verified account email. Country is required (sent on the booking);
@@ -674,7 +745,8 @@ export function Checkout() {
             idempotencyKey: idemKey,
           }),
         }).then((r) => parseApiJson<{ ref: string; totalEur?: number }>(r));
-        if (!bookingRes.ok) throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
+        if (!bookingRes.ok)
+          throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
         ref = bookingRes.data.ref;
         setBookingRef(ref);
         // Persist the booking IDENTITY (idem key + ref + selection hash) so a Back/reload remount
@@ -683,7 +755,10 @@ export function Checkout() {
         // below — that is the whole point of the fix.
         try {
           if (occ)
-            window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey, bookingRef: ref, sel }));
+            window.sessionStorage.setItem(
+              `gytm:booking:${occ}`,
+              JSON.stringify({ idemKey, bookingRef: ref, sel }),
+            );
         } catch {
           /* sessionStorage unavailable — the in-state ref still guards this mount */
         }
@@ -723,11 +798,12 @@ export function Checkout() {
         // have moved since the booking was created (a tier edited in admin), so re-run the SAME
         // price-reconciliation here too: fetch the booking's authoritative total and compare it to the
         // displayed total BEFORE charging. Never silently pay a mismatched amount on the rehydrated path.
-        const bookingRes = await fetch(`/api/v1/bookings/${encodeURIComponent(ref)}`, { headers }).then((r) =>
-          parseApiJson<{ totalEur?: number }>(r),
-        );
+        const bookingRes = await fetch(`/api/v1/bookings/${encodeURIComponent(ref)}`, {
+          headers,
+        }).then((r) => parseApiJson<{ totalEur?: number }>(r));
         if (bookingRes.ok) {
-          const srv = typeof bookingRes.data?.totalEur === 'number' ? bookingRes.data.totalEur : null;
+          const srv =
+            typeof bookingRes.data?.totalEur === 'number' ? bookingRes.data.totalEur : null;
           if (reconcileOrWarn(srv)) return;
         }
         // A failed GET (e.g. transient) is non-fatal: fall through to payment, where the server is the
@@ -769,7 +845,11 @@ export function Checkout() {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : t('Something went wrong.');
-      setError(/capacity/i.test(msg) ? t('Sorry — this date just filled up. Please pick another date.') : msg);
+      setError(
+        /capacity/i.test(msg)
+          ? t('Sorry — this date just filled up. Please pick another date.')
+          : msg,
+      );
       setBusy(false);
     }
   }
@@ -816,8 +896,13 @@ export function Checkout() {
         {t('I don’t know yet')}
       </label>
       {tbd && (
-        <span role="status" className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-          {t('Add your pickup location 24 hours before your activity (ideally sooner) so your provider can accommodate you.')}
+        <span
+          role="status"
+          className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted"
+        >
+          {t(
+            'Add your pickup location 24 hours before your activity (ideally sooner) so your provider can accommodate you.',
+          )}
         </span>
       )}
     </div>
@@ -834,15 +919,27 @@ export function Checkout() {
               const done = step > n;
               const active = step === n;
               return (
-                <li key={s} aria-current={active ? 'step' : undefined} className="flex items-center gap-2">
+                <li
+                  key={s}
+                  aria-current={active ? 'step' : undefined}
+                  className="flex items-center gap-2"
+                >
                   <span
                     className={`grid h-6 w-6 place-items-center rounded-full text-[12px] ${
-                      done ? 'bg-teal text-white' : active ? 'bg-ink text-white' : 'bg-ink/10 text-ink-muted'
+                      done
+                        ? 'bg-teal text-white'
+                        : active
+                          ? 'bg-ink text-white'
+                          : 'bg-ink/10 text-ink-muted'
                     }`}
                   >
                     {done ? '✓' : n}
                   </span>
-                  <span className={`hidden sm:inline ${active || done ? 'text-ink' : 'text-ink-muted'}`}>{t(s)}</span>
+                  <span
+                    className={`hidden sm:inline ${active || done ? 'text-ink' : 'text-ink-muted'}`}
+                  >
+                    {t(s)}
+                  </span>
                 </li>
               );
             })}
@@ -853,27 +950,38 @@ export function Checkout() {
       <main className="mx-auto grid max-w-5xl gap-8 px-6 pb-28 pt-8 lg:grid-cols-[1fr_340px] lg:pb-8">
         <div>
           <div className="mb-5 inline-flex items-center gap-2 rounded-lg bg-coral/10 px-3 py-2 text-[13px] font-semibold text-coral-dark">
-            <IconClock width={15} height={15} /> {t('We’ll hold your spot for {time} minutes.', { time: `${mm}:${ss}` })}
+            <IconClock width={15} height={15} />{' '}
+            {t('We’ll hold your spot for {time} minutes.', { time: `${mm}:${ss}` })}
           </div>
 
           {step === 1 && (
             <section>
               {isAirport ? (
                 <div>
-                  <h1 className="font-display text-2xl font-semibold text-ink">{t('Your airport transfer')}</h1>
+                  <h1 className="font-display text-2xl font-semibold text-ink">
+                    {t('Your airport transfer')}
+                  </h1>
                   <p className="mt-2 text-sm text-ink-muted">
-                    {t('Tell us your trip — we’ll meet you at SSR International Airport and take you door to door.')}
+                    {t(
+                      'Tell us your trip — we’ll meet you at SSR International Airport and take you door to door.',
+                    )}
                   </p>
 
                   {/* ── Your trip ── */}
-                  <h2 className="mt-6 text-[12px] font-bold uppercase tracking-wide text-ink-muted">{t('Your trip')}</h2>
+                  <h2 className="mt-6 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                    {t('Your trip')}
+                  </h2>
 
                   {/* Trip direction */}
                   <fieldset className="mt-3">
                     <legend className="text-[13px] font-semibold text-ink">
                       {t('Trip type')} <span className="text-coral-dark">*</span>
                     </legend>
-                    <div role="radiogroup" aria-label={t('Trip type')} className="mt-2 grid gap-2 sm:grid-cols-3">
+                    <div
+                      role="radiogroup"
+                      aria-label={t('Trip type')}
+                      className="mt-2 grid gap-2 sm:grid-cols-3"
+                    >
                       {(
                         [
                           ['arrival', t('Arrival'), t('Airport → hotel')],
@@ -903,7 +1011,10 @@ export function Checkout() {
                   <div className="mt-4 grid gap-4 sm:max-w-md">
                     {/* Hotel / drop-off search */}
                     <div>
-                      <label htmlFor="checkout-hotel-search" className="block text-[13px] font-semibold text-ink">
+                      <label
+                        htmlFor="checkout-hotel-search"
+                        className="block text-[13px] font-semibold text-ink"
+                      >
                         {t('Hotel / drop-off')} <span className="text-coral-dark">*</span>
                       </label>
                       {!hotelNotListed ? (
@@ -971,7 +1082,8 @@ export function Checkout() {
 
                     {/* Room / cabin number (optional) */}
                     <label className="block text-[13px] font-semibold text-ink">
-                      {t('Room / cabin number')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      {t('Room / cabin number')}{' '}
+                      <span className="font-normal text-ink-muted">({t('optional')})</span>
                       <input
                         value={roomOrCabin}
                         onChange={(e) => setRoomOrCabin(e.target.value)}
@@ -983,7 +1095,9 @@ export function Checkout() {
                     {/* Arrival leg (arrival + return) */}
                     {tripDirection !== 'departure' && (
                       <div className="rounded-xl border border-ink/10 bg-teal/[0.04] p-3.5">
-                        <p className="text-[12.5px] font-bold uppercase tracking-wide text-ink-muted">{t('Arrival flight')}</p>
+                        <p className="text-[12.5px] font-bold uppercase tracking-wide text-ink-muted">
+                          {t('Arrival flight')}
+                        </p>
                         <label className="mt-2 block text-[13px] font-semibold text-ink">
                           {t('Arrival flight number')} <span className="text-coral-dark">*</span>
                           <input
@@ -1019,7 +1133,9 @@ export function Checkout() {
                     {/* Departure leg (departure + return) */}
                     {tripDirection !== 'arrival' && (
                       <div className="rounded-xl border border-ink/10 bg-teal/[0.04] p-3.5">
-                        <p className="text-[12.5px] font-bold uppercase tracking-wide text-ink-muted">{t('Departure')}</p>
+                        <p className="text-[12.5px] font-bold uppercase tracking-wide text-ink-muted">
+                          {t('Departure')}
+                        </p>
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           <label className="block text-[13px] font-semibold text-ink">
                             {t('Pickup date')} <span className="text-coral-dark">*</span>
@@ -1054,7 +1170,8 @@ export function Checkout() {
 
                     {/* Luggage (optional) */}
                     <label className="block text-[13px] font-semibold text-ink">
-                      {t('Luggage details')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      {t('Luggage details')}{' '}
+                      <span className="font-normal text-ink-muted">({t('optional')})</span>
                       <input
                         value={luggageDetails}
                         onChange={(e) => setLuggageDetails(e.target.value)}
@@ -1093,7 +1210,9 @@ export function Checkout() {
                 </div>
               ) : isHotelTransfer ? (
                 <div>
-                  <h1 className="font-display text-2xl font-semibold text-ink">{t('Your private transfer')}</h1>
+                  <h1 className="font-display text-2xl font-semibold text-ink">
+                    {t('Your private transfer')}
+                  </h1>
                   <p className="mt-2 text-sm text-ink-muted">
                     {t('We’ll collect you and take you door to door. Confirm the details below.')}
                   </p>
@@ -1103,12 +1222,14 @@ export function Checkout() {
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[14px] font-bold text-ink">
                       <IconPin width={16} height={16} className="shrink-0 text-coral" />
                       <span className="min-w-0">{pickupParam || t('Pickup')}</span>
-                      <span aria-hidden="true" className="text-ink/40">→</span>
+                      <span aria-hidden="true" className="text-ink/40">
+                        →
+                      </span>
                       <span className="min-w-0">{dropoffParam || t('Drop-off')}</span>
                     </div>
                     <p className="mt-1.5 text-[12.5px] text-ink-muted">
-                      {tripTypeParam === 'return' ? t('Return transfer') : t('One-way transfer')} · {guests}{' '}
-                      {Number(guests) === 1 ? t('guest') : t('guests')}
+                      {tripTypeParam === 'return' ? t('Return transfer') : t('One-way transfer')} ·{' '}
+                      {guests} {Number(guests) === 1 ? t('guest') : t('guests')}
                     </p>
                   </div>
 
@@ -1161,7 +1282,8 @@ export function Checkout() {
 
                     {/* Room / cabin (optional) */}
                     <label className="block text-[13px] font-semibold text-ink">
-                      {t('Room / cabin number')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      {t('Room / cabin number')}{' '}
+                      <span className="font-normal text-ink-muted">({t('optional')})</span>
                       <input
                         value={roomOrCabin}
                         onChange={(e) => setRoomOrCabin(e.target.value)}
@@ -1172,7 +1294,8 @@ export function Checkout() {
 
                     {/* Luggage (optional) */}
                     <label className="block text-[13px] font-semibold text-ink">
-                      {t('Luggage details')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      {t('Luggage details')}{' '}
+                      <span className="font-normal text-ink-muted">({t('optional')})</span>
                       <input
                         value={luggageDetails}
                         onChange={(e) => setLuggageDetails(e.target.value)}
@@ -1183,7 +1306,8 @@ export function Checkout() {
 
                     {/* Special notes (optional) */}
                     <label className="block text-[13px] font-semibold text-ink">
-                      {t('Anything else?')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      {t('Anything else?')}{' '}
+                      <span className="font-normal text-ink-muted">({t('optional')})</span>
                       <input
                         value={specialNotes}
                         onChange={(e) => setSpecialNotes(e.target.value)}
@@ -1194,37 +1318,47 @@ export function Checkout() {
                   </div>
                 </div>
               ) : isVehicleTour ? (
-              <>
-              <h1 className="font-display text-2xl font-semibold text-ink">{t('Where should we pick you up?')}</h1>
-              <p className="mt-2 text-sm text-ink-muted">
-                {t('Your private vehicle collects you and brings you back at the end — just tell us where.')}
-              </p>
-              <div className="mt-5">{pickupFields}</div>
-              </>
+                <>
+                  <h1 className="font-display text-2xl font-semibold text-ink">
+                    {t('Where should we pick you up?')}
+                  </h1>
+                  <p className="mt-2 text-sm text-ink-muted">
+                    {t(
+                      'Your private vehicle collects you and brings you back at the end — just tell us where.',
+                    )}
+                  </p>
+                  <div className="mt-5">{pickupFields}</div>
+                </>
               ) : (
-              <>
-              <h1 className="font-display text-2xl font-semibold text-ink">{t('Do you want pickup?')}</h1>
-              <div role="radiogroup" aria-label={t('Do you want pickup?')} className="mt-5 flex flex-col gap-2">
-                <PickRadio
-                  checked={wantsPickup}
-                  onClick={() => setWantsPickup(true)}
-                  title={t('Yes, pick me up')}
-                >
-                  {wantsPickup && pickupFields}
-                </PickRadio>
-                <PickRadio
-                  checked={!wantsPickup}
-                  onClick={() => setWantsPickup(false)}
-                  title={t('No, I’ll make my own way')}
-                >
-                  {!wantsPickup && (
-                    <span className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-                      {t('Meet at {location}', { location: title })}
-                    </span>
-                  )}
-                </PickRadio>
-              </div>
-              </>
+                <>
+                  <h1 className="font-display text-2xl font-semibold text-ink">
+                    {t('Do you want pickup?')}
+                  </h1>
+                  <div
+                    role="radiogroup"
+                    aria-label={t('Do you want pickup?')}
+                    className="mt-5 flex flex-col gap-2"
+                  >
+                    <PickRadio
+                      checked={wantsPickup}
+                      onClick={() => setWantsPickup(true)}
+                      title={t('Yes, pick me up')}
+                    >
+                      {wantsPickup && pickupFields}
+                    </PickRadio>
+                    <PickRadio
+                      checked={!wantsPickup}
+                      onClick={() => setWantsPickup(false)}
+                      title={t('No, I’ll make my own way')}
+                    >
+                      {!wantsPickup && (
+                        <span className="mt-2 block rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
+                          {t('Meet at {location}', { location: title })}
+                        </span>
+                      )}
+                    </PickRadio>
+                  </div>
+                </>
               )}
               <button
                 type="button"
@@ -1237,7 +1371,11 @@ export function Checkout() {
               </button>
               {/* Stable, always-rendered live region: the pickup input's aria-describedby points here,
                   and the hint is announced when it appears (it explains why Next is disabled). */}
-              <p id={PICKUP_HINT_ID} aria-live="polite" className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
+              <p
+                id={PICKUP_HINT_ID}
+                aria-live="polite"
+                className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]"
+              >
                 {!canAdvance
                   ? isAirport
                     ? !hotelChosen
@@ -1255,7 +1393,9 @@ export function Checkout() {
                 {t('Where should we send your booking confirmation?')}
               </h1>
               <p className="mt-2 text-sm text-ink-muted">
-                {t('Sign in or create an account — by email, Google, Apple or Facebook — to continue.')}
+                {t(
+                  'Sign in or create an account — by email, Google, Apple or Facebook — to continue.',
+                )}
               </p>
               <button
                 type="button"
@@ -1328,7 +1468,8 @@ export function Checkout() {
                 {isAirport && (
                   <>
                     <label className="block text-[13px] font-semibold text-ink">
-                      {t('Gender')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      {t('Gender')}{' '}
+                      <span className="font-normal text-ink-muted">({t('optional')})</span>
                       <select
                         value={gender}
                         onChange={(e) => setGender(e.target.value)}
@@ -1341,7 +1482,8 @@ export function Checkout() {
                       </select>
                     </label>
                     <label className="block text-[13px] font-semibold text-ink">
-                      {t('Company')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      {t('Company')}{' '}
+                      <span className="font-normal text-ink-muted">({t('optional')})</span>
                       <input
                         value={company}
                         onChange={(e) => setCompany(e.target.value)}
@@ -1351,7 +1493,8 @@ export function Checkout() {
                       />
                     </label>
                     <label className="block text-[13px] font-semibold text-ink">
-                      {t('Special notes / requests')} <span className="font-normal text-ink-muted">({t('optional')})</span>
+                      {t('Special notes / requests')}{' '}
+                      <span className="font-normal text-ink-muted">({t('optional')})</span>
                       <textarea
                         value={specialNotes}
                         onChange={(e) => setSpecialNotes(e.target.value)}
@@ -1366,10 +1509,12 @@ export function Checkout() {
 
               <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-[12.5px] text-ink/80">
                 <span className="flex items-center gap-1.5">
-                  <IconCheck width={15} height={15} className="text-teal" /> {t('Instant confirmation')}
+                  <IconCheck width={15} height={15} className="text-teal" />{' '}
+                  {t('Instant confirmation')}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <IconCheck width={15} height={15} className="text-teal" /> {t('Free cancellation up to 24 hours before')}
+                  <IconCheck width={15} height={15} className="text-teal" />{' '}
+                  {t('Free cancellation up to 24 hours before')}
                 </span>
               </div>
 
@@ -1383,7 +1528,11 @@ export function Checkout() {
               </button>
               {/* Stable, always-rendered live region: the phone input's aria-describedby points here,
                   and the hint is announced when it appears (it explains why "Go to payment" is disabled). */}
-              <p id={PHONE_HINT_ID} aria-live="polite" className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]">
+              <p
+                id={PHONE_HINT_ID}
+                aria-live="polite"
+                className="mt-2 text-[12.5px] text-ink-muted lg:text-[13px]"
+              >
                 {!canAdvanceDetails ? t('Add a phone number so your driver can reach you.') : ''}
               </p>
             </section>
@@ -1392,7 +1541,9 @@ export function Checkout() {
           {step === 3 && (
             <section>
               <h1 className="font-display text-2xl font-semibold text-ink">{t('Review & pay')}</h1>
-              <p className="mt-2 text-sm text-ink-muted">{t('Signed in as {email}.', { email: user?.email ?? '' })}</p>
+              <p className="mt-2 text-sm text-ink-muted">
+                {t('Signed in as {email}.', { email: user?.email ?? '' })}
+              </p>
               {error && (
                 <p role="alert" className="mt-3 text-[13px] font-medium text-coral-dark">
                   {error}
@@ -1438,7 +1589,8 @@ export function Checkout() {
               <IconCalendar width={15} height={15} className="text-teal" /> {when || '—'}
             </div>
             <div className="flex items-center gap-2">
-              <IconUsers width={15} height={15} className="text-teal" /> {guests} {Number(guests) === 1 ? t('guest') : t('guests')}
+              <IconUsers width={15} height={15} className="text-teal" /> {guests}{' '}
+              {Number(guests) === 1 ? t('guest') : t('guests')}
               {unit ? ` · ${unit}` : ''}
             </div>
             {!isAirport && !isHotelTransfer && (
@@ -1451,8 +1603,12 @@ export function Checkout() {
                 <div className="flex items-center gap-2">
                   <IconPin width={15} height={15} className="text-teal" />{' '}
                   {tripDirection === 'departure'
-                    ? t('{hotel} → SSR Airport', { hotel: dropoffName || dropoffParam || t('your hotel') })
-                    : t('SSR Airport → {hotel}', { hotel: dropoffName || dropoffParam || t('your hotel') })}
+                    ? t('{hotel} → SSR Airport', {
+                        hotel: dropoffName || dropoffParam || t('your hotel'),
+                      })
+                    : t('SSR Airport → {hotel}', {
+                        hotel: dropoffName || dropoffParam || t('your hotel'),
+                      })}
                 </div>
                 <div className="flex items-center gap-2">
                   <IconCheck width={15} height={15} className="text-teal" />{' '}
@@ -1468,7 +1624,10 @@ export function Checkout() {
               <>
                 <div className="flex items-center gap-2">
                   <IconPin width={15} height={15} className="text-teal" />{' '}
-                  {t('{from} → {to}', { from: pickupParam || t('Pickup'), to: dropoffParam || t('Drop-off') })}
+                  {t('{from} → {to}', {
+                    from: pickupParam || t('Pickup'),
+                    to: dropoffParam || t('Drop-off'),
+                  })}
                 </div>
                 <div className="flex items-center gap-2">
                   <IconCheck width={15} height={15} className="text-teal" />{' '}
@@ -1502,7 +1661,8 @@ export function Checkout() {
             </span>
           </div>
           <div className="mt-3 flex items-center gap-2 text-[12.5px] text-ink/80">
-            <IconCheck width={15} height={15} className="text-teal" /> {t('Free cancellation up to 24 hours before')}
+            <IconCheck width={15} height={15} className="text-teal" />{' '}
+            {t('Free cancellation up to 24 hours before')}
           </div>
         </aside>
       </main>
@@ -1592,7 +1752,9 @@ function PickRadio({
       }`}
     >
       <span className="flex items-center gap-2.5 text-sm font-semibold text-ink">
-        <span className={`grid h-5 w-5 place-items-center rounded-full border-2 ${checked ? 'border-teal' : 'border-ink/30'}`}>
+        <span
+          className={`grid h-5 w-5 place-items-center rounded-full border-2 ${checked ? 'border-teal' : 'border-ink/30'}`}
+        >
           {checked && <span className="h-2.5 w-2.5 rounded-full bg-teal" />}
         </span>
         {title}

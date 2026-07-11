@@ -31,7 +31,9 @@ export function topicFor(activity: { category: string; title?: string }): Review
   if (/\bhiking\b|\bhikes?\b|\bland adventure|\btrek/.test(s)) return 'hiking';
   if (/\bscooters?\b|\brentals?\b|\brent\b|\bcar hire\b|\bquad\b/.test(s)) return 'rental';
   if (/\bhelicopters?\b|\bparasail|\bskydive\b|\bseaplane\b|\bair activit/.test(s)) return 'air';
-  if (/\bsea\b|\bwater\b|\bdiving\b|\bscuba\b|\bfishing\b|\bkayak\b|\bsubmarine\b|\bsnorkel/.test(s)) {
+  if (
+    /\bsea\b|\bwater\b|\bdiving\b|\bscuba\b|\bfishing\b|\bkayak\b|\bsubmarine\b|\bsnorkel/.test(s)
+  ) {
     return 'water';
   }
   if (/\bsightseeing\b|\btours?\b|\bexcursion/.test(s)) return 'sightseeing';

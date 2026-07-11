@@ -173,7 +173,9 @@ export const IconDocument = (p: SVGProps<SVGSVGElement>) => (
 export const IconGrip = (p: SVGProps<SVGSVGElement>) => (
   <Svg {...p} strokeWidth={1}>
     {[6, 12, 18].flatMap((cy) =>
-      [9, 15].map((cx) => <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={1.4} fill="currentColor" />),
+      [9, 15].map((cx) => (
+        <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r={1.4} fill="currentColor" />
+      )),
     )}
   </Svg>
 );

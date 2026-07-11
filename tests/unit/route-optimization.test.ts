@@ -20,21 +20,31 @@ describe('buildOptimizeToursModel', () => {
     expect(model.shipments).toHaveLength(2);
     expect(model.shipments[0]).toEqual({
       label: '0',
-      deliveries: [{ arrivalWaypoint: { location: { latLng: { latitude: GRAND_BAIE.lat, longitude: GRAND_BAIE.lng } } } }],
+      deliveries: [
+        {
+          arrivalWaypoint: {
+            location: { latLng: { latitude: GRAND_BAIE.lat, longitude: GRAND_BAIE.lng } },
+          },
+        },
+      ],
     });
     expect(model.shipments[1]!.label).toBe('1');
 
     expect(model.vehicles).toHaveLength(1);
     const v = model.vehicles[0]!;
     expect(v.travelMode).toBe('DRIVING');
-    expect(v.startWaypoint).toEqual({ location: { latLng: { latitude: PICKUP.lat, longitude: PICKUP.lng } } });
+    expect(v.startWaypoint).toEqual({
+      location: { latLng: { latitude: PICKUP.lat, longitude: PICKUP.lng } },
+    });
     expect(v.endWaypoint).toEqual(v.startWaypoint);
   });
 });
 
 describe('parseOptimizedOrder', () => {
   it('reads the optimized visiting order from routes[0].visits', () => {
-    const res = { routes: [{ visits: [{ shipmentIndex: 2 }, { shipmentIndex: 1 }, { shipmentIndex: 0 }] }] };
+    const res = {
+      routes: [{ visits: [{ shipmentIndex: 2 }, { shipmentIndex: 1 }, { shipmentIndex: 0 }] }],
+    };
     expect(parseOptimizedOrder(res, 3)).toEqual([2, 1, 0]);
   });
 

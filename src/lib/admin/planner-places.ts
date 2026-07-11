@@ -48,7 +48,9 @@ export interface PlannerPlaceInput {
 export async function loadPlannerPlaces(): Promise<PlannerPlaceRow[]> {
   const { data, error } = await getBrowserSupabase()
     .from('planner_places')
-    .select('id, name, category, region, lat, lng, duration_min, closes_at, blurb, image_url, position')
+    .select(
+      'id, name, category, region, lat, lng, duration_min, closes_at, blurb, image_url, position',
+    )
     .order('position');
   if (error) throw error;
   return (data ?? []).map((p) => ({
@@ -94,21 +96,34 @@ export async function createPlannerPlace(input: PlannerPlaceInput): Promise<void
 }
 
 export async function updatePlannerPlace(id: string, input: PlannerPlaceInput): Promise<void> {
-  const { error } = await getBrowserSupabase().from('planner_places').update(row(input)).eq('id', id);
+  const { error } = await getBrowserSupabase()
+    .from('planner_places')
+    .update(row(input))
+    .eq('id', id);
   if (error) throw error;
 }
 
 /** Move a place up/down by swapping its position with its neighbour. */
-export async function movePlannerPlace(rows: PlannerPlaceRow[], id: string, dir: -1 | 1): Promise<void> {
+export async function movePlannerPlace(
+  rows: PlannerPlaceRow[],
+  id: string,
+  dir: -1 | 1,
+): Promise<void> {
   const idx = rows.findIndex((r) => r.id === id);
   const swapIdx = idx + dir;
   if (idx < 0 || swapIdx < 0 || swapIdx >= rows.length) return;
   const a = rows[idx]!;
   const b = rows[swapIdx]!;
   const sb = getBrowserSupabase();
-  const { error: e1 } = await sb.from('planner_places').update({ position: b.position }).eq('id', a.id);
+  const { error: e1 } = await sb
+    .from('planner_places')
+    .update({ position: b.position })
+    .eq('id', a.id);
   if (e1) throw e1;
-  const { error: e2 } = await sb.from('planner_places').update({ position: a.position }).eq('id', b.id);
+  const { error: e2 } = await sb
+    .from('planner_places')
+    .update({ position: a.position })
+    .eq('id', b.id);
   if (e2) throw e2;
 }
 

@@ -14,7 +14,15 @@ import {
   type PlannerPlaceRow,
 } from '@/lib/admin/planner-places';
 import { IconChevron, IconPlus } from '@/components/ui/icons';
-import { AdminHeading, Field, AdminError, INPUT_CLS, SELECT_CLS, BTN_PRIMARY, BTN_GHOST } from '@/components/admin/ui';
+import {
+  AdminHeading,
+  Field,
+  AdminError,
+  INPUT_CLS,
+  SELECT_CLS,
+  BTN_PRIMARY,
+  BTN_GHOST,
+} from '@/components/admin/ui';
 
 const EMPTY: PlannerPlaceInput = {
   name: '',
@@ -109,17 +117,29 @@ export function AdminPlannerPlaces() {
           onSubmit={(e) => {
             e.preventDefault();
             if (!form.name.trim()) return setError('Name is required.');
-            void run(() => (editing === 'new' ? createPlannerPlace(form) : updatePlannerPlace(editing, form)));
+            void run(() =>
+              editing === 'new' ? createPlannerPlace(form) : updatePlannerPlace(editing, form),
+            );
           }}
           className="mb-5 rounded-2xl border border-[#EAEEF0] bg-white p-5"
         >
-          <h2 className="mb-3.5 text-[15px] font-extrabold text-ink">{editing === 'new' ? 'New place' : 'Edit place'}</h2>
+          <h2 className="mb-3.5 text-[15px] font-extrabold text-ink">
+            {editing === 'new' ? 'New place' : 'Edit place'}
+          </h2>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Name">
-              <input className={INPUT_CLS} value={form.name} onChange={(e) => set('name', e.target.value)} />
+              <input
+                className={INPUT_CLS}
+                value={form.name}
+                onChange={(e) => set('name', e.target.value)}
+              />
             </Field>
             <Field label="Category">
-              <select className={SELECT_CLS} value={form.category} onChange={(e) => set('category', e.target.value)}>
+              <select
+                className={SELECT_CLS}
+                value={form.category}
+                onChange={(e) => set('category', e.target.value)}
+              >
                 {PLACE_CATEGORIES.map((c) => (
                   <option key={c} value={c}>
                     {c}
@@ -128,7 +148,11 @@ export function AdminPlannerPlaces() {
               </select>
             </Field>
             <Field label="Region">
-              <select className={SELECT_CLS} value={form.region} onChange={(e) => set('region', e.target.value)}>
+              <select
+                className={SELECT_CLS}
+                value={form.region}
+                onChange={(e) => set('region', e.target.value)}
+              >
                 {PLACE_REGIONS.map((r) => (
                   <option key={r} value={r}>
                     {r}
@@ -172,11 +196,19 @@ export function AdminPlannerPlaces() {
               />
             </Field>
             <Field label="Image URL">
-              <input className={INPUT_CLS} value={form.imageUrl ?? ''} onChange={(e) => set('imageUrl', e.target.value || null)} />
+              <input
+                className={INPUT_CLS}
+                value={form.imageUrl ?? ''}
+                onChange={(e) => set('imageUrl', e.target.value || null)}
+              />
             </Field>
             <div className="sm:col-span-2">
               <Field label="Blurb">
-                <input className={INPUT_CLS} value={form.blurb ?? ''} onChange={(e) => set('blurb', e.target.value || null)} />
+                <input
+                  className={INPUT_CLS}
+                  value={form.blurb ?? ''}
+                  onChange={(e) => set('blurb', e.target.value || null)}
+                />
               </Field>
             </div>
           </div>
@@ -199,7 +231,10 @@ export function AdminPlannerPlaces() {
         ) : (
           <ul>
             {rows.map((p, i) => (
-              <li key={p.id} className="flex items-center gap-3 border-t border-[#F2F4F6] p-3 first:border-t-0 hover:bg-[#FAFBFC]">
+              <li
+                key={p.id}
+                className="flex items-center gap-3 border-t border-[#F2F4F6] p-3 first:border-t-0 hover:bg-[#FAFBFC]"
+              >
                 <div className="flex flex-col">
                   <button
                     type="button"
@@ -223,10 +258,15 @@ export function AdminPlannerPlaces() {
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-bold text-ink">{p.name}</div>
                   <div className="text-[12px] text-ink-muted">
-                    {p.category} · {p.region} · {p.durationMin} min{p.closesAt ? ` · till ${p.closesAt}` : ''}
+                    {p.category} · {p.region} · {p.durationMin} min
+                    {p.closesAt ? ` · till ${p.closesAt}` : ''}
                   </div>
                 </div>
-                <button type="button" onClick={() => startEdit(p)} className="rounded-lg px-3 py-1.5 text-sm font-bold text-teal hover:bg-cream">
+                <button
+                  type="button"
+                  onClick={() => startEdit(p)}
+                  className="rounded-lg px-3 py-1.5 text-sm font-bold text-teal hover:bg-cream"
+                >
                   Edit
                 </button>
                 <button

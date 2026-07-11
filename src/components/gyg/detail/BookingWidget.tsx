@@ -151,9 +151,8 @@ export function BookingWidget() {
     : null;
   // `unitLabel` stays English in the provider (cart/checkout post it verbatim). Translate for display:
   // the per-group form carries a number, so interpolate it; the rest are static keys.
-  const unitLabelText = b.groupSize != null
-    ? t('per group up to {n}', { n: b.groupSize })
-    : t(unitLabel);
+  const unitLabelText =
+    b.groupSize != null ? t('per group up to {n}', { n: b.groupSize }) : t(unitLabel);
 
   const [open, setOpen] = useState<'parts' | 'date' | 'lang' | null>(null);
   const [view, setView] = useState(() => {
@@ -170,7 +169,13 @@ export function BookingWidget() {
     const target = which ?? open;
     setOpen(null);
     const ref =
-      target === 'parts' ? partsTriggerRef : target === 'date' ? dateTriggerRef : target === 'lang' ? langTriggerRef : null;
+      target === 'parts'
+        ? partsTriggerRef
+        : target === 'date'
+          ? dateTriggerRef
+          : target === 'lang'
+            ? langTriggerRef
+            : null;
     ref?.current?.focus();
   }
 
@@ -200,7 +205,11 @@ export function BookingWidget() {
   }, [open]);
 
   const dateText = date
-    ? formatLocaleDate(`${date}T00:00:00`, language, { day: 'numeric', month: 'short', year: 'numeric' })
+    ? formatLocaleDate(`${date}T00:00:00`, language, {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
     : t('Select a date');
   // Only "genuinely empty" — a FAILED fetch is handled separately (availabilityError) so we never show
   // "No dates available" when the truth is "we couldn't reach the server".
@@ -311,7 +320,8 @@ export function BookingWidget() {
                       const count = bandCounts[tier.label] ?? 0;
                       const range = ageBandLabel(tier.minAge, tier.maxAge);
                       const atCap =
-                        totalGuests >= partyCap || (tier.maxGuests != null && count >= tier.maxGuests);
+                        totalGuests >= partyCap ||
+                        (tier.maxGuests != null && count >= tier.maxGuests);
                       // The full-price (adult) band always keeps ≥1 — no €0 / infant-only bookings.
                       const isPrimary = tier.label === primaryBandLabel;
                       return (
@@ -339,7 +349,9 @@ export function BookingWidget() {
                                 <IconMinus width={15} height={15} />
                               </span>
                             </button>
-                            <span className="w-6 text-center text-[15px] font-bold tabular-nums text-ink">{count}</span>
+                            <span className="w-6 text-center text-[15px] font-bold tabular-nums text-ink">
+                              {count}
+                            </span>
                             <button
                               type="button"
                               aria-label={`${t('Add')} ${tier.label}`}
@@ -358,56 +370,60 @@ export function BookingWidget() {
                   </div>
                 ) : (
                   <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-ink">
-                      {activity.pricingMode === 'vehicle' ? t('Passengers') : isGroup ? t('Group size') : t('Participants')}
-                    </p>
-                    <p className="text-[12px] text-ink-muted">{t('All ages welcome')}</p>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <button
-                      type="button"
-                      aria-label={t('Remove participant')}
-                      onClick={() => {
-                        setParticipants(Math.max(1, participants - 1));
-                        touch();
-                      }}
-                      disabled={participants <= 1}
-                      className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
-                    >
-                      <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
-                        <IconMinus width={15} height={15} />
-                      </span>
-                    </button>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={1}
-                      max={partyCap}
-                      value={participants}
-                      aria-label={t('Number of participants')}
-                      onChange={(e) => {
-                        const n = parseInt(e.target.value, 10);
-                        if (!Number.isNaN(n)) setParticipants(Math.max(1, Math.min(partyCap, n)));
-                        touch();
-                      }}
-                      className="h-9 w-14 rounded-lg border border-ink/15 text-center text-[15px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                    <button
-                      type="button"
-                      aria-label={t('Add participant')}
-                      onClick={() => {
-                        setParticipants(Math.min(partyCap, participants + 1));
-                        touch();
-                      }}
-                      disabled={participants >= partyCap}
-                      className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
-                    >
-                      <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
-                        <IconPlus width={15} height={15} />
-                      </span>
-                    </button>
-                  </div>
+                    <div>
+                      <p className="text-sm font-bold text-ink">
+                        {activity.pricingMode === 'vehicle'
+                          ? t('Passengers')
+                          : isGroup
+                            ? t('Group size')
+                            : t('Participants')}
+                      </p>
+                      <p className="text-[12px] text-ink-muted">{t('All ages welcome')}</p>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <button
+                        type="button"
+                        aria-label={t('Remove participant')}
+                        onClick={() => {
+                          setParticipants(Math.max(1, participants - 1));
+                          touch();
+                        }}
+                        disabled={participants <= 1}
+                        className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
+                      >
+                        <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
+                          <IconMinus width={15} height={15} />
+                        </span>
+                      </button>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={1}
+                        max={partyCap}
+                        value={participants}
+                        aria-label={t('Number of participants')}
+                        onChange={(e) => {
+                          const n = parseInt(e.target.value, 10);
+                          if (!Number.isNaN(n)) setParticipants(Math.max(1, Math.min(partyCap, n)));
+                          touch();
+                        }}
+                        className="h-9 w-14 rounded-lg border border-ink/15 text-center text-[15px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                      <button
+                        type="button"
+                        aria-label={t('Add participant')}
+                        onClick={() => {
+                          setParticipants(Math.min(partyCap, participants + 1));
+                          touch();
+                        }}
+                        disabled={participants >= partyCap}
+                        className="grid h-11 w-11 place-items-center text-teal disabled:opacity-40"
+                      >
+                        <span className="grid h-9 w-9 place-items-center rounded-full border border-ink/20 hover:border-teal">
+                          <IconPlus width={15} height={15} />
+                        </span>
+                      </button>
+                    </div>
                   </div>
                 )}
                 {isAgeBanded && b.total != null && (
@@ -423,7 +439,10 @@ export function BookingWidget() {
                   {(isAgeBanded ? totalGuests : participants) >= MAX_PARTY && (
                     <p className="mt-3 text-[12.5px] text-ink-muted">
                       {t('Travelling with more than {n}?', { n: MAX_PARTY })}{' '}
-                      <Link href="/contact" className="font-bold text-teal-dark underline underline-offset-2">
+                      <Link
+                        href="/contact"
+                        className="font-bold text-teal-dark underline underline-offset-2"
+                      >
                         {t('Contact us')}
                       </Link>{' '}
                       {t('for a quote.')}
@@ -448,98 +467,106 @@ export function BookingWidget() {
                 this box inflated its height, so the popover's `top: 100%` resolved to below the notice and
                 the calendar rendered detached far down the page, overlapping the content beside it. */}
             <div className="relative">
-            <button
-              ref={dateTriggerRef}
-              type="button"
-              disabled={noAvailability}
-              // On a failed fetch the tap RETRIES instead of opening an empty calendar.
-              onClick={() =>
-                availabilityError ? reloadAvailability() : setOpen((o) => (o === 'date' ? null : 'date'))
-              }
-              aria-haspopup={availabilityError ? undefined : 'dialog'}
-              aria-expanded={availabilityError ? undefined : open === 'date'}
-              className={`${rowClass} disabled:opacity-60`}
-            >
-              <IconCalendar width={18} height={18} className="text-teal" />
-              <span
-                className={`flex-1 text-[14px] font-semibold ${
-                  availabilityError ? 'text-coral-dark' : date ? 'text-ink' : 'text-ink-muted'
-                }`}
+              <button
+                ref={dateTriggerRef}
+                type="button"
+                disabled={noAvailability}
+                // On a failed fetch the tap RETRIES instead of opening an empty calendar.
+                onClick={() =>
+                  availabilityError
+                    ? reloadAvailability()
+                    : setOpen((o) => (o === 'date' ? null : 'date'))
+                }
+                aria-haspopup={availabilityError ? undefined : 'dialog'}
+                aria-expanded={availabilityError ? undefined : open === 'date'}
+                className={`${rowClass} disabled:opacity-60`}
               >
-                {availabilityError
-                  ? t("Couldn't load dates — tap to retry")
-                  : noAvailability
-                    ? t('No dates available yet')
-                    : dateText}
-              </span>
-              <IconChevron width={16} height={16} className="text-ink-muted" />
-            </button>
-            {open === 'date' && (
-              // Floats above the page (the card no longer clips it) — anchored right, it extends left
-              // over the gallery. Two months on sm+, one on mobile, like the GYG-style picker.
-              <div
-                role="dialog"
-                aria-label={t('Choose a date')}
-                className="absolute right-0 top-[calc(100%+6px)] z-30 w-[min(92vw,21rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] sm:w-[40rem]"
-              >
-                {/* Nav: prev far-left, month name(s) centred, next far-right. */}
-                <div className="mb-2 flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    aria-label={t('Previous month')}
-                    disabled={!canBack}
-                    onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
-                    className="grid h-11 w-11 shrink-0 place-items-center text-ink disabled:opacity-30"
-                  >
-                    <span className="grid h-7 w-7 place-items-center rounded-full hover:bg-cream">
-                      <IconChevronLeft width={16} height={16} />
-                    </span>
-                  </button>
-                  <div className="flex flex-1 justify-around text-[14px] font-bold text-ink">
-                    <span>{formatLocaleDate(view, language, { month: 'long', year: 'numeric' })}</span>
-                    <span className="hidden sm:inline">
-                      {formatLocaleDate(new Date(view.getFullYear(), view.getMonth() + 1, 1), language, {
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </span>
+                <IconCalendar width={18} height={18} className="text-teal" />
+                <span
+                  className={`flex-1 text-[14px] font-semibold ${
+                    availabilityError ? 'text-coral-dark' : date ? 'text-ink' : 'text-ink-muted'
+                  }`}
+                >
+                  {availabilityError
+                    ? t("Couldn't load dates — tap to retry")
+                    : noAvailability
+                      ? t('No dates available yet')
+                      : dateText}
+                </span>
+                <IconChevron width={16} height={16} className="text-ink-muted" />
+              </button>
+              {open === 'date' && (
+                // Floats above the page (the card no longer clips it) — anchored right, it extends left
+                // over the gallery. Two months on sm+, one on mobile, like the GYG-style picker.
+                <div
+                  role="dialog"
+                  aria-label={t('Choose a date')}
+                  className="absolute right-0 top-[calc(100%+6px)] z-30 w-[min(92vw,21rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] sm:w-[40rem]"
+                >
+                  {/* Nav: prev far-left, month name(s) centred, next far-right. */}
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      aria-label={t('Previous month')}
+                      disabled={!canBack}
+                      onClick={() => setView(new Date(view.getFullYear(), view.getMonth() - 1, 1))}
+                      className="grid h-11 w-11 shrink-0 place-items-center text-ink disabled:opacity-30"
+                    >
+                      <span className="grid h-7 w-7 place-items-center rounded-full hover:bg-cream">
+                        <IconChevronLeft width={16} height={16} />
+                      </span>
+                    </button>
+                    <div className="flex flex-1 justify-around text-[14px] font-bold text-ink">
+                      <span>
+                        {formatLocaleDate(view, language, { month: 'long', year: 'numeric' })}
+                      </span>
+                      <span className="hidden sm:inline">
+                        {formatLocaleDate(
+                          new Date(view.getFullYear(), view.getMonth() + 1, 1),
+                          language,
+                          {
+                            month: 'long',
+                            year: 'numeric',
+                          },
+                        )}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={t('Next month')}
+                      disabled={!canFwd}
+                      onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
+                      className="grid h-11 w-11 shrink-0 place-items-center text-ink disabled:opacity-30"
+                    >
+                      <span className="grid h-7 w-7 place-items-center rounded-full hover:bg-cream">
+                        <IconChevronRight width={16} height={16} />
+                      </span>
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    aria-label={t('Next month')}
-                    disabled={!canFwd}
-                    onClick={() => setView(new Date(view.getFullYear(), view.getMonth() + 1, 1))}
-                    className="grid h-11 w-11 shrink-0 place-items-center text-ink disabled:opacity-30"
-                  >
-                    <span className="grid h-7 w-7 place-items-center rounded-full hover:bg-cream">
-                      <IconChevronRight width={16} height={16} />
-                    </span>
-                  </button>
+                  <div className="flex gap-6">
+                    <div className="flex-1">
+                      <MonthGrid
+                        month={view}
+                        selectedKey={date}
+                        tomorrow={tomorrow}
+                        available={(c) => !isDisabled(c)}
+                        locale={language}
+                        onPick={pickDate}
+                      />
+                    </div>
+                    <div className="hidden flex-1 sm:block">
+                      <MonthGrid
+                        month={new Date(view.getFullYear(), view.getMonth() + 1, 1)}
+                        selectedKey={date}
+                        tomorrow={tomorrow}
+                        available={(c) => !isDisabled(c)}
+                        locale={language}
+                        onPick={pickDate}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-6">
-                  <div className="flex-1">
-                    <MonthGrid
-                      month={view}
-                      selectedKey={date}
-                      tomorrow={tomorrow}
-                      available={(c) => !isDisabled(c)}
-                      locale={language}
-                      onPick={pickDate}
-                    />
-                  </div>
-                  <div className="hidden flex-1 sm:block">
-                    <MonthGrid
-                      month={new Date(view.getFullYear(), view.getMonth() + 1, 1)}
-                      selectedKey={date}
-                      tomorrow={tomorrow}
-                      available={(c) => !isDisabled(c)}
-                      locale={language}
-                      onPick={pickDate}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
+              )}
             </div>
             {/* Lead-time notice: explains why the nearest days aren't selectable for planning-heavy trips.
                 Sits OUTSIDE the popover's offset parent (see note above) so it can't push the calendar down. */}
@@ -566,7 +593,9 @@ export function BookingWidget() {
                 className={rowClass}
               >
                 <IconGlobe width={18} height={18} className="text-teal" />
-                <span className="text-[11px] font-bold uppercase tracking-wide text-teal-dark">{t('Guide')}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-teal-dark">
+                  {t('Guide')}
+                </span>
                 <span className="flex-1 text-right text-[14px] font-semibold text-ink">{lang}</span>
                 <IconChevron
                   width={16}
@@ -617,7 +646,11 @@ export function BookingWidget() {
           // booking = one vehicle/trip) — so a 1-left day must still accept a party of 6 there.
           // Compare the REAL headcount (totalGuests): in age-banded mode `participants` is the untouched
           // single-mode default, and gating on it made a valid 1-adult booking unbookable on a 1-seat day.
-          disabled={!date || seatsForDate <= 0 || (!isVehicle && !b.privateCfg && seatsForDate < totalGuests)}
+          disabled={
+            !date ||
+            seatsForDate <= 0 ||
+            (!isVehicle && !b.privateCfg && seatsForDate < totalGuests)
+          }
           onClick={checkAvailability}
           className="gyt-press mt-4 flex w-full items-center justify-center rounded-xl bg-teal-dark px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(11,92,99,0.7)] hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
         >
@@ -625,14 +658,18 @@ export function BookingWidget() {
         </button>
         {/* aria-live so a screen reader hears the low-availability warning when it appears/updates. */}
         <div aria-live="polite">
-          {date && !isVehicle && !b.privateCfg && seatsForDate > 0 && seatsForDate < totalGuests && (
-            <p className="mt-2 text-center text-[12px] font-medium text-coral-dark">
-              {t('Only {n} {noun} left on this date.', {
-                n: seatsForDate,
-                noun: seatsForDate === 1 ? t('spot') : t('spots'),
-              })}
-            </p>
-          )}
+          {date &&
+            !isVehicle &&
+            !b.privateCfg &&
+            seatsForDate > 0 &&
+            seatsForDate < totalGuests && (
+              <p className="mt-2 text-center text-[12px] font-medium text-coral-dark">
+                {t('Only {n} {noun} left on this date.', {
+                  n: seatsForDate,
+                  noun: seatsForDate === 1 ? t('spot') : t('spots'),
+                })}
+              </p>
+            )}
         </div>
       </div>
 

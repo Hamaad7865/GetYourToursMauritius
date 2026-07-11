@@ -32,7 +32,14 @@ export const metadata: Metadata = {
     'private catamaran charter Mauritius',
   ],
   alternates: { canonical: PATH },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}${PATH}`, locale: 'en_GB', images: [OG_IMAGE] },
+  openGraph: {
+    type: 'website',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: `${SITE.url}${PATH}`,
+    locale: 'en_GB',
+    images: [OG_IMAGE],
+  },
 };
 
 const FAQS = [
@@ -63,7 +70,11 @@ const FAQS = [
 ];
 
 export default async function MauritiusCatamaranCruisePage() {
-  const featured = await featuredActivities({ category: 'Catamaran cruises', q: 'catamaran', limit: 6 });
+  const featured = await featuredActivities({
+    category: 'Catamaran cruises',
+    q: 'catamaran',
+    limit: 6,
+  });
 
   return (
     <>
@@ -76,7 +87,11 @@ export default async function MauritiusCatamaranCruisePage() {
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
       {featured.length > 0 && (
-        <JsonLd data={itemListJsonLd(featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })))} />
+        <JsonLd
+          data={itemListJsonLd(
+            featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })),
+          )}
+        />
       )}
 
       <InfoPage
@@ -95,15 +110,15 @@ export default async function MauritiusCatamaranCruisePage() {
 
         <ContentSection id="intro" title="A full day on the Mauritius lagoon">
           <p>
-            A catamaran cruise is, for many visitors, the highlight of the trip. You set sail across the turquoise
-            lagoon, drop anchor over coral to snorkel, then settle in for a barbecue lunch grilled on board as the boat
-            drifts. It’s unhurried, sociable and suits every age — the reason it’s the most-booked experience on the
-            island.
+            A catamaran cruise is, for many visitors, the highlight of the trip. You set sail across
+            the turquoise lagoon, drop anchor over coral to snorkel, then settle in for a barbecue
+            lunch grilled on board as the boat drifts. It’s unhurried, sociable and suits every age
+            — the reason it’s the most-booked experience on the island.
           </p>
           <p>
             We run cruises on every coast and match the route to your hotel, whether that’s a day at{' '}
-            <InlineLink href="/ile-aux-cerfs-tours">Île aux Cerfs</InlineLink> from the east, the northern islets, or
-            the west coast where you might sail alongside{' '}
+            <InlineLink href="/ile-aux-cerfs-tours">Île aux Cerfs</InlineLink> from the east, the
+            northern islets, or the west coast where you might sail alongside{' '}
             <InlineLink href="/dolphin-swim-mauritius">dolphins</InlineLink>.
           </p>
         </ContentSection>
@@ -116,25 +131,28 @@ export default async function MauritiusCatamaranCruisePage() {
 
         <ContentSection id="routes" title="Choose your route">
           <p>
-            <strong>East — Île aux Cerfs.</strong> The classic: sail to the famous island and its sandbars, with
-            snorkelling and a beach barbecue. Best from Belle Mare and the eastern resorts.
+            <strong>East — Île aux Cerfs.</strong> The classic: sail to the famous island and its
+            sandbars, with snorkelling and a beach barbecue. Best from Belle Mare and the eastern
+            resorts.
           </p>
           <p>
-            <strong>North — the islets.</strong> Cruise from Grand Baie to Gabriel Island, Flat Island and Gunner’s
-            Quoin, with some of the island’s best snorkelling. Best from the northern resorts.
+            <strong>North — the islets.</strong> Cruise from Grand Baie to Gabriel Island, Flat
+            Island and Gunner’s Quoin, with some of the island’s best snorkelling. Best from the
+            northern resorts.
           </p>
           <p>
-            <strong>West — Tamarin &amp; Le Morne.</strong> Sail the sunset coast beneath Le Morne mountain, often with
-            wild dolphins in the morning bays. Best from Flic-en-Flac and the west.
+            <strong>West — Tamarin &amp; Le Morne.</strong> Sail the sunset coast beneath Le Morne
+            mountain, often with wild dolphins in the morning bays. Best from Flic-en-Flac and the
+            west.
           </p>
         </ContentSection>
 
         <ContentSection id="private" title="Shared cruises or private charters">
           <p>
-            Shared cruises are sociable and the best value — you join other guests on a larger catamaran. For a special
-            occasion, a family group or a wedding, a private charter gives you the whole boat, your own route and your
-            own pace. Both come with crew, lunch and snorkelling gear; tell us your date and numbers and we’ll quote a
-            fixed price.
+            Shared cruises are sociable and the best value — you join other guests on a larger
+            catamaran. For a special occasion, a family group or a wedding, a private charter gives
+            you the whole boat, your own route and your own pace. Both come with crew, lunch and
+            snorkelling gear; tell us your date and numbers and we’ll quote a fixed price.
           </p>
           <RelatedLinks
             links={[
@@ -153,10 +171,15 @@ export default async function MauritiusCatamaranCruisePage() {
 
         <ContentSection id="book" title="Set sail with Belle Mare Tours">
           <p>
-            Pick a shared cruise and book online in minutes, or message us for a private charter quote — direct with
-            the operator, no reseller markup.
+            Pick a shared cruise and book online in minutes, or message us for a private charter
+            quote — direct with the operator, no reseller markup.
           </p>
-          <BookDirectCta primary={{ href: '/activities?category=Catamaran cruises', label: 'See all catamaran cruises' }} />
+          <BookDirectCta
+            primary={{
+              href: '/activities?category=Catamaran cruises',
+              label: 'See all catamaran cruises',
+            }}
+          />
         </ContentSection>
 
         <EnquireRow message="Hi Belle Mare Tours! I'd like a catamaran cruise. Here are my dates, party size and hotel:" />

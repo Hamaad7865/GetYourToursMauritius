@@ -17,6 +17,7 @@
 ## Task 1: DTO — per-stop `options`, drop the flat pool
 
 **Files:**
+
 - Modify: `src/lib/validation/tours.ts`
 - Modify: `tests/unit/catalogue.test.ts` (replace the optionalStops case)
 
@@ -44,7 +45,11 @@ describe('activityExtraSchema — per-stop options', () => {
     expect(extra.itinerary?.[1]?.options).toHaveLength(2);
     expect(extra.itinerary?.[1]?.options?.[0]?.title).toBe('Fort Adelaide');
     // The dropped flat-pool keys are no longer part of the schema output.
-    const stripped = activityExtraSchema.parse({ itinerary: [{ title: 'X' }], optionalStops: [{ title: 'Y' }], maxStops: 6 } as never);
+    const stripped = activityExtraSchema.parse({
+      itinerary: [{ title: 'X' }],
+      optionalStops: [{ title: 'Y' }],
+      maxStops: 6,
+    } as never);
     expect((stripped as Record<string, unknown>).optionalStops).toBeUndefined();
     expect((stripped as Record<string, unknown>).maxStops).toBeUndefined();
   });
@@ -59,6 +64,7 @@ Expected: FAIL — `options` is stripped (unknown key), so `toHaveLength(2)` thr
 - [ ] **Step 3: Update the schema**
 
 In `src/lib/validation/tours.ts`:
+
 - Add an alt-stop schema and `options` on `itineraryStopSchema` (replace the existing `itineraryStopSchema` definition):
 
 ```ts
@@ -109,6 +115,7 @@ git commit -m "feat(itinerary): per-stop options on the stop schema; drop the fl
 ## Task 2: Pure per-stop selection helpers (replace the route reducer)
 
 **Files:**
+
 - Replace: `src/lib/itinerary/route.ts`
 - Replace: `tests/unit/itinerary-route.test.ts`
 
@@ -132,14 +139,27 @@ const STOPS: ItineraryStop[] = [
 
 describe('per-stop selection', () => {
   it('placeForStop returns the primary for 0 / out-of-range, the alternative otherwise', () => {
-    expect(placeForStop(STOPS[1]!, 0)).toEqual({ title: 'Pamplemousses', area: 'North', lat: undefined, lng: undefined });
-    expect(placeForStop(STOPS[1]!, 1)).toEqual({ title: 'Fort Adelaide', area: 'Port Louis', lat: undefined, lng: undefined });
+    expect(placeForStop(STOPS[1]!, 0)).toEqual({
+      title: 'Pamplemousses',
+      area: 'North',
+      lat: undefined,
+      lng: undefined,
+    });
+    expect(placeForStop(STOPS[1]!, 1)).toEqual({
+      title: 'Fort Adelaide',
+      area: 'Port Louis',
+      lat: undefined,
+      lng: undefined,
+    });
     expect(placeForStop(STOPS[1]!, 9).title).toBe('Pamplemousses'); // out of range → primary
     expect(placeForStop(STOPS[0]!, 1).title).toBe('Port Louis'); // no options → primary
   });
 
   it('chosenRoute maps each stop to its selected place, defaulting to primary', () => {
-    expect(chosenRoute(STOPS, { 1: 1 }).map((p) => p.title)).toEqual(['Port Louis', 'Fort Adelaide']);
+    expect(chosenRoute(STOPS, { 1: 1 }).map((p) => p.title)).toEqual([
+      'Port Louis',
+      'Fort Adelaide',
+    ]);
     expect(chosenRoute(STOPS, {}).map((p) => p.title)).toEqual(['Port Louis', 'Pamplemousses']);
   });
 
@@ -173,7 +193,10 @@ export function placeForStop(stop: ItineraryStop, sel: number): AltStop {
 }
 
 /** The chosen route = the selected place for each stop, in order. */
-export function chosenRoute(stops: ItineraryStop[], selectedByStop: Record<number, number>): AltStop[] {
+export function chosenRoute(
+  stops: ItineraryStop[],
+  selectedByStop: Record<number, number>,
+): AltStop[] {
   return stops.map((s, i) => placeForStop(s, selectedByStop[i] ?? 0));
 }
 
@@ -200,13 +223,16 @@ git commit -m "feat(itinerary): pure per-stop selection helpers (replace route r
 ## Task 3: Admin — per-stop alternatives editor; drop the flat pool
 
 **Files:**
+
 - Modify: `src/lib/admin/activity-write.ts`
 - Modify: `src/components/admin/ActivityForm.tsx`
 
 - [ ] **Step 1: Form model carries per-stop options, drops the pool**
 
 In `src/lib/admin/activity-write.ts`:
+
 - `ItineraryStopInput` — add `options`:
+
 ```ts
 export interface ItineraryStopInput {
   title: string;
@@ -217,9 +243,11 @@ export interface ItineraryStopInput {
   options: { title: string; area: string }[];
 }
 ```
+
 - `ActivityFormValues` — **remove** `optionalStops` and `maxStops` (added in PR #2).
 - `EMPTY_ACTIVITY` — **remove** `optionalStops: []` and `maxStops: null`.
 - `buildExtra` — write per-stop options; drop the flat pool. Replace the whole function:
+
 ```ts
 function buildExtra(v: ActivityFormValues) {
   const itinerary = v.itinerary
@@ -237,7 +265,9 @@ function buildExtra(v: ActivityFormValues) {
   return itinerary.length ? { itinerary } : {};
 }
 ```
+
 - `ExtraShape` — reflect per-stop options; drop pool keys:
+
 ```ts
 interface ExtraShape {
   itinerary?: Array<{
@@ -249,7 +279,9 @@ interface ExtraShape {
   }>;
 }
 ```
+
 - `loadActivityForEdit` — map options back, and **remove** the `optionalStops`/`maxStops` reads added in PR #2. The itinerary map becomes:
+
 ```ts
     itinerary: (extra.itinerary ?? []).map((s) => ({
       title: s.title ?? '',
@@ -259,66 +291,73 @@ interface ExtraShape {
       options: (s.options ?? []).map((o) => ({ title: o.title ?? '', area: o.area ?? '' })),
     })),
 ```
+
 (and delete the `optionalStops:` and `maxStops:` lines from the returned object).
 
 - [ ] **Step 2: Admin UI — alternatives under each stop, remove the Optional-stops section**
 
 In `src/components/admin/ActivityForm.tsx`:
+
 - **Delete** the entire `<Section title="Optional stops (customer-customizable)">…</Section>` block added in PR #2 (the one with the second `ItineraryEditor` + the "Max stops" number input).
 - In the `ItineraryEditor` component, inside each stop card (after the `<StringList label="Tags" …/>` block, before the card's closing `</div>`), add an alternatives editor:
 
 ```tsx
-          <div className="mt-3 rounded-lg bg-ink/[0.03] p-3">
-            <div className="text-[12px] font-bold text-ink">
-              Alternatives (the customer picks one instead)
-            </div>
-            <p className="mb-2 text-[11.5px] text-ink-muted">
-              Leave empty to keep this stop fixed. Add e.g. Fort Adelaide so the customer can swap it
-              for {stop.title.trim() || 'this stop'}.
-            </p>
-            {stop.options.map((opt, oi) => (
-              <div key={oi} className="mb-2 flex items-center gap-2">
-                <input
-                  className={inputClass}
-                  value={opt.title}
-                  onChange={(e) =>
-                    update(i, {
-                      options: stop.options.map((o, idx) => (idx === oi ? { ...o, title: e.target.value } : o)),
-                    })
-                  }
-                  placeholder="Alternative place (e.g. Fort Adelaide)"
-                />
-                <input
-                  className={inputClass}
-                  value={opt.area}
-                  onChange={(e) =>
-                    update(i, {
-                      options: stop.options.map((o, idx) => (idx === oi ? { ...o, area: e.target.value } : o)),
-                    })
-                  }
-                  placeholder="Area"
-                />
-                <button
-                  type="button"
-                  aria-label="Remove alternative"
-                  onClick={() => update(i, { options: stop.options.filter((_, idx) => idx !== oi) })}
-                  className="shrink-0 text-ink-muted hover:text-coral"
-                >
-                  <IconX width={16} height={16} />
-                </button>
-              </div>
-            ))}
-            <button
-              type="button"
-              onClick={() => update(i, { options: [...stop.options, { title: '', area: '' }] })}
-              className="rounded-full border border-ink/15 px-3 py-1 text-[12px] font-bold text-ink hover:border-teal hover:text-teal"
-            >
-              + Add alternative
-            </button>
-          </div>
+<div className="mt-3 rounded-lg bg-ink/[0.03] p-3">
+  <div className="text-[12px] font-bold text-ink">
+    Alternatives (the customer picks one instead)
+  </div>
+  <p className="mb-2 text-[11.5px] text-ink-muted">
+    Leave empty to keep this stop fixed. Add e.g. Fort Adelaide so the customer can swap it for{' '}
+    {stop.title.trim() || 'this stop'}.
+  </p>
+  {stop.options.map((opt, oi) => (
+    <div key={oi} className="mb-2 flex items-center gap-2">
+      <input
+        className={inputClass}
+        value={opt.title}
+        onChange={(e) =>
+          update(i, {
+            options: stop.options.map((o, idx) =>
+              idx === oi ? { ...o, title: e.target.value } : o,
+            ),
+          })
+        }
+        placeholder="Alternative place (e.g. Fort Adelaide)"
+      />
+      <input
+        className={inputClass}
+        value={opt.area}
+        onChange={(e) =>
+          update(i, {
+            options: stop.options.map((o, idx) =>
+              idx === oi ? { ...o, area: e.target.value } : o,
+            ),
+          })
+        }
+        placeholder="Area"
+      />
+      <button
+        type="button"
+        aria-label="Remove alternative"
+        onClick={() => update(i, { options: stop.options.filter((_, idx) => idx !== oi) })}
+        className="shrink-0 text-ink-muted hover:text-coral"
+      >
+        <IconX width={16} height={16} />
+      </button>
+    </div>
+  ))}
+  <button
+    type="button"
+    onClick={() => update(i, { options: [...stop.options, { title: '', area: '' }] })}
+    className="rounded-full border border-ink/15 px-3 py-1 text-[12px] font-bold text-ink hover:border-teal hover:text-teal"
+  >
+    + Add alternative
+  </button>
+</div>
 ```
 
 - The `ItineraryEditor`'s "Add stop" button creates a stop **with** an empty options array:
+
 ```tsx
         onClick={() => onChange([...stops, { title: '', area: '', description: '', tags: [], options: [] }])}
 ```
@@ -340,6 +379,7 @@ git commit -m "feat(admin): per-stop alternatives editor; remove the flat option
 ## Task 4: Customer builder — per-stop chooser
 
 **Files:**
+
 - Replace: `src/components/gyg/detail/ItineraryBuilder.tsx`
 - Modify: `app/activities/[slug]/page.tsx`
 
@@ -363,13 +403,7 @@ import { mapsDirectionsUrl } from '@/lib/maps/urls';
  * reorder). The chosen route is stashed in sessionStorage (`gytm:itinerary:<slug>`) for checkout —
  * only when it diverges from all-primaries — and the map draws the live driving route with a car.
  */
-export function ItineraryBuilder({
-  slug,
-  stops,
-}: {
-  slug: string;
-  stops: ItineraryStop[];
-}) {
+export function ItineraryBuilder({ slug, stops }: { slug: string; stops: ItineraryStop[] }) {
   // selectedByStop[i] = 0 (primary) | 1.. (options[n-1]).
   const [selectedByStop, setSelectedByStop] = useState<Record<number, number>>({});
   const [pickup, setPickup] = useState('');
@@ -402,7 +436,11 @@ export function ItineraryBuilder({
       <div>
         <div className="mb-4 rounded-xl border border-ink/10 p-3">
           <div className="text-[13px] font-bold text-ink">Your pickup (start of the route)</div>
-          <PickupMap value={pickup} onChange={setPickup} placeholder="Hotel, Airbnb or cruise port" />
+          <PickupMap
+            value={pickup}
+            onChange={setPickup}
+            placeholder="Hotel, Airbnb or cruise port"
+          />
         </div>
 
         <ol className="relative m-0 list-none p-0">
@@ -419,7 +457,9 @@ export function ItineraryBuilder({
                   {i + 1}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="text-[15px] font-bold text-ink">{placeForStop(stop, sel).title}</div>
+                  <div className="text-[15px] font-bold text-ink">
+                    {placeForStop(stop, sel).title}
+                  </div>
                   {placeForStop(stop, sel).area && (
                     <div className="text-[13px] text-ink-muted">{placeForStop(stop, sel).area}</div>
                   )}
@@ -474,25 +514,30 @@ export function ItineraryBuilder({
 - [ ] **Step 2: Page renders the builder when any stop has alternatives**
 
 In `app/activities/[slug]/page.tsx`:
+
 - **Remove** the `const optionalStops = activity.extra.optionalStops ?? [];` line (added in PR #2).
 - Replace the itinerary `<section>` conditional with one driven by per-stop options:
+
 ```tsx
-              {itinerary.length > 0 && (
-                <section className="mt-8 border-t border-ink/10 pt-7">
-                  <SectionTitle>Itinerary</SectionTitle>
-                  {itinerary.some((s) => (s.options?.length ?? 0) > 0) ? (
-                    <ItineraryBuilder slug={activity.slug} stops={itinerary} />
-                  ) : (
-                    <>
-                      <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
-                      <p className="mt-3 text-[12.5px] text-ink-muted">
-                        For reference only. Itineraries are subject to change.
-                      </p>
-                    </>
-                  )}
-                </section>
-              )}
+{
+  itinerary.length > 0 && (
+    <section className="mt-8 border-t border-ink/10 pt-7">
+      <SectionTitle>Itinerary</SectionTitle>
+      {itinerary.some((s) => (s.options?.length ?? 0) > 0) ? (
+        <ItineraryBuilder slug={activity.slug} stops={itinerary} />
+      ) : (
+        <>
+          <Itinerary stops={itinerary} meetingPoint={activity.meetingPoint} />
+          <p className="mt-3 text-[12.5px] text-ink-muted">
+            For reference only. Itineraries are subject to change.
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
 ```
+
 (The `ItineraryBuilder` import stays; its props are now just `slug` + `stops`.)
 
 - [ ] **Step 3: Typecheck + lint**
@@ -540,6 +585,7 @@ git push
 ## Self-Review
 
 **Spec coverage (Feature 1):**
+
 - `options` on the stop schema; drop `optionalStops`/`maxStops` → Task 1. ✓
 - Per-stop selection helpers (replace route reducer) → Task 2. ✓
 - Admin alternatives editor; remove the Optional-stops section → Task 3. ✓

@@ -58,14 +58,14 @@ export default function HelpPage() {
               pickup is included, be ready a few minutes early at the location you gave us.
             </FaqItem>
             <FaqItem q="Do you offer hotel pickup?">
-              Many activities include pickup across the island — it&apos;s shown on the activity page.
-              Add your hotel or address at checkout, or message us if you&apos;re unsure whether your
-              location is covered.
+              Many activities include pickup across the island — it&apos;s shown on the activity
+              page. Add your hotel or address at checkout, or message us if you&apos;re unsure
+              whether your location is covered.
             </FaqItem>
             <FaqItem q="What should I bring?">
               For water activities: swimwear, a towel, reef-safe sunscreen, a hat and water. Bring
-              your booking reference (on your phone is fine). Specific items are noted on the activity
-              page.
+              your booking reference (on your phone is fine). Specific items are noted on the
+              activity page.
             </FaqItem>
             <FaqItem q="Can children join? Are baby seats available?">
               Most activities welcome families. Where car seats are relevant, the first baby/child
@@ -77,9 +77,9 @@ export default function HelpPage() {
         <LegalSection id="cancellations" title="Cancellations & changes">
           <Faq>
             <FaqItem q="What is your cancellation policy?">
-              Most activities can be cancelled free of charge until <strong>9:00 AM Mauritius time on
-              the day before</strong> your activity date; after that they&apos;re non-refundable. Full
-              details and examples are on our{' '}
+              Most activities can be cancelled free of charge until{' '}
+              <strong>9:00 AM Mauritius time on the day before</strong> your activity date; after
+              that they&apos;re non-refundable. Full details and examples are on our{' '}
               <Link href="/refunds">Cancellations &amp; refunds</Link> page.
             </FaqItem>
             <FaqItem q="How do I cancel or change my booking?">
@@ -89,8 +89,8 @@ export default function HelpPage() {
               reference, before the cut-off. Changes are subject to availability on the new date.
             </FaqItem>
             <FaqItem q="What if you cancel because of the weather?">
-              Your safety comes first. If we cancel for weather, sea conditions or safety, you choose
-              a full refund or a free reschedule to another date.
+              Your safety comes first. If we cancel for weather, sea conditions or safety, you
+              choose a full refund or a free reschedule to another date.
             </FaqItem>
             <FaqItem q="How long does a refund take?">
               We process eligible refunds within 1–2 business days to your original payment method;
@@ -114,8 +114,8 @@ export default function HelpPage() {
         <LegalSection id="account" title="Account & login">
           <Faq>
             <FaqItem q="How do I see my bookings?">
-              Sign in and open <Link href="/account/bookings">your bookings</Link> to see upcoming and
-              past trips.
+              Sign in and open <Link href="/account/bookings">your bookings</Link> to see upcoming
+              and past trips.
             </FaqItem>
             <FaqItem q="I’ve forgotten my password">
               Use the &quot;forgot password&quot; option on the sign-in screen to reset it by email.

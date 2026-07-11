@@ -19,7 +19,8 @@ vi.mock('@/lib/supabase/admin', () => ({
   createServiceRoleClient: () => ({ auth: { admin: { deleteUser } } }),
 }));
 
-const { GET: profileGet, PATCH: profilePatch } = await import('../../app/api/v1/account/profile/route');
+const { GET: profileGet, PATCH: profilePatch } =
+  await import('../../app/api/v1/account/profile/route');
 const { GET: exportGet } = await import('../../app/api/v1/account/export/route');
 const { POST: deletePost } = await import('../../app/api/v1/account/delete/route');
 
@@ -61,12 +62,22 @@ describe('account (profile / export / delete)', () => {
     db = await createTestDb();
     await db.asOwner();
     for (const id of [USER_A, USER_B, USER_C, USER_D]) {
-      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [id, `${id}@example.com`]);
+      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [
+        id,
+        `${id}@example.com`,
+      ]);
     }
     // A, B, D have profiles; C does NOT (tests create-if-missing). D + A get a booking.
-    await db.pg.query(`insert into profiles (id, role, full_name) values ($1, 'customer', 'Alice')`, [USER_A]);
-    await db.pg.query(`insert into profiles (id, role, full_name) values ($1, 'customer', 'Bob')`, [USER_B]);
-    await db.pg.query(`insert into profiles (id, role, full_name) values ($1, 'customer', 'Dan')`, [USER_D]);
+    await db.pg.query(
+      `insert into profiles (id, role, full_name) values ($1, 'customer', 'Alice')`,
+      [USER_A],
+    );
+    await db.pg.query(`insert into profiles (id, role, full_name) values ($1, 'customer', 'Bob')`, [
+      USER_B,
+    ]);
+    await db.pg.query(`insert into profiles (id, role, full_name) values ($1, 'customer', 'Dan')`, [
+      USER_D,
+    ]);
     await seedBooking(USER_A);
     await seedBooking(USER_D);
 
@@ -92,7 +103,10 @@ describe('account (profile / export / delete)', () => {
     expect(typeof body.data.memberSince).toBe('string');
 
     await db.asOwner();
-    const exists = await db.pg.query<{ n: number }>(`select count(*)::int n from profiles where id = $1`, [USER_C]);
+    const exists = await db.pg.query<{ n: number }>(
+      `select count(*)::int n from profiles where id = $1`,
+      [USER_C],
+    );
     expect(exists.rows[0]!.n).toBe(1);
   });
 
@@ -102,7 +116,11 @@ describe('account (profile / export / delete)', () => {
       await authed(USER_A, {
         method: 'PATCH',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ fullName: 'Alice Updated', phone: '+23012345678', dateOfBirth: '1990-05-15' }),
+        body: JSON.stringify({
+          fullName: 'Alice Updated',
+          phone: '+23012345678',
+          dateOfBirth: '1990-05-15',
+        }),
       }),
     );
     expect(full.status).toBe(200);
@@ -141,7 +159,10 @@ describe('account (profile / export / delete)', () => {
     const res = await exportGet(await authed(USER_A));
     expect(res.status).toBe(200);
     const data = (await res.json()).data;
-    expect(data.profile).toMatchObject({ dateOfBirth: '1990-05-15', email: `${USER_A}@example.com` });
+    expect(data.profile).toMatchObject({
+      dateOfBirth: '1990-05-15',
+      email: `${USER_A}@example.com`,
+    });
     expect(Array.isArray(data.bookings)).toBe(true);
     expect(data.bookings.length).toBe(1);
     expect(data.bookings[0]).toMatchObject({ totalEur: 90, currency: 'EUR', status: 'confirmed' });
@@ -161,12 +182,17 @@ describe('account (profile / export / delete)', () => {
     expect(deleteUser).toHaveBeenCalledWith(USER_D);
 
     await db.asOwner();
-    const prof = await db.pg.query<{ n: number }>(`select count(*)::int n from profiles where id = $1`, [USER_D]);
+    const prof = await db.pg.query<{ n: number }>(
+      `select count(*)::int n from profiles where id = $1`,
+      [USER_D],
+    );
     expect(prof.rows[0]!.n).toBe(0); // api_erase_user deleted the profile
   });
 
   it('401 without a token (profile GET/PATCH, export, delete)', async () => {
-    expect((await profileGet(new Request('http://localhost/api/v1/account/profile'))).status).toBe(401);
+    expect((await profileGet(new Request('http://localhost/api/v1/account/profile'))).status).toBe(
+      401,
+    );
     expect(
       (
         await profilePatch(
@@ -178,9 +204,12 @@ describe('account (profile / export / delete)', () => {
         )
       ).status,
     ).toBe(401);
-    expect((await exportGet(new Request('http://localhost/api/v1/account/export'))).status).toBe(401);
+    expect((await exportGet(new Request('http://localhost/api/v1/account/export'))).status).toBe(
+      401,
+    );
     expect(
-      (await deletePost(new Request('http://localhost/api/v1/account/delete', { method: 'POST' }))).status,
+      (await deletePost(new Request('http://localhost/api/v1/account/delete', { method: 'POST' })))
+        .status,
     ).toBe(401);
   });
 });

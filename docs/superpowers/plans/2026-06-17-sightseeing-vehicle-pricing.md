@@ -11,6 +11,7 @@
 **Spec:** `docs/superpowers/specs/2026-06-17-sightseeing-vehicle-pricing-design.md`
 
 **Key facts discovered (do not regress):**
+
 - Latest `create_booking` = `20260616190000_vehicle_pricing.sql` (7-arg, flat-bracket vehicle branch).
 - Latest `api_book` = `20260617120100_booking_authz_integrity.sql` — it **dropped the vehicle branch** (always holds `v_total_qty`) and added F23 (replay-disclosure guard) + F25 (party bound). My rewrite must keep F23/F25 **and** restore the vehicle branch.
 - New migration must sort after `20260617120500_*` → name it `20260617130000_sightseeing_vehicle_pricing.sql`.
@@ -22,6 +23,7 @@
 ## Task 1: DB migration — config table + rewritten `create_booking` / `api_book` / catalogue
 
 **Files:**
+
 - Create: `supabase/migrations/20260617130000_sightseeing_vehicle_pricing.sql`
 - Test: `tests/integration/security-fixes.test.ts` (replace `seedVehicle` + the 3 vehicle tests; add a catalogue-config test)
 
@@ -30,102 +32,112 @@
 In `tests/integration/security-fixes.test.ts`, replace the `seedVehicle` helper (currently lines ~151–163) and the three vehicle tests (`'charges a flat price by vehicle bracket…'`, `'rejects a vehicle party larger than the biggest vehicle'`, `'counts vehicles, not people…'`) with:
 
 ```ts
-  async function seedVehicle(capacity: number): Promise<{ occurrenceId: string; optionId: string }> {
-    const { occurrenceId, optionId } = await seedOccurrence(db, capacity);
-    await db.pg.query(
-      `update activities set pricing_mode = 'vehicle' where id = (select activity_id from activity_options where id = $1)`,
-      [optionId],
-    );
-    return { occurrenceId, optionId };
-  }
+async function seedVehicle(capacity: number): Promise<{ occurrenceId: string; optionId: string }> {
+  const { occurrenceId, optionId } = await seedOccurrence(db, capacity);
+  await db.pg.query(
+    `update activities set pricing_mode = 'vehicle' where id = (select activity_id from activity_options where id = $1)`,
+    [optionId],
+  );
+  return { occurrenceId, optionId };
+}
 
-  it('charges €70 per block of 4 by party size; SUV is a flat €85 upgrade ≤4', async () => {
-    for (const [people, suv, expectMinor, vehicle] of [
-      [1, false, 7000, 'Sedan'],
-      [4, false, 7000, 'Sedan'],
-      [4, true, 8500, 'SUV'],
-      [5, false, 14000, 'Family car'],
-      [6, false, 14000, 'Family car'],
-      [7, false, 14000, 'Minibus'],
-      [12, false, 21000, 'Minibus'],
-      [14, false, 28000, 'Minibus'],
-      [15, false, 28000, 'Coaster'],
-      [25, false, 49000, 'Coaster'],
-    ] as const) {
-      await db.asOwner();
-      const { occurrenceId } = await seedVehicle(10);
-      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
-        occurrenceId,
-        `veh-${people}-${suv}`,
-      ]);
-      const { rows: b } = await db.pg.query<{ id: string; total_minor: number | string }>(
-        `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb, $4)`,
-        [`veh-bk-${people}-${suv}`, h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: people }]), suv],
-      );
-      expect(Number(b[0]!.total_minor)).toBe(expectMinor);
-      const { rows: item } = await db.pg.query<{
-        quantity: number;
-        pax: number;
-        subtotal_minor: number | string;
-        price_label: string;
-      }>(`select quantity, pax, subtotal_minor, price_label from booking_items where booking_id = $1`, [b[0]!.id]);
-      expect(item[0]!.quantity).toBe(1); // one vehicle slot
-      expect(item[0]!.pax).toBe(people); // people on board
-      expect(item[0]!.price_label).toBe(vehicle);
-      expect(Number(item[0]!.subtotal_minor)).toBe(expectMinor);
-    }
-  });
-
-  it('rejects a sightseeing party larger than 25', async () => {
+it('charges €70 per block of 4 by party size; SUV is a flat €85 upgrade ≤4', async () => {
+  for (const [people, suv, expectMinor, vehicle] of [
+    [1, false, 7000, 'Sedan'],
+    [4, false, 7000, 'Sedan'],
+    [4, true, 8500, 'SUV'],
+    [5, false, 14000, 'Family car'],
+    [6, false, 14000, 'Family car'],
+    [7, false, 14000, 'Minibus'],
+    [12, false, 21000, 'Minibus'],
+    [14, false, 28000, 'Minibus'],
+    [15, false, 28000, 'Coaster'],
+    [25, false, 49000, 'Coaster'],
+  ] as const) {
     await db.asOwner();
-    const { occurrenceId } = await seedVehicle(50);
-    const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, 'veh-over')`, [
+    const { occurrenceId } = await seedVehicle(10);
+    const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
       occurrenceId,
+      `veh-${people}-${suv}`,
     ]);
-    await expect(
-      db.pg.query(
-        `select * from create_booking('veh-over-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb, false)`,
-        [h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: 26 }])],
-      ),
-    ).rejects.toThrow(/exceeds_vehicle_capacity/);
-  });
-
-  it('counts vehicles, not people, against the day — two vehicles fill a capacity-2 day', async () => {
-    await db.asOwner();
-    const { occurrenceId } = await seedVehicle(2); // two vehicle slots
-    for (const n of [1, 2]) {
-      const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
-        occurrenceId,
-        `cap-${n}`,
-      ]);
-      await db.pg.query(
-        `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb, false)`,
-        [`cap-bk-${n}`, h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: 10 }])],
-      );
-    }
-    await expect(db.pg.query(`select * from create_hold($1, 1, 'cap-3')`, [occurrenceId])).rejects.toThrow();
-  });
-
-  it('catalogue exposes the global vehicle pricing config (from €70) for vehicle mode', async () => {
-    await db.asOwner();
-    const { optionId } = await seedVehicle(10);
-    const { rows: a } = await db.pg.query<{ slug: string }>(
-      `select slug from activities where id = (select activity_id from activity_options where id = $1)`,
-      [optionId],
+    const { rows: b } = await db.pg.query<{ id: string; total_minor: number | string }>(
+      `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb, $4)`,
+      [
+        `veh-bk-${people}-${suv}`,
+        h[0]!.id,
+        JSON.stringify([{ price_label: 'Vehicle', quantity: people }]),
+        suv,
+      ],
     );
-    const { rows } = await db.pg.query<{ data: { pricingMode: string; fromPriceEur: number; vehiclePricing: unknown } }>(
-      `select api_get_activity($1::jsonb) as data`,
-      [JSON.stringify({ slug: a[0]!.slug })],
+    expect(Number(b[0]!.total_minor)).toBe(expectMinor);
+    const { rows: item } = await db.pg.query<{
+      quantity: number;
+      pax: number;
+      subtotal_minor: number | string;
+      price_label: string;
+    }>(
+      `select quantity, pax, subtotal_minor, price_label from booking_items where booking_id = $1`,
+      [b[0]!.id],
     );
-    expect(rows[0]!.data.pricingMode).toBe('vehicle');
-    expect(rows[0]!.data.fromPriceEur).toBe(70);
-    expect(rows[0]!.data.vehiclePricing).toMatchObject({
-      perBlockEur: 70,
-      suvFlatEur: 85,
-      blockSize: 4,
-      maxParty: 25,
-    });
+    expect(item[0]!.quantity).toBe(1); // one vehicle slot
+    expect(item[0]!.pax).toBe(people); // people on board
+    expect(item[0]!.price_label).toBe(vehicle);
+    expect(Number(item[0]!.subtotal_minor)).toBe(expectMinor);
+  }
+});
+
+it('rejects a sightseeing party larger than 25', async () => {
+  await db.asOwner();
+  const { occurrenceId } = await seedVehicle(50);
+  const { rows: h } = await db.pg.query<{ id: string }>(
+    `select * from create_hold($1, 1, 'veh-over')`,
+    [occurrenceId],
+  );
+  await expect(
+    db.pg.query(
+      `select * from create_booking('veh-over-bk', $1, 'X', 'x@x.com', null, 'web'::booking_source, $2::jsonb, false)`,
+      [h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: 26 }])],
+    ),
+  ).rejects.toThrow(/exceeds_vehicle_capacity/);
+});
+
+it('counts vehicles, not people, against the day — two vehicles fill a capacity-2 day', async () => {
+  await db.asOwner();
+  const { occurrenceId } = await seedVehicle(2); // two vehicle slots
+  for (const n of [1, 2]) {
+    const { rows: h } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, $2)`, [
+      occurrenceId,
+      `cap-${n}`,
+    ]);
+    await db.pg.query(
+      `select * from create_booking($1, $2, 'X', 'x@x.com', null, 'web'::booking_source, $3::jsonb, false)`,
+      [`cap-bk-${n}`, h[0]!.id, JSON.stringify([{ price_label: 'Vehicle', quantity: 10 }])],
+    );
+  }
+  await expect(
+    db.pg.query(`select * from create_hold($1, 1, 'cap-3')`, [occurrenceId]),
+  ).rejects.toThrow();
+});
+
+it('catalogue exposes the global vehicle pricing config (from €70) for vehicle mode', async () => {
+  await db.asOwner();
+  const { optionId } = await seedVehicle(10);
+  const { rows: a } = await db.pg.query<{ slug: string }>(
+    `select slug from activities where id = (select activity_id from activity_options where id = $1)`,
+    [optionId],
+  );
+  const { rows } = await db.pg.query<{
+    data: { pricingMode: string; fromPriceEur: number; vehiclePricing: unknown };
+  }>(`select api_get_activity($1::jsonb) as data`, [JSON.stringify({ slug: a[0]!.slug })]);
+  expect(rows[0]!.data.pricingMode).toBe('vehicle');
+  expect(rows[0]!.data.fromPriceEur).toBe(70);
+  expect(rows[0]!.data.vehiclePricing).toMatchObject({
+    perBlockEur: 70,
+    suvFlatEur: 85,
+    blockSize: 4,
+    maxParty: 25,
   });
+});
 ```
 
 - [ ] **Step 2: Run the vehicle tests — expect FAIL (old flat-bracket function + no config table + no 8-arg signature)**
@@ -563,6 +575,7 @@ git commit -m "feat(pricing): global sightseeing vehicle rule in create_booking/
 ## Task 2: Thread the `suv` flag through the booking service
 
 **Files:**
+
 - Modify: `src/lib/validation/booking.ts` (add `suv` to `createBookingInputSchema`)
 - Modify: `src/lib/services/bookings.ts` (forward `suv` to the `api_book` payload)
 - Test: `tests/integration/booking-flow.test.ts` (add a vehicle+SUV booking via the service)
@@ -572,22 +585,22 @@ git commit -m "feat(pricing): global sightseeing vehicle rule in create_booking/
 Add to `tests/integration/booking-flow.test.ts` (mirror the file's existing setup — it builds a `ctx` via `publicServiceContext`/`pgliteRpc` and seeds an occurrence; reuse whatever helper the file already uses to create a bookable occurrence, then set the activity to vehicle mode). Add:
 
 ```ts
-  it('books a vehicle tour at the SUV flat price when suv is set', async () => {
-    await db.asOwner();
-    const { occurrenceId, slug } = await seedBookableVehicle(db); // sets pricing_mode='vehicle', published, 1 daily slot
-    const booking = await createBooking(ctx, {
-      occurrenceId,
-      expectedSlug: slug,
-      party: { Vehicle: 3 },
-      suv: true,
-      customer: { name: 'A', email: 'a@x.com' },
-      idempotencyKey: 'svc-suv-1',
-    });
-    expect(booking.totalEur).toBe(85);
-    expect(booking.items[0]!.priceLabel).toBe('SUV');
-    expect(booking.items[0]!.pax).toBe(3);
-    expect(booking.items[0]!.quantity).toBe(1);
+it('books a vehicle tour at the SUV flat price when suv is set', async () => {
+  await db.asOwner();
+  const { occurrenceId, slug } = await seedBookableVehicle(db); // sets pricing_mode='vehicle', published, 1 daily slot
+  const booking = await createBooking(ctx, {
+    occurrenceId,
+    expectedSlug: slug,
+    party: { Vehicle: 3 },
+    suv: true,
+    customer: { name: 'A', email: 'a@x.com' },
+    idempotencyKey: 'svc-suv-1',
   });
+  expect(booking.totalEur).toBe(85);
+  expect(booking.items[0]!.priceLabel).toBe('SUV');
+  expect(booking.items[0]!.pax).toBe(3);
+  expect(booking.items[0]!.quantity).toBe(1);
+});
 ```
 
 If `booking-flow.test.ts` lacks a `seedBookableVehicle` helper, add one next to its existing seed helper that: creates a published activity + option + an open occurrence with `daily_capacity`/capacity ≥ 1, sets `pricing_mode='vehicle'`, and returns `{ occurrenceId, slug }`. (No price rows.)
@@ -632,6 +645,7 @@ git commit -m "feat(pricing): thread the SUV upgrade flag through the booking se
 ## Task 3: Catalogue DTO — `vehiclePricing` config
 
 **Files:**
+
 - Modify: `src/lib/validation/tours.ts` (add `vehiclePricingSchema` + field on `tourDetailSchema`)
 
 - [ ] **Step 1: Add the schema + field**
@@ -673,6 +687,7 @@ git commit -m "feat(pricing): expose vehiclePricing config on the tour detail DT
 ## Task 4: Client pricing mirror + booking widget + cart + checkout + card
 
 **Files:**
+
 - Modify: `src/lib/services/pricing.ts` (add `sightseeingQuote` + bands; remove `pickVehicleBracket`/`maxVehicleCapacity`)
 - Modify: `tests/unit/pricing.test.ts` (replace the bracket tests)
 - Modify: `src/components/gyg/detail/BookingWidget.tsx` (vehicle UX)
@@ -722,7 +737,10 @@ describe('sightseeingQuote', () => {
   it('applies the flat €85 SUV upgrade only for parties of 1–4', () => {
     expect(sightseeingQuote(2, true, SIGHTSEEING)).toEqual({ vehicle: 'SUV', totalEur: 85 });
     expect(sightseeingQuote(4, true, SIGHTSEEING)).toEqual({ vehicle: 'SUV', totalEur: 85 });
-    expect(sightseeingQuote(5, true, SIGHTSEEING)).toEqual({ vehicle: 'Family car', totalEur: 140 });
+    expect(sightseeingQuote(5, true, SIGHTSEEING)).toEqual({
+      vehicle: 'Family car',
+      totalEur: 140,
+    });
   });
 
   it('throws above the cap and below 1', () => {
@@ -778,14 +796,19 @@ export interface SightseeingQuote {
  * when `suv` is set. The DB (`create_booking`) is authoritative; this mirrors it for the widget and
  * unit tests. Throws outside 1..maxParty.
  */
-export function sightseeingQuote(people: number, suv: boolean, cfg: SightseeingPricing): SightseeingQuote {
+export function sightseeingQuote(
+  people: number,
+  suv: boolean,
+  cfg: SightseeingPricing,
+): SightseeingQuote {
   if (!Number.isInteger(people) || people < 1 || people > cfg.maxParty) {
     throw new ValidationError(`Party of ${people} is outside 1–${cfg.maxParty}`);
   }
   if (people <= cfg.blockSize && suv) {
     return { vehicle: 'SUV', totalEur: cfg.suvFlatEur };
   }
-  const band = VEHICLE_BANDS.find((b) => people <= b.max) ?? VEHICLE_BANDS[VEHICLE_BANDS.length - 1]!;
+  const band =
+    VEHICLE_BANDS.find((b) => people <= b.max) ?? VEHICLE_BANDS[VEHICLE_BANDS.length - 1]!;
   const blocks = Math.ceil(people / cfg.blockSize);
   return { vehicle: band.name, totalEur: cfg.perBlockEur * blocks };
 }
@@ -806,6 +829,7 @@ Make these exact edits in `src/components/gyg/detail/BookingWidget.tsx`:
 import { sightseeingQuote, SIGHTSEEING_DEFAULT } from '@/lib/services/pricing';
 import type { PricingMode, TourOption, VehiclePricing } from '@/lib/validation/tours';
 ```
+
 (Remove `maxVehicleCapacity, pickVehicleBracket` and the separate `PricingMode, TourOption` import line — fold `VehiclePricing` in.)
 
 (b) Props — add `vehiclePricing` to the destructured params and the prop type:
@@ -831,27 +855,29 @@ import type { PricingMode, TourOption, VehiclePricing } from '@/lib/validation/t
 (c) Add an `suv` state next to the other `useState`s:
 
 ```ts
-  const [suv, setSuv] = useState(false);
+const [suv, setSuv] = useState(false);
 ```
 
 (d) Replace the vehicle-bracket derivations (current block "Vehicle pricing: the cheapest option's price rows…" through `bookingLabel`, ~lines 119–134) with a config-driven version. Also define a `bookingOptionId` that works WITHOUT price rows:
 
 ```ts
-  // Vehicle mode prices from the global config (no per-tour price rows). The bookable option is just
-  // the activity's option; availability is fetched against it.
-  const vcfg = vehiclePricing ?? SIGHTSEEING_DEFAULT;
-  const maxCap = isVehicle ? vcfg.maxParty : 0;
-  const bookingOptionId = isVehicle ? (options[0]?.id ?? null) : (cheapest?.optionId ?? null);
-  const suvActive = isVehicle && suv && participants <= vcfg.blockSize;
-  const vehicleQuote = isVehicle
-    ? sightseeingQuote(Math.min(Math.max(participants, 1), vcfg.maxParty), suvActive, vcfg)
-    : null;
-  const bookingLabel = (isVehicle ? vehicleQuote?.vehicle : cheapest?.label) ?? cheapest?.label ?? 'Vehicle';
+// Vehicle mode prices from the global config (no per-tour price rows). The bookable option is just
+// the activity's option; availability is fetched against it.
+const vcfg = vehiclePricing ?? SIGHTSEEING_DEFAULT;
+const maxCap = isVehicle ? vcfg.maxParty : 0;
+const bookingOptionId = isVehicle ? (options[0]?.id ?? null) : (cheapest?.optionId ?? null);
+const suvActive = isVehicle && suv && participants <= vcfg.blockSize;
+const vehicleQuote = isVehicle
+  ? sightseeingQuote(Math.min(Math.max(participants, 1), vcfg.maxParty), suvActive, vcfg)
+  : null;
+const bookingLabel =
+  (isVehicle ? vehicleQuote?.vehicle : cheapest?.label) ?? cheapest?.label ?? 'Vehicle';
 ```
 
 (e) `unitLabel` — vehicle stays `'per vehicle'`; no change needed beyond it already keying on `isVehicle`.
 
 (f) Availability effect — change the guard + filter from `cheapest` to `bookingOptionId`:
+
 - Replace `if (!cheapest) {` with `if (!bookingOptionId) {`.
 - Replace `if (s.activityOptionId !== cheapest.optionId) continue;` with `if (s.activityOptionId !== bookingOptionId) continue;`.
 - Change the effect dep `cheapest?.optionId` → `bookingOptionId`.
@@ -865,36 +891,39 @@ import type { PricingMode, TourOption, VehiclePricing } from '@/lib/validation/t
 (j) The vehicle chip block (`{isVehicle && selectedBracket && ( … )}`) — replace with:
 
 ```tsx
-        {isVehicle && vehicleQuote && (
-          <div className="mt-3.5 space-y-2.5">
-            {participants <= vcfg.blockSize && (
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSuv(false)}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-[12.5px] font-bold ${
-                    !suv ? 'border-teal bg-teal/5 text-teal-dark' : 'border-ink/15 text-ink-muted'
-                  }`}
-                >
-                  Sedan · {eur(vcfg.perBlockEur)}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSuv(true)}
-                  className={`flex-1 rounded-lg border px-3 py-2 text-[12.5px] font-bold ${
-                    suv ? 'border-teal bg-teal/5 text-teal-dark' : 'border-ink/15 text-ink-muted'
-                  }`}
-                >
-                  SUV · {eur(vcfg.suvFlatEur)}
-                </button>
-              </div>
-            )}
-            <div className="flex items-center gap-2 rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] font-semibold text-teal-dark">
-              <IconUsers width={15} height={15} className="text-teal" />
-              {vehicleQuote.vehicle} · for {participants} {participants === 1 ? 'passenger' : 'passengers'}
-            </div>
-          </div>
-        )}
+{
+  isVehicle && vehicleQuote && (
+    <div className="mt-3.5 space-y-2.5">
+      {participants <= vcfg.blockSize && (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setSuv(false)}
+            className={`flex-1 rounded-lg border px-3 py-2 text-[12.5px] font-bold ${
+              !suv ? 'border-teal bg-teal/5 text-teal-dark' : 'border-ink/15 text-ink-muted'
+            }`}
+          >
+            Sedan · {eur(vcfg.perBlockEur)}
+          </button>
+          <button
+            type="button"
+            onClick={() => setSuv(true)}
+            className={`flex-1 rounded-lg border px-3 py-2 text-[12.5px] font-bold ${
+              suv ? 'border-teal bg-teal/5 text-teal-dark' : 'border-ink/15 text-ink-muted'
+            }`}
+          >
+            SUV · {eur(vcfg.suvFlatEur)}
+          </button>
+        </div>
+      )}
+      <div className="flex items-center gap-2 rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] font-semibold text-teal-dark">
+        <IconUsers width={15} height={15} className="text-teal" />
+        {vehicleQuote.vehicle} · for {participants}{' '}
+        {participants === 1 ? 'passenger' : 'passengers'}
+      </div>
+    </div>
+  );
+}
 ```
 
 (k) The "more than {maxCap}" contact link block — keep; `maxCap` is now 25. (No change.)
@@ -939,11 +968,15 @@ In `src/lib/cart/useCart.ts`, in the `CartItem` interface (after `pricingMode: P
 - [ ] **Step 8: Forward `suv` from checkout**
 
 In `src/components/checkout/Checkout.tsx`:
+
 - After the other `params.get(...)` reads add:
+
 ```ts
-  const suv = params.get('suv') === '1';
+const suv = params.get('suv') === '1';
 ```
+
 - In the `POST /api/v1/bookings` body (the `JSON.stringify({ … })`), after `party: { [label]: qty },` add:
+
 ```ts
             suv,
 ```
@@ -969,6 +1002,7 @@ git commit -m "feat(pricing): sightseeing vehicle widget — €70/4 + SUV toggl
 ## Task 5: Admin form — global-pricing copy, drop the per-tour bracket prefill
 
 **Files:**
+
 - Modify: `src/components/admin/ActivityForm.tsx`
 
 - [ ] **Step 1: Replace the vehicle help text + remove the bracket prefill**
@@ -980,26 +1014,28 @@ In `src/components/admin/ActivityForm.tsx`:
 (b) In the Pricing `<Field>`, change the vehicle-mode help text and remove the prefill button. Replace the help `<p>`'s vehicle arm and the `{v.pricingMode === 'vehicle' && … Use standard vehicle brackets … }` button block with:
 
 ```tsx
-            <p className="mt-1.5 text-[12px] text-ink-muted">
-              {v.pricingMode === 'vehicle'
-                ? 'Sightseeing vehicle pricing is global: €70 per 4 people, with a flat €85 SUV upgrade for parties of 1–4, capped at 25. It applies to every vehicle-priced tour — no per-tour price tiers needed. Change it once in the sightseeing_pricing table.'
-                : v.pricingMode === 'per_group'
-                  ? 'The price buys one group of up to “fits up to” people; bigger parties pay for extra groups (ceil(people / size) × price).'
-                  : 'Each guest pays the tier price. “Fits up to” is an optional hard cap per tier.'}
-            </p>
+<p className="mt-1.5 text-[12px] text-ink-muted">
+  {v.pricingMode === 'vehicle'
+    ? 'Sightseeing vehicle pricing is global: €70 per 4 people, with a flat €85 SUV upgrade for parties of 1–4, capped at 25. It applies to every vehicle-priced tour — no per-tour price tiers needed. Change it once in the sightseeing_pricing table.'
+    : v.pricingMode === 'per_group'
+      ? 'The price buys one group of up to “fits up to” people; bigger parties pay for extra groups (ceil(people / size) × price).'
+      : 'Each guest pays the tier price. “Fits up to” is an optional hard cap per tier.'}
+</p>
 ```
 
 (c) In the "Options & pricing" `<Section>`, gate the price-tier editor so vehicle mode shows a note instead (the global rule ignores per-tour tiers). Wrap the `<OptionsEditor …/>` so that when `v.pricingMode === 'vehicle'` it renders a short note; otherwise the editor. Minimal version — replace the `<OptionsEditor … />` line with:
 
 ```tsx
-        {v.pricingMode === 'vehicle' ? (
-          <p className="rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-            Vehicle-priced tours use the global sightseeing rule (€70 per 4 · €85 SUV · max 25). Add a
-            single option (e.g. “Sightseeing”) so dates can be scheduled — no price tiers required.
-          </p>
-        ) : (
-          <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
-        )}
+{
+  v.pricingMode === 'vehicle' ? (
+    <p className="rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
+      Vehicle-priced tours use the global sightseeing rule (€70 per 4 · €85 SUV · max 25). Add a
+      single option (e.g. “Sightseeing”) so dates can be scheduled — no price tiers required.
+    </p>
+  ) : (
+    <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
+  );
+}
 ```
 
 - [ ] **Step 2: Typecheck + lint**
@@ -1019,6 +1055,7 @@ git commit -m "feat(admin): vehicle mode uses global sightseeing pricing (no per
 ## Task 6: Catch-up SQL, regenerate artifacts, full green gate
 
 **Files:**
+
 - Create: `supabase/catch-up-2026-06-17-sightseeing-pricing.sql`
 - Regenerate: `supabase/setup.sql`, `openapi.json` (+ `supabase/seed.sql` if it changes)
 - Modify: `memory/gytm-db-sync.md` (note the new catch-up file)
@@ -1069,6 +1106,7 @@ git commit -m "chore(db): catch-up + regenerated artifacts for sightseeing vehic
 ## Self-Review
 
 **Spec coverage:**
+
 - Rule (€70/4 + €85 SUV ≤4, cap 25) → Task 1 `create_booking`, Task 4 `sightseeingQuote`. ✓
 - `sightseeing_pricing` config + RLS → Task 1. ✓
 - `pricing_mode='vehicle'` trigger, no price rows → Task 1 (`create_booking` reads config, not rows), Task 5 (admin). ✓

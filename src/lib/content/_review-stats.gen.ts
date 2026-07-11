@@ -3,55 +3,56 @@ import type { ReviewTopic } from './review-topics';
 
 /** Per-topic aggregate over the RESOLVED review set (topics under the minimum collapse to
  *  `general`), so a listing card's rating always matches its detail page's review block. */
-export const TOPIC_STATS: Record<ReviewTopic, { avg: number; count: number; collapsed: boolean }> = {
-  "general": {
-    "avg": 4.8,
-    "count": 1076,
-    "collapsed": false
-  },
-  "catamaran": {
-    "avg": 4.8,
-    "count": 208,
-    "collapsed": false
-  },
-  "speedboat": {
-    "avg": 4.9,
-    "count": 99,
-    "collapsed": false
-  },
-  "dolphin": {
-    "avg": 4.8,
-    "count": 69,
-    "collapsed": false
-  },
-  "hiking": {
-    "avg": 4.8,
-    "count": 96,
-    "collapsed": false
-  },
-  "sightseeing": {
-    "avg": 4.7,
-    "count": 554,
-    "collapsed": false
-  },
-  "transfer": {
-    "avg": 4.7,
-    "count": 396,
-    "collapsed": false
-  },
-  "rental": {
-    "avg": 4.8,
-    "count": 37,
-    "collapsed": false
-  },
-  "water": {
-    "avg": 4.7,
-    "count": 170,
-    "collapsed": false
-  },
-  "air": {
-    "avg": 4.8,
-    "count": 1076,
-    "collapsed": true
-  }
-};
+export const TOPIC_STATS: Record<ReviewTopic, { avg: number; count: number; collapsed: boolean }> =
+  {
+    general: {
+      avg: 4.8,
+      count: 1076,
+      collapsed: false,
+    },
+    catamaran: {
+      avg: 4.8,
+      count: 208,
+      collapsed: false,
+    },
+    speedboat: {
+      avg: 4.9,
+      count: 99,
+      collapsed: false,
+    },
+    dolphin: {
+      avg: 4.8,
+      count: 69,
+      collapsed: false,
+    },
+    hiking: {
+      avg: 4.8,
+      count: 96,
+      collapsed: false,
+    },
+    sightseeing: {
+      avg: 4.7,
+      count: 554,
+      collapsed: false,
+    },
+    transfer: {
+      avg: 4.7,
+      count: 396,
+      collapsed: false,
+    },
+    rental: {
+      avg: 4.8,
+      count: 37,
+      collapsed: false,
+    },
+    water: {
+      avg: 4.7,
+      count: 170,
+      collapsed: false,
+    },
+    air: {
+      avg: 4.8,
+      count: 1076,
+      collapsed: true,
+    },
+  };

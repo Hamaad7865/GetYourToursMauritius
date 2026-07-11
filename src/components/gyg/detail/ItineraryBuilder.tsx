@@ -232,7 +232,9 @@ export function ItineraryBuilder({
         <ItineraryTimeline nodes={nodes} collapseAt={collapseAt} />
         <p className="mt-3 text-[12px] text-ink-muted">
           {t('Stops with a')} <span className="font-semibold text-teal-dark">{t('Change')}</span>{' '}
-          {t('button can be swapped — pick the places you want at no extra cost. Your driver follows your choices.')}
+          {t(
+            'button can be swapped — pick the places you want at no extra cost. Your driver follows your choices.',
+          )}
         </p>
       </div>
       <ItineraryMap stops={mapStopsDebounced} kinds={mapKinds} />

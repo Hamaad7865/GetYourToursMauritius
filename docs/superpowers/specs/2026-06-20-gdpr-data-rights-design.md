@@ -7,6 +7,7 @@
 > counsel; this builds the technical mechanisms + drafts the supporting documents.
 
 ## Locked decisions
+
 1. **Anonymize-with-retention** (the only model compatible with tax/accounting retention on paid bookings):
    - **Hard-delete** (no retention obligation): `profiles`; `bookings` (+ `booking_items`/`booking_holds`)
      in non-paid states (`draft/held/expired/cancelled` with `payment_state='pending'`); `leads`;
@@ -23,7 +24,9 @@
    undue delay. (GDPR permits limiting erasure for an active contract, but the owner chose warn+proceed.)
 
 ## Architecture
+
 ### Erasure engine — `api_erase_user(p jsonb)` (SECURITY DEFINER)
+
 Input `{ userId?: uuid, email?: text }`. Guard: `is_staff() OR (auth.uid() is not null and auth.uid() =
 p.userId)`. (Self-serve passes its own `userId` + the session email; the admin/guest path passes `email`
 and requires staff.) In one transaction it: hard-deletes the safe rows (by `user_id = userId` AND by
@@ -33,6 +36,7 @@ nothing left to change). Returns a jsonb summary `{ deleted: {...}, anonymized: 
 existing `api_mark_refunded` / `is_staff()` pattern. Migration + `catch-up.sql` mirror + types.
 
 ### Self-serve UI — a "Data & privacy" tab in `/account`
+
 - **Route/component:** `app/(site)/account/privacy/page.tsx` + `src/components/account/AccountPrivacy.tsx`
   (client), added to `AccountNav`.
 - **Download my data:** gathers the user's `profiles` row + their `bookings` (+ items, via the existing
@@ -45,11 +49,13 @@ existing `api_mark_refunded` / `is_staff()` pattern. Migration + `catch-up.sql` 
   then signs the user out. Errors surface cleanly; the action is the only place auth deletion happens.
 
 ### Guests + staff — admin "Erase customer data"
+
 In `AdminBookings` (the booking drawer), a staff-only **"Erase customer data"** action that calls
 `api_erase_user({ email })` for that booking's customer email (with a confirm dialog), so the operator can
 fulfil a written guest request. Reuses the same engine; staff-guarded.
 
 ### Policy + paperwork
+
 - Update `app/(site)/privacy/page.tsx`: name every processor (Supabase, Resend, Peach, Google Maps/AI),
   list the rights (access, erasure, rectification, portability, objection) + exactly how to exercise them
   (the account controls + a privacy contact email for guests/written requests), and state retention periods
@@ -58,12 +64,14 @@ fulfil a written guest request. Reuses the same engine; staff-guarded.
   (RoPA), a data-breach response checklist, and a processor-DPA tracker.
 
 ## Error handling
+
 The erasure RPC is transactional + idempotent; a failure rolls back and surfaces a clean error (the user is
 NOT signed out / auth not deleted unless the DB erasure succeeded). `auth.admin.deleteUser` runs only after
 the DB step succeeds; if auth deletion fails, the DB data is already anonymized (safe) and the error is
 logged for staff follow-up (the account is effectively erased data-wise). No PII in any log.
 
 ## Testing
+
 - Integration (PGlite): seed a user with a profile, a paid (confirmed) booking, an unpaid (draft) booking, a
   lead by the same email, an outbox row → `api_erase_user({userId,email})` as the owner → assert: profile
   gone, draft booking gone, lead gone, confirmed booking ANONYMIZED (name placeholder, email/phone null,
@@ -74,6 +82,7 @@ logged for staff follow-up (the account is effectively erased data-wise). No PII
   updated privacy page (EN/FR).
 
 ## Out of scope
+
 An automatic retention-sweep cron (future); the legal filing of DPAs / EU-representative appointment /
 controller registration (owner + counsel — this only drafts the documents); erasing client-side localStorage
 (`gytm:*` keys clear on sign-out / are device-local — note in the policy).

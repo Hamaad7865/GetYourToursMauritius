@@ -32,7 +32,14 @@ export const metadata: Metadata = {
     'dolphin tour Mauritius',
   ],
   alternates: { canonical: PATH },
-  openGraph: { type: 'website', title: TITLE, description: DESCRIPTION, url: `${SITE.url}${PATH}`, locale: 'en_GB', images: [OG_IMAGE] },
+  openGraph: {
+    type: 'website',
+    title: TITLE,
+    description: DESCRIPTION,
+    url: `${SITE.url}${PATH}`,
+    locale: 'en_GB',
+    images: [OG_IMAGE],
+  },
 };
 
 const FAQS = [
@@ -76,7 +83,11 @@ export default async function DolphinSwimMauritiusPage() {
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
       {featured.length > 0 && (
-        <JsonLd data={itemListJsonLd(featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })))} />
+        <JsonLd
+          data={itemListJsonLd(
+            featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })),
+          )}
+        />
       )}
 
       <InfoPage
@@ -95,15 +106,16 @@ export default async function DolphinSwimMauritiusPage() {
 
         <ContentSection id="intro" title="Meet wild dolphins off the west coast">
           <p>
-            One of the most memorable mornings in Mauritius is spent on the water off Tamarin and Black River, where
-            pods of wild spinner dolphins gather in the calm bays at first light. On a good day you’ll watch them roll
-            and leap around the boat, then slip quietly into the water to snorkel near them — on their terms, never
-            chasing or crowding them.
+            One of the most memorable mornings in Mauritius is spent on the water off Tamarin and
+            Black River, where pods of wild spinner dolphins gather in the calm bays at first light.
+            On a good day you’ll watch them roll and leap around the boat, then slip quietly into
+            the water to snorkel near them — on their terms, never chasing or crowding them.
           </p>
           <p>
-            Because the dolphins are there at dawn, it’s an early start, especially from the east. We pick you up from
-            your hotel anywhere on the island and have you on a small boat in the west-coast bays before the sea wakes
-            up. Many trips then add a snorkelling stop and a barbecue, making a full half-day out of it.
+            Because the dolphins are there at dawn, it’s an early start, especially from the east.
+            We pick you up from your hotel anywhere on the island and have you on a small boat in
+            the west-coast bays before the sea wakes up. Many trips then add a snorkelling stop and
+            a barbecue, making a full half-day out of it.
           </p>
         </ContentSection>
 
@@ -115,20 +127,22 @@ export default async function DolphinSwimMauritiusPage() {
 
         <ContentSection id="responsible" title="Doing it responsibly">
           <p>
-            Wild dolphins deserve respect. We work with skippers who keep a sensible distance, never surround or pursue
-            the pods, limit how long guests spend in the water, and follow Mauritian marine rules on approaching marine
-            mammals. You’ll get a short briefing before you enter the water — move calmly, keep your fins under the
-            surface, and let the dolphins come to you. It makes for a better encounter and a healthier sea.
+            Wild dolphins deserve respect. We work with skippers who keep a sensible distance, never
+            surround or pursue the pods, limit how long guests spend in the water, and follow
+            Mauritian marine rules on approaching marine mammals. You’ll get a short briefing before
+            you enter the water — move calmly, keep your fins under the surface, and let the
+            dolphins come to you. It makes for a better encounter and a healthier sea.
           </p>
         </ContentSection>
 
         <ContentSection id="combine" title="Make a morning of it">
           <p>
-            Most dolphin trips pair naturally with a west-coast snorkel at the Crystal Rock or Île aux Bénitiers and a
-            beach barbecue. Prefer a full day afloat? Look at our{' '}
-            <InlineLink href="/mauritius-catamaran-cruise">catamaran cruises</InlineLink>, which sail the same coast in
-            the afternoon. Planning several outings? Our{' '}
-            <InlineLink href="/mauritius-tours">Mauritius tours</InlineLink> hub ties the whole trip together.
+            Most dolphin trips pair naturally with a west-coast snorkel at the Crystal Rock or Île
+            aux Bénitiers and a beach barbecue. Prefer a full day afloat? Look at our{' '}
+            <InlineLink href="/mauritius-catamaran-cruise">catamaran cruises</InlineLink>, which
+            sail the same coast in the afternoon. Planning several outings? Our{' '}
+            <InlineLink href="/mauritius-tours">Mauritius tours</InlineLink> hub ties the whole trip
+            together.
           </p>
           <RelatedLinks
             links={[
@@ -147,10 +161,12 @@ export default async function DolphinSwimMauritiusPage() {
 
         <ContentSection id="book" title="Book your dolphin morning direct">
           <p>
-            Reserve online and we’ll confirm your early pickup — direct with {SITE.operator}, fixed price, no reseller
-            markup, free cancellation up to 24 hours before.
+            Reserve online and we’ll confirm your early pickup — direct with {SITE.operator}, fixed
+            price, no reseller markup, free cancellation up to 24 hours before.
           </p>
-          <BookDirectCta primary={{ href: '/activities?category=Dolphin swims', label: 'See all dolphin trips' }} />
+          <BookDirectCta
+            primary={{ href: '/activities?category=Dolphin swims', label: 'See all dolphin trips' }}
+          />
         </ContentSection>
 
         <EnquireRow message="Hi Belle Mare Tours! I'd like a dolphin swim trip. Here are my dates, party size and hotel:" />

@@ -78,13 +78,13 @@ on the occurrence; `used_capacity` = confirmed bookings + active non-expired hol
 
 The 5 confirmed bugs, **all fixed**:
 
-| Sev | Bug | Fix |
-|---|---|---|
-| HIGH | Same-day undersell (server advertised/held today's slot) | **Tomorrow-earliest** (Mauritius): `api_list_availability` lower clamp, `create_hold` `occurrence_too_soon` guard, planner min-date → tomorrow. Widget was already tomorrow-only. |
-| HIGH | Cart checkout inherited a stale widget hold → false "expired" + wrong-booking replay | Only read the stashed hold on `from=widget`; ignore a past expiry; clear it after booking. (`Checkout.tsx`) |
-| MEDIUM | Authed caller could adopt + read a guest booking via key replay (F23 PII) | Email-match proof now applies to **any** caller replaying an unowned booking (`api_book` guard precondition). |
-| LOW | per_group uncapped tier: widget showed 1 group, cart/server charged per head | Widget per-head fallback (`BookingProvider`) + admin requires a cap on every tier (`activity-write.ts`). |
-| LOW | `release_hold` callable by any logged-in user | Revoked from `public`/`authenticated`. |
+| Sev    | Bug                                                                                  | Fix                                                                                                                                                                               |
+| ------ | ------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| HIGH   | Same-day undersell (server advertised/held today's slot)                             | **Tomorrow-earliest** (Mauritius): `api_list_availability` lower clamp, `create_hold` `occurrence_too_soon` guard, planner min-date → tomorrow. Widget was already tomorrow-only. |
+| HIGH   | Cart checkout inherited a stale widget hold → false "expired" + wrong-booking replay | Only read the stashed hold on `from=widget`; ignore a past expiry; clear it after booking. (`Checkout.tsx`)                                                                       |
+| MEDIUM | Authed caller could adopt + read a guest booking via key replay (F23 PII)            | Email-match proof now applies to **any** caller replaying an unowned booking (`api_book` guard precondition).                                                                     |
+| LOW    | per_group uncapped tier: widget showed 1 group, cart/server charged per head         | Widget per-head fallback (`BookingProvider`) + admin requires a cap on every tier (`activity-write.ts`).                                                                          |
+| LOW    | `release_hold` callable by any logged-in user                                        | Revoked from `public`/`authenticated`.                                                                                                                                            |
 
 SQL fixes are in **`supabase/migrations/20260719120000_audit_fixes.sql`** (dated to sort AFTER the existing
 July-18 migration) + mirrored into **`supabase/catch-up.sql`**. New test: `tests/integration/audit-fixes.test.ts`.
@@ -118,6 +118,7 @@ Cloudflare project was a **Worker** running `npm run build` + `npx wrangler vers
 
 **⚠️ PENDING / YOUR SIDE:** create a **Pages** project (Workers & Pages → Create → Pages → Connect to Git →
 `GetYourToursMauritius`):
+
 - Production branch: `main`
 - Framework preset: **None**
 - **Build command: `npm run pages:build`** ← the key change (NOT `npm run build`)

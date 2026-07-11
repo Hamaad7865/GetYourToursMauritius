@@ -38,9 +38,10 @@ interface Feed {
   total: number;
 }
 async function listRpc(db: TestDb, params: Record<string, unknown> = {}): Promise<Feed> {
-  const { rows } = await db.pg.query<{ data: Feed }>(`select api_my_notifications($1::jsonb) as data`, [
-    JSON.stringify(params),
-  ]);
+  const { rows } = await db.pg.query<{ data: Feed }>(
+    `select api_my_notifications($1::jsonb) as data`,
+    [JSON.stringify(params)],
+  );
   return rows[0]!.data;
 }
 
@@ -65,11 +66,18 @@ describe('notifications feed', () => {
     db = await createTestDb();
     await db.asOwner();
     for (const uid of [USER_A, USER_B, USER_C]) {
-      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [uid, `${uid}@example.com`]);
+      await db.pg.query(`insert into auth.users (id, email) values ($1, $2)`, [
+        uid,
+        `${uid}@example.com`,
+      ]);
       await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [uid]);
     }
     // USER_A: a1 (read, oldest), a2 (unread), a3 (unread, newest).
-    await seedNote(USER_A, 'a1', { type: 'booking_confirmed', createdAt: '2026-01-01T00:00:00Z', read: true });
+    await seedNote(USER_A, 'a1', {
+      type: 'booking_confirmed',
+      createdAt: '2026-01-01T00:00:00Z',
+      read: true,
+    });
     await seedNote(USER_A, 'a2', { type: 'booking_refunded', createdAt: '2026-02-01T00:00:00Z' });
     await seedNote(USER_A, 'a3', { type: 'booking_cancelled', createdAt: '2026-03-01T00:00:00Z' });
     await seedNote(USER_B, 'b1', { type: 'booking_confirmed', createdAt: '2026-02-15T00:00:00Z' });
@@ -216,7 +224,9 @@ describe('notifications feed', () => {
     expect(ok.status).toBe(200);
     expect((await ok.json()).data).toEqual({ count: 1 });
 
-    const anon = await unreadCountGet(new Request('http://localhost/api/v1/notifications/unread-count'));
+    const anon = await unreadCountGet(
+      new Request('http://localhost/api/v1/notifications/unread-count'),
+    );
     expect(anon.status).toBe(401);
   });
 

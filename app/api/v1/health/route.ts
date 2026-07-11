@@ -38,7 +38,9 @@ export const GET = apiHandler(async (req) => {
   const isProd = isProductionLikeRuntime(env);
   const checks: Record<string, boolean> = {};
 
-  checks.supabaseConfigured = Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  checks.supabaseConfigured = Boolean(
+    env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
   checks.serviceRoleConfigured = Boolean(env.SUPABASE_SERVICE_ROLE_KEY);
 
   // NEXT_PUBLIC_SITE_URL defaults to localhost; if a production-like deploy ships with it
@@ -91,7 +93,9 @@ export const GET = apiHandler(async (req) => {
   };
   return healthy
     ? jsonOk(body, { headers: { 'Cache-Control': 'no-store' } })
-    : jsonError(503, 'unhealthy', 'One or more health checks failed', body, { 'Cache-Control': 'no-store' });
+    : jsonError(503, 'unhealthy', 'One or more health checks failed', body, {
+        'Cache-Control': 'no-store',
+      });
 });
 
 export function OPTIONS(req: Request): Response {

@@ -3,15 +3,15 @@ import { createTestDb, type TestDb } from '../db/pglite';
 import { seedOccurrence } from '../db/seed';
 
 async function call<T>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [JSON.stringify(params)]);
+  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+    JSON.stringify(params),
+  ]);
   return rows[0]!.data;
 }
 
 // Last second of "today" (Mauritius local) and noon "tomorrow" (Mauritius local).
-const TODAY_END_MU =
-  `(((now() at time zone 'Indian/Mauritius')::date + 1)::timestamp at time zone 'Indian/Mauritius') - interval '1 second'`;
-const TOMORROW_NOON_MU =
-  `(((now() at time zone 'Indian/Mauritius')::date + 1)::timestamp + interval '12 hours') at time zone 'Indian/Mauritius'`;
+const TODAY_END_MU = `(((now() at time zone 'Indian/Mauritius')::date + 1)::timestamp at time zone 'Indian/Mauritius') - interval '1 second'`;
+const TOMORROW_NOON_MU = `(((now() at time zone 'Indian/Mauritius')::date + 1)::timestamp + interval '12 hours') at time zone 'Indian/Mauritius'`;
 /** Noon, N days out (Mauritius local) — for the per-activity lead-time tests. */
 const noonInDaysMu = (n: number): string =>
   `(((now() at time zone 'Indian/Mauritius')::date + ${n})::timestamp + interval '12 hours') at time zone 'Indian/Mauritius'`;
@@ -33,7 +33,9 @@ describe('audit fixes', () => {
     beforeAll(async () => {
       await db.asOwner();
       const operatorId = (
-        await db.pg.query<{ id: string }>(`insert into operators (name, slug) values ('Tmrw Co', 'tmrw-co') returning id`)
+        await db.pg.query<{ id: string }>(
+          `insert into operators (name, slug) values ('Tmrw Co', 'tmrw-co') returning id`,
+        )
       ).rows[0]!.id;
       const activityId = (
         await db.pg.query<{ id: string }>(
@@ -75,13 +77,18 @@ describe('audit fixes', () => {
     });
 
     it('create_hold accepts a tomorrow occurrence', async () => {
-      const { rows } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, 'ok-tmrw')`, [tomorrowSlot]);
+      const { rows } = await db.pg.query<{ id: string }>(
+        `select * from create_hold($1, 1, 'ok-tmrw')`,
+        [tomorrowSlot],
+      );
       expect(rows[0]!.id).toBeTruthy();
     });
 
     it('api_list_availability never advertises today, only tomorrow+', async () => {
       await db.as(null);
-      const slots = await call<Array<{ occurrenceId: string }>>(db, 'api_list_availability', { slug: 'tmrw-tour' });
+      const slots = await call<Array<{ occurrenceId: string }>>(db, 'api_list_availability', {
+        slug: 'tmrw-tour',
+      });
       await db.asOwner();
       expect(slots.find((s) => s.occurrenceId === todaySlot)).toBeUndefined();
       expect(slots.find((s) => s.occurrenceId === tomorrowSlot)).toBeDefined();
@@ -95,7 +102,9 @@ describe('audit fixes', () => {
     beforeAll(async () => {
       await db.asOwner();
       const operatorId = (
-        await db.pg.query<{ id: string }>(`insert into operators (name, slug) values ('Lead Co', 'lead-co') returning id`)
+        await db.pg.query<{ id: string }>(
+          `insert into operators (name, slug) values ('Lead Co', 'lead-co') returning id`,
+        )
       ).rows[0]!.id;
       const activityId = (
         await db.pg.query<{ id: string }>(
@@ -137,13 +146,18 @@ describe('audit fixes', () => {
     });
 
     it('create_hold accepts a slot at the lead time', async () => {
-      const { rows } = await db.pg.query<{ id: string }>(`select * from create_hold($1, 1, 'lead-ok')`, [threeDaySlot]);
+      const { rows } = await db.pg.query<{ id: string }>(
+        `select * from create_hold($1, 1, 'lead-ok')`,
+        [threeDaySlot],
+      );
       expect(rows[0]!.id).toBeTruthy();
     });
 
     it('api_list_availability hides slots inside the lead window', async () => {
       await db.as(null);
-      const slots = await call<Array<{ occurrenceId: string }>>(db, 'api_list_availability', { slug: 'lead-tour' });
+      const slots = await call<Array<{ occurrenceId: string }>>(db, 'api_list_availability', {
+        slug: 'lead-tour',
+      });
       await db.asOwner();
       expect(slots.find((s) => s.occurrenceId === twoDaySlot)).toBeUndefined();
       expect(slots.find((s) => s.occurrenceId === threeDaySlot)).toBeDefined();
@@ -175,10 +189,20 @@ describe('audit fixes', () => {
     });
 
     it('an AUTHENTICATED caller replaying the key with a mismatched email is refused', async () => {
-      await db.as({ sub: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', role: 'authenticated', email: 'attacker@evil.com' });
+      await db.as({
+        sub: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+        role: 'authenticated',
+        email: 'attacker@evil.com',
+      });
       await expect(
         db.pg.query(`select api_book($1::jsonb)`, [
-          JSON.stringify({ occurrenceId, party: { Adult: 1 }, idempotencyKey: KEY, customerEmail: 'attacker@evil.com', source: 'web' }),
+          JSON.stringify({
+            occurrenceId,
+            party: { Adult: 1 },
+            idempotencyKey: KEY,
+            customerEmail: 'attacker@evil.com',
+            source: 'web',
+          }),
         ]),
       ).rejects.toThrow(/forbidden/);
       await db.asOwner();

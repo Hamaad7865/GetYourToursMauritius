@@ -54,11 +54,24 @@ export function LangCurrencyModal({
           <IconX width={18} height={18} />
         </button>
 
-        <div role="tablist" aria-label={t('Language and currency')} className="flex gap-6 border-b border-ink/10">
-          <TabButton ref={firstTabRef} active={active === 'language'} onClick={() => setActive('language')} icon={<IconGlobe width={18} height={18} />}>
+        <div
+          role="tablist"
+          aria-label={t('Language and currency')}
+          className="flex gap-6 border-b border-ink/10"
+        >
+          <TabButton
+            ref={firstTabRef}
+            active={active === 'language'}
+            onClick={() => setActive('language')}
+            icon={<IconGlobe width={18} height={18} />}
+          >
             {t('Language')}
           </TabButton>
-          <TabButton active={active === 'currency'} onClick={() => setActive('currency')} icon={<IconWallet width={18} height={18} />}>
+          <TabButton
+            active={active === 'currency'}
+            onClick={() => setActive('currency')}
+            icon={<IconWallet width={18} height={18} />}
+          >
             {t('Currency')}
           </TabButton>
         </div>
@@ -123,7 +136,15 @@ function TabButton({
   );
 }
 
-function Option({ selected, label, onClick }: { selected: boolean; label: string; onClick: () => void }) {
+function Option({
+  selected,
+  label,
+  onClick,
+}: {
+  selected: boolean;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"
@@ -134,7 +155,9 @@ function Option({ selected, label, onClick }: { selected: boolean; label: string
       }`}
     >
       {label}
-      {selected && <IconCheck width={16} height={16} aria-hidden="true" className="shrink-0 text-teal" />}
+      {selected && (
+        <IconCheck width={16} height={16} aria-hidden="true" className="shrink-0 text-teal" />
+      )}
     </button>
   );
 }
