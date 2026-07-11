@@ -82,9 +82,13 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
     }
   }
 
-  /** Unit copy for a capacity number: trips for a private option, vehicles for vehicle mode, else guests. */
-  const unitNoun = (opt?: OptionRow) =>
-    opt?.isPrivate ? 'trips' : pricingMode === 'vehicle' ? 'bookings (vehicles)' : 'guests';
+  /** Unit copy for a capacity number: trips for a private option, vehicles for vehicle mode, else
+   *  guests. With a SINGLE option there are no per-option rows, so the activity-level copy speaks
+   *  for that option — a sole private option counts trips, not guests. */
+  const unitNoun = (opt?: OptionRow) => {
+    const o = opt ?? (options.length === 1 ? options[0] : undefined);
+    return o?.isPrivate ? 'trips' : pricingMode === 'vehicle' ? 'bookings (vehicles)' : 'guests';
+  };
 
   const hasOptionRows = options.length > 1;
 

@@ -174,6 +174,7 @@ const PAY_FILTERS: Array<{ value: 'all' | PaymentState; label: string }> = [
   { value: 'paid', label: 'Paid' },
   { value: 'pending', label: 'Pending' },
   { value: 'refunded', label: 'Refunded' },
+  { value: 'failed', label: 'Failed' },
 ];
 const DATE_FILTERS = [
   { value: 'all', label: 'All dates' },
@@ -189,9 +190,11 @@ const SELECT_CLS =
   'rounded-xl border border-[#E2E7EA] bg-white px-3 py-2.5 text-[13.5px] text-ink outline-none focus:border-teal cursor-pointer';
 
 function exportCsv(rows: BookingRow[]): void {
-  const head = ['Ref', 'Customer', 'Email', 'Tour', 'Trip date', 'Guests', 'Total EUR', 'Payment', 'Status', 'Source'];
+  const head = ['Ref', 'Customer', 'Email', 'Tour', 'Trip date', 'Booked', 'Guests', 'Total EUR', 'Payment', 'Status', 'Source'];
   const lines = rows.map((b) =>
-    [b.ref, b.customerName, b.customerEmail, b.activityTitle, fmtDate(b.startsAt), b.guests, b.totalEur.toFixed(2), b.paymentState, b.status, b.source]
+    // Payment exports the DISPLAYED label ("Not paid" for closed never-paid bookings) — exporting the
+    // raw ledger state resurfaced exactly the "expired but Pending" misreading the chip fix removed.
+    [b.ref, b.customerName, b.customerEmail, b.activityTitle, fmtDate(b.startsAt), b.createdAt, b.guests, b.totalEur.toFixed(2), paymentPill(b.paymentState, b.status).label, b.status, b.source]
       .map(csvCell)
       .join(','),
   );

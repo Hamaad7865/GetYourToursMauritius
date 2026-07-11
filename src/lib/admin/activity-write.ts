@@ -40,6 +40,10 @@ export interface ItineraryStopInput {
   area: string;
   description: string;
   tags: string[];
+  /** Hand-placed map coordinates (set via SQL patches, not the editor) — round-tripped untouched so
+   *  an admin save never degrades the map back to title-geocoding. */
+  lat?: number | null;
+  lng?: number | null;
   /** Alternatives the customer can pick instead of this stop. */
   options: { title: string; area: string }[];
 }
@@ -89,6 +93,9 @@ export interface ActivityFormValues {
   priceListUrl: string;
   /** Optional label shown above the price-list PDF (e.g. "Casela park entry prices"). */
   priceListLabel: string;
+  /** The activity's `extra` as loaded — buildExtra() preserves any key the form doesn't manage
+   *  (e.g. availability/returnWindow set via SQL patches), so a save can't silently destroy them. */
+  sourceExtra: Record<string, unknown>;
 }
 
 export const EMPTY_ACTIVITY: ActivityFormValues = {
@@ -122,6 +129,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   badges: [],
   priceListUrl: '',
   priceListLabel: '',
+  sourceExtra: {},
 };
 
 export function slugify(input: string): string {
@@ -145,6 +153,20 @@ async function operatorId(): Promise<string> {
   return data.id;
 }
 
+/** The extra keys this form OWNS (rebuilt from the fields below). Everything else in the loaded
+ *  `extra` is preserved verbatim — rebuilding from scratch silently wiped SQL-patched keys like
+ *  `availability`/`returnWindow` on the next admin save (the bug class that already hit badges). */
+const MANAGED_EXTRA_KEYS = new Set([
+  'itinerary',
+  'whatToBring',
+  'importantInfo',
+  'badges',
+  'startWindow',
+  'isPrivate',
+  'adultsOnly',
+  'priceList',
+]);
+
 function buildExtra(v: ActivityFormValues) {
   const itinerary = v.itinerary
     .filter((s) => s.title.trim())
@@ -154,6 +176,8 @@ function buildExtra(v: ActivityFormValues) {
         area: s.area.trim() || null,
         description: s.description.trim() || null,
         tags: s.tags.filter((t) => t.trim()),
+        // Preserve hand-placed pins; omit the keys entirely when unset (schema treats them as optional).
+        ...(typeof s.lat === 'number' && typeof s.lng === 'number' ? { lat: s.lat, lng: s.lng } : {}),
       };
       const options = s.options
         .filter((o) => o.title.trim())
@@ -164,6 +188,9 @@ function buildExtra(v: ActivityFormValues) {
   const whatToBring = v.whatToBring.map((s) => s.trim()).filter(Boolean);
   const importantInfo = v.importantInfo.map((s) => s.trim()).filter(Boolean);
   const out: Record<string, unknown> = {};
+  for (const [k, val] of Object.entries(v.sourceExtra)) {
+    if (!MANAGED_EXTRA_KEYS.has(k)) out[k] = val;
+  }
   if (itinerary.length) out.itinerary = itinerary;
   if (whatToBring.length) out.whatToBring = whatToBring;
   if (importantInfo.length) out.importantInfo = importantInfo;
@@ -416,6 +443,23 @@ function assertPricingValid(v: ActivityFormValues): void {
       );
     }
   }
+  for (const o of v.options) {
+    if (o.isPrivateOption) continue;
+    const labels = o.prices.map((p) => p.label.trim().toLowerCase()).filter(Boolean);
+    if (new Set(labels).size !== labels.length) {
+      throw new Error(
+        `Option "${o.name || 'unnamed'}": two price tiers share a label — the server prices by label, so duplicates pick one arbitrarily.`,
+      );
+    }
+    for (const tier of o.prices) {
+      const isBand = tier.minAge != null || tier.maxAge != null;
+      if ((tier.amountEur ?? 0) <= 0 && !isBand) {
+        throw new Error(
+          `Option "${o.name || 'unnamed'}": the free tier "${tier.label}" needs an age range (e.g. infants 0–3) — a plain €0 tier makes the widget quote €0.`,
+        );
+      }
+    }
+  }
   if (v.pricingMode !== 'per_group') return;
   const uncapped = v.options.some((o) =>
     o.prices.some((p) => p.label.trim() && p.amountEur != null && (p.maxGuests == null || p.maxGuests <= 0)),
@@ -431,13 +475,15 @@ function assertPricingValid(v: ActivityFormValues): void {
  *  without this every new tour ties with the category's first card and gets bumped up by the
  *  (rating_count, title) tiebreaker — jumping ahead of the owner's arranged order. */
 async function nextSortForCategory(category: string): Promise<number> {
-  const { data } = await getBrowserSupabase()
+  const { data, error } = await getBrowserSupabase()
     .from('activities')
     .select('sort')
     .eq('category', category)
     .order('sort', { ascending: false })
     .limit(1)
     .maybeSingle();
+  // A swallowed read error would silently file the tour at sort 0 — ahead of the owner's arrangement.
+  if (error) throw error;
   return ((data?.sort as number | null) ?? -1) + 1;
 }
 
@@ -464,7 +510,15 @@ export async function updateActivity(id: string, v: ActivityFormValues): Promise
   assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
-  const { error } = await sb.from('activities').update(activityRow(v, opId)).eq('id', id);
+  // Moving to another category keeps the old `sort` otherwise — a sort-0 tour would jump ahead of
+  // the destination category's arranged order. Re-file it at the end, like a newly created tour.
+  const { data: cur, error: curErr } = await sb.from('activities').select('category').eq('id', id).maybeSingle();
+  if (curErr) throw curErr;
+  const row =
+    cur && cur.category !== v.category
+      ? { ...activityRow(v, opId), sort: await nextSortForCategory(v.category) }
+      : activityRow(v, opId);
+  const { error } = await sb.from('activities').update(row).eq('id', id);
   if (error) throw error;
   await replaceImages(id, v.images);
   await reconcileOptions(id, v.options);
@@ -506,6 +560,8 @@ interface ExtraShape {
     area?: string | null;
     description?: string | null;
     tags?: string[];
+    lat?: number | null;
+    lng?: number | null;
     options?: Array<{ title?: string; area?: string | null }>;
   }>;
   badges?: Array<{ icon?: string; title?: string; subtitle?: string }>;
@@ -607,10 +663,13 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
       area: s.area ?? '',
       description: s.description ?? '',
       tags: s.tags ?? [],
+      lat: s.lat ?? null,
+      lng: s.lng ?? null,
       options: (s.options ?? []).map((o) => ({ title: o.title ?? '', area: o.area ?? '' })),
     })),
     badges: (extra.badges ?? []).map((b) => ({ icon: b.icon ?? '', title: b.title ?? '', subtitle: b.subtitle ?? '' })),
     priceListUrl: extra.priceList?.url ?? '',
     priceListLabel: extra.priceList?.label ?? '',
+    sourceExtra: (act.extra ?? {}) as Record<string, unknown>,
   };
 }

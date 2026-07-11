@@ -302,11 +302,35 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         hint="Each option (e.g. Shared, Private) has price tiers: a label, a € price, and a “fits up to” number. Its meaning follows the Pricing mode above — a per-tier cap (per person) or the group size (per group)."
       >
         {v.pricingMode === 'vehicle' ? (
-          <p className="rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-            Vehicle-priced tours use the global flat prices (Sedan €70 / SUV €85 / Family €85 / Van
-            €125 / Coaster €225 · max 25). Add a single option (e.g. “Sightseeing”) so dates can be
-            scheduled — no price tiers required.
-          </p>
+          <>
+            <p className="rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
+              Vehicle-priced tours use the global flat prices (Sedan €70 / SUV €85 / Family €85 / Van
+              €125 / Coaster €225 · max 25). Add a single option (e.g. “Sightseeing”) so dates can be
+              scheduled — no price tiers required.
+            </p>
+            {v.options.some((o) => o.isPrivateOption) && (
+              // The options editor is hidden in vehicle mode, so without this the save error
+              // ("private option isn't available on vehicle-priced tours") had no visible fix.
+              <div className="mt-2.5 flex flex-wrap items-center gap-3 rounded-lg border border-coral/40 bg-coral/5 px-3 py-2.5 text-[12.5px] text-ink">
+                <span>
+                  This tour still has a <b>Private option</b> — not available with vehicle pricing, so
+                  saving will fail until it&rsquo;s removed.
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    set(
+                      'options',
+                      v.options.map((o) => ({ ...o, isPrivateOption: false })),
+                    )
+                  }
+                  className="rounded-lg border border-coral/50 px-2.5 py-1 text-[12px] font-bold text-coral-dark hover:bg-coral/10"
+                >
+                  Remove private option
+                </button>
+              </div>
+            )}
+          </>
         ) : (
           <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
         )}
@@ -748,7 +772,19 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                 type="checkbox"
                 className="mt-0.5 h-4 w-4 accent-teal"
                 checked={Boolean(opt.isPrivateOption)}
-                onChange={(e) =>
+                onChange={(e) => {
+                  // Saving a private option DELETES its price tiers (the private fields ARE the
+                  // pricing) — configured age bands are gone for good. Make that a decision.
+                  if (
+                    e.target.checked &&
+                    opt.prices.length > 0 &&
+                    !window.confirm(
+                      `Turning this option private will permanently delete its ${opt.prices.length} price tier(s) (incl. any age bands) when you save. Continue?`,
+                    )
+                  ) {
+                    e.target.checked = false;
+                    return;
+                  }
                   update(
                     i,
                     e.target.checked
@@ -758,8 +794,8 @@ function OptionsEditor({ options, onChange }: { options: OptionInput[]; onChange
                           privateExtraEur: opt.privateExtraEur ?? 25,
                         }
                       : { isPrivateOption: false },
-                  )
-                }
+                  );
+                }}
               />
               <span className="text-[12.5px] text-ink">
                 <span className="font-bold">Private option</span> — one booking takes the whole trip

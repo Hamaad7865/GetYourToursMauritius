@@ -67,6 +67,18 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
   const { data: existing } = await sb.from('categories').select('name').eq('id', id).maybeSingle();
   const oldName = existing?.name ?? null;
   if (oldName && oldName !== newName) {
+    // Renaming ONTO an existing category would re-point the tours, then fail the unique-name rename —
+    // merging the tours into the target with no category row rename. Fail before touching anything.
+    const { data: clash, error: clashErr } = await sb
+      .from('categories')
+      .select('id')
+      .eq('name', newName)
+      .neq('id', id)
+      .maybeSingle();
+    if (clashErr) throw clashErr;
+    if (clash) {
+      throw new Error(`A category named “${newName}” already exists — delete or rename it first.`);
+    }
     const { error: repointErr } = await sb.from('activities').update({ category: newName }).eq('category', oldName);
     if (repointErr) throw repointErr;
   }
