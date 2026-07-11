@@ -167,17 +167,33 @@ describe('api_erase_user — anonymize-with-retention', () => {
     expect(pre.customer_email).toBe('deleted@privacy.invalid');
     expect(pre.customer_name).toBe('(Deleted user)');
 
-    // The outbox row is redacted: no customerName in payload, recipient stripped of the real email
-    // (recipient is NOT NULL in the schema → redacted to the sentinel, not nulled).
-    const outbox = (
-      await db.pg.query<{ recipient: string | null; payload: Record<string, unknown> }>(
+    // Customer-addressed outbox rows are redacted: recipient → sentinel (NOT NULL column), payload
+    // loses customerName. Owner-addressed rows KEEP their recipient — the 'owner' sentinel must
+    // survive an erasure or a pending owner alert for a real paid booking silently dies — but their
+    // payload is scrubbed the same way.
+    const outboxRows = (
+      await db.pg.query<{ recipient: string; payload: Record<string, unknown> }>(
         `select recipient, payload from notification_outbox where booking_id = $1`,
         [confirmedId],
       )
-    ).rows[0]!;
-    expect(outbox.recipient).not.toBe(U_EMAIL);
-    expect(outbox.recipient).toBe('deleted@privacy.invalid');
-    expect(outbox.payload.customerName).toBeUndefined();
+    ).rows;
+    expect(outboxRows.length).toBeGreaterThan(0);
+    for (const row of outboxRows) {
+      expect(row.recipient).not.toBe(U_EMAIL);
+      expect(row.payload.customerName).toBeUndefined();
+    }
+    expect(outboxRows.some((r) => r.recipient === 'deleted@privacy.invalid')).toBe(true);
+    // Staff bell rows are rebuilt without the customer's name (the erase's promise extends to the feed).
+    const bell = (
+      await db.pg.query<{ body: string }>(
+        `select body from notifications where type = 'admin_new_booking' and data ->> 'bookingId' = $1`,
+        [confirmedId],
+      )
+    ).rows;
+    for (const row of bell) {
+      expect(row.body).not.toContain('Pre Account');
+      expect(row.body).toContain('(Deleted user)');
+    }
 
     // An audit row was written with NO PII (counts only).
     const audit = (
