@@ -10,7 +10,10 @@ import { createStubAiProvider } from '@/lib/ai/stub';
 // Route handlers read their ServiceContext through this seam; back it with the same PGlite DB.
 vi.mock('@/lib/http/context', async () => {
   const mod = await import('../db/route-context');
-  return { buildServiceContext: () => mod.requireRouteContext() };
+  return {
+    buildServiceContext: () => mod.requireRouteContext(),
+    serviceRoleRpcContext: () => mod.requireRouteContext(),
+  };
 });
 
 const { GET: bookingsGet } = await import('../../app/api/v1/bookings/route');

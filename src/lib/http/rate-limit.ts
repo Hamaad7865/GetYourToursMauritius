@@ -1,5 +1,5 @@
-import type { ServiceContext } from '@/lib/services/context';
 import { enforceRateLimit } from '@/lib/services/rate-limit';
+import { serviceRoleRpcContext } from '@/lib/http/context';
 
 /** Hard cap on the stored IP length. Caps a spoofed giant `x-forwarded-for` so it can't bloat the
  *  rate-limit / lead row. A valid IPv4/IPv6 (even with a zone id) is well under this. */
@@ -30,13 +30,16 @@ export function clientIp(req: Request): string | null {
  * exceed; the `apiHandler` wrapper maps it to the standard error envelope. A missing IP is allowed
  * through (the edge / Cloudflare is the backstop), matching the lead limiter. OPTIONS/CORS preflight
  * is handled by a separate exported `OPTIONS` and never reaches this.
+ *
+ * The `api_rate_limit` RPC is now revoked from anon/authenticated (so the public anon key can't be used
+ * to pre-fill a victim's bucket or bloat `rate_limits`), so it is always called through a service-role
+ * client — never the caller's user-scoped context. Callers therefore no longer pass a ServiceContext.
  */
 export async function rateLimit(
   req: Request,
-  ctx: ServiceContext,
   bucket: string,
   limit: number,
   windowSeconds = 60,
 ): Promise<void> {
-  await enforceRateLimit(ctx, bucket, clientIp(req), limit, windowSeconds);
+  await enforceRateLimit(serviceRoleRpcContext(), bucket, clientIp(req), limit, windowSeconds);
 }

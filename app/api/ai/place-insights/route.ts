@@ -16,7 +16,7 @@ export const runtime = 'edge';
 export const POST = apiHandler(async (req) => {
   await authenticateOptional(req);
   const ctx = buildServiceContext(req);
-  await rateLimit(req, ctx, 'ai:place-insights', 30);
+  await rateLimit(req, 'ai:place-insights', 30);
   const input = await parseJsonBody(req, placeInsightsInputSchema);
   const insights = await generatePlaceInsights(ctx, input.places);
   return jsonOk({ insights });

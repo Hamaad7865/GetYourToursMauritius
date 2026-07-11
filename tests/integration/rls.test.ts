@@ -124,10 +124,27 @@ describe('row level security', () => {
     expect(visible).toHaveLength(1);
   });
 
-  it('anyone may capture a lead', async () => {
+  it('a public visitor cannot INSERT into leads directly (lockdown)', async () => {
+    // The open `leads_insert with check (true)` policy + the anon INSERT grant are removed: a bot with
+    // the anon key can no longer write straight to `leads`, bypassing api_capture_lead's honeypot + limit.
     await db.as(null);
     await expect(
       db.pg.query(`insert into leads (name, contact) values ('Walk-in', 'walkin@example.com')`),
+    ).rejects.toThrow(/permission denied/);
+  });
+
+  it('lead capture goes through the SECURITY DEFINER api_capture_lead (server / service-role path)', async () => {
+    // The Next route calls this via a service-role client; the function runs as its owner, so the insert
+    // succeeds even though the table grant is revoked from anon/authenticated.
+    await db.as({ sub: 'service', role: 'service_role' });
+    await expect(
+      db.pg.query(`select api_capture_lead($1::jsonb) as data`, [
+        JSON.stringify({ name: 'Walk-in', contact: 'walkin@example.com', ip: '203.0.113.50' }),
+      ]),
     ).resolves.toBeTruthy();
+    await db.asOwner();
+    expect(
+      (await db.pg.query(`select 1 from leads where lower(contact) = 'walkin@example.com'`)).rows,
+    ).toHaveLength(1);
   });
 });

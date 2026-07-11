@@ -75,6 +75,26 @@ export function publicServiceContext(): ServiceContext {
 }
 
 /**
+ * Trusted RPC context (service-role rpc port, NO raw admin handle). For public routes that must call a
+ * hardened mutation RPC which is now revoked from anon/authenticated — the per-IP rate limiter, hold
+ * creation, lead capture. Those RPCs are SECURITY DEFINER and identity-free, so running them as the
+ * service role is behaviour-preserving; locking their grants stops a direct anon-key PostgREST call
+ * from bypassing the route throttle. Falls back to the in-memory seed fixture in dev / preview builds
+ * with no Supabase configured (mirrors selectDb), so local flows keep working without a service key.
+ * Deliberately omits the raw admin client so a route can't accidentally issue arbitrary admin reads.
+ */
+export function serviceRoleRpcContext(): ServiceContext {
+  const env = getServerEnv();
+  const configured = Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY);
+  const previewFallback =
+    process.env.NODE_ENV !== 'production' || process.env.ENABLE_PREVIEW_FALLBACK === 'true';
+  if (!configured && previewFallback) {
+    return makeContext(seedRpc());
+  }
+  return makeContext(supabaseRpc(createServiceRoleClient()));
+}
+
+/**
  * Service-role context for trusted internal workers (notification drain, hold sweep, payment
  * reconciliation). Bypasses RLS, so it must only be reached behind a server-side secret — never
  * from a user-facing route.

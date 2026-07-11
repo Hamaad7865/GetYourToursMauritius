@@ -8,7 +8,10 @@ import { createStubAiProvider } from '@/lib/ai/stub';
 
 vi.mock('@/lib/http/context', async () => {
   const mod = await import('../db/route-context');
-  return { buildServiceContext: () => mod.requireRouteContext() };
+  return {
+    buildServiceContext: () => mod.requireRouteContext(),
+    serviceRoleRpcContext: () => mod.requireRouteContext(),
+  };
 });
 
 const { GET: notificationsGet } = await import('../../app/api/v1/notifications/route');

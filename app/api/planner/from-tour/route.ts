@@ -3,7 +3,7 @@ import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { authenticateOptional } from '@/lib/http/auth';
 import { getServerEnv } from '@/lib/config/env';
-import { buildServiceContext, publicServiceContext } from '@/lib/http/context';
+import { publicServiceContext } from '@/lib/http/context';
 import { rateLimit } from '@/lib/http/rate-limit';
 import { getActivity } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
@@ -30,7 +30,7 @@ function mapsKey(): string | null {
  */
 export const GET = apiHandler(async (req) => {
   await authenticateOptional(req);
-  await rateLimit(req, buildServiceContext(req), 'planner:from-tour', 30);
+  await rateLimit(req, 'planner:from-tour', 30);
   const slug = (new URL(req.url).searchParams.get('slug') ?? '').trim();
   if (!slug) return jsonOk({ tour: null, slug: '', places: [] });
 

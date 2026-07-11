@@ -18,7 +18,7 @@ export const runtime = 'edge';
 export const POST = apiHandler(async (req) => {
   await authenticateOptional(req);
   const ctx = buildServiceContext(req);
-  await rateLimit(req, ctx, 'ai:trip-planner', 15);
+  await rateLimit(req, 'ai:trip-planner', 15);
   const input = await parseJsonBody(req, plannerChatInputSchema);
   const result = await runPlannerTurn(ctx, input);
   return jsonOk(result);

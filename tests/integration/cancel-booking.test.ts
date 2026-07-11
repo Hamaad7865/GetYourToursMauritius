@@ -95,6 +95,20 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
       )
     ).rows[0]!.n;
   };
+  // The GENERIC refund trio (customer + owner email + owner WhatsApp) the refund_pending trigger fires
+  // for oversell/paid-after-expiry races. A self-cancel must NOT trigger these (its own tailored
+  // booking_cancellation row is enqueued first, so the trigger's skip-guard suppresses them).
+  const refundTrioNotifs = async (ref: string): Promise<number> => {
+    await db.asOwner();
+    return (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from notification_outbox
+          where template in ('booking_refund_pending', 'owner_refund_pending')
+            and booking_id = (select id from bookings where ref = $1)`,
+        [ref],
+      )
+    ).rows[0]!.n;
+  };
 
   beforeAll(async () => {
     db = await createTestDb();
@@ -146,6 +160,9 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
     expect(await usedCap(occ)).toBe(0); // the seats are freed for resale
     expect(await cancellableFlag(ref)).toBe(false); // no longer cancellable
     expect(await cancellationNotifs(ref)).toBe(1); // one owner heads-up enqueued
+    // ...and the generic refund trio was suppressed — no double-alert (regression guard: the tailored
+    // cancellation row is enqueued BEFORE the status flip so the trigger's skip-guard matches).
+    expect(await refundTrioNotifs(ref)).toBe(0);
   });
 
   it('is idempotent — a second cancel returns the current state and does not re-enqueue', async () => {

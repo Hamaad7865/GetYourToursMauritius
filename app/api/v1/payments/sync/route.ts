@@ -25,7 +25,7 @@ export const POST = apiHandler(async (req) => {
   const ctx = buildServiceContext(req);
   // Throttle BEFORE the billed Peach round-trip below: a valid login otherwise lets a caller force
   // unbounded provider status queries for arbitrary checkout ids (cost / merchant rate-limit pressure).
-  await rateLimit(req, ctx, 'payments:sync', 20);
+  await rateLimit(req, 'payments:sync', 20);
   const { checkoutId } = await parseJsonBody(req, syncPaymentInputSchema);
 
   const event = await ctx.payments.getCheckoutStatus(checkoutId);

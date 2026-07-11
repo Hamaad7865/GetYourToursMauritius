@@ -2,7 +2,6 @@ import { apiHandler, parseJsonBody } from '@/lib/http/handler';
 import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { authenticateOptional } from '@/lib/http/auth';
-import { buildServiceContext } from '@/lib/http/context';
 import { rateLimit } from '@/lib/http/rate-limit';
 import { plannerOptimizeInputSchema } from '@/lib/validation/planner';
 import { getOptimizedStopOrder } from '@/lib/maps/route-optimization';
@@ -20,8 +19,7 @@ export const runtime = 'edge';
  */
 export const POST = apiHandler(async (req) => {
   await authenticateOptional(req);
-  const ctx = buildServiceContext(req);
-  await rateLimit(req, ctx, 'planner:optimize', 30);
+  await rateLimit(req, 'planner:optimize', 30);
   const { pickup, stops } = await parseJsonBody(req, plannerOptimizeInputSchema);
   const order = await getOptimizedStopOrder(pickup, stops);
   return jsonOk({ order });

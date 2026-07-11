@@ -2,7 +2,6 @@ import { apiHandler } from '@/lib/http/handler';
 import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { authenticateOptional } from '@/lib/http/auth';
-import { buildServiceContext } from '@/lib/http/context';
 import { rateLimit } from '@/lib/http/rate-limit';
 import { getServerEnv } from '@/lib/config/env';
 import { searchGooglePlaces, placeDetailsByIds } from '@/lib/maps/google-places';
@@ -25,8 +24,7 @@ function mapsKey(): string | null {
  */
 export const GET = apiHandler(async (req) => {
   await authenticateOptional(req);
-  const ctx = buildServiceContext(req);
-  await rateLimit(req, ctx, 'planner:places', 30);
+  await rateLimit(req, 'planner:places', 30);
   const key = mapsKey();
   if (!key) return jsonOk([]);
 

@@ -28,7 +28,7 @@ export const GET = apiHandler(async (req) => {
 export const POST = apiHandler(async (req) => {
   await authenticateOptional(req);
   const ctx = buildServiceContext(req);
-  await rateLimit(req, ctx, 'bookings:create', 15);
+  await rateLimit(req, 'bookings:create', 15);
   const input = await parseJsonBody(req, createBookingInputSchema);
   const booking = await createBooking(ctx, input);
   return jsonOk(booking, { status: 201 });

@@ -2,7 +2,7 @@ import { apiHandler, parseJsonBody } from '@/lib/http/handler';
 import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { authenticateOptional } from '@/lib/http/auth';
-import { buildServiceContext } from '@/lib/http/context';
+import { serviceRoleRpcContext } from '@/lib/http/context';
 import { clientIp } from '@/lib/http/rate-limit';
 import { captureLeadInputSchema } from '@/lib/validation/booking';
 import { captureLead } from '@/lib/services/leads';
@@ -23,7 +23,10 @@ export const POST = apiHandler(async (req) => {
     return jsonOk({ received: true }, { status: 201 });
   }
 
-  const ctx = buildServiceContext(req);
+  // api_capture_lead is revoked from anon/authenticated and the open `leads_insert` policy is dropped,
+  // so both the RPC call and the underlying insert must run as the service role (the RPC is SECURITY
+  // DEFINER + identity-free, so this is behaviour-preserving; the per-IP throttle lives inside it).
+  const ctx = serviceRoleRpcContext();
   // Length-capped (see clientIp) so a spoofed giant x-forwarded-for can't bloat the lead row.
   const ip = clientIp(req);
   const lead = await captureLead(ctx, input, ip);

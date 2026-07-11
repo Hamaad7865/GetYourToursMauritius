@@ -12,7 +12,10 @@ import { createStubAiProvider } from '@/lib/ai/stub';
 // Inject a PGlite-backed ServiceContext into the route handlers (same pattern as api-routes.test.ts).
 vi.mock('@/lib/http/context', async () => {
   const mod = await import('../db/route-context');
-  return { buildServiceContext: () => mod.requireRouteContext() };
+  return {
+    buildServiceContext: () => mod.requireRouteContext(),
+    serviceRoleRpcContext: () => mod.requireRouteContext(),
+  };
 });
 
 const { POST: tripPlannerPost } = await import('../../app/api/ai/trip-planner/route');

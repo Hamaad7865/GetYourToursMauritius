@@ -8,7 +8,10 @@ import { createStubAiProvider } from '@/lib/ai/stub';
 
 vi.mock('@/lib/http/context', async () => {
   const mod = await import('../db/route-context');
-  return { buildServiceContext: () => mod.requireRouteContext() };
+  return {
+    buildServiceContext: () => mod.requireRouteContext(),
+    serviceRoleRpcContext: () => mod.requireRouteContext(),
+  };
 });
 // The delete route removes the auth user via the service-role Admin API; stub it (no real Supabase in tests).
 const deleteUser = vi.fn(async () => ({ error: null }));

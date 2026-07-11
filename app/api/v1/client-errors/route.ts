@@ -1,7 +1,6 @@
 import { apiHandler, parseJsonBody } from '@/lib/http/handler';
 import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
-import { publicServiceContext } from '@/lib/http/context';
 import { rateLimit, clientIp } from '@/lib/http/rate-limit';
 import { clientErrorReportSchema } from '@/lib/validation/telemetry';
 import { log } from '@/lib/log';
@@ -14,8 +13,7 @@ export const runtime = 'edge';
  * they're visible alongside server errors. Per-IP rate limited so it can't be used to flood the logs.
  */
 export const POST = apiHandler(async (req) => {
-  const ctx = publicServiceContext();
-  await rateLimit(req, ctx, 'client_errors', 30, 60);
+  await rateLimit(req, 'client_errors', 30, 60);
   const report = await parseJsonBody(req, clientErrorReportSchema);
   log.error('client_error', { ...report, ip: clientIp(req) });
   return jsonOk({ received: true }, { status: 202 });

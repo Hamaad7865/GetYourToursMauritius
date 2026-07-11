@@ -281,6 +281,23 @@ describe('api_erase_user — anonymize-with-retention', () => {
     });
     await db.asOwner();
     await db.pg.query(`insert into leads (name, contact) values ('Guest', $1)`, [GUEST_EMAIL]);
+    // An OWNER-addressed outbox row for the guest booking (recipient 'owner', not the guest's email).
+    // The recipient-match scrub can't touch it, so ONLY the booking-linked payload scrub cleans the name.
+    // That scrub used to re-select the booking by email AFTER the anonymize had rewritten the email, so a
+    // guest (email-only) booking fell out of scope and kept the name — this row is the regression guard.
+    await db.pg.query(
+      `insert into notification_outbox (channel, recipient, template, payload, booking_id)
+       values ('email', 'owner', 'owner_new_booking',
+               jsonb_build_object('ref', 'BMT-G', 'customerName', 'Guest Person', 'totalMinor', 5000), $1)`,
+      [guestConfirmed],
+    );
+    // A staff bell row for the guest booking (embeds the customer's name in body).
+    await db.pg.query(
+      `insert into notifications (user_id, type, title, body, data)
+       values ($1, 'admin_new_booking', 'New booking', 'Guest Person booked BMT-G',
+               jsonb_build_object('ref', 'BMT-G', 'bookingId', $2::text))`,
+      [STAFF, guestConfirmed],
+    );
 
     await db.as({ sub: STAFF, role: 'authenticated' });
     await expect(callErase(db, { email: GUEST_EMAIL })).resolves.toBeTruthy();
@@ -296,5 +313,28 @@ describe('api_erase_user — anonymize-with-retention', () => {
     expect(g.customer_email).toBe('deleted@privacy.invalid');
     expect(g.customer_email).not.toBe(GUEST_EMAIL);
     expect(g.status).toBe('confirmed');
+
+    // The owner-addressed outbox row KEEPS its recipient but the customer name is scrubbed from the
+    // payload (the booking-linked scrub now matches guest bookings by pre-captured id, not by the
+    // rewritten email).
+    const ownerRow = (
+      await db.pg.query<{ recipient: string; payload: Record<string, unknown> }>(
+        `select recipient, payload from notification_outbox where booking_id = $1 and recipient = 'owner'`,
+        [guestConfirmed],
+      )
+    ).rows[0]!;
+    expect(ownerRow.recipient).toBe('owner'); // owner alert survives
+    expect(ownerRow.payload.customerName).toBeUndefined(); // ...but the name is gone
+    // The staff bell row for the guest booking is rebuilt anonymously.
+    const bell = (
+      await db.pg.query<{ body: string }>(
+        `select body from notifications where type = 'admin_new_booking' and data ->> 'bookingId' = $1`,
+        [guestConfirmed],
+      )
+    ).rows;
+    for (const row of bell) {
+      expect(row.body).not.toContain('Guest Person');
+      expect(row.body).toContain('(Deleted user)');
+    }
   });
 });
