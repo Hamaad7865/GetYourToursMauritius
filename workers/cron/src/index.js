@@ -18,18 +18,35 @@ const MAINTENANCE_CRON = '*/5 * * * *';
 const DRAIN_PATH = '/api/v1/internal/notifications/drain';
 const MAINTENANCE_PATH = '/api/v1/internal/maintenance';
 
-/** POST one internal endpoint with the shared secret; logs the outcome (visible in `wrangler tail`). */
-async function ping(env, path) {
+/**
+ * POST one internal endpoint with the shared secret, retrying briefly on failure (a transient blip
+ * shouldn't skip a whole tick). Logs each outcome (visible in `wrangler tail` / Logpush) and RESOLVES
+ * to ok/not-ok so the scheduled handler can decide whether to fail the invocation.
+ */
+async function ping(env, path, attempts = 3) {
   const url = `${env.SITE_URL.replace(/\/+$/, '')}${path}`;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'x-internal-secret': env.INTERNAL_TASK_SECRET },
-  });
-  const body = await res.text();
-  const line = `[cron] POST ${path} -> ${res.status} ${body.slice(0, 200)}`;
-  if (res.ok) console.log(line);
-  else console.error(line);
-  return res.ok;
+  let lastLine = `[cron] POST ${path} -> no attempt`;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'x-internal-secret': env.INTERNAL_TASK_SECRET },
+      });
+      const body = await res.text();
+      lastLine = `[cron] POST ${path} -> ${res.status} ${body.slice(0, 200)}`;
+      if (res.ok) {
+        console.log(lastLine);
+        return true;
+      }
+      console.error(`${lastLine} (attempt ${i + 1}/${attempts})`);
+    } catch (err) {
+      lastLine = `[cron] POST ${path} -> threw: ${err instanceof Error ? err.message : err}`;
+      console.error(`${lastLine} (attempt ${i + 1}/${attempts})`);
+    }
+    // Short linear backoff between attempts; skip the wait after the final try.
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 1000 * (i + 1)));
+  }
+  return false;
 }
 
 const worker = {
@@ -45,8 +62,15 @@ const worker = {
     // Manual trigger (`wrangler dev` / dashboard "Trigger") sends no matching cron — run both then.
     if (tasks.length === 0) tasks.push(ping(env, MAINTENANCE_PATH), ping(env, DRAIN_PATH));
 
-    // allSettled so one failing endpoint never prevents the other from running.
-    await Promise.allSettled(tasks);
+    // allSettled so one failing endpoint never prevents the other from running. But DON'T swallow the
+    // result: if any task ultimately failed (after its retries), throw so Cloudflare marks this cron
+    // invocation as failed — that shows up in the dashboard and can drive an alert, instead of a stuck
+    // drain/maintenance silently looking healthy forever.
+    const results = await Promise.allSettled(tasks);
+    const failed = results.filter((r) => r.status === 'rejected' || r.value === false).length;
+    if (failed > 0) {
+      throw new Error(`[cron] ${failed}/${results.length} task(s) failed after retries — see logs above`);
+    }
   },
 
   /** A trivial GET so you can confirm the Worker is deployed (does nothing, exposes no secret). */

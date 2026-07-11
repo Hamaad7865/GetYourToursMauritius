@@ -2,7 +2,7 @@ import { apiHandler } from '@/lib/http/handler';
 import { jsonOk, jsonError } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { getServerEnv } from '@/lib/config/env';
-import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
+import { isSiteUrlConfiguredForLive, isProductionLikeRuntime } from '@/lib/config/runtime';
 import { getPaymentProvider } from '@/lib/payments';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
@@ -30,6 +30,12 @@ async function pingDatabase(): Promise<boolean> {
 export const GET = apiHandler(async (req) => {
   const env = getServerEnv();
   const isLive = env.PEACH_ENVIRONMENT === 'live';
+  // The strict readiness gates key on the canonical production-like signal, NOT on PEACH_ENVIRONMENT
+  // (whose schema default 'test' means a genuine production deploy that never set it — or ran a soft
+  // launch in Peach test mode — would skip the Supabase / service-role / legacy-auth gates and report a
+  // false 200). isProductionLikeRuntime fires on NODE_ENV=production OR a configured service-role key OR
+  // an explicit Peach live, so it catches those deploys.
+  const isProd = isProductionLikeRuntime(env);
   const checks: Record<string, boolean> = {};
 
   checks.supabaseConfigured = Boolean(env.NEXT_PUBLIC_SUPABASE_URL && env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
@@ -41,14 +47,15 @@ export const GET = apiHandler(async (req) => {
   // isProductionLikeRuntime (via the shared helper), so it fires even when PEACH_ENVIRONMENT=test.
   checks.siteUrlConfigured = isSiteUrlConfiguredForLive(env);
 
-  // The payment provider must never be the unauthenticated stub in a live environment.
+  // The payment provider must never be the unauthenticated stub on a production-like deploy (the
+  // provider factory already fails closed there, so getPaymentProvider() throws → caught below).
   try {
-    checks.paymentsSafe = !isLive || getPaymentProvider().name !== 'stub';
+    checks.paymentsSafe = !isProd || getPaymentProvider().name !== 'stub';
   } catch {
-    checks.paymentsSafe = false; // misconfigured (e.g. live with no Peach keys)
+    checks.paymentsSafe = false; // misconfigured (e.g. production with no Peach keys)
   }
-  // The legacy HS256 forgery path must be off in live.
-  checks.legacyAuthDisabled = !isLive || !env.ACCEPT_LEGACY_HS256;
+  // The legacy HS256 forgery path must be off on any production-like deploy.
+  checks.legacyAuthDisabled = !isProd || !env.ACCEPT_LEGACY_HS256;
 
   // Reported (not gating): the booking-confirmation/receipt email needs Resend configured AND the cron
   // worker — which authenticates with INTERNAL_TASK_SECRET — draining the outbox. Surfacing them makes
@@ -60,10 +67,11 @@ export const GET = apiHandler(async (req) => {
   const deep = new URL(req.url).searchParams.get('deep') === 'true';
   if (deep) checks.database = await pingDatabase();
 
-  // Outside a live environment, only the safety checks gate health (config may be partial in dev).
-  // siteUrlConfigured gates in both branches: it is true unless the runtime is production-like with a
-  // localhost/unset site URL, so it never fails a genuine dev/CI run but always catches a bad deploy.
-  const gates = isLive
+  // Outside a production-like runtime, only the safety checks gate health (config may be partial in
+  // dev/CI). siteUrlConfigured gates in both branches: it is true unless the runtime is production-like
+  // with a localhost/unset site URL, so it never fails a genuine dev/CI run but always catches a bad
+  // deploy.
+  const gates = isProd
     ? [
         checks.supabaseConfigured,
         checks.serviceRoleConfigured,
@@ -74,7 +82,13 @@ export const GET = apiHandler(async (req) => {
     : [checks.paymentsSafe, checks.legacyAuthDisabled, checks.siteUrlConfigured];
   const healthy = gates.every(Boolean) && (deep ? checks.database : true);
 
-  const body = { status: healthy ? 'ok' : 'degraded', live: isLive, checks, time: new Date().toISOString() };
+  const body = {
+    status: healthy ? 'ok' : 'degraded',
+    live: isLive,
+    productionLike: isProd,
+    checks,
+    time: new Date().toISOString(),
+  };
   return healthy
     ? jsonOk(body, { headers: { 'Cache-Control': 'no-store' } })
     : jsonError(503, 'unhealthy', 'One or more health checks failed', body, { 'Cache-Control': 'no-store' });

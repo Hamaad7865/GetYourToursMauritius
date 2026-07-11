@@ -63,8 +63,15 @@ export const POST = apiHandler(async (req) => {
         //    endpoint, so we use the checkout id we stored at create time, found by the booking ref.
         try {
           if (!bookingRef) return;
-          const { data: booking } = await admin.from('bookings').select('id').eq('ref', bookingRef).maybeSingle();
-          if (!booking) return;
+          const { data: booking } = await admin
+            .from('bookings')
+            .select('id, status')
+            .eq('ref', bookingRef)
+            .maybeSingle();
+          // Only re-query Peach for a booking still awaiting payment. A terminal/confirmed booking never
+          // needs it, and this stops the endpoint being driven as a Peach status-query amplifier with
+          // guessed refs (a duplicate webhook for an already-confirmed booking is also a no-op here).
+          if (!booking || booking.status !== 'payment_pending') return;
           const { data: payment } = await admin
             .from('payments')
             .select('provider_checkout_id')

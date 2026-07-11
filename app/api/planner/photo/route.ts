@@ -1,7 +1,11 @@
 import { apiHandler } from '@/lib/http/handler';
 import { getServerEnv } from '@/lib/config/env';
+import { rateLimit } from '@/lib/http/rate-limit';
 
 export const runtime = 'edge';
+
+/** Upstream fetch timeout (ms) — a hung Google Places request must not tie up the edge invocation. */
+const UPSTREAM_TIMEOUT_MS = 8000;
 
 function mapsKey(): string | null {
   const env = getServerEnv();
@@ -18,6 +22,10 @@ function mapsKey(): string | null {
  * Response and is JSON-only on the error path, so the image/redirect success body is preserved.
  */
 export const GET = apiHandler(async (req) => {
+  // Per-IP limit: a cache MISS bills a Google Places media request, so an unthrottled proxy is
+  // wallet-DoS-prone. Generous (photos are cached hard below, so real page loads rarely re-hit it).
+  await rateLimit(req, 'planner:photo', 60);
+
   const ref = new URL(req.url).searchParams.get('ref') ?? '';
   if (!/^places\/[\w-]+\/photos\/[\w-]+$/.test(ref)) {
     return new Response('Invalid photo reference', { status: 400 });
@@ -26,7 +34,17 @@ export const GET = apiHandler(async (req) => {
   if (!key) return new Response('Maps key not configured', { status: 404 });
 
   const media = `https://places.googleapis.com/v1/${ref}/media?maxWidthPx=400&key=${encodeURIComponent(key)}`;
-  const res = await fetch(media);
+  // Bound the upstream fetch so a hung Google request can't hold the edge invocation open indefinitely.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(media, { signal: controller.signal });
+  } catch {
+    return new Response('Photo unavailable', { status: 504 });
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!res.ok || !res.body) return new Response('Photo unavailable', { status: 502 });
 
   return new Response(res.body, {
