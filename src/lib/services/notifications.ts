@@ -109,7 +109,7 @@ function resolveOwnerRecipient(message: NotificationMessage): void {
 }
 
 /**
- * Enrich an `owner_new_booking` alert in place: one glance tells the owner who booked what, when,
+ * Enrich an `owner_new_booking` / `owner_refund_pending` alert in place: one glance tells the owner who booked what, when,
  * for how many, and for how much — plus the admin deep-link. The email gets subject/text/html; the
  * WhatsApp row gets the same summary as `text` (the WhatsApp provider sends text/template only).
  * A booking-load failure propagates so the alert retries rather than sending a blank one.
@@ -125,20 +125,28 @@ async function enrichOwnerNewBooking(
   const pax = booking.items.reduce((s, i) => s + (i.pax ?? i.quantity), 0);
   const when = booking.when ? booking.when.slice(0, 10) : 'date TBC';
   const total = `€${booking.totalEur.toFixed(2)}`;
-  const line =
-    `${booking.customerName || 'A guest'} booked ${booking.activityTitle} on ${when} — ` +
-    `${pax} ${pax === 1 ? 'guest' : 'guests'}, ${total} (ref ${booking.ref}).`;
+  const what = booking.activityTitle || 'a booking';
+  // Item-less bookings (rare custom itineraries) have no headcount — omit the guests clause rather
+  // than announcing "0 guests".
+  const guests = pax > 0 ? `${pax} ${pax === 1 ? 'guest' : 'guests'}, ` : '';
+  const refund = message.template === 'owner_refund_pending';
+  const line = refund
+    ? `${booking.customerName || 'A guest'}'s PAID booking of ${what} on ${when} — ${guests}${total} ` +
+      `(ref ${booking.ref}) needs a refund in Peach (oversell race or paid after expiry).`
+    : `${booking.customerName || 'A guest'} booked ${what} on ${when} — ${guests}${total} (ref ${booking.ref}).`;
   const adminUrl = `${SITE.url}/admin/bookings?q=${encodeURIComponent(booking.ref)}`;
 
   if (message.channel === 'whatsapp') {
-    message.text = `🔔 New paid booking\n${line}\n${adminUrl}`;
+    message.text = `${refund ? '⚠️ Refund needed' : '🔔 New paid booking'}\n${line}\n${adminUrl}`;
     return;
   }
-  message.subject = `New paid booking — ${booking.activityTitle} · ${when} · ${total}`;
+  message.subject = refund
+    ? `Action needed: refund ${booking.ref} — ${what} · ${total}`
+    : `New paid booking — ${what} · ${when} · ${total}`;
   message.text = `${line}\n\nCustomer: ${booking.customerEmail}\nOpen in admin: ${adminUrl}\n\nBelle Mare Tours (internal alert)`;
   message.html = `
     <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#11201f;line-height:1.5">
-      <h2 style="margin:0 0 12px;color:#0B5C63">New paid booking</h2>
+      <h2 style="margin:0 0 12px;color:#0B5C63">${refund ? 'Refund needed' : 'New paid booking'}</h2>
       <p style="margin:0 0 14px">${line}</p>
       <table style="border-collapse:collapse;font-size:14px" cellpadding="0">
         <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Reference</td><td><b>${booking.ref}</b></td></tr>
@@ -185,7 +193,7 @@ export async function drainNotifications(
       resolveOwnerRecipient(message);
       if (message.template === 'booking_confirmation') {
         await enrichBookingConfirmation(ctx, message);
-      } else if (message.template === 'owner_new_booking') {
+      } else if (message.template === 'owner_new_booking' || message.template === 'owner_refund_pending') {
         await enrichOwnerNewBooking(ctx, message);
       }
       await provider.send(message);

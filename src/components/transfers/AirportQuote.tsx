@@ -193,6 +193,9 @@ export function AirportQuote() {
     }
     return () => {
       if (ac) google.maps.event.clearInstanceListeners(ac);
+      // Google appends a .pac-container to <body> per Autocomplete and never removes it — every
+      // client-side revisit stacked another. Only these widgets create them, so sweep them all.
+      document.querySelectorAll('.pac-container').forEach((el) => el.remove());
     };
   }, [placesReady]);
 
@@ -416,14 +419,18 @@ export function AirportQuote() {
               </Link>
             </div>
           )}
-          {/* Announce result count / no-match to screen readers as the query changes (the input keeps focus). */}
-          <div className="sr-only" role="status" aria-live="polite">
-            {open && query.trim() !== '' && query.trim().toLowerCase() !== hotel.hotelName.toLowerCase()
-              ? matches.length > 0
-                ? t('{n} hotels found', { n: String(matches.length) })
-                : t('No matching hotels')
-              : ''}
-          </div>
+          {/* Announce result count / no-match to screen readers as the query changes (the input keeps
+              focus). Typeahead mode only — in Places mode Google owns the suggestions, and this region
+              would keep announcing the FROZEN pre-swap query state. */}
+          {!placesReady && (
+            <div className="sr-only" role="status" aria-live="polite">
+              {open && query.trim() !== '' && query.trim().toLowerCase() !== hotel.hotelName.toLowerCase()
+                ? matches.length > 0
+                  ? t('{n} hotels found', { n: String(matches.length) })
+                  : t('No matching hotels')
+                : ''}
+            </div>
+          )}
         </div>
         <div className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-semibold" style={{ color: 'rgba(17,32,31,0.7)' }}>
           <span className="inline-block h-2 w-2 rounded-full" style={{ background: zone === 'zone2' ? GOLD : TEAL }} />

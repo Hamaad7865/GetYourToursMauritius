@@ -93,6 +93,8 @@ const ServerEnvSchema = z.object({
   WHATSAPP_PHONE_NUMBER_ID: z.string().min(1).optional(),
   OWNER_WHATSAPP_TO: z.string().min(1).optional(),
   WHATSAPP_TEMPLATE_NAME: z.string().min(1).optional(),
+  // The template's approved locale code (defaults to 'en'; use 'en_US' if approved as such).
+  WHATSAPP_TEMPLATE_LANG: z.string().min(1).optional(),
   // Shared secret guarding the internal worker endpoints (notification drain, hold sweep). Use a
   // long random value; the endpoints are 503 until it is set.
   INTERNAL_TASK_SECRET: z.string().min(1).optional(),

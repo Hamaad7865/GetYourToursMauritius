@@ -31,6 +31,32 @@ function render(message: NotificationMessage): { subject: string; text: string }
       text: `${name} cancelled booking ${ref}${total}. It is now refund_pending and the seat has been released.\n\nRefund it in the Peach dashboard, then mark it refunded in admin.\n\nBelle Mare Tours (internal alert)`,
     };
   }
+  if (message.template === 'booking_refund_pending') {
+    return {
+      subject: `Your Belle Mare Tours booking ${ref} — refund on its way`,
+      text: `Hi ${name},
+
+We couldn't confirm your booking ${ref} (the last spots were taken as your payment completed), so we're refunding you in full. You don't need to do anything — the refund is being processed and will appear on your statement within a few days.
+
+Sorry for the inconvenience — we'd love to host you on another date.
+
+Belle Mare Tours`,
+    };
+  }
+  // Owner-facing: money was captured but the booking can't stand — process the refund in Peach.
+  if (message.template === 'owner_refund_pending') {
+    const currency = typeof p.currency === 'string' ? p.currency : 'EUR';
+    const total =
+      typeof p.totalMinor === 'number' ? ` (${currency} ${(p.totalMinor / 100).toFixed(2)})` : '';
+    return {
+      subject: `Action needed: booking ${ref} is refund_pending — refund to process`,
+      text: `Booking ${ref}${total} by ${name} was PAID but could not stand (oversell race or paid after expiry). It is now refund_pending.
+
+Refund it in the Peach dashboard, then mark it refunded in admin.
+
+Belle Mare Tours (internal alert)`,
+    };
+  }
   if (message.template === 'booking_expired') {
     return {
       subject: `Your Belle Mare Tours reservation ${ref} has expired`,

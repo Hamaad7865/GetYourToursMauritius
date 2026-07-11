@@ -55,9 +55,29 @@ describe('WhatsAppNotificationProvider', () => {
     const body = JSON.parse(fetchMock.mock.calls[0]![1].body as string);
     expect(body.type).toBe('template');
     expect(body.template.name).toBe('new_booking_alert');
+    expect(body.template.language.code).toBe('en');
     expect(body.template.components[0].parameters).toEqual([
       { type: 'text', text: '🔔 New paid booking BMT-1 · €410' },
     ]);
+  });
+
+  it('flattens newlines/tabs in template params (Meta rejects them) and honours the template language', async () => {
+    const fetchMock = mockFetch();
+    const p = new WhatsAppNotificationProvider({
+      accessToken: 'tok',
+      phoneNumberId: '12345',
+      templateName: 'new_booking_alert',
+      templateLanguage: 'en_US',
+    });
+    // The real owner alert is multi-line — sent verbatim, Meta bounces every one of them.
+    await p.send(message({ text: '🔔 New paid booking\nMiguel booked X — €410 (ref BMT-1).\nhttps://x/admin' }));
+
+    const body = JSON.parse(fetchMock.mock.calls[0]![1].body as string);
+    expect(body.template.language.code).toBe('en_US');
+    const param = body.template.components[0].parameters[0].text as string;
+    expect(param).not.toMatch(/[\n\t]/);
+    expect(param).toContain('BMT-1');
+    expect(param).toBe('🔔 New paid booking · Miguel booked X — €410 (ref BMT-1). · https://x/admin');
   });
 
   it('refuses a non-whatsapp channel (never a silent success)', async () => {

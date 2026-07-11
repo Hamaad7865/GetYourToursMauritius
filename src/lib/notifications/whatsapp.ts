@@ -18,7 +18,13 @@ export class WhatsAppNotificationProvider implements NotificationProvider {
   readonly name = 'whatsapp-cloud';
 
   constructor(
-    private readonly config: { accessToken: string; phoneNumberId: string; templateName?: string },
+    private readonly config: {
+      accessToken: string;
+      phoneNumberId: string;
+      templateName?: string;
+      /** Must match the template's APPROVED locale exactly (e.g. 'en' vs 'en_US') or Meta rejects. */
+      templateLanguage?: string;
+    },
   ) {}
 
   async send(message: NotificationMessage): Promise<void> {
@@ -31,6 +37,10 @@ export class WhatsAppNotificationProvider implements NotificationProvider {
     }
     const text = message.text ?? `Belle Mare Tours — ${message.template}`;
 
+    // Meta rejects template BODY parameters containing newlines/tabs or 4+ consecutive spaces
+    // ("Param text cannot have new-line/tab characters ..."), so the multi-line alert must be
+    // flattened for template mode — otherwise every owner alert bounces and burns its retries.
+    const templateParam = text.replace(/[\n\t]+/g, ' · ').replace(/ {2,}/g, ' ').trim();
     const body = this.config.templateName
       ? {
           messaging_product: 'whatsapp',
@@ -38,8 +48,8 @@ export class WhatsAppNotificationProvider implements NotificationProvider {
           type: 'template',
           template: {
             name: this.config.templateName,
-            language: { code: 'en' },
-            components: [{ type: 'body', parameters: [{ type: 'text', text }] }],
+            language: { code: this.config.templateLanguage ?? 'en' },
+            components: [{ type: 'body', parameters: [{ type: 'text', text: templateParam }] }],
           },
         }
       : { messaging_product: 'whatsapp', to, type: 'text', text: { body: text } };

@@ -39,6 +39,7 @@ export function AdminBell() {
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<FeedNote[] | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   const authHeaders = useCallback(
     (): Record<string, string> =>
@@ -69,14 +70,25 @@ export function AdminBell() {
     };
   }, [refreshCount]);
 
-  // Close on an outside click.
+  // Close on an outside click; Escape closes AND returns focus to the trigger (the widget
+  // popovers set this precedent — a dropped focus strands keyboard users).
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
       if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
   }, [open]);
 
   async function toggle() {
@@ -84,7 +96,10 @@ export function AdminBell() {
     setOpen(next);
     if (!next || !session) return;
     try {
-      const res = await fetch('/api/v1/notifications?page=1&pageSize=10', { headers: authHeaders() });
+      // Fetch enough to COVER the unread count (up to the API cap) before marking all read —
+      // otherwise alerts #11+ get flipped read without ever being rendered.
+      const pageSize = Math.min(Math.max(10, unread), 50);
+      const res = await fetch(`/api/v1/notifications?page=1&pageSize=${pageSize}`, { headers: authHeaders() });
       const body = await parseApiJson<FeedNote[]>(res);
       setNotes(body.ok ? body.data : []);
       // Opening the panel is "seeing" the alerts — clear the badge (best-effort).
@@ -106,9 +121,12 @@ export function AdminBell() {
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => void toggle()}
         aria-label={unread > 0 ? `Notifications (${unread} unread)` : 'Notifications'}
+        aria-haspopup="true"
+        aria-controls="admin-bell-panel"
         aria-expanded={open}
         className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-[#E2E7EA] text-ink-muted hover:border-teal hover:text-teal"
       >
@@ -121,7 +139,7 @@ export function AdminBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] rounded-2xl border border-[#EAEEF0] bg-white p-2 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+        <div id="admin-bell-panel" className="absolute right-0 top-[calc(100%+8px)] z-40 w-[320px] rounded-2xl border border-[#EAEEF0] bg-white p-2 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
           <div className="px-3 py-2 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
             Notifications
           </div>

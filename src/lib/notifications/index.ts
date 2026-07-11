@@ -55,6 +55,7 @@ export function getNotificationProvider(): NotificationProvider {
           accessToken: env.WHATSAPP_ACCESS_TOKEN,
           phoneNumberId: env.WHATSAPP_PHONE_NUMBER_ID,
           templateName: env.WHATSAPP_TEMPLATE_NAME,
+          templateLanguage: env.WHATSAPP_TEMPLATE_LANG,
         })
       : fallback;
 

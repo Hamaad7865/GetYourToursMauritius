@@ -70,6 +70,9 @@ function PlacesToField({ onPick }: { onPick: (t: Transfer) => void }) {
     }
     return () => {
       if (ac) google.maps.event.clearInstanceListeners(ac);
+      // Google appends a .pac-container to <body> per Autocomplete and never removes it — every
+      // client-side revisit stacked another. Only these widgets create them, so sweep them all.
+      document.querySelectorAll('.pac-container').forEach((el) => el.remove());
     };
   }, []);
 
