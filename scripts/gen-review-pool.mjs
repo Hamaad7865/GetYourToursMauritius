@@ -114,12 +114,15 @@ function topicMatchedAll(topic) {
   return raw.reviews.filter((r) => r.text && TOPIC_PATTERNS[topic].test(hay(r)));
 }
 
-const stats = { general: generalStats };
+const stats = { general: { ...generalStats, collapsed: false } };
 for (const t of TOPICS) {
   const all = topicMatchedAll(t);
   const display = kept.filter((r) => r.topics.includes(t));
   // A topic needs enough matched reviews AND enough readable ones to display, else it collapses.
-  stats[t] = all.length >= MIN_TOPIC_REVIEWS && display.length >= 6 ? statsOf(all) : generalStats;
+  // `collapsed` is exported so the RUNTIME pool falls back to the whole set for the same topics —
+  // one rule, or a page's header aggregate and its review texts come from different sets.
+  const ok = all.length >= MIN_TOPIC_REVIEWS && display.length >= 6;
+  stats[t] = ok ? { ...statsOf(all), collapsed: false } : { ...generalStats, collapsed: true };
 }
 
 const banner = (from) =>
@@ -131,7 +134,7 @@ writeFileSync(
     `import type { ReviewTopic } from './review-topics';\n\n` +
     `/** Per-topic aggregate over the RESOLVED review set (topics under the minimum collapse to\n` +
     ` *  \`general\`), so a listing card's rating always matches its detail page's review block. */\n` +
-    `export const TOPIC_STATS: Record<ReviewTopic, { avg: number; count: number }> = ${JSON.stringify(stats, null, 2)};\n`,
+    `export const TOPIC_STATS: Record<ReviewTopic, { avg: number; count: number; collapsed: boolean }> = ${JSON.stringify(stats, null, 2)};\n`,
   'utf8',
 );
 

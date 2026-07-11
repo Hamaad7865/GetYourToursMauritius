@@ -1,5 +1,6 @@
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
 import type { PlannerPlace } from '@/lib/validation/planner';
+import { reviewStats } from '@/lib/content/reviews';
 import { SITE } from './site';
 
 /**
@@ -236,7 +237,14 @@ export function reviewsPageJsonLd(reviews: { author: string; rating: number; tex
     '@id': `${SITE.url}/#operator`,
     name: SITE.operator,
     url: SITE.url,
-    aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.8', reviewCount: '1076', bestRating: '5' },
+    // From the generated stats, not a literal — a re-scrape must not silently desync the schema
+    // from the numbers the page displays.
+    aggregateRating: {
+      '@type': 'AggregateRating',
+      ratingValue: String(reviewStats.average),
+      reviewCount: String(reviewStats.total),
+      bestRating: '5',
+    },
     review: reviews.map((r) => ({
       '@type': 'Review',
       reviewRating: { '@type': 'Rating', ratingValue: String(r.rating), bestRating: '5' },

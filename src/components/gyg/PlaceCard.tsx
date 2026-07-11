@@ -54,17 +54,23 @@ export function PlaceCard({
   // vehicle"; per-group reads "per group up to N"; otherwise it's per person.
   const groupSize = activity.fromPriceMaxGuests;
   const unit =
-    activity.type === 'transport' || activity.pricingMode === 'vehicle'
-      ? t('per vehicle')
-      : activity.pricingMode === 'per_group'
-        ? // Always read as a group price; only append "up to N" when the size is known. Falling back
-          // to "per person" for a per_group tour (missing maxGuests) misrepresents the price.
-          groupSize && groupSize > 1
-          ? t('per group up to {n}', { n: groupSize })
-          : t('per group')
-        : t('per person');
+    // A private-only activity's from-price is the flat charter base — "per person" would misstate a
+    // price that covers up to N guests (fromPriceIncluded is only set for that case).
+    activity.fromPriceIncluded != null
+      ? t('up to {n} people', { n: activity.fromPriceIncluded })
+      : activity.type === 'transport' || activity.pricingMode === 'vehicle'
+        ? t('per vehicle')
+        : activity.pricingMode === 'per_group'
+          ? // Always read as a group price; only append "up to N" when the size is known. Falling back
+            // to "per person" for a per_group tour (missing maxGuests) misrepresents the price.
+            groupSize && groupSize > 1
+            ? t('per group up to {n}', { n: groupSize })
+            : t('per group')
+          : t('per person');
   const duration = durationLabel(activity.durationMinutes, t);
-  const meta = [duration, activity.type === 'transport' ? t('Private transfer') : t('Pickup available')]
+  // No pickup claim for regular activities: the summary payload has no pickupAvailable field, and
+  // asserting it fabricated a promise the detail page may contradict ("Meeting point").
+  const meta = [duration, activity.type === 'transport' ? t('Private transfer') : null]
     .filter(Boolean)
     .join(' · ');
 
