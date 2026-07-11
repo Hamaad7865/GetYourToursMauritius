@@ -1,5 +1,6 @@
 'use client';
 
+import { useRef } from 'react';
 import { useBooking } from './BookingProvider';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { optionCardSummary, privateConfig } from '@/lib/catalogue/options';
@@ -19,6 +20,8 @@ export function OptionSelector() {
   const money = useMoney();
   const b = useBooking();
   const { activity, selectedOptionId, setSelectedOption } = b;
+  // Roving-tabindex focus targets: arrow keys must move FOCUS with the selection (ARIA radio pattern).
+  const radioRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
   // Single-option activities are unchanged — no picker.
   if (activity.options.length <= 1) return null;
@@ -29,10 +32,18 @@ export function OptionSelector() {
         {t('Choose your option')}
       </div>
       <div role="radiogroup" aria-label={t('Choose your option')} className="flex flex-col gap-2">
-        {activity.options.map((option) => {
+        {activity.options.map((option, idx) => {
           const summary = optionCardSummary(option, activity.pricingMode, activity.type);
           const priv = privateConfig(option);
           const selected = option.id === selectedOptionId;
+          const move = (dir: 1 | -1) => {
+            const opts = activity.options;
+            const next = opts[(idx + dir + opts.length) % opts.length];
+            if (next) {
+              setSelectedOption(next.id);
+              radioRefs.current[next.id]?.focus();
+            }
+          };
           // The unitNote stays English in the helper (mirrors the provider's unitLabel for cart/checkout);
           // translate it for display. The per-group form carries a number, so interpolate it.
           const unitNoteText =
@@ -42,15 +53,25 @@ export function OptionSelector() {
           return (
             <button
               key={option.id}
+              ref={(el) => {
+                radioRefs.current[option.id] = el;
+              }}
               type="button"
               role="radio"
               aria-checked={selected}
-              tabIndex={0}
+              // Roving tabindex (ARIA radio pattern): one tab stop for the whole group, arrows move.
+              tabIndex={selected ? 0 : -1}
               onClick={() => setSelectedOption(option.id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
                   setSelectedOption(option.id);
+                } else if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  move(1);
+                } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  move(-1);
                 }
               }}
               className={`w-full rounded-xl border px-3.5 py-3 text-left transition-colors ${

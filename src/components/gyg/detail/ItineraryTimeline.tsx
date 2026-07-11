@@ -163,6 +163,7 @@ export function ItineraryTimeline({
       {collapsible && (
         <button
           type="button"
+          aria-expanded={expanded}
           onClick={() => setExpanded((e) => !e)}
           className="mt-1 text-sm font-bold text-teal underline underline-offset-2 hover:text-teal-dark"
         >
