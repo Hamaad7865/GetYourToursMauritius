@@ -84,9 +84,12 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
     ).rows[0]!.data;
 
     if (checkoutId) {
+      // Server-only since 20260807000000 (as createPaymentLink records it in production).
+      await db.as({ role: 'service_role' });
       await db.pg.query(`select api_record_payment_checkout($1::jsonb) as data`, [
         JSON.stringify({ paymentId: payment.paymentId, checkoutId }),
       ]);
+      await db.as({ sub: CUSTOMER, role: 'authenticated' });
     }
     return { ref: booking.ref, paymentId: payment.paymentId };
   }

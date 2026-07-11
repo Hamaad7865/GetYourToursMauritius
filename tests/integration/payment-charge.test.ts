@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
-import { pgliteRpc } from '../db/rpc';
+import { pgliteRpc, pgliteServiceRoleRpc } from '../db/rpc';
 import { catalogueSchema } from '@/lib/seed/schema';
 import { catalogueToSeedSql } from '@/lib/seed/sql';
 import type { ServiceContext } from '@/lib/services/context';
@@ -63,11 +63,16 @@ describe('createPaymentLink persists the charged amount + currency', () => {
     });
     expect(booking.totalEur).toBe(110); // flat per-group fare
 
-    await createPaymentLink(ctx, {
-      bookingRef: booking.ref,
-      returnUrl: 'https://example.com/return',
-      idempotencyKey: 'charge-pay-1',
-    });
+    await createPaymentLink(
+      ctx,
+      {
+        bookingRef: booking.ref,
+        returnUrl: 'https://example.com/return',
+        idempotencyKey: 'charge-pay-1',
+      },
+      // The two record RPCs are service-role-locked; this mirrors the route's serviceRoleRpcContext().
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+    );
 
     // Read the payment row back as owner (bypass RLS) and assert the charge was recorded.
     await db.asOwner();
@@ -87,9 +92,12 @@ describe('createPaymentLink persists the charged amount + currency', () => {
 });
 
 /**
- * api_record_payment_charge is SECURITY DEFINER, so it bypasses payments RLS. 20260725000000 adds the
- * authorization guard (only staff or the booking owner may record a charge — closing the IDOR) and the
- * record-once clause (a re-pay at a moved FX rate must not overwrite the first recorded charge).
+ * api_record_payment_charge is SECURITY DEFINER, so it bypasses payments RLS. Since 20260807000000 it
+ * is locked to service_role at the GRANT level: the recorded charge feeds the customer's VAT invoice,
+ * and the values are caller input, so even the booking OWNER must not be able to write them (they could
+ * falsify their own invoice's charge figures). Only the server (createPaymentLink), which derives the
+ * values from the provider charge it just created, may record — plus the record-once clause (a re-pay
+ * at a moved FX rate must not overwrite the first recorded charge).
  *
  * These call the RPC directly so we can flip the caller's auth.uid()/role precisely.
  */
@@ -160,17 +168,27 @@ describe('api_record_payment_charge authorization + record-once guards', () => {
     return row;
   };
 
-  it('IDOR: a non-owner authenticated caller is rejected (forbidden) and records nothing', async () => {
+  it('a non-owner authenticated caller is denied at the grant layer and records nothing', async () => {
     await db.as({ sub: ATTACKER, role: 'authenticated' });
-    await expect(recordCharge(99900, 'USD')).rejects.toThrow(/forbidden/);
+    await expect(recordCharge(99900, 'USD')).rejects.toThrow(/permission denied/);
 
     const row = await readCharge();
     expect(row.charged_amount_minor).toBeNull(); // attacker's value never landed
     expect(row.charged_currency).toBeNull();
   });
 
-  it('legit: the booking owner can record the charge', async () => {
+  it('even the BOOKING OWNER cannot record a charge (invoice-falsification lockdown)', async () => {
+    // The charge figures land on the owner's own VAT invoice — the values are caller input, so the
+    // owner writing them would let them falsify their own receipt. Server-only since 20260807000000.
     await db.as({ sub: OWNER, role: 'authenticated' });
+    await expect(recordCharge(1, 'USD')).rejects.toThrow(/permission denied/);
+
+    const row = await readCharge();
+    expect(row.charged_amount_minor).toBeNull();
+  });
+
+  it('legit: the server (service_role, as createPaymentLink runs) records the charge', async () => {
+    await db.as({ sub: 'service', role: 'service_role' });
     await recordCharge(12100, 'USD');
 
     const row = await readCharge();
@@ -179,8 +197,8 @@ describe('api_record_payment_charge authorization + record-once guards', () => {
   });
 
   it('record-once (FX drift): a second call does NOT overwrite an already-recorded charge', async () => {
-    // Owner re-pays an older checkout after the rate moved — the new (wrong) amount must not stick.
-    await db.as({ sub: OWNER, role: 'authenticated' });
+    // A re-pay of an older checkout after the rate moved — the new (wrong) amount must not stick.
+    await db.as({ sub: 'service', role: 'service_role' });
     await recordCharge(13000, 'USD'); // succeeds (no error) but is a no-op on the already-set row
 
     const row = await readCharge();

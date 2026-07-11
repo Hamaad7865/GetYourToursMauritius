@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
-import { pgliteRpc } from '../db/rpc';
+import { pgliteRpc, pgliteServiceRoleRpc } from '../db/rpc';
 import { catalogueSchema } from '@/lib/seed/schema';
 import { catalogueToSeedSql } from '@/lib/seed/sql';
 import type { ServiceContext } from '@/lib/services/context';
@@ -89,11 +89,16 @@ describe('service layer (via PGlite rpc)', () => {
     expect(booking.status).toBe('payment_pending');
     expect(booking.totalEur).toBe(110); // flat per-group fare (up to 6), NOT 2 × €110 — see flatfare_pricing_mode
 
-    const link = await createPaymentLink(ctx, {
-      bookingRef: booking.ref,
-      returnUrl: 'https://example.com/return',
-      idempotencyKey: 'svc-pay-1',
-    });
+    const link = await createPaymentLink(
+      ctx,
+      {
+        bookingRef: booking.ref,
+        returnUrl: 'https://example.com/return',
+        idempotencyKey: 'svc-pay-1',
+      },
+      // Service-role port for the two record RPCs — mirrors the route's serviceRoleRpcContext().
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+    );
     expect(link.provider).toBe('stub');
     expect(link.redirectUrl).toContain('https://example.com/return');
 
@@ -204,8 +209,12 @@ describe('service layer (via PGlite rpc)', () => {
     expect((err as ServiceError).status).toBe(400);
   });
 
-  it('captureLead records a lead', async () => {
-    const lead = await captureLead(ctx, { name: 'Walk-in', contact: 'walkin@example.com' });
+  it('captureLead records a lead (service-role port, as the leads route runs)', async () => {
+    // api_capture_lead is server-only since the lockdown — the route calls it via serviceRoleRpcContext.
+    const lead = await captureLead(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      { name: 'Walk-in', contact: 'walkin@example.com' },
+    );
     expect(lead.status).toBe('new');
   });
 });

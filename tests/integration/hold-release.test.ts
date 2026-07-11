@@ -25,6 +25,22 @@ async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promi
   return rows[0]!.data;
 }
 
+/**
+ * Create a hold for a user exactly as the holds ROUTE does since the lockdown: api_create_hold is
+ * service-role-only, and the route passes the JWKS-verified user id (p.userId) for the RPC to stamp as
+ * the hold's owner. Leaves the session signed in as that user afterwards.
+ */
+async function holdFor<T = unknown>(
+  db: TestDb,
+  user: string,
+  params: Record<string, unknown>,
+): Promise<T> {
+  await db.as({ role: 'service_role' });
+  const data = await call<T>(db, 'api_create_hold', { ...params, userId: user });
+  await db.as({ sub: user, role: 'authenticated' });
+  return data;
+}
+
 async function usedCapacity(db: TestDb, occurrenceId: string): Promise<number> {
   const { rows } = await db.pg.query<{ u: number }>(`select used_capacity($1) as u`, [
     occurrenceId,
@@ -54,9 +70,8 @@ describe('owner-scoped hold release', () => {
     await db.asOwner();
     const { occurrenceId } = await seedOccurrence(db, 10);
 
-    // ALICE creates a hold via the real app wrapper.
-    await db.as({ sub: ALICE, role: 'authenticated' });
-    const hold = await call<{ holdId: string; quantity: number }>(db, 'api_create_hold', {
+    // ALICE creates a hold via the real app path (route → service-role RPC with her verified id).
+    const hold = await holdFor<{ holdId: string; quantity: number }>(db, ALICE, {
       occurrenceId,
       expectedSlug: null,
       people: 4,
@@ -100,8 +115,7 @@ describe('owner-scoped hold release', () => {
     await db.asOwner();
     const { occurrenceId } = await seedOccurrence(db, 10);
 
-    await db.as({ sub: ALICE, role: 'authenticated' });
-    const hold = await call<{ holdId: string }>(db, 'api_create_hold', {
+    const hold = await holdFor<{ holdId: string }>(db, ALICE, {
       occurrenceId,
       expectedSlug: null,
       people: 2,
@@ -128,8 +142,7 @@ describe('owner-scoped hold release', () => {
     await db.asOwner();
     const { occurrenceId } = await seedOccurrence(db, 10);
 
-    await db.as({ sub: ALICE, role: 'authenticated' });
-    const hold = await call<{ holdId: string }>(db, 'api_create_hold', {
+    const hold = await holdFor<{ holdId: string }>(db, ALICE, {
       occurrenceId,
       expectedSlug: null,
       people: 3,

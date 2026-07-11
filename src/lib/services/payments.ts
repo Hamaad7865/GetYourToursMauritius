@@ -13,10 +13,18 @@ export interface CreatePaymentLinkInput {
  * Creates a payment for a booking and a hosted-checkout link. The amount comes
  * only from the DB (api_create_payment reads the booking total); the model/client
  * never supplies it. Confirmation happens later via the verified webhook.
+ *
+ * `adminCtx` (service-role rpc port) is REQUIRED for the two post-checkout writes:
+ * api_record_payment_charge / api_record_payment_checkout are locked to service_role, because their
+ * values (what the card was charged; which checkout the reconcile sweep queries) are server-derived
+ * facts — an authenticated booking owner must not be able to falsify their own invoice's charge or the
+ * sweep's checkout pointer. `ctx` stays the CALLER's context so api_create_payment keeps enforcing
+ * booking ownership on the caller's identity. The route passes serviceRoleRpcContext().
  */
 export async function createPaymentLink(
   ctx: ServiceContext,
   input: CreatePaymentLinkInput,
+  adminCtx: ServiceContext,
 ): Promise<PaymentLink> {
   const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
   const data = await callRpc(ctx, 'api_create_payment', {
@@ -57,7 +65,7 @@ export async function createPaymentLink(
   // currency ever changes again. Best-effort: the checkout already succeeded, so a failure here must
   // never strand the customer — log and continue.
   try {
-    await callRpc(ctx, 'api_record_payment_charge', {
+    await callRpc(adminCtx, 'api_record_payment_charge', {
       paymentId: payment.paymentId,
       chargedAmountMinor: Math.round(chargeAmount * 100),
       chargedCurrency: chargeCurrency,
@@ -70,7 +78,7 @@ export async function createPaymentLink(
   // status. Best-effort like the charge record above: the checkout already succeeded, so a failure here
   // must never strand the customer — log (no PII) and continue.
   try {
-    await callRpc(ctx, 'api_record_payment_checkout', {
+    await callRpc(adminCtx, 'api_record_payment_checkout', {
       paymentId: payment.paymentId,
       checkoutId: session.checkoutId,
     });

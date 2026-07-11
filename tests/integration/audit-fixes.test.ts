@@ -175,8 +175,9 @@ describe('audit fixes', () => {
         `insert into activity_option_prices (activity_option_id, label, amount_minor) values ($1, 'Adult', 5000)`,
         [seeded.optionId],
       );
-      // Anonymous guest creates the booking (user_id stays NULL).
-      await db.as(null);
+      // A historical GUEST booking (user_id NULL). Anon can no longer execute api_book (lockdown), so
+      // create it as the server would have (service_role: auth.uid() is null → unowned booking).
+      await db.as({ role: 'service_role' });
       await call(db, 'api_book', {
         occurrenceId,
         party: { Adult: 1 },
@@ -209,7 +210,9 @@ describe('audit fixes', () => {
     });
 
     it('a retry with the right guest email still returns the booking', async () => {
-      await db.as(null);
+      // The retry also arrives via the server path (service_role, no auth.uid()) — F23's email match
+      // is what authorizes returning the row.
+      await db.as({ role: 'service_role' });
       const dto = await call<{ ref: string }>(db, 'api_book', {
         occurrenceId,
         party: { Adult: 1 },

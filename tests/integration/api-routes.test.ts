@@ -113,11 +113,27 @@ describe('/api/v1 routes', () => {
     expect(missing.status).toBe(404);
   });
 
-  it('POST /bookings creates a booking (201), accepting a null itinerary/pickup; validates input (400)', async () => {
-    const ok = await bookingsPost(
+  it('POST /bookings requires auth (401), creates a booking (201), validates input (400)', async () => {
+    // Anonymous → clean 401 (checkout forces sign-in; api_book's anon grant is revoked in SQL too).
+    const anon = await bookingsPost(
       new Request('http://localhost/api/v1/bookings', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          occurrenceId,
+          party: { 'Private group': 1 },
+          customer: { name: 'Guest', email: 'guest@example.com' },
+          idempotencyKey: 'route-book-anon',
+        }),
+      }),
+    );
+    expect(anon.status).toBe(401);
+
+    const token = await mintToken();
+    const ok = await bookingsPost(
+      new Request('http://localhost/api/v1/bookings', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
         body: JSON.stringify({
           occurrenceId,
           party: { 'Private group': 1 },
@@ -138,7 +154,7 @@ describe('/api/v1 routes', () => {
     const bad = await bookingsPost(
       new Request('http://localhost/api/v1/bookings', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
         body: JSON.stringify({ occurrenceId: 'not-a-uuid', party: {}, customer: {} }),
       }),
     );

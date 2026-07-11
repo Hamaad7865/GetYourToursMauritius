@@ -52,12 +52,14 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
         idempotencyKey: `pay-${idem}`,
       },
     );
+    // Charge recording + webhook confirmation both run as the server — api_record_payment_charge is
+    // service-role-only since 20260807000000 (the customer must not write their own invoice figures).
+    await db.as({ sub: 'service', role: 'service_role' });
     await call(db, 'api_record_payment_charge', {
       paymentId: payment.paymentId,
       chargedAmountMinor: payment.amountMinor,
       chargedCurrency: 'USD',
     });
-    await db.as({ sub: 'service', role: 'service_role' });
     await db.pg.query(
       `select append_payment_event($1::uuid, 'paid', $2, $3::int, now(), '{}'::jsonb)`,
       [payment.paymentId, `pe-${idem}`, payment.amountMinor],

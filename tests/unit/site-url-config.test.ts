@@ -88,7 +88,10 @@ describe('isSiteUrlConfiguredForLive', () => {
  */
 const createPaymentLinkSpy = vi.fn();
 vi.mock('@/lib/http/auth', () => ({ requireUser: vi.fn(async () => ({ id: 'u1' })) }));
-vi.mock('@/lib/http/context', () => ({ buildServiceContext: () => ({}) }));
+vi.mock('@/lib/http/context', () => ({
+  buildServiceContext: () => ({}),
+  serviceRoleRpcContext: () => ({}),
+}));
 vi.mock('@/lib/services/payments', () => ({
   createPaymentLink: (...args: unknown[]) => createPaymentLinkSpy(...args),
 }));

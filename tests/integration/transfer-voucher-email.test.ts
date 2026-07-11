@@ -109,12 +109,14 @@ describe('transfer booking_confirmation drain → receipt attached, e-voucher li
         idempotencyKey: 'voucher-pay-12345678',
       },
     );
+    // Charge recording + webhook confirmation both run as the server — api_record_payment_charge is
+    // service-role-only since 20260807000000.
+    await db.as({ sub: 'service', role: 'service_role' });
     await call(db, 'api_record_payment_charge', {
       paymentId: payment.paymentId,
       chargedAmountMinor: 3850,
       chargedCurrency: 'USD',
     });
-    await db.as({ sub: 'service', role: 'service_role' });
     await db.pg.query(
       `select append_payment_event($1::uuid, 'paid', 'pe_voucher_1', $2::int, now(), '{}'::jsonb)`,
       [payment.paymentId, payment.amountMinor],

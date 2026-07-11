@@ -2,7 +2,7 @@ import { apiHandler, parseJsonBody } from '@/lib/http/handler';
 import { jsonOk } from '@/lib/http/envelope';
 import { preflightResponse } from '@/lib/http/cors';
 import { requireUser } from '@/lib/http/auth';
-import { buildServiceContext } from '@/lib/http/context';
+import { buildServiceContext, serviceRoleRpcContext } from '@/lib/http/context';
 import { getServerEnv } from '@/lib/config/env';
 import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
 import { ConfigError } from '@/lib/services/errors';
@@ -37,11 +37,17 @@ export const POST = apiHandler(async (req) => {
   }
 
   const returnUrl = `${env.NEXT_PUBLIC_SITE_URL}/bookings/${input.bookingRef}`;
-  const link = await createPaymentLink(ctx, {
-    bookingRef: input.bookingRef,
-    returnUrl,
-    idempotencyKey: input.idempotencyKey,
-  });
+  // ctx (the signed-in caller) authorizes api_create_payment; the service-role port performs the two
+  // server-fact writes (recorded charge + checkout id), whose RPCs are locked to service_role.
+  const link = await createPaymentLink(
+    ctx,
+    {
+      bookingRef: input.bookingRef,
+      returnUrl,
+      idempotencyKey: input.idempotencyKey,
+    },
+    serviceRoleRpcContext(),
+  );
   return jsonOk(link, { status: 201 });
 });
 

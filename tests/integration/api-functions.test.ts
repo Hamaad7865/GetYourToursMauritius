@@ -275,23 +275,28 @@ describe('api_* service functions', () => {
     await db.asOwner();
   });
 
-  it('api_create_payment refuses an anonymous caller (a ref is not a bearer token)', async () => {
+  it('anonymous callers are denied at the GRANT layer for api_book and api_create_payment', async () => {
+    // Since the 2026080x lockdown, the anon key cannot execute the booking/payment mutations at all —
+    // checkout forces sign-in, and the route rejects guests before any RPC. Previously this test proved
+    // the in-body forbidden; the grant now refuses earlier (defense in depth kept in-body too).
     await db.as(null);
-    const booking = await rpc<{ ref: string }>(db, 'api_book', {
-      occurrenceId,
-      party: { 'Private group': 1 },
-      customerName: 'Guest',
-      customerEmail: 'guest@example.com',
-      idempotencyKey: 'guest-book-1',
-    });
     await expect(
-      rpc(db, 'api_create_payment', { bookingRef: booking.ref, idempotencyKey: 'guest-pay-1' }),
-    ).rejects.toThrow(/forbidden/);
+      rpc(db, 'api_book', {
+        occurrenceId,
+        party: { 'Private group': 1 },
+        customerName: 'Guest',
+        customerEmail: 'guest@example.com',
+        idempotencyKey: 'guest-book-1',
+      }),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      rpc(db, 'api_create_payment', { bookingRef: 'BMT-NOPE', idempotencyKey: 'guest-pay-1' }),
+    ).rejects.toThrow(/permission denied/);
     await db.asOwner();
   });
 
-  it('api_capture_lead inserts a lead', async () => {
-    await db.as(null);
+  it('api_capture_lead inserts a lead (server-mediated: service_role, as the leads route runs)', async () => {
+    await db.as({ role: 'service_role' });
     const lead = await rpc<{ id: string; status: string }>(db, 'api_capture_lead', {
       name: 'Walk-in',
       contact: 'walkin@example.com',

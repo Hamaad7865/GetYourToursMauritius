@@ -60,3 +60,44 @@ export function pgliteRpc(pg: PGlite): DbRpc {
     },
   };
 }
+
+/**
+ * Service-role variant of {@link pgliteRpc} — the PGlite mirror of the app's serviceRoleRpcContext().
+ * PGlite has ONE session (the test's db.as() claims are session-wide), but some service functions mix
+ * identities: createPaymentLink authorizes api_create_payment as the CALLER, then records the charge /
+ * checkout id via a service-role port (those RPCs are locked to service_role). This port flips the
+ * session to service_role for exactly one call and restores the caller's identity afterwards.
+ */
+export function pgliteServiceRoleRpc(pg: PGlite): DbRpc {
+  return {
+    async rpc<T>(fn: string, params: RpcParams): Promise<T> {
+      if (!ALLOWED.has(fn)) {
+        throw new Error(`unknown rpc ${fn}`);
+      }
+      // Capture the caller's identity (claims + role) so it can be restored after the call.
+      const prev = (
+        await pg.query<{ claims: string | null; role: string }>(
+          `select current_setting('request.jwt.claims', true) as claims, current_user as role`,
+        )
+      ).rows[0]!;
+      await pg.exec(`reset role;`);
+      await pg.query(`select set_config('request.jwt.claims', $1, false)`, [
+        JSON.stringify({ role: 'service_role' }),
+      ]);
+      await pg.exec(`set role service_role;`);
+      try {
+        const { rows } = await pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+          JSON.stringify(params),
+        ]);
+        return rows[0]!.data;
+      } finally {
+        await pg.exec(`reset role;`);
+        await pg.query(`select set_config('request.jwt.claims', $1, false)`, [prev.claims ?? '']);
+        // Only re-assume a Supabase role; anything else (the owner) is the reset-role default.
+        if (prev.role === 'anon' || prev.role === 'authenticated' || prev.role === 'service_role') {
+          await pg.exec(`set role ${prev.role};`);
+        }
+      }
+    },
+  };
+}

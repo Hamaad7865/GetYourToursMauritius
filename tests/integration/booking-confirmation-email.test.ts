@@ -117,14 +117,15 @@ describe('booking_confirmation drain → invoice + receipt email', () => {
         idempotencyKey: 'receipt-pay-12345678',
       },
     );
+    // The verified webhook (service-role) confirms the booking → enqueues the confirmation. The charge
+    // record also runs as service_role — api_record_payment_charge is server-only since 20260807000000.
+    await db.as({ sub: 'service', role: 'service_role' });
     // Record the real (USD) card charge, as createPaymentLink does in production.
     await call(db, 'api_record_payment_charge', {
       paymentId: payment.paymentId,
       chargedAmountMinor: 16800,
       chargedCurrency: 'USD',
     });
-    // The verified webhook (service-role) confirms the booking → enqueues the confirmation.
-    await db.as({ sub: 'service', role: 'service_role' });
     await db.pg.query(
       `select append_payment_event($1::uuid, 'paid', 'pe_receipt_1', $2::int, now(), '{}'::jsonb)`,
       [payment.paymentId, payment.amountMinor],

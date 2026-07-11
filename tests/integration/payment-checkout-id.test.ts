@@ -23,7 +23,7 @@ const catalogue = catalogueSchema.parse(
   JSON.parse(readFileSync(join(process.cwd(), 'seed', 'catalogue.json'), 'utf8')),
 );
 
-describe('api_record_payment_checkout persists + overwrites the checkout id, owner/staff only', () => {
+describe('api_record_payment_checkout persists + overwrites the checkout id, server-only', () => {
   const OWNER = 'c1c1c1c1-c1c1-c1c1-c1c1-c1c1c1c1c1c1';
   const ATTACKER = 'd2d2d2d2-d2d2-d2d2-d2d2-d2d2d2d2d2d2';
   let db: TestDb;
@@ -88,16 +88,27 @@ describe('api_record_payment_checkout persists + overwrites the checkout id, own
     return row;
   };
 
-  it('IDOR: a non-owner authenticated caller is rejected (forbidden) and records nothing', async () => {
+  it('a non-owner authenticated caller is denied at the grant layer and records nothing', async () => {
     await db.as({ sub: ATTACKER, role: 'authenticated' });
-    await expect(recordCheckout('chk_attacker')).rejects.toThrow(/forbidden/);
+    await expect(recordCheckout('chk_attacker')).rejects.toThrow(/permission denied/);
 
     const row = await readCheckout();
     expect(row.provider_checkout_id).toBeNull(); // attacker's value never landed
   });
 
-  it('legit: the booking owner can record the checkout id', async () => {
+  it('even the BOOKING OWNER cannot write the checkout pointer (server-only since 20260807000000)', async () => {
+    // The stored checkout id drives the reconcile sweep's Peach status queries — a caller-forged
+    // pointer would aim the sweep at a checkout of the caller's choosing. Only the server (which just
+    // created the checkout) records it.
     await db.as({ sub: OWNER, role: 'authenticated' });
+    await expect(recordCheckout('chk_forged')).rejects.toThrow(/permission denied/);
+
+    const row = await readCheckout();
+    expect(row.provider_checkout_id).toBeNull();
+  });
+
+  it('legit: the server (service_role, as createPaymentLink runs) records the checkout id', async () => {
+    await db.as({ role: 'service_role' });
     await recordCheckout('chk_123');
 
     const row = await readCheckout();
@@ -105,8 +116,8 @@ describe('api_record_payment_checkout persists + overwrites the checkout id, own
   });
 
   it('overwrite (re-pay): a second call replaces the checkout id with the latest', async () => {
-    // Owner re-pays — a fresh checkout opens; the sweep must query the newest, so latest wins.
-    await db.as({ sub: OWNER, role: 'authenticated' });
+    // A re-pay opens a fresh checkout; the sweep must query the newest, so latest wins.
+    await db.as({ role: 'service_role' });
     await recordCheckout('chk_456');
 
     const row = await readCheckout();

@@ -27,6 +27,18 @@ async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promi
   return rows[0]!.data;
 }
 
+/**
+ * Create a hold exactly as the holds ROUTE does since the lockdown: api_create_hold is service-role-only
+ * (the anon/authenticated grants are revoked), and the route passes the JWKS-verified user id for the
+ * RPC to stamp as the hold's owner. Restores the customer session afterwards.
+ */
+async function holdAsServer<T = unknown>(db: TestDb, params: Record<string, unknown>): Promise<T> {
+  await db.as({ role: 'service_role' });
+  const data = await call<T>(db, 'api_create_hold', { ...params, userId: CUSTOMER });
+  await db.as({ sub: CUSTOMER, role: 'authenticated' });
+  return data;
+}
+
 describe('booking flow: availability → book → pay → webhook → confirmed', () => {
   let db: TestDb;
   let occurrenceId: string;
@@ -253,16 +265,11 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
   });
 
   it('api_create_hold reserves N seats by mode, and api_book reuses the hold', async () => {
-    await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const hold = await call<{ holdId: string; quantity: number; expiresAt: string }>(
-      db,
-      'api_create_hold',
-      {
-        occurrenceId,
-        people: 3,
-        idempotencyKey: 'hold-pp-1',
-      },
-    );
+    const hold = await holdAsServer<{ holdId: string; quantity: number; expiresAt: string }>(db, {
+      occurrenceId,
+      people: 3,
+      idempotencyKey: 'hold-pp-1',
+    });
     expect(hold.quantity).toBe(3);
     expect(hold.holdId).toBeTruthy();
 
@@ -309,11 +316,10 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       )
     ).rows[0]!.id;
 
-    await db.as({ sub: CUSTOMER, role: 'authenticated' });
     // proceed(): createHoldsForLines posts the line's idemKey as the hold key. The cart then hands
     // { holdId, expiresAt, idem: <that key> } to checkout, which sends holdId + idem on the booking.
     const HOLD_IDEM = 'cart-tight-idem-1';
-    const hold = await call<{ holdId: string; quantity: number }>(db, 'api_create_hold', {
+    const hold = await holdAsServer<{ holdId: string; quantity: number }>(db, {
       occurrenceId: tight,
       people: 2, // the whole occurrence — a second hold of 2 would overflow capacity 2
       idempotencyKey: HOLD_IDEM,
@@ -363,9 +369,8 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
   });
 
   it('an EXPIRED Continue hold does not hard-lock the booking (fallback uses a distinct key)', async () => {
-    await db.as({ sub: CUSTOMER, role: 'authenticated' });
     // Mirror the real key flow: the Continue hold's key is `<K>:hold`; the booking key is `<K>`.
-    const hold = await call<{ holdId: string }>(db, 'api_create_hold', {
+    const hold = await holdAsServer<{ holdId: string }>(db, {
       occurrenceId,
       people: 2,
       idempotencyKey: 'collide-key-1:hold',

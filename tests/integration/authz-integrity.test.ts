@@ -82,8 +82,9 @@ describe('authz & integrity hardening', () => {
   });
 
   it('F23: a guest-booking idempotency replay with a mismatched email is refused (no PII echo)', async () => {
-    // Anonymous guest creates a booking (user_id stays NULL).
-    await db.as(null);
+    // A GUEST booking (user_id NULL). Anon can no longer execute api_book (lockdown), so the guest
+    // path arrives via the server (service_role: auth.uid() null) — F23's email match is the gate.
+    await db.as({ role: 'service_role' });
     const { rows } = await apiBook({
       occurrenceId,
       party: { Adult: 1 },

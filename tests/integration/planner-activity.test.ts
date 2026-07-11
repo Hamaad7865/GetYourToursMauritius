@@ -73,6 +73,9 @@ describe('Custom Road Trip bookable activity', () => {
     expect(slots.length).toBeGreaterThan(0);
     expect(slots[0]!.seatsLeft).toBe(10); // capacity counts vehicles
 
+    // api_book is no longer anon-executable (lockdown); the guest path arrives via the server
+    // (service_role — auth.uid() null, so the booking stays unowned, exactly as before).
+    await db.as({ role: 'service_role' });
     const booking = await call<BookingDto>(db, 'api_book', {
       occurrenceId: slots[0]!.occurrenceId,
       expectedSlug: 'custom-road-trip',

@@ -81,7 +81,9 @@ describe('planner vehicle_custom booking', () => {
       )
     ).rows[0]!.id;
 
-    await db.as(null); // book as the anonymous public
+    // api_book is no longer anon-executable (lockdown); the guest path arrives via the server
+    // (service_role — auth.uid() null, so bookings stay unowned, exactly as the anonymous public was).
+    await db.as({ role: 'service_role' });
   });
 
   afterAll(async () => {

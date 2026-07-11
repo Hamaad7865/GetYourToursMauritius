@@ -2,7 +2,7 @@ import { apiHandler, parseJsonBody, parseQuery } from '@/lib/http/handler';
 import { jsonOk } from '@/lib/http/envelope';
 import { paginationMeta } from '@/lib/http/pagination';
 import { preflightResponse } from '@/lib/http/cors';
-import { authenticateOptional, requireUser } from '@/lib/http/auth';
+import { requireUser } from '@/lib/http/auth';
 import { buildServiceContext } from '@/lib/http/context';
 import { rateLimit } from '@/lib/http/rate-limit';
 import { bookingHistoryQuerySchema, createBookingInputSchema } from '@/lib/validation/booking';
@@ -23,10 +23,13 @@ export const GET = apiHandler(async (req) => {
   return jsonOk(items, { meta: paginationMeta(query.page, query.pageSize, total) });
 });
 
-/** POST /api/v1/bookings — create a payment_pending booking (guest or authenticated). Per-IP
- *  rate-limited so anonymous booking-row creation can't be scripted to exhaust inventory. */
+/** POST /api/v1/bookings — create a payment_pending booking. SIGNED-IN ONLY: the checkout UI forces
+ *  sign-in before booking, api_create_payment requires the booking owner anyway (a guest booking could
+ *  never be paid), and api_book's anon grant is revoked — so an anonymous caller gets a clean 401 here
+ *  instead of a raw DB permission error. Per-IP rate-limited so booking-row creation can't be scripted
+ *  to exhaust inventory. */
 export const POST = apiHandler(async (req) => {
-  await authenticateOptional(req);
+  await requireUser(req);
   const ctx = buildServiceContext(req);
   await rateLimit(req, 'bookings:create', 15);
   const input = await parseJsonBody(req, createBookingInputSchema);
