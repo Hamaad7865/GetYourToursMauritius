@@ -13,14 +13,23 @@ async function authHeaders(): Promise<Record<string, string>> {
     : { 'content-type': 'application/json' };
 }
 
+/**
+ * Why a hold failed. A `unavailable` line is genuinely sold out (server 409 insufficient_capacity) and
+ * should be marked so; `network` is any transient failure (offline, 5xx, 429, timeout, malformed body)
+ * and must NOT be treated as sold out — the line is kept and the customer is asked to retry, so a flaky
+ * connection can never silently drop a valid basket line.
+ */
+export type HoldFailReason = 'unavailable' | 'network';
+
 export interface HoldOutcome {
   id: string;
   ok: boolean;
   holdId?: string;
   expiresAt?: string;
+  reason?: HoldFailReason;
 }
 
-/** Create a hold per saved line. Resolves per-line so the caller can mark held vs unavailable. */
+/** Create a hold per saved line. Resolves per-line so the caller can mark held / sold-out / retry. */
 export async function createHoldsForLines(items: CartItem[]): Promise<HoldOutcome[]> {
   const headers = await authHeaders();
   return Promise.all(
@@ -35,13 +44,18 @@ export async function createHoldsForLines(items: CartItem[]): Promise<HoldOutcom
             people: i.guests,
             idempotencyKey: i.idemKey,
           }),
-        }).then((r) => r.json());
-        if (res.ok && res.data?.holdId) {
-          return { id: i.id, ok: true, holdId: res.data.holdId, expiresAt: res.data.expiresAt };
+        });
+        const body = await res.json().catch(() => null);
+        if (res.ok && body?.ok && body.data?.holdId) {
+          return { id: i.id, ok: true, holdId: body.data.holdId, expiresAt: body.data.expiresAt };
         }
-        return { id: i.id, ok: false };
+        // Only a 409 (insufficient_capacity → ConflictError) is a genuine sold-out. Every other status —
+        // 5xx, 429 rate-limit, or a malformed body — is transient and retryable, never "sold out".
+        const reason: HoldFailReason = res.status === 409 ? 'unavailable' : 'network';
+        return { id: i.id, ok: false, reason };
       } catch {
-        return { id: i.id, ok: false };
+        // fetch rejected outright: offline / DNS / aborted — always retryable.
+        return { id: i.id, ok: false, reason: 'network' };
       }
     }),
   );

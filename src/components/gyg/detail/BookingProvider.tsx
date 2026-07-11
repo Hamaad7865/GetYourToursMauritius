@@ -96,6 +96,11 @@ interface BookingState {
   /** The child-seat add-on cost in EUR (already included in `total`). */
   childSeatsExtra: number;
   days: Map<string, DayInfo> | null;
+  /** True when the availability fetch FAILED (network / server), as opposed to genuinely having no
+   *  dates. Lets the calendar show a retry affordance instead of a misleading "No dates available". */
+  availabilityError: boolean;
+  /** Re-run the availability fetch (for the calendar's Retry button). */
+  reloadAvailability: () => void;
   checked: boolean;
   setChecked: (b: boolean) => void;
   /** Reveal the option card AND request it be scrolled into view (bumps on every press, so pressing
@@ -177,6 +182,9 @@ export function BookingProvider({
     setScrollTick((t) => t + 1);
   }, []);
   const [days, setDays] = useState<Map<string, DayInfo> | null>(null);
+  const [availabilityError, setAvailabilityError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const reloadAvailability = useCallback(() => setReloadKey((k) => k + 1), []);
   const [busy, setBusy] = useState(false);
   const [updating, setUpdating] = useState(false);
   const updTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -258,31 +266,41 @@ export function BookingProvider({
       return;
     }
     let active = true;
+    setAvailabilityError(false);
     const horizon = new Date(today);
     horizon.setDate(horizon.getDate() + 180);
     fetch(`/api/v1/activities/${activity.slug}/availability?from=${nominalDayKey(today)}&to=${nominalDayKey(horizon)}`)
       .then((r) => r.json())
       .then((body) => {
         if (!active) return;
+        // A non-ok envelope is a server failure, NOT an empty calendar — surface it as an error so the
+        // customer sees a retry, never a misleading "No dates available".
+        if (!body.ok) {
+          setAvailabilityError(true);
+          setDays(new Map());
+          return;
+        }
         const map = new Map<string, DayInfo>();
-        if (body.ok) {
-          for (const s of body.data as Array<{
-            occurrenceId: string;
-            activityOptionId: string;
-            startsAt: string;
-            seatsLeft: number;
-          }>) {
-            if (s.activityOptionId !== bookingOptionId) continue;
-            map.set(utcDayKey(s.startsAt), { occurrenceId: s.occurrenceId, seatsLeft: s.seatsLeft });
-          }
+        for (const s of body.data as Array<{
+          occurrenceId: string;
+          activityOptionId: string;
+          startsAt: string;
+          seatsLeft: number;
+        }>) {
+          if (s.activityOptionId !== bookingOptionId) continue;
+          map.set(utcDayKey(s.startsAt), { occurrenceId: s.occurrenceId, seatsLeft: s.seatsLeft });
         }
         setDays(map);
       })
-      .catch(() => active && setDays(new Map()));
+      .catch(() => {
+        if (!active) return;
+        setAvailabilityError(true);
+        setDays(new Map());
+      });
     return () => {
       active = false;
     };
-  }, [activity.slug, bookingOptionId, today]);
+  }, [activity.slug, bookingOptionId, today, reloadKey]);
 
   const groupSize = activity.pricingMode === 'per_group' ? (selectedTier?.maxGuests ?? null) : null;
   const seatsLeft = (date ? days?.get(date)?.seatsLeft : undefined) ?? 0;
@@ -572,6 +590,8 @@ export function BookingProvider({
     setChildSeats,
     childSeatsExtra,
     days,
+    availabilityError,
+    reloadAvailability,
     checked,
     setChecked,
     checkAvailability,

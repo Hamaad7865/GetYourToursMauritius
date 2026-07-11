@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 
-export type NoteType = 'secured' | 'expiring' | 'expired' | 'unavailable';
+export type NoteType = 'secured' | 'expiring' | 'expired' | 'unavailable' | 'error';
 export interface Note { id: string; type: NoteType; message: string; createdAt: number; read: boolean; }
 
 const KEY = 'gytm:inbox';

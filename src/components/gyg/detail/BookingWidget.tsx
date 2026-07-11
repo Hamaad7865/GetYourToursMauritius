@@ -132,6 +132,8 @@ export function BookingWidget() {
     lang,
     setLang,
     days,
+    availabilityError,
+    reloadAvailability,
     maxParticipants,
     unitLabel,
     checkAvailability,
@@ -200,7 +202,9 @@ export function BookingWidget() {
   const dateText = date
     ? formatLocaleDate(`${date}T00:00:00`, language, { day: 'numeric', month: 'short', year: 'numeric' })
     : t('Select a date');
-  const noAvailability = days !== null && days.size === 0;
+  // Only "genuinely empty" — a FAILED fetch is handled separately (availabilityError) so we never show
+  // "No dates available" when the truth is "we couldn't reach the server".
+  const noAvailability = days !== null && days.size === 0 && !availabilityError;
 
   function isDisabled(cell: Date): boolean {
     if (cell < tomorrow) return true;
@@ -448,14 +452,25 @@ export function BookingWidget() {
               ref={dateTriggerRef}
               type="button"
               disabled={noAvailability}
-              onClick={() => setOpen((o) => (o === 'date' ? null : 'date'))}
-              aria-haspopup="dialog"
-              aria-expanded={open === 'date'}
+              // On a failed fetch the tap RETRIES instead of opening an empty calendar.
+              onClick={() =>
+                availabilityError ? reloadAvailability() : setOpen((o) => (o === 'date' ? null : 'date'))
+              }
+              aria-haspopup={availabilityError ? undefined : 'dialog'}
+              aria-expanded={availabilityError ? undefined : open === 'date'}
               className={`${rowClass} disabled:opacity-60`}
             >
               <IconCalendar width={18} height={18} className="text-teal" />
-              <span className={`flex-1 text-[14px] font-semibold ${date ? 'text-ink' : 'text-ink-muted'}`}>
-                {noAvailability ? t('No dates available yet') : dateText}
+              <span
+                className={`flex-1 text-[14px] font-semibold ${
+                  availabilityError ? 'text-coral-dark' : date ? 'text-ink' : 'text-ink-muted'
+                }`}
+              >
+                {availabilityError
+                  ? t("Couldn't load dates — tap to retry")
+                  : noAvailability
+                    ? t('No dates available yet')
+                    : dateText}
               </span>
               <IconChevron width={16} height={16} className="text-ink-muted" />
             </button>

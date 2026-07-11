@@ -214,6 +214,7 @@ export function CartView() {
       const outcomes = await createHoldsForLines(saved);
       let anyHeld = false;
       let anySoldOut = false;
+      let anyNetwork = false;
       for (const o of outcomes) {
         if (o.ok && o.holdId && o.expiresAt) {
           markHeld(o.id, { holdId: o.holdId, expiresAt: o.expiresAt });
@@ -234,12 +235,21 @@ export function CartView() {
               /* sessionStorage unavailable — checkout falls back to minting its own hold at pay */
             }
           }
-        } else {
+        } else if (o.reason === 'unavailable') {
           markUnavailable(o.id);
           anySoldOut = true;
+        } else {
+          // Transient failure (offline / server error): leave the line untouched so a flaky connection
+          // never drops a valid basket line — the customer just retries.
+          anyNetwork = true;
         }
       }
       if (anySoldOut) pushNotification('unavailable', t('Some spots sold out and were skipped.'));
+      if (anyNetwork)
+        pushNotification(
+          'error',
+          t("Couldn't reach the server — your cart is safe. Please check your connection and try again."),
+        );
       if (anyHeld) {
         pushNotification('secured', t('Spots secured — pay within 30 minutes.'));
         // The clicked line is sold out — don't navigate into a checkout for a spot we couldn't hold.
@@ -247,7 +257,8 @@ export function CartView() {
         if (clicked?.ok) window.location.href = checkoutHref(line);
         else setBusy(false);
       } else {
-        // Nothing could be held (everything sold out) — stay on the cart so the pills are visible.
+        // Nothing could be held (all sold out and/or a network failure) — stay on the cart so the
+        // sold-out pills and the retry notice are visible.
         setBusy(false);
       }
     } catch {

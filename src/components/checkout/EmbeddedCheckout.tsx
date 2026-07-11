@@ -79,6 +79,23 @@ export function EmbeddedCheckout({
     if (initiated.current) return;
     initiated.current = true;
     let cancelled = false;
+    // The widget is "settled" once it either mounts or errors. A watchdog fails closed if NEITHER
+    // happens within the timeout — e.g. the script 200s empty, is CSP-blocked, or the network stalls
+    // so no `load` and no `error` event ever fires. Without it the payment form stays blank forever.
+    let settled = false;
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
+    const fail = (msg: string) => {
+      if (settled || cancelled) return;
+      settled = true;
+      if (watchdog) clearTimeout(watchdog);
+      setError(msg);
+    };
+    const armWatchdog = () => {
+      watchdog = setTimeout(
+        () => fail(t('The payment form is taking too long to load. Please try again.')),
+        20000,
+      );
+    };
 
     // On completion, confirm the booking from the provider's authoritative status before returning —
     // so the booking page already reflects "confirmed" rather than waiting on the webhook. We retry
@@ -123,10 +140,10 @@ export function EmbeddedCheckout({
     };
 
     const mount = () => {
-      if (cancelled) return;
+      if (cancelled || settled) return;
       const Checkout = window.Checkout;
       if (!Checkout) {
-        setError(t('We could not load the payment form. Please try again.'));
+        fail(t('We could not load the payment form. Please try again.'));
         return;
       }
       try {
@@ -147,8 +164,11 @@ export function EmbeddedCheckout({
           },
         });
         instance.render('#payment-form');
+        // Rendered without throwing → the widget is up; stand the watchdog down.
+        settled = true;
+        if (watchdog) clearTimeout(watchdog);
       } catch {
-        setError(t('We could not start the payment form. Please try again.'));
+        fail(t('We could not start the payment form. Please try again.'));
       }
     };
 
@@ -156,12 +176,21 @@ export function EmbeddedCheckout({
       mount();
       return () => {
         cancelled = true;
+        if (watchdog) clearTimeout(watchdog);
       };
     }
 
+    // Loading the script asynchronously (or waiting on one already in flight): arm the watchdog so a
+    // script that never fires `load` OR `error` still surfaces a retry instead of a blank form.
+    armWatchdog();
     const existing = document.querySelector<HTMLScriptElement>(`script[src="${scriptUrl}"]`);
     if (existing) {
       existing.addEventListener('load', mount, { once: true });
+      existing.addEventListener(
+        'error',
+        () => fail(t('We could not reach the payment provider. Please try again.')),
+        { once: true },
+      );
     } else {
       const script = document.createElement('script');
       script.src = scriptUrl;
@@ -169,7 +198,7 @@ export function EmbeddedCheckout({
       script.addEventListener('load', mount, { once: true });
       script.addEventListener(
         'error',
-        () => setError(t('We could not reach the payment provider. Please try again.')),
+        () => fail(t('We could not reach the payment provider. Please try again.')),
         { once: true },
       );
       document.body.appendChild(script);
@@ -177,6 +206,7 @@ export function EmbeddedCheckout({
 
     return () => {
       cancelled = true;
+      if (watchdog) clearTimeout(watchdog);
     };
   }, [scriptUrl, entityId, checkoutId, returnUrl, router, t]);
 
@@ -186,9 +216,20 @@ export function EmbeddedCheckout({
         <p role="alert" className="text-sm font-medium text-coral">
           {error}
         </p>
-        <a href={returnUrl} className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark">
-          {t('Back to your booking')}
-        </a>
+        <div className="mt-3 flex items-center gap-4">
+          {/* A full reload re-runs the mount effect from scratch (the initiated ref is reset), so the
+              customer can retry the payment form in place without losing their booking. */}
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="text-sm font-bold text-teal hover:text-teal-dark"
+          >
+            {t('Try again')}
+          </button>
+          <a href={returnUrl} className="text-sm font-bold text-ink-muted hover:text-ink">
+            {t('Back to your booking')}
+          </a>
+        </div>
       </div>
     );
   }

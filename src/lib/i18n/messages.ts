@@ -273,6 +273,7 @@ export const fr: Record<string, string> = {
   "Travelling with more than {n}?": "Vous voyagez à plus de {n} ?",
   "for a quote.": "pour obtenir un devis.",
   "No dates available yet": "Aucune date disponible pour le moment",
+  "Couldn't load dates — tap to retry": "Impossible de charger les dates — appuyez pour réessayer",
   "Please book at least {n} days in advance — this experience needs planning.": "Réservez au moins {n} jours à l’avance — cette expérience demande de la préparation.",
   "Guide language": "Langue du guide",
   "Guide": "Guide",
@@ -595,6 +596,8 @@ export const fr: Record<string, string> = {
     "Nous n’avons pas pu démarrer le formulaire de paiement. Veuillez réessayer.",
   "We could not reach the payment provider. Please try again.":
     "Nous n’avons pas pu joindre le prestataire de paiement. Veuillez réessayer.",
+  "The payment form is taking too long to load. Please try again.":
+    "Le formulaire de paiement met trop de temps à se charger. Veuillez réessayer.",
   "This payment session expired. Please start again.":
     "Cette session de paiement a expiré. Veuillez recommencer.",
   "Order summary": "Récapitulatif de la commande",
@@ -657,6 +660,8 @@ export const fr: Record<string, string> = {
   "Held — {time} left": "Réservé — {time} restant",
   "No longer available": "Plus disponible",
   "Some spots sold out and were skipped.": "Certaines places sont épuisées et ont été ignorées.",
+  "Couldn't reach the server — your cart is safe. Please check your connection and try again.":
+    "Impossible de joindre le serveur — votre panier est intact. Veuillez vérifier votre connexion et réessayer.",
   "Spots secured — pay within 30 minutes.": "Places réservées — payez dans les 30 minutes.",
   "Fewer {noun}": "Moins de {noun}",
   "More {noun}": "Plus de {noun}",
@@ -676,6 +681,8 @@ export const fr: Record<string, string> = {
   "Booking refunded": "Réservation remboursée",
   "Status: {status}": "Statut : {status}",
   "Could not load your booking.": "Impossible de charger votre réservation.",
+  "Could not load your booking. Please check your connection and try again.":
+    "Impossible de charger votre réservation. Veuillez vérifier votre connexion et réessayer.",
   "Payment could not be completed.": "Le paiement n’a pas pu être finalisé.",
   "Payment failed.": "Le paiement a échoué.",
   "Loading your booking…": "Chargement de votre réservation…",

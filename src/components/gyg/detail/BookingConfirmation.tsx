@@ -93,18 +93,27 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   // Fetch the booking and return it so callers (the poll loop) can decide whether to keep going.
   const fetchBooking = useCallback(async (): Promise<Booking | null> => {
     if (!session) return null;
-    const res = await fetch(`/api/v1/bookings/${bookingRef}`, {
-      headers: { authorization: `Bearer ${session.access_token}` },
-    }).then((r) => r.json());
-    if (res.ok) {
-      const next = res.data as Booking;
-      setBooking(next);
+    try {
+      const res = await fetch(`/api/v1/bookings/${bookingRef}`, {
+        headers: { authorization: `Bearer ${session.access_token}` },
+      }).then((r) => r.json());
+      if (res.ok) {
+        const next = res.data as Booking;
+        setBooking(next);
+        setError(null); // clear any prior transient error once a fetch succeeds
+        setLoading(false);
+        return next;
+      }
+      setError(res.error?.message ?? t('Could not load your booking.'));
       setLoading(false);
-      return next;
+      return null;
+    } catch {
+      // A network failure / non-JSON body used to reject unhandled, leaving `loading` true forever
+      // (a perpetual "Loading your booking…" spinner). Surface a retryable error instead.
+      setError(t('Could not load your booking. Please check your connection and try again.'));
+      setLoading(false);
+      return null;
     }
-    setError(res.error?.message ?? t('Could not load your booking.'));
-    setLoading(false);
-    return null;
   }, [bookingRef, session, t]);
 
   useEffect(() => {
