@@ -55,11 +55,12 @@ function StopChooser({
     }
   }, [open]);
 
-  // ARIA radio pattern: arrows/Home/End move (and select) with a roving tabindex, so a keyboard user
-  // navigates the choices as the role="radiogroup" promises (not one Tab stop per radio).
+  // Arrows/Home/End move FOCUS between the choices; committing is Enter/Space/click (the radio button's
+  // native onClick → onSelect). We deliberately DON'T select-on-arrow here: the parent closes the chooser
+  // on select, so selecting-while-arrowing would slam it shut after one keypress. Focus roves; the
+  // customer confirms with Enter.
   const move = (next: number) => {
     const clamped = (next + choices.length) % choices.length;
-    onSelect(clamped);
     groupRef.current?.querySelectorAll<HTMLElement>('[role="radio"]')[clamped]?.focus();
   };
   const onKeyDown = (e: React.KeyboardEvent) => {

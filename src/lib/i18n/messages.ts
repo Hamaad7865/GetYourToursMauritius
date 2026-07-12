@@ -373,6 +373,9 @@ export const fr: Record<string, string> = {
   'Stops appear here with live drive times.':
     'Les arrêts apparaissent ici avec les temps de trajet en direct.',
   '{n} min from pick-up': '{n} min depuis la prise en charge',
+  'Move {name} up': 'Déplacer {name} vers le haut',
+  'Move {name} down': 'Déplacer {name} vers le bas',
+  'Moved {name} to position {n} of {total}.': '{name} déplacé en position {n} sur {total}.',
   'till {time}': 'jusqu’à {time}',
   'Remove {name}': 'Retirer {name}',
   'Drag to reorder': 'Glisser pour réorganiser',

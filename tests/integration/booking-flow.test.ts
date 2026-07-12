@@ -301,6 +301,48 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(after).toBe(before); // api_book REUSED the hold — it did not create a second one
   });
 
+  it('a no-holdId booking mints a FALLBACK hold that is OWNED by the customer (regression)', async () => {
+    // api_book is service-role-only, so create_hold's auth.uid() is null → the fallback hold used to land
+    // created_by NULL (ownerless), leaving the customer unable to use owner-scoped hold status/release.
+    // With actorUserId threaded, the fallback hold must carry the booking owner.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' }); // apiBook derives actorUserId from this session
+    const booking = await apiBook<{ ref: string }>(db, {
+      occurrenceId,
+      party: { Adult: 1 },
+      // NO holdId → api_book mints its own hold.
+      customerName: 'Fallback Owner',
+      customerEmail: 'fallback@example.com',
+      source: 'web',
+      idempotencyKey: 'flow-fallback-owned-1',
+    });
+    await db.asOwner();
+    const row = (
+      await db.pg.query<{ user_id: string | null; created_by: string | null }>(
+        `select b.user_id, h.created_by
+           from bookings b
+           join booking_holds h on h.booking_id = b.id
+          where b.ref = $1`,
+        [booking.ref],
+      )
+    ).rows[0]!;
+    expect(row.user_id).toBe(CUSTOMER); // booking owned by the customer
+    expect(row.created_by).toBe(CUSTOMER); // ...and so is its minted fallback hold (was NULL before)
+
+    // And the owner can actually release it (the whole point — api_release_hold requires created_by = uid).
+    const holdId = (
+      await db.pg.query<{ id: string }>(
+        `select h.id from booking_holds h join bookings b on b.id = h.booking_id where b.ref = $1`,
+        [booking.ref],
+      )
+    ).rows[0]!.id;
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const released = await db.pg.query<{ status: string }>(
+      `select (api_release_hold($1::uuid)).status as status`,
+      [holdId],
+    );
+    expect(released.rows[0]!.status).toBe('released');
+  });
+
   it('reuses the cart hold on a capacity-tight occurrence — books with exactly ONE active hold (P1)', async () => {
     // The cart double-hold bug (P1): proceed() reserved a REAL hold for the line, but checkout dropped
     // the holdId/idem, so api_book minted a SECOND hold for the same party. On an occurrence where free

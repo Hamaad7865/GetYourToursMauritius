@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
@@ -69,6 +69,21 @@ export function ItineraryPanel({
 }) {
   const t = useT();
   const dragFrom = useRef<number | null>(null);
+  // Keyboard reorder (the drag-drop below is mouse-only): the per-stop ▲/▼ buttons move a stop one slot
+  // and announce it, so a keyboard / screen-reader user can reorder the day too.
+  const [announce, setAnnounce] = useState('');
+  const moveStop = (i: number, dir: -1 | 1) => {
+    const to = i + dir;
+    if (to < 0 || to >= stops.length) return;
+    onMove(i, to);
+    setAnnounce(
+      t('Moved {name} to position {n} of {total}.', {
+        name: stops[i]!.name,
+        n: to + 1,
+        total: stops.length,
+      }),
+    );
+  };
   const segs = route.segs; // pickup→s1, s1→s2, …, sN→(drop-off or pickup)
   // A distinct drop-off only turns the route one-way once a place is actually chosen; `wantsDropoff`
   // just reveals the search.
@@ -175,6 +190,9 @@ export function ItineraryPanel({
               {t('{n} min from pick-up', { n: segs[0]?.minutes ?? 0 })}
             </div>
 
+            <div aria-live="polite" className="sr-only">
+              {announce}
+            </div>
             <div className="flex flex-col">
               {stops.map((p, i) => (
                 <div key={p.id}>
@@ -191,18 +209,43 @@ export function ItineraryPanel({
                     }}
                     className="flex items-center gap-2.5 rounded-[14px] border border-[#EAF2F1] bg-white px-2.5 py-[9px] shadow-[0_3px_10px_rgba(10,46,54,.04)]"
                   >
-                    <span
-                      className="grid cursor-grab place-items-center px-0.5 py-1"
-                      aria-label={t('Drag to reorder')}
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                        {[6, 12, 18].map((y) => (
-                          <g key={y}>
-                            <circle cx={9} cy={y} r={1.5} fill="#B7C6C8" />
-                            <circle cx={15} cy={y} r={1.5} fill="#B7C6C8" />
-                          </g>
-                        ))}
-                      </svg>
+                    {/* ▲/▼ keyboard reorder (parallel to drag-drop). Buttons are focusable + operable;
+                        the grip dots stay as the visual affordance. */}
+                    <span className="grid grid-rows-2 gap-0.5 px-0.5">
+                      <button
+                        type="button"
+                        aria-label={t('Move {name} up', { name: p.name })}
+                        disabled={i === 0}
+                        onClick={() => moveStop(i, -1)}
+                        className="grid h-4 w-4 place-items-center rounded text-[#7A8B8F] hover:bg-[#EAF2F1] disabled:opacity-30"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <path
+                            d="M6 15l6-6 6 6"
+                            stroke="currentColor"
+                            strokeWidth={2.4}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={t('Move {name} down', { name: p.name })}
+                        disabled={i === stops.length - 1}
+                        onClick={() => moveStop(i, 1)}
+                        className="grid h-4 w-4 place-items-center rounded text-[#7A8B8F] hover:bg-[#EAF2F1] disabled:opacity-30"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" aria-hidden>
+                          <path
+                            d="M6 9l6 6 6-6"
+                            stroke="currentColor"
+                            strokeWidth={2.4}
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                      </button>
                     </span>
                     <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-coral text-xs font-extrabold text-white shadow-[0_3px_8px_rgba(247,108,94,.34)]">
                       {i + 1}
