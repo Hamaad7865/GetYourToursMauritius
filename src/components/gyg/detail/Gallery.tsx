@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { TourImage } from '@/lib/validation/tours';
 import { IconChevronLeft, IconChevronRight, IconX } from '@/components/ui/icons';
 import { useT } from '@/components/site/PreferencesProvider';
+import { useDialog } from '@/lib/a11y/useDialog';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
@@ -48,25 +49,24 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const t = useT();
+  // Focus moves into the lightbox on open, Tab is trapped, Escape closes, body scroll locks, and focus
+  // returns to the trigger on close — the shared modal hook the rest of the app's dialogs use.
+  const dialogRef = useDialog(open, () => setOpen(false));
 
   const go = useCallback(
     (dir: 1 | -1) => setIndex((i) => (i + dir + images.length) % Math.max(1, images.length)),
     [images.length],
   );
 
+  // Left/right arrows page through the photos (useDialog owns Escape / Tab-trap / scroll-lock).
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
       if (e.key === 'ArrowRight') go(1);
       if (e.key === 'ArrowLeft') go(-1);
     };
     window.addEventListener('keydown', onKey);
-    document.body.style.overflow = 'hidden';
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.body.style.overflow = '';
-    };
+    return () => window.removeEventListener('keydown', onKey);
   }, [open, go]);
 
   function openAt(i: number) {
@@ -122,6 +122,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
 
       {open && (
         <div
+          ref={dialogRef}
           className="fixed inset-0 z-[300] flex flex-col bg-[rgba(7,30,36,0.94)] p-4 sm:p-8"
           role="dialog"
           aria-modal="true"

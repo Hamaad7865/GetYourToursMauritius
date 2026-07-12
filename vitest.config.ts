@@ -13,6 +13,15 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/lib/**/*.ts'],
       exclude: ['src/lib/supabase/types.ts', 'src/lib/**/*.d.ts'],
+      // Enforced by CI (`npm run test:coverage`). Floors sit a few points below the current numbers
+      // (statements/lines ~86%, branches ~76%, functions ~75%) so ordinary churn doesn't trip them, but
+      // a real regression — a whole module left untested — fails the build instead of sliding silently.
+      thresholds: {
+        statements: 80,
+        lines: 80,
+        functions: 68,
+        branches: 68,
+      },
     },
   },
 });

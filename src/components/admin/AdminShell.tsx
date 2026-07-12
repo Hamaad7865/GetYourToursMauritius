@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
+import { useDialog } from '@/lib/a11y/useDialog';
 import { AdminBell } from '@/components/admin/AdminBell';
 import { avatar } from '@/lib/admin/dashboard';
 import {
@@ -59,6 +60,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { user, profile, signOut } = useAuth();
   const [drawer, setDrawer] = useState(false);
   const [search, setSearch] = useState('');
+  // Focus-in (to the close button), Tab-trap, Escape-to-close, and focus-restore for the mobile drawer —
+  // the shared modal hook. Restores to whichever trigger (top bar or bottom-nav "More") opened it.
+  const drawerCloseRef = useRef<HTMLButtonElement>(null);
+  const drawerRef = useDialog(
+    drawer,
+    () => setDrawer(false),
+    () => drawerCloseRef.current,
+  );
 
   // Global search → the Bookings screen (which filters by ref / name / email and seeds from ?q=).
   // Customers live on bookings too, so this covers "bookings & customers"; Tours has its own on-page search.
@@ -137,10 +146,17 @@ export function AdminShell({ children }: { children: ReactNode }) {
             onClick={() => setDrawer(false)}
             aria-hidden
           />
-          <aside className="absolute inset-y-0 left-0 flex w-[260px] max-w-[82%] flex-col bg-ink text-cream/70 shadow-2xl">
+          <div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Admin navigation"
+            className="absolute inset-y-0 left-0 flex w-[260px] max-w-[82%] flex-col bg-ink text-cream/70 shadow-2xl"
+          >
             <div className="flex items-center justify-between pr-2">
               <SidebarHeader />
               <button
+                ref={drawerCloseRef}
                 onClick={() => setDrawer(false)}
                 aria-label="Close menu"
                 className="mr-2 flex h-9 w-9 items-center justify-center rounded-lg text-cream/60 hover:bg-white/10 hover:text-white"
@@ -150,7 +166,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </div>
             <NavList onNavigate={() => setDrawer(false)} />
             <div className="border-t border-white/10 p-3">{userChip}</div>
-          </aside>
+          </div>
         </div>
       )}
 

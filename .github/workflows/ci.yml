@@ -38,8 +38,10 @@ jobs:
       - name: Format check
         run: npm run format:check
 
-      - name: Test
-        run: npm run test
+      # Runs the full suite WITH coverage so the thresholds in vitest.config.ts are enforced (was
+      # unenforced; the provider was even missing). A coverage regression now fails the build.
+      - name: Test (with coverage thresholds)
+        run: npm run test:coverage
 
       - name: Build
         run: npm run build
@@ -48,3 +50,26 @@ jobs:
       # `next build` passed — exactly the gap this CI closes.
       - name: Edge bundle (Cloudflare Pages)
         run: npm run pages:build
+
+  # Homepage smoke in a real browser — a SEPARATE job so a browser flake can't block the unit gate. The
+  # app degrades gracefully without Supabase/Peach (the catalogue fetch is try/caught to []), so this
+  # needs no secrets; playwright.config.ts's webServer builds + serves the app. Catches edge-runtime boot
+  # failures / hydration breakage / 500s that `next build` alone never exercises.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: E2E smoke
+        run: npm run test:e2e

@@ -8,7 +8,14 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { deleteActivity } from '@/lib/admin/activity-write';
 import { reorderActivities } from '@/lib/admin/activity-order';
-import { IconPlus, IconCalendar, IconSearch, IconTag, IconMenu } from '@/components/ui/icons';
+import {
+  IconPlus,
+  IconCalendar,
+  IconSearch,
+  IconTag,
+  IconMenu,
+  IconChevron,
+} from '@/components/ui/icons';
 
 interface Row {
   id: string;
@@ -125,6 +132,8 @@ export function AdminActivities() {
     rowsRef.current = rows;
   }, [rows]);
   const [dragId, setDragId] = useState<string | null>(null);
+  // Announced to screen readers after a keyboard reorder (drag-drop gives its own visual feedback).
+  const [announce, setAnnounce] = useState('');
 
   function onDragOverRow(e: React.DragEvent, overId: string) {
     if (!canReorder || !dragId || dragId === overId) return;
@@ -152,6 +161,34 @@ export function AdminActivities() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the new order.');
       await load(); // revert to the server's truth
+    }
+  }
+
+  // Keyboard-accessible reorder (drag-and-drop is mouse-only): the per-card ▲/▼ buttons move a card one
+  // slot and persist, so staff on a keyboard / screen reader can reorder too. Same persist path as DnD.
+  async function moveRow(id: string, dir: -1 | 1) {
+    if (!canReorder) return;
+    const cur = rowsRef.current ?? [];
+    const inCat = cur.filter((r) => r.category === category);
+    const from = inCat.findIndex((r) => r.id === id);
+    const to = from + dir;
+    if (from < 0 || to < 0 || to >= inCat.length) return;
+    const next = cur.slice();
+    const gFrom = next.findIndex((r) => r.id === id);
+    const [moved] = next.splice(gFrom, 1);
+    // Re-insert before the row currently at the target in-category position.
+    const targetId = inCat[to]!.id;
+    const gTo = next.findIndex((r) => r.id === targetId);
+    next.splice(dir === 1 ? gTo + 1 : gTo, 0, moved!);
+    setRows(next);
+    setAnnounce(`Moved ${moved!.title} to position ${to + 1} of ${inCat.length}.`);
+    const ids = next.filter((r) => r.category === category).map((r) => r.id);
+    try {
+      setError(null);
+      await reorderActivities(ids, category);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not save the new order.');
+      await load();
     }
   }
 
@@ -285,8 +322,11 @@ export function AdminActivities() {
                   Pick a single category (and clear other filters) to drag-reorder its cards.
                 </p>
               )}
+              <div aria-live="polite" className="sr-only">
+                {announce}
+              </div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-[18px]">
-                {filtered.map((row) => (
+                {filtered.map((row, i) => (
                   <div
                     key={row.id}
                     draggable={canReorder}
@@ -302,6 +342,29 @@ export function AdminActivities() {
                       className="relative aspect-[16/10] overflow-hidden"
                       style={{ background: grad(row.category) }}
                     >
+                      {canReorder && (
+                        // Keyboard reorder controls (parallel to drag-and-drop).
+                        <div className="absolute right-2 top-2 z-10 flex flex-col gap-1">
+                          <button
+                            type="button"
+                            aria-label={`Move ${row.title} up`}
+                            disabled={i === 0}
+                            onClick={() => void moveRow(row.id, -1)}
+                            className="grid h-7 w-7 place-items-center rounded-md bg-white/95 text-ink shadow-sm hover:bg-white disabled:cursor-default disabled:opacity-40"
+                          >
+                            <IconChevron width={14} height={14} className="rotate-180" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Move ${row.title} down`}
+                            disabled={i === filtered.length - 1}
+                            onClick={() => void moveRow(row.id, 1)}
+                            className="grid h-7 w-7 place-items-center rounded-md bg-white/95 text-ink shadow-sm hover:bg-white disabled:cursor-default disabled:opacity-40"
+                          >
+                            <IconChevron width={14} height={14} />
+                          </button>
+                        </div>
+                      )}
                       {row.imageUrl ? (
                         <img
                           src={row.imageUrl}

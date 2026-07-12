@@ -53,7 +53,9 @@ describe('/api/v1 routes', () => {
     await db.pg.exec(catalogueToSeedSql(catalogue));
     // The booking route stamps the verified user as owner (api_book actorUserId → bookings.user_id),
     // so the token's subject must exist in auth.users.
-    await db.pg.query(`insert into auth.users (id) values ($1) on conflict do nothing`, [ROUTE_USER]);
+    await db.pg.query(`insert into auth.users (id) values ($1) on conflict do nothing`, [
+      ROUTE_USER,
+    ]);
     setRouteContext({
       db: pgliteRpc(db.pg),
       payments: new StubPaymentProvider(),
@@ -156,6 +158,16 @@ describe('/api/v1 routes', () => {
     const body = await ok.json();
     expect(body.data.status).toBe('payment_pending');
     expect(body.data.totalEur).toBe(110);
+    // Regression guard for the api_book actorUserId threading: the route must stamp the VERIFIED user as
+    // the booking owner. If it ever passed undefined instead of user.id, the booking would land as a
+    // guest (user_id NULL) — invisible in the customer's My Trips — while status/total stayed identical.
+    await db.asOwner();
+    const owner = (
+      await db.pg.query<{ user_id: string | null }>(`select user_id from bookings where ref = $1`, [
+        body.data.ref,
+      ])
+    ).rows[0]!;
+    expect(owner.user_id).toBe(ROUTE_USER);
 
     const bad = await bookingsPost(
       new Request('http://localhost/api/v1/bookings', {

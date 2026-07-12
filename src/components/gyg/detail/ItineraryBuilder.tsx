@@ -55,6 +55,29 @@ function StopChooser({
     }
   }, [open]);
 
+  // ARIA radio pattern: arrows/Home/End move (and select) with a roving tabindex, so a keyboard user
+  // navigates the choices as the role="radiogroup" promises (not one Tab stop per radio).
+  const move = (next: number) => {
+    const clamped = (next + choices.length) % choices.length;
+    onSelect(clamped);
+    groupRef.current?.querySelectorAll<HTMLElement>('[role="radio"]')[clamped]?.focus();
+  };
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      move(selected + 1);
+    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      move(selected - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      move(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      move(choices.length - 1);
+    }
+  };
+
   return (
     <div className="relative mt-2" data-itinerary-chooser>
       <button
@@ -74,6 +97,7 @@ function StopChooser({
           id={id}
           role="radiogroup"
           aria-label={t('Choose a place for {stop}', { stop: stopTitle })}
+          onKeyDown={onKeyDown}
           className="absolute left-0 top-[calc(100%+6px)] z-20 w-64 max-w-[78vw] rounded-xl border border-ink/12 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]"
         >
           {choices.map((c, ci) => {
@@ -84,6 +108,7 @@ function StopChooser({
                 type="button"
                 role="radio"
                 aria-checked={active}
+                tabIndex={active ? 0 : -1}
                 onClick={() => onSelect(ci)}
                 className="flex w-full items-start gap-2.5 rounded-lg px-3 py-2 text-left hover:bg-cream"
               >
