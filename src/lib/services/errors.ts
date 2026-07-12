@@ -11,6 +11,7 @@ export type ServiceErrorCode =
   | 'forbidden'
   | 'not_found'
   | 'conflict'
+  | 'sold_out'
   | 'booking_not_payable'
   | 'rate_limited'
   | 'config_error'
@@ -59,6 +60,18 @@ export class NotFoundError extends ServiceError {
 export class ConflictError extends ServiceError {
   constructor(message = 'Conflict', details?: unknown) {
     super('conflict', message, 409, details);
+  }
+}
+
+/**
+ * The occurrence genuinely has no capacity left (DB `insufficient_capacity`). A DISTINCT 409 code from
+ * the generic `conflict` so the client can tell a real sold-out — mark the line unavailable — from a
+ * transient/retryable conflict (an idempotency-key duplicate race, or an expired-hold reservation),
+ * which must NOT drop a valid basket line.
+ */
+export class SoldOutError extends ServiceError {
+  constructor(message = 'Not enough availability for this selection') {
+    super('sold_out', message, 409);
   }
 }
 

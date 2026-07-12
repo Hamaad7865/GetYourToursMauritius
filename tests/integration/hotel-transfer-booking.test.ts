@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 
 /**
  * Hotel-to-hotel transfer booking: the server prices it from the DISTANCE BAND between the two hotels'
@@ -69,7 +70,7 @@ describe('hotel-to-hotel transfer booking: band pricing + zero-trust', () => {
   });
 
   function book(extra: Record<string, unknown>, key: string) {
-    return call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    return apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId,
       expectedSlug: 'hotel-transfer',
       party: { Transfer: 2 },

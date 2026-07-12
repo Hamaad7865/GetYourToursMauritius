@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { catalogueSchema } from '@/lib/seed/schema';
 import { catalogueToSeedSql } from '@/lib/seed/sql';
 
@@ -176,7 +177,7 @@ describe('api_* service functions', () => {
 
   it('api_book → api_create_payment → api_get_booking, with DB-sourced amounts', async () => {
     await db.as({ sub: USER, role: 'authenticated' });
-    const booking = await rpc<{ ref: string; status: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string; status: string }>(db, {
       occurrenceId,
       party: { 'Private group': 1 },
       customerName: 'Marie',
@@ -207,7 +208,7 @@ describe('api_* service functions', () => {
   it('api_book rejects an occurrence that does not belong to the asserted activity slug', async () => {
     await db.as({ sub: USER, role: 'authenticated' });
     await expect(
-      rpc(db, 'api_book', {
+      apiBook(db, {
         occurrenceId, // belongs to private-south-tour-with-pickup
         party: { 'Private group': 1 },
         customerName: 'Tamper',
@@ -226,7 +227,7 @@ describe('api_* service functions', () => {
     await db.as({ sub: USER, role: 'authenticated' });
 
     // Normal first-payment flow on a payment_pending booking still SUCCEEDS.
-    const pending = await rpc<{ ref: string; status: string }>(db, 'api_book', {
+    const pending = await apiBook<{ ref: string; status: string }>(db, {
       occurrenceId,
       party: { 'Private group': 1 },
       customerName: 'Returning',
@@ -280,14 +281,18 @@ describe('api_* service functions', () => {
     // checkout forces sign-in, and the route rejects guests before any RPC. Previously this test proved
     // the in-body forbidden; the grant now refuses earlier (defense in depth kept in-body too).
     await db.as(null);
+    // Call api_book DIRECTLY as the anon role (NOT via the apiBook server helper) — the whole point is
+    // to prove the anon grant is gone, so the raw PostgREST-equivalent call must be refused.
     await expect(
-      rpc(db, 'api_book', {
-        occurrenceId,
-        party: { 'Private group': 1 },
-        customerName: 'Guest',
-        customerEmail: 'guest@example.com',
-        idempotencyKey: 'guest-book-1',
-      }),
+      db.pg.query(`select api_book($1::jsonb)`, [
+        JSON.stringify({
+          occurrenceId,
+          party: { 'Private group': 1 },
+          customerName: 'Guest',
+          customerEmail: 'guest@example.com',
+          idempotencyKey: 'guest-book-1',
+        }),
+      ]),
     ).rejects.toThrow(/permission denied/);
     await expect(
       rpc(db, 'api_create_payment', { bookingRef: 'BMT-NOPE', idempotencyKey: 'guest-pay-1' }),

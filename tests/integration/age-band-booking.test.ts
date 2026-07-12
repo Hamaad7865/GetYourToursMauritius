@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { seedOccurrence } from '../db/seed';
 
 /**
@@ -100,7 +101,7 @@ describe('age-band pricing on api_book / api_get_activity', () => {
 
   it('api_book prices each band from its own tier; the free infant still takes a seat', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId,
       expectedSlug: slug,
       party: { Adult: 2, Child: 1, Infant: 1 },

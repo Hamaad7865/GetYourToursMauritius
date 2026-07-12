@@ -31,8 +31,11 @@ const catalogue = catalogueSchema.parse(
   JSON.parse(readFileSync(join(process.cwd(), 'seed', 'catalogue.json'), 'utf8')),
 );
 const SECRET = process.env.SUPABASE_JWT_SECRET ?? 'test-jwt-secret-must-be-long-enough-1234567890';
+// A real UUID subject: api_book now stamps actorUserId (the verified user id) as the booking owner and
+// casts it to uuid, so the token's sub must be a valid uuid that exists in auth.users.
+const ROUTE_USER = '11111111-2222-4333-8444-555555555555';
 
-async function mintToken(sub = 'route-user'): Promise<string> {
+async function mintToken(sub = ROUTE_USER): Promise<string> {
   return new SignJWT({ role: 'authenticated' })
     .setProtectedHeader({ alg: 'HS256' })
     .setSubject(sub)
@@ -48,6 +51,9 @@ describe('/api/v1 routes', () => {
     db = await createTestDb();
     await db.asOwner();
     await db.pg.exec(catalogueToSeedSql(catalogue));
+    // The booking route stamps the verified user as owner (api_book actorUserId → bookings.user_id),
+    // so the token's subject must exist in auth.users.
+    await db.pg.query(`insert into auth.users (id) values ($1) on conflict do nothing`, [ROUTE_USER]);
     setRouteContext({
       db: pgliteRpc(db.pg),
       payments: new StubPaymentProvider(),

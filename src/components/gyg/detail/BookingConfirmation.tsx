@@ -195,6 +195,14 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
     }
   }, [fetchBooking]);
 
+  // Retry the INITIAL load after a network failure (the `error && !booking` dead-end below). Re-shows
+  // the spinner and re-fetches, so a transient blip on first paint isn't a permanent error screen.
+  const retryLoad = useCallback(() => {
+    setError(null);
+    setLoading(true);
+    void fetchBooking();
+  }, [fetchBooking]);
+
   // Download the invoice/receipt PDF. The endpoint is owner-scoped (bearer), so fetch it with the
   // token, then trigger a client-side download of the blob (a plain <a href> can't send the header).
   const [downloading, setDownloading] = useState(false);
@@ -354,7 +362,20 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   }
 
   if (error && !booking) {
-    return <p className="py-16 text-center text-sm text-coral">{error}</p>;
+    return (
+      <div className="py-16 text-center">
+        <p role="alert" className="text-sm text-coral">
+          {error}
+        </p>
+        <button
+          type="button"
+          onClick={retryLoad}
+          className="mt-4 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
+        >
+          {t('Try again')}
+        </button>
+      </div>
+    );
   }
   if (!booking) return null;
 

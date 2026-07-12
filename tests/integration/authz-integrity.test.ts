@@ -29,10 +29,39 @@ describe('authz & integrity hardening', () => {
     await db.close();
   });
 
-  const apiBook = (payload: Record<string, unknown>) =>
-    db.pg.query<{ data: { ref: string; status: string } }>(`select api_book($1::jsonb) as data`, [
-      JSON.stringify(payload),
+  // Book via the server path (api_book is service-role-only since 20260808000000): flip to service_role,
+  // pass the signed-in caller's id (session sub) as actorUserId — exactly what the booking route does —
+  // then restore the session. Keeps the raw `{ rows: [{ data }] }` shape the F23/F25 assertions use.
+  const apiBook = async (payload: Record<string, unknown>) => {
+    const pre = (
+      await db.pg.query<{ claims: string | null; role: string }>(
+        `select current_setting('request.jwt.claims', true) as claims, current_user as role`,
+      )
+    ).rows[0]!;
+    let sub: string | null = null;
+    try {
+      sub = pre.claims ? ((JSON.parse(pre.claims).sub as string | undefined) ?? null) : null;
+    } catch {
+      /* anonymous */
+    }
+    await db.pg.exec(`reset role;`);
+    await db.pg.query(`select set_config('request.jwt.claims', $1, false)`, [
+      JSON.stringify({ role: 'service_role' }),
     ]);
+    await db.pg.exec(`set role service_role;`);
+    try {
+      return await db.pg.query<{ data: { ref: string; status: string } }>(
+        `select api_book($1::jsonb) as data`,
+        [JSON.stringify({ ...payload, actorUserId: payload.actorUserId ?? sub })],
+      );
+    } finally {
+      await db.pg.exec(`reset role;`);
+      await db.pg.query(`select set_config('request.jwt.claims', $1, false)`, [pre.claims ?? '']);
+      if (pre.role === 'anon' || pre.role === 'authenticated' || pre.role === 'service_role') {
+        await db.pg.exec(`set role ${pre.role};`);
+      }
+    }
+  };
 
   it('F2: blocks staff from inserting a booking directly via PostgREST', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });

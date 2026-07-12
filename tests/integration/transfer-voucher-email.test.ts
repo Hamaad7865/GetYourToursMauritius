@@ -4,6 +4,7 @@ process.env.OWNER_WHATSAPP_TO = '23057729919';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { pgliteRpc } from '../db/rpc';
 import type { ServiceContext } from '@/lib/services/context';
 import { StubPaymentProvider } from '@/lib/payments/stub';
@@ -82,7 +83,7 @@ describe('transfer booking_confirmation drain → receipt attached, e-voucher li
     ).rows[0]!.id;
 
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       expectedSlug: 'airport-transfer',
       party: { Transfer: 2 },

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { pgliteRpc } from '../db/rpc';
 import type { ServiceContext } from '@/lib/services/context';
 import { StubPaymentProvider } from '@/lib/payments/stub';
@@ -13,20 +14,17 @@ const BOB = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 async function book(db: TestDb, key: string, email = 'cust@example.com'): Promise<string> {
   const oid = (await db.pg.query<{ id: string }>(`select id from session_occurrences limit 1`))
     .rows[0]!.id;
-  const { rows } = await db.pg.query<{ data: { ref: string } }>(
-    `select api_book($1::jsonb) as data`,
-    [
-      JSON.stringify({
-        occurrenceId: oid,
-        party: { Adult: 2 },
-        customerName: 'Cust',
-        customerEmail: email,
-        source: 'web',
-        idempotencyKey: key,
-      }),
-    ],
-  );
-  return rows[0]!.data.ref;
+  // Server path (api_book is service-role-only); apiBook stamps the signed-in caller (set by the test's
+  // db.as before each book()) as the booking owner, so listMyPendingBookings scopes to them correctly.
+  const data = await apiBook<{ ref: string }>(db, {
+    occurrenceId: oid,
+    party: { Adult: 2 },
+    customerName: 'Cust',
+    customerEmail: email,
+    source: 'web',
+    idempotencyKey: key,
+  });
+  return data.ref;
 }
 
 describe('pending bookings in cart + safe auto-cancel', () => {

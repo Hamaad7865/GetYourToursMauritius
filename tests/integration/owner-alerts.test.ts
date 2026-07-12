@@ -5,6 +5,7 @@ process.env.OWNER_NOTIFY_EMAIL = 'owner-alerts@bellemaretours.test';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { seedOccurrence } from '../db/seed';
 import { pgliteRpc } from '../db/rpc';
 import { drainNotifications } from '@/lib/services/notifications';
@@ -32,13 +33,6 @@ class CapturingProvider implements NotificationProvider {
   }
 }
 
-async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
-    JSON.stringify(params),
-  ]);
-  return rows[0]!.data;
-}
-
 describe('owner booking alerts', () => {
   let db: TestDb;
   let bookingId: string;
@@ -63,7 +57,7 @@ describe('owner booking alerts', () => {
         seed.activityId,
       ])
     ).rows[0]!.slug;
-    const booked = await call<{ ref: string }>(db, 'api_book', {
+    const booked = await apiBook<{ ref: string }>(db, {
       occurrenceId: seed.occurrenceId,
       expectedSlug: slug,
       party: { Adult: 3 },

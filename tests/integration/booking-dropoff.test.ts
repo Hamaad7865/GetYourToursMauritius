@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 
 /**
  * Drop-off is its own field — NOT concatenated into pickup_location. A booking can also be
@@ -64,7 +65,7 @@ describe('booking drop-off: distinct dropoff_location + pickup_pending', () => {
 
   it('stores drop-off as its own field, distinct from the pickup address', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 1 },
       pickupLocation: 'Flic en Flac, Le Cardinal Villa',
@@ -92,7 +93,7 @@ describe('booking drop-off: distinct dropoff_location + pickup_pending', () => {
 
   it('marks pickup_pending when the pickup is to be arranged, with no pickup address', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 1 },
       pickupPending: true,
@@ -115,7 +116,7 @@ describe('booking drop-off: distinct dropoff_location + pickup_pending', () => {
 
   it('defaults pickup_pending to false and dropoff to null when neither is sent', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 1 },
       customerName: 'Plain Tester',

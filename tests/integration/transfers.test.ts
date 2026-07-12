@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { pgliteRpc } from '../db/rpc';
 import { setRouteContext } from '../db/route-context';
 import { StubPaymentProvider } from '@/lib/payments/stub';
@@ -166,7 +167,7 @@ describe('transfers (read endpoints)', () => {
     async function bookCharge(occurrenceId: string, slug: string, extra: Record<string, unknown>) {
       bookSeq += 1;
       await db.as({ sub: CUSTOMER, role: 'authenticated' });
-      const b = await call<{ totalEur: number }>(db, 'api_book', {
+      const b = await apiBook<{ totalEur: number }>(db, {
         occurrenceId,
         expectedSlug: slug,
         party: { Transfer: 2 },

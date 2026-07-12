@@ -59,10 +59,11 @@ export const GET = apiHandler(async (req) => {
   // The legacy HS256 forgery path must be off on any production-like deploy.
   checks.legacyAuthDisabled = !isProd || !env.ACCEPT_LEGACY_HS256;
 
-  // Reported (not gating): the booking-confirmation/receipt email needs Resend configured AND the cron
-  // worker — which authenticates with INTERNAL_TASK_SECRET — draining the outbox. Surfacing them makes
-  // a "no email arrived" report diagnosable from /health without log access. Not a 503 gate: email is a
-  // feature, not a liveness requirement, and a partially-configured deploy must still read "ok".
+  // emailConfigured is reported, not gating: email is a feature (a partially-configured deploy still
+  // reads "ok"). internalTasksConfigured (the INTERNAL_TASK_SECRET the cron authenticates with) IS
+  // gating on a production-like deploy — without it the cron can't drain the outbox OR expire holds, so
+  // confirmations never send and abandoned holds pin capacity forever. That's a broken deploy, not a
+  // missing feature, so it must fail readiness rather than silently look healthy.
   checks.emailConfigured = Boolean(env.RESEND_API_KEY && env.RESEND_FROM);
   checks.internalTasksConfigured = Boolean(env.INTERNAL_TASK_SECRET);
 
@@ -80,6 +81,7 @@ export const GET = apiHandler(async (req) => {
         checks.paymentsSafe,
         checks.legacyAuthDisabled,
         checks.siteUrlConfigured,
+        checks.internalTasksConfigured,
       ]
     : [checks.paymentsSafe, checks.legacyAuthDisabled, checks.siteUrlConfigured];
   const healthy = gates.every(Boolean) && (deep ? checks.database : true);

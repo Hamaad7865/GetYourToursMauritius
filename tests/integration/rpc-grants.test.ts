@@ -44,13 +44,16 @@ describe('mutation RPC grants (has_function_privilege — real ACL state)', () =
     'create_booking(text, uuid, text, text, text, booking_source, jsonb, boolean)',
     'api_record_payment_charge(jsonb)',
     'api_record_payment_checkout(jsonb)',
+    // api_book is server-only too (20260808000000): `authenticated` could otherwise POST it directly and
+    // bypass the route's per-IP booking limiter. The route passes the verified user id as actorUserId.
+    'api_book(jsonb)',
   ])('server-only: %s — anon/authenticated denied, service_role allowed', async (fn) => {
     expect(await can('anon', fn)).toBe(false);
     expect(await can('authenticated', fn)).toBe(false);
     expect(await can('service_role', fn)).toBe(true);
   });
 
-  it.each(['api_book(jsonb)', 'api_create_payment(jsonb)'])(
+  it.each(['api_create_payment(jsonb)'])(
     'signed-in-only: %s — anon denied, authenticated + service_role allowed',
     async (fn) => {
       expect(await can('anon', fn)).toBe(false);

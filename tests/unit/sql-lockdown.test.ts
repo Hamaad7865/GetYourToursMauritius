@@ -28,7 +28,8 @@ describe('public mutation lockdown (catch-up.sql)', () => {
     'revoke execute on function create_booking(text, uuid, text, text, text, booking_source, jsonb, boolean) from public, anon, authenticated;',
     'revoke execute on function api_record_payment_charge(jsonb) from public, anon, authenticated;',
     'revoke execute on function api_record_payment_checkout(jsonb) from public, anon, authenticated;',
-    'revoke execute on function api_book(jsonb) from public, anon;',
+    // api_book: originally authed-only (20260806/7); 20260808 makes it fully server-only.
+    'revoke execute on function api_book(jsonb) from public, anon, authenticated;',
     'revoke execute on function api_create_payment(jsonb) from public, anon;',
     'revoke execute on function api_erase_user(jsonb) from public;',
   ])('revokes: %s', (stmt) => {
@@ -38,7 +39,7 @@ describe('public mutation lockdown (catch-up.sql)', () => {
   it.each([
     'grant execute on function api_create_hold(jsonb) to service_role;',
     'grant execute on function api_record_payment_charge(jsonb) to service_role;',
-    'grant execute on function api_book(jsonb) to authenticated, service_role;',
+    'grant execute on function api_book(jsonb) to service_role;',
     'grant execute on function api_create_payment(jsonb) to authenticated, service_role;',
   ])('restores the intended callers: %s', (stmt) => {
     expect(norm).toContain(stmt.replace(/\s+/g, ' '));

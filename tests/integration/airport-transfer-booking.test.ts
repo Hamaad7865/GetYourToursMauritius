@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 
 /**
  * Airport-transfer booking (AT-2): the server prices it from the destination ZONE (derived zero-trust
@@ -73,7 +74,7 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
 
   it('prices a one-way Zone 2 arrival at €35 and persists the trip + traveller fields', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId,
       expectedSlug: 'airport-transfer',
       party: { Transfer: 2 },
@@ -112,7 +113,7 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
 
   it('prices a return Zone 2 trip at €63 (2 legs − 10%) and stores both legs', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId,
       expectedSlug: 'airport-transfer',
       party: { Transfer: 2 },
@@ -142,7 +143,7 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
 
   it('classifies a free-text "not listed" Zone 2 area (Mahébourg) from the area, no slug needed', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId,
       expectedSlug: 'airport-transfer',
       party: { Transfer: 2 },
@@ -160,7 +161,7 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
     expect(booking.totalEur).toBe(35); // Mahébourg → Zone 2 → €35
 
     // A non-Zone-2 area (e.g. Grand Baie) prices at Zone 1.
-    const z1 = await call<{ totalEur: number }>(db, 'api_book', {
+    const z1 = await apiBook<{ totalEur: number }>(db, {
       occurrenceId,
       expectedSlug: 'airport-transfer',
       party: { Transfer: 2 },

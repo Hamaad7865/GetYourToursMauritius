@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 
 /**
  * Money path: the planner's parallel `vehicle_custom` pricing books at the planner's OWN flat
@@ -11,13 +12,6 @@ import { createTestDb, type TestDb } from '../db/pglite';
 interface BookingDto {
   totalEur: number;
   items: Array<{ priceLabel: string; quantity: number; pax: number | null }>;
-}
-
-async function call<T>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
-    JSON.stringify(params),
-  ]);
-  return rows[0]!.data;
 }
 
 describe('planner vehicle_custom booking', () => {
@@ -91,7 +85,7 @@ describe('planner vehicle_custom booking', () => {
   });
 
   async function book(occ: string, party: number, suv: boolean, key: string): Promise<BookingDto> {
-    return call<BookingDto>(db, 'api_book', {
+    return apiBook<BookingDto>(db, {
       occurrenceId: occ,
       party: { Adult: party },
       suv,

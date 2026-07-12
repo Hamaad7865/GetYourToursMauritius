@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
-import { pgliteRpc } from '../db/rpc';
+import { pgliteRpc, pgliteServiceRoleRpc } from '../db/rpc';
 import { catalogueSchema } from '@/lib/seed/schema';
 import { catalogueToSeedSql } from '@/lib/seed/sql';
 import type { ServiceContext } from '@/lib/services/context';
@@ -54,12 +54,15 @@ describe('api_record_payment_checkout persists + overwrites the checkout id, ser
       ai: createStubAiProvider(),
       now: () => new Date(),
     };
-    const booking = await createBooking(ctx, {
-      occurrenceId: occId,
-      party: { 'Private group': 2 },
-      customer: { name: 'Owner', email: 'owner@example.com' },
-      idempotencyKey: 'chk-book-1',
-    });
+    const booking = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId: occId,
+        party: { 'Private group': 2 },
+        customer: { name: 'Owner', email: 'owner@example.com' },
+        idempotencyKey: 'chk-book-1',
+      },
+    );
     const created = await db.pg.query<{ data: { paymentId: string } }>(
       `select api_create_payment($1::jsonb) as data`,
       [JSON.stringify({ bookingRef: booking.ref, idempotencyKey: 'chk-pay-1' })],

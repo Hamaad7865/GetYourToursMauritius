@@ -218,11 +218,13 @@ export function EmbeddedCheckout({
           {error}
         </p>
         <div className="mt-3 flex items-center gap-4">
-          {/* A full reload re-runs the mount effect from scratch (the initiated ref is reset), so the
-              customer can retry the payment form in place without losing their booking. */}
+          {/* "Try again" navigates to the pay page WITHOUT the ?cid — a reload would re-mount this same,
+              now-EXPIRED Peach session. Landing on /bookings/{ref}/pay with no cid lets PayPageFallback
+              mint a fresh checkout (or reuse a still-valid one via the double-charge guard) and redirect
+              to a new ?cid. returnUrl is /bookings/{ref}, so the pay page is `${returnUrl}/pay`. */}
           <button
             type="button"
-            onClick={() => window.location.reload()}
+            onClick={() => window.location.assign(`${returnUrl}/pay`)}
             className="text-sm font-bold text-teal hover:text-teal-dark"
           >
             {t('Try again')}

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 
 /**
  * Customer self-service cancel → refund. api_cancel_booking lets a confirmed+paid booking, more than 24h
@@ -36,7 +37,7 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
   /** Book 2 adults as the customer, pay, and confirm via the verified webhook path. Returns the ref. */
   async function bookConfirm(occurrenceId: string, idem: string): Promise<string> {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 2 },
       customerName: 'Jean Dupont',
@@ -69,7 +70,7 @@ describe('api_cancel_booking — customer self-service cancel + refund_pending',
 
   async function bookOnly(occurrenceId: string, idem: string): Promise<string> {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 2 },
       customerName: 'Jean Dupont',

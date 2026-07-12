@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 
 /**
  * The migration / catch-up.sql SEEDS a bookable `hotel-transfer` activity + ~6 months of rolling day-slots
@@ -12,13 +13,6 @@ import { createTestDb, type TestDb } from '../db/pglite';
  */
 const CATCH_UP = readFileSync(join(process.cwd(), 'supabase', 'catch-up.sql'), 'utf8');
 const CUSTOMER = 'd0d0d0d0-d0d0-d0d0-d0d0-d0d0d0d0d0d0';
-
-async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promise<T> {
-  const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
-    JSON.stringify(params),
-  ]);
-  return rows[0]!.data;
-}
 
 describe('hotel-transfer seed: catch-up.sql creates a bookable activity when the operator exists', () => {
   let db: TestDb;
@@ -80,7 +74,7 @@ describe('hotel-transfer seed: catch-up.sql creates a bookable activity when the
     ).rows[0]!.id;
 
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId: occ,
       expectedSlug: 'hotel-transfer',
       party: { 'Per transfer': 2 },

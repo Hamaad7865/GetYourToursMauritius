@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 
 /**
  * M3: the planner books a real, seeded "Custom Road Trip" activity through the EXISTING vehicle
@@ -76,7 +77,7 @@ describe('Custom Road Trip bookable activity', () => {
     // api_book is no longer anon-executable (lockdown); the guest path arrives via the server
     // (service_role — auth.uid() null, so the booking stays unowned, exactly as before).
     await db.as({ role: 'service_role' });
-    const booking = await call<BookingDto>(db, 'api_book', {
+    const booking = await apiBook<BookingDto>(db, {
       occurrenceId: slots[0]!.occurrenceId,
       expectedSlug: 'custom-road-trip',
       party: { Adult: 3 },

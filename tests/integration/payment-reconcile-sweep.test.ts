@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { pgliteRpc } from '../db/rpc';
 import { makeSupabaseShim } from '../db/supabase-pglite';
 import type { ServiceContext } from '@/lib/services/context';
@@ -64,18 +65,14 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
     ).rows[0]!.id;
 
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = (
-      await db.pg.query<{ data: { ref: string } }>(`select api_book($1::jsonb) as data`, [
-        JSON.stringify({
-          occurrenceId: occId,
-          party: { Adult: 2 },
-          customerName: 'Stuck Customer',
-          customerEmail: 'stuck@example.com',
-          source: 'web',
-          idempotencyKey: `${key}-book`,
-        }),
-      ])
-    ).rows[0]!.data;
+    const booking = await apiBook<{ ref: string }>(db, {
+      occurrenceId: occId,
+      party: { Adult: 2 },
+      customerName: 'Stuck Customer',
+      customerEmail: 'stuck@example.com',
+      source: 'web',
+      idempotencyKey: `${key}-book`,
+    });
     const payment = (
       await db.pg.query<{ data: { paymentId: string } }>(
         `select api_create_payment($1::jsonb) as data`,

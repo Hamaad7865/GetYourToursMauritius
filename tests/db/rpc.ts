@@ -80,6 +80,19 @@ export function pgliteServiceRoleRpc(pg: PGlite): DbRpc {
           `select current_setting('request.jwt.claims', true) as claims, current_user as role`,
         )
       ).rows[0]!;
+      // Mirror the booking route: api_book is service-role-only, so hand it the signed-in user's id as
+      // actorUserId (derived from the session sub) unless the caller already set one — the RPC needs it
+      // to own the booking + run the F23 guard now that auth.uid() is null under service_role.
+      let sendParams: RpcParams = params;
+      if (fn === 'api_book' && (params as Record<string, unknown>).actorUserId == null) {
+        let sub: string | null = null;
+        try {
+          sub = prev.claims ? ((JSON.parse(prev.claims).sub as string | undefined) ?? null) : null;
+        } catch {
+          /* anonymous */
+        }
+        sendParams = { ...(params as Record<string, unknown>), actorUserId: sub };
+      }
       await pg.exec(`reset role;`);
       await pg.query(`select set_config('request.jwt.claims', $1, false)`, [
         JSON.stringify({ role: 'service_role' }),
@@ -87,7 +100,7 @@ export function pgliteServiceRoleRpc(pg: PGlite): DbRpc {
       await pg.exec(`set role service_role;`);
       try {
         const { rows } = await pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
-          JSON.stringify(params),
+          JSON.stringify(sendParams),
         ]);
         return rows[0]!.data;
       } finally {

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { pgliteRpc } from '../db/rpc';
 import type { ServiceContext } from '@/lib/services/context';
 import { StubPaymentProvider } from '@/lib/payments/stub';
@@ -9,22 +10,19 @@ import { runBookingMaintenance } from '@/lib/services/maintenance';
 const CUSTOMER = 'a2a2a2a2-a2a2-a2a2-a2a2-a2a2a2a2a2a2';
 
 async function book(db: TestDb, key: string): Promise<string> {
-  const { rows } = await db.pg.query<{ data: { ref: string } }>(
-    `select api_book($1::jsonb) as data`,
-    [
-      JSON.stringify({
-        occurrenceId: (
-          await db.pg.query<{ id: string }>(`select id from session_occurrences limit 1`)
-        ).rows[0]!.id,
-        party: { Adult: 2 },
-        customerName: 'Abandoner',
-        customerEmail: 'abandon@example.com',
-        source: 'web',
-        idempotencyKey: key,
-      }),
-    ],
-  );
-  return rows[0]!.data.ref;
+  const occId = (await db.pg.query<{ id: string }>(`select id from session_occurrences limit 1`))
+    .rows[0]!.id;
+  // Book via the server path (api_book is service-role-only). No signed-in session here → a guest
+  // (unowned) booking, which is exactly what this abandoned-booking sweep test wants.
+  const data = await apiBook<{ ref: string }>(db, {
+    occurrenceId: occId,
+    party: { Adult: 2 },
+    customerName: 'Abandoner',
+    customerEmail: 'abandon@example.com',
+    source: 'web',
+    idempotencyKey: key,
+  });
+  return data.ref;
 }
 
 describe('run_booking_maintenance: sweep holds + expire abandoned bookings', () => {

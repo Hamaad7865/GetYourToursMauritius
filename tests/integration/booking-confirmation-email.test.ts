@@ -4,6 +4,7 @@ process.env.OWNER_WHATSAPP_TO = '23057729919';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { pgliteRpc } from '../db/rpc';
 import type { ServiceContext } from '@/lib/services/context';
 import { StubPaymentProvider } from '@/lib/payments/stub';
@@ -99,7 +100,7 @@ describe('booking_confirmation drain → invoice + receipt email', () => {
 
     // Book (2 adults + child seats + a pickup) as the customer, then pay + confirm via the webhook.
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 2 },
       childSeats: 2, // first free + 1 extra @ €6

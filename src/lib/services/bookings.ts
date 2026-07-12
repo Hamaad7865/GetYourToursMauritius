@@ -60,13 +60,21 @@ export async function listMyBookings(
  * Create a booking: atomically holds capacity and creates a payment_pending
  * booking via the api_book RPC (prices computed from the DB, never the client).
  * The idempotency key is client-supplied or generated here.
+ *
+ * `actorUserId` is the route's JWKS-VERIFIED user id (never client input). api_book is now
+ * service-role-only (so a registered user can't call it directly and bypass the route's per-IP
+ * limiter), which makes auth.uid() null inside the function — so the verified id is threaded through as
+ * `actorUserId` for the booking-owner linkage + the F23 replay-disclosure guard. Trustworthy precisely
+ * because only the server (service_role) can execute the RPC.
  */
 export async function createBooking(
   ctx: ServiceContext,
   input: CreateBookingInput,
+  actorUserId?: string | null,
 ): Promise<Booking> {
   const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
   const data = await callRpc(ctx, 'api_book', {
+    actorUserId: actorUserId ?? null,
     occurrenceId: input.occurrenceId,
     expectedSlug: input.expectedSlug ?? null,
     party: input.party,

@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { seedOccurrence, seedPrivateOption, type SeedResult } from '../db/seed';
 
 /**
@@ -43,7 +44,7 @@ async function bookPrivate(
   guests: number,
   key: string,
 ): Promise<{ ref: string; totalEur: number }> {
-  return call<{ ref: string; totalEur: number }>(db, 'api_book', {
+  return apiBook<{ ref: string; totalEur: number }>(db, {
     occurrenceId,
     expectedSlug: await activitySlug(db, seed.activityId),
     party: { 'Private charter': guests },
@@ -202,7 +203,7 @@ describe('private option (own trips-per-day pool + base+per-head pricing)', () =
     );
 
     // Independent pools the other way round: the shared option still takes a normal booking.
-    const shared = await call<{ totalEur: number }>(db, 'api_book', {
+    const shared = await apiBook<{ totalEur: number }>(db, {
       occurrenceId: seed.occurrenceId,
       expectedSlug: await activitySlug(db, seed.activityId),
       party: { Adult: 3 },

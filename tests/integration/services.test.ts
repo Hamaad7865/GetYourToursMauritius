@@ -80,12 +80,15 @@ describe('service layer (via PGlite rpc)', () => {
   });
 
   it('createBooking → createPaymentLink → getBookingStatus end to end', async () => {
-    const booking = await createBooking(ctx, {
-      occurrenceId,
-      party: { 'Private group': 2 },
-      customer: { name: 'Léa', email: 'lea@example.com' },
-      idempotencyKey: 'svc-book-1',
-    });
+    const booking = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId,
+        party: { 'Private group': 2 },
+        customer: { name: 'Léa', email: 'lea@example.com' },
+        idempotencyKey: 'svc-book-1',
+      },
+    );
     expect(booking.status).toBe('payment_pending');
     expect(booking.totalEur).toBe(110); // flat per-group fare (up to 6), NOT 2 × €110 — see flatfare_pricing_mode
 
@@ -121,14 +124,17 @@ describe('service layer (via PGlite rpc)', () => {
     );
     await db.as({ sub: USER, role: 'authenticated' });
 
-    const booking = await createBooking(ctx, {
-      occurrenceId,
-      expectedSlug: 'private-south-tour-with-pickup',
-      party: { Vehicle: 3 },
-      suv: true,
-      customer: { name: 'A', email: 'suv@example.com' },
-      idempotencyKey: 'svc-suv-1',
-    });
+    const booking = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId,
+        expectedSlug: 'private-south-tour-with-pickup',
+        party: { Vehicle: 3 },
+        suv: true,
+        customer: { name: 'A', email: 'suv@example.com' },
+        idempotencyKey: 'svc-suv-1',
+      },
+    );
     expect(booking.totalEur).toBe(85); // flat SUV price, not 3 × anything
     expect(booking.items[0]!.priceLabel).toBe('SUV');
     expect(booking.items[0]!.pax).toBe(3);
@@ -144,13 +150,16 @@ describe('service layer (via PGlite rpc)', () => {
 
   it('saves a custom itinerary through the service path', async () => {
     await db.as({ sub: USER, role: 'authenticated' });
-    const booking = await createBooking(ctx, {
-      occurrenceId,
-      party: { 'Private group': 1 },
-      itinerary: [{ title: 'Port Louis' }, { title: 'Apravasi Ghat', area: 'Port Louis' }],
-      customer: { name: 'R', email: 'route-svc@example.com' },
-      idempotencyKey: 'svc-route-1',
-    });
+    const booking = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId,
+        party: { 'Private group': 1 },
+        itinerary: [{ title: 'Port Louis' }, { title: 'Apravasi Ghat', area: 'Port Louis' }],
+        customer: { name: 'R', email: 'route-svc@example.com' },
+        idempotencyKey: 'svc-route-1',
+      },
+    );
     const got = await getBookingStatus(ctx, booking.ref);
     expect(got.customItinerary).toHaveLength(2);
     expect(got.customItinerary![1]!.title).toBe('Apravasi Ghat');
@@ -158,12 +167,15 @@ describe('service layer (via PGlite rpc)', () => {
 
   it('maps a DB exception to a ServiceError (unknown occurrence)', async () => {
     await expect(
-      createBooking(ctx, {
-        occurrenceId: '00000000-0000-0000-0000-000000000000',
-        party: { Adult: 1 },
-        customer: { name: 'X', email: 'x@example.com' },
-        idempotencyKey: 'svc-bad-1',
-      }),
+      createBooking(
+        { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+        {
+          occurrenceId: '00000000-0000-0000-0000-000000000000',
+          party: { Adult: 1 },
+          customer: { name: 'X', email: 'x@example.com' },
+          idempotencyKey: 'svc-bad-1',
+        },
+      ),
     ).rejects.toBeInstanceOf(ServiceError);
   });
 
@@ -180,12 +192,15 @@ describe('service layer (via PGlite rpc)', () => {
     );
     await db.as({ sub: USER, role: 'authenticated' });
 
-    const err = await createBooking(ctx, {
-      occurrenceId,
-      party: { Vehicle: 26 }, // > 25 on board -> exceeds_vehicle_capacity
-      customer: { name: 'X', email: 'over25@example.com' },
-      idempotencyKey: 'svc-over25-1',
-    }).catch((e) => e);
+    const err = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId,
+        party: { Vehicle: 26 }, // > 25 on board -> exceeds_vehicle_capacity
+        customer: { name: 'X', email: 'over25@example.com' },
+        idempotencyKey: 'svc-over25-1',
+      },
+    ).catch((e) => e);
     expect(err).toBeInstanceOf(ServiceError);
     expect((err as ServiceError).status).toBe(400); // 400 validation, NOT 502 provider
 
@@ -198,13 +213,16 @@ describe('service layer (via PGlite rpc)', () => {
   });
 
   it('maps a slug/occurrence mismatch to a 400 (validation), not a 502', async () => {
-    const err = await createBooking(ctx, {
-      occurrenceId,
-      expectedSlug: 'not-the-right-slug', // tampered slug -> occurrence_activity_mismatch
-      party: { 'Private group': 1 },
-      customer: { name: 'X', email: 'mismatch@example.com' },
-      idempotencyKey: 'svc-mismatch-1',
-    }).catch((e) => e);
+    const err = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId,
+        expectedSlug: 'not-the-right-slug', // tampered slug -> occurrence_activity_mismatch
+        party: { 'Private group': 1 },
+        customer: { name: 'X', email: 'mismatch@example.com' },
+        idempotencyKey: 'svc-mismatch-1',
+      },
+    ).catch((e) => e);
     expect(err).toBeInstanceOf(ServiceError);
     expect((err as ServiceError).status).toBe(400);
   });

@@ -4,6 +4,7 @@ delete process.env.OWNER_WHATSAPP_TO;
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { pgliteRpc } from '../db/rpc';
 import type { ServiceContext } from '@/lib/services/context';
 import { StubPaymentProvider } from '@/lib/payments/stub';
@@ -89,12 +90,12 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
 
   it('a signed-in customer books, the webhook confirms it, and availability drops', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{
+    const booking = await apiBook<{
       ref: string;
       status: string;
       paymentState: string;
       totalEur: number;
-    }>(db, 'api_book', {
+    }>(db, {
       occurrenceId,
       party: { Adult: 2 },
       customerName: 'Test Traveller',
@@ -149,7 +150,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       { title: 'Port Louis', area: 'Capital', lat: -20.16, lng: 57.5 },
       { title: 'Fort Adelaide', area: 'Port Louis' },
     ];
-    const booking = await call<{ ref: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 1 },
       itinerary: route,
@@ -165,7 +166,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(got.customItinerary![1]!.title).toBe('Fort Adelaide');
 
     // A booking with no itinerary returns null.
-    const plain = await call<{ ref: string }>(db, 'api_book', {
+    const plain = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 1 },
       customerName: 'No Route',
@@ -181,7 +182,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
 
   it('saves and returns the pickup location on the booking (trimmed; null when absent)', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const booking = await call<{ ref: string }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 1 },
       pickupLocation: '  Flic en Flac, Le Cardinal Villa  ',
@@ -196,7 +197,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(got.pickupLocation).toBe('Flic en Flac, Le Cardinal Villa');
 
     // A booking with no pickup location returns null.
-    const plain = await call<{ ref: string }>(db, 'api_book', {
+    const plain = await apiBook<{ ref: string }>(db, {
       occurrenceId,
       party: { Adult: 1 },
       customerName: 'No Pickup',
@@ -211,7 +212,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
   it('charges child seats (first free, €6 each extra), clamps to the party, and never double-charges', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     // Baseline: party of 2, no child seats → 2 × €70.
-    const base = await call<{ totalEur: number }>(db, 'api_book', {
+    const base = await apiBook<{ totalEur: number }>(db, {
       occurrenceId,
       party: { Adult: 2 },
       customerName: 'CS Base',
@@ -222,7 +223,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(base.totalEur).toBe(140);
 
     // childSeats=5 on a party of 2 → clamped to 2 seats → 1 chargeable extra → +€6.
-    const seats = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    const seats = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId,
       party: { Adult: 2 },
       childSeats: 5,
@@ -237,7 +238,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     ).toBe(2);
 
     // An idempotency replay must NOT charge the seat again.
-    const replay = await call<{ totalEur: number }>(db, 'api_book', {
+    const replay = await apiBook<{ totalEur: number }>(db, {
       occurrenceId,
       party: { Adult: 2 },
       childSeats: 5,
@@ -249,7 +250,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(replay.totalEur).toBe(146);
 
     // A single child seat is free.
-    const one = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    const one = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId,
       party: { Adult: 2 },
       childSeats: 1,
@@ -280,7 +281,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       )
     ).rows[0]!.n;
 
-    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId,
       party: { Adult: 3 },
       holdId: hold.holdId,
@@ -337,7 +338,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
 
     // Checkout's booking POST: holdId from the cart stash + the SAME idem flowing in as fromHold.
     // Without reuse this would raise insufficient_capacity (2 held + 2 fresh > 2 capacity).
-    const booking = await call<{ ref: string; totalEur: number }>(db, 'api_book', {
+    const booking = await apiBook<{ ref: string; totalEur: number }>(db, {
       occurrenceId: tight,
       party: { Adult: 2 },
       holdId: hold.holdId,
@@ -383,7 +384,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     );
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     // api_book must NOT reuse the expired hold and must NOT collide with its key → it books fine.
-    const booking = await call<{ totalEur: number }>(db, 'api_book', {
+    const booking = await apiBook<{ totalEur: number }>(db, {
       occurrenceId,
       party: { Adult: 2 },
       holdId: hold.holdId,
@@ -398,16 +399,14 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
   it('rejects a booking beyond remaining capacity', async () => {
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
     await expect(
-      db.pg.query(`select api_book($1::jsonb)`, [
-        JSON.stringify({
-          occurrenceId,
-          party: { Adult: 100 },
-          customerName: 'Greedy',
-          customerEmail: 'greedy@example.com',
-          source: 'web',
-          idempotencyKey: 'over-key-12345678',
-        }),
-      ]),
+      apiBook(db, {
+        occurrenceId,
+        party: { Adult: 100 },
+        customerName: 'Greedy',
+        customerEmail: 'greedy@example.com',
+        source: 'web',
+        idempotencyKey: 'over-key-12345678',
+      }),
     ).rejects.toThrow();
   });
 

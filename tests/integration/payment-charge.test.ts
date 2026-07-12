@@ -55,12 +55,15 @@ describe('createPaymentLink persists the charged amount + currency', () => {
   });
 
   it('writes charged_amount_minor and charged_currency (EUR, = ledger total) on the payment row', async () => {
-    const booking = await createBooking(ctx, {
-      occurrenceId,
-      party: { 'Private group': 2 },
-      customer: { name: 'Charge Tester', email: 'charge@example.com' },
-      idempotencyKey: 'charge-book-1',
-    });
+    const booking = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId,
+        party: { 'Private group': 2 },
+        customer: { name: 'Charge Tester', email: 'charge@example.com' },
+        idempotencyKey: 'charge-book-1',
+      },
+    );
     expect(booking.totalEur).toBe(110); // flat per-group fare
 
     await createPaymentLink(
@@ -132,12 +135,15 @@ describe('api_record_payment_charge authorization + record-once guards', () => {
       ai: createStubAiProvider(),
       now: () => new Date(),
     };
-    const booking = await createBooking(ctx, {
-      occurrenceId: occId,
-      party: { 'Private group': 2 },
-      customer: { name: 'Owner', email: 'owner@example.com' },
-      idempotencyKey: 'guard-book-1',
-    });
+    const booking = await createBooking(
+      { ...ctx, db: pgliteServiceRoleRpc(db.pg) },
+      {
+        occurrenceId: occId,
+        party: { 'Private group': 2 },
+        customer: { name: 'Owner', email: 'owner@example.com' },
+        idempotencyKey: 'guard-book-1',
+      },
+    );
     // createBooking (api_book) only creates the booking; the payment row comes from api_create_payment
     // (also owner-or-staff guarded, so this runs as the owner).
     const created = await db.pg.query<{ data: { paymentId: string } }>(

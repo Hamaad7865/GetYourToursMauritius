@@ -5,6 +5,7 @@ import {
   NotFoundError,
   ProviderError,
   RateLimitError,
+  SoldOutError,
   ValidationError,
 } from './errors';
 
@@ -17,7 +18,9 @@ export function mapDbError(error: unknown): never {
   const message = error instanceof Error ? error.message : String(error);
 
   if (/\binsufficient_capacity\b/.test(message)) {
-    throw new ConflictError('Not enough availability for this selection');
+    // Distinct `sold_out` code (not generic `conflict`) so the cart can tell a REAL sold-out from the
+    // retryable 409s below (idempotency dup-key race, expired hold) and only then drop the line.
+    throw new SoldOutError();
   }
   if (/\b(hold_not_active|hold_not_found)\b/.test(message)) {
     throw new ConflictError('This reservation has expired — please try again');

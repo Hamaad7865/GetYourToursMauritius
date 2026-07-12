@@ -49,9 +49,11 @@ export async function createHoldsForLines(items: CartItem[]): Promise<HoldOutcom
         if (res.ok && body?.ok && body.data?.holdId) {
           return { id: i.id, ok: true, holdId: body.data.holdId, expiresAt: body.data.expiresAt };
         }
-        // Only a 409 (insufficient_capacity → ConflictError) is a genuine sold-out. Every other status —
-        // 5xx, 429 rate-limit, or a malformed body — is transient and retryable, never "sold out".
-        const reason: HoldFailReason = res.status === 409 ? 'unavailable' : 'network';
+        // Only the DEDICATED `sold_out` code (insufficient_capacity) marks a line unavailable. Every
+        // other failure — 5xx, 429, a generic `conflict` 409 (idempotency dup-key race or an expired
+        // hold), or a malformed body — is transient and retryable, so the line is kept for a retry.
+        const code = (body?.error?.code as string | undefined) ?? '';
+        const reason: HoldFailReason = code === 'sold_out' ? 'unavailable' : 'network';
         return { id: i.id, ok: false, reason };
       } catch {
         // fetch rejected outright: offline / DNS / aborted — always retryable.

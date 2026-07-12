@@ -52,8 +52,12 @@ async function ping(env, path, attempts = 3) {
 const worker = {
   async scheduled(event, env) {
     if (!env.SITE_URL || !env.INTERNAL_TASK_SECRET) {
-      console.error('[cron] missing SITE_URL or INTERNAL_TASK_SECRET — nothing to run');
-      return;
+      // THROW, don't return: a plain return marks the Cloudflare cron invocation SUCCESSFUL, so a
+      // misconfigured Worker (no SITE_URL / secret) silently never drains the outbox or expires holds
+      // while the dashboard shows green. Throwing fails the invocation so it surfaces / can alert.
+      throw new Error(
+        '[cron] missing SITE_URL or INTERNAL_TASK_SECRET — cannot run scheduled tasks',
+      );
     }
 
     const tasks = [];

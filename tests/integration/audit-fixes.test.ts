@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 import { seedOccurrence } from '../db/seed';
 
 async function call<T>(db: TestDb, fn: string, params: unknown): Promise<T> {
@@ -178,7 +179,7 @@ describe('audit fixes', () => {
       // A historical GUEST booking (user_id NULL). Anon can no longer execute api_book (lockdown), so
       // create it as the server would have (service_role: auth.uid() is null → unowned booking).
       await db.as({ role: 'service_role' });
-      await call(db, 'api_book', {
+      await apiBook(db, {
         occurrenceId,
         party: { Adult: 1 },
         idempotencyKey: KEY,
@@ -195,16 +196,16 @@ describe('audit fixes', () => {
         role: 'authenticated',
         email: 'attacker@evil.com',
       });
+      // apiBook derives actorUserId from the current (attacker) session, so the F23 guard fires exactly
+      // as it would in production (server passes the verified caller id).
       await expect(
-        db.pg.query(`select api_book($1::jsonb)`, [
-          JSON.stringify({
-            occurrenceId,
-            party: { Adult: 1 },
-            idempotencyKey: KEY,
-            customerEmail: 'attacker@evil.com',
-            source: 'web',
-          }),
-        ]),
+        apiBook(db, {
+          occurrenceId,
+          party: { Adult: 1 },
+          idempotencyKey: KEY,
+          customerEmail: 'attacker@evil.com',
+          source: 'web',
+        }),
       ).rejects.toThrow(/forbidden/);
       await db.asOwner();
     });
@@ -213,7 +214,7 @@ describe('audit fixes', () => {
       // The retry also arrives via the server path (service_role, no auth.uid()) — F23's email match
       // is what authorizes returning the row.
       await db.as({ role: 'service_role' });
-      const dto = await call<{ ref: string }>(db, 'api_book', {
+      const dto = await apiBook<{ ref: string }>(db, {
         occurrenceId,
         party: { Adult: 1 },
         idempotencyKey: KEY,
