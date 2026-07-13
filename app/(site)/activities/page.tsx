@@ -17,6 +17,7 @@ import {
   type BrowseParams,
 } from '@/lib/catalogue/browse';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { overrideMetadata } from '@/lib/seo/override';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { FaqAccordion } from '@/components/seo/LandingSections';
@@ -75,12 +76,14 @@ export async function generateMetadata({
   const description = isBase
     ? 'Browse and book Mauritius activities and tours direct with Belle Mare Tours — catamaran cruises, dolphin swims, Île aux Cerfs trips, sea walks and private island day tours. Instant confirmation, no reseller markup.'
     : SITE.description;
-  return {
+  const defaults: Metadata = {
     title: { absolute: title },
     description,
     alternates: { canonical: '/activities' },
     openGraph: { type: 'website', title, description, locale: 'en_GB', images: [OG_IMAGE] },
   };
+  // Only the base catalogue takes the /admin/seo override — filtered views keep their dynamic heading.
+  return isBase ? overrideMetadata('/activities', defaults) : defaults;
 }
 
 async function loadResults(params: BrowseParams): Promise<{ items: TourSummary[]; total: number }> {

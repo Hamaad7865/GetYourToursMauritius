@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { ContactForm } from '@/components/site/ContactForm';
@@ -8,7 +9,7 @@ import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: `Contact ${SITE.operator}`,
   description: `Get in touch with ${SITE.operator} in Belle Mare, Mauritius — WhatsApp, phone or email. We reply fast and help you plan the perfect day.`,
   alternates: { canonical: '/contact' },
@@ -102,4 +103,9 @@ export default async function ContactPage() {
       <SiteFooter />
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/contact', DEFAULT_METADATA);
 }

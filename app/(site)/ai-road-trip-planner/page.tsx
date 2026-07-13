@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { PlannerShell } from '@/components/planner/PlannerShell';
@@ -6,7 +7,7 @@ import { OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: 'AI Road Trip Planner — Build & book your day in Mauritius',
   description:
     'Tell ZilAi, our local AI trip planner, the day you want and watch it build a real Mauritius road trip on the map — grounded in actual places and drive times, priced instantly at one flat fare per vehicle, bookable in a tap.',
@@ -29,4 +30,9 @@ export default function AiRoadTripPlannerPage() {
       <SiteFooter />
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/ai-road-trip-planner', DEFAULT_METADATA);
 }

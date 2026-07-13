@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { ReviewCard } from '@/components/site/ReviewCard';
@@ -18,7 +19,7 @@ const TITLE = 'Belle Mare Tours Reviews — 4.8/5 from 1,000+ Guests';
 const DESCRIPTION =
   'Read real reviews of Belle Mare Tours from TripAdvisor and Google — rated 4.8 out of 5 from more than 1,000 guests for catamaran cruises, dolphin swims, island day tours, sightseeing and airport transfers in Mauritius.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
   keywords: [
@@ -133,4 +134,9 @@ export default function ReviewsPage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/reviews', DEFAULT_METADATA);
 }

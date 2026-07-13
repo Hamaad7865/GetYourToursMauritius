@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { SITE } from '@/lib/seo/site';
@@ -200,7 +201,7 @@ export default function PrivacyPage() {
           </P>
           <P>
             For the full detail of what we store in your browser and why, see our{' '}
-            <a href="/cookies">Cookie notice</a>.
+            <Link href="/cookies">Cookie notice</Link>.
           </P>
         </LegalSection>
 
@@ -253,7 +254,7 @@ export default function PrivacyPage() {
           <Callout tone="info" title="How to exercise your rights">
             <P>
               <strong>If you have an account</strong>, the quickest way is the{' '}
-              <a href="/account/privacy">Data &amp; privacy</a> section of your account. There you
+              <Link href="/account/privacy">Data &amp; privacy</Link> section of your account. There you
               can <strong>Download my data</strong> (a copy of your profile and booking history) or{' '}
               <strong>Delete my account</strong> (which removes your personal details; paid bookings
               are anonymised for the legal reasons above).

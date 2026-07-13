@@ -41,6 +41,10 @@ const ALLOWED = new Set([
   'run_booking_maintenance',
   'materialize_availability',
   'api_planner_places',
+  'api_seo_meta',
+  'api_list_posts',
+  'api_get_post',
+  'api_lookup_redirect',
 ]);
 
 /**

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -14,7 +15,7 @@ const TITLE = 'Things to Do in Mauritius: Top Attractions & Places to Visit';
 const DESCRIPTION =
   'A local guide to the best places to visit in Mauritius — beaches, waterfalls, viewpoints, nature parks and cultural sites, organised by region. Visit any of them with Belle Mare Tours: private day tours, sightseeing and airport taxi transfers, booked online with transparent pricing.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
   keywords: [
@@ -115,4 +116,9 @@ export default async function AttractionsIndexPage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/attractions', DEFAULT_METADATA);
 }

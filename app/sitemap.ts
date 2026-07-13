@@ -4,7 +4,7 @@ import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
 import { loadPlaces } from '@/lib/catalogue/places';
 import { transfers } from '@/lib/content/transfers';
-import { posts } from '@/lib/content/blog';
+import { loadPosts } from '@/lib/content/blog-live';
 import { areas } from '@/lib/content/areas';
 
 export const runtime = 'edge';
@@ -42,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  const blogRoutes: MetadataRoute.Sitemap = posts.map((p) => ({
+  const blogRoutes: MetadataRoute.Sitemap = (await loadPosts()).map((p) => ({
     url: `${base}${p.path}`,
     lastModified: p.datePublished,
     changeFrequency: 'monthly',

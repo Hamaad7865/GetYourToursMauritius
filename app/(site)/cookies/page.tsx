@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { SITE } from '@/lib/seo/site';
@@ -149,7 +150,7 @@ export default async function CookiesPage() {
         <LegalSection id="more" title={t('More information')}>
           <P>
             {t('For how we handle your personal data more broadly, see our ')}
-            <a href="/privacy">{t('Privacy policy')}</a>
+            <Link href="/privacy">{t('Privacy policy')}</Link>
             {t('. For any question, contact ')}
             <a href={`mailto:${SITE.email}`}>{SITE.email}</a>.
           </P>

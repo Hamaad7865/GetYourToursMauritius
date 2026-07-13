@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { GygHero } from '@/components/gyg/GygHero';
 import { HomeShowcase } from '@/components/gyg/HomeShowcase';
@@ -14,7 +15,7 @@ import type { TourSummary } from '@/lib/validation/tours';
 
 export const runtime = 'edge';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   // `absolute` so the root layout's "%s | GetYourToursMauritius" template doesn't push the homepage
   // title past a sensible SERP length.
   title: { absolute: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi' },
@@ -70,4 +71,9 @@ export default async function HomePage() {
       <SiteFooter />
     </HomeShowcaseProvider>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/', DEFAULT_METADATA);
 }

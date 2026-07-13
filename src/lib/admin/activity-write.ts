@@ -507,9 +507,16 @@ async function nextSortForCategory(category: string): Promise<number> {
   return ((data?.sort as number | null) ?? -1) + 1;
 }
 
+/** Save options for the restricted 'seo' content role: skip the option/price reconcile (RLS blocks
+ *  those tables for seo — attempting them would fail the save midway) and the staff-gated
+ *  materialize RPC. Content fields, images and itinerary still save normally. */
+export interface SaveOpts {
+  contentOnly?: boolean;
+}
+
 /** Create a new activity (+ images/options/prices). Returns the new id. */
-export async function createActivity(v: ActivityFormValues): Promise<string> {
-  assertPricingValid(v);
+export async function createActivity(v: ActivityFormValues, opts: SaveOpts = {}): Promise<string> {
+  if (!opts.contentOnly) assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
   const sort = await nextSortForCategory(v.category);
@@ -520,14 +527,20 @@ export async function createActivity(v: ActivityFormValues): Promise<string> {
     .single();
   if (error) throw error;
   await replaceImages(data.id, v.images);
-  await reconcileOptions(data.id, v.options);
-  await materializeActivity(data.id);
+  if (!opts.contentOnly) {
+    await reconcileOptions(data.id, v.options);
+    await materializeActivity(data.id);
+  }
   return data.id;
 }
 
 /** Update an activity, reconciling its images/options/prices in place (FK-safe for booked activities). */
-export async function updateActivity(id: string, v: ActivityFormValues): Promise<void> {
-  assertPricingValid(v);
+export async function updateActivity(
+  id: string,
+  v: ActivityFormValues,
+  opts: SaveOpts = {},
+): Promise<void> {
+  if (!opts.contentOnly) assertPricingValid(v);
   const sb = getBrowserSupabase();
   const opId = await operatorId();
   // Moving to another category keeps the old `sort` otherwise — a sort-0 tour would jump ahead of
@@ -545,9 +558,11 @@ export async function updateActivity(id: string, v: ActivityFormValues): Promise
   const { error } = await sb.from('activities').update(row).eq('id', id);
   if (error) throw error;
   await replaceImages(id, v.images);
-  await reconcileOptions(id, v.options);
-  // Publishing or adding the first price makes the activity materializable — fill its window now.
-  await materializeActivity(id);
+  if (!opts.contentOnly) {
+    await reconcileOptions(id, v.options);
+    // Publishing or adding the first price makes the activity materializable — fill its window now.
+    await materializeActivity(id);
+  }
 }
 
 export async function deleteActivity(id: string): Promise<void> {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { NOTICE_KEY, serializeAck, shouldShowNotice } from '@/lib/consent/notice';
 import { useT } from '@/components/site/PreferencesProvider';
 
@@ -44,12 +45,12 @@ export function CookieNotice() {
       <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[13px] leading-snug text-ink-muted">
           {t('We use cookies to run this site and show maps. No tracking or ads.')}{' '}
-          <a
+          <Link
             href="/cookies"
             className="font-semibold text-teal-dark underline-offset-2 hover:underline"
           >
             {t('Cookie policy')}
-          </a>
+          </Link>
         </p>
         <button
           type="button"

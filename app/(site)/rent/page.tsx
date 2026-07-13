@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import { InfoPage, InfoSection, FeatureList, EnquireRow } from '@/components/site/InfoPage';
 import {
   ContentSection,
@@ -18,7 +19,7 @@ import type { RentalVehicle } from '@/lib/validation/rental';
 
 export const runtime = 'edge';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   // `absolute` so the root "%s | GetYourToursMauritius" template doesn't double-brand the title.
   title: { absolute: 'Car & Scooter Rental in Belle Mare, Mauritius | Belle Mare Tours' },
   description:
@@ -216,4 +217,9 @@ export default async function RentPage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/rent', DEFAULT_METADATA);
 }

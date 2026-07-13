@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { Breadcrumb } from '@/components/catalogue/Breadcrumb';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -21,7 +22,7 @@ const TITLE = 'Belle Mare Tours — Licensed Mauritius Tour Operator';
 const DESCRIPTION =
   'Belle Mare Tours is a licensed Mauritius tour operator on the east coast, run by veteran driver-guide Noorani. Book catamaran cruises, island day tours, dolphin swims and airport transfers direct — fixed prices, no reseller markup.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
   keywords: [
@@ -177,4 +178,9 @@ export default async function BelleMareToursPage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/belle-mare-tours', DEFAULT_METADATA);
 }

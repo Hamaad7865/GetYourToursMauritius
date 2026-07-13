@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { Breadcrumb } from '@/components/catalogue/Breadcrumb';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -21,7 +22,7 @@ const TITLE = 'Île aux Cerfs Tours & Day Trips | Belle Mare Tours';
 const DESCRIPTION =
   'Île aux Cerfs tours and day trips from Belle Mare: catamaran and speedboat cruises to the island’s lagoon and sandbars, the GRSE waterfall, beach barbecue and water sports. Book direct with a local operator — no reseller markup.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
   keywords: [
@@ -181,4 +182,9 @@ export default async function IleAuxCerfsToursPage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/ile-aux-cerfs-tours', DEFAULT_METADATA);
 }

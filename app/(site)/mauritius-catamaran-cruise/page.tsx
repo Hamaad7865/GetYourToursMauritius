@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { Breadcrumb } from '@/components/catalogue/Breadcrumb';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -21,7 +22,7 @@ const TITLE = 'Mauritius Catamaran Cruise | Belle Mare Tours';
 const DESCRIPTION =
   'Mauritius catamaran cruises booked direct: a full day on the lagoon with snorkelling, a barbecue lunch on board and stops at Île aux Cerfs or the northern islets. Shared or private charters, fixed prices, no reseller markup.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
   keywords: [
@@ -186,4 +187,9 @@ export default async function MauritiusCatamaranCruisePage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/mauritius-catamaran-cruise', DEFAULT_METADATA);
 }

@@ -662,6 +662,67 @@ type PlannerPlacesInsert = {
 type PlacesCacheRow = { key: string; data: Json; expires_at: string; created_at: string };
 type PlacesCacheInsert = { key: string; data: Json; expires_at: string };
 
+type SeoMetaRow = {
+  path: string;
+  title: string | null;
+  description: string | null;
+  og_image_url: string | null;
+  updated_at: string;
+  updated_by: string | null;
+};
+type SeoMetaInsert = {
+  path: string;
+  title?: string | null;
+  description?: string | null;
+  og_image_url?: string | null;
+  updated_at?: string;
+  updated_by?: string | null;
+};
+
+type PostsRow = {
+  slug: string;
+  title: string;
+  meta_title: string | null;
+  meta_description: string | null;
+  excerpt: string | null;
+  read_mins: number;
+  sections: Json;
+  faq: Json;
+  hero_image_url: string | null;
+  status: 'draft' | 'published';
+  published_at: string | null;
+  updated_at: string;
+  updated_by: string | null;
+};
+type PostsInsert = {
+  slug: string;
+  title: string;
+  meta_title?: string | null;
+  meta_description?: string | null;
+  excerpt?: string | null;
+  read_mins?: number;
+  sections?: Json;
+  faq?: Json;
+  hero_image_url?: string | null;
+  status?: 'draft' | 'published';
+  published_at?: string | null;
+  updated_at?: string;
+  updated_by?: string | null;
+};
+
+type SeoRedirectsRow = {
+  from_path: string;
+  to_path: string;
+  created_at: string;
+  updated_by: string | null;
+};
+type SeoRedirectsInsert = {
+  from_path: string;
+  to_path: string;
+  created_at?: string;
+  updated_by?: string | null;
+};
+
 type RentalVehiclesRow = {
   slug: string;
   name: string;
@@ -725,6 +786,9 @@ export interface Database {
       airport_transfer_hotels: TableDef<AirportTransferHotelsRow, AirportTransferHotelsInsert>;
       hotel_transfer_fare: TableDef<HotelTransferFareRow, HotelTransferFareInsert>;
       hotel_transfer_config: TableDef<HotelTransferConfigRow, HotelTransferConfigInsert>;
+      seo_meta: TableDef<SeoMetaRow, SeoMetaInsert>;
+      posts: TableDef<PostsRow, PostsInsert>;
+      seo_redirects: TableDef<SeoRedirectsRow, SeoRedirectsInsert>;
       planner_places: TableDef<PlannerPlacesRow, PlannerPlacesInsert>;
       places_cache: TableDef<PlacesCacheRow, PlacesCacheInsert>;
       rental_vehicles: TableDef<RentalVehiclesRow, RentalVehiclesInsert>;
@@ -774,7 +838,7 @@ export interface Database {
       api_list_rental_vehicles: { Args: { p: Json }; Returns: Json };
     };
     Enums: {
-      user_role: 'customer' | 'staff' | 'admin';
+      user_role: 'customer' | 'staff' | 'admin' | 'seo';
       activity_type: 'activity' | 'transport';
       activity_status: 'draft' | 'published';
       activity_category:

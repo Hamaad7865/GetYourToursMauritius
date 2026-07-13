@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { posts, formatPostDate, type Post } from '@/lib/content/blog';
+import { formatPostDate, type Post } from '@/lib/content/blog';
+import { loadPosts } from '@/lib/content/blog-live';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
@@ -12,7 +14,7 @@ const TITLE = 'Mauritius Travel Blog — Guides, Tips & Itineraries';
 const DESCRIPTION =
   'Practical Mauritius travel guides from a local tour operator: the best time to visit, things to do, airport transfer advice, day-by-day itineraries, top beaches and waterfalls, and how to save money on tours and transfers.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   keywords: [
@@ -51,7 +53,8 @@ function PostCard({ p }: { p: Post }) {
   );
 }
 
-export default function BlogIndexPage() {
+export default async function BlogIndexPage() {
+  const posts = await loadPosts();
   const breadcrumb = breadcrumbListJsonLd([
     { name: 'Home', path: '/' },
     { name: 'Blog', path: '/blog' },
@@ -75,4 +78,9 @@ export default function BlogIndexPage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/blog', DEFAULT_METADATA);
 }

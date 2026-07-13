@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -12,7 +13,7 @@ const TITLE = 'Mauritius Destinations — Area Guides by Region';
 const DESCRIPTION =
   'Where to go in Mauritius: local guides to the island’s top areas — Grand Baie, Flic-en-Flac, Belle Mare, Le Morne, Tamarin and more. Things to do, beaches, what each area is good for, and how to get there with Belle Mare Tours.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   keywords: [
@@ -101,4 +102,9 @@ export default function DestinationsIndexPage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/destinations', DEFAULT_METADATA);
 }

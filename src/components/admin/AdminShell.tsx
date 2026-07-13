@@ -22,6 +22,9 @@ import {
   IconX,
   IconArrowRight,
   IconLogOut,
+  IconTrendUp,
+  IconDocument,
+  IconSwap,
 } from '@/components/ui/icons';
 
 interface NavItem {
@@ -29,22 +32,32 @@ interface NavItem {
   label: string;
   icon: (p: { width?: number; height?: number }) => ReactNode;
   exact?: boolean;
+  /** When true the item is also shown to the restricted 'seo' content role. */
+  seo?: boolean;
 }
 
 const NAV: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: IconGrid, exact: true },
   { href: '/admin/bookings', label: 'Bookings', icon: IconBookings },
-  { href: '/admin/activities', label: 'Tours', icon: IconTag },
+  { href: '/admin/activities', label: 'Tours', icon: IconTag, seo: true },
   { href: '/admin/categories', label: 'Categories', icon: IconSliders },
   { href: '/admin/vehicle-pricing', label: 'Pricing', icon: IconWallet },
   { href: '/admin/rental', label: 'Rental', icon: IconCar },
-  { href: '/admin/planner-places', label: 'Places', icon: IconPin },
+  { href: '/admin/planner-places', label: 'Places', icon: IconPin, seo: true },
+  { href: '/admin/seo', label: 'SEO', icon: IconTrendUp, seo: true },
+  { href: '/admin/blog', label: 'Blog', icon: IconDocument, seo: true },
+  { href: '/admin/redirects', label: 'Redirects', icon: IconSwap, seo: true },
   { href: '/admin/leads', label: 'Leads', icon: IconUsers },
 ];
 
-const BOTTOM_NAV = NAV.filter((n) =>
-  ['/admin', '/admin/bookings', '/admin/activities', '/admin/leads'].includes(n.href),
-);
+/** Sections visible to a role: the 'seo' content role sees only the seo-flagged items; staff/admin
+ *  see everything. RLS enforces the same boundary server-side — this is just navigation. */
+function navForRole(role: string | undefined): NavItem[] {
+  return role === 'seo' ? NAV.filter((n) => n.seo) : NAV;
+}
+
+const BOTTOM_NAV_HREFS = ['/admin', '/admin/bookings', '/admin/activities', '/admin/leads'];
+const BOTTOM_NAV_HREFS_SEO = ['/admin/seo', '/admin/blog', '/admin/activities', '/admin/redirects'];
 
 function isActive(pathname: string, item: NavItem): boolean {
   return item.exact
@@ -79,14 +92,20 @@ export function AdminShell({ children }: { children: ReactNode }) {
   };
 
   const name = profile?.fullName || user?.email?.split('@')[0] || 'Staff';
+  const isSeoRole = profile?.role === 'seo';
+  const items = navForRole(profile?.role);
+  const bottomHrefs = isSeoRole ? BOTTOM_NAV_HREFS_SEO : BOTTOM_NAV_HREFS;
+  const bottomNav = items.filter((n) => bottomHrefs.includes(n.href));
   const role = profile?.role
-    ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
+    ? isSeoRole
+      ? 'SEO'
+      : profile.role.charAt(0).toUpperCase() + profile.role.slice(1)
     : 'Staff';
   const { initials, hue } = avatar(name);
 
   const NavList = ({ onNavigate }: { onNavigate?: () => void }) => (
     <nav className="flex flex-1 flex-col gap-1 p-3">
-      {NAV.map((item) => {
+      {items.map((item) => {
         const active = isActive(pathname, item);
         const Icon = item.icon;
         return (
@@ -181,6 +200,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           >
             <IconMenu width={19} height={19} />
           </button>
+          {!isSeoRole && (
           <form
             onSubmit={submitSearch}
             role="search"
@@ -199,8 +219,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
               className="w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] py-2.5 pl-10 pr-3 text-sm text-ink outline-none focus:border-teal focus:bg-white"
             />
           </form>
+          )}
           <div className="ml-auto flex items-center gap-2.5">
-            <AdminBell />
+            {!isSeoRole && <AdminBell />}
             <Link
               href="/admin/activities/new"
               className="hidden items-center gap-1.5 rounded-xl bg-teal px-4 py-2.5 text-[13.5px] font-bold text-white hover:bg-teal-dark sm:flex"
@@ -230,7 +251,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
         {/* Mobile bottom nav */}
         <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-[#E7EBEE] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
-          {BOTTOM_NAV.map((item) => {
+          {bottomNav.map((item) => {
             const active = isActive(pathname, item);
             const Icon = item.icon;
             return (

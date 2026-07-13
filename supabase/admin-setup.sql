@@ -20,8 +20,10 @@ update profiles
 set role = 'admin'
 where id = (select id from auth.users where email = 'boodoo.sheik786@gmail.com');
 
--- 3) IMAGE UPLOADS — a public Storage bucket + policies so staff can upload
---    activity photos from the admin and the public can view them.
+-- 3) IMAGE UPLOADS — a public Storage bucket + policies so content editors (staff/admin + the
+--    'seo' content role) can upload photos from the admin and the public can view them.
+--    The role check is INLINED (not is_staff()/is_content_editor()) so this script has no
+--    ordering dependency on catch-up.sql.
 insert into storage.buckets (id, name, public)
 values ('activity-images', 'activity-images', true)
 on conflict (id) do nothing;
@@ -32,12 +34,18 @@ create policy "activity_images_public_read" on storage.objects
 
 drop policy if exists "activity_images_staff_insert" on storage.objects;
 create policy "activity_images_staff_insert" on storage.objects
-  for insert with check (bucket_id = 'activity-images' and public.is_staff());
+  for insert with check (bucket_id = 'activity-images' and exists (
+    select 1 from public.profiles where id = auth.uid() and role::text in ('staff', 'admin', 'seo')
+  ));
 
 drop policy if exists "activity_images_staff_update" on storage.objects;
 create policy "activity_images_staff_update" on storage.objects
-  for update using (bucket_id = 'activity-images' and public.is_staff());
+  for update using (bucket_id = 'activity-images' and exists (
+    select 1 from public.profiles where id = auth.uid() and role::text in ('staff', 'admin', 'seo')
+  ));
 
 drop policy if exists "activity_images_staff_delete" on storage.objects;
 create policy "activity_images_staff_delete" on storage.objects
-  for delete using (bucket_id = 'activity-images' and public.is_staff());
+  for delete using (bucket_id = 'activity-images' and exists (
+    select 1 from public.profiles where id = auth.uid() and role::text in ('staff', 'admin', 'seo')
+  ));

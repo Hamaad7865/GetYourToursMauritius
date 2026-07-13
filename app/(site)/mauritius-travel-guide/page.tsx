@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
@@ -14,7 +15,7 @@ const TITLE = 'Mauritius Travel Guide 2026 — Plan the Perfect Trip';
 const DESCRIPTION =
   'An up-to-date Mauritius travel guide from a local operator: when to visit, getting around, airport transfers, the five regions, the best things to do, sample itineraries and money-saving tips.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   keywords: [
@@ -274,4 +275,9 @@ export default function MauritiusTravelGuidePage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/mauritius-travel-guide', DEFAULT_METADATA);
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { useCategories } from '@/lib/categories/useCategories';
 import { IconChevron, IconDocument, IconGrip, IconPlus, IconX } from '@/components/ui/icons';
 import { BADGE_ICONS, badgeIcon } from '@/components/ui/badge-icons';
@@ -23,6 +24,10 @@ import {
 
 export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }) {
   const router = useRouter();
+  const { profile } = useAuth();
+  // The restricted 'seo' content role edits copy/photos/itinerary only: the pricing controls are
+  // hidden and the save skips options/prices + the staff-gated materialize RPC (RLS blocks them).
+  const contentOnly = profile?.role === 'seo';
   const categories = useCategories();
   const [values, setValues] = useState<ActivityFormValues | null>(
     mode === 'new' ? EMPTY_ACTIVITY : null,
@@ -58,8 +63,8 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
     if (!v.slug.trim()) return setError('A URL slug is required.');
     setSaving(true);
     try {
-      if (mode === 'new') await createActivity(v);
-      else if (id) await updateActivity(id, v);
+      if (mode === 'new') await createActivity(v, { contentOnly });
+      else if (id) await updateActivity(id, v, { contentOnly });
       router.push('/admin/activities');
       router.refresh();
     } catch (err) {
@@ -285,6 +290,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               on desktop, with a download button everywhere). Leave empty to hide it.
             </p>
           </Field>
+          {!contentOnly && (
           <Field label="Pricing">
             <select
               className={inputClass}
@@ -305,6 +311,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
                   : 'Each guest pays the tier price. “Fits up to” is an optional hard cap per tier.'}
             </p>
           </Field>
+          )}
           <div className="grid gap-5 sm:grid-cols-2">
             <StringList
               label="Highlights"
@@ -337,6 +344,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         <ImagesEditor images={v.images} slug={v.slug} onChange={(x) => set('images', x)} />
       </Section>
 
+      {!contentOnly && (
       <Section
         title="Options & pricing"
         hint="Each option (e.g. Shared, Private) has price tiers: a label, a € price, and a “fits up to” number. Its meaning follows the Pricing mode above — a per-tier cap (per person) or the group size (per group)."
@@ -375,6 +383,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
           <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
         )}
       </Section>
+      )}
 
       <Section
         title="Itinerary"

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { Breadcrumb } from '@/components/catalogue/Breadcrumb';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -21,7 +22,7 @@ const TITLE = 'Swim with Dolphins in Mauritius | Belle Mare Tours';
 const DESCRIPTION =
   'Swim with wild dolphins in Mauritius: an early-morning boat trip to the calm west-coast bays off Tamarin and Black River to meet spinner and bottlenose dolphins. Responsible, small-boat tours booked direct — no reseller markup.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: { absolute: TITLE },
   description: DESCRIPTION,
   keywords: [
@@ -173,4 +174,9 @@ export default async function DolphinSwimMauritiusPage() {
       </InfoPage>
     </>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/dolphin-swim-mauritius', DEFAULT_METADATA);
 }

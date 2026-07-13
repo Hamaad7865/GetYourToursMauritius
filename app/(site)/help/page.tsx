@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import Link from 'next/link';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, Faq, FaqItem } from '@/components/site/Legal';
@@ -6,7 +7,7 @@ import { SITE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: `Help centre · ${SITE.operator}`,
   description: `Answers about booking, payment, pickups, vouchers, cancellations and your account with ${SITE.operator} — plus how to reach our local team in Mauritius.`,
   alternates: { canonical: '/help' },
@@ -135,4 +136,9 @@ export default function HelpPage() {
       </LegalArticle>
     </InfoPage>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/help', DEFAULT_METADATA);
 }

@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getPost, relatedPosts, formatPostDate } from '@/lib/content/blog';
+import { formatPostDate } from '@/lib/content/blog';
+import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
@@ -41,7 +42,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const p = getPost(slug);
+  const p = await loadPost(slug);
   if (!p) return { title: 'Article not found' };
   const title = p.metaTitle || p.title;
   const description = p.metaDescription;
@@ -63,9 +64,9 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = getPost(slug);
+  const p = await loadPost(slug);
   if (!p) notFound();
-  const related = relatedPosts(p.slug, 3);
+  const related = await loadRelatedPosts(p.slug, 3);
 
   return (
     <>

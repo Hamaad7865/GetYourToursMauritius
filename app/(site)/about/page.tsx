@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import type { CSSProperties, ReactNode } from 'react';
 import Link from 'next/link';
 import { Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
@@ -44,7 +45,7 @@ const displayFont = { fontFamily: 'var(--font-about-display), sans-serif' } as c
 const metaTitle = `About Belle Mare Tours — your local Mauritius tour operator | GetYourToursMauritius`;
 const metaDescription = `Belle Mare Tours Ltd is a licensed Mauritian tour & airport-transfer operator on the east coast, run by veteran driver-guide Noorani. Book direct for transparent fixed EUR prices, the same guide all day, and door-to-door pickup island-wide.`;
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   // absolute: metaTitle already ends in the brand — stop the root template appending a second one.
   title: { absolute: metaTitle },
   description: metaDescription,
@@ -1236,4 +1237,9 @@ export default async function AboutPage() {
       <SiteFooter />
     </div>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/about', DEFAULT_METADATA);
 }

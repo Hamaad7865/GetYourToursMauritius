@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { overrideMetadata } from '@/lib/seo/override';
 import type { ReactNode } from 'react';
 import { Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
 import { GygHeader } from '@/components/gyg/GygHeader';
@@ -61,7 +62,7 @@ const TITLE = 'Mauritius Airport Transfers — Fixed-Price Private Taxi Service 
 const DESCRIPTION =
   'Private airport transfers in Mauritius at a fixed EUR price — up to 40% less than metered airport & hotel taxis. Door-to-door between SSR International Airport (MRU) and every hotel, Airbnb and cruise port. Meet & greet, flight tracking, free waiting time and a free child seat. Booked direct with licensed local operator Belle Mare Tours — no reseller markup.';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   // Trimmed + absolute so the key terms aren't truncated and the brand isn't appended twice.
   title: { absolute: 'Mauritius Airport Transfers (SSR/MRU) — Fixed-Price Taxi' },
   description: DESCRIPTION,
@@ -1306,4 +1307,9 @@ export default function AirportTransfersPage() {
       </a>
     </div>
   );
+}
+
+/** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  return overrideMetadata('/airport-transfers', DEFAULT_METADATA);
 }
