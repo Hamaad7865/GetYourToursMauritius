@@ -22,6 +22,7 @@ export async function loadPosts(): Promise<Post[]> {
       readMins: p.readMins,
       sections: [],
       faq: [],
+      heroImageUrl: p.heroImageUrl,
       path: blogPath(p.slug),
       datePublished: p.datePublished,
     }));
@@ -48,6 +49,7 @@ export async function loadPost(slug: string): Promise<Post | null> {
         readMins: p.readMins,
         sections: p.sections,
         faq: p.faq,
+        heroImageUrl: p.heroImageUrl,
         path: blogPath(p.slug),
         datePublished: p.datePublished,
       };

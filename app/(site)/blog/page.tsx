@@ -41,6 +41,15 @@ function PostCard({ p }: { p: Post }) {
       href={p.path}
       className="group flex flex-col rounded-2xl border border-ink/10 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
     >
+      {p.heroImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={p.heroImageUrl}
+          alt=""
+          loading="lazy"
+          className="mb-4 aspect-[16/9] w-full rounded-xl object-cover"
+        />
+      )}
       <div className="text-[12px] font-semibold text-ink-muted">
         {formatPostDate(p.datePublished)} · {p.readMins} min read
       </div>

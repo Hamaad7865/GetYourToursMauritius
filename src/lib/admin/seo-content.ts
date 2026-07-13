@@ -1,4 +1,5 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { slugify } from '@/lib/admin/activity-write';
 
 /* Admin CRUD for the SEO module's three tables. RLS (is_content_editor: staff/admin/seo) gates the
  * writes, so the authenticated editor talks to the tables directly through the browser client — the
@@ -61,11 +62,24 @@ export interface PostInput {
   metaDescription: string;
   excerpt: string;
   readMins: number;
-  sections: { heading: string; paragraphs: string[] }[];
+  sections: { heading: string; paragraphs: string[]; imageUrl?: string | null }[];
   faq: { q: string; a: string }[];
   heroImageUrl: string;
   status: 'draft' | 'published';
   publishedAt: string | null; // YYYY-MM-DD
+}
+
+/** Upload a blog photo to Storage (the public activity-images bucket, under blog/<slug>/) and
+ *  return its public URL. Content editors (staff/admin/seo) may write the bucket. */
+export async function uploadPostImage(file: File, slug: string): Promise<string> {
+  const sb = getBrowserSupabase();
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const path = `blog/${slugify(slug) || 'post'}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await sb.storage
+    .from('activity-images')
+    .upload(path, file, { cacheControl: '3600', upsert: false });
+  if (error) throw error;
+  return sb.storage.from('activity-images').getPublicUrl(path).data.publicUrl;
 }
 
 export interface PostListItem {
@@ -124,11 +138,16 @@ export async function savePost(input: PostInput, originalSlug?: string): Promise
     excerpt: input.excerpt.trim() || null,
     read_mins: Math.min(60, Math.max(1, Math.round(input.readMins || 5))),
     sections: input.sections
-      .map((s) => ({
-        heading: s.heading.trim(),
-        paragraphs: s.paragraphs.map((p) => p.trim()).filter(Boolean),
-      }))
-      .filter((s) => s.heading || s.paragraphs.length),
+      .map((s) => {
+        const imageUrl = s.imageUrl?.trim() || null;
+        const out: { heading: string; paragraphs: string[]; imageUrl?: string } = {
+          heading: s.heading.trim(),
+          paragraphs: s.paragraphs.map((p) => p.trim()).filter(Boolean),
+        };
+        if (imageUrl) out.imageUrl = imageUrl;
+        return out;
+      })
+      .filter((s) => s.heading || s.paragraphs.length || s.imageUrl),
     faq: input.faq
       .map((f) => ({ q: f.q.trim(), a: f.a.trim() }))
       .filter((f) => f.q && f.a),

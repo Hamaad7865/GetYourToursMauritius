@@ -24,7 +24,13 @@ export type PostSummary = z.infer<typeof postSummarySchema>;
 
 /** Full blog post (api_get_post DTO) — matches PostContent in src/lib/content/blog.ts. */
 export const postSchema = postSummarySchema.extend({
-  sections: z.array(z.object({ heading: z.string(), paragraphs: z.array(z.string()) })),
+  sections: z.array(
+    z.object({
+      heading: z.string(),
+      paragraphs: z.array(z.string()),
+      imageUrl: z.string().nullish(),
+    }),
+  ),
   faq: z.array(z.object({ q: z.string(), a: z.string() })),
   status: z.enum(['draft', 'published']),
 });

@@ -12,8 +12,11 @@ export interface PostContent {
   metaDescription: string;
   excerpt: string;
   readMins: number;
-  sections: { heading: string; paragraphs: string[] }[];
+  /** `imageUrl` is an optional illustration under the section heading (admin-written posts only). */
+  sections: { heading: string; paragraphs: string[]; imageUrl?: string | null }[];
   faq: { q: string; a: string }[];
+  /** Cover photo (admin-written posts only) — hero band, index card thumb, OG/social image. */
+  heroImageUrl?: string | null;
 }
 
 export interface Post extends PostContent {

@@ -9,6 +9,7 @@ import {
   loadAdminPosts,
   savePost,
   saveRedirect,
+  uploadPostImage,
   type PostInput,
   type PostListItem,
 } from '@/lib/admin/seo-content';
@@ -21,6 +22,89 @@ import {
   TEXTAREA_CLS,
 } from '@/components/admin/ui';
 import { IconPlus, IconX } from '@/components/ui/icons';
+
+/** Photo picker: upload a file (→ Storage, public URL) or paste a URL, with preview + remove. */
+function ImageField({
+  label,
+  value,
+  slug,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  /** Post slug — prefixes the Storage path so a post's photos stay together. */
+  slug: string;
+  onChange: (url: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function upload(file: File) {
+    setError(null);
+    setUploading(true);
+    try {
+      onChange(await uploadPostImage(file, slug || 'post'));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Upload failed.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  return (
+    <div>
+      <span className="block text-[13px] font-semibold text-ink">{label}</span>
+      <div className="mt-1 flex flex-wrap items-center gap-3">
+        {value ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={value}
+            alt=""
+            className="h-16 w-24 shrink-0 rounded-lg border border-[#EAEEF0] object-cover"
+          />
+        ) : (
+          <span className="grid h-16 w-24 shrink-0 place-items-center rounded-lg border border-dashed border-[#D6DDE1] text-[11px] text-ink-muted">
+            No photo
+          </span>
+        )}
+        <label className={`${BTN_GHOST} cursor-pointer`}>
+          {uploading ? 'Uploading…' : 'Upload photo'}
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={uploading}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void upload(f);
+              e.target.value = '';
+            }}
+          />
+        </label>
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="…or paste an image URL"
+          className={`min-w-[200px] flex-1 ${INPUT_CLS}`}
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="text-sm font-bold text-coral-dark hover:underline"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      {error && (
+        <p role="alert" className="mt-1.5 text-[12.5px] font-medium text-coral-dark">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 const EMPTY_POST: PostInput = {
   slug: '',
@@ -160,6 +244,12 @@ function Editor({
               className={`mt-1 w-full ${TEXTAREA_CLS}`}
             />
           </label>
+          <ImageField
+            label="Cover photo (hero, blog card and social shares)"
+            value={v.heroImageUrl}
+            slug={v.slug}
+            onChange={(heroImageUrl) => set({ heroImageUrl })}
+          />
         </div>
       </section>
 
@@ -206,6 +296,20 @@ function Editor({
                 placeholder="Write the section text. Separate paragraphs with an empty line."
                 className={`mt-2 w-full ${TEXTAREA_CLS}`}
               />
+              <div className="mt-2">
+                <ImageField
+                  label="Section photo (optional — shown under the heading)"
+                  value={s.imageUrl ?? ''}
+                  slug={v.slug}
+                  onChange={(url) =>
+                    set({
+                      sections: v.sections.map((x, j) =>
+                        j === i ? { ...x, imageUrl: url || null } : x,
+                      ),
+                    })
+                  }
+                />
+              </div>
             </div>
           ))}
           <button

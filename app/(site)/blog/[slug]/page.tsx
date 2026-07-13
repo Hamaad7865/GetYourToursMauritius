@@ -57,7 +57,8 @@ export async function generateMetadata({
       url: `${SITE.url}${p.path}`,
       locale: 'en_GB',
       publishedTime: p.datePublished,
-      images: [OG_IMAGE],
+      // The post's own cover photo beats the site-wide default on social shares.
+      images: p.heroImageUrl ? [{ url: p.heroImageUrl }] : [OG_IMAGE],
     },
   };
 }
@@ -76,6 +77,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           description: p.metaDescription,
           path: p.path,
           datePublished: p.datePublished,
+          image: p.heroImageUrl,
         })}
       />
       <JsonLd
@@ -92,6 +94,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
         title={p.title}
         intro={p.excerpt}
         meta={`Published ${formatPostDate(p.datePublished)} by ${SITE.operator}`}
+        heroImage={p.heroImageUrl ?? undefined}
       >
         {/* Breadcrumb */}
         <nav
@@ -115,6 +118,15 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
               <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
                 {section.heading}
               </h2>
+              {section.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={section.imageUrl}
+                  alt={section.heading}
+                  loading="lazy"
+                  className="mt-4 w-full rounded-2xl border border-ink/10 object-cover"
+                />
+              )}
               <div className="mt-3 flex flex-col gap-3.5">
                 {section.paragraphs.map((para, i) => (
                   <p key={i} className="m-0 text-[15.5px] leading-relaxed text-ink/80">

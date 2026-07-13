@@ -62,9 +62,11 @@ describe('seo module: restricted role + content tables + public RPCs', () => {
       `insert into seo_meta (path, title, description) values ('/rent', 'Rental — SEO title', 'SEO description')`,
     );
     await db.pg.query(
-      `insert into posts (slug, title, status, published_at, sections)
-       values ('seo-written-post', 'A post by the SEO editor', 'published', '2026-07-01', '[{"heading":"Intro","paragraphs":["Hello"]}]'),
-              ('seo-draft-post', 'A draft', 'draft', null, '[]')`,
+      `insert into posts (slug, title, status, published_at, sections, hero_image_url)
+       values ('seo-written-post', 'A post by the SEO editor', 'published', '2026-07-01',
+               '[{"heading":"Intro","paragraphs":["Hello"],"imageUrl":"https://cdn.example/section.jpg"}]',
+               'https://cdn.example/hero.jpg'),
+              ('seo-draft-post', 'A draft', 'draft', null, '[]', null)`,
     );
     await db.pg.query(
       `insert into seo_redirects (from_path, to_path) values ('/old-tour', '/mauritius-tours')`,
@@ -117,11 +119,16 @@ describe('seo module: restricted role + content tables + public RPCs', () => {
     expect(list.map((p) => p.slug)).toEqual(['seo-written-post']);
     const draft = await call(db, 'api_get_post', { slug: 'seo-draft-post' });
     expect(draft).toBeNull();
-    const published = await call<{ slug: string; sections: unknown[] }>(db, 'api_get_post', {
-      slug: 'seo-written-post',
-    });
+    const published = await call<{
+      slug: string;
+      sections: Array<{ imageUrl?: string }>;
+      heroImageUrl: string | null;
+    }>(db, 'api_get_post', { slug: 'seo-written-post' });
     expect(published.slug).toBe('seo-written-post');
     expect(published.sections).toHaveLength(1);
+    // Photos round-trip: the cover + a per-section image survive the RPC DTO.
+    expect(published.heroImageUrl).toBe('https://cdn.example/hero.jpg');
+    expect(published.sections[0]?.imageUrl).toBe('https://cdn.example/section.jpg');
     // Direct table read agrees with the RPC (RLS, not just the function, hides drafts).
     const direct = await db.pg.query(`select slug from posts`);
     expect(direct.rows).toHaveLength(1);
