@@ -457,8 +457,12 @@ export default async function ActivityDetailPage({
                     {activity.pricingMode !== 'vehicle' &&
                       (activity.location || activity.meetingPoint) && (
                         <div className="mb-4">
+                          {/* Geocode the SAME string we caption (meeting point first): the meeting
+                              point is the concrete pickup and geocodes precisely, whereas `location`
+                              is often a broad region ("East") that resolves to the island centroid —
+                              which dropped the pin miles from the captioned address. */}
                           <LocationMap
-                            query={activity.location || activity.meetingPoint || activity.title}
+                            query={activity.meetingPoint || activity.location || activity.title}
                             label={activity.meetingPoint || activity.location || undefined}
                           />
                         </div>

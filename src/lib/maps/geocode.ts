@@ -44,7 +44,12 @@ export async function geocode(query: string): Promise<google.maps.LatLngLiteral 
       address: normalise(query),
       componentRestrictions: { country: 'MU' },
     });
-    const loc = results[0]?.geometry.location;
+    const top = results[0];
+    // A query Google can't resolve to a real place (a bare region like "East", or any string that
+    // only matches the country) comes back typed 'country' at the island centroid. That pin is never
+    // useful — it lands in the middle of Mauritius, far from the address we captioned — so treat it as
+    // not-found and let the caller fall back to the keyless "View on Google Maps" link instead.
+    const loc = top && !top.types.includes('country') ? top.geometry.location : null;
     const value = loc ? { lat: loc.lat(), lng: loc.lng() } : null;
     memCache.set(q, value);
     writeSession(q, value);
