@@ -24,7 +24,7 @@ const business = {
   locality: 'Belle Mare',
   region: 'Flacq',
   country: 'MU',
-  email: 'hello@getyourtoursmauritius.com',
+  email: 'bookings@getyourtoursmauritius.com',
   phone: '+230 5772 9919',
 };
 

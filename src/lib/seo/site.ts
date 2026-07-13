@@ -8,8 +8,9 @@ export const SITE = {
   brn: 'C09091906',
   /** VAT registration number. */
   vat: '20529965',
-  /** Support / data-protection contact. TODO: confirm the real mailbox once the domain is live. */
-  email: 'hello@getyourtoursmauritius.com',
+  /** Support / data-protection contact + the owner new-booking alert fallback (when OWNER_NOTIFY_EMAIL
+   *  is unset). Shown on the legal pages (privacy/terms/refunds/help/cookies) and the invoice. */
+  email: 'bookings@getyourtoursmauritius.com',
   alternateName: 'GetYourToursMauritius',
   description:
     "The official booking platform of Belle Mare Tours. Catamaran cruises, dolphin swims, sea walks and island days on Mauritius's east coast — booked direct, no reseller markup.",
