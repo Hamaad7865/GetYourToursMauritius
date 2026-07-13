@@ -7,7 +7,7 @@ import { usePreferences, useT } from '@/components/site/PreferencesProvider';
 import { formatLocaleDate } from '@/lib/i18n/format';
 import type { Locale } from '@/lib/i18n/config';
 import { Price } from '@/components/site/Price';
-import { ageBandLabel } from '@/lib/services/pricing';
+import { ageBandLabel, VEHICLE_BANDS } from '@/lib/services/pricing';
 import { activityFromPriceEur } from '@/lib/catalogue/options';
 import {
   IconBolt,
@@ -149,10 +149,26 @@ export function BookingWidget() {
   const primaryBandLabel = bandTiers.length
     ? bandTiers.reduce((a, t2) => (t2.amountEur > a.amountEur ? t2 : a)).label
     : null;
+  // A vehicle-priced SIGHTSEEING tour (not a transfer) DISPLAYS "per group up to N" — matching the
+  // catalogue card — where N is the capacity of the vehicle the current party needs (Sedan ≤4, Family
+  // car ≤6, …), so the label stays accurate as the party grows. TRANSFERS keep "per vehicle".
+  // Display-only: `unitLabel` stays 'per vehicle' in the provider so the cart/checkout vehicle-tour
+  // detection (unit === 'per vehicle') is untouched.
+  const vehicleGroupMax =
+    isVehicle && !isTransport
+      ? (
+          VEHICLE_BANDS.find((v) => participants <= v.max) ??
+          VEHICLE_BANDS[VEHICLE_BANDS.length - 1]!
+        ).max
+      : null;
   // `unitLabel` stays English in the provider (cart/checkout post it verbatim). Translate for display:
-  // the per-group form carries a number, so interpolate it; the rest are static keys.
+  // the per-group / vehicle forms carry a number, so interpolate it; the rest are static keys.
   const unitLabelText =
-    b.groupSize != null ? t('per group up to {n}', { n: b.groupSize }) : t(unitLabel);
+    vehicleGroupMax != null
+      ? t('per group up to {n}', { n: vehicleGroupMax })
+      : b.groupSize != null
+        ? t('per group up to {n}', { n: b.groupSize })
+        : t(unitLabel);
 
   const [open, setOpen] = useState<'parts' | 'date' | 'lang' | null>(null);
   const [view, setView] = useState(() => {
