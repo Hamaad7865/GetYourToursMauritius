@@ -278,7 +278,7 @@ export const fr: Record<string, string> = {
   Sat: 'sam',
   Sun: 'dim',
   'Select a date': 'Choisissez une date',
-  'per group up to {n}': 'par groupe jusqu’à {n}',
+  'per group up to {n} people': 'par groupe jusqu’à {n} personnes',
   'Choose your option': 'Choisissez votre option',
   '{count} options': '{count} options',
   'fits up to {n}': 'jusqu’à {n} personnes',

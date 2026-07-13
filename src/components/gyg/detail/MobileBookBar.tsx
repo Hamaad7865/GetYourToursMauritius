@@ -4,6 +4,7 @@ import { useBooking } from './BookingProvider';
 import { useT } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
 import { activityFromPriceEur } from '@/lib/catalogue/options';
+import { VEHICLE_BANDS } from '@/lib/services/pricing';
 
 /**
  * Mobile-only sticky bottom bar (phones/tablets) carrying the "From" price + a "Check availability"
@@ -13,8 +14,15 @@ export function MobileBookBar() {
   const t = useT();
   const b = useBooking();
   const price = activityFromPriceEur(b.activity);
-  const unitLabelText =
-    b.groupSize != null ? t('per group up to {n}', { n: b.groupSize }) : t(b.unitLabel);
+  // Mirror the desktop headline (BookingWidget): a vehicle-priced SIGHTSEEING tour reads "per group up
+  // to 4 people" (pinned to the entry Sedan the "From" price covers); transfers keep "per vehicle".
+  const isVehicleSightseeing =
+    b.activity.pricingMode === 'vehicle' && b.activity.type !== 'transport';
+  const unitLabelText = isVehicleSightseeing
+    ? t('per group up to {n} people', { n: VEHICLE_BANDS[0]!.max })
+    : b.groupSize != null
+      ? t('per group up to {n} people', { n: b.groupSize })
+      : t(b.unitLabel);
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">

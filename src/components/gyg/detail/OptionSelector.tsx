@@ -48,7 +48,7 @@ export function OptionSelector() {
           // translate it for display. The per-group form carries a number, so interpolate it.
           const unitNoteText =
             summary.maxGuests != null && summary.unitNote.startsWith('per group up to')
-              ? t('per group up to {n}', { n: summary.maxGuests })
+              ? t('per group up to {n} people', { n: summary.maxGuests })
               : t(summary.unitNote);
           return (
             <button

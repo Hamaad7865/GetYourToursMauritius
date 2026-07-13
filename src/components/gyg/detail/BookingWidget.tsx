@@ -149,26 +149,20 @@ export function BookingWidget() {
   const primaryBandLabel = bandTiers.length
     ? bandTiers.reduce((a, t2) => (t2.amountEur > a.amountEur ? t2 : a)).label
     : null;
-  // A vehicle-priced SIGHTSEEING tour (not a transfer) DISPLAYS "per group up to N" — matching the
-  // catalogue card — where N is the capacity of the vehicle the current party needs (Sedan ≤4, Family
-  // car ≤6, …), so the label stays accurate as the party grows. TRANSFERS keep "per vehicle".
-  // Display-only: `unitLabel` stays 'per vehicle' in the provider so the cart/checkout vehicle-tour
-  // detection (unit === 'per vehicle') is untouched.
-  const vehicleGroupMax =
-    isVehicle && !isTransport
-      ? (
-          VEHICLE_BANDS.find((v) => participants <= v.max) ??
-          VEHICLE_BANDS[VEHICLE_BANDS.length - 1]!
-        ).max
-      : null;
+  // A vehicle-priced SIGHTSEEING tour (not a transfer) DISPLAYS "per group up to 4 people" — matching
+  // the catalogue card. The headline "From €X" is the ENTRY Sedan rate (VEHICLE_BANDS[0], up to 4) and
+  // does NOT recompute with the party count, so the label is PINNED to 4: a bigger party auto-prices up
+  // to the next vehicle in the option card below, but this teaser always reflects the up-to-4 price.
+  // TRANSFERS keep "per vehicle". Display-only: `unitLabel` stays 'per vehicle' in the provider so the
+  // cart/checkout vehicle-tour detection (unit === 'per vehicle') is untouched.
+  const isVehicleSightseeing = isVehicle && !isTransport;
   // `unitLabel` stays English in the provider (cart/checkout post it verbatim). Translate for display:
   // the per-group / vehicle forms carry a number, so interpolate it; the rest are static keys.
-  const unitLabelText =
-    vehicleGroupMax != null
-      ? t('per group up to {n}', { n: vehicleGroupMax })
-      : b.groupSize != null
-        ? t('per group up to {n}', { n: b.groupSize })
-        : t(unitLabel);
+  const unitLabelText = isVehicleSightseeing
+    ? t('per group up to {n} people', { n: VEHICLE_BANDS[0]!.max })
+    : b.groupSize != null
+      ? t('per group up to {n} people', { n: b.groupSize })
+      : t(unitLabel);
 
   const [open, setOpen] = useState<'parts' | 'date' | 'lang' | null>(null);
   const [view, setView] = useState(() => {

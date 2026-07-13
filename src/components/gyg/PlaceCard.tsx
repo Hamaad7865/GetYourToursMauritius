@@ -52,10 +52,10 @@ export function PlaceCard({
   // fallback never badges a card that hasn't earned it.
   const rating = activityRating(activity);
   // Price unit follows what staff set. A TRANSFER reads "per vehicle" (a transfer genuinely prices per
-  // vehicle, capacity varies). A vehicle-priced SIGHTSEEING tour reads "per group up to N" — the "From"
-  // price is the entry Sedan (VEHICLE_BANDS[0], up to 4), which is clearer to customers than "per
+  // vehicle, capacity varies). A vehicle-priced SIGHTSEEING tour reads "per group up to 4 people" — the
+  // "From" price is the entry Sedan (VEHICLE_BANDS[0], up to 4), which is clearer to customers than "per
   // vehicle"; bigger parties auto-price up to the next vehicle on the detail page. per-group reads "per
-  // group up to N"; otherwise per person.
+  // group up to N people"; otherwise per person.
   const groupSize = activity.fromPriceMaxGuests;
   const unit =
     // A private-only activity's from-price is the flat charter base — "per person" would misstate a
@@ -65,12 +65,12 @@ export function PlaceCard({
       : activity.type === 'transport'
         ? t('per vehicle')
         : activity.pricingMode === 'vehicle'
-          ? t('per group up to {n}', { n: VEHICLE_BANDS[0]!.max })
+          ? t('per group up to {n} people', { n: VEHICLE_BANDS[0]!.max })
           : activity.pricingMode === 'per_group'
             ? // Always read as a group price; only append "up to N" when the size is known. Falling back
               // to "per person" for a per_group tour (missing maxGuests) misrepresents the price.
               groupSize && groupSize > 1
-              ? t('per group up to {n}', { n: groupSize })
+              ? t('per group up to {n} people', { n: groupSize })
               : t('per group')
             : t('per person');
   const duration = durationLabel(activity.durationMinutes, t);
