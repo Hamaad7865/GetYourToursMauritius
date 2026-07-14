@@ -41,7 +41,12 @@ function grad(seed: string): string {
 
 export function AdminActivities() {
   const { profile } = useAuth();
-  const isAdmin = profile?.role === 'admin' || profile?.role === 'staff';
+  // The restricted 'seo' content role is SHOWN the Tours nav item and RLS lets it edit tour copy
+  // (ActivityForm has a whole contentOnly path for it) — so it must be able to load the list, or the
+  // screen it was sent to renders a permanent skeleton. It still may not reorder or delete: sort is
+  // persisted by the staff-only api_reorder_activities RPC, and deleting a tour is not a copy edit.
+  const canView = profile?.role === 'admin' || profile?.role === 'staff' || profile?.role === 'seo';
+  const contentOnly = profile?.role === 'seo';
   const [rows, setRows] = useState<Row[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -75,8 +80,8 @@ export function AdminActivities() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) void load();
-  }, [isAdmin, load]);
+    if (canView) void load();
+  }, [canView, load]);
 
   async function remove(row: Row) {
     if (
@@ -126,7 +131,7 @@ export function AdminActivities() {
   // Drag-reorder only when the visible list == a WHOLE category (no other filter narrowing it), so the
   // persisted order covers exactly that category's cards. Cross-category drag is meaningless (sort is
   // per-category), so it's off in the "all" view.
-  const canReorder = category !== 'all' && status === 'all' && query.trim() === '';
+  const canReorder = !contentOnly && category !== 'all' && status === 'all' && query.trim() === '';
   const rowsRef = useRef<Row[] | null>(null);
   useEffect(() => {
     rowsRef.current = rows;
@@ -405,22 +410,24 @@ export function AdminActivities() {
                       >
                         Edit tour
                       </Link>
-                      <div className="mt-2 flex items-center justify-between">
-                        <Link
-                          href={`/admin/activities/${row.id}/availability`}
-                          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12.5px] font-bold text-ink-muted hover:text-teal"
-                        >
-                          <IconCalendar width={14} height={14} /> Availability
-                        </Link>
-                        <button
-                          type="button"
-                          disabled={busy === row.id}
-                          onClick={() => remove(row)}
-                          className="rounded-lg px-2 py-1.5 text-[12.5px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
-                        >
-                          {busy === row.id ? '…' : 'Delete'}
-                        </button>
-                      </div>
+                      {!contentOnly && (
+                        <div className="mt-2 flex items-center justify-between">
+                          <Link
+                            href={`/admin/activities/${row.id}/availability`}
+                            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12.5px] font-bold text-ink-muted hover:text-teal"
+                          >
+                            <IconCalendar width={14} height={14} /> Availability
+                          </Link>
+                          <button
+                            type="button"
+                            disabled={busy === row.id}
+                            onClick={() => remove(row)}
+                            className="rounded-lg px-2 py-1.5 text-[12.5px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
+                          >
+                            {busy === row.id ? '…' : 'Delete'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
