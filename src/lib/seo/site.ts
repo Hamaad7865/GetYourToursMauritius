@@ -9,9 +9,16 @@ export const SITE = {
   brn: 'C09091906',
   /** VAT registration number. */
   vat: '20529965',
-  /** Support / data-protection contact + the owner new-booking alert fallback (when OWNER_NOTIFY_EMAIL
-   *  is unset). Shown on the legal pages (privacy/terms/refunds/help/cookies) and the invoice. */
-  email: 'bookings@bellemaretours.com',
+  /**
+   * The HUMAN inbox — where customers actually write to us. Shown on /contact, the legal pages
+   * (privacy/terms/refunds/help/cookies) and the invoice, used as the Reply-To on every outbound
+   * email, and the owner-alert fallback when OWNER_NOTIFY_EMAIL is unset.
+   *
+   * NOT the sender. Transactional mail goes OUT as `RESEND_FROM`
+   * (Belle Mare Tours <bookings@bellemaretours.com>) — a send-only identity nobody monitors, which is
+   * why replies to it are pointed back here.
+   */
+  email: 'info@bellemaretours.com',
   description:
     "Belle Mare Tours — book direct with the operator. Catamaran cruises, dolphin swims, sea walks and island days on Mauritius's east coast, plus airport transfers and car rental. No reseller markup.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',

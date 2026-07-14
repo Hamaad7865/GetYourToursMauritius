@@ -77,7 +77,9 @@ Belle Mare Tours (internal alert)`,
 export class ResendNotificationProvider implements NotificationProvider {
   readonly name = 'resend';
 
-  constructor(private readonly config: { apiKey: string; from: string }) {}
+  /** `from` is the send-only transactional identity (bookings@…); `replyTo` is the monitored human
+   *  inbox (info@…), so a customer hitting Reply on a booking email reaches someone. */
+  constructor(private readonly config: { apiKey: string; from: string; replyTo?: string }) {}
 
   async send(message: NotificationMessage): Promise<void> {
     if (message.channel !== 'email') {
@@ -96,9 +98,13 @@ export class ResendNotificationProvider implements NotificationProvider {
       to: string;
       subject: string;
       text: string;
+      reply_to?: string;
       html?: string;
       attachments?: Array<{ filename: string; content: string }>;
     } = { from: this.config.from, to: message.recipient, subject, text };
+    // Mail goes out as bookings@ (send-only, unmonitored). Point Reply at the human inbox so a guest
+    // replying to their confirmation reaches us instead of a black hole.
+    if (this.config.replyTo) body.reply_to = this.config.replyTo;
     if (message.html) body.html = message.html;
     if (message.attachments?.length) {
       // Resend's attachment shape is { filename, content } where content is base64; it infers the

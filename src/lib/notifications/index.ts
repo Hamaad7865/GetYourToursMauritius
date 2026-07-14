@@ -1,5 +1,6 @@
 import { getServerEnv } from '@/lib/config/env';
 import { isProductionLikeRuntime } from '@/lib/config/runtime';
+import { SITE } from '@/lib/seo/site';
 import type { NotificationMessage, NotificationProvider } from './types';
 import { StubNotificationProvider } from './stub';
 import { FailClosedNotificationProvider } from './fail-closed';
@@ -47,7 +48,13 @@ export function getNotificationProvider(): NotificationProvider {
 
   const email =
     env.RESEND_API_KEY && env.RESEND_FROM
-      ? new ResendNotificationProvider({ apiKey: env.RESEND_API_KEY, from: env.RESEND_FROM })
+      ? new ResendNotificationProvider({
+          apiKey: env.RESEND_API_KEY,
+          // Sends AS bookings@… (RESEND_FROM), a send-only identity nobody reads.
+          from: env.RESEND_FROM,
+          // Replies land in the monitored human inbox (info@…) instead of a black hole.
+          replyTo: SITE.email,
+        })
       : fallback;
   const whatsapp =
     env.WHATSAPP_ACCESS_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID

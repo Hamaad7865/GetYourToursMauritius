@@ -121,6 +121,32 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
     expect(body.text).toBe('Pre-rendered text');
   });
 
+  it('sets Reply-To to the human inbox — mail goes out as bookings@ but replies must reach a person', async () => {
+    const { calls } = mockFetch();
+    await new ResendNotificationProvider({ ...CONFIG, replyTo: 'info@example.com' }).send({
+      id: 'n5',
+      channel: 'email',
+      recipient: 'guest@example.com',
+      template: 'booking_confirmation',
+      payload: { ref: 'BMT-5' },
+    });
+    const { body } = onlyCall(calls);
+    expect(body.from).toBe('bookings@example.com'); // send-only identity
+    expect(body.reply_to).toBe('info@example.com'); // monitored inbox
+  });
+
+  it('omits reply_to entirely when no inbox is configured', async () => {
+    const { calls } = mockFetch();
+    await new ResendNotificationProvider(CONFIG).send({
+      id: 'n6',
+      channel: 'email',
+      recipient: 'guest@example.com',
+      template: 'booking_confirmation',
+      payload: { ref: 'BMT-6' },
+    });
+    expect('reply_to' in onlyCall(calls).body).toBe(false);
+  });
+
   it('renders the booking_expired template with the ref + customer name', async () => {
     const { calls } = mockFetch();
 
