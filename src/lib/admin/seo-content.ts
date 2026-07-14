@@ -148,9 +148,7 @@ export async function savePost(input: PostInput, originalSlug?: string): Promise
         return out;
       })
       .filter((s) => s.heading || s.paragraphs.length || s.imageUrl),
-    faq: input.faq
-      .map((f) => ({ q: f.q.trim(), a: f.a.trim() }))
-      .filter((f) => f.q && f.a),
+    faq: input.faq.map((f) => ({ q: f.q.trim(), a: f.a.trim() })).filter((f) => f.q && f.a),
     hero_image_url: input.heroImageUrl.trim() || null,
     status: input.status,
     published_at:

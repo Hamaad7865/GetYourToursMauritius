@@ -9,9 +9,9 @@
 | Field                   | Value                                              |
 | ----------------------- | -------------------------------------------------- |
 | Controller              | Belle Mare Tours Ltd (BRN C09091906, VAT 20529965) |
-| Platform                | Belle Mare Tours (Belle Mare Tours)           |
+| Platform                | Belle Mare Tours (Belle Mare Tours)                |
 | Address                 | Royal Road, Belle Mare, Flacq, Mauritius           |
-| Data-protection contact | hello@bellemaretours.com                    |
+| Data-protection contact | hello@bellemaretours.com                           |
 | Supervisory authority   | Data Protection Office, Mauritius                  |
 
 ## Roles (who does what — **TODO: owner to assign names/contacts**)

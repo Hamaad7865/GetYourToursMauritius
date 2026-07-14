@@ -25,7 +25,12 @@ const DEFAULTS: Metadata = {
   title: { absolute: 'Default Title' },
   description: 'Default description',
   alternates: { canonical: '/rent' },
-  openGraph: { type: 'website', title: 'Default Title', description: 'Default description', locale: 'en_GB' },
+  openGraph: {
+    type: 'website',
+    title: 'Default Title',
+    description: 'Default description',
+    locale: 'en_GB',
+  },
 };
 
 beforeEach(() => {

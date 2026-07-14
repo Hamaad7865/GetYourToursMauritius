@@ -255,10 +255,10 @@ export default function PrivacyPage() {
           <Callout tone="info" title="How to exercise your rights">
             <P>
               <strong>If you have an account</strong>, the quickest way is the{' '}
-              <Link href="/account/privacy">Data &amp; privacy</Link> section of your account. There you
-              can <strong>Download my data</strong> (a copy of your profile and booking history) or{' '}
-              <strong>Delete my account</strong> (which removes your personal details; paid bookings
-              are anonymised for the legal reasons above).
+              <Link href="/account/privacy">Data &amp; privacy</Link> section of your account. There
+              you can <strong>Download my data</strong> (a copy of your profile and booking history)
+              or <strong>Delete my account</strong> (which removes your personal details; paid
+              bookings are anonymised for the legal reasons above).
             </P>
             <P>
               <strong>If you booked as a guest, or want to make a written request</strong>, email{' '}

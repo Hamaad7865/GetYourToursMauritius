@@ -26,7 +26,9 @@ describe('seo module: restricted role + content tables + public RPCs', () => {
   beforeAll(async () => {
     db = await createTestDb();
     await db.asOwner();
-    await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`);
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
     const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
       .rows[0]!.id;
     await db.pg.query(`insert into auth.users (id) values ($1), ($2)`, [SEO_USER, CUSTOMER]);
@@ -71,7 +73,8 @@ describe('seo module: restricted role + content tables + public RPCs', () => {
     await db.pg.query(
       `insert into seo_redirects (from_path, to_path) values ('/old-tour', '/mauritius-tours')`,
     );
-    const n = (await db.pg.query<{ c: number }>(`select count(*)::int as c from seo_meta`)).rows[0]!;
+    const n = (await db.pg.query<{ c: number }>(`select count(*)::int as c from seo_meta`))
+      .rows[0]!;
     expect(n.c).toBe(1);
   });
 

@@ -11,11 +11,11 @@
 | Field                              | Value                                                                                                                                                 |
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Controller (legal entity)          | Belle Mare Tours Ltd                                                                                                                                  |
-| Trading as / platform              | Belle Mare Tours (Belle Mare Tours)                                                                                                              |
+| Trading as / platform              | Belle Mare Tours (Belle Mare Tours)                                                                                                                   |
 | Business Registration Number (BRN) | C09091906                                                                                                                                             |
 | VAT registration number            | 20529965                                                                                                                                              |
 | Registered address                 | Royal Road, Belle Mare, Flacq, Mauritius                                                                                                              |
-| Data-protection contact            | hello@bellemaretours.com                                                                                                                       |
+| Data-protection contact            | hello@bellemaretours.com                                                                                                                              |
 | DPO / responsible person           | **TODO — owner to designate** (name, role, contact). Mauritius DPA 2017 does not always mandate a DPO, but a named responsible person is recommended. |
 | Supervisory authority              | Data Protection Office, Mauritius                                                                                                                     |
 

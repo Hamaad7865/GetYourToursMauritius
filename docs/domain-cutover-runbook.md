@@ -9,13 +9,13 @@ web last.** Do not skip ahead — the one thing that goes irreversibly wrong in 
 
 ## 0. What is actually moving
 
-| Thing | Before | After |
-| --- | --- | --- |
-| **DNS management** | Evolosis | ➡️ **Cloudflare** |
-| **Web traffic** (`bellemaretours.com`) | 302 → visitemaurice.com | ➡️ **Cloudflare Pages** (this app) |
-| **Mailboxes** (`imap`/`smtp.bellemaretours.com`) | Evolosis | ⛔ **stays on Evolosis** |
-| **WordPress site** | visitemaurice.com | ⛔ **stays exactly as it is** |
-| **Domain registration** | wherever it's registered | ⛔ **no transfer needed** |
+| Thing                                            | Before                   | After                              |
+| ------------------------------------------------ | ------------------------ | ---------------------------------- |
+| **DNS management**                               | Evolosis                 | ➡️ **Cloudflare**                  |
+| **Web traffic** (`bellemaretours.com`)           | 302 → visitemaurice.com  | ➡️ **Cloudflare Pages** (this app) |
+| **Mailboxes** (`imap`/`smtp.bellemaretours.com`) | Evolosis                 | ⛔ **stays on Evolosis**           |
+| **WordPress site**                               | visitemaurice.com        | ⛔ **stays exactly as it is**      |
+| **Domain registration**                          | wherever it's registered | ⛔ **no transfer needed**          |
 
 Only DNS + web move. **You do not need to transfer the domain registrar**, and you must not move the
 hosting or the mailboxes.
@@ -25,10 +25,10 @@ hosting or the mailboxes.
 
 ### The two mailboxes
 
-| Mailbox | Job | Who reads it |
-| --- | --- | --- |
-| `bookings@bellemaretours.com` | **Outbound only.** The identity the app sends confirmations, vouchers and invoices *as* (`RESEND_FROM`). | Nobody — it's a send-only identity. |
-| `info@bellemaretours.com` | **The human inbox.** Shown on the site (contact + legal pages), receives owner alerts, and is the **Reply-To** on every mail we send. | **You.** |
+| Mailbox                       | Job                                                                                                                                   | Who reads it                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `bookings@bellemaretours.com` | **Outbound only.** The identity the app sends confirmations, vouchers and invoices _as_ (`RESEND_FROM`).                              | Nobody — it's a send-only identity. |
+| `info@bellemaretours.com`     | **The human inbox.** Shown on the site (contact + legal pages), receives owner alerts, and is the **Reply-To** on every mail we send. | **You.**                            |
 
 The app sets `Reply-To: info@…` on every outbound email, so a guest hitting **Reply** on their booking
 confirmation reaches you rather than an unwatched mailbox. In code this is `SITE.email`
@@ -55,26 +55,26 @@ confirmation reaches you rather than an unwatched mailbox. In code this is `SITE
 - [ ] Cloudflare scans and **imports** the existing DNS records.
 
 > ⚠️ **The import is best-effort and routinely misses records.** Cloudflare can only guess at common
-> subdomains — it cannot enumerate a zone it doesn't control. Treat the import as a *starting point*,
+> subdomains — it cannot enumerate a zone it doesn't control. Treat the import as a _starting point_,
 > never as "done".
 
 - [ ] **Diff it against your Evolosis export.** Add, by hand, anything missing. Pay attention to:
 
-| Record | Why it matters |
-| --- | --- |
-| **MX** | Inbound mail. Miss this → **you stop receiving email.** |
-| `A` for `mail`, `imap`, `smtp`, `webmail` | Your mail clients connect to these hosts. |
-| **SPF** (`TXT`, starts `v=spf1`) | Miss it → your mail gets marked spam. |
-| **DKIM** (`TXT`, e.g. `default._domainkey`) | Same. |
-| **DMARC** (`TXT` on `_dmarc`) | Same. |
-| `autodiscover` / `autoconfig` | Outlook/Thunderbird auto-setup. |
-| Any other `TXT` (domain verifications) | e.g. Google/Microsoft ownership proofs. |
+| Record                                      | Why it matters                                          |
+| ------------------------------------------- | ------------------------------------------------------- |
+| **MX**                                      | Inbound mail. Miss this → **you stop receiving email.** |
+| `A` for `mail`, `imap`, `smtp`, `webmail`   | Your mail clients connect to these hosts.               |
+| **SPF** (`TXT`, starts `v=spf1`)            | Miss it → your mail gets marked spam.                   |
+| **DKIM** (`TXT`, e.g. `default._domainkey`) | Same.                                                   |
+| **DMARC** (`TXT` on `_dmarc`)               | Same.                                                   |
+| `autodiscover` / `autoconfig`               | Outlook/Thunderbird auto-setup.                         |
+| Any other `TXT` (domain verifications)      | e.g. Google/Microsoft ownership proofs.                 |
 
 - [ ] 🔴 **Set every mail-related record to "DNS only" (grey cloud) — never proxied (orange cloud).**
       Cloudflare's proxy only carries HTTP/HTTPS. Orange-clouding `mail`/`imap`/`smtp`
       **silently breaks email.** This is the single most common way people destroy their mail.
 - [ ] **Leave the web records pointing where they already point.** Do not connect Pages yet. After the
-      nameserver switch the site should behave *exactly as it does today* — that's how you know DNS
+      nameserver switch the site should behave _exactly as it does today_ — that's how you know DNS
       moved cleanly and nothing else changed.
 
 ---
@@ -123,24 +123,22 @@ Only now does the site actually move.
 
 ## 6. Mailboxes + Resend (sending)
 
-- [ ] In Evolosis, create the two mailboxes:
-      - `bookings@bellemaretours.com` (send-only identity)
-      - `info@bellemaretours.com` (**the inbox you actually read**)
+- [ ] In Evolosis, create the two mailboxes: - `bookings@bellemaretours.com` (send-only identity) - `info@bellemaretours.com` (**the inbox you actually read**)
 - [ ] Resend → **add + verify the domain** `bellemaretours.com`; add the DNS records it gives you
       (in Cloudflare, **DNS only / grey cloud**).
 - [ ] Pages env: `RESEND_FROM=Belle Mare Tours <bookings@bellemaretours.com>` and `RESEND_API_KEY=…`
-- [ ] *(Optional)* `OWNER_NOTIFY_EMAIL=info@bellemaretours.com` — if unset it already defaults to
+- [ ] _(Optional)_ `OWNER_NOTIFY_EMAIL=info@bellemaretours.com` — if unset it already defaults to
       `SITE.email` (`info@…`), so you can skip it.
 
 ### 🔴 The SPF footgun — read this
 
 **A domain may only have ONE SPF record.** You already have one from Evolosis (for your mailboxes). If
-you *add a second* SPF `TXT` for Resend, SPF hits a `permerror` and **your deliverability collapses**.
+you _add a second_ SPF `TXT` for Resend, SPF hits a `permerror` and **your deliverability collapses**.
 
 Two correct options:
 
 1. **Sending subdomain (recommended, safest).** Verify Resend on `send.bellemaretours.com`. Its SPF
-   lives on the subdomain and can't collide with your inbox's SPF at the root. Mail still *displays*
+   lives on the subdomain and can't collide with your inbox's SPF at the root. Mail still _displays_
    as coming from `bookings@bellemaretours.com`.
 2. **Merge into one record.** Keep a single root SPF containing both:
    `v=spf1 include:<evolosis-include> include:<resend-include> ~all`
@@ -174,10 +172,10 @@ DKIM and DMARC are fine — those are per-selector and don't collide.
 
 ## Rollback summary
 
-| Broke | Do this |
-| --- | --- |
-| **Email** | Restore the Evolosis nameservers at the registrar. |
-| **Website** | Remove the custom domain from Pages, or point the DNS record back. |
+| Broke          | Do this                                                                      |
+| -------------- | ---------------------------------------------------------------------------- |
+| **Email**      | Restore the Evolosis nameservers at the registrar.                           |
+| **Website**    | Remove the custom domain from Pages, or point the DNS record back.           |
 | **Everything** | Nameservers back to Evolosis. WordPress/visitemaurice.com was never touched. |
 
 Keep the old records in your export until you've been live and stable for a couple of weeks.

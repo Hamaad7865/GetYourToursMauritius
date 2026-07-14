@@ -201,24 +201,24 @@ export function AdminShell({ children }: { children: ReactNode }) {
             <IconMenu width={19} height={19} />
           </button>
           {!isSeoRole && (
-          <form
-            onSubmit={submitSearch}
-            role="search"
-            className="relative hidden max-w-md flex-1 sm:block"
-          >
-            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted">
-              <IconSearch width={17} height={17} />
-            </span>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              type="search"
-              enterKeyHint="search"
-              aria-label="Search bookings and customers"
-              placeholder="Search bookings, customers…"
-              className="w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] py-2.5 pl-10 pr-3 text-sm text-ink outline-none focus:border-teal focus:bg-white"
-            />
-          </form>
+            <form
+              onSubmit={submitSearch}
+              role="search"
+              className="relative hidden max-w-md flex-1 sm:block"
+            >
+              <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted">
+                <IconSearch width={17} height={17} />
+              </span>
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                type="search"
+                enterKeyHint="search"
+                aria-label="Search bookings and customers"
+                placeholder="Search bookings, customers…"
+                className="w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] py-2.5 pl-10 pr-3 text-sm text-ink outline-none focus:border-teal focus:bg-white"
+              />
+            </form>
           )}
           <div className="ml-auto flex items-center gap-2.5">
             {!isSeoRole && <AdminBell />}

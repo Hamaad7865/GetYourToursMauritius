@@ -148,7 +148,8 @@ function Editor({
   async function save(publish?: boolean) {
     if (!v) return;
     setError(null);
-    const next: PostInput = publish === undefined ? v : { ...v, status: publish ? 'published' : 'draft' };
+    const next: PostInput =
+      publish === undefined ? v : { ...v, status: publish ? 'published' : 'draft' };
     if (!next.title.trim()) return setError('The post needs a title.');
     if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(next.slug.trim()))
       return setError('The URL slug can only contain lowercase letters, numbers and dashes.');
@@ -371,10 +372,20 @@ function Editor({
 
       {error && <AdminError>{error}</AdminError>}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="button" disabled={busy} onClick={() => void save(true)} className={BTN_PRIMARY}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void save(true)}
+          className={BTN_PRIMARY}
+        >
           {v.status === 'published' ? 'Save & keep published' : 'Publish'}
         </button>
-        <button type="button" disabled={busy} onClick={() => void save(false)} className={BTN_GHOST}>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void save(false)}
+          className={BTN_GHOST}
+        >
           Save as draft
         </button>
         <button type="button" disabled={busy} onClick={onDone} className={BTN_GHOST}>
@@ -397,8 +408,7 @@ function Editor({
 
 export function AdminBlog() {
   const { profile } = useAuth();
-  const canEdit =
-    profile?.role === 'admin' || profile?.role === 'staff' || profile?.role === 'seo';
+  const canEdit = profile?.role === 'admin' || profile?.role === 'staff' || profile?.role === 'seo';
   const [items, setItems] = useState<PostListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   // null = list view; '' = new post; a slug = editing that post.

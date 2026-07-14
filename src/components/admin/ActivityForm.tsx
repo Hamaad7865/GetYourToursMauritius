@@ -291,26 +291,26 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             </p>
           </Field>
           {!contentOnly && (
-          <Field label="Pricing">
-            <select
-              className={inputClass}
-              value={v.pricingMode}
-              onChange={(e) =>
-                set('pricingMode', e.target.value as ActivityFormValues['pricingMode'])
-              }
-            >
-              <option value="per_person">Per person (price × people)</option>
-              <option value="per_group">Per group (one price per group of N)</option>
-              <option value="vehicle">Sightseeing vehicle (flat per-vehicle price)</option>
-            </select>
-            <p className="mt-1.5 text-[12px] text-ink-muted">
-              {v.pricingMode === 'vehicle'
-                ? 'Sightseeing vehicle pricing is global, one flat price per vehicle: Sedan €70 / SUV €85 (1–4), Family car €85 (5–6), Van €125 (7–14), Coaster €225 (15–25), capped at 25. Applies to every vehicle-priced tour — no per-tour tiers. Change it in the sightseeing_pricing table.'
-                : v.pricingMode === 'per_group'
-                  ? 'The price buys one group of up to “fits up to” people; bigger parties pay for extra groups (ceil(people / size) × price).'
-                  : 'Each guest pays the tier price. “Fits up to” is an optional hard cap per tier.'}
-            </p>
-          </Field>
+            <Field label="Pricing">
+              <select
+                className={inputClass}
+                value={v.pricingMode}
+                onChange={(e) =>
+                  set('pricingMode', e.target.value as ActivityFormValues['pricingMode'])
+                }
+              >
+                <option value="per_person">Per person (price × people)</option>
+                <option value="per_group">Per group (one price per group of N)</option>
+                <option value="vehicle">Sightseeing vehicle (flat per-vehicle price)</option>
+              </select>
+              <p className="mt-1.5 text-[12px] text-ink-muted">
+                {v.pricingMode === 'vehicle'
+                  ? 'Sightseeing vehicle pricing is global, one flat price per vehicle: Sedan €70 / SUV €85 (1–4), Family car €85 (5–6), Van €125 (7–14), Coaster €225 (15–25), capped at 25. Applies to every vehicle-priced tour — no per-tour tiers. Change it in the sightseeing_pricing table.'
+                  : v.pricingMode === 'per_group'
+                    ? 'The price buys one group of up to “fits up to” people; bigger parties pay for extra groups (ceil(people / size) × price).'
+                    : 'Each guest pays the tier price. “Fits up to” is an optional hard cap per tier.'}
+              </p>
+            </Field>
           )}
           <div className="grid gap-5 sm:grid-cols-2">
             <StringList
@@ -345,44 +345,44 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
       </Section>
 
       {!contentOnly && (
-      <Section
-        title="Options & pricing"
-        hint="Each option (e.g. Shared, Private) has price tiers: a label, a € price, and a “fits up to” number. Its meaning follows the Pricing mode above — a per-tier cap (per person) or the group size (per group)."
-      >
-        {v.pricingMode === 'vehicle' ? (
-          <>
-            <p className="rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
-              Vehicle-priced tours use the global flat prices (Sedan €70 / SUV €85 / Family €85 /
-              Van €125 / Coaster €225 · max 25). Add a single option (e.g. “Sightseeing”) so dates
-              can be scheduled — no price tiers required.
-            </p>
-            {v.options.some((o) => o.isPrivateOption) && (
-              // The options editor is hidden in vehicle mode, so without this the save error
-              // ("private option isn't available on vehicle-priced tours") had no visible fix.
-              <div className="mt-2.5 flex flex-wrap items-center gap-3 rounded-lg border border-coral/40 bg-coral/5 px-3 py-2.5 text-[12.5px] text-ink">
-                <span>
-                  This tour still has a <b>Private option</b> — not available with vehicle pricing,
-                  so saving will fail until it&rsquo;s removed.
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    set(
-                      'options',
-                      v.options.map((o) => ({ ...o, isPrivateOption: false })),
-                    )
-                  }
-                  className="rounded-lg border border-coral/50 px-2.5 py-1 text-[12px] font-bold text-coral-dark hover:bg-coral/10"
-                >
-                  Remove private option
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
-        )}
-      </Section>
+        <Section
+          title="Options & pricing"
+          hint="Each option (e.g. Shared, Private) has price tiers: a label, a € price, and a “fits up to” number. Its meaning follows the Pricing mode above — a per-tier cap (per person) or the group size (per group)."
+        >
+          {v.pricingMode === 'vehicle' ? (
+            <>
+              <p className="rounded-lg bg-teal/5 px-3 py-2 text-[12.5px] text-ink-muted">
+                Vehicle-priced tours use the global flat prices (Sedan €70 / SUV €85 / Family €85 /
+                Van €125 / Coaster €225 · max 25). Add a single option (e.g. “Sightseeing”) so dates
+                can be scheduled — no price tiers required.
+              </p>
+              {v.options.some((o) => o.isPrivateOption) && (
+                // The options editor is hidden in vehicle mode, so without this the save error
+                // ("private option isn't available on vehicle-priced tours") had no visible fix.
+                <div className="mt-2.5 flex flex-wrap items-center gap-3 rounded-lg border border-coral/40 bg-coral/5 px-3 py-2.5 text-[12.5px] text-ink">
+                  <span>
+                    This tour still has a <b>Private option</b> — not available with vehicle
+                    pricing, so saving will fail until it&rsquo;s removed.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      set(
+                        'options',
+                        v.options.map((o) => ({ ...o, isPrivateOption: false })),
+                      )
+                    }
+                    className="rounded-lg border border-coral/50 px-2.5 py-1 text-[12px] font-bold text-coral-dark hover:bg-coral/10"
+                  >
+                    Remove private option
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
+            <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
+          )}
+        </Section>
       )}
 
       <Section

@@ -3,12 +3,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { SEO_PAGES, type SeoPage } from '@/lib/seo/page-registry';
+import { loadSeoMetaOverrides, saveSeoMeta, type SeoMetaInput } from '@/lib/admin/seo-content';
 import {
-  loadSeoMetaOverrides,
-  saveSeoMeta,
-  type SeoMetaInput,
-} from '@/lib/admin/seo-content';
-import { AdminHeading, AdminError, BTN_PRIMARY, BTN_GHOST, INPUT_CLS, TEXTAREA_CLS } from '@/components/admin/ui';
+  AdminHeading,
+  AdminError,
+  BTN_PRIMARY,
+  BTN_GHOST,
+  INPUT_CLS,
+  TEXTAREA_CLS,
+} from '@/components/admin/ui';
 
 /** Google-recommended display budgets — counters turn coral past them (a hint, not a hard cap). */
 const TITLE_BUDGET = 60;
@@ -16,7 +19,9 @@ const DESC_BUDGET = 160;
 
 function Counter({ len, budget }: { len: number; budget: number }) {
   return (
-    <span className={`text-[11.5px] font-semibold ${len > budget ? 'text-coral' : 'text-ink-muted'}`}>
+    <span
+      className={`text-[11.5px] font-semibold ${len > budget ? 'text-coral' : 'text-ink-muted'}`}
+    >
       {len}/{budget}
     </span>
   );
@@ -70,7 +75,9 @@ function PageCard({
 
       {/* Google-style snippet preview */}
       <div className="mt-3 rounded-xl border border-[#EAEEF0] bg-[#F7F8FA] px-4 py-3">
-        <p className="truncate text-[13px] text-[#1a6f38]">bellemaretours.com{page.path === '/' ? '' : page.path}</p>
+        <p className="truncate text-[13px] text-[#1a6f38]">
+          bellemaretours.com{page.path === '/' ? '' : page.path}
+        </p>
         <p className="mt-0.5 truncate text-[16.5px] font-medium text-[#1a0dab]">{shownTitle}</p>
         <p className="mt-0.5 line-clamp-2 text-[13px] text-ink/70">{shownDesc}</p>
       </div>
@@ -141,8 +148,7 @@ function PageCard({
 
 export function AdminSeoMeta() {
   const { profile } = useAuth();
-  const canEdit =
-    profile?.role === 'admin' || profile?.role === 'staff' || profile?.role === 'seo';
+  const canEdit = profile?.role === 'admin' || profile?.role === 'staff' || profile?.role === 'seo';
   const [overrides, setOverrides] = useState<Map<string, SeoMetaInput> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

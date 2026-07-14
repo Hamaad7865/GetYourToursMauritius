@@ -27,8 +27,7 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default:
-      'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi',
+    default: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi',
     template: '%s | Belle Mare Tours',
   },
   description:

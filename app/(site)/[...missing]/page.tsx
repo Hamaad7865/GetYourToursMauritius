@@ -10,11 +10,7 @@ export const runtime = 'edge';
  * path costs one indexed lookup, then either a permanent redirect or the normal 404. Build-time
  * redirects (next.config.mjs) still run first and never reach this.
  */
-export default async function MissingPage({
-  params,
-}: {
-  params: Promise<{ missing: string[] }>;
-}) {
+export default async function MissingPage({ params }: { params: Promise<{ missing: string[] }> }) {
   const { missing } = await params;
   const path = `/${missing.map((s) => decodeURIComponent(s)).join('/')}`;
   let to: string | null = null;

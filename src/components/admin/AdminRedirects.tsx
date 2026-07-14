@@ -16,8 +16,7 @@ const LIVE_PATHS = new Set(SEO_PAGES.map((p) => p.path));
 
 export function AdminRedirects() {
   const { profile } = useAuth();
-  const canEdit =
-    profile?.role === 'admin' || profile?.role === 'staff' || profile?.role === 'seo';
+  const canEdit = profile?.role === 'admin' || profile?.role === 'staff' || profile?.role === 'seo';
   const [rows, setRows] = useState<RedirectRow[] | null>(null);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
