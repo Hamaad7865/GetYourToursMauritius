@@ -110,24 +110,29 @@ function VehicleCard({
       <VehicleArt vehicle={vehicle} />
       <div>
         <p className="text-[15px] font-extrabold leading-tight text-ink">{vehicle.name}</p>
-        <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink-muted">
-          <span>{categoryLabel(vehicle)}</span>
-          <span aria-hidden>·</span>
-          <IconUsers width={13} height={13} className="text-ink-muted" />
-          <span>{vehicle.seats}</span>
+        {/* Wraps within the card on narrow widths (2–3 cards per row). Each "· item" is a nowrap group so
+            a separator never lands orphaned at the start of a wrapped line, and the row can never spill
+            past the card's right edge (the old single-line flex clipped "A/C"). */}
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12.5px] text-ink-muted">
+          <span className="whitespace-nowrap">{categoryLabel(vehicle)}</span>
+          <span className="inline-flex items-center gap-1 whitespace-nowrap">
+            <span aria-hidden>·</span>
+            <IconUsers width={13} height={13} className="text-ink-muted" />
+            {vehicle.seats}
+          </span>
           {vehicle.transmission && (
-            <>
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap capitalize">
               <span aria-hidden>·</span>
-              <span className="capitalize">{vehicle.transmission}</span>
-            </>
+              {vehicle.transmission}
+            </span>
           )}
           {vehicle.airCon && !isScooter(vehicle) && (
-            <>
+            <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
               <span aria-hidden>·</span>
-              <span>A/C</span>
-            </>
+              A/C
+            </span>
           )}
-        </p>
+        </div>
       </div>
       <p className="mt-auto text-[15px] font-extrabold text-teal">
         {euro(vehicle.dailyRateEur)}
