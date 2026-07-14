@@ -117,7 +117,7 @@ The repo is **already configured** for Pages (`wrangler.toml` → `pages_build_o
 Cloudflare project was a **Worker** running `npm run build` + `npx wrangler versions upload` (a mismatch).
 
 **⚠️ PENDING / YOUR SIDE:** create a **Pages** project (Workers & Pages → Create → Pages → Connect to Git →
-`GetYourToursMauritius`):
+`Belle Mare Tours`):
 
 - Production branch: `main`
 - Framework preset: **None**
@@ -172,7 +172,7 @@ contained change, no urgency.
 - `d05bda9` planner pre-push review fixes
 - earlier merges: planner hand-off / promo / pickup-dropoff / quote modal; booking-widget layout
 
-PR #28: https://github.com/Hamaad7865/GetYourToursMauritius/pull/28 (merged)
+PR #28: https://github.com/Hamaad7865/Belle Mare Tours/pull/28 (merged)
 
 ---
 

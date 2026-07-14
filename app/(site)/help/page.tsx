@@ -8,7 +8,9 @@ import { SITE } from '@/lib/seo/site';
 export const runtime = 'edge';
 
 const DEFAULT_METADATA: Metadata = {
-  title: `Help centre · ${SITE.operator}`,
+  // absolute: the title already names the brand — without this the root "%s | Belle Mare Tours"
+  // template would append it a second time.
+  title: { absolute: `Help centre · ${SITE.operator}` },
   description: `Answers about booking, payment, pickups, vouchers, cancellations and your account with ${SITE.operator} — plus how to reach our local team in Mauritius.`,
   alternates: { canonical: '/help' },
 };

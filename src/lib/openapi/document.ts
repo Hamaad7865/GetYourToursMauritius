@@ -8,7 +8,7 @@ export function buildOpenApiDocument() {
   return createDocument({
     openapi: '3.1.0',
     info: {
-      title: 'GetYourToursMauritius API',
+      title: 'Belle Mare Tours API',
       version: '1.0.0',
       description:
         'API-first backend for Belle Mare Tours — catalogue, availability, bookings, payments and the AI assistant. The same token-authenticated API serves web and mobile clients.',

@@ -16,7 +16,7 @@ import type { TourSummary } from '@/lib/validation/tours';
 export const runtime = 'edge';
 
 const DEFAULT_METADATA: Metadata = {
-  // `absolute` so the root layout's "%s | GetYourToursMauritius" template doesn't push the homepage
+  // `absolute` so the root layout's "%s | Belle Mare Tours" template doesn't push the homepage
   // title past a sensible SERP length.
   title: { absolute: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi' },
   description:

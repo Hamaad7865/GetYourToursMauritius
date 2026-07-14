@@ -29,7 +29,7 @@ export function organizationJsonLd(): Record<string, unknown> {
     '@type': 'TravelAgency',
     '@id': `${SITE.url}/#operator`,
     name: SITE.operator,
-    alternateName: SITE.alternateName,
+    legalName: SITE.legalName,
     url: SITE.url,
     image: `${SITE.url}/hero-mauritius.jpg`,
     logo: `${SITE.url}/logo.png`,

@@ -1,5 +1,5 @@
 -- ============================================================================
--- One-time admin setup for GetYourToursMauritius.
+-- One-time admin setup for Belle Mare Tours.
 -- Run this ONCE against the LIVE database, e.g. in the Supabase SQL editor
 -- (or: npx tsx scripts/db-exec.ts supabase/admin-setup.sql).
 --

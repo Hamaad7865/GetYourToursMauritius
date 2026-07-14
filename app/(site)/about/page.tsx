@@ -42,11 +42,11 @@ const INK = '#11201F';
 /** Heading helper: applies the Bricolage display face inline. */
 const displayFont = { fontFamily: 'var(--font-about-display), sans-serif' } as const;
 
-const metaTitle = `About Belle Mare Tours — your local Mauritius tour operator | GetYourToursMauritius`;
+const metaTitle = `About Belle Mare Tours — your local Mauritius tour operator`;
 const metaDescription = `Belle Mare Tours Ltd is a licensed Mauritian tour & airport-transfer operator on the east coast, run by veteran driver-guide Noorani. Book direct for transparent fixed EUR prices, the same guide all day, and door-to-door pickup island-wide.`;
 
 const DEFAULT_METADATA: Metadata = {
-  // absolute: metaTitle already ends in the brand — stop the root template appending a second one.
+  // absolute: metaTitle already names the brand — stop the root template appending a second one.
   title: { absolute: metaTitle },
   description: metaDescription,
   alternates: { canonical: '/about' },
@@ -824,7 +824,7 @@ export default async function AboutPage() {
           </div>
         </section>
 
-        {/* ============ WHY WE BUILT GETYOURTOURSMAURITIUS ============ */}
+        {/* ============ WHY WE BUILT THIS SITE ============ */}
         <section
           id="why"
           className="relative overflow-hidden text-white"
@@ -863,7 +863,7 @@ export default async function AboutPage() {
               style={{ gridTemplateColumns: `repeat(auto-fit, minmax(300px, 1fr))` }}
             >
               <div data-reveal>
-                <Eyebrow color={GOLD}>{t('Why we built GetYourToursMauritius')}</Eyebrow>
+                <Eyebrow color={GOLD}>{t('Why we built this site')}</Eyebrow>
                 <h2
                   className="m-0 mt-3.5 font-bold text-white"
                   style={{

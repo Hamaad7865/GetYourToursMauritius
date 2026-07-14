@@ -10,7 +10,8 @@ import type { TourSummary } from '@/lib/validation/tours';
 export const runtime = 'edge';
 
 export const metadata: Metadata = {
-  title: `Your wishlist | ${SITE.operator}`,
+  // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
+  title: { absolute: `Your wishlist | ${SITE.operator}` },
   description: 'The Belle Mare Tours activities you’ve saved to your wishlist.',
   alternates: { canonical: '/wishlist' },
   robots: { index: false, follow: true },

@@ -1,4 +1,4 @@
-# GetYourToursMauritius
+# Belle Mare Tours
 
 Production tours-booking platform for **Belle Mare Tours** (east-coast Mauritius): a server-rendered SEO catalogue, online booking + payments, an AI booking assistant, and an owner admin panel. **API-first** — the same token-authenticated backend is built to be reused by a future mobile app with no backend/DB changes.
 

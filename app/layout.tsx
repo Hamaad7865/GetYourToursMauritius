@@ -28,8 +28,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
     default:
-      'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi | GetYourToursMauritius',
-    template: '%s | GetYourToursMauritius',
+      'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi',
+    template: '%s | Belle Mare Tours',
   },
   description:
     'Book Mauritius tours, activities and excursions direct with Belle Mare Tours: catamaran cruises, dolphin swims, island day tours, private sightseeing and airport taxi transfers. Transparent pricing, instant confirmation, no reseller markup.',

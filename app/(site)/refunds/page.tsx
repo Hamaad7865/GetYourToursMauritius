@@ -9,7 +9,8 @@ export const runtime = 'edge';
 const UPDATED = '18 July 2026';
 
 export const metadata: Metadata = {
-  title: `Cancellations & refunds · ${SITE.operator}`,
+  // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
+  title: { absolute: `Cancellations & refunds · ${SITE.operator}` },
   description:
     'Free cancellation until 9:00 AM Mauritius time on the day before your activity. See exactly how cancellations, refunds and reschedules work with Belle Mare Tours.',
   alternates: { canonical: '/refunds' },

@@ -17,6 +17,6 @@ crons = ["*/2 * * * *", "*/5 * * * *"]
 
 [vars]
 # Public base URL of the live site. Change this if the domain changes.
-SITE_URL = "https://getyourtoursmauritius.com"
+SITE_URL = "https://bellemaretours.com"
 # NOTE: INTERNAL_TASK_SECRET is a SECRET — never put it here. Set it with:
 #   npx wrangler secret put INTERNAL_TASK_SECRET --config workers/cron/wrangler.toml

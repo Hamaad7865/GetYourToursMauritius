@@ -1,4 +1,4 @@
--- Domain enums for GetYourToursMauritius (Belle Mare Tours).
+-- Domain enums for Belle Mare Tours.
 
 create type user_role as enum ('customer', 'staff', 'admin');
 create type activity_type as enum ('activity', 'transport');

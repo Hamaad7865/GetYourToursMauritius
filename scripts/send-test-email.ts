@@ -4,7 +4,7 @@
  * Resend is configured correctly before launch.
  *
  *   1. Put RESEND_API_KEY + RESEND_FROM in `.env.local` (RESEND_FROM must use a domain you've
- *      verified in Resend, e.g. `Belle Mare Tours <bookings@getyourtoursmauritius.com>`).
+ *      verified in Resend, e.g. `Belle Mare Tours <bookings@bellemaretours.com>`).
  *   2. Run:  npm run email:test -- you@example.com
  *
  * It reads `.env.local` at runtime and NEVER prints the API key. Nothing is sent until you run it.

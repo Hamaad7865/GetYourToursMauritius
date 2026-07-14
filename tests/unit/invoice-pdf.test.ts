@@ -22,7 +22,7 @@ const business: InvoiceBusiness = {
   locality: 'Belle Mare',
   region: 'Flacq',
   country: 'MU',
-  email: 'bookings@getyourtoursmauritius.com',
+  email: 'bookings@bellemaretours.com',
   phone: '+230 5772 9919',
 };
 

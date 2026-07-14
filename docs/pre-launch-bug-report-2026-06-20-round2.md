@@ -1,4 +1,4 @@
-# Pre-Launch Bug Report — GetYourToursMauritius (Round 2)
+# Pre-Launch Bug Report — Belle Mare Tours (Round 2)
 
 > Generated 2026-06-20 by a second multi-agent read-only sweep (recon + 15 hunters → adversarial
 > verification against current HEAD → completeness critic + synthesis). 27 raw → **8 confirmed**, 0 false
@@ -98,7 +98,7 @@ missing `pb-[env(safe-area-inset-bottom)]`.
   with no signal; `.dev.vars.example` omits the secret. Add a healthcheck/alert.
 - **i18n dates** hardcoded `en-GB` (FR users see English months); LangCurrencyModal tabs + `/checkout` Suspense
   fallback hardcoded English.
-- **Brand-name inconsistency** — `site.ts` `GetYourToursMauritius` vs visible "Belle Mare Tours". Pick one.
+- **Brand-name inconsistency** — `site.ts` `Belle Mare Tours` vs visible "Belle Mare Tours". Pick one.
 - **Unbounded lat/lng** (accept Infinity) in planner/booking validation; `ip` not length-capped before insert.
 - **`/api/planner/from-tour`** unthrottled (billed Places per stop); **`/api/planner/photo`** not wrapped in
   `apiHandler` (raw 500).

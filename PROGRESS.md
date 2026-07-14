@@ -1,11 +1,11 @@
-# GetYourToursMauritius — Progress & Handoff
+# Belle Mare Tours — Progress & Handoff
 
 > Session handoff doc. Read this first after a compaction. Production tours-booking
 > platform for **Belle Mare Tours** (east-coast Mauritius). API-first, edge-deployed
 > on Cloudflare Pages. Visual target: a **GetYourGuide clone recoloured to our brand**
 > (teal primary, coral urgency, ink "top rated", **white** background, Plus Jakarta Sans).
 >
-> Repo: GitHub `Hamaad7865/GetYourToursMauritius` (**private**). Branch `main`.
+> Repo: GitHub `Hamaad7865/Belle Mare Tours` (**private**). Branch `main`.
 > **Supabase is LIVE.** Full gate green: typecheck + lint + **121 tests** + build.
 
 ---

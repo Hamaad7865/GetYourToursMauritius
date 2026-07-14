@@ -341,8 +341,8 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   pdf.setTitle(`Invoice ${model.invoiceNumber}`);
   pdf.setAuthor(b.legalName);
   pdf.setSubject('Tax invoice / receipt');
-  pdf.setProducer('GetYourToursMauritius');
-  pdf.setCreator('GetYourToursMauritius');
+  pdf.setProducer('Belle Mare Tours');
+  pdf.setCreator('Belle Mare Tours');
   pdf.setCreationDate(issued);
   pdf.setModificationDate(issued);
 

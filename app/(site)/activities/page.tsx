@@ -68,7 +68,7 @@ export async function generateMetadata({
   const t = await getT();
   // The unfiltered catalogue is the page that should rank for "Mauritius activities" — give it a
   // purpose-built title/description. Filtered views keep their dynamic heading. `absolute` in both
-  // cases so the root "%s | GetYourToursMauritius" template doesn't double-brand an already-branded title.
+  // cases so the root "%s | Belle Mare Tours" template doesn't double-brand an already-branded title.
   const isBase = !params.q && !params.category && params.type === undefined;
   const title = isBase
     ? 'Mauritius Activities & Tours — Book Online | Belle Mare Tours'

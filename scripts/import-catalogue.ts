@@ -70,7 +70,7 @@ const PAGES: { category: string; en: string; fr: string }[] = [
 ];
 
 async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { 'user-agent': 'GetYourToursMauritius-importer/1.0' } });
+  const res = await fetch(url, { headers: { 'user-agent': 'BelleMareTours-importer/1.0' } });
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return res.text();
 }

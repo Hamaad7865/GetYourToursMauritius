@@ -9,7 +9,8 @@ export const runtime = 'edge';
 const UPDATED = '18 July 2026';
 
 export const metadata: Metadata = {
-  title: `Terms of service · ${SITE.operator}`,
+  // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
+  title: { absolute: `Terms of service · ${SITE.operator}` },
   description: `The booking conditions for ${SITE.legalName} (${SITE.name}) — payments, vouchers, cancellations, your responsibilities and our liability, under the laws of Mauritius.`,
   alternates: { canonical: '/terms' },
 };

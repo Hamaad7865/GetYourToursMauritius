@@ -10,7 +10,8 @@ export const runtime = 'edge';
 const UPDATED = '20 June 2026';
 
 export const metadata: Metadata = {
-  title: `Cookie policy · ${SITE.operator}`,
+  // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
+  title: { absolute: `Cookie policy · ${SITE.operator}` },
   description: `Which cookies and similar browser storage ${SITE.name} uses, why, and how to manage them. We use no analytics or advertising cookies.`,
   alternates: { canonical: '/cookies' },
 };

@@ -25,7 +25,9 @@ describe('JSON-LD', () => {
     const org = organizationJsonLd();
     expect(org['@type']).toBe('TravelAgency');
     expect(org.name).toBe('Belle Mare Tours');
-    expect(org.alternateName).toBe('GetYourToursMauritius');
+    expect(org.legalName).toBe('Belle Mare Tours Ltd');
+    // The retired "GetYourToursMauritius" identity must not resurface in the entity markup.
+    expect(JSON.stringify(org)).not.toMatch(/getyourtoursmauritius/i);
     expect(org.knowsLanguage).toEqual(['en', 'fr']);
   });
 

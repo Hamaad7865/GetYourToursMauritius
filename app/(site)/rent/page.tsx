@@ -20,7 +20,7 @@ import type { RentalVehicle } from '@/lib/validation/rental';
 export const runtime = 'edge';
 
 const DEFAULT_METADATA: Metadata = {
-  // `absolute` so the root "%s | GetYourToursMauritius" template doesn't double-brand the title.
+  // `absolute` so the root "%s | Belle Mare Tours" template doesn't double-brand the title.
   title: { absolute: 'Car & Scooter Rental in Belle Mare, Mauritius | Belle Mare Tours' },
   description:
     'Self-drive car and scooter rental for guests staying in the Belle Mare area, Mauritius. Free delivery to your hotel or Airbnb in the Belle Mare vicinity, full insurance, unlimited mileage and 24/7 local support — from compact cars to family SUVs and scooters.',

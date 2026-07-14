@@ -18,7 +18,7 @@ const business = {
   locality: 'Belle Mare',
   region: 'Flacq',
   country: 'MU',
-  email: 'bookings@getyourtoursmauritius.com',
+  email: 'bookings@bellemaretours.com',
   phone: '+230 5772 9919',
 };
 
@@ -127,7 +127,7 @@ describe('renderConfirmationEmail', () => {
       { chargedAmountMinor: 3850, chargedCurrency: 'USD', paidAt: '2026-06-20T10:00:00Z' },
       business,
     );
-    const url = 'https://getyourtoursmauritius.com/bookings/BMT-TR1';
+    const url = 'https://bellemaretours.com/bookings/BMT-TR1';
     const { html, text } = renderConfirmationEmail(model, url);
     expect(html).toContain(url);
     expect(html).toContain('e-voucher');

@@ -9,7 +9,7 @@ const ALLOWED_HOSTS = new Set(['upload.wikimedia.org']);
 // hitting upload.wikimedia.org directly (≈20 thumbnails at once on the attractions page) gets 429s and
 // shows broken images. Fetching server-side with a proper UA + edge caching means each image is pulled
 // from Wikimedia at most once per edge POP and then served from our own cache.
-const UA = 'GetYourToursMauritiusBot/1.0 (+https://getyourtoursmauritius.com)';
+const UA = 'BelleMareToursBot/1.0 (+https://bellemaretours.com)';
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**

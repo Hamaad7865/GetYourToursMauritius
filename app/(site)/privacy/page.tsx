@@ -9,7 +9,8 @@ export const runtime = 'edge';
 const UPDATED = '22 June 2026';
 
 export const metadata: Metadata = {
-  title: `Privacy policy · ${SITE.operator}`,
+  // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
+  title: { absolute: `Privacy policy · ${SITE.operator}` },
   description: `How ${SITE.legalName} collects, uses and protects your personal data when you book through ${SITE.name}, and the rights you have under Mauritius and EU data-protection law.`,
   alternates: { canonical: '/privacy' },
 };

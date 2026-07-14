@@ -25,7 +25,7 @@ describe('OpenAPI document', () => {
   it('builds a valid 3.1 document from the Zod schemas', () => {
     const doc = buildOpenApiDocument();
     expect(doc.openapi).toBe('3.1.0');
-    expect(doc.info.title).toBe('GetYourToursMauritius API');
+    expect(doc.info.title).toBe('Belle Mare Tours API');
   });
 
   it('registers the catalogue + booking operations with a bearer scheme', () => {

@@ -1,8 +1,9 @@
-/** Site-wide identity for SEO, JSON-LD and the footer. */
+/** Site-wide identity for SEO, JSON-LD and the footer. The site IS the operator's own brand — there is
+ *  no separate platform name (the old pre-rebrand identity was retired; `name` === `operator`). */
 export const SITE = {
-  name: 'GetYourToursMauritius',
+  name: 'Belle Mare Tours',
   operator: 'Belle Mare Tours',
-  /** Registered legal entity behind the platform (used on legal pages + the footer). */
+  /** Registered legal entity behind the brand (used on legal pages + the footer). */
   legalName: 'Belle Mare Tours Ltd',
   /** Mauritius Business Registration Number. */
   brn: 'C09091906',
@@ -10,10 +11,9 @@ export const SITE = {
   vat: '20529965',
   /** Support / data-protection contact + the owner new-booking alert fallback (when OWNER_NOTIFY_EMAIL
    *  is unset). Shown on the legal pages (privacy/terms/refunds/help/cookies) and the invoice. */
-  email: 'bookings@getyourtoursmauritius.com',
-  alternateName: 'GetYourToursMauritius',
+  email: 'bookings@bellemaretours.com',
   description:
-    "The official booking platform of Belle Mare Tours. Catamaran cruises, dolphin swims, sea walks and island days on Mauritius's east coast — booked direct, no reseller markup.",
+    "Belle Mare Tours — book direct with the operator. Catamaran cruises, dolphin swims, sea walks and island days on Mauritius's east coast, plus airport transfers and car rental. No reseller markup.",
   url: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
   phone: '+230 5772 9919',
   street: 'Royal Road, Belle Mare',

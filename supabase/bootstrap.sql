@@ -15,7 +15,7 @@ begin;
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 -- migration: 20260615120000_enums.sql
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
--- Domain enums for GetYourToursMauritius (Belle Mare Tours).
+-- Domain enums for Belle Mare Tours.
 
 create type user_role as enum ('customer', 'staff', 'admin');
 create type activity_type as enum ('activity', 'transport');
@@ -9480,7 +9480,7 @@ begin
   -- authoritative work-list). The idempotency key stops a double-cancel enqueuing twice.
   insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
   values (
-    'email', 'bookings@getyourtoursmauritius.com', 'booking_cancellation',
+    'email', 'bookings@bellemaretours.com', 'booking_cancellation',
     jsonb_build_object(
       'ref', v_booking.ref, 'customerName', v_booking.customer_name,
       'totalMinor', v_booking.total_minor, 'currency', v_booking.currency

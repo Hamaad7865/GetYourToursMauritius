@@ -10,7 +10,9 @@ import { getT } from '@/lib/i18n/server';
 export const runtime = 'edge';
 
 const DEFAULT_METADATA: Metadata = {
-  title: `Contact ${SITE.operator}`,
+  // absolute: the title already names the brand — without this the root "%s | Belle Mare Tours"
+  // template would append it a second time.
+  title: { absolute: `Contact ${SITE.operator}` },
   description: `Get in touch with ${SITE.operator} in Belle Mare, Mauritius — WhatsApp, phone or email. We reply fast and help you plan the perfect day.`,
   alternates: { canonical: '/contact' },
 };
@@ -28,8 +30,8 @@ export default async function ContactPage() {
     {
       icon: <IconMail width={20} height={20} />,
       label: t('Email'),
-      value: 'bookings@getyourtoursmauritius.com',
-      href: 'mailto:bookings@getyourtoursmauritius.com',
+      value: SITE.email,
+      href: `mailto:${SITE.email}`,
       note: t('We reply within a day'),
     },
     {

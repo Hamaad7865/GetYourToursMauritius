@@ -1,4 +1,4 @@
-# Pre-Launch Bug Report — GetYourToursMauritius
+# Pre-Launch Bug Report — Belle Mare Tours
 
 > Generated 2026-06-20 by a multi-agent read-only sweep (recon + 13 specialist hunters → adversarial
 > verification of every P0/P1 → completeness critic + synthesis). 34 raw findings → **11 confirmed**, 2

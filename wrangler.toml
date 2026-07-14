@@ -1,7 +1,7 @@
 # Cloudflare Pages configuration for the next-on-pages build output.
 # Read by `npm run pages:dev` (local edge runtime), `wrangler pages deploy`, and — because it sits
 # in the repo root — by the Cloudflare Pages build itself (it picks up the compatibility settings).
-name = "getyourtoursmauritius"                  # Pages project name → getyourtoursmauritius.pages.dev
+name = "bellemaretours"                        # Pages project name → bellemaretours.pages.dev
 compatibility_date = "2025-02-01"
 compatibility_flags = ["nodejs_compat"]         # REQUIRED — the app 500s at runtime without it
 pages_build_output_dir = ".vercel/output/static"

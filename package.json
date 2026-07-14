@@ -1,5 +1,5 @@
 {
-  "name": "getyourtoursmauritius",
+  "name": "belle-mare-tours",
   "version": "0.1.0",
   "private": true,
   "description": "Production tours-booking platform for Belle Mare Tours (Mauritius). API-first, edge-deployed on Cloudflare Pages.",

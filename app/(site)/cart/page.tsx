@@ -7,7 +7,8 @@ import { SITE } from '@/lib/seo/site';
 export const runtime = 'edge';
 
 export const metadata: Metadata = {
-  title: `Your cart | ${SITE.operator}`,
+  // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
+  title: { absolute: `Your cart | ${SITE.operator}` },
   description: 'The activities in your Belle Mare Tours cart.',
   alternates: { canonical: '/cart' },
   robots: { index: false, follow: true },

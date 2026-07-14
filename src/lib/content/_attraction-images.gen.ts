@@ -111,7 +111,7 @@ export const ATTRACTION_IMAGES: Record<string, { url: string; source: string }> 
   },
   'pieter-both-mountain': {
     url: '/activities/pieter-both-mountain.jpg',
-    source: 'https://getyourtoursmauritius.com',
+    source: 'https://bellemaretours.com',
   },
   'le-pouce-mountain': {
     url: 'https://upload.wikimedia.org/wikipedia/commons/a/af/Le_Pouce2.jpg',
@@ -135,11 +135,11 @@ export const ATTRACTION_IMAGES: Record<string, { url: string; source: string }> 
   },
   'pereybere-beach': {
     url: '/activities/pereybere-beach.jpg',
-    source: 'https://getyourtoursmauritius.com',
+    source: 'https://bellemaretours.com',
   },
   'coin-de-mire-island': {
     url: '/activities/coin-de-mire.jpg',
-    source: 'https://getyourtoursmauritius.com',
+    source: 'https://bellemaretours.com',
   },
   'maconde-viewpoint': {
     url: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f9/Maconde_Point_in_Baie-du-Cap.jpg/1280px-Maconde_Point_in_Baie-du-Cap.jpg',
@@ -278,14 +278,14 @@ export const ATTRACTION_IMAGES: Record<string, { url: string; source: string }> 
   },
   'anse-la-raie': {
     url: '/activities/anse-la-raie.jpg',
-    source: 'https://getyourtoursmauritius.com',
+    source: 'https://bellemaretours.com',
   },
   'domaine-de-letoile': {
     url: '/activities/domaine-de-letoile.webp',
-    source: 'https://getyourtoursmauritius.com',
+    source: 'https://bellemaretours.com',
   },
   'palmar-beach': {
     url: '/activities/palmar-beach.jpg',
-    source: 'https://getyourtoursmauritius.com',
+    source: 'https://bellemaretours.com',
   },
 };

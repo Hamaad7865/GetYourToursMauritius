@@ -32,7 +32,7 @@ const RULE = rgb(0.82, 0.82, 0.85);
 const LIGHT_TEAL = rgb(0.624, 0.882, 0.796); // #9FE1CB
 const WHITE = rgb(1, 1, 1);
 
-const BRAND_NAME = 'GetYourToursMauritius';
+const BRAND_NAME = 'Belle Mare Tours';
 const FIELD_X = MARGIN + 104; // where run-sheet values start (labels sit at MARGIN)
 
 function directionLabel(d?: string | null): string {
@@ -342,8 +342,8 @@ export async function renderVoucherPdf(
       : 'Airport transfer',
   );
   pdf.setKeywords(['airport transfer', 'e-voucher', model.booking.ref]);
-  pdf.setProducer('GetYourToursMauritius');
-  pdf.setCreator('GetYourToursMauritius');
+  pdf.setProducer('Belle Mare Tours');
+  pdf.setCreator('Belle Mare Tours');
   pdf.setCreationDate(stamp);
   pdf.setModificationDate(stamp);
 
