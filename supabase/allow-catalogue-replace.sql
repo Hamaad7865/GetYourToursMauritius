@@ -1,0 +1,16 @@
+-- ============================================================================
+-- Opt-in switch for `supabase/seed-live-catalogue.sql`, which WIPES AND REPLACES
+-- the entire catalogue. The seed refuses to run unless this flag is set.
+--
+-- It lives in its own file on purpose: the seed can never be run by accident,
+-- because arming it is a separate, deliberate act you have to type out.
+--
+-- The setting is SESSION-scoped, so it must be applied on the SAME connection as
+-- the seed. db-exec.ts reuses one connection across all the files you give it, so
+-- pass them together, in this order:
+--
+--   npx tsx scripts/db-exec.ts supabase/allow-catalogue-replace.sql supabase/seed-live-catalogue.sql
+--
+-- ⚠️  Only ever do this against the TEST project. Check SUPABASE_DB_URL first.
+-- ============================================================================
+set bmt.allow_catalogue_replace = 'yes';
