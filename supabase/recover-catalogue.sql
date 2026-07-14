@@ -5,7 +5,7 @@
 -- publish them in /admin (or run the optional publish line at the bottom).
 -- ============================================================================
 
--- 0) Make sure the operator exists (bootstrap may already have created it).
+-- 0) Make sure the operator exists (a setup.sql install already seeded it; then this is a no-op).
 insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')
   on conflict (slug) do nothing;
 

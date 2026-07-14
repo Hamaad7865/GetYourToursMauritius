@@ -123,10 +123,22 @@ And the reverse: **SQL written only into `catch-up.sql` and not into a migration
 untested** — the test suite applies only `supabase/migrations/`. Migration first, always. `catch-up.sql`
 is a mirror, never an origin.
 
-### `bootstrap.sql` is 12 migrations stale — do not use it
+### Never hand-maintain a second copy of the schema
 
-It's missing the entire public-mutation security lockdown. A database built from it would let anyone with
-the anon key call `create_booking`. Nothing guards this file. Use `setup.sql` (`npm run db:setup`).
+`setup.sql` is the fresh-install bundle, and it is **generated** (`npm run seed:gen && npm run setup:sql`)
+and guarded by two tests. Do not create a hand-written sibling — a "quick full-schema paste file", a
+snapshot, a schema-only variant. It will rot, and it will rot **silently**.
+
+This is not hypothetical. A file called `bootstrap.sql` did exactly that: hand-concatenated in July 2026,
+never regenerated, no parity test. By the time it was deleted it had missed five migrations — including
+the **entire public-mutation security lockdown** — and was still actively granting `api_book` and
+`api_create_hold` to `anon`. Anyone who had provisioned a database from it would have had a site where
+the public key could mint free bookings. Its own "⚠️ DO NOT USE" warning in this handbook had gone stale
+too, and understated the problem.
+
+If you need a fresh-install artifact, regenerate `setup.sql`.
+`tests/integration/setup-sql-executes.test.ts` executes it against an empty Postgres and asserts anon
+cannot reach the money RPCs.
 
 ### `admin-setup.sql` step 1 deletes your catalogue
 

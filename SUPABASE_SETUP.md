@@ -16,13 +16,13 @@ storage work. No Docker or Supabase CLI required — you paste one SQL file.
 
 ## 2. Apply the schema + seed
 
-`supabase/setup.sql` is 13 migrations + 23 seeded activities, wrapped in one
-transaction (all-or-nothing). Regenerate any time with
-`npm run seed:gen && npm run setup:sql`.
+`supabase/setup.sql` is every migration (~98) + the generated seed, wrapped in one
+transaction (all-or-nothing). It is the ONLY supported way to provision a fresh
+database. Regenerate any time with `npm run seed:gen && npm run setup:sql`.
 
 ### Recommended: apply over the connection string (no paste)
 
-Pasting ~1800 lines into the SQL Editor can truncate or mangle multibyte text
+Pasting ~16,700 lines into the SQL Editor can truncate or mangle multibyte text
 (`Île`, `Chéri`, `–`) mid-string, which surfaces as a confusing
 `relation "the" does not exist`. Applying it over the wire avoids that entirely:
 

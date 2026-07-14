@@ -30,12 +30,14 @@ this file into the Supabase SQL editor. It's a cumulative, idempotent delta scri
 **`supabase/setup.sql` is the fresh-install bundle** (every migration + seed, in one file). Generated —
 never edit it.
 
-### Two files you should not touch
+**`setup.sql` is the only supported way to provision a fresh database.** There used to be a second,
+hand-maintained bundle (`bootstrap.sql`); it rotted, silently dropped the security lockdown, and was
+deleted in `2026-07`. Don't reintroduce one — if you need a fresh-install artifact, regenerate
+`setup.sql`. `tests/integration/setup-sql-executes.test.ts` now runs it against an empty Postgres and
+asserts the anon key cannot reach the money RPCs, so that class of rot cannot come back unnoticed.
 
-- **`supabase/bootstrap.sql` — ⚠️ DO NOT USE. It is 12 migrations stale.** It stops at
-  `20260752000000` and is missing the **entire public-mutation security lockdown**. A database built
-  from it would let anyone with the anon key execute `create_booking` and `api_record_payment_charge`.
-  Nothing guards this file. Provision fresh databases with `setup.sql` (`npm run db:setup`) instead.
+### One file you should not run blindly
+
 - **`supabase/admin-setup.sql` — step 1 is destructive.** It begins with
   `delete from activities where slug <> 'north-tour'`. Read it before you run it. (Step 3 — which creates
   the `activity-images` Storage bucket — is safe and idempotent, and admin photo uploads fail silently
@@ -188,8 +190,6 @@ npm run db:setup          # applies supabase/setup.sql → "✓ Applied. activit
 Then sign up in the app (so a `profiles` row exists), **read `supabase/admin-setup.sql` and delete step
 1** unless you really want the catalogue wiped, and run it to make yourself admin and create the Storage
 bucket.
-
-**Never provision from `bootstrap.sql`** — see above.
 
 ---
 
