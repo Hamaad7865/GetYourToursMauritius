@@ -24,6 +24,7 @@ describe('getNotificationProvider — fail-closed', () => {
     delete process.env.RESEND_API_KEY;
     delete process.env.RESEND_FROM;
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    delete process.env.TELEGRAM_BOT_TOKEN;
     process.env.PEACH_ENVIRONMENT = 'test';
     resetServerEnvCache();
   });
@@ -34,7 +35,7 @@ describe('getNotificationProvider — fail-closed', () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     process.env.PEACH_ENVIRONMENT = 'test';
     resetServerEnvCache();
-    expect(getNotificationProvider().name).toBe('email:stub whatsapp:stub');
+    expect(getNotificationProvider().name).toBe('email:stub whatsapp:stub telegram:stub');
   });
 
   it('the stub send() resolves (so dev / CI / tests run the drain end-to-end offline)', async () => {
@@ -52,7 +53,7 @@ describe('getNotificationProvider — fail-closed', () => {
     resetServerEnvCache();
 
     const provider = getNotificationProvider();
-    expect(provider.name).toBe('email:fail-closed whatsapp:fail-closed');
+    expect(provider.name).toBe('email:fail-closed whatsapp:fail-closed telegram:fail-closed');
     // A throwing send() is what makes the drain mark the row 'failed' (NOT 'sent') and retry it.
     await expect(provider.send(sampleMessage)).rejects.toThrow(/notifications_not_configured/);
   });
@@ -63,7 +64,9 @@ describe('getNotificationProvider — fail-closed', () => {
     delete process.env.SUPABASE_SERVICE_ROLE_KEY;
     process.env.PEACH_ENVIRONMENT = 'live';
     resetServerEnvCache();
-    expect(getNotificationProvider().name).toBe('email:fail-closed whatsapp:fail-closed');
+    expect(getNotificationProvider().name).toBe(
+      'email:fail-closed whatsapp:fail-closed telegram:fail-closed',
+    );
   });
 
   it('uses the real Resend provider when RESEND_API_KEY + RESEND_FROM are set (even in production)', () => {
@@ -71,6 +74,19 @@ describe('getNotificationProvider — fail-closed', () => {
     process.env.RESEND_FROM = 'bookings@example.com';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key-present';
     resetServerEnvCache();
-    expect(getNotificationProvider().name).toBe('email:resend whatsapp:fail-closed');
+    expect(getNotificationProvider().name).toBe(
+      'email:resend whatsapp:fail-closed telegram:fail-closed',
+    );
+  });
+
+  it('uses the real Telegram provider for owner alerts when TELEGRAM_BOT_TOKEN is set', () => {
+    process.env.RESEND_API_KEY = 're_test_key';
+    process.env.RESEND_FROM = 'bookings@example.com';
+    process.env.TELEGRAM_BOT_TOKEN = '123456:AA-bot-token';
+    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-key-present';
+    resetServerEnvCache();
+    expect(getNotificationProvider().name).toBe(
+      'email:resend whatsapp:fail-closed telegram:telegram-bot',
+    );
   });
 });

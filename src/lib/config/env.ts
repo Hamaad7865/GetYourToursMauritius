@@ -95,6 +95,12 @@ const ServerEnvSchema = z.object({
   WHATSAPP_TEMPLATE_NAME: z.string().min(1).optional(),
   // The template's approved locale code (defaults to 'en'; use 'en_US' if approved as such).
   WHATSAPP_TEMPLATE_LANG: z.string().min(1).optional(),
+  // Telegram owner alerts (used instead of WhatsApp — no Meta onboarding, template or per-message
+  // payment). BOTH are required for delivery: a Bot API token (from @BotFather) and the destination
+  // chat id — a GROUP chat id (add the owner + staff to one group) or a comma-separated list of chat
+  // ids to fan out to several people.
+  TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+  TELEGRAM_OWNER_CHAT_ID: z.string().min(1).optional(),
   // Shared secret guarding the internal worker endpoints (notification drain, hold sweep). Use a
   // long random value; the endpoints are 503 until it is set.
   INTERNAL_TASK_SECRET: z.string().min(1).optional(),

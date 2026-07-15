@@ -17,7 +17,7 @@ import { getServerEnv } from '@/lib/config/env';
 const claimedSchema = z.array(
   z.object({
     id: z.string(),
-    channel: z.enum(['email', 'whatsapp']),
+    channel: z.enum(['email', 'whatsapp', 'telegram']),
     recipient: z.string(),
     template: z.string(),
     payload: z.record(z.string(), z.unknown()).default({}),
@@ -100,6 +100,11 @@ function resolveOwnerRecipient(message: NotificationMessage): void {
   const env = getServerEnv();
   if (message.channel === 'email') {
     message.recipient = env.OWNER_NOTIFY_EMAIL ?? SITE.email;
+  } else if (message.channel === 'telegram') {
+    if (!env.TELEGRAM_OWNER_CHAT_ID) {
+      throw new Error('owner telegram chat id not configured (set TELEGRAM_OWNER_CHAT_ID)');
+    }
+    message.recipient = env.TELEGRAM_OWNER_CHAT_ID;
   } else {
     if (!env.OWNER_WHATSAPP_TO) {
       throw new Error('owner whatsapp number not configured (set OWNER_WHATSAPP_TO)');
@@ -136,7 +141,8 @@ async function enrichOwnerNewBooking(
     : `${booking.customerName || 'A guest'} booked ${what} on ${when} — ${guests}${total} (ref ${booking.ref}).`;
   const adminUrl = `${SITE.url}/admin/bookings?q=${encodeURIComponent(booking.ref)}`;
 
-  if (message.channel === 'whatsapp') {
+  // Chat channels (WhatsApp / Telegram) take the same one-glance text — no HTML, no PDF.
+  if (message.channel === 'whatsapp' || message.channel === 'telegram') {
     message.text = `${refund ? '⚠️ Refund needed' : '🔔 New paid booking'}\n${line}\n${adminUrl}`;
     return;
   }

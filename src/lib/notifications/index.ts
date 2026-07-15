@@ -6,18 +6,24 @@ import { StubNotificationProvider } from './stub';
 import { FailClosedNotificationProvider } from './fail-closed';
 import { ResendNotificationProvider } from './resend';
 import { WhatsAppNotificationProvider } from './whatsapp';
+import { TelegramNotificationProvider } from './telegram';
 
 export * from './types';
 
-/** Routes each message to its channel's provider, so email and WhatsApp configure independently.
- *  The name spells out both routes (e.g. `email:resend whatsapp:fail-closed`) for logs and tests. */
+/** Routes each message to its channel's provider, so each channel configures independently.
+ *  The name spells out every route (e.g. `email:resend whatsapp:fail-closed telegram:telegram-bot`)
+ *  for logs and tests. */
 class ChannelRouterProvider implements NotificationProvider {
   readonly name: string;
 
   constructor(
-    private readonly channels: { email: NotificationProvider; whatsapp: NotificationProvider },
+    private readonly channels: {
+      email: NotificationProvider;
+      whatsapp: NotificationProvider;
+      telegram: NotificationProvider;
+    },
   ) {
-    this.name = `email:${channels.email.name} whatsapp:${channels.whatsapp.name}`;
+    this.name = `email:${channels.email.name} whatsapp:${channels.whatsapp.name} telegram:${channels.telegram.name}`;
   }
 
   send(message: NotificationMessage): Promise<void> {
@@ -36,9 +42,13 @@ class ChannelRouterProvider implements NotificationProvider {
  *   `failed` (retried once a key is set) and the outbox row stays visible.
  * - Otherwise the no-op stub (local dev / CI / tests run end-to-end with no email account).
  *
- * WhatsApp (owner alerts): the Meta Cloud API provider when `WHATSAPP_ACCESS_TOKEN` +
- * `WHATSAPP_PHONE_NUMBER_ID` are set; the same fail-closed / stub split otherwise, so an
- * unconfigured WhatsApp row is a VISIBLE `failed` on production — never a silent success.
+ * WhatsApp (unused by default): the Meta Cloud API provider when `WHATSAPP_ACCESS_TOKEN` +
+ * `WHATSAPP_PHONE_NUMBER_ID` are set; same fail-closed / stub split otherwise. No rows are enqueued
+ * on this channel anymore (owner chat alerts moved to Telegram) — kept for a future WhatsApp revival.
+ *
+ * Telegram (owner alerts): the Bot API provider when `TELEGRAM_BOT_TOKEN` is set; the same fail-closed
+ * / stub split otherwise, so an unconfigured Telegram row is a VISIBLE `failed` on production — never
+ * a silent success.
  */
 export function getNotificationProvider(): NotificationProvider {
   const env = getServerEnv();
@@ -65,6 +75,9 @@ export function getNotificationProvider(): NotificationProvider {
           templateLanguage: env.WHATSAPP_TEMPLATE_LANG,
         })
       : fallback;
+  const telegram = env.TELEGRAM_BOT_TOKEN
+    ? new TelegramNotificationProvider({ botToken: env.TELEGRAM_BOT_TOKEN })
+    : fallback;
 
-  return new ChannelRouterProvider({ email, whatsapp });
+  return new ChannelRouterProvider({ email, whatsapp, telegram });
 }

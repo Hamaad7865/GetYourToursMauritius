@@ -1,6 +1,6 @@
-// Owner alerts ride the same drain: resolve the WhatsApp sentinel so all confirmation-time rows
+// Owner alerts ride the same drain: resolve the Telegram sentinel so all confirmation-time rows
 // send here (the unconfigured fail-loud path is covered by booking-flow.test.ts).
-process.env.OWNER_WHATSAPP_TO = '23057729919';
+process.env.TELEGRAM_OWNER_CHAT_ID = '-1002233445566';
 
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';

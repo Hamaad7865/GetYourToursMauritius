@@ -1,4 +1,4 @@
-export type NotificationChannel = 'email' | 'whatsapp';
+export type NotificationChannel = 'email' | 'whatsapp' | 'telegram';
 
 /** A file to attach to an email. `content` is base64-encoded; the provider infers the MIME type
  * from `filename` (Resend), but `contentType` may be carried for providers that accept it. */

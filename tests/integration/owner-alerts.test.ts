@@ -1,6 +1,6 @@
 // Owner alerts must resolve real contact details from env, so pin them BEFORE anything can call
 // (and cache) getServerEnv in this file's module registry.
-process.env.OWNER_WHATSAPP_TO = '23057729919';
+process.env.TELEGRAM_OWNER_CHAT_ID = '-1002233445566';
 process.env.OWNER_NOTIFY_EMAIL = 'owner-alerts@bellemaretours.test';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -15,11 +15,11 @@ import { StubPaymentProvider } from '@/lib/payments/stub';
 import { createStubAiProvider } from '@/lib/ai/stub';
 
 /**
- * Owner booking alerts (migration 20260804000000): a booking flipping to `confirmed` must alert the
- * OWNER — an email + a WhatsApp outbox row (recipient sentinel 'owner', resolved from env at send
- * time) and an in-app `admin_new_booking` feed row for every staff/admin profile — alongside the
- * existing customer confirmation. Born from a real incident: a tourist paid, the customer email went
- * out, and the owner learned about it days later from the dashboard.
+ * Owner booking alerts (migration 20260804000000; chat channel moved to Telegram in 20260810000000):
+ * a booking flipping to `confirmed` must alert the OWNER — an email + a Telegram outbox row (recipient
+ * sentinel 'owner', resolved from env at send time) and an in-app `admin_new_booking` feed row for
+ * every staff/admin profile — alongside the existing customer confirmation. Born from a real incident:
+ * a tourist paid, the customer email went out, and the owner learned about it days later.
  */
 const STAFF = 'b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1';
 const ADMIN = 'b2b2b2b2-b2b2-b2b2-b2b2-b2b2b2b2b2b2';
@@ -77,7 +77,7 @@ describe('owner booking alerts', () => {
     await db.close();
   });
 
-  it('confirmation enqueues the owner email + WhatsApp rows with the owner sentinel', async () => {
+  it('confirmation enqueues the owner email + Telegram rows with the owner sentinel', async () => {
     await db.asOwner();
     const rows = (
       await db.pg.query<{ channel: string; recipient: string; template: string }>(
@@ -85,10 +85,11 @@ describe('owner booking alerts', () => {
         [bookingId],
       )
     ).rows;
+    // order by channel, template → email/confirmation, email/owner, telegram/owner
     expect(rows).toEqual([
       { channel: 'email', recipient: 'miguel@example.com', template: 'booking_confirmation' },
       { channel: 'email', recipient: 'owner', template: 'owner_new_booking' },
-      { channel: 'whatsapp', recipient: 'owner', template: 'owner_new_booking' },
+      { channel: 'telegram', recipient: 'owner', template: 'owner_new_booking' },
     ]);
   });
 
@@ -114,7 +115,7 @@ describe('owner booking alerts', () => {
         [bookingId],
       )
     ).rows[0]!.n;
-    expect(outboxCount).toBe(2); // one email + one whatsapp, not four
+    expect(outboxCount).toBe(2); // one email + one telegram, not four
     const feedCount = (
       await db.pg.query<{ n: number }>(
         `select count(*)::int as n from notifications where type = 'admin_new_booking' and data ->> 'bookingId' = $1`,
@@ -145,11 +146,11 @@ describe('owner booking alerts', () => {
     expect(ownerEmail.text).toContain('Miguel Rueda');
     expect(ownerEmail.html).toContain('/admin/bookings?q=');
 
-    const wa = provider.messages.find(
-      (m) => m.template === 'owner_new_booking' && m.channel === 'whatsapp',
+    const tg = provider.messages.find(
+      (m) => m.template === 'owner_new_booking' && m.channel === 'telegram',
     )!;
-    expect(wa.recipient).toBe('23057729919');
-    expect(wa.text).toContain(ref);
-    expect(wa.text).toContain('3 guests');
+    expect(tg.recipient).toBe('-1002233445566');
+    expect(tg.text).toContain(ref);
+    expect(tg.text).toContain('3 guests');
   });
 });

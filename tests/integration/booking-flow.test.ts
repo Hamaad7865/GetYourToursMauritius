@@ -1,6 +1,6 @@
 // getServerEnv caches on its first call in this file's module registry, so clear the shared
-// worker env BEFORE anything can read it — this suite asserts the UNCONFIGURED WhatsApp path.
-delete process.env.OWNER_WHATSAPP_TO;
+// worker env BEFORE anything can read it — this suite asserts the UNCONFIGURED Telegram path.
+delete process.env.TELEGRAM_OWNER_CHAT_ID;
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
@@ -499,14 +499,14 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     // Owner rows carry the 'owner' sentinel — the drain resolves the real address from env at send time.
     expect(ownerRows).toEqual([
       { channel: 'email', recipient: 'owner' },
-      { channel: 'whatsapp', recipient: 'owner' },
+      { channel: 'telegram', recipient: 'owner' },
     ]);
 
     // Force the unconfigured state: process.env is shared across test files within a vitest worker,
-    // so another suite may have set the number before this file ran.
-    delete process.env.OWNER_WHATSAPP_TO;
-    // Drain with the no-op stub provider. OWNER_WHATSAPP_TO is unset here, so the WhatsApp alert FAILS
-    // LOUDLY (visible in the outbox) instead of silently messaging nobody; both emails send.
+    // so another suite may have set the chat id before this file ran.
+    delete process.env.TELEGRAM_OWNER_CHAT_ID;
+    // Drain with the no-op stub provider. TELEGRAM_OWNER_CHAT_ID is unset here, so the Telegram alert
+    // FAILS LOUDLY (visible in the outbox) instead of silently messaging nobody; both emails send.
     const ctx: ServiceContext = {
       db: pgliteRpc(db.pg),
       payments: new StubPaymentProvider(),
@@ -523,12 +523,12 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     ).rows[0]!;
     expect(sent.status).toBe('sent');
     expect(sent.sent_at).not.toBeNull();
-    const wa = (
+    const tg = (
       await db.pg.query<{ status: string; last_error: string | null }>(
-        `select status, last_error from notification_outbox where template = 'owner_new_booking' and channel = 'whatsapp'`,
+        `select status, last_error from notification_outbox where template = 'owner_new_booking' and channel = 'telegram'`,
       )
     ).rows[0]!;
-    expect(wa.status).not.toBe('sent');
-    expect(wa.last_error).toMatch(/OWNER_WHATSAPP_TO/);
+    expect(tg.status).not.toBe('sent');
+    expect(tg.last_error).toMatch(/TELEGRAM_OWNER_CHAT_ID/);
   });
 });
