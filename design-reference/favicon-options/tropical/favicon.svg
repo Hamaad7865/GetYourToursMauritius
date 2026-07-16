@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="title desc">
+  <title id="title">Belle Mare Tours tropical favicon</title>
+  <desc id="desc">A golden sun, two green palm trees, and cyan ocean waves on a navy rounded square.</desc>
+  <defs>
+    <linearGradient id="sun-gradient" x1="18" y1="14" x2="46" y2="41" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fffef8"/>
+      <stop offset="0.5" stop-color="#ffe99b"/>
+      <stop offset="1" stop-color="#ffb100"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#00135d"/>
+  <circle cx="32" cy="29" r="18" fill="url(#sun-gradient)"/>
+  <g fill="none" stroke="#00562a" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M37 47C39 38 39 28 36 20" stroke-width="4.8"/>
+    <path d="M36 20C35 15 34 11 32 8" stroke-width="5"/>
+    <path d="M36 20C31 15 26 13 20 14" stroke-width="5"/>
+    <path d="M36 20C29 20 24 22 20 26" stroke-width="5"/>
+    <path d="M36 20C41 15 46 13 51 15" stroke-width="5"/>
+    <path d="M36 20C43 20 48 23 51 28" stroke-width="5"/>
+    <path d="M36 20C40 14 42 11 44 9" stroke-width="4.5"/>
+    <path d="M24 45C26 39 26 34 24 29" stroke-width="3.2"/>
+    <path d="M24 29C21 26 18 25 15 26M24 29C27 26 30 26 32 27M24 29C24 25 23 23 21 21" stroke-width="3.2"/>
+  </g>
+  <circle cx="36" cy="20" r="2.8" fill="#00562a"/>
+  <circle cx="24" cy="29" r="1.9" fill="#00562a"/>
+  <path d="M7 48C16 44 22 44 30 48C38 52 45 52 57 46" fill="none" stroke="#a4dff8" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M9 54C18 51 25 51 33 54C41 57 48 56 56 52" fill="none" stroke="#00acca" stroke-width="3.2" stroke-linecap="round"/>
+</svg>

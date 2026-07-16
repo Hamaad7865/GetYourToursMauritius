@@ -1,0 +1,31 @@
+{
+  "source": "../belle-mare-tours-logo.svg",
+  "canvas": "64x64",
+  "variants": {
+    "tropical": {
+      "concept": "Simplified sun, palm trees, and ocean waves",
+      "recommendedFor": "Brand recognition and visual continuity"
+    },
+    "monogram": {
+      "concept": "Custom vector BMT letterforms with an ocean wave",
+      "recommendedFor": "Maximum legibility at very small sizes"
+    }
+  },
+  "palette": {
+    "navy": "#00135d",
+    "green": "#00562a",
+    "cyan": "#00acca",
+    "lightCyan": "#a4dff8",
+    "gold": "#ffb100",
+    "white": "#ffffff"
+  },
+  "exports": [
+    "favicon.svg",
+    "favicon.ico",
+    "favicon-16.png",
+    "favicon-32.png",
+    "favicon-48.png",
+    "apple-touch-icon.png",
+    "icon-512.png"
+  ]
+}

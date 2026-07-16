@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-labelledby="title desc">
+  <title id="title">Belle Mare Tours BMT favicon</title>
+  <desc id="desc">A bold white, cyan, and gold BMT monogram with an ocean wave on a navy rounded square.</desc>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#00135d"/>
+  <path fill="#ffffff" fill-rule="evenodd" d="M7 14H17C23.5 14 27 17 27 22C27 25.1 25.5 27.4 22.8 28.8C26.1 30 28 32.7 28 36.6C28 42.9 24.1 47 17.1 47H7V14ZM13 19.5V26H16.8C19.5 26 21 24.9 21 22.7C21 20.5 19.5 19.5 16.8 19.5H13ZM13 31.5V41.3H17.2C20.4 41.3 22 39.7 22 36.5C22 33.2 20.4 31.5 17.2 31.5H13Z"/>
+  <path fill="#a4dff8" d="M27 47V14H33.5L39.2 31L44.9 14H51V47H45.2V29.1L41.5 41H36.7L32.8 29V47H27Z"/>
+  <path fill="#ffb100" d="M45 14H60V20H55.5V47H49.5V20H45V14Z"/>
+  <path d="M8 52C18 49 26 49 34 52C42 55 49 55 57 51" fill="none" stroke="#00acca" stroke-width="3.5" stroke-linecap="round"/>
+</svg>

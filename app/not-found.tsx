@@ -7,7 +7,7 @@ export default function NotFound() {
   return (
     <main className="mx-auto flex min-h-[80vh] max-w-shell flex-col items-center justify-center px-6 py-24 text-center">
       <span className="font-display text-2xl font-semibold tracking-tight text-teal">
-        GetYourTours <span className="text-ink">Mauritius</span>
+        Belle Mare <span className="text-ink">Tours</span>
       </span>
       <p className="mt-10 text-sm font-bold uppercase tracking-wider text-teal">404</p>
       <h1 className="mt-3 font-display text-4xl font-medium tracking-tight text-ink">
