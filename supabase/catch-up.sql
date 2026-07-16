@@ -4997,10 +4997,10 @@ as $$
   where a.slug = p ->> 'slug';
 $$;
 
--- ---- 20260729000000_summary_min_advance -------------------------------------
+-- ---- 20260729000001_summary_min_advance -------------------------------------
 -- Surface min_advance_days on the activity summary so listing cards can show "Book N+ days ahead".
 -- api_search_activities re-applied from its WINNING body VERBATIM except the added minAdvanceDays
--- field; MUST stay byte-identical to supabase/migrations/20260729000000_summary_min_advance.sql.
+-- field; MUST stay byte-identical to supabase/migrations/20260729000001_summary_min_advance.sql.
 create or replace function api_search_activities(p jsonb)
 returns jsonb
 language sql
@@ -6220,7 +6220,7 @@ $$;
 
 commit;
 
--- ---- migration 20260733000000_pending_cart_autocancel (pending bookings in cart + safe auto-cancel) ----
+-- ---- migration 20260733000001_pending_cart_autocancel (pending bookings in cart + safe auto-cancel) ----
 -- api_my_pending_bookings: owner-scoped pending bookings + live hold expiry (RLS-safe seam for the cart).
 create or replace function api_my_pending_bookings(p jsonb default '{}'::jsonb)
 returns jsonb

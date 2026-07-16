@@ -5592,7 +5592,7 @@ $$;
 revoke execute on function stop_availability_atomic(jsonb) from public;
 grant execute on function stop_availability_atomic(jsonb) to authenticated, service_role;
 
--- ==================== 20260617220000_planner_places.sql ====================
+-- ==================== 20260617220001_planner_places.sql ====================
 -- Curated places for the AI Road Trip Planner — a free-form, hand-picked set of real Mauritius POIs
 -- the co-pilot plans a day around (distinct from per-tour itinerary stops). Public read (shown in the
 -- planner), staff write (admin editor). `api_planner_places` returns the camelCase DTO.
@@ -7894,7 +7894,7 @@ $$;
 revoke execute on function api_pending_payment_checkouts(jsonb) from public;
 grant execute on function api_pending_payment_checkouts(jsonb) to service_role;
 
--- ==================== 20260729000000_summary_min_advance.sql ====================
+-- ==================== 20260729000001_summary_min_advance.sql ====================
 -- Surface the per-activity lead time (min_advance_days, added in 20260728000000) on the activity
 -- SUMMARY so listing cards can show a "Book N+ days ahead" badge. api_search_activities is re-applied
 -- from its WINNING body (20260617210000_planner_vehicle_pricing.sql) VERBATIM except the added
@@ -9413,7 +9413,7 @@ as $$
   from bookings b where b.id = p_booking_id;
 $$;
 
--- ==================== 20260733000000_pending_cart_autocancel.sql ====================
+-- ==================== 20260733000001_pending_cart_autocancel.sql ====================
 -- Pending bookings in the cart + safe auto-cancel on hold expiry.
 --
 -- Three changes:
@@ -16540,7 +16540,7 @@ drop policy if exists planner_places_content_editor on planner_places;
 create policy planner_places_content_editor on planner_places for all
   using (is_content_editor()) with check (is_content_editor());
 
--- ==================== 20260810000000_telegram_owner_alerts.sql ====================
+-- ==================== 20260810000001_telegram_owner_alerts.sql ====================
 -- Telegram owner alerts. Meta's WhatsApp Cloud API onboarding proved too painful, so the OWNER chat
 -- alert on a new/paid-but-unstandable booking now goes over Telegram instead of WhatsApp (email owner
 -- alert + the admin bell are unchanged). Adds the 'telegram' notification_channel and re-applies the

@@ -46,7 +46,7 @@ insert into supabase_migrations.schema_migrations (version, name) values
   ('20260617200000', 'materialize_availability_guard'),
   ('20260617210000', 'planner_vehicle_pricing'),
   ('20260617220000', 'admin_atomic_writes'),
-  ('20260617220000', 'planner_places'),
+  ('20260617220001', 'planner_places'),
   ('20260618010000', 'booking_replay_guard_fix'),
   ('20260618030000', 'places_cache'),
   ('20260622000000', 'profile_dob'),
@@ -64,12 +64,12 @@ insert into supabase_migrations.schema_migrations (version, name) values
   ('20260727000000', 'gdpr_erase'),
   ('20260728000000', 'activity_min_advance'),
   ('20260729000000', 'payment_checkout_id'),
-  ('20260729000000', 'summary_min_advance'),
+  ('20260729000001', 'summary_min_advance'),
   ('20260730000000', 'airport_transfers_bookable'),
   ('20260731000000', 'airport_transfer_zones'),
   ('20260732000000', 'airport_transfer_booking_fields'),
   ('20260733000000', 'cancel_booking'),
-  ('20260733000000', 'pending_cart_autocancel'),
+  ('20260733000001', 'pending_cart_autocancel'),
   ('20260734000000', 'hotel_transfers'),
   ('20260735000000', 'transfer_service_date'),
   ('20260736000000', 'peach_safe_booking_ref'),
@@ -99,5 +99,13 @@ insert into supabase_migrations.schema_migrations (version, name) values
   ('20260806000000', 'security_lockdown'),
   ('20260807000000', 'lockdown_public_revoke'),
   ('20260808000000', 'api_book_server_only'),
-  ('20260809000000', 'api_book_fallback_hold_owner')
+  ('20260809000000', 'api_book_fallback_hold_owner'),
+  ('20260810000000', 'seo_module'),
+  ('20260810000001', 'telegram_owner_alerts'),
+  ('20260811000000', 'activity_content_defaults'),
+  ('20260812000000', 'payment_hold_hardening')
 on conflict (version) do nothing;
+-- ^ version is the ledger's PK, so `on conflict (version)` is pure idempotency here — every version
+--   above is unique. It USED to silently drop the second member of four duplicate-prefix pairs
+--   (review item 8); those files are renamed (+1s, order-preserving) and
+--   tests/unit/migration-ledger.test.ts now pins this file to the migrations directory 1:1.

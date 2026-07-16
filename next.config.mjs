@@ -22,7 +22,27 @@ const nextConfig = {
   // /airport-transfer page in favour of the full /airport-transfers hub. (Source paths are exact —
   // `/airport-transfer` does NOT match the `/activities/airport-transfer` product or its API route.)
   async redirects() {
+    // Canonical-host consolidation (review item 12): the app is reachable on five origins — both
+    // domains, both www variants and the bare pages.dev — which splits cookies/localStorage (a cart
+    // built on one origin is empty on another) and can change origin across a payment return. Each
+    // non-canonical host 308s to bellemaretours.com, path + query preserved. Hosts are matched
+    // EXACTLY, so hash-prefixed *.pages.dev PREVIEW deployments never redirect (they'd be unusable
+    // for testing otherwise), and localhost is untouched. Zone-level rules (owner-managed) remain
+    // preferable where they exist — these catch what reaches the app, incl. pages.dev which has no
+    // zone to put a rule on.
+    const NON_CANONICAL_HOSTS = [
+      'getyourtoursmauritius.com',
+      'www.getyourtoursmauritius.com',
+      'www.bellemaretours.com',
+      'getyourtoursmauritius.pages.dev',
+    ];
     return [
+      ...NON_CANONICAL_HOSTS.map((host) => ({
+        source: '/:path*',
+        has: [{ type: 'host', value: host }],
+        destination: 'https://bellemaretours.com/:path*',
+        permanent: true,
+      })),
       {
         source: '/mauritius-airport-transfers',
         destination: '/airport-transfers',
