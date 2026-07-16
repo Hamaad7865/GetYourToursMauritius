@@ -15,6 +15,12 @@ import Link from 'next/link';
  *
  * Sized taller than the old mark because this one is ~1.75:1 (a stacked scene over two lines of
  * script) where the old was a 4:1 wordmark; at the old h-12 it rendered ~84px wide and was unreadable.
+ *
+ * Both files are named for their surface rather than one reusing the old `/logo.svg` path. Public
+ * assets are served straight through (`images: { unoptimized: true }`) under
+ * `Cache-Control: max-age=14400`, and they carry no content hash — so swapping a path's CONTENTS
+ * leaves every returning visitor on the previous logo for up to 4h. A new path is the fix; if the
+ * artwork is ever replaced again, rename the file rather than overwrite it.
  */
 export function Logo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
   return (
@@ -24,7 +30,7 @@ export function Logo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
       aria-label="Belle Mare Tours — home"
     >
       <img
-        src={tone === 'dark' ? '/logo.svg' : '/logo-light.svg'}
+        src={tone === 'dark' ? '/logo-dark.svg' : '/logo-light.svg'}
         alt="Belle Mare Tours"
         width={280}
         height={160}
