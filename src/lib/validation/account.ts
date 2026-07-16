@@ -22,8 +22,14 @@ export const profileUpdateSchema = z
   .strict();
 export type ProfileUpdate = z.infer<typeof profileUpdateSchema>;
 
-/** POST /account/delete result. */
-export const deleteAccountResultSchema = z.object({ deleted: z.literal(true) });
+/** POST /account/delete result. `deleted:false` + `pending:true` (HTTP 202) means the data erasure
+ *  completed but the auth-user removal failed transiently — the account is BANNED (can't sign back
+ *  in) and a retry of the endpoint re-attempts the removal. Never claim `deleted:true` for that
+ *  state: a "deleted" account that still exists in auth isn't deleted. */
+export const deleteAccountResultSchema = z.object({
+  deleted: z.boolean(),
+  pending: z.boolean().optional(),
+});
 
 /** GET /account/export — the GDPR data export (stable shape; includes dateOfBirth). */
 export const accountExportSchema = z.object({

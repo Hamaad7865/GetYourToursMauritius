@@ -9,6 +9,10 @@ export interface DeleteAccountResult {
   ok: boolean;
   /** A stable, non-PII error code the client can map to a localized message. */
   error?: 'unauthenticated' | 'erase_failed';
+  /** The data erasure completed but the auth-user removal failed transiently: the account is BANNED
+   *  (cannot sign back in) and the removal is retryable. Never reported as a plain success — a
+   *  "deleted" account that still exists in auth isn't deleted (review item 9). */
+  pending?: boolean;
 }
 
 /**
@@ -53,12 +57,19 @@ export async function deleteMyAccount(accessToken: string): Promise<DeleteAccoun
     return { ok: false, error: 'erase_failed' };
   }
 
-  // Auth user removal (service-role Admin API). The data is already erased; a failure here is a
-  // cleanup item, not a leak.
-  const { error: deleteError } = await createServiceRoleClient().auth.admin.deleteUser(userId);
+  // Auth user removal (service-role Admin API). The data is already erased, so a failure here is not
+  // a leak — but it is NOT "deleted" either: unhandled, the customer could sign back into a ghost
+  // account. Ban the user (refresh tokens die, new sign-ins refused) and surface pending:true so the
+  // caller knows the removal is still owed (retrying the action re-attempts it).
+  const admin = createServiceRoleClient();
+  const { error: deleteError } = await admin.auth.admin.deleteUser(userId);
   if (deleteError) {
     console.error('gdpr_auth_delete_failed', deleteError.message);
-    // Intentionally still a success: erasure (the data-protection obligation) is complete.
+    const { error: banError } = await admin.auth.admin.updateUserById(userId, {
+      ban_duration: '87600h',
+    });
+    if (banError) console.error('gdpr_auth_ban_failed', banError.message);
+    return { ok: true, pending: true };
   }
 
   return { ok: true };

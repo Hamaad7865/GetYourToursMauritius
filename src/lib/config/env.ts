@@ -104,6 +104,11 @@ const ServerEnvSchema = z.object({
   // Shared secret guarding the internal worker endpoints (notification drain, hold sweep). Use a
   // long random value; the endpoints are 503 until it is set.
   INTERNAL_TASK_SECRET: z.string().min(1).optional(),
+  // Go-live arming switch: when 'true', /api/v1/health readiness REQUIRES Peach live mode
+  // (PEACH_ENVIRONMENT=live), so a production deploy still on sandbox credentials reports 503 instead
+  // of green. Deliberately opt-in: during the pre-launch sandbox phase readiness must stay green, and
+  // the owner flips this ONCE at go-live alongside the live Peach credentials.
+  PEACH_EXPECT_LIVE: z.string().optional(),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;

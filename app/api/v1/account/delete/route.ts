@@ -26,8 +26,17 @@ export const POST = apiHandler(async (req) => {
   const admin = createServiceRoleClient();
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) {
-    // The data is already erased — a cleanup failure here is not a leak. Log (no PII) and still succeed.
+    // The data is already erased, so this is not a leak — but it is NOT "deleted" either: the auth
+    // row still exists and, unhandled, the customer could sign back into a ghost account (review
+    // item 9). Ban the user so refresh tokens die and new sign-ins are refused, and answer honestly:
+    // 202 deleted:false pending:true. Retrying the endpoint re-attempts the removal (the erasure is
+    // idempotent), and the ban keeps the account inert meanwhile.
     console.error('gdpr_auth_delete_failed', error.message);
+    const { error: banError } = await admin.auth.admin.updateUserById(user.id, {
+      ban_duration: '87600h',
+    });
+    if (banError) console.error('gdpr_auth_ban_failed', banError.message);
+    return jsonOk({ deleted: false, pending: true }, { status: 202 });
   }
 
   return jsonOk({ deleted: true });

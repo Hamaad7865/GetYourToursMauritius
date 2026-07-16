@@ -68,6 +68,29 @@ export const POST = apiHandler(async (req) => {
     log('availability materialize', err);
   }
 
+  // HONEST STATUS (review item 7): every job above ran regardless (each isolated in its own
+  // try/catch), but a failed one used to be reported inside a 200 — the cron Worker treats any 2xx
+  // as success, so a persistently broken sweep looked healthy on the Cloudflare dashboard forever.
+  // Any errored job now makes the whole response 503 (per-job results included), the Worker's ping()
+  // sees non-ok → retries → throws → the cron invocation is marked failed where someone can see it.
+  // NB: the payments SUCCESS shape also carries an `errored` key (a per-candidate COUNT), and
+  // slotsCreated's success value is not an object at all — so the failure marker is specifically the
+  // boolean `errored: true`, discriminated on the VALUE, never bare `in`.
+  const failedJob = (x: unknown): boolean =>
+    typeof x === 'object' && x !== null && (x as { errored?: unknown }).errored === true;
+  const erroredJobs = [
+    ...(failedJob(payments) ? ['payments'] : []),
+    ...(failedJob(result) ? ['bookingMaintenance'] : []),
+    ...(failedJob(slotsCreated) ? ['availability'] : []),
+  ];
+  if (erroredJobs.length > 0) {
+    return jsonError(
+      503,
+      'maintenance_partial_failure',
+      `Maintenance job(s) failed: ${erroredJobs.join(', ')} — see server logs`,
+      { ...result, slotsCreated, payments, erroredJobs },
+    );
+  }
   return jsonOk({ ...result, slotsCreated, payments });
 });
 

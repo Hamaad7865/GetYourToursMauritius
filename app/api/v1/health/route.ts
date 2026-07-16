@@ -66,6 +66,11 @@ export const GET = apiHandler(async (req) => {
   // missing feature, so it must fail readiness rather than silently look healthy.
   checks.emailConfigured = Boolean(env.RESEND_API_KEY && env.RESEND_FROM);
   checks.internalTasksConfigured = Boolean(env.INTERNAL_TASK_SECRET);
+  // Go-live gate (review item 11), ARMED by PEACH_EXPECT_LIVE=true: once the owner flips it at
+  // launch, a deploy still on Peach sandbox credentials fails readiness instead of quietly taking
+  // real bookings nobody can pay for. Unarmed (the whole sandbox phase) it always passes, so
+  // monitoring stays green while Peach merchant onboarding completes.
+  checks.paymentsLive = env.PEACH_EXPECT_LIVE === 'true' ? isLive : true;
 
   const deep = new URL(req.url).searchParams.get('deep') === 'true';
   if (deep) checks.database = await pingDatabase();
@@ -82,6 +87,7 @@ export const GET = apiHandler(async (req) => {
         checks.legacyAuthDisabled,
         checks.siteUrlConfigured,
         checks.internalTasksConfigured,
+        checks.paymentsLive,
       ]
     : [checks.paymentsSafe, checks.legacyAuthDisabled, checks.siteUrlConfigured];
   const healthy = gates.every(Boolean) && (deep ? checks.database : true);

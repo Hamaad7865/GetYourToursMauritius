@@ -26,8 +26,13 @@ function safeInternalPath(raw: string | null): string | null {
   return raw;
 }
 
-/** Where to send the visitor after sign-in: the page they came from, else their account. */
+/** Where to send the visitor after sign-in: the page they came from, else their account.
+ *
+ *  Runs inside a useState INITIALIZER, so it executes during SSR/prerender too. The try/catches
+ *  below already swallow the ReferenceErrors that throws (review item 10 verified this — it never
+ *  crashed), but the guard makes the intent explicit instead of leaning on catch-what-may. */
 function resolveRedirect(): string {
+  if (typeof window === 'undefined') return '/account';
   let candidate: string | null = null;
   try {
     candidate = new URLSearchParams(window.location.search).get('next');

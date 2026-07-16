@@ -52,13 +52,24 @@ describe('maintenance route ordering (money-safety)', () => {
     expect(calls.indexOf('reconcile')).toBeLessThan(calls.indexOf('expire'));
   });
 
-  it('isolates each step — a failing reconcile does not block the expiry sweep', async () => {
+  it('isolates each step — a failing reconcile does not block the expiry sweep — but the response is 503', async () => {
     reconcile.mockImplementationOnce(async () => {
       throw new Error('provider unreachable');
     });
     const res = await POST(req());
-    expect(res.status).toBe(200);
-    expect(calls).toContain('expire'); // expire + materialize still ran despite reconcile throwing
+    // Isolation is unchanged: every job still runs despite the reconcile throwing…
+    expect(calls).toContain('expire');
     expect(calls).toContain('materialize');
+    // …but the failure is no longer buried inside a 200 (review item 7): the cron Worker treats any
+    // 2xx as success, so a persistently broken sweep looked healthy on the dashboard forever. A 503
+    // makes the Worker retry → throw → the invocation shows as failed where someone can see it.
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as {
+      ok: boolean;
+      error: { code: string; details?: { erroredJobs?: string[] } };
+    };
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe('maintenance_partial_failure');
+    expect(body.error.details?.erroredJobs).toEqual(['payments']);
   });
 });
