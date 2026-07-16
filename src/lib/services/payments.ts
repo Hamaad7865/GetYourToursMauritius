@@ -1,5 +1,6 @@
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
+import { CheckoutPendingError } from './errors';
 import { paymentCreateResultSchema, type PaymentLink } from '@/lib/validation/booking';
 
 export interface CreatePaymentLinkInput {
@@ -27,11 +28,25 @@ export async function createPaymentLink(
   adminCtx: ServiceContext,
 ): Promise<PaymentLink> {
   const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
-  const data = await callRpc(ctx, 'api_create_payment', {
+  let data = await callRpc(ctx, 'api_create_payment', {
     bookingRef: input.bookingRef,
     idempotencyKey,
   });
-  const payment = paymentCreateResultSchema.parse(data);
+  let payment = paymentCreateResultSchema.parse(data);
+
+  // Single-flight: another request holds the checkout lease (two tabs / a double-click racing).
+  // The winner records its session id within a second or two of getting it from Peach, so ONE short
+  // in-place re-check resolves the common race into a clean reuse; if the lease is still held after
+  // that, surface checkout_pending (409) and let the caller retry the POST.
+  if (payment.checkoutPending) {
+    await new Promise((resolve) => setTimeout(resolve, 1200));
+    data = await callRpc(ctx, 'api_create_payment', {
+      bookingRef: input.bookingRef,
+      idempotencyKey,
+    });
+    payment = paymentCreateResultSchema.parse(data);
+    if (payment.checkoutPending) throw new CheckoutPendingError();
+  }
 
   // Double-charge guard: if the DB already has a still-fresh checkout for this pending payment (the
   // customer hit back/reload and is paying again before the webhook confirmed), REUSE that same Peach
@@ -51,14 +66,26 @@ export async function createPaymentLink(
   // aren't offered here.)
   const chargeCurrency = 'EUR';
   const chargeAmount = payment.amountMinor / 100;
-  const session = await ctx.payments.createCheckout({
-    bookingRef: payment.bookingRef,
-    amount: chargeAmount,
-    currency: chargeCurrency,
-    customerEmail: payment.customerEmail,
-    description: `Belle Mare Tours booking ${payment.bookingRef}`,
-    returnUrl: input.returnUrl,
-  });
+  let session;
+  try {
+    session = await ctx.payments.createCheckout({
+      bookingRef: payment.bookingRef,
+      amount: chargeAmount,
+      currency: chargeCurrency,
+      customerEmail: payment.customerEmail,
+      description: `Belle Mare Tours booking ${payment.bookingRef}`,
+      returnUrl: input.returnUrl,
+    });
+  } catch (error) {
+    // We hold the single-flight lease; hand it back so the customer's retry doesn't have to sit out
+    // the rest of the 90-second window. Best-effort — the lease expiry covers a failure here too.
+    try {
+      await callRpc(adminCtx, 'api_release_checkout_claim', { paymentId: payment.paymentId });
+    } catch {
+      /* lease expiry is the backstop */
+    }
+    throw error;
+  }
 
   // Persist what the card was actually charged (EUR, minor units) for the receipt/invoice. Now that we
   // charge EUR it equals the ledger total, but recording it keeps the receipt accurate if the charge

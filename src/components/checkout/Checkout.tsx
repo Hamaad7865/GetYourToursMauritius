@@ -810,11 +810,27 @@ export function Checkout() {
         // final authority on the amount and refuses a non-payable booking.
       }
 
-      const payRes = await fetch('/api/v1/payments', {
+      // checkout_pending (409) means ANOTHER request for this booking is mid-way through creating the
+      // Peach session (two tabs / a double-click hitting the single-flight lease). The winner records
+      // its session within seconds — then this retry gets the SAME session back — so a short retry
+      // resolves the race invisibly instead of erroring a legitimate customer.
+      let payRes = await fetch('/api/v1/payments', {
         method: 'POST',
         headers,
         body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${idemKey}:pay` }),
       }).then((r) => parseApiJson<{ checkoutId?: string; redirectUrl?: string }>(r));
+      for (
+        let retry = 0;
+        !payRes.ok && payRes.error?.code === 'checkout_pending' && retry < 3;
+        retry++
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        payRes = await fetch('/api/v1/payments', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${idemKey}:pay` }),
+        }).then((r) => parseApiJson<{ checkoutId?: string; redirectUrl?: string }>(r));
+      }
       if (!payRes.ok) {
         // The booking is already paid (or expired/cancelled) — the server refuses a second checkout
         // session for it. Clear the persisted ref so a Back/reload no longer rehydrates this dead

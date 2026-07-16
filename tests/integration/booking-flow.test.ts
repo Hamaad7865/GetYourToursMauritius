@@ -328,7 +328,11 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     expect(row.user_id).toBe(CUSTOMER); // booking owned by the customer
     expect(row.created_by).toBe(CUSTOMER); // ...and so is its minted fallback hold (was NULL before)
 
-    // And the owner can actually release it (the whole point — api_release_hold requires created_by = uid).
+    // Ownership lets the customer USE the owner-scoped hold endpoints — but this hold is ATTACHED to
+    // their payment_pending booking, and an attached hold is consumed, not releasable (20260812000000):
+    // freeing it would hand the seat to someone else mid-payment and bounce the paid booking to
+    // refund_pending. Even the owner gets hold_attached. (Owner release of an UNATTACHED hold is
+    // covered by hold-release.test.ts — the cart's removeHeld path, the only production caller.)
     const holdId = (
       await db.pg.query<{ id: string }>(
         `select h.id from booking_holds h join bookings b on b.id = h.booking_id where b.ref = $1`,
@@ -336,11 +340,9 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       )
     ).rows[0]!.id;
     await db.as({ sub: CUSTOMER, role: 'authenticated' });
-    const released = await db.pg.query<{ status: string }>(
-      `select (api_release_hold($1::uuid)).status as status`,
-      [holdId],
+    await expect(db.pg.query(`select api_release_hold($1::uuid)`, [holdId])).rejects.toThrow(
+      'hold_attached',
     );
-    expect(released.rows[0]!.status).toBe('released');
   });
 
   it('reuses the cart hold on a capacity-tight occurrence — books with exactly ONE active hold (P1)', async () => {

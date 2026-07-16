@@ -269,6 +269,9 @@ export const paymentCreateResultSchema = z.object({
   /** A still-fresh Peach checkout already recorded for this pending payment (a back/reload retry). When
    *  set, the service reuses it instead of minting a SECOND session — closing the double-charge window. */
   existingCheckoutId: z.string().nullish(),
+  /** Another request holds the single-flight checkout lease right now (20260812000000). The service
+   *  re-checks once, then surfaces checkout_pending (409) for the caller to retry briefly. */
+  checkoutPending: z.boolean().nullish(),
 });
 
 // --- Lead -------------------------------------------------------------------

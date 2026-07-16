@@ -37,14 +37,23 @@ export function useResumePayment(bookingRef: string) {
     setError(null);
     setNotPayable(false);
     try {
-      const res = await fetch('/api/v1/payments', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ bookingRef, idempotencyKey: crypto.randomUUID() }),
-      }).then((r) => r.json());
+      const start = () =>
+        fetch('/api/v1/payments', {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({ bookingRef, idempotencyKey: crypto.randomUUID() }),
+        }).then((r) => r.json());
+
+      let res = await start();
+      // checkout_pending: another tab/request is mid-way creating this booking's Peach session (the
+      // single-flight lease). The winner records it within seconds; retry briefly and reuse it.
+      for (let retry = 0; !res.ok && res.error?.code === 'checkout_pending' && retry < 3; retry++) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        res = await start();
+      }
 
       if (!res.ok) {
         if (res.error?.code === 'booking_not_payable') {

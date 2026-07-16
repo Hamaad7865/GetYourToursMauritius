@@ -369,6 +369,8 @@ type PaymentsRow = {
   charged_amount_minor: number | null;
   charged_currency: string | null;
   provider_checkout_id: string | null;
+  prev_provider_checkout_id: string | null;
+  checkout_claimed_until: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -851,6 +853,7 @@ export interface Database {
       };
       materialize_availability: { Args: { p: Json }; Returns: number };
       api_record_payment_checkout: { Args: { p: Json }; Returns: Json };
+      api_release_checkout_claim: { Args: { p: Json }; Returns: Json };
       api_pending_payment_checkouts: { Args: { p: Json }; Returns: Json };
       api_swap_category_positions: { Args: { p_id_a: string; p_id_b: string }; Returns: undefined };
       api_reorder_activities: { Args: { p: Json }; Returns: undefined };

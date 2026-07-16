@@ -13,6 +13,7 @@ export type ServiceErrorCode =
   | 'conflict'
   | 'sold_out'
   | 'booking_not_payable'
+  | 'checkout_pending'
   | 'rate_limited'
   | 'config_error'
   | 'provider_error'
@@ -83,6 +84,18 @@ export class SoldOutError extends ServiceError {
 export class BookingNotPayableError extends ServiceError {
   constructor(message = 'This booking is already paid or is no longer payable') {
     super('booking_not_payable', message, 409);
+  }
+}
+
+/**
+ * Another request for the SAME booking is currently out creating the Peach checkout session (the
+ * single-flight lease in api_create_payment). Transient by construction: the winner records its
+ * session id within seconds (then this booking reuses it) or its 90-second lease lapses. Distinct
+ * 409 code so callers retry the POST briefly instead of surfacing an error for a two-tab race.
+ */
+export class CheckoutPendingError extends ServiceError {
+  constructor(message = 'A checkout session is already being prepared for this booking') {
+    super('checkout_pending', message, 409);
   }
 }
 
