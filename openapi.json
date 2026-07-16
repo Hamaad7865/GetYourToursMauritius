@@ -2617,8 +2617,10 @@
                       "type": "object",
                       "properties": {
                         "deleted": {
-                          "type": "boolean",
-                          "const": true
+                          "type": "boolean"
+                        },
+                        "pending": {
+                          "type": "boolean"
                         }
                       },
                       "required": [
