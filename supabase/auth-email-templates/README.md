@@ -1,13 +1,27 @@
-# Branded auth emails (Supabase → Resend SMTP)
+# Branded auth emails
 
 Why: Supabase's default auth emails (plain template, Supabase's own sender) look nothing like the
 brand — a password reset that "doesn't feel genuine" trains customers to distrust exactly the email
-they must trust most. These templates + custom SMTP make every auth email come **from
+they must trust most. Both setups below make every auth email come **from
 `accounts@bellemaretours.com`, with the logo, in brand colours** — like a real operator.
 
-The four templates in this folder share one layout: logo header (the live
-`https://bellemaretours.com/logo.png` — email clients can't render SVG, so it must stay a PNG),
-white card, teal-dark button, legal footer. Owner pastes them into the Supabase dashboard once.
+## Two setups — pick ONE
+
+**A. Send-Email Auth Hook (RECOMMENDED — bilingual EN/FR).** Supabase stops sending auth emails
+itself and POSTs a signed payload to `/api/v1/hooks/send-email`; the app renders the email in the
+USER'S language and sends it through Resend. Language comes from `user_metadata.lang` (stamped at
+signup with the site language) or, for signed-out password resets, the `?lang=` the reset flow puts
+on its redirect URL. Code: `src/lib/auth-emails/*` + `app/api/v1/hooks/send-email/route.ts`.
+
+**B. Custom SMTP + dashboard templates (simple, ENGLISH-ONLY).** The four `.html` files in this
+folder, pasted into the Supabase dashboard. Same design, one language — dashboard templates cannot
+vary per user. Keep as the fallback if the hook is ever disabled.
+
+With the hook enabled (A), the dashboard templates and the SMTP sender for these emails are
+bypassed — Supabase only calls the endpoint.
+
+The shared layout in both: logo header (the live `https://bellemaretours.com/logo.png` — email
+clients can't render SVG, so it must stay a PNG), white card, teal-dark button, legal footer.
 
 ---
 
@@ -37,7 +51,21 @@ While in Cloudflare DNS, also add the DMARC record it has been recommending:
 
 (`p=none` = monitor only; tighten to `quarantine` after a few clean weeks.)
 
-### 2. Supabase — custom SMTP
+### 2A. RECOMMENDED — enable the Send-Email Auth Hook (bilingual)
+
+Order within this step matters — secret first, hook last, or resets fail during the gap:
+
+1. Cloudflare Pages → project → Settings → Environment variables (Production), add:
+   - `AUTH_EMAIL_FROM` = `Belle Mare Tours <accounts@bellemaretours.com>`
+   - `SEND_EMAIL_HOOK_SECRET` = _(created in step 3 below — come back and paste it)_
+2. Supabase → **Authentication → Hooks → Send Email hook** → HTTPS endpoint:
+   `https://bellemaretours.com/api/v1/hooks/send-email`
+3. Copy the generated secret (`v1,whsec_…`) → paste into `SEND_EMAIL_HOOK_SECRET` in Pages →
+   **redeploy** → THEN flip the hook to Enabled.
+4. Test (step 4 below). If anything misbehaves, disabling the hook instantly restores Supabase's
+   own sending (setup B), so B is worth configuring too as the fallback.
+
+### 2B. Fallback — Supabase custom SMTP (English-only)
 
 Supabase dashboard → **Project Settings → Authentication → SMTP Settings** → Enable custom SMTP:
 

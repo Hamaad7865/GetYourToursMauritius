@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Provider } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { useDialog } from '@/lib/a11y/useDialog';
-import { useT } from '@/components/site/PreferencesProvider';
+import { usePreferences, useT } from '@/components/site/PreferencesProvider';
 import {
   IconEye,
   IconEyeOff,
@@ -47,9 +47,16 @@ function authCallbackUrl(): string {
  * Where Supabase's password-recovery email link should land. The browser client's
  * `detectSessionInUrl` + PKCE auto-exchanges the `?code` into a session there and fires a
  * `PASSWORD_RECOVERY` event, so the reset page only has to wait for that session.
+ *
+ * `lang` rides the redirect URL for the send-email hook: a reset is requested SIGNED OUT, so the
+ * current UI language is the only signal available (no session → no metadata write). The hook
+ * prefers the account's stored `user_metadata.lang` and falls back to this. The Supabase redirect
+ * allow-list entry is `https://…/**`, which covers the query string.
  */
-function resetRedirectUrl(): string {
-  return new URL('/auth/reset-password', window.location.origin).toString();
+function resetRedirectUrl(lang: string): string {
+  const url = new URL('/auth/reset-password', window.location.origin);
+  url.searchParams.set('lang', lang);
+  return url.toString();
 }
 
 /** GetYourGuide-style sign in / sign up modal. Email+password plus social providers. */
@@ -63,6 +70,7 @@ export function AuthDialog({
   onSwitch: (mode: AuthMode) => void;
 }) {
   const t = useT();
+  const { language } = usePreferences();
   const [view, setView] = useState<'auth' | 'forgot'>('auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -114,7 +122,9 @@ export function AuthDialog({
           email,
           password,
           options: {
-            data: { full_name: name || null },
+            // `lang` = the site language the account was created in; the send-email auth hook reads
+            // it to pick EN/FR for every later auth email (reset, magic link, email change).
+            data: { full_name: name || null, lang: language },
             emailRedirectTo: authCallbackUrl(),
           },
         });
@@ -144,7 +154,7 @@ export function AuthDialog({
     setNotice(null);
     const sb = getBrowserSupabase();
     try {
-      await sb.auth.resetPasswordForEmail(email, { redirectTo: resetRedirectUrl() });
+      await sb.auth.resetPasswordForEmail(email, { redirectTo: resetRedirectUrl(language) });
     } catch (err) {
       // A genuine network/transport failure is worth surfacing; a "user not found" from
       // Supabase would NOT throw here — it returns success-shaped — so this only catches

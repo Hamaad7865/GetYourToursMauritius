@@ -109,6 +109,14 @@ const ServerEnvSchema = z.object({
   // of green. Deliberately opt-in: during the pre-launch sandbox phase readiness must stay green, and
   // the owner flips this ONCE at go-live alongside the live Peach credentials.
   PEACH_EXPECT_LIVE: z.string().optional(),
+  // Supabase Send-Email Auth Hook (Authentication → Hooks → Send Email): the Standard-Webhooks
+  // secret shown when the hook is created (`v1,whsec_…`). When the hook is enabled, Supabase POSTs
+  // auth-email payloads to /api/v1/hooks/send-email instead of sending mail itself; unset here, that
+  // endpoint answers 503 so a half-configured deploy fails loudly instead of black-holing resets.
+  SEND_EMAIL_HOOK_SECRET: z.string().min(1).optional(),
+  // Sender identity for AUTH emails (reset/confirm/magic-link), e.g.
+  // "Belle Mare Tours <accounts@bellemaretours.com>". Falls back to RESEND_FROM when unset.
+  AUTH_EMAIL_FROM: z.string().min(1).optional(),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;
