@@ -70,6 +70,73 @@ export function selectionHash(input: SelectionInput): string {
   return JSON.stringify(normalized);
 }
 
+/** Every OPERATIONAL (non-price) field pay() sends onto the booking — the run-sheet/voucher facts:
+ *  who travels, where they're picked up, which flight, which room. `selectionHash` scopes the stash
+ *  to the PRICE config; this covers everything else the customer types in steps ①/②.
+ *
+ *  Why it exists (review item 3): the persisted booking identity survives a reload ON PURPOSE (it is
+ *  the double-charge guard), but the form state does not. A customer who reloads, re-enters DIFFERENT
+ *  details (new flight number, new hotel, new phone) and pays would silently pay the OLD booking —
+ *  the operator drives to the wrong hotel for the wrong flight. Hashing the details at create time
+ *  and comparing at pay time turns that into a fresh booking carrying what the customer actually
+ *  typed. Keys are fixed-order; undefined and null both normalize to null so a product's absent
+ *  fields (airport vs sightseeing) hash identically across mounts. */
+export type DetailsInput = {
+  customerName: string;
+  customerPhone: string | null;
+  customerCountry: string | null;
+  gender?: string | null;
+  company?: string | null;
+  specialNotes?: string | null;
+  pickupLocation?: string | null;
+  dropoffLocation?: string | null;
+  pickupPending?: boolean;
+  dropoffSlug?: string | null;
+  dropoffArea?: string | null;
+  pickupSlug?: string | null;
+  pickupArea?: string | null;
+  tripType?: string | null;
+  tripDirection?: string | null;
+  flightNumber?: string | null;
+  arrivalTime?: string | null;
+  returnDate?: string | null;
+  returnTime?: string | null;
+  departureFlightNumber?: string | null;
+  roomOrCabin?: string | null;
+  luggageDetails?: string | null;
+  childSeatAge?: number | null;
+};
+
+export function detailsHash(input: DetailsInput): string {
+  const s = (v: string | null | undefined): string | null => (v == null || v === '' ? null : v);
+  const normalized = {
+    customerName: s(input.customerName) ?? '',
+    customerPhone: s(input.customerPhone),
+    customerCountry: s(input.customerCountry),
+    gender: s(input.gender),
+    company: s(input.company),
+    specialNotes: s(input.specialNotes),
+    pickupLocation: s(input.pickupLocation),
+    dropoffLocation: s(input.dropoffLocation),
+    pickupPending: Boolean(input.pickupPending),
+    dropoffSlug: s(input.dropoffSlug),
+    dropoffArea: s(input.dropoffArea),
+    pickupSlug: s(input.pickupSlug),
+    pickupArea: s(input.pickupArea),
+    tripType: s(input.tripType),
+    tripDirection: s(input.tripDirection),
+    flightNumber: s(input.flightNumber),
+    arrivalTime: s(input.arrivalTime),
+    returnDate: s(input.returnDate),
+    returnTime: s(input.returnTime),
+    departureFlightNumber: s(input.departureFlightNumber),
+    roomOrCabin: s(input.roomOrCabin),
+    luggageDetails: s(input.luggageDetails),
+    childSeatAge: typeof input.childSeatAge === 'number' ? input.childSeatAge : null,
+  };
+  return JSON.stringify(normalized);
+}
+
 /** Whether the persisted booking identity (idemKey + bookingRef) may be rehydrated for this mount.
  *
  *  Rehydrate ONLY when:

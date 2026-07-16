@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  detailsHash,
   selectionHash,
   shouldRehydrateBooking,
+  type DetailsInput,
   type SelectionInput,
 } from '@/lib/checkout/selection';
 
@@ -128,5 +130,65 @@ describe('shouldRehydrateBooking', () => {
   it('does NOT rehydrate when there is no stored hash (nothing persisted yet)', () => {
     expect(shouldRehydrateBooking({ storedSel: '', currentSel: sel, from: 'widget' })).toBe(false);
     expect(shouldRehydrateBooking({ storedSel: null, currentSel: sel, from: 'cart' })).toBe(false);
+  });
+});
+
+// The OPERATIONAL (run-sheet) twin of selectionHash — review item 3. The stash survives a reload on
+// purpose (double-charge guard) but the form does not, so pay() compares this hash before reusing a
+// rehydrated ref: changed details → fresh booking carrying what the customer actually typed.
+describe('detailsHash', () => {
+  const base: DetailsInput = {
+    customerName: 'Amina Peerbocus',
+    customerPhone: '+230 5123 4567',
+    customerCountry: 'MU',
+    pickupLocation: 'LUX* Belle Mare',
+    dropoffLocation: null,
+    pickupPending: false,
+    flightNumber: 'MK015',
+    arrivalTime: '14:30',
+    roomOrCabin: '212',
+    luggageDetails: '2 large cases',
+    childSeatAge: 3,
+  };
+
+  it('is deterministic for identical details', () => {
+    expect(detailsHash({ ...base })).toBe(detailsHash({ ...base }));
+  });
+
+  it('changes when any run-sheet fact changes (flight, hotel, phone, room)', () => {
+    expect(detailsHash({ ...base, flightNumber: 'MK043' })).not.toBe(detailsHash(base));
+    expect(detailsHash({ ...base, pickupLocation: 'Constance Prince Maurice' })).not.toBe(
+      detailsHash(base),
+    );
+    expect(detailsHash({ ...base, customerPhone: '+230 5999 0000' })).not.toBe(detailsHash(base));
+    expect(detailsHash({ ...base, roomOrCabin: '318' })).not.toBe(detailsHash(base));
+    expect(detailsHash({ ...base, childSeatAge: null })).not.toBe(detailsHash(base));
+  });
+
+  it("normalizes undefined / null / '' identically — a product's absent fields hash stably", () => {
+    // The airport payload sets sightseeing-only fields to undefined and vice-versa; a remount must
+    // not read a legit same-details replay as drift because '' became undefined.
+    expect(detailsHash({ ...base, gender: undefined, company: null, specialNotes: '' })).toBe(
+      detailsHash({ ...base, gender: null, company: undefined, specialNotes: null }),
+    );
+  });
+
+  it('a details change never disturbs selectionHash (the two gates are independent)', () => {
+    const sel: SelectionInput = {
+      priceLabel: 'Adult',
+      qty: 2,
+      suv: false,
+      childSeats: 0,
+      pickupText: '',
+      pickupLat: null,
+      pickupLng: null,
+      pickupTbd: false,
+      dropoffText: '',
+      itinerary: null,
+      total: '90.00',
+    };
+    const before = selectionHash(sel);
+    void detailsHash({ ...base, flightNumber: 'MK043' });
+    expect(selectionHash(sel)).toBe(before);
   });
 });

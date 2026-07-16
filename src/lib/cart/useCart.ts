@@ -277,12 +277,31 @@ export function useCart(opts?: { withPending?: boolean }) {
   }, []);
 
   const setGuests = useCallback((id: string, guests: number) => {
+    // Editing a HELD line's party (review item 5): the server hold reserves the OLD quantity, and the
+    // line's idemKey is the key that hold — and any abandoned booking — was created under. Keeping
+    // either would double-reserve capacity for up to 30 minutes AND let api_book's idempotency replay
+    // hand back the old-quantity booking on the next checkout. So a real quantity change releases the
+    // hold (fire-and-forget, like removeHeld), demotes the line to 'saved', and mints a FRESH idemKey;
+    // proceeding to checkout re-holds at the new quantity through the normal path.
+    const held = read().find((i) => i.id === id);
+    const releasing =
+      held?.status === 'held' && Boolean(held.holdId) && guests !== held.guests ? held : null;
+    if (releasing?.holdId) void releaseHoldRequest(releasing.holdId);
     write(
       read().map((i) => {
         if (i.id !== id) return i;
         const next = Math.max(1, Math.min(lineCap(i), guests));
         // Pull child seats down with the party — a seat per traveller can't exceed the new count.
-        return { ...i, guests: next, childSeats: Math.min(i.childSeats ?? 0, next) };
+        const resized = { ...i, guests: next, childSeats: Math.min(i.childSeats ?? 0, next) };
+        return releasing
+          ? {
+              ...resized,
+              status: 'saved' as const,
+              holdId: undefined,
+              expiresAt: undefined,
+              idemKey: crypto.randomUUID(),
+            }
+          : resized;
       }),
     );
   }, []);

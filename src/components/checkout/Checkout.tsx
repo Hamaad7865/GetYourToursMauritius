@@ -14,7 +14,7 @@ import { transfers, type Transfer } from '@/lib/content/transfers';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
-import { selectionHash, shouldRehydrateBooking } from '@/lib/checkout/selection';
+import { detailsHash, selectionHash, shouldRehydrateBooking } from '@/lib/checkout/selection';
 import { useCart } from '@/lib/cart/useCart';
 import { parseApiJson } from '@/lib/http/fetch-json';
 import {
@@ -162,14 +162,19 @@ export function Checkout() {
   // would rehydrate the OLD party's booking → pay() would skip creation AND the price-reconciliation
   // gate → wrong-amount charge (the P0). The persisted `sel` (a selectionHash of the price-relevant
   // fields) lets the caller rehydrate ONLY when the current selection matches.
-  function readBooking(): { idem: string; ref: string | null; sel: string } {
-    if (typeof window === 'undefined' || !occ) return { idem: '', ref: null, sel: '' };
+  function readBooking(): { idem: string; ref: string | null; sel: string; det: string } {
+    if (typeof window === 'undefined' || !occ) return { idem: '', ref: null, sel: '', det: '' };
     try {
       const raw = window.sessionStorage.getItem(`gytm:booking:${occ}`);
       const b = raw ? JSON.parse(raw) : null;
-      return { idem: b?.idemKey || '', ref: b?.bookingRef || null, sel: b?.sel || '' };
+      return {
+        idem: b?.idemKey || '',
+        ref: b?.bookingRef || null,
+        sel: b?.sel || '',
+        det: b?.det || '',
+      };
     } catch {
-      return { idem: '', ref: null, sel: '' };
+      return { idem: '', ref: null, sel: '', det: '' };
     }
   }
   // The chosen route is stashed in sessionStorage (too big for the URL): by slug from Continue, by
@@ -379,6 +384,10 @@ export function Checkout() {
   const [bookingRef, setBookingRef] = useState<string | null>(() =>
     canRehydrateBooking ? readBooking().ref : null,
   );
+  // Set when the details-drift gate in pay() abandons a rehydrated ref: the fresh idempotency key
+  // must survive a warn→confirm re-run of pay() in this mount, or the second run would fall back to
+  // the mount `idemKey` and the server would replay the abandoned (old-details) booking.
+  const [detailsOverrideKey, setDetailsOverrideKey] = useState<string | null>(null);
   // Authoritative price from the created booking — what the customer is actually charged.
   const [serverTotal, setServerTotal] = useState<number | null>(null);
   // Live region-based transport fee, computed as the customer enters pickup (mirrors the server's
@@ -605,15 +614,125 @@ export function Checkout() {
       // a later re-checkout of the same occurrence with a different party can't rehydrate this ref. The
       // SAME urlSelectionHash() recomputed on a remount is what gates the rehydration (see above).
       const sel = urlSelectionHash();
+      // The OPERATIONAL details this pay() would put on the booking — the run-sheet facts the
+      // customer typed in steps ①/② (pickup, flight, room, luggage, contact). Built ONCE here and
+      // used for BOTH the api_book payload below and the drift hash, so they can never disagree.
+      // Coordinates ride alongside in the payload only: the pickup/drop-off TEXT carries the intent.
+      const opDetails = {
+        pickupLocation: isAirport
+          ? 'SSR International Airport (arrivals)'
+          : isHotelTransfer
+            ? pickupParam || null
+            : wantsPickup && !tbd && pickupLoc.trim()
+              ? pickupLoc.trim().slice(0, 200)
+              : null,
+        dropoffLocation: isAirport
+          ? dropoffName.trim() || dropoffParam || null
+          : isHotelTransfer
+            ? dropoffParam || null
+            : wantsPickup && !tbd && !dropoffSame && dropoffText.trim()
+              ? dropoffText.trim().slice(0, 200)
+              : null,
+        pickupPending: isAirport || isHotelTransfer ? false : wantsPickup && tbd,
+        dropoffSlug: isHotelTransfer
+          ? dropoffSlugParam || null
+          : isAirport && !hotelNotListed
+            ? dropoffSlug || null
+            : null,
+        dropoffArea: isHotelTransfer
+          ? dropoffAreaParam || null
+          : isAirport
+            ? dropoffArea.trim() || null
+            : undefined,
+        pickupSlug: isHotelTransfer ? pickupSlugParam || null : undefined,
+        pickupArea: isHotelTransfer ? pickupAreaParam || null : undefined,
+        tripType: isHotelTransfer ? tripTypeParam : undefined,
+        tripDirection: isAirport ? tripDirection : undefined,
+        flightNumber:
+          isAirport && tripDirection !== 'departure' ? flightNumber.trim() || null : undefined,
+        arrivalTime:
+          (isAirport && tripDirection !== 'departure') || isHotelTransfer
+            ? arrivalTime.trim() || null
+            : undefined,
+        returnDate: isAirport
+          ? tripDirection !== 'arrival'
+            ? departureDate.trim() || null
+            : undefined
+          : isHotelTransfer && tripTypeParam === 'return'
+            ? departureDate.trim() || null
+            : undefined,
+        returnTime: isAirport
+          ? tripDirection !== 'arrival'
+            ? returnTime.trim() || null
+            : undefined
+          : isHotelTransfer && tripTypeParam === 'return'
+            ? returnTime.trim() || null
+            : undefined,
+        departureFlightNumber:
+          isAirport && tripDirection !== 'arrival' ? departureFlight.trim() || null : undefined,
+        roomOrCabin: isAirport || isHotelTransfer ? roomOrCabin.trim() || null : undefined,
+        luggageDetails: isAirport || isHotelTransfer ? luggageDetails.trim() || null : undefined,
+        childSeatAge:
+          isAirport && childSeatWanted && childSeatAge.trim() ? Number(childSeatAge) : undefined,
+      };
+      const opCustomer = {
+        name: name.trim() || profile?.fullName || user?.email || 'Guest',
+        email: user?.email,
+        phone: phone.trim() || profile?.phone || null,
+        country: country || null,
+        ...(isAirport || isHotelTransfer
+          ? {
+              gender: gender.trim() || null,
+              company: company.trim() || null,
+              specialNotes: specialNotes.trim() || null,
+            }
+          : {}),
+      };
+      const det = detailsHash({
+        ...opDetails,
+        customerName: opCustomer.name,
+        customerPhone: opCustomer.phone,
+        customerCountry: opCustomer.country,
+        gender: 'gender' in opCustomer ? opCustomer.gender : null,
+        company: 'company' in opCustomer ? opCustomer.company : null,
+        specialNotes: 'specialNotes' in opCustomer ? opCustomer.specialNotes : null,
+      });
+
       // Create the booking once (idempotent + remembered); a retry reuses it.
       let ref = bookingRef;
+      let keyForBooking = detailsOverrideKey ?? idemKey;
+      // Details-drift gate (review item 3): the identity stash deliberately survives a reload (it is
+      // the double-charge guard), but the FORM state does not — so a customer who reloads, re-types
+      // different details (a new flight number, another hotel, a different phone) and pays would
+      // silently pay the OLD booking carrying the OLD run sheet. If the details hashed at create time
+      // differ from what's on screen now, abandon the ref: fresh idempotency key → a fresh booking
+      // with the current details; the abandoned payment_pending one expires via the autocancel sweep.
+      // A LEGACY stash (no det — written before this shipped) keeps the plain rehydrate: dropping it
+      // would mint duplicates for customers mid-checkout across the deploy.
+      if (ref) {
+        const stored = readBooking();
+        if (stored.det && stored.det !== det) {
+          keyForBooking = crypto.randomUUID();
+          setDetailsOverrideKey(keyForBooking);
+          setBookingRef(null);
+          ref = null;
+          try {
+            if (occ) window.sessionStorage.removeItem(`gytm:booking:${occ}`);
+          } catch {
+            /* sessionStorage unavailable — the in-state reset above still governs this mount */
+          }
+        }
+      }
       if (!ref) {
         // Persist the idem key + selection hash BEFORE the request so a crash/abort mid-flight still
         // reuses the same key on the retry (server then dedups → no duplicate booking), and a remount
         // only rehydrates when the selection still matches. Updated with the ref once it lands.
         try {
           if (occ)
-            window.sessionStorage.setItem(`gytm:booking:${occ}`, JSON.stringify({ idemKey, sel }));
+            window.sessionStorage.setItem(
+              `gytm:booking:${occ}`,
+              JSON.stringify({ idemKey: keyForBooking, sel, det }),
+            );
         } catch {
           /* sessionStorage unavailable — the key is still stable for the lifetime of this mount */
         }
@@ -628,31 +747,11 @@ export function Checkout() {
             childSeats,
             holdId: holdId || undefined,
             itinerary: readItinerary(),
-            // Pickup + drop-off are DISTINCT fields on the booking — never concatenated. A fixed
-            // pickup address sends its text (+ coords); the drop-off sends its own text. "I don't
-            // know yet" (tbd) sends no address/coords but flags pickupPending so admin sees a
-            // pending pickup. "No pickup" sends all null/false. Clamped to 200 to match the schema.
-            // Airport transfer: pickup IS the airport, drop-off is the hotel. Otherwise the customer's
-            // chosen pickup (+ a distinct drop-off only when "same as pickup" is off). dropoffCoords is
-            // UX-only (no DB column), so it's never sent here.
-            pickupLocation: isAirport
-              ? 'SSR International Airport (arrivals)'
-              : isHotelTransfer
-                ? pickupParam || null
-                : wantsPickup && !tbd && pickupLoc.trim()
-                  ? pickupLoc.trim().slice(0, 200)
-                  : null,
-            // Airport drop-off: the chosen hotel name (with its room/cabin appended for the driver) or the
-            // free-text "not listed" name. Hotel-to-hotel: the chosen drop-off location label. Otherwise
-            // the customer's distinct sightseeing drop-off.
-            dropoffLocation: isAirport
-              ? dropoffName.trim() || dropoffParam || null
-              : isHotelTransfer
-                ? dropoffParam || null
-                : wantsPickup && !tbd && !dropoffSame && dropoffText.trim()
-                  ? dropoffText.trim().slice(0, 200)
-                  : null,
-            pickupPending: isAirport || isHotelTransfer ? false : wantsPickup && tbd,
+            // Pickup + drop-off + every other run-sheet field (flight, room, luggage, trip legs) come
+            // from opDetails above — the SAME object the details-drift hash covers, so the payload
+            // and the hash can never disagree about what the customer typed. "I don't know yet" (tbd)
+            // sends no address/coords but flags pickupPending; text is clamped to the schema's 200.
+            ...opDetails,
             // Pickup coordinates → the server re-derives the region and adds the transport fare (only
             // for per_person/per_group activities with pickup; ignored otherwise). Never a client price.
             // A TBD pickup — or either transfer product (fixed band fare) — sends no coords → no transport fee.
@@ -671,93 +770,27 @@ export function Checkout() {
             // Hotel-to-hotel drop-off-end coords (the server derives its region from them, zero-trust).
             dropoffLat: isHotelTransfer ? dropoffLatParam : undefined,
             dropoffLng: isHotelTransfer ? dropoffLngParam : undefined,
-            // Transfers: the SERVER re-derives the region(s) and recomputes the fare — airport from
-            // dropoffSlug (or its free-text area); hotel-to-hotel from BOTH ends' slugs (or area_region for
-            // a free-text end). These are zero-trust inputs, never a client price. The flight/trip/traveller
-            // fields are stored for the operator run sheet + receipt.
-            dropoffSlug: isHotelTransfer
-              ? dropoffSlugParam || null
-              : isAirport && !hotelNotListed
-                ? dropoffSlug || null
-                : null,
-            dropoffArea: isHotelTransfer
-              ? dropoffAreaParam || null
-              : isAirport
-                ? dropoffArea.trim() || null
-                : undefined,
-            // Hotel-to-hotel only: the pickup end (the server re-derives its region the same zero-trust way).
-            pickupSlug: isHotelTransfer ? pickupSlugParam || null : undefined,
-            pickupArea: isHotelTransfer ? pickupAreaParam || null : undefined,
-            // Hotel-to-hotel prices by tripType directly; airport derives it from tripDirection below.
-            tripType: isHotelTransfer ? tripTypeParam : undefined,
-            tripDirection: isAirport ? tripDirection : undefined,
-            flightNumber:
-              isAirport && tripDirection !== 'departure' ? flightNumber.trim() || null : undefined,
-            // The pickup/arrival time: airport (arrival/return legs) AND hotel-to-hotel both collect it
-            // in step ①; without the htransfer case the point-to-point pickup time the customer enters
-            // is silently dropped (no run-sheet/voucher/receipt time → mis-timed pickups).
-            arrivalTime:
-              (isAirport && tripDirection !== 'departure') || isHotelTransfer
-                ? arrivalTime.trim() || null
-                : undefined,
-            // Departure-leg fields (departure or return). returnDate carries the departure pickup date.
-            // Hotel-to-hotel carries the chosen return date/time when it's a return trip.
-            returnDate: isAirport
-              ? tripDirection !== 'arrival'
-                ? departureDate.trim() || null
-                : undefined
-              : isHotelTransfer && tripTypeParam === 'return'
-                ? departureDate.trim() || null
-                : undefined,
-            returnTime: isAirport
-              ? tripDirection !== 'arrival'
-                ? returnTime.trim() || null
-                : undefined
-              : isHotelTransfer && tripTypeParam === 'return'
-                ? returnTime.trim() || null
-                : undefined,
-            departureFlightNumber:
-              isAirport && tripDirection !== 'arrival' ? departureFlight.trim() || null : undefined,
-            roomOrCabin: isAirport || isHotelTransfer ? roomOrCabin.trim() || null : undefined,
-            luggageDetails:
-              isAirport || isHotelTransfer ? luggageDetails.trim() || null : undefined,
-            childSeatAge:
-              isAirport && childSeatWanted && childSeatAge.trim()
-                ? Number(childSeatAge)
-                : undefined,
-            customer: {
-              // Name + phone come from the step-② details form (falling back to the profile);
-              // email is always the verified account email. Country is required (sent on the booking);
-              // gender/company/special-notes are the optional airport-form extras.
-              name: name.trim() || profile?.fullName || user?.email || 'Guest',
-              email: user?.email,
-              phone: phone.trim() || profile?.phone || null,
-              country: country || null,
-              ...(isAirport || isHotelTransfer
-                ? {
-                    gender: gender.trim() || null,
-                    company: company.trim() || null,
-                    specialNotes: specialNotes.trim() || null,
-                  }
-                : {}),
-            },
+            // Name/phone/email/country (+ the transfer extras) — the step-② form via opCustomer,
+            // which the drift hash also covers.
+            customer: opCustomer,
             source: 'web',
-            idempotencyKey: idemKey,
+            idempotencyKey: keyForBooking,
           }),
         }).then((r) => parseApiJson<{ ref: string; totalEur?: number }>(r));
         if (!bookingRes.ok)
           throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
         ref = bookingRes.data.ref;
         setBookingRef(ref);
-        // Persist the booking IDENTITY (idem key + ref + selection hash) so a Back/reload remount
-        // rehydrates it — but ONLY when the selection still matches — and goes straight to this
-        // booking's payment rather than creating a second one. This stash is deliberately NOT cleared
-        // below — that is the whole point of the fix.
+        // Persist the booking IDENTITY (idem key + ref + selection hash + details hash) so a
+        // Back/reload remount rehydrates it — but ONLY when the selection still matches, and pay()
+        // re-verifies the DETAILS hash before reusing the ref — and goes straight to this booking's
+        // payment rather than creating a second one. This stash is deliberately NOT cleared below —
+        // that is the whole point of the fix.
         try {
           if (occ)
             window.sessionStorage.setItem(
               `gytm:booking:${occ}`,
-              JSON.stringify({ idemKey, bookingRef: ref, sel }),
+              JSON.stringify({ idemKey: keyForBooking, bookingRef: ref, sel, det }),
             );
         } catch {
           /* sessionStorage unavailable — the in-state ref still guards this mount */
@@ -798,16 +831,25 @@ export function Checkout() {
         // have moved since the booking was created (a tier edited in admin), so re-run the SAME
         // price-reconciliation here too: fetch the booking's authoritative total and compare it to the
         // displayed total BEFORE charging. Never silently pay a mismatched amount on the rehydrated path.
+        //
+        // FAIL CLOSED (review item 4): this GET failing used to fall through to payment — the server
+        // charges its stored amount, which is authoritative but possibly NOT the number on the
+        // customer's screen. Paying an unverified amount is worse than asking for a retry, so payment
+        // is blocked until the authoritative total loads (the thrown error surfaces with the existing
+        // retryable Pay-button flow; busy is reset in the catch below).
         const bookingRes = await fetch(`/api/v1/bookings/${encodeURIComponent(ref)}`, {
           headers,
         }).then((r) => parseApiJson<{ totalEur?: number }>(r));
-        if (bookingRes.ok) {
-          const srv =
-            typeof bookingRes.data?.totalEur === 'number' ? bookingRes.data.totalEur : null;
-          if (reconcileOrWarn(srv)) return;
+        const srv =
+          bookingRes.ok && typeof bookingRes.data?.totalEur === 'number'
+            ? bookingRes.data.totalEur
+            : null;
+        if (srv == null) {
+          throw new Error(
+            t('We could not verify the price of this booking. Please try again in a moment.'),
+          );
         }
-        // A failed GET (e.g. transient) is non-fatal: fall through to payment, where the server is the
-        // final authority on the amount and refuses a non-payable booking.
+        if (reconcileOrWarn(srv)) return;
       }
 
       // checkout_pending (409) means ANOTHER request for this booking is mid-way through creating the
@@ -817,7 +859,7 @@ export function Checkout() {
       let payRes = await fetch('/api/v1/payments', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${idemKey}:pay` }),
+        body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${keyForBooking}:pay` }),
       }).then((r) => parseApiJson<{ checkoutId?: string; redirectUrl?: string }>(r));
       for (
         let retry = 0;
@@ -828,7 +870,7 @@ export function Checkout() {
         payRes = await fetch('/api/v1/payments', {
           method: 'POST',
           headers,
-          body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${idemKey}:pay` }),
+          body: JSON.stringify({ bookingRef: ref, idempotencyKey: `${keyForBooking}:pay` }),
         }).then((r) => parseApiJson<{ checkoutId?: string; redirectUrl?: string }>(r));
       }
       if (!payRes.ok) {
