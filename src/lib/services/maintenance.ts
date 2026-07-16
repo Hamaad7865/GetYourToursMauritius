@@ -103,7 +103,16 @@ export async function reconcilePaymentsPending(
       const event = await ctx.payments.getCheckoutStatus(candidate.checkoutId);
       const reconciled = await reconcilePaymentEvent(admin, event);
       if (reconciled.confirmed) result.confirmed += 1;
-      else if (event.outcome === 'pending') result.pending += 1;
+      else if (reconciled.outcome.startsWith('quarantined:')) {
+        // A settled signal Peach reported incompletely (missing amount/currency/reference) — nothing
+        // was written; the next sweep re-queries. Counted as errored so a persistent one is visible
+        // in the summary, not silently filed under "payment failed".
+        result.errored += 1;
+        console.error('payment reconcile sweep: settled event quarantined', {
+          ref: candidate.ref,
+          outcome: reconciled.outcome,
+        });
+      } else if (event.outcome === 'pending') result.pending += 1;
       else result.failed += 1;
     } catch (error) {
       // No PII / secrets — only the booking ref (already in logs/URLs) + a short message.

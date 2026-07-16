@@ -49,7 +49,16 @@ export const POST = apiHandler(async (req) => {
             signature: headers['x-webhook-signature'] ?? null,
             headers,
           });
-          await reconcilePaymentEvent(admin, event);
+          const reconciled = await reconcilePaymentEvent(admin, event);
+          if (reconciled.outcome.startsWith('quarantined:')) {
+            // Nothing was written (incomplete settled payload) — the sync poll / sweep will re-query
+            // the status endpoint, whose payload is complete. Still ACK 200: a provider retry would
+            // resend the same incomplete body.
+            console.error('[webhook] settled event quarantined', {
+              bookingRef,
+              outcome: reconciled.outcome,
+            });
+          }
           return;
         } catch (hmacErr) {
           // Only worth a log when a signature WAS present (HMAC was attempted and failed → likely a

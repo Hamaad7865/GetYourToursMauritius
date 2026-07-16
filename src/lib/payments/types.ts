@@ -45,11 +45,18 @@ export interface PaymentEvent {
   providerReference: string | null;
   /**
    * Settled/refunded amount in minor units as reported by the provider, when it can be parsed from
-   * the verified payload. `null`/absent means "amount not provided" — the webhook then falls back
-   * to the full booking total. A real provider that supports partial captures/refunds MUST set
-   * this so the ledger records the true amount (the SQL reducer already handles partials).
+   * the verified payload. `null`/absent means "amount not provided". A settled event (paid/refunded)
+   * with no amount is NOT credited — reconcilePaymentEvent quarantines it (no ledger write) and the
+   * periodic status re-query retries with a complete payload. It is never assumed to be the full
+   * booking total: that turned a malformed/partial provider payload into a full-value settlement.
    */
   amountMinor?: number | null;
+  /**
+   * ISO-4217 currency of the settled amount, as reported by the provider. Settled events must carry
+   * it and it must match the payment's currency, or the event is quarantined — an amount in the
+   * wrong currency credited at face value would mis-settle the ledger.
+   */
+  currency?: string | null;
   raw: unknown;
 }
 

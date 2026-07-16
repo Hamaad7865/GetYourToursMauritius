@@ -162,6 +162,7 @@ export class PeachPaymentProvider implements PaymentProvider {
       bookingRef: fields.merchantTransactionId,
       providerReference: fields.transactionId ?? fields.checkoutId,
       amountMinor: fields.amountMinor,
+      currency: fields.currency,
       raw: fields.raw,
     };
   }
@@ -189,6 +190,7 @@ export class PeachPaymentProvider implements PaymentProvider {
       bookingRef: str('merchantTransactionId'),
       providerReference: str('id') ?? checkoutId,
       amountMinor: Number.isFinite(amount) ? Math.round(amount * 100) : null,
+      currency: str('currency'),
       raw: data,
     };
   }
@@ -239,6 +241,7 @@ interface WebhookFields {
   resultCode: string | null;
   paymentType: string | null;
   amountMinor: number | null;
+  currency: string | null;
   transactionId: string | null;
   checkoutId: string | null;
   raw: unknown;
@@ -287,6 +290,7 @@ export function extractWebhookFields(rawBody: string, contentType: string): Webh
     resultCode: get('result.code'),
     paymentType: get('paymentType'),
     amountMinor: Number.isFinite(amount) ? Math.round(amount * 100) : null,
+    currency: get('currency'),
     transactionId: get('id'),
     checkoutId: get('checkoutId'),
     raw,

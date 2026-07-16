@@ -17,12 +17,21 @@ export interface ReconcileResult {
  * status re-query, so confirmation behaves identically however the signal arrives. Idempotent at the
  * ledger (duplicate provider events are ignored).
  *
- * Amount verification: the card is charged in EUR (== the ledger), so a 'paid' event credits the
- * amount the provider ACTUALLY settled (`event.amountMinor`), not the expected booking total. That
- * makes `append_payment_event`'s underpayment guard meaningful: a short/partial capture credits less
- * than the total, so `v_paid < amount_minor` leaves the booking PENDING (manual review) instead of
- * confirming it as fully paid. When the provider reports no amount (`amountMinor` null) we fall back
- * to the booking total per the PaymentEvent contract. The raw payload is stored on the event for audit.
+ * SETTLED events (paid/refunded) are STRICT — all three or the event is QUARANTINED (no ledger
+ * write; `outcome: 'quarantined:<reason>'`):
+ *   - `providerReference` — the ledger's dedup key is (payment_id, provider_event_id), and NULLs
+ *     never collide in that unique index, so a reference-less event would bypass dedup entirely;
+ *   - `amountMinor` — an absent amount used to be credited as the FULL booking total, which turned a
+ *     malformed provider payload into a full-value settlement. Writing a 0-amount placeholder would
+ *     be worse: it would occupy the dedup slot and block the later complete event for good;
+ *   - `currency` matching the payment's — an amount in the wrong currency credited at face value
+ *     mis-settles the ledger.
+ * Quarantine is self-healing: nothing is written, the booking stays payment_pending, and the
+ * /payments/sync poll + the maintenance sweep re-query Peach's status endpoint (whose payload
+ * carries amount + currency) on their normal cadence.
+ *
+ * A short 'paid' amount is recorded truthfully, so the ledger's `v_paid >= amount_minor` guard
+ * leaves the booking pending rather than confirming an underpayment.
  */
 export async function reconcilePaymentEvent(
   admin: SupabaseClient<Database>,
@@ -40,7 +49,7 @@ export async function reconcilePaymentEvent(
 
   const { data: payment, error: paymentErr } = await admin
     .from('payments')
-    .select('id, amount_minor')
+    .select('id, amount_minor, currency')
     .eq('booking_id', booking.id)
     .order('created_at', { ascending: false })
     .limit(1)
@@ -48,16 +57,36 @@ export async function reconcilePaymentEvent(
   if (paymentErr) throw new Error(paymentErr.message);
   if (!payment) return { found: false, confirmed: false, outcome: event.outcome };
 
-  // Credit what the provider actually settled (paid/refunded), falling back to the booking total only
-  // when the provider reports no amount. A short 'paid' amount is recorded truthfully, so the ledger's
-  // `v_paid >= amount_minor` guard leaves the booking pending rather than confirming an underpayment.
   const settled = event.outcome === 'paid' || event.outcome === 'refunded';
-  const amountMinor = settled ? (event.amountMinor ?? payment.amount_minor) : 0;
+  if (settled) {
+    const reason = !event.providerReference
+      ? 'no_provider_reference'
+      : event.amountMinor == null
+        ? 'no_amount'
+        : !event.currency
+          ? 'no_currency'
+          : event.currency.toUpperCase() !== payment.currency.toUpperCase()
+            ? 'currency_mismatch'
+            : null;
+    if (reason) {
+      // Loud, structured, PII-free: refs + reason only. The sweep counts this as errored.
+      console.error('[reconcile] settled event quarantined', {
+        reason,
+        bookingRef: event.bookingRef,
+        outcome: event.outcome,
+        providerReference: event.providerReference,
+        eventCurrency: event.currency ?? null,
+        expectedCurrency: payment.currency,
+        hasAmount: event.amountMinor != null,
+      });
+      return { found: true, confirmed: false, outcome: `quarantined:${reason}` };
+    }
+  }
+
+  const amountMinor = settled ? event.amountMinor! : 0;
   // Whether THIS event fully satisfies the total (drives the caller's response flag; the DB confirm
   // is decided independently by append_payment_event summing credited amounts).
-  const fullyPaid =
-    event.outcome === 'paid' &&
-    (event.amountMinor == null || event.amountMinor >= payment.amount_minor);
+  const fullyPaid = event.outcome === 'paid' && event.amountMinor! >= payment.amount_minor;
 
   const { error: rpcErr } = await admin.rpc('append_payment_event', {
     p_payment_id: payment.id,

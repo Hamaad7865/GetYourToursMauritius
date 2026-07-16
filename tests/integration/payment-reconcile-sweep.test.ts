@@ -25,10 +25,24 @@ import { reconcilePaymentEvent } from '@/lib/payments/reconcile';
  */
 const CUSTOMER = 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1';
 
-/** Stubs getCheckoutStatus to a fixed outcome per checkout id, echoing the booking ref the sweep needs. */
+/**
+ * Stubs getCheckoutStatus to a fixed outcome per checkout id, echoing the booking ref the sweep
+ * needs. Reports amount + currency like the real Peach status payload does — settlement is strict
+ * since the 2026-07-17 review (a settled event missing either is QUARANTINED, never credited), so a
+ * fixture that omits them tests the quarantine path, not the confirm path. `amountMinor: undefined`
+ * in a status entry deliberately produces that incomplete payload.
+ */
 class SweepStubProvider extends StubPaymentProvider implements PaymentProvider {
   constructor(
-    private readonly statuses: Record<string, { outcome: PaymentEvent['outcome']; ref: string }>,
+    private readonly statuses: Record<
+      string,
+      {
+        outcome: PaymentEvent['outcome'];
+        ref: string;
+        amountMinor?: number | null;
+        currency?: string | null;
+      }
+    >,
   ) {
     super();
   }
@@ -39,7 +53,8 @@ class SweepStubProvider extends StubPaymentProvider implements PaymentProvider {
       outcome: hit.outcome,
       bookingRef: hit.ref,
       providerReference: `peach_status_${checkoutId}`,
-      amountMinor: null,
+      amountMinor: hit.amountMinor ?? null,
+      currency: hit.currency === undefined ? 'EUR' : hit.currency,
       raw: { checkoutId, status: hit.outcome },
     };
   }
@@ -138,7 +153,7 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
     );
 
     const provider = new SweepStubProvider({
-      chk_paid: { outcome: 'paid', ref: a.ref },
+      chk_paid: { outcome: 'paid', ref: a.ref, amountMinor: 10000 }, // 2 × €50, the full total
       chk_pending: { outcome: 'pending', ref: b.ref },
     });
 
@@ -214,6 +229,7 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
       bookingRef: short.ref,
       providerReference: 'peach_short',
       amountMinor: 5000, // half the €100 total
+      currency: 'EUR',
       raw: {},
     });
     expect(shortResult.confirmed).toBe(false);
@@ -223,6 +239,7 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
       bookingRef: full.ref,
       providerReference: 'peach_full',
       amountMinor: 10000, // the full total
+      currency: 'EUR',
       raw: {},
     });
     expect(fullResult.confirmed).toBe(true);
@@ -237,5 +254,88 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
       ).rows[0]!;
     expect((await statusOf(short.ref)).status).toBe('payment_pending'); // underpaid → not confirmed
     expect(await statusOf(full.ref)).toEqual({ status: 'confirmed', payment_state: 'paid' });
+  });
+
+  it('QUARANTINES a settled event missing its amount — never credited as the full total', async () => {
+    // The old behaviour credited an amount-less 'paid' event as the FULL booking total, turning a
+    // malformed provider payload into a full-value settlement. Now: no ledger write at all.
+    const q = await seedPending('quarantine-amt', null);
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+
+    const res = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: q.ref,
+      providerReference: 'peach_no_amount',
+      amountMinor: null,
+      currency: 'EUR',
+      raw: {},
+    });
+    expect(res).toEqual({ found: true, confirmed: false, outcome: 'quarantined:no_amount' });
+
+    await db.asOwner();
+    const events = (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from payment_events where payment_id = $1 and type = 'paid'`,
+        [q.paymentId],
+      )
+    ).rows[0]!.n;
+    expect(events).toBe(0); // nothing written — a later COMPLETE event can still settle cleanly
+    const status = (
+      await db.pg.query<{ status: string }>(`select status from bookings where ref = $1`, [q.ref])
+    ).rows[0]!.status;
+    expect(status).toBe('payment_pending');
+  });
+
+  it('QUARANTINES a settled event in the wrong currency', async () => {
+    const q = await seedPending('quarantine-cur', null);
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+
+    const res = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: q.ref,
+      providerReference: 'peach_wrong_currency',
+      amountMinor: 10000, // right number, wrong unit — 10000 MUR is ~€200 short
+      currency: 'MUR',
+      raw: {},
+    });
+    expect(res.outcome).toBe('quarantined:currency_mismatch');
+    expect(res.confirmed).toBe(false);
+  });
+
+  it('QUARANTINES a settled event with no provider reference (it could never dedup)', async () => {
+    // (payment_id, provider_event_id) is the ledger's dedup key and NULLs never collide in a unique
+    // index — a reference-less paid event would append again on every webhook retry.
+    const q = await seedPending('quarantine-ref', null);
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+
+    const res = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: q.ref,
+      providerReference: null,
+      amountMinor: 10000,
+      currency: 'EUR',
+      raw: {},
+    });
+    expect(res.outcome).toBe('quarantined:no_provider_reference');
+  });
+
+  it('failed/pending events still flow (no money credited, so no strict gate)', async () => {
+    const q = await seedPending('quarantine-failed-ok', null);
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+
+    const res = await reconcilePaymentEvent(admin, {
+      outcome: 'failed',
+      bookingRef: q.ref,
+      providerReference: 'peach_declined',
+      amountMinor: null, // declines legitimately carry no settled amount
+      currency: null,
+      raw: {},
+    });
+    expect(res.outcome).toBe('failed');
+    expect(res.found).toBe(true);
   });
 });
