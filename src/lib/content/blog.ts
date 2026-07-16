@@ -1,4 +1,5 @@
 import { POSTS_RAW } from './_blog.gen';
+import { BLOG_HERO } from './blog-images';
 
 /**
  * Blog / travel-guide articles. Raw content is generated into `_blog.gen.ts`; this module
@@ -36,6 +37,11 @@ function dateForIndex(i: number): string {
 
 export const posts: Post[] = POSTS_RAW.map((p, i) => ({
   ...p,
+  // Seed posts carry no photo of their own, which left the index a wall of text-only cards and every
+  // social share falling back to the site-wide OG image. BLOG_HERO (generated alongside the files in
+  // public/blog) fills that in. A post that ever ships its own hero keeps it, and an admin-written DB
+  // post replaces the whole seed anyway (blog-live.ts), so this never overrides real editorial choice.
+  heroImageUrl: p.heroImageUrl ?? BLOG_HERO[p.slug] ?? null,
   path: blogPath(p.slug),
   datePublished: dateForIndex(i),
 })).sort((a, b) => b.datePublished.localeCompare(a.datePublished));

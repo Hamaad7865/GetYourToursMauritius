@@ -135,7 +135,7 @@ export function attractionJsonLd(
     isAccessibleForFree: true,
   };
   if (place.blurb) json.description = place.blurb;
-  if (opts.image) json.image = opts.image;
+  if (opts.image) json.image = absoluteUrl(opts.image);
   return json;
 }
 
@@ -227,7 +227,9 @@ export function articleJsonLd(opts: {
       logo: { '@type': 'ImageObject', url: `${SITE.url}/logo.png` },
     },
   };
-  if (opts.image) json.image = opts.image;
+  // Absolutize: blog heroes are site-relative ('/blog/x.webp'), and schema.org/Google ignore a
+  // relative image — which would silently cost the article its rich-result thumbnail.
+  if (opts.image) json.image = absoluteUrl(opts.image);
   return json;
 }
 
