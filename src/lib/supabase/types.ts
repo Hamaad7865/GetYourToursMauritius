@@ -752,6 +752,25 @@ type RentalVehiclesInsert = {
   updated_at?: string;
 };
 
+type ActivityContentDefaultsRow = {
+  category: string;
+  highlights: string[];
+  inclusions: string[];
+  exclusions: string[];
+  what_to_bring: string[];
+  important_info: string[];
+  updated_at: string;
+};
+type ActivityContentDefaultsInsert = {
+  category: string;
+  highlights?: string[];
+  inclusions?: string[];
+  exclusions?: string[];
+  what_to_bring?: string[];
+  important_info?: string[];
+  updated_at?: string;
+};
+
 type TableDef<Row, Insert> = { Row: Row; Insert: Insert; Update: Partial<Insert>; Relationships: [] };
 
 export interface Database {
@@ -792,6 +811,10 @@ export interface Database {
       planner_places: TableDef<PlannerPlacesRow, PlannerPlacesInsert>;
       places_cache: TableDef<PlacesCacheRow, PlacesCacheInsert>;
       rental_vehicles: TableDef<RentalVehiclesRow, RentalVehiclesInsert>;
+      activity_content_defaults: TableDef<
+        ActivityContentDefaultsRow,
+        ActivityContentDefaultsInsert
+      >;
     };
     Views: { [_ in never]: never };
     Functions: {
@@ -836,6 +859,7 @@ export interface Database {
       set_daily_capacity_atomic: { Args: { p: Json }; Returns: undefined };
       stop_availability_atomic: { Args: { p: Json }; Returns: undefined };
       api_list_rental_vehicles: { Args: { p: Json }; Returns: Json };
+      api_content_defaults: { Args: { p: Json }; Returns: Json };
     };
     Enums: {
       user_role: 'customer' | 'staff' | 'admin' | 'seo';

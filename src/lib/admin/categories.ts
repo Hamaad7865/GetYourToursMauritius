@@ -84,6 +84,15 @@ export async function updateCategory(id: string, input: CategoryInput): Promise<
       .update({ category: newName })
       .eq('category', oldName);
     if (repointErr) throw repointErr;
+    // The category's STANDARD CONTENT is keyed by the same free-text name, so it must be re-pointed
+    // too — otherwise a rename silently detaches the category from its standard includes / what to
+    // bring / know-before-you-go. Same re-point-BEFORE-rename ordering, for the same self-healing
+    // reason. Nothing to do when the category has no standard set.
+    const { error: defaultsErr } = await sb
+      .from('activity_content_defaults')
+      .update({ category: newName })
+      .eq('category', oldName);
+    if (defaultsErr) throw defaultsErr;
   }
   const { error } = await sb
     .from('categories')

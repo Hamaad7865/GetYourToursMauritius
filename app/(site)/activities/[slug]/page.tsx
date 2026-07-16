@@ -26,14 +26,10 @@ import { QuickFacts } from '@/components/gyg/detail/QuickFacts';
 import { PriceListViewer } from '@/components/gyg/detail/PriceListViewer';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { ReviewList } from '@/components/catalogue/ReviewList';
-import { SIGHTSEEING_HIGHLIGHTS, SIGHTSEEING_IMPORTANT_INFO } from '@/lib/content/sightseeing';
 import { activityRating } from '@/lib/content/activity-reviews';
 import { activityReviews } from '@/lib/content/activity-reviews-pool';
-import {
-  CATAMARAN_WHAT_TO_BRING,
-  CATAMARAN_KNOW_BEFORE,
-  isCatamaranCruise,
-} from '@/lib/content/catamaran';
+import { applyDefaults } from '@/lib/catalogue/content-defaults';
+import { loadContentDefaults } from '@/lib/services/content-defaults';
 import { Faq } from '@/components/catalogue/Faq';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -137,34 +133,24 @@ export default async function ActivityDetailPage({
   const itinerary = activity.extra.itinerary ?? [];
   const badges = activity.extra.badges ?? [];
 
-  // A "private sightseeing tour" is a vehicle-priced activity. Every one of them shows the same
-  // premium highlights, the same know-before-you-go notes (incl. the "bring cash for entrance fees"
-  // reminder) and genuine social proof — so the whole range stays consistent regardless of what each
-  // tour's admin record happens to carry.
-  const isSightseeing = activity.pricingMode === 'vehicle';
-  const highlights = isSightseeing ? SIGHTSEEING_HIGHLIGHTS : activity.highlights;
-  // Every catamaran cruise shares the same what-to-bring checklist + know-before-you-go notes, so the
-  // whole range is consistent (any admin-added notes still merge in, deduped). Mirrors sightseeing.
-  const isCatamaran = isCatamaranCruise(activity.category);
-  const importantInfo = isSightseeing
-    ? [
-        ...SIGHTSEEING_IMPORTANT_INFO,
-        ...(activity.extra.importantInfo ?? []).filter(
-          (i) => !SIGHTSEEING_IMPORTANT_INFO.includes(i),
-        ),
-      ]
-    : isCatamaran
-      ? [
-          ...CATAMARAN_KNOW_BEFORE,
-          ...(activity.extra.importantInfo ?? []).filter((i) => !CATAMARAN_KNOW_BEFORE.includes(i)),
-        ]
-      : (activity.extra.importantInfo ?? []);
-  const whatToBring = isCatamaran
-    ? [
-        ...CATAMARAN_WHAT_TO_BRING,
-        ...(activity.extra.whatToBring ?? []).filter((i) => !CATAMARAN_WHAT_TO_BRING.includes(i)),
-      ]
-    : (activity.extra.whatToBring ?? []);
+  // Standard content per CATEGORY, editable in /admin/content (was two hardcoded files keyed off
+  // pricingMode/category). Highlights are REPLACED by the category's standard set; the other lists
+  // merge shared-first and dedupe. A category with no set — or an unreachable defaults RPC — renders
+  // the activity's own lists, exactly as before this feature existed.
+  // Spec: docs/superpowers/specs/2026-07-16-activity-content-defaults-design.md
+  const contentDefaults = await loadContentDefaults(publicServiceContext());
+  const content = applyDefaults(
+    activity.category,
+    {
+      highlights: activity.highlights,
+      inclusions: activity.inclusions,
+      exclusions: activity.exclusions,
+      whatToBring: activity.extra.whatToBring ?? [],
+      importantInfo: activity.extra.importantInfo ?? [],
+    },
+    contentDefaults,
+  );
+  const { highlights, whatToBring, importantInfo } = content;
 
   // Reviews + rating: use the tour's own when it has them; otherwise fall back to the operator's real
   // TripAdvisor/Google reviews, picking the ones whose text is RELEVANT to this activity (a catamaran
@@ -435,10 +421,10 @@ export default async function ActivityDetailPage({
                   </section>
                 )}
 
-                {(activity.inclusions.length > 0 || activity.exclusions.length > 0) && (
+                {(content.inclusions.length > 0 || content.exclusions.length > 0) && (
                   <section className="mt-8 border-t border-ink/10 pt-7">
                     <SectionTitle>{t('Includes')}</SectionTitle>
-                    <Includes inclusions={activity.inclusions} exclusions={activity.exclusions} />
+                    <Includes inclusions={content.inclusions} exclusions={content.exclusions} />
                   </section>
                 )}
 

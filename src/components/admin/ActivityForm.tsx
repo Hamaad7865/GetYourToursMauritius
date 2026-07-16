@@ -4,8 +4,11 @@ import { useEffect, useId, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useCategories } from '@/lib/categories/useCategories';
-import { IconChevron, IconDocument, IconGrip, IconPlus, IconX } from '@/components/ui/icons';
+import { IconChevron, IconDocument, IconGrip, IconX } from '@/components/ui/icons';
 import { BADGE_ICONS, badgeIcon } from '@/components/ui/badge-icons';
+import { Section, StringList, inputClass } from '@/components/admin/fields';
+import { loadContentDefaults as loadContentDefaultsMap } from '@/lib/admin/content-defaults';
+import { highlightsAreOverridden, type ContentDefaults } from '@/lib/catalogue/content-defaults';
 import type { BadgeInput } from '@/lib/catalogue/badges';
 import { moveItem } from '@/lib/admin/reorder';
 import {
@@ -36,6 +39,24 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slugLocked, setSlugLocked] = useState(mode === 'edit');
+  // Which categories have standard highlights — drives the notice on the Highlights field, since a
+  // category's standard highlights REPLACE whatever is typed here. Best-effort: a failure just means
+  // no notice, never a broken form.
+  const [contentDefaults, setContentDefaults] = useState<Record<string, ContentDefaults>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    loadContentDefaultsMap()
+      .then((d) => {
+        if (!cancelled) setContentDefaults(d);
+      })
+      .catch(() => {
+        /* no notice is better than a broken editor */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (mode !== 'edit' || !id) return;
@@ -51,6 +72,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   if (loading) return <p className="text-sm text-ink-muted">Loading…</p>;
   if (!values) return <p className="text-sm text-coral">{error ?? 'Not found.'}</p>;
   const v = values;
+  const highlightsOverridden = highlightsAreOverridden(v.category, contentDefaults);
 
   function set<K extends keyof ActivityFormValues>(key: K, val: ActivityFormValues[K]) {
     setValues((prev) => (prev ? { ...prev, [key]: val } : prev));
@@ -317,6 +339,16 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
               label="Highlights"
               items={v.highlights}
               onChange={(x) => set('highlights', x)}
+              hint={
+                highlightsOverridden ? (
+                  // Without this, the field silently does nothing on these tours — the trap that
+                  // hid 50 lines across 9 sightseeing tours. Say so instead of quietly discarding.
+                  <span className="text-[12px] font-semibold text-coral-dark">
+                    “{v.category}” has standard highlights, which replace anything you put here.
+                    Edit them in Standard content.
+                  </span>
+                ) : undefined
+              }
             />
             <StringList
               label="Languages"
@@ -443,27 +475,6 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   );
 }
 
-const inputClass =
-  'w-full rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink-muted/70 focus:border-teal focus:bg-white';
-
-function Section({
-  title,
-  hint,
-  children,
-}: {
-  title: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-2xl border border-[#EAEEF0] bg-white p-5 sm:p-6">
-      <h2 className="text-[15px] font-extrabold text-ink">{title}</h2>
-      {hint && <p className="mt-0.5 text-[13px] text-ink-muted">{hint}</p>}
-      <div className="mt-4">{children}</div>
-    </section>
-  );
-}
-
 function Field({
   label,
   hint,
@@ -486,68 +497,6 @@ function Field({
       {children}
       {hint && <span className="text-[12px] text-ink-muted">{hint}</span>}
     </label>
-  );
-}
-
-function StringList({
-  label,
-  items,
-  onChange,
-}: {
-  label: string;
-  items: string[];
-  onChange: (items: string[]) => void;
-}) {
-  const [draft, setDraft] = useState('');
-  function add() {
-    const t = draft.trim();
-    if (!t) return;
-    onChange([...items, t]);
-    setDraft('');
-  }
-  return (
-    <div className="flex flex-col gap-2">
-      <span className="text-[13px] font-bold text-ink">{label}</span>
-      <div className="flex flex-wrap gap-1.5">
-        {items.map((it, i) => (
-          <span
-            key={`${it}-${i}`}
-            className="flex items-center gap-1 rounded-full bg-cream px-3 py-1 text-[13px] text-ink"
-          >
-            {it}
-            <button
-              type="button"
-              aria-label={`Remove ${it}`}
-              onClick={() => onChange(items.filter((_, idx) => idx !== i))}
-              className="text-ink-muted hover:text-coral"
-            >
-              <IconX width={13} height={13} />
-            </button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <input
-          className={inputClass}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              add();
-            }
-          }}
-          placeholder={`Add ${label.toLowerCase()}…`}
-        />
-        <button
-          type="button"
-          onClick={add}
-          className="shrink-0 rounded-xl border border-ink/15 px-3 text-ink hover:border-teal hover:text-teal"
-        >
-          <IconPlus width={16} height={16} />
-        </button>
-      </div>
-    </div>
   );
 }
 

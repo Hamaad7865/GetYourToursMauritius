@@ -41,6 +41,7 @@ const NAV: NavItem[] = [
   { href: '/admin/bookings', label: 'Bookings', icon: IconBookings },
   { href: '/admin/activities', label: 'Tours', icon: IconTag, seo: true },
   { href: '/admin/categories', label: 'Categories', icon: IconSliders },
+  { href: '/admin/content', label: 'Standard content', icon: IconDocument },
   { href: '/admin/vehicle-pricing', label: 'Pricing', icon: IconWallet },
   { href: '/admin/rental', label: 'Rental', icon: IconCar },
   { href: '/admin/planner-places', label: 'Places', icon: IconPin, seo: true },
