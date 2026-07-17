@@ -386,12 +386,42 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   };
   const awaitingPayment = !paid && booking.status === 'payment_pending';
   const isRefundFlow = booking.status === 'refund_pending' || booking.status === 'refunded';
+  // The genuinely celebratory states — a success seal + the confetti fire only here, never on a
+  // cancellation, refund, or a still-pending payment (those stay calm by design).
+  const celebrating = paid && (booking.status === 'confirmed' || booking.status === 'completed');
 
   return (
     <div className="mx-auto max-w-xl py-10">
-      {paid && <Confetti />}
+      {celebrating && <Confetti />}
       <div className="rounded-2xl border border-ink/10 bg-white p-6 sm:p-8">
-        <h1 className={`font-display text-2xl font-semibold ${copy.tone}`}>{t(copy.title)}</h1>
+        {celebrating && (
+          // A success seal stamps in: the badge pops, the tick draws itself, and a soft ring echoes
+          // out — the focal anchor the confetti bursts from. Reuses the sign-in success motions;
+          // frozen (tick left visible) under reduced motion.
+          <span className="relative mb-4 grid h-14 w-14 place-items-center">
+            <span
+              aria-hidden
+              className="animate-ring-echo absolute h-12 w-12 rounded-full bg-teal/25"
+            />
+            <span className="animate-pop grid h-14 w-14 place-items-center rounded-full bg-teal text-white shadow-[0_16px_34px_-12px_rgba(14,140,146,0.75)]">
+              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  className="animate-draw-check"
+                  d="M5 12.8l4.2 4.2L19 7.2"
+                  stroke="currentColor"
+                  strokeWidth="2.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </span>
+          </span>
+        )}
+        <h1
+          className={`font-display text-2xl font-semibold ${copy.tone} ${celebrating ? 'animate-float-in' : ''}`}
+        >
+          {t(copy.title)}
+        </h1>
         <p className="mt-1 text-sm text-ink-muted">
           {t('Reference')} <span className="font-bold text-ink">{booking.ref}</span>
         </p>
