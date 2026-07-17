@@ -656,12 +656,25 @@ export function BookingWidget() {
           // booking = one vehicle/trip) — so a 1-left day must still accept a party of 6 there.
           // Compare the REAL headcount (totalGuests): in age-banded mode `participants` is the untouched
           // single-mode default, and gating on it made a valid 1-adult booking unbookable on a 1-seat day.
+          // With NO date chosen the button stays ENABLED and its click opens the date picker (below) —
+          // a dead/disabled button left the customer stuck with no cue to pick a date first. The seat
+          // gates only bite once a date is selected; `noAvailability` (genuinely no dates) still
+          // disables it, matching the date trigger.
           disabled={
-            !date ||
-            seatsForDate <= 0 ||
-            (!isVehicle && !b.privateCfg && seatsForDate < totalGuests)
+            noAvailability ||
+            (!!date &&
+              (seatsForDate <= 0 || (!isVehicle && !b.privateCfg && seatsForDate < totalGuests)))
           }
-          onClick={checkAvailability}
+          onClick={() => {
+            if (!date) {
+              // No date yet → guide the customer straight to the calendar (retry first if the
+              // availability fetch had failed, mirroring the date trigger's own click).
+              if (availabilityError) reloadAvailability();
+              else setOpen('date');
+              return;
+            }
+            checkAvailability();
+          }}
           className="gyt-press mt-4 flex w-full items-center justify-center rounded-xl bg-teal-dark px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(11,92,99,0.7)] hover:bg-teal-dark/90 disabled:cursor-not-allowed disabled:bg-teal-dark/85"
         >
           {t('Check availability')}
