@@ -194,6 +194,23 @@ function ProfileMenu({ overHero }: { overHero: boolean }) {
 function CartAction({ overHero }: { overHero: boolean }) {
   const { count } = useCart();
   const t = useT();
+  // Pop the icon when an item is ADDED (count rises) — but never on the initial load settle, where
+  // the badge count flips 0 → N as the cart hydrates from localStorage. `primed` gates that: it turns
+  // true a beat after mount, by which point hydration has settled, so only a genuine later add bumps
+  // it. Each pop remounts the icon (via `popKey`) so the one-shot animation replays.
+  const prevCount = useRef(count);
+  const primed = useRef(false);
+  const [popKey, setPopKey] = useState(0);
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      primed.current = true;
+    }, 600);
+    return () => window.clearTimeout(id);
+  }, []);
+  useEffect(() => {
+    if (primed.current && count > prevCount.current) setPopKey((k) => k + 1);
+    prevCount.current = count;
+  }, [count]);
   return (
     <Link
       href="/cart"
@@ -206,7 +223,7 @@ function CartAction({ overHero }: { overHero: boolean }) {
       }
       className={navItemClass(overHero, 'relative flex')}
     >
-      <span className="relative">
+      <span key={popKey} className={`relative ${popKey ? 'gyt-cart-add' : ''}`}>
         <IconCart width={20} height={20} />
         {count > 0 && (
           <span

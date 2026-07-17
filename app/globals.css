@@ -325,6 +325,30 @@
     animation: gytIdleWave 4.6s ease-in-out infinite;
     will-change: transform;
   }
+  /* Header cart icon reacts when an item is ADDED — a single springy pop (scale + a little wobble),
+     replayed by remounting on each add. One-shot, not looping, so the header stays calm at rest. */
+  @keyframes gytCartAdd {
+    0% {
+      transform: scale(1) rotate(0);
+    }
+    30% {
+      transform: scale(1.3) rotate(-9deg);
+    }
+    55% {
+      transform: scale(0.92) rotate(5deg);
+    }
+    75% {
+      transform: scale(1.08) rotate(-2deg);
+    }
+    100% {
+      transform: scale(1) rotate(0);
+    }
+  }
+  .gyt-cart-add {
+    animation: gytCartAdd 0.5s cubic-bezier(0.2, 1.2, 0.4, 1) both;
+    transform-origin: center;
+    will-change: transform;
+  }
 
   /* /airport-transfers hero — the "arriving passenger" photo panel fades + rises into place on load,
      then drifts through a very slow Ken Burns zoom for ambient life. transform/opacity only; no reflow. */
@@ -477,11 +501,12 @@
   .gyt-car-shadow,
   .gyt-arrival-in,
   .gyt-arrival-zoom,
-  /* Empty cart + wishlist lagoon idle. */
+  /* Empty cart + wishlist lagoon idle, and the header add-to-cart pop. */
   .gyt-cart-bob,
   .gyt-heart-beat,
   .gyt-idle-ring,
-  .gyt-idle-wave {
+  .gyt-idle-wave,
+  .gyt-cart-add {
     animation: none !important;
   }
   /* Itinerary reveal is JS-gated on reduced motion too; this is the belt-and-braces CSS kill. */
