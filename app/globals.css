@@ -262,6 +262,46 @@
     will-change: transform, opacity;
   }
 
+  /* Empty-cart illustration — the little cart bobs like a boat on the lagoon, the dashed ring drifts
+     slowly, and the waterline sways beneath. transform-only; three loosely-desynced periods so it
+     reads as organic drift, not a mechanical loop. All frozen under prefers-reduced-motion. */
+  @keyframes gytCartBob {
+    0%,
+    100% {
+      transform: translateY(0) rotate(-3deg);
+    }
+    50% {
+      transform: translateY(-7px) rotate(3deg);
+    }
+  }
+  @keyframes gytCartRing {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes gytCartWave {
+    0%,
+    100% {
+      transform: translateX(-4px);
+    }
+    50% {
+      transform: translateX(4px);
+    }
+  }
+  .gyt-cart-bob {
+    animation: gytCartBob 3.4s ease-in-out infinite;
+    transform-origin: center bottom;
+    will-change: transform;
+  }
+  .gyt-cart-ring {
+    animation: gytCartRing 18s linear infinite;
+    will-change: transform;
+  }
+  .gyt-cart-wave {
+    animation: gytCartWave 4.6s ease-in-out infinite;
+    will-change: transform;
+  }
+
   /* /airport-transfers hero — the "arriving passenger" photo panel fades + rises into place on load,
      then drifts through a very slow Ken Burns zoom for ambient life. transform/opacity only; no reflow. */
   @keyframes gytArrivalIn {
@@ -412,7 +452,11 @@
   .gyt-car-float,
   .gyt-car-shadow,
   .gyt-arrival-in,
-  .gyt-arrival-zoom {
+  .gyt-arrival-zoom,
+  /* Empty-cart lagoon idle. */
+  .gyt-cart-bob,
+  .gyt-cart-ring,
+  .gyt-cart-wave {
     animation: none !important;
   }
   /* Itinerary reveal is JS-gated on reduced motion too; this is the belt-and-braces CSS kill. */
