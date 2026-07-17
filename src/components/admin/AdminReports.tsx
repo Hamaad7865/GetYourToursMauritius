@@ -77,15 +77,18 @@ function exportCsv(data: ReportData): void {
 }
 
 function MonthlyBars({ series }: { series: { label: string; value: number }[] }) {
-  const max = Math.max(1, ...series.map((s) => s.value));
+  // Scale by magnitude so a rare negative month (refunds > gross) is sized honestly, and colour it
+  // coral so a loss never reads as a (teal) gain. The chart is decorative — the table carries the
+  // exact signed figures.
+  const max = Math.max(1, ...series.map((s) => Math.abs(s.value)));
   return (
     <div aria-hidden>
       <div className="flex h-[150px] items-end gap-1.5">
         {series.map((s, i) => (
           <div key={i} className="flex flex-1 items-end" style={{ height: '100%' }}>
             <div
-              className="w-full rounded-t bg-teal/80"
-              style={{ height: `${Math.max(2, (s.value / max) * 100)}%` }}
+              className={`w-full rounded-t ${s.value < 0 ? 'bg-coral/80' : 'bg-teal/80'}`}
+              style={{ height: `${Math.max(2, (Math.abs(s.value) / max) * 100)}%` }}
               title={`${s.label}: ${eur2(s.value)}`}
             />
           </div>
@@ -143,6 +146,9 @@ export function AdminReports() {
     let active = true;
     setLoading(true);
     setError(null);
+    // Clear the prior year's data so the spinner shows and the heading can never sit above a
+    // different year's figures — and Export/Print can't emit the stale year mid-fetch.
+    setData(null);
     loadReport(year)
       .then((d) => {
         if (active) {
