@@ -101,5 +101,43 @@ describe('computeDashboard', () => {
     expect(d.recent).toEqual([]);
     expect(d.revenueWeekEur).toBe(0);
     expect(d.spark).toHaveLength(7);
+    // The switchable series still exist, zeroed, with null (not NaN/Infinity) deltas.
+    expect(d.revenue['7d'].points).toHaveLength(7);
+    expect(d.revenue['4w'].points).toHaveLength(4);
+    expect(d.revenue['12m'].points).toHaveLength(12);
+    expect(d.revenue['7d'].totalEur).toBe(0);
+    expect(d.revenue['7d'].deltaPct).toBeNull();
+    expect(d.revenue['12m'].deltaPct).toBeNull();
+  });
+
+  it('buckets revenue into 7d/4w/12m series with an honest vs-previous-period delta', () => {
+    const rows: BookingRow[] = [
+      // this week (today), net cash 100 → in 7d, 4w (week 4) and this month
+      booking({ id: 'r1', createdAt: '2026-07-18T06:00:00Z', netPaidEur: 100 }),
+      // previous 7-day window (2026-07-08), net cash 50 → NOT in 7d, but IS in the 4w window
+      booking({ id: 'r2', createdAt: '2026-07-08T06:00:00Z', netPaidEur: 50 }),
+    ];
+    const d = computeDashboard(rows, NOW);
+
+    expect(d.revenue['7d'].points).toHaveLength(7);
+    expect(d.revenue['4w'].points).toHaveLength(4);
+    expect(d.revenue['12m'].points).toHaveLength(12);
+
+    // 7d mirrors the weekly KPI exactly.
+    expect(d.revenue['7d'].totalEur).toBe(100);
+    expect(d.revenue['7d'].totalEur).toBe(d.revenueWeekEur);
+    // this window 100 vs previous window 50 → +100%
+    expect(d.revenue['7d'].deltaPct).toBe(100);
+
+    // Both bookings land inside the last 28 days; the prior 28 days earned nothing → null delta.
+    expect(d.revenue['4w'].totalEur).toBe(150);
+    expect(d.revenue['4w'].deltaPct).toBeNull();
+
+    // Both are in July 2026 → this month has 150; the prior 12 months earned nothing → null delta.
+    expect(d.revenue['12m'].totalEur).toBe(150);
+    expect(d.revenue['12m'].deltaPct).toBeNull();
+    const july = d.revenue['12m'].points[11]!;
+    expect(july.label).toBe('Jul');
+    expect(july.value).toBe(150);
   });
 });

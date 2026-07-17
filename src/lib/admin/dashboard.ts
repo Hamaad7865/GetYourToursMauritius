@@ -46,6 +46,26 @@ export interface SparkPoint {
   value: number; // revenue that day, EUR
 }
 
+/** One plotted bucket in a revenue series: an x-axis label + the net cash retained in that bucket. */
+export interface RevenuePoint {
+  label: string; // "Mon" (7d) · "6 Jul" (4w) · "Jul" (12m)
+  value: number; // net cash retained in the bucket, EUR
+}
+/** A revenue series for one period, plus its total and honest change vs the immediately prior period. */
+export interface RevenueSeries {
+  points: RevenuePoint[];
+  totalEur: number;
+  /** Rounded % change vs the previous equal-length window; null when that window earned nothing
+   *  (no divide-by-zero, no fabricated figure). */
+  deltaPct: number | null;
+}
+/** The interactive chart's three switchable views. `7d` mirrors `spark`/`revenueWeekEur`. */
+export interface RevenueByPeriod {
+  '7d': RevenueSeries;
+  '4w': RevenueSeries;
+  '12m': RevenueSeries;
+}
+
 export interface DashboardData {
   greetingPart: 'morning' | 'afternoon' | 'evening';
   todayLabel: string; // "Saturday, 18 July 2026"
@@ -59,6 +79,7 @@ export interface DashboardData {
   recent: RecentRow[];
   pending: PendingRow[];
   spark: SparkPoint[];
+  revenue: RevenueByPeriod;
 }
 
 const TZ = 'Indian/Mauritius';
@@ -90,6 +111,37 @@ function addDays(day: string, n: number): string {
 
 export function euro(n: number): string {
   return `€${Math.round(n).toLocaleString('en-US')}`;
+}
+
+/** "YYYY-MM" for a "YYYY-MM-DD" day. */
+function monthKey(day: string): string {
+  return day.slice(0, 7);
+}
+/** Shift a "YYYY-MM" key by n months (UTC calendar arithmetic; DOM-agnostic). */
+function addMonthKey(ym: string, n: number): string {
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(Date.UTC(y!, m! - 1 + n, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+/** Short weekday for a day ("Mon"); short month for a "YYYY-MM" key ("Jul"). Fixed en-GB so labels
+ *  are deterministic regardless of the viewer's locale. */
+function weekdayShort(day: string): string {
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', { weekday: 'short' });
+}
+function dayMonthShort(day: string): string {
+  return new Date(`${day}T00:00:00Z`).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  });
+}
+function monthShort(ym: string): string {
+  const [y, m] = ym.split('-').map(Number);
+  return new Date(Date.UTC(y!, m! - 1, 1)).toLocaleDateString('en-GB', { month: 'short' });
+}
+/** Rounded % change of `current` vs `prev`; null when `prev` is zero/negative (no fabricated figure). */
+function pctDelta(current: number, prev: number): number | null {
+  if (prev <= 0) return null;
+  return Math.round(((current - prev) / prev) * 100);
 }
 
 /** Pure: turn the booking list into the dashboard view-model as of `now`. */
@@ -169,6 +221,62 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
     value,
   }));
 
+  // Switchable revenue views (7 days / 4 weeks / 12 months). Same net-cash basis as revenueWeekEur:
+  // Σ netPaidEur bucketed by created-day in Mauritius time. Each series also carries an HONEST change
+  // vs the immediately-preceding equal window (null when that window earned nothing).
+  const dailyNet = new Map<string, number>();
+  for (const b of bookings) {
+    if (b.netPaidEur > 0) {
+      const d = mauDay(b.createdAt);
+      dailyNet.set(d, (dailyNet.get(d) ?? 0) + b.netPaidEur);
+    }
+  }
+  const netOnDay = (d: string) => dailyNet.get(d) ?? 0;
+  const sumDays = (startDay: string, endInclusive: string) => {
+    let s = 0;
+    for (let d = startDay; d <= endInclusive; d = addDays(d, 1)) s += netOnDay(d);
+    return s;
+  };
+  const monthlyNet = new Map<string, number>();
+  for (const [day, v] of dailyNet) {
+    const mk = monthKey(day);
+    monthlyNet.set(mk, (monthlyNet.get(mk) ?? 0) + v);
+  }
+  const netOnMonth = (mk: string) => monthlyNet.get(mk) ?? 0;
+
+  const days7: RevenuePoint[] = [];
+  for (let i = 0; i < 7; i += 1) {
+    const day = addDays(today, -6 + i);
+    days7.push({ label: weekdayShort(day), value: netOnDay(day) });
+  }
+  const total7 = days7.reduce((s, p) => s + p.value, 0);
+  const prev7 = sumDays(addDays(today, -13), addDays(today, -7));
+
+  const weeks4: RevenuePoint[] = [];
+  for (let w = 0; w < 4; w += 1) {
+    const end = addDays(today, -7 * (3 - w));
+    const start = addDays(end, -6);
+    weeks4.push({ label: dayMonthShort(end), value: sumDays(start, end) });
+  }
+  const total4 = weeks4.reduce((s, p) => s + p.value, 0);
+  const prev4 = sumDays(addDays(today, -55), addDays(today, -28));
+
+  const thisMonth = monthKey(today);
+  const months12: RevenuePoint[] = [];
+  for (let m = 0; m < 12; m += 1) {
+    const mk = addMonthKey(thisMonth, -11 + m);
+    months12.push({ label: monthShort(mk), value: netOnMonth(mk) });
+  }
+  const total12 = months12.reduce((s, p) => s + p.value, 0);
+  let prev12 = 0;
+  for (let m = 0; m < 12; m += 1) prev12 += netOnMonth(addMonthKey(thisMonth, -23 + m));
+
+  const revenue: RevenueByPeriod = {
+    '7d': { points: days7, totalEur: total7, deltaPct: pctDelta(total7, prev7) },
+    '4w': { points: weeks4, totalEur: total4, deltaPct: pctDelta(total4, prev4) },
+    '12m': { points: months12, totalEur: total12, deltaPct: pctDelta(total12, prev12) },
+  };
+
   const stats: DashStat[] = [
     {
       key: 'today',
@@ -213,6 +321,7 @@ export function computeDashboard(bookings: BookingRow[], now: Date): DashboardDa
     recent,
     pending,
     spark,
+    revenue,
   };
 }
 

@@ -262,14 +262,28 @@ export function AdminBookings() {
 
   const [rows, setRows] = useState<BookingRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<'all' | BookingStatus>('all');
-  const [pay, setPay] = useState<'all' | PaymentState>('all');
+  // Filters + the open drawer seed from URL params (the dashboard's KPI cards + rows deep-link here,
+  // e.g. ?date=today, ?pay=pending, ?open=<id>). Each param is validated against its allowed values so
+  // junk falls back to the neutral default. Only `q` re-syncs live (the top-bar search pushes it while
+  // the screen is open); the rest never change mid-screen, so an initializer is enough and won't fight
+  // the user's own filtering.
+  const [status, setStatus] = useState<'all' | BookingStatus>(() => {
+    const v = searchParams.get('status');
+    return v && STATUS_FILTERS.some((f) => f.value === v) ? (v as 'all' | BookingStatus) : 'all';
+  });
+  const [pay, setPay] = useState<'all' | PaymentState>(() => {
+    const v = searchParams.get('pay');
+    return v && PAY_FILTERS.some((f) => f.value === v) ? (v as 'all' | PaymentState) : 'all';
+  });
   const [tour, setTour] = useState('all');
-  const [dateF, setDateF] = useState<DateFilter>('all');
+  const [dateF, setDateF] = useState<DateFilter>(() => {
+    const v = searchParams.get('date');
+    return v && DATE_FILTERS.some((f) => f.value === v) ? (v as DateFilter) : 'all';
+  });
   const [query, setQuery] = useState(() => searchParams.get('q') ?? '');
   const [sortKey, setSortKey] = useState<SortKey>('booked');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(() => searchParams.get('open'));
 
   const load = useCallback(async () => {
     try {

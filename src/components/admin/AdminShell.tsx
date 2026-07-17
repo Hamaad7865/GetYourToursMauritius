@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useDialog } from '@/lib/a11y/useDialog';
+import { Logo } from '@/components/site/Logo';
 import { AdminBell } from '@/components/admin/AdminBell';
 import { avatar } from '@/lib/admin/dashboard';
 import {
@@ -282,18 +283,19 @@ export function AdminShell({ children }: { children: ReactNode }) {
 }
 
 function SidebarHeader() {
+  // The real brand logo (white-script `logo-dark.svg`, made for this dark sidebar), linking to the
+  // dashboard rather than the public home. The artwork already carries the wordmark, so the only
+  // text beside it is the small BACK OFFICE caption.
   return (
-    <div className="flex items-center gap-3 border-b border-white/10 px-5 py-5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-bright to-teal-dark text-white">
-        <IconGrid width={20} height={20} />
-      </span>
-      <span className="flex flex-col leading-tight">
-        <span className="whitespace-nowrap text-[15px] font-extrabold tracking-tight text-white">
-          Belle Mare Tours
-        </span>
-        <span className="mt-1 text-[9px] font-bold tracking-[0.32em] text-teal-bright">
-          BACK OFFICE
-        </span>
+    <div className="flex items-center gap-3 border-b border-white/10 px-5 py-4">
+      <Logo
+        tone="dark"
+        href="/admin"
+        className="h-11 w-auto"
+        label="Belle Mare Tours — back office home"
+      />
+      <span className="mt-1 self-start text-[9px] font-bold tracking-[0.32em] text-teal-bright">
+        BACK OFFICE
       </span>
     </div>
   );

@@ -22,19 +22,28 @@ import Link from 'next/link';
  * leaves every returning visitor on the previous logo for up to 4h. A new path is the fix; if the
  * artwork is ever replaced again, rename the file rather than overwrite it.
  */
-export function Logo({ tone = 'light' }: { tone?: 'light' | 'dark' }) {
+export function Logo({
+  tone = 'light',
+  href = '/',
+  className = 'h-14 w-auto sm:h-16',
+  label = 'Belle Mare Tours — home',
+}: {
+  tone?: 'light' | 'dark';
+  /** Where the logo links. Defaults to the public home; the back office passes `/admin`. */
+  href?: string;
+  /** Size/utility classes on the `<img>` (default = the public-header size). */
+  className?: string;
+  /** Accessible label for the link. */
+  label?: string;
+}) {
   return (
-    <Link
-      href="/"
-      className="flex shrink-0 items-center no-underline"
-      aria-label="Belle Mare Tours — home"
-    >
+    <Link href={href} className="flex shrink-0 items-center no-underline" aria-label={label}>
       <img
         src={tone === 'dark' ? '/logo-dark.svg' : '/logo-light.svg'}
         alt="Belle Mare Tours"
         width={280}
         height={160}
-        className="h-14 w-auto sm:h-16"
+        className={className}
       />
     </Link>
   );

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import {
   loadDashboard,
@@ -11,6 +12,7 @@ import {
   type DashStat,
 } from '@/lib/admin/dashboard';
 import type { BookingStatus } from '@/lib/admin/bookings';
+import { RevenueChart } from '@/components/admin/RevenueChart';
 import {
   IconBookings,
   IconWallet,
@@ -18,7 +20,6 @@ import {
   IconUsers,
   IconPin,
   IconChevron,
-  IconTrendUp,
 } from '@/components/ui/icons';
 
 const STAT_ICON = {
@@ -27,6 +28,14 @@ const STAT_ICON = {
   pending: IconClock,
   upcoming: IconPin,
 } as const;
+
+/** Each KPI card drills into the bookings screen, pre-filtered via URL params AdminBookings reads. */
+const STAT_HREF: Record<string, string> = {
+  today: '/admin/bookings?date=today',
+  revenue: '/admin/bookings?pay=paid',
+  pending: '/admin/bookings?pay=pending',
+  upcoming: '/admin/bookings?date=next7',
+};
 
 const STAT_TONE: Record<DashStat['tone'], string> = {
   teal: 'bg-teal/10 text-teal',
@@ -68,56 +77,6 @@ function Avatar({ name }: { name: string }) {
   );
 }
 
-function Sparkline({ data }: { data: number[] }) {
-  const w = 240;
-  const h = 64;
-  const pad = 4;
-  const max = Math.max(1, ...data);
-  const min = Math.min(...data);
-  const span = max - min || 1;
-  const xs = (i: number) => pad + i * ((w - pad * 2) / Math.max(1, data.length - 1));
-  const ys = (v: number) => h - 4 - ((v - min) / span) * (h - 14);
-  const pts = data.map((v, i) => [xs(i), ys(v)] as const);
-  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
-  const area = `${line} L${xs(data.length - 1).toFixed(1)} ${h} L${xs(0).toFixed(1)} ${h} Z`;
-  const last = pts[pts.length - 1];
-  return (
-    <svg
-      width="100%"
-      height={h}
-      viewBox={`0 0 ${w} ${h}`}
-      preserveAspectRatio="none"
-      className="block overflow-visible"
-    >
-      <defs>
-        <linearGradient id="spk" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="rgb(var(--color-teal))" stopOpacity={0.22} />
-          <stop offset="100%" stopColor="rgb(var(--color-teal))" stopOpacity={0} />
-        </linearGradient>
-      </defs>
-      <path d={area} fill="url(#spk)" />
-      <path
-        d={line}
-        fill="none"
-        stroke="rgb(var(--color-teal))"
-        strokeWidth={2.4}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      {last && (
-        <circle
-          cx={last[0]}
-          cy={last[1]}
-          r={4}
-          fill="rgb(var(--color-teal))"
-          stroke="#fff"
-          strokeWidth={2}
-        />
-      )}
-    </svg>
-  );
-}
-
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <section className={`rounded-2xl border border-[#EAEEF0] bg-white ${className}`}>
@@ -128,6 +87,7 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
 
 export function AdminDashboard() {
   const { profile } = useAuth();
+  const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,7 +104,6 @@ export function AdminDashboard() {
   }, []);
 
   const firstName = (profile?.fullName || 'there').split(' ')[0];
-  const sparkData = useMemo(() => data?.spark.map((s) => s.value) ?? [], [data]);
 
   if (error) {
     return (
@@ -186,14 +145,18 @@ export function AdminDashboard() {
         </Link>
       </div>
 
-      {/* Stat cards */}
-      <div className="mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {/* Stat cards — each drills into a pre-filtered bookings view. */}
+      <div className="animate-fade-up mb-4 grid grid-cols-2 gap-4 lg:grid-cols-4">
         {data.stats.map((s) => {
           const Icon = STAT_ICON[s.key as keyof typeof STAT_ICON] ?? IconBookings;
+          // The revenue card carries the real vs-last-week change in its corner instead of a static hint.
+          const revDelta = s.key === 'revenue' ? data.revenue['7d'].deltaPct : null;
           return (
-            <div
+            <Link
               key={s.key}
-              className="rounded-2xl border border-[#EAEEF0] bg-white p-[18px] shadow-[0_1px_2px_rgba(10,46,54,.04)]"
+              href={STAT_HREF[s.key] ?? '/admin/bookings'}
+              aria-label={`${s.label}: ${s.value}`}
+              className="group rounded-2xl border border-[#EAEEF0] bg-white p-[18px] shadow-[0_1px_2px_rgba(10,46,54,.04)] transition hover:border-teal hover:shadow-[0_12px_30px_-16px_rgba(10,46,54,.3)]"
             >
               <div className="flex items-center justify-between">
                 <span
@@ -201,20 +164,39 @@ export function AdminDashboard() {
                 >
                   <Icon width={19} height={19} />
                 </span>
-                {s.hint && (
-                  <span className="text-[12px] font-semibold text-ink-muted">{s.hint}</span>
+                {revDelta !== null ? (
+                  <span
+                    className={`inline-flex items-center gap-0.5 rounded-lg px-1.5 py-0.5 text-[11.5px] font-bold ${
+                      revDelta >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-coral/10 text-coral'
+                    }`}
+                  >
+                    <span aria-hidden>{revDelta >= 0 ? '▲' : '▼'}</span>
+                    {Math.abs(revDelta)}%
+                  </span>
+                ) : (
+                  s.hint && (
+                    <span className="text-[12px] font-semibold text-ink-muted">{s.hint}</span>
+                  )
                 )}
               </div>
               <div className="mt-3.5 text-[28px] font-extrabold leading-none tracking-tight text-ink">
                 {s.value}
               </div>
-              <div className="mt-1.5 text-[13px] font-medium text-ink-muted">{s.label}</div>
-            </div>
+              <div className="mt-1.5 flex items-center gap-1 text-[13px] font-medium text-ink-muted">
+                {s.label}
+                <IconChevron
+                  width={13}
+                  height={13}
+                  aria-hidden
+                  className="-rotate-90 text-teal opacity-0 transition-opacity group-hover:opacity-100"
+                />
+              </div>
+            </Link>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-[18px] xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+      <div className="animate-fade-up grid grid-cols-1 items-start gap-[18px] xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         {/* ===== LEFT ===== */}
         <div className="flex min-w-0 flex-col gap-[18px]">
           {/* Today's departures */}
@@ -235,9 +217,10 @@ export function AdminDashboard() {
               data.departures.map((d) => {
                 const pill = statusPill(d.status);
                 return (
-                  <div
+                  <Link
                     key={d.id}
-                    className="flex items-center gap-3.5 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0"
+                    href={`/admin/bookings?open=${d.id}`}
+                    className="flex items-center gap-3.5 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0 hover:bg-[#FAFBFC]"
                   >
                     <div className="w-12 shrink-0 text-center">
                       <div className="text-[15px] font-extrabold tracking-tight text-ink">
@@ -268,7 +251,7 @@ export function AdminDashboard() {
                       <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
                       {pill.label}
                     </span>
-                  </div>
+                  </Link>
                 );
               })
             )}
@@ -298,8 +281,22 @@ export function AdminDashboard() {
                 <tbody>
                   {data.recent.map((r) => {
                     const pill = statusPill(r.status);
+                    const open = () => router.push(`/admin/bookings?open=${r.id}`);
                     return (
-                      <tr key={r.id} className="border-t border-[#F2F4F6] hover:bg-[#FAFBFC]">
+                      <tr
+                        key={r.id}
+                        onClick={open}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            open();
+                          }
+                        }}
+                        tabIndex={0}
+                        role="link"
+                        aria-label={`Open booking ${r.ref} for ${r.customer}`}
+                        className="cursor-pointer border-t border-[#F2F4F6] hover:bg-[#FAFBFC] focus:bg-[#FAFBFC] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal"
+                      >
                         <td className="px-[18px] py-3">
                           <div className="flex items-center gap-2.5">
                             <Avatar name={r.customer} />
@@ -348,30 +345,9 @@ export function AdminDashboard() {
 
         {/* ===== RIGHT ===== */}
         <div className="flex min-w-0 flex-col gap-[18px]">
-          {/* Revenue */}
+          {/* Revenue — interactive: hover for a tooltip, toggle 7D / 4W / 12M */}
           <Card className="p-[18px]">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-[15px] font-extrabold text-ink">Revenue</h2>
-                <p className="mt-0.5 text-[12.5px] text-ink-muted">Last 7 days</p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-[12px] font-bold text-emerald-700">
-                <IconTrendUp width={14} height={14} /> 7d
-              </span>
-            </div>
-            <div className="mt-3 text-[30px] font-extrabold leading-none tracking-tight text-ink">
-              {euro(data.revenueWeekEur)}
-            </div>
-            <div className="mt-3.5">
-              <Sparkline data={sparkData} />
-            </div>
-            <div className="mt-2 flex justify-between">
-              {data.spark.map((s, i) => (
-                <span key={i} className="text-[10.5px] font-semibold text-ink-muted/70">
-                  {s.day}
-                </span>
-              ))}
-            </div>
+            <RevenueChart revenue={data.revenue} />
           </Card>
 
           {/* Needs attention */}
@@ -390,7 +366,7 @@ export function AdminDashboard() {
               data.pending.map((p) => (
                 <Link
                   key={p.id}
-                  href="/admin/bookings"
+                  href={`/admin/bookings?open=${p.id}`}
                   className="flex items-center gap-3 border-b border-[#F4F6F7] px-[18px] py-3.5 last:border-b-0 hover:bg-[#FAFBFC]"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
