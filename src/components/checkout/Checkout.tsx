@@ -1799,7 +1799,12 @@ function PickRadio({
       tabIndex={0}
       onClick={onClick}
       onKeyDown={(e) => {
-        // preventDefault BEFORE activating so Space picks the radio instead of scrolling the page.
+        // Only the focused radio CARD itself toggles on Space/Enter — never a descendant. The pickup
+        // map + its address input render inside this card as `children`, and a keydown from that input
+        // bubbles up to here; without the target===currentTarget guard, a space typed in the address
+        // field was preventDefault'd (couldn't type spaces in "Royal Road ..."). preventDefault still
+        // runs for the card itself so Space picks the radio instead of scrolling the page.
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onClick();

@@ -65,6 +65,20 @@ export function PickupMap({
       if (zoom) map.setZoom(zoom);
     };
 
+    // Reverse-geocode a dropped/dragged pin into a readable address so the text field mirrors the map
+    // (a dragged pin used to set coords but leave the address box empty). Falls back to short
+    // coordinates if the Geocoding API is unavailable, so the field is never blank.
+    const geocoder = new google.maps.Geocoder();
+    const fillAddress = (pos: google.maps.LatLngLiteral) => {
+      geocoder.geocode({ location: pos }, (results, gStatus) => {
+        onChangeRef.current(
+          gStatus === 'OK' && results?.[0]?.formatted_address
+            ? results[0].formatted_address
+            : `Pinned location (${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)})`,
+        );
+      });
+    };
+
     // Address autocomplete is a separate API (Places). Wrap it so the map + draggable pin keep
     // working even if Places isn't enabled — the traveller can still drag the pin or type freely.
     let autocomplete: google.maps.places.Autocomplete | null = null;
@@ -88,20 +102,23 @@ export function PickupMap({
       autocomplete = null;
     }
 
-    // Dragging the pin reports its coordinates (the typed address text is kept as-is).
+    // Dragging the pin reports its coordinates AND fills the address box (reverse-geocoded).
     marker.addListener('dragend', () => {
       const pos = toLatLng(marker.position);
       if (pos) {
         map.panTo(pos);
         onCoordsRef.current?.(pos);
+        fillAddress(pos);
       }
     });
 
     // Click on the map to move the pin too.
     map.addListener('click', (e: google.maps.MapMouseEvent) => {
       if (e.latLng) {
-        place({ lat: e.latLng.lat(), lng: e.latLng.lng() }, 0);
-        onCoordsRef.current?.({ lat: e.latLng.lat(), lng: e.latLng.lng() });
+        const pos = { lat: e.latLng.lat(), lng: e.latLng.lng() };
+        place(pos, 0);
+        onCoordsRef.current?.(pos);
+        fillAddress(pos);
       }
     });
 

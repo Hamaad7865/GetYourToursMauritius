@@ -117,6 +117,24 @@ export function PickupDropoffMap({
       if (zoom) map.setZoom(zoom);
     };
 
+    // Reverse-geocode a dropped/dragged pin into a readable address so the text field mirrors what the
+    // map shows (dragging or clicking used to move the pin + set coords but leave the address box
+    // empty). Falls back to short coordinates if the Geocoding API is unavailable, so the field is
+    // never left blank. Pricing keys off the coords (already reported separately), not this text.
+    const geocoder = new google.maps.Geocoder();
+    const fillAddress = (
+      pos: google.maps.LatLngLiteral,
+      onChangeRef: React.MutableRefObject<(s: string) => void>,
+    ) => {
+      geocoder.geocode({ location: pos }, (results, gStatus) => {
+        const addr =
+          gStatus === 'OK' && results?.[0]?.formatted_address
+            ? results[0].formatted_address
+            : `Pinned location (${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)})`;
+        onChangeRef.current?.(addr);
+      });
+    };
+
     // Wire a Places autocomplete onto an input. Wrapped so the map + draggable pins keep working
     // even if Places isn't enabled — the traveller can still drag a pin or type freely.
     const bindAutocomplete = (
@@ -189,12 +207,13 @@ export function PickupDropoffMap({
     // Stash the drop-off autocomplete so the toggle effect can (re)bind it when the input appears.
     dropoffAcRef.current = dropoffAc;
 
-    // Dragging a pin reports its coordinates (the typed address text is kept as-is).
+    // Dragging a pin reports its coordinates AND fills its address box (reverse-geocoded).
     pickupMarker.addListener('dragend', () => {
       const pos = toLatLng(pickupMarker.position);
       if (pos) {
         clickTargetRef.current = 'pickup';
         onPickupCoordsRef.current?.(pos);
+        fillAddress(pos, onPickupChangeRef as React.MutableRefObject<(s: string) => void>);
         fitToMarkers();
       }
     });
@@ -203,6 +222,7 @@ export function PickupDropoffMap({
       if (pos) {
         clickTargetRef.current = 'dropoff';
         onDropoffCoordsRef.current?.(pos);
+        fillAddress(pos, onDropoffChangeRef as React.MutableRefObject<(s: string) => void>);
         fitToMarkers();
       }
     });
@@ -217,9 +237,11 @@ export function PickupDropoffMap({
         dropoffMarker.map = map;
         dropoffMarker.position = pos;
         onDropoffCoordsRef.current?.(pos);
+        fillAddress(pos, onDropoffChangeRef as React.MutableRefObject<(s: string) => void>);
       } else {
         pickupMarker.position = pos;
         onPickupCoordsRef.current?.(pos);
+        fillAddress(pos, onPickupChangeRef as React.MutableRefObject<(s: string) => void>);
       }
       fitToMarkers();
     });
