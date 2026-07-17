@@ -39,12 +39,19 @@ describe('OpenAPI document', () => {
     });
   });
 
-  it('registers every /api/v1 route in the spec (webhooks intentionally excluded)', () => {
+  it('registers every /api/v1 route in the spec (inbound hooks intentionally excluded)', () => {
     const documented = new Set(Object.keys(apiPaths));
     const missing = discoverRoutePaths()
-      // webhooks (provider-called) and internal worker endpoints (secret-gated) are intentionally
-      // not part of the public contract.
-      .filter((path) => !path.startsWith('/webhooks') && !path.startsWith('/internal'))
+      // Intentionally outside the public contract — none of these are callable by an API consumer:
+      //   /webhooks — the payment provider calls it (HMAC-verified)
+      //   /hooks    — Supabase Auth calls it (Standard-Webhooks signature); e.g. /hooks/send-email
+      //   /internal — the cron Worker calls it (INTERNAL_TASK_SECRET)
+      .filter(
+        (path) =>
+          !path.startsWith('/webhooks') &&
+          !path.startsWith('/hooks') &&
+          !path.startsWith('/internal'),
+      )
       .filter((path) => !documented.has(path));
     expect(missing).toEqual([]);
   });
