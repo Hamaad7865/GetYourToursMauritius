@@ -52,6 +52,10 @@ export interface BookingRow {
   guests: number;
   /** Net cash retained = Σ(paid − refunded) across this booking's payments, in EUR. */
   netPaidEur: number;
+  /** Gross cash taken = Σ paid (before refunds), in EUR — the "money in" side of the P&L. */
+  grossPaidEur: number;
+  /** Total refunded = Σ refunded across this booking's payments, in EUR — the "money out" side. */
+  refundedEur: number;
   /** The customer's chosen route (sightseeing tours), or null for the standard route. */
   customItinerary: Array<{ title: string; area?: string | null }> | null;
   /** The customer's pickup location entered at checkout, or null if none. */
@@ -196,10 +200,9 @@ function mapBooking(raw: RawBooking): BookingRow {
   const items = (raw.booking_items ?? []).map(mapItem);
   // Headcount: people-on-board for a vehicle line (where quantity is the vehicle count), else the quantity.
   const guests = items.reduce((sum, it) => sum + (it.pax ?? it.quantity), 0);
-  const netPaidMinor = (raw.payments ?? []).reduce(
-    (sum, p) => sum + (p.paid_minor - p.refunded_minor),
-    0,
-  );
+  const grossPaidMinor = (raw.payments ?? []).reduce((sum, p) => sum + p.paid_minor, 0);
+  const refundedMinor = (raw.payments ?? []).reduce((sum, p) => sum + p.refunded_minor, 0);
+  const netPaidMinor = grossPaidMinor - refundedMinor;
   return {
     id: raw.id,
     ref: raw.ref,
@@ -218,6 +221,8 @@ function mapBooking(raw: RawBooking): BookingRow {
     startsAt: items[0]?.startsAt ?? null,
     guests,
     netPaidEur: netPaidMinor / 100,
+    grossPaidEur: grossPaidMinor / 100,
+    refundedEur: refundedMinor / 100,
     customItinerary: raw.custom_itinerary,
     pickupLocation: raw.pickup_location,
     dropoffLocation: raw.dropoff_location ?? null,
@@ -249,6 +254,27 @@ export async function loadBookings(limit = 300): Promise<BookingRow[]> {
   const { data, error } = await getBrowserSupabase()
     .from('bookings')
     .select(`${BOOKING_SELECT}, payments ( paid_minor, refunded_minor )`)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+    .returns<RawBooking[]>();
+  if (error) throw error;
+  return (data ?? []).map(mapBooking);
+}
+
+/** Bookings created within [fromISO, toISO) — the reports module's per-year fetch. Same staff RLS +
+ *  mapper as loadBookings, but bounded by created_at instead of a small newest-first cap. The high
+ *  limit is a safety backstop; at current volume a year is well under it. If it's ever exceeded the
+ *  reports should move to a SQL aggregate RPC. */
+export async function loadBookingsInRange(
+  fromISO: string,
+  toISO: string,
+  limit = 10000,
+): Promise<BookingRow[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('bookings')
+    .select(`${BOOKING_SELECT}, payments ( paid_minor, refunded_minor )`)
+    .gte('created_at', fromISO)
+    .lt('created_at', toISO)
     .order('created_at', { ascending: false })
     .limit(limit)
     .returns<RawBooking[]>();

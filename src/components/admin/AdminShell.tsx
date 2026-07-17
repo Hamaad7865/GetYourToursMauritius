@@ -26,6 +26,7 @@ import {
   IconTrendUp,
   IconDocument,
   IconSwap,
+  IconChart,
 } from '@/components/ui/icons';
 
 interface NavItem {
@@ -40,6 +41,8 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: IconGrid, exact: true },
   { href: '/admin/bookings', label: 'Bookings', icon: IconBookings },
+  // Financial — deliberately NOT seo-flagged; the seo content role is RLS-locked out of bookings/payments.
+  { href: '/admin/reports', label: 'Reports', icon: IconChart },
   { href: '/admin/activities', label: 'Tours', icon: IconTag, seo: true },
   { href: '/admin/categories', label: 'Categories', icon: IconSliders },
   { href: '/admin/content', label: 'Standard content', icon: IconDocument },
@@ -153,7 +156,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh bg-[#F7F8FA]">
       {/* ===== Desktop sidebar ===== */}
-      <aside className="sticky top-0 hidden h-dvh w-[250px] shrink-0 flex-col bg-ink text-cream/70 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh w-[250px] shrink-0 flex-col bg-ink text-cream/70 lg:flex print:hidden">
         <SidebarHeader />
         <NavList />
         <div className="border-t border-white/10 p-3">{userChip}</div>
@@ -194,7 +197,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       {/* ===== Main column ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top bar */}
-        <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-[#E7EBEE] bg-white/90 px-4 py-3 backdrop-blur sm:px-6">
+        <header className="sticky top-0 z-40 flex items-center gap-3 border-b border-[#E7EBEE] bg-white/90 px-4 py-3 backdrop-blur sm:px-6 print:hidden">
           <button
             onClick={() => setDrawer(true)}
             aria-label="Open menu"
@@ -252,7 +255,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </main>
 
         {/* Mobile bottom nav */}
-        <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-[#E7EBEE] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-[#E7EBEE] bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
           {bottomNav.map((item) => {
             const active = isActive(pathname, item);
             const Icon = item.icon;

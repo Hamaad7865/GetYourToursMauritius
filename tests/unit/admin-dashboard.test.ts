@@ -21,6 +21,8 @@ function booking(over: Partial<BookingRow>): BookingRow {
     startsAt: null,
     guests: 2,
     netPaidEur: 100,
+    grossPaidEur: 100,
+    refundedEur: 0,
     customItinerary: null,
     pickupLocation: null,
     dropoffLocation: null,
