@@ -103,9 +103,14 @@ interface BookingState {
   setLang: (l: string) => void;
   suv: boolean;
   setSuv: (b: boolean) => void;
-  /** Child seats requested (first free, €6 each extra). Bounded to the party size. */
+  /** Child seats requested (first free, €6 each extra). Bounded to `childSeatCap`. */
   childSeats: number;
   setChildSeats: (n: number) => void;
+  /** How many baby/child seats the party may request: on an age-banded activity, the number of
+   *  non-adult heads (children + infants) — a seat is only for a child, never an adult. 0 disables
+   *  the add-on entirely (adults-only party). A non-age-banded activity has no age info, so this is
+   *  the whole party size (unchanged behaviour). */
+  childSeatCap: number;
   /** The child-seat add-on cost in EUR (already included in `total`). */
   childSeatsExtra: number;
   days: Map<string, DayInfo> | null;
@@ -417,10 +422,18 @@ export function BookingProvider({
   useEffect(() => {
     if (suv && participants > SIGHTSEEING_SUV_MAX) setSuv(false);
   }, [suv, participants]);
-  // Can't request more child seats than passengers (total headcount, incl. every age band).
+  // A baby/child seat is only for a child, never an adult. On an age-banded activity, cap the seats
+  // at the non-adult heads (children + infants = everyone except the full-price "adult" band); the
+  // add-on disables entirely for an adults-only party. A non-age-banded activity carries no age info,
+  // so it keeps the whole-party cap (unchanged).
+  const childSeatCap = useMemo(() => {
+    if (!isAgeBanded || !primaryLabel) return totalGuests;
+    return Math.max(0, totalGuests - (bandCounts[primaryLabel] ?? 0));
+  }, [isAgeBanded, primaryLabel, totalGuests, bandCounts]);
+  // Keep the request within the cap (and never let it hang above 0 once the last child is removed).
   useEffect(() => {
-    if (childSeats > totalGuests) setChildSeats(totalGuests);
-  }, [childSeats, totalGuests]);
+    if (childSeats > childSeatCap) setChildSeats(childSeatCap);
+  }, [childSeats, childSeatCap]);
   const vehicleQuote = isVehicle
     ? sightseeingQuote(
         Math.min(Math.max(participants, 1), vehicleCfg.maxParty),
@@ -628,6 +641,7 @@ export function BookingProvider({
     setSuv,
     childSeats,
     setChildSeats,
+    childSeatCap,
     childSeatsExtra,
     days,
     availabilityError,

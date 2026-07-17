@@ -174,57 +174,70 @@ export function BookingOptionCard() {
           </div>
         )}
 
-        {/* Baby/child seats — first free, €6 each extra. Editable; capped at the party size.
-            Hidden for adults-only activities (e.g. hiking — no children allowed). */}
-        {!b.activity.adultsOnly && (
-          <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-ink/10 px-3 py-2.5">
-            <div className="min-w-0">
-              <div className="text-[13px] font-bold text-ink">{t('Baby & child seats')}</div>
-              <div className="text-[12px] text-ink-muted">
-                {t('First seat free · {price} each extra', { price: money(CHILD_SEAT_EUR) })}
-                {b.childSeatsExtra > 0 && (
-                  <span className="font-semibold text-teal-dark">
-                    {' '}
-                    · +{money(b.childSeatsExtra)}
-                  </span>
-                )}
+        {/* Baby/child seats — first free, €6 each extra. A seat is only for a child, so the stepper is
+            capped at (and greyed out until) the party has a child/infant — see childSeatCap in the
+            provider. Hidden entirely for adults-only activities (e.g. hiking — no children allowed). */}
+        {!b.activity.adultsOnly &&
+          (() => {
+            const seatsDisabled = b.childSeatCap === 0;
+            return (
+              <div
+                className={`mt-3 flex items-center justify-between gap-3 rounded-lg border border-ink/10 px-3 py-2.5 ${
+                  seatsDisabled ? 'opacity-60' : ''
+                }`}
+              >
+                <div className="min-w-0">
+                  <div className="text-[13px] font-bold text-ink">{t('Baby & child seats')}</div>
+                  <div className="text-[12px] text-ink-muted">
+                    {seatsDisabled
+                      ? t('Add a child or infant to the party to book a seat.')
+                      : t('First seat free · {price} each extra', { price: money(CHILD_SEAT_EUR) })}
+                    {!seatsDisabled && b.childSeatsExtra > 0 && (
+                      <span className="font-semibold text-teal-dark">
+                        {' '}
+                        · +{money(b.childSeatsExtra)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    aria-label={t('Remove child seat')}
+                    onClick={() => b.setChildSeats(Math.max(0, b.childSeats - 1))}
+                    disabled={seatsDisabled || b.childSeats <= 0}
+                    className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+                  >
+                    <IconMinus width={14} height={14} />
+                  </button>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    max={b.childSeatCap}
+                    value={b.childSeats}
+                    disabled={seatsDisabled}
+                    aria-label={t('Number of child seats')}
+                    onChange={(e) => {
+                      const n = parseInt(e.target.value, 10);
+                      if (!Number.isNaN(n))
+                        b.setChildSeats(Math.max(0, Math.min(b.childSeatCap, n)));
+                    }}
+                    className="h-8 w-12 rounded-lg border border-ink/15 text-center text-[14px] font-bold tabular-nums text-ink outline-none focus:border-teal disabled:opacity-50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button
+                    type="button"
+                    aria-label={t('Add child seat')}
+                    onClick={() => b.setChildSeats(Math.min(b.childSeatCap, b.childSeats + 1))}
+                    disabled={seatsDisabled || b.childSeats >= b.childSeatCap}
+                    className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+                  >
+                    <IconPlus width={14} height={14} />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                aria-label={t('Remove child seat')}
-                onClick={() => b.setChildSeats(Math.max(0, b.childSeats - 1))}
-                disabled={b.childSeats <= 0}
-                className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
-              >
-                <IconMinus width={14} height={14} />
-              </button>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                max={b.totalGuests}
-                value={b.childSeats}
-                aria-label={t('Number of child seats')}
-                onChange={(e) => {
-                  const n = parseInt(e.target.value, 10);
-                  if (!Number.isNaN(n)) b.setChildSeats(Math.max(0, Math.min(b.totalGuests, n)));
-                }}
-                className="h-8 w-12 rounded-lg border border-ink/15 text-center text-[14px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              <button
-                type="button"
-                aria-label={t('Add child seat')}
-                onClick={() => b.setChildSeats(Math.min(b.totalGuests, b.childSeats + 1))}
-                disabled={b.childSeats >= b.totalGuests}
-                className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
-              >
-                <IconPlus width={14} height={14} />
-              </button>
-            </div>
-          </div>
-        )}
+            );
+          })()}
 
         <div className="mt-4 flex items-end justify-between gap-3 border-t border-ink/10 pt-4">
           <div>

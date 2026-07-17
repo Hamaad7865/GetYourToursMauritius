@@ -316,6 +316,8 @@ export const fr: Record<string, string> = {
   passenger: 'passager',
   passengers: 'passagers',
   'Baby & child seats': 'Sièges bébé et enfant',
+  'Add a child or infant to the party to book a seat.':
+    'Ajoutez un enfant ou un bébé à votre groupe pour réserver un siège.',
   'First seat free · {price} each extra':
     'Premier siège gratuit · {price} par siège supplémentaire',
   'Remove child seat': 'Retirer un siège enfant',
