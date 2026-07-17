@@ -64,6 +64,9 @@ export function getNotificationProvider(): NotificationProvider {
           from: env.RESEND_FROM,
           // Replies land in the monitored human inbox (info@…) instead of a black hole.
           replyTo: SITE.email,
+          // Silently copy that same inbox on each customer confirmation, so the owner keeps a record
+          // of the exact email + invoice the guest received (BCC — invisible to the customer).
+          bcc: SITE.email,
         })
       : fallback;
   const whatsapp =

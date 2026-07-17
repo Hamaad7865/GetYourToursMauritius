@@ -147,6 +147,39 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
     expect('reply_to' in onlyCall(calls).body).toBe(false);
   });
 
+  it('BCCs the human inbox on a booking_confirmation (owner keeps a silent copy + invoice)', async () => {
+    const { calls } = mockFetch();
+    await new ResendNotificationProvider({ ...CONFIG, bcc: 'info@example.com' }).send({
+      id: 'n7',
+      channel: 'email',
+      recipient: 'guest@example.com',
+      template: 'booking_confirmation',
+      payload: { ref: 'BMT-7' },
+    });
+    const { body } = onlyCall(calls);
+    expect(body.bcc).toBe('info@example.com'); // owner's silent copy
+    expect(body.to).toBe('guest@example.com'); // the customer is still the sole visible recipient
+  });
+
+  it('does NOT BCC on non-confirmation emails (owner alerts + refund/expiry mails stay uncopied)', async () => {
+    for (const template of [
+      'booking_expired',
+      'booking_refunded',
+      'owner_refund_pending',
+    ] as const) {
+      const { calls } = mockFetch();
+      await new ResendNotificationProvider({ ...CONFIG, bcc: 'info@example.com' }).send({
+        id: `n-${template}`,
+        channel: 'email',
+        recipient: 'guest@example.com',
+        template,
+        payload: { ref: 'BMT-1' },
+      });
+      expect('bcc' in onlyCall(calls).body, `${template} must not be BCC'd`).toBe(false);
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('renders the booking_expired template with the ref + customer name', async () => {
     const { calls } = mockFetch();
 

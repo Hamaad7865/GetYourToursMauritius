@@ -78,8 +78,13 @@ export class ResendNotificationProvider implements NotificationProvider {
   readonly name = 'resend';
 
   /** `from` is the send-only transactional identity (bookings@…); `replyTo` is the monitored human
-   *  inbox (info@…), so a customer hitting Reply on a booking email reaches someone. */
-  constructor(private readonly config: { apiKey: string; from: string; replyTo?: string }) {}
+   *  inbox (info@…), so a customer hitting Reply on a booking email reaches someone. `bcc` (also the
+   *  human inbox) silently copies the owner on the CUSTOMER'S confirmation — the exact email + invoice
+   *  the guest received — WITHOUT the customer seeing it. Only booking_confirmation is BCC'd; owner
+   *  alerts already reach the owner and refund/expiry mails aren't worth copying. */
+  constructor(
+    private readonly config: { apiKey: string; from: string; replyTo?: string; bcc?: string },
+  ) {}
 
   async send(message: NotificationMessage): Promise<void> {
     if (message.channel !== 'email') {
@@ -99,12 +104,17 @@ export class ResendNotificationProvider implements NotificationProvider {
       subject: string;
       text: string;
       reply_to?: string;
+      bcc?: string;
       html?: string;
       attachments?: Array<{ filename: string; content: string }>;
     } = { from: this.config.from, to: message.recipient, subject, text };
     // Mail goes out as bookings@ (send-only, unmonitored). Point Reply at the human inbox so a guest
     // replying to their confirmation reaches us instead of a black hole.
     if (this.config.replyTo) body.reply_to = this.config.replyTo;
+    // Silently copy the owner on the customer's CONFIRMATION only (the email + invoice the guest got).
+    // BCC, so the customer never sees the internal address and a reply-all can't reach it. A BCC that
+    // fails to deliver (e.g. info@ routing not set up) never blocks the customer's own copy.
+    if (this.config.bcc && message.template === 'booking_confirmation') body.bcc = this.config.bcc;
     if (message.html) body.html = message.html;
     if (message.attachments?.length) {
       // Resend's attachment shape is { filename, content } where content is base64; it infers the
