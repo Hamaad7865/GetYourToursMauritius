@@ -602,6 +602,10 @@ function BookingDrawer({
 }) {
   const [booking, setBooking] = useState<BookingDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Distinct from `booking === null`: a well-formed id that has no row (deleted / erased / stale
+  // deep-link) resolves to null WITHOUT throwing, so without this flag the drawer can't tell
+  // "loaded, not found" from "still loading" and would hang on the spinner forever.
+  const [notFound, setNotFound] = useState(false);
   const [notes, setNotes] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
   const [erasedMsg, setErasedMsg] = useState<string | null>(null);
@@ -617,6 +621,7 @@ function BookingDrawer({
     try {
       const detail = await loadBookingDetail(id);
       setBooking(detail);
+      setNotFound(detail === null); // resolved, but no such booking → show a not-found state, not a spinner
       setNotes(detail?.notes ?? '');
       setError(null);
     } catch (err) {
@@ -710,7 +715,26 @@ function BookingDrawer({
         </header>
 
         {!booking ? (
-          <p className="p-6 text-sm text-ink-muted">{error ?? 'Loading…'}</p>
+          notFound ? (
+            <div className="flex flex-col items-start gap-3 p-6">
+              <p className="text-sm text-ink-muted">
+                This booking couldn’t be found — it may have been cancelled or deleted.
+              </p>
+              <button
+                type="button"
+                onClick={requestClose}
+                className="rounded-full bg-ink px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark"
+              >
+                Close
+              </button>
+            </div>
+          ) : error ? (
+            <p role="alert" className="p-6 text-sm text-coral">
+              {error}
+            </p>
+          ) : (
+            <p className="p-6 text-sm text-ink-muted">Loading…</p>
+          )
         ) : (
           <div className="flex flex-col gap-5 p-5">
             <div>

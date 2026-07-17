@@ -29,11 +29,16 @@ const STAT_ICON = {
   upcoming: IconPin,
 } as const;
 
-/** Each KPI card drills into the bookings screen, pre-filtered via URL params AdminBookings reads. */
+/** Each KPI card drills into the bookings screen, pre-filtered via URL params AdminBookings reads.
+ *  Pending uses the `payment_pending` STATUS filter (not `pay=pending`): the card counts money still
+ *  owed on ACTIVE bookings, whereas a raw payment filter would also surface cancelled/expired rows whose
+ *  ledger state is a stale "pending" (shown as "Not paid"), inflating the list past the card's count.
+ *  The date-based drills intentionally show every status for that day (the Status pill disambiguates
+ *  a cancelled trip), so their list can legitimately be longer than the active-only card figure. */
 const STAT_HREF: Record<string, string> = {
   today: '/admin/bookings?date=today',
   revenue: '/admin/bookings?pay=paid',
-  pending: '/admin/bookings?pay=pending',
+  pending: '/admin/bookings?status=payment_pending',
   upcoming: '/admin/bookings?date=next7',
 };
 
