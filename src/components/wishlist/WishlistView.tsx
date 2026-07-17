@@ -13,8 +13,13 @@ function EmptyArt() {
   return (
     <div aria-hidden className="relative mx-auto grid h-40 w-40 place-items-center">
       <span className="absolute inset-0 rounded-full bg-teal/[0.07]" />
-      <span className="absolute inset-5 rounded-full border-2 border-dashed border-teal/25" />
-      <svg viewBox="0 0 120 40" className="absolute -bottom-1 left-1/2 h-6 w-28 -translate-x-1/2">
+      {/* Dashed ring drifts slowly; waterline sways beneath (shared lagoon-idle motions). `-ml-14`
+          centres the w-28 svg without a transform so the sway owns the element's transform. */}
+      <span className="gyt-idle-ring absolute inset-5 rounded-full border-2 border-dashed border-teal/25" />
+      <svg
+        viewBox="0 0 120 40"
+        className="gyt-idle-wave absolute -bottom-1 left-1/2 -ml-14 h-6 w-28"
+      >
         <path
           d="M2 20 Q17 6 32 20 T62 20 T92 20 T118 20"
           fill="none"
@@ -23,10 +28,11 @@ function EmptyArt() {
           strokeLinecap="round"
         />
       </svg>
+      {/* The heart gently beats — a lub-dub pulse. */}
       <IconHeart
         width={58}
         height={58}
-        className="relative text-coral"
+        className="gyt-heart-beat relative text-coral"
         style={{ fill: 'currentColor' }}
       />
     </div>

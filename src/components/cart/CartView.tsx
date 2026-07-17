@@ -62,12 +62,12 @@ function EmptyCart() {
         <div aria-hidden className="relative mx-auto grid h-40 w-40 place-items-center">
           <span className="absolute inset-0 rounded-full bg-teal/[0.07]" />
           {/* Dashed ring drifts slowly (rotates the dashes around the circle). */}
-          <span className="gyt-cart-ring absolute inset-5 rounded-full border-2 border-dashed border-teal/25" />
+          <span className="gyt-idle-ring absolute inset-5 rounded-full border-2 border-dashed border-teal/25" />
           {/* Waterline sways side to side. `-ml-14` centres the w-28 svg without a transform, so the
               sway animation has the element's transform to itself. */}
           <svg
             viewBox="0 0 120 40"
-            className="gyt-cart-wave absolute -bottom-1 left-1/2 -ml-14 h-6 w-28"
+            className="gyt-idle-wave absolute -bottom-1 left-1/2 -ml-14 h-6 w-28"
           >
             <path
               d="M2 20 Q17 6 32 20 T62 20 T92 20 T118 20"

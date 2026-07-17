@@ -262,9 +262,11 @@
     will-change: transform, opacity;
   }
 
-  /* Empty-cart illustration — the little cart bobs like a boat on the lagoon, the dashed ring drifts
-     slowly, and the waterline sways beneath. transform-only; three loosely-desynced periods so it
-     reads as organic drift, not a mechanical loop. All frozen under prefers-reduced-motion. */
+  /* Empty-state lagoon idle — shared by the empty cart + empty wishlist illustrations. The dashed ring
+     drifts slowly and the waterline sways beneath (gyt-idle-*, generic); the cart bobs like a boat
+     (gyt-cart-bob) and the wishlist heart beats (gyt-heart-beat) as the per-page centrepiece.
+     transform-only; loosely-desynced periods so it reads as organic drift, not a mechanical loop.
+     All frozen under prefers-reduced-motion. */
   @keyframes gytCartBob {
     0%,
     100% {
@@ -274,12 +276,29 @@
       transform: translateY(-7px) rotate(3deg);
     }
   }
-  @keyframes gytCartRing {
+  /* A gentle lub-dub heartbeat: two quick pulses, then rest. */
+  @keyframes gytHeartBeat {
+    0%,
+    38%,
+    100% {
+      transform: scale(1);
+    }
+    10% {
+      transform: scale(1.15);
+    }
+    20% {
+      transform: scale(1.02);
+    }
+    30% {
+      transform: scale(1.1);
+    }
+  }
+  @keyframes gytIdleRing {
     to {
       transform: rotate(360deg);
     }
   }
-  @keyframes gytCartWave {
+  @keyframes gytIdleWave {
     0%,
     100% {
       transform: translateX(-4px);
@@ -293,12 +312,17 @@
     transform-origin: center bottom;
     will-change: transform;
   }
-  .gyt-cart-ring {
-    animation: gytCartRing 18s linear infinite;
+  .gyt-heart-beat {
+    animation: gytHeartBeat 2.6s ease-in-out infinite;
+    transform-origin: center;
     will-change: transform;
   }
-  .gyt-cart-wave {
-    animation: gytCartWave 4.6s ease-in-out infinite;
+  .gyt-idle-ring {
+    animation: gytIdleRing 18s linear infinite;
+    will-change: transform;
+  }
+  .gyt-idle-wave {
+    animation: gytIdleWave 4.6s ease-in-out infinite;
     will-change: transform;
   }
 
@@ -453,10 +477,11 @@
   .gyt-car-shadow,
   .gyt-arrival-in,
   .gyt-arrival-zoom,
-  /* Empty-cart lagoon idle. */
+  /* Empty cart + wishlist lagoon idle. */
   .gyt-cart-bob,
-  .gyt-cart-ring,
-  .gyt-cart-wave {
+  .gyt-heart-beat,
+  .gyt-idle-ring,
+  .gyt-idle-wave {
     animation: none !important;
   }
   /* Itinerary reveal is JS-gated on reduced motion too; this is the belt-and-braces CSS kill. */
