@@ -859,8 +859,8 @@ export const fr: Record<string, string> = {
   'Already have an account?': 'Vous avez déjà un compte ?',
   'New to Belle Mare Tours?': 'Nouveau sur Belle Mare Tours ?',
   'Create one': 'Créez-en un',
-  'Check your inbox to confirm your email, then sign in.':
-    'Consultez votre boîte de réception pour confirmer votre e-mail, puis connectez-vous.',
+  'Check your inbox to confirm your email. Already have an account? Just sign in.':
+    'Consultez votre boîte de réception pour confirmer votre e-mail. Vous avez déjà un compte ? Connectez-vous simplement.',
   'Forgot password?': 'Mot de passe oublié ?',
   'Reset your password': 'Réinitialisez votre mot de passe',
   "Enter your email and we'll send you a link to reset your password.":

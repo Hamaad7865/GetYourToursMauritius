@@ -130,8 +130,15 @@ export function AuthDialog({
         });
         if (error) throw error;
         // Email confirmation on → no session yet; otherwise we're signed straight in.
+        // The message is deliberately identical whether or not the email already has an account:
+        // Supabase returns the same session-less success for a duplicate signup (anti-enumeration —
+        // never reveal which addresses are registered). The "Already have an account? Just sign in."
+        // half nudges a returning customer who forgot they signed up, WITHOUT confirming to a stranger
+        // that the address exists.
         if (!data.session) {
-          setNotice(t('Check your inbox to confirm your email, then sign in.'));
+          setNotice(
+            t('Check your inbox to confirm your email. Already have an account? Just sign in.'),
+          );
           return;
         }
       } else {
