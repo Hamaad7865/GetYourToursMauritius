@@ -39,7 +39,9 @@ function VehicleArt({ vehicle }: { vehicle: RentalVehicle }) {
         src={vehicle.imageUrl}
         alt={vehicle.name}
         loading="lazy"
-        className="h-28 w-full rounded-xl object-cover"
+        // object-CONTAIN (not cover) on white: shows the WHOLE vehicle without cropping, and a photo on a
+        // white/transparent background reads as just the car. Use cut-out or white-background photos.
+        className="h-28 w-full rounded-xl bg-white object-contain"
       />
     );
   }

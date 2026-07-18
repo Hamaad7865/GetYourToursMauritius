@@ -9,6 +9,7 @@ import {
   deleteRentalVehicle,
   type RentalVehicleInput,
 } from '@/lib/admin/rental';
+import { uploadActivityImage } from '@/lib/admin/activity-write';
 import {
   AdminHeading,
   AdminError,
@@ -53,6 +54,8 @@ function VehicleFields({
   patch: (p: Partial<RentalVehicleInput>) => void;
   lockSlug: boolean;
 }) {
+  const [uploading, setUploading] = useState(false);
+  const [uploadErr, setUploadErr] = useState<string | null>(null);
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <Field label="Name">
@@ -125,13 +128,57 @@ function VehicleFields({
           onChange={(e) => patch({ sort: e.target.value ? Number(e.target.value) : 0 })}
         />
       </Field>
-      <Field label="Image URL" hint="Optional photo">
-        <input
-          className={INPUT_CLS}
-          value={v.imageUrl ?? ''}
-          onChange={(e) => patch({ imageUrl: e.target.value || null })}
-          placeholder="https://…"
-        />
+      <Field label="Photo" hint="Upload a file, or paste a URL">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <input
+              className={`${INPUT_CLS} min-w-0 flex-1`}
+              value={v.imageUrl ?? ''}
+              onChange={(e) => patch({ imageUrl: e.target.value || null })}
+              placeholder="https://… or Upload →"
+            />
+            <label
+              className={`${BTN_GHOST} shrink-0 cursor-pointer whitespace-nowrap ${
+                uploading ? 'pointer-events-none opacity-60' : ''
+              }`}
+            >
+              {uploading ? 'Uploading…' : 'Upload'}
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                disabled={uploading}
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = ''; // allow re-selecting the same file
+                  if (!file) return;
+                  setUploadErr(null);
+                  setUploading(true);
+                  try {
+                    const url = await uploadActivityImage(file, v.slug || 'rental');
+                    patch({ imageUrl: url });
+                  } catch (err) {
+                    setUploadErr(err instanceof Error ? err.message : 'Upload failed');
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+              />
+            </label>
+          </div>
+          {uploadErr && <p className="text-[12px] font-medium text-coral">{uploadErr}</p>}
+          {v.imageUrl && (
+            // Preview shows the WHOLE image (object-contain) on white — the same as the /rent card — so a
+            // cropped/awkward photo is obvious here before saving. eslint-disable: CF Pages serves
+            // images unoptimized.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={v.imageUrl}
+              alt=""
+              className="h-24 w-full rounded-lg border border-[#EAEEF0] bg-white object-contain"
+            />
+          )}
+        </div>
       </Field>
       <label className="flex items-center gap-2 self-end pb-2.5 text-[13px] font-semibold text-ink">
         <input
