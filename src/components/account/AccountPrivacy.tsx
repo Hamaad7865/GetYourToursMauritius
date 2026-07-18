@@ -198,14 +198,26 @@ export function AccountPrivacy() {
         setDeleting(false);
         return;
       }
-      // Success: sign out locally, confirm, then land home. The toast outlives the navigation.
+      // Sign out locally either way, then land home. But distinguish a CLEAN removal from a PENDING one
+      // (res.pending): the data is erased and the account is banned (can't sign back in), but the auth
+      // record removal is still finalising — reporting that as a plain "deleted" was the review's #9 gap.
       await signOut();
       await getBrowserSupabase().auth.signOut();
-      showToast({
-        title: t('Account deleted'),
-        description: t('Your account and personal data were deleted.'),
-        variant: 'info',
-      });
+      showToast(
+        res.pending
+          ? {
+              title: t('Your data has been erased'),
+              description: t(
+                'Your account is closed — you won’t be able to sign back in. Final cleanup is completing in the background.',
+              ),
+              variant: 'info',
+            }
+          : {
+              title: t('Account deleted'),
+              description: t('Your account and personal data were deleted.'),
+              variant: 'info',
+            },
+      );
       router.replace('/');
     } catch {
       setDeleteError(t('We couldn’t delete your account. Please contact us and we’ll help.'));

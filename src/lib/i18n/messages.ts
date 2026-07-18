@@ -1182,6 +1182,9 @@ export const fr: Record<string, string> = {
   'Account deleted': 'Compte supprimé',
   'Your account and personal data were deleted.':
     'Votre compte et vos données personnelles ont été supprimés.',
+  'Your data has been erased': 'Vos données ont été effacées',
+  'Your account is closed — you won’t be able to sign back in. Final cleanup is completing in the background.':
+    'Votre compte est fermé — vous ne pourrez plus vous reconnecter. Le nettoyage final se termine en arrière-plan.',
 
   // ── About page (Claude Design handoff rebuild) ──────────────────────────────
   // Hero ("About Belle Mare Tours" + "Mauritius, shown to you by the people who live here" already keyed above)
