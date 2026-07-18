@@ -52,6 +52,23 @@ describe('selectionHash', () => {
     expect(selectionHash({ ...base, qty: 4 })).not.toBe(selectionHash(base));
   });
 
+  it('scopes the age-band mix: same qty + total, different band split → different hash', () => {
+    const twoAdults: SelectionInput = { ...base, party: { Adult: 2 } };
+    const adultChild: SelectionInput = { ...base, party: { Adult: 1, Child: 1 } };
+    // Same qty (2) and same total, but a different manifest — must NOT collide (a different booking).
+    expect(selectionHash(twoAdults)).not.toBe(selectionHash(adultChild));
+    // Band mix is order-independent (normalized by sorted keys) and drops zero counts.
+    expect(selectionHash({ ...base, party: { Child: 1, Adult: 1 } })).toBe(
+      selectionHash(adultChild),
+    );
+    expect(selectionHash({ ...base, party: { Adult: 2, Infant: 0 } })).toBe(
+      selectionHash(twoAdults),
+    );
+    // An absent party (simple selections) is stable and distinct from a set mix.
+    expect(selectionHash({ ...base, party: null })).toBe(selectionHash({ ...base }));
+    expect(selectionHash({ ...base, party: null })).not.toBe(selectionHash(twoAdults));
+  });
+
   it('differs when the price label changes', () => {
     expect(selectionHash({ ...base, priceLabel: 'Child' })).not.toBe(selectionHash(base));
   });

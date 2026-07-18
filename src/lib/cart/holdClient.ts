@@ -72,11 +72,34 @@ export async function getHoldStatus(
   return res.ok ? { status: res.data.status, expiresAt: res.data.expiresAt } : null;
 }
 
-export async function releaseHoldRequest(holdId: string): Promise<void> {
-  await fetch(`/api/v1/holds/${holdId}/release`, {
-    method: 'POST',
-    headers: await authHeaders(),
-  }).catch(() => {});
+/**
+ * Release a held spot. Returns whether it actually released — the previous version was fire-and-forget
+ * (`.catch(() => {})`) and never checked `res.ok`, so a 4xx/5xx silently left the seat reserved for the
+ * full 30-minute hold TTL (a temporary double-reserve). Now it checks the response and retries once on a
+ * transient (network / 5xx) failure. A 4xx is not retried — notably an anonymous/guest hold, which the
+ * auth-gated route cannot release; that seat is reclaimed by the hold-expiry + maintenance sweep. Never
+ * throws, so a caller can still fire it without awaiting.
+ */
+export async function releaseHoldRequest(holdId: string): Promise<boolean> {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const res = await fetch(`/api/v1/holds/${holdId}/release`, {
+        method: 'POST',
+        headers: await authHeaders(),
+      });
+      if (res.ok) return true;
+      if (res.status >= 400 && res.status < 500) {
+        // A permanent rejection (403 not-owner, 404, 409 attached, 401 guest) — retrying won't help.
+        console.warn(`releaseHoldRequest: ${holdId} not released (${res.status})`);
+        return false;
+      }
+      // 5xx → fall through and retry once.
+    } catch {
+      // Network error → retry once.
+    }
+  }
+  console.warn(`releaseHoldRequest: ${holdId} release failed after retry`);
+  return false;
 }
 
 /**

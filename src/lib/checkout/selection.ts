@@ -18,8 +18,12 @@
 export type SelectionInput = {
   /** The price-tier label, e.g. "Adult" / "Per group". */
   priceLabel: string;
-  /** Party / quantity. */
+  /** Party / quantity (total headcount). */
   qty: number;
+  /** Age-band distribution (band label → count, e.g. Adult:2, Child:1). The SAME total headcount can
+   *  hide a DIFFERENT band mix — a different manifest and, with age-band pricing, a different price — so
+   *  it must scope the identity, not just `qty`. Order-independent (normalized below). */
+  party?: Record<string, number> | null;
   /** Sightseeing SUV upgrade flag. */
   suv: boolean;
   /** Number of child seats chosen (first free, the rest charged). */
@@ -50,6 +54,14 @@ export function selectionHash(input: SelectionInput): string {
   const normalized = {
     priceLabel: input.priceLabel ?? '',
     qty: Number.isFinite(input.qty) ? input.qty : 0,
+    // Sorted band entries (positive counts only) → a stable, order-independent fingerprint of the mix.
+    party: input.party
+      ? Object.fromEntries(
+          Object.entries(input.party)
+            .filter(([, n]) => Number.isFinite(n) && n > 0)
+            .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
+        )
+      : null,
     suv: Boolean(input.suv),
     childSeats: Number.isFinite(input.childSeats) ? input.childSeats : 0,
     pickupText: input.pickupText ?? '',

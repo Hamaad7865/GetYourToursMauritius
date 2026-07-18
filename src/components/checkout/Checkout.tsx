@@ -256,6 +256,9 @@ export function Checkout() {
     return selectionHash({
       priceLabel: label,
       qty,
+      // The age-band mix is a booking-defining dimension the same `qty`/`total` can hide (2 adults vs
+      // 1 adult + 1 child). It's known at mount from the URL, so it scopes the rehydration identity too.
+      party: partyMap,
       suv,
       childSeats,
       pickupText: pickupParam,
@@ -707,11 +710,12 @@ export function Checkout() {
       // silently pay the OLD booking carrying the OLD run sheet. If the details hashed at create time
       // differ from what's on screen now, abandon the ref: fresh idempotency key → a fresh booking
       // with the current details; the abandoned payment_pending one expires via the autocancel sweep.
-      // A LEGACY stash (no det — written before this shipped) keeps the plain rehydrate: dropping it
-      // would mint duplicates for customers mid-checkout across the deploy.
+      // Fail closed: a rehydrated ref whose stored details differ from — OR are ABSENT for — what's on
+      // screen now is abandoned. (The det-less legacy stash the deploy-window rehydrate protected is long
+      // gone; such a stash also lacks `sel`, so it never rehydrates in the first place.)
       if (ref) {
         const stored = readBooking();
-        if (stored.det && stored.det !== det) {
+        if (stored.det !== det) {
           keyForBooking = crypto.randomUUID();
           setDetailsOverrideKey(keyForBooking);
           setBookingRef(null);
