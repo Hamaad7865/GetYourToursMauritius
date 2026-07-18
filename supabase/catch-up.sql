@@ -13552,3 +13552,30 @@ $$;
 
 revoke execute on function api_record_payment_checkout(jsonb) from public, anon, authenticated;
 grant execute on function api_record_payment_checkout(jsonb) to service_role;
+
+-- Lock SECURITY DEFINER functions that leaked EXECUTE to anon + authenticated (a `revoke from public`
+-- does not remove Supabase's default anon/authenticated grants). append_payment_event had NO caller
+-- guard → an authenticated user could forge a 'paid' event and self-confirm a booking (payment bypass).
+-- The rest are server/service_role-only or performed inside other definer functions / a trigger, never
+-- called by the browser client. (used_capacity is intentionally left — it's read-only and called by the
+-- SECURITY INVOKER api_get_activity/booking_json, so anon/authenticated must keep EXECUTE on it.)
+revoke execute on function append_payment_event(uuid, text, text, bigint, timestamptz, jsonb) from public, anon, authenticated;
+grant execute on function append_payment_event(uuid, text, text, bigint, timestamptz, jsonb) to service_role;
+
+revoke execute on function release_hold(uuid) from public, anon, authenticated;
+grant execute on function release_hold(uuid) to service_role;
+
+revoke execute on function run_booking_maintenance(jsonb) from public, anon, authenticated;
+grant execute on function run_booking_maintenance(jsonb) to service_role;
+
+revoke execute on function expire_holds() from public, anon, authenticated;
+grant execute on function expire_holds() to service_role;
+
+revoke execute on function enqueue_booking_notification() from public, anon, authenticated;
+grant execute on function enqueue_booking_notification() to service_role;
+
+revoke execute on function claim_notifications(jsonb) from public, anon, authenticated;
+grant execute on function claim_notifications(jsonb) to service_role;
+
+revoke execute on function mark_notification(jsonb) from public, anon, authenticated;
+grant execute on function mark_notification(jsonb) to service_role;
