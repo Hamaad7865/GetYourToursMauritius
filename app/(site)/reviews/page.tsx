@@ -11,9 +11,10 @@ import { IconStar } from '@/components/ui/icons';
 
 export const runtime = 'edge';
 
-const TA_URL =
-  'https://www.tripadvisor.com/Attraction_Review-g298342-d6553120-Reviews-Belle_Mare_Tours-Belle_Mare.html';
-const GOOGLE_URL = 'https://www.google.com/maps?cid=2271389619635672229';
+// Single source of truth — the same URLs feed schema.org `sameAs` via SITE.profiles, so the page and
+// the structured data can't drift apart.
+const TA_URL = SITE.profiles.tripadvisor;
+const GOOGLE_URL = SITE.profiles.google;
 
 const TITLE = 'Belle Mare Tours Reviews — 4.8/5 from 1,000+ Guests';
 const DESCRIPTION =
@@ -101,7 +102,7 @@ export default function ReviewsPage() {
               <a
                 href={TA_URL}
                 target="_blank"
-                rel="noopener noreferrer nofollow"
+                rel="noopener noreferrer"
                 className="hover:text-teal"
               >
                 <b className="text-ink">{reviewStats.tripadvisor.rating}</b> ·{' '}
@@ -110,7 +111,7 @@ export default function ReviewsPage() {
               <a
                 href={GOOGLE_URL}
                 target="_blank"
-                rel="noopener noreferrer nofollow"
+                rel="noopener noreferrer"
                 className="hover:text-teal"
               >
                 <b className="text-ink">{reviewStats.google.rating}</b> · {reviewStats.google.count}{' '}

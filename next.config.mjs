@@ -34,7 +34,11 @@ const nextConfig = {
       'getyourtoursmauritius.com',
       'www.getyourtoursmauritius.com',
       'www.bellemaretours.com',
-      'getyourtoursmauritius.pages.dev',
+      // The Pages PROJECT was renamed to `bellemaretours` (wrangler.toml), which changed the
+      // subdomain — so the old getyourtoursmauritius.pages.dev listed here no longer resolves while
+      // the real production origin went unguarded, serving a complete crawlable copy of the site (and
+      // re-opening the split-cart / payment-origin problem this list exists to prevent).
+      'bellemaretours.pages.dev',
     ];
     return [
       ...NON_CANONICAL_HOSTS.map((host) => ({
@@ -99,6 +103,16 @@ const nextConfig = {
     ];
     return [
       { source: '/(.*)', headers: security },
+      // Preview deployments (<hash>.bellemaretours.pages.dev) are deliberately exempt from the
+      // canonical-host 308 above so they stay usable for testing — but nothing then stopped a crawler
+      // indexing them, and a preview built without NEXT_PUBLIC_SITE_URL bakes localhost canonicals
+      // into its pages and robots.txt. Keep them out of the index at the header level, which does not
+      // depend on the preview's env being right. Matches only hash-prefixed hosts, never the apex.
+      {
+        source: '/(.*)',
+        has: [{ type: 'host', value: '.+\\.bellemaretours\\.pages\\.dev' }],
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      },
       // /checkout must NEVER be cached or served from the bfcache: it mints/holds a booking and a
       // stale re-execution after a successful booking could otherwise create a duplicate. no-store
       // (defence-in-depth alongside the per-occurrence booking-identity stash in Checkout.tsx).

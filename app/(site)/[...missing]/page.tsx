@@ -1,6 +1,7 @@
 import { notFound, permanentRedirect } from 'next/navigation';
 import { publicServiceContext } from '@/lib/http/context';
 import { lookupRedirect } from '@/lib/services/seo';
+import { isSafeRedirectTarget, normalizeRedirectPath } from '@/lib/validation/seo';
 
 export const runtime = 'edge';
 
@@ -19,6 +20,13 @@ export default async function MissingPage({ params }: { params: Promise<{ missin
   } catch {
     /* DB unavailable / not migrated — behave like a plain 404 */
   }
-  if (to && to.startsWith('/') && to !== path) permanentRedirect(to);
+  // Re-validate the stored row rather than trusting it: `startsWith('/')` used to be the only gate,
+  // which let a protocol-relative `//evil.com` through as an off-site 301. Compare NORMALISED paths so
+  // a `/foo` → `/foo/` row 404s instead of bouncing between here and Next's trailing-slash redirect
+  // forever.
+  if (to && isSafeRedirectTarget(to)) {
+    const target = normalizeRedirectPath(to);
+    if (target !== normalizeRedirectPath(path)) permanentRedirect(target);
+  }
   notFound();
 }

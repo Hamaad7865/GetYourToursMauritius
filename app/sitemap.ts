@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { SITE } from '@/lib/seo/site';
 import { publicServiceContext } from '@/lib/http/context';
-import { searchActivities } from '@/lib/services/activities';
+import { searchActivities, CATALOGUE_HIDDEN_SLUGS } from '@/lib/services/activities';
 import { loadPlaces } from '@/lib/catalogue/places';
 import { transfers } from '@/lib/content/transfers';
 import { loadPosts } from '@/lib/content/blog-live';
@@ -69,7 +69,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           priority: 0.8,
         });
       }
-      if (items.length < pageSize) break;
+      // `items` is POST-filter: searchActivities drops CATALOGUE_HIDDEN_SLUGS after the RPC returns,
+      // so a FULL page can come back short. Comparing it against pageSize therefore ended the loop on
+      // the first page that happened to contain a hidden slug, silently dropping every tour after it.
+      // At most one hidden slug per page can be removed, so a page shorter than that tolerance is
+      // genuinely the last one.
+      if (items.length < pageSize - CATALOGUE_HIDDEN_SLUGS.length) break;
     }
   } catch (error) {
     console.error('[sitemap] catalogue fetch failed', error);

@@ -55,8 +55,14 @@ const loadActivity = cache(async (slug: string): Promise<TourDetail | null> => {
     return await getActivity(publicServiceContext(), slug);
   } catch (error) {
     if (error instanceof NotFoundError) return null;
+    // Anything else — a Supabase outage, an RPC failure, a zod mismatch on ONE drifted row — is not
+    // "this tour is gone". Returning null here would fall through to notFound() and emit a 404, which
+    // Google treats as authoritative and deindexes fast; re-throwing renders the error boundary and
+    // returns 500, which is retried and keeps the URL in the index. /activities/* is uncached and
+    // every slug is in the sitemap, so collapsing the two would 404 the whole money-page family at
+    // once. (Also fixes generateMetadata, which cannot tell the cases apart either.)
     console.error('[activity] fetch failed', error);
-    return null;
+    throw error;
   }
 });
 

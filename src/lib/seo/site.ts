@@ -30,7 +30,25 @@ export const SITE = {
   geo: { lat: -20.1944, lng: 57.7706 },
   priceRange: 'EUR 30–240',
   languages: ['en', 'fr'] as const,
+  /**
+   * Independent profiles for the SAME business. These are the source for schema.org `sameAs`, which
+   * is how Google resolves the string "Belle Mare Tours" to this company rather than to the village
+   * of Belle Mare — our brand name collides head-on with the place name (`locality` below IS
+   * 'Belle Mare'), so corroborating profiles do real work on brand queries.
+   *
+   * Add each new profile here as it is claimed (Google Business Profile, Facebook, Instagram); every
+   * entry must be a page that genuinely represents this business, or the hint is worthless.
+   */
+  profiles: {
+    tripadvisor:
+      'https://www.tripadvisor.com/Attraction_Review-g298342-d6553120-Reviews-Belle_Mare_Tours-Belle_Mare.html',
+    google: 'https://www.google.com/maps?cid=2271389619635672229',
+  },
 } as const;
+
+/** `SITE.profiles` as the flat array schema.org wants. Derived, so a profile added above is picked up
+ *  by the JSON-LD automatically and the two can never drift. */
+export const SAME_AS: readonly string[] = Object.values(SITE.profiles);
 
 /** Default Open Graph / Twitter share image. A page that sets its OWN `openGraph` must re-include this —
  *  Next.js does NOT merge parent `openGraph.images` into a child that defines `openGraph`. */

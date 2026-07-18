@@ -36,14 +36,40 @@ export const postSchema = postSummarySchema.extend({
 });
 export type DbPost = z.infer<typeof postSchema>;
 
+/**
+ * Is `to` a path on THIS site? `startsWith('/')` alone is NOT enough: `//evil.com` and `/\evil.com`
+ * both start with a slash, but a browser resolves them as PROTOCOL-RELATIVE URLs and navigates to
+ * another origin — an open redirect. So the character after the leading slash must not itself be a
+ * slash or a backslash.
+ *
+ * Used by the admin form AND by the edge catch-all that performs the redirect, so a row written
+ * before this guard existed (or straight into the table) still can't send a visitor off-site.
+ */
+export function isSafeRedirectTarget(to: string): boolean {
+  return /^\/(?![/\\])/.test(to.trim());
+}
+
+/**
+ * Trailing slashes are normalised away by Next (`/foo/` → `/foo`), so a rule pointing `/foo` → `/foo/`
+ * would redirect to a path that redirects straight back into the catch-all: an infinite loop that the
+ * old `f === t` check could not see. Compare — and redirect to — normalised paths.
+ */
+export function normalizeRedirectPath(p: string): string {
+  const s = p.trim();
+  return s.length > 1 ? s.replace(/\/+$/, '') : s;
+}
+
 /** Validate an admin-entered redirect FROM path: site-relative, no query/hash, not the homepage. */
 export function redirectFromPathError(from: string, to: string): string | null {
-  const f = from.trim();
-  const t = to.trim();
+  const f = normalizeRedirectPath(from);
+  const t = normalizeRedirectPath(to);
   if (!f.startsWith('/')) return 'The old URL must start with “/” (e.g. /old-tour).';
   if (f === '/') return 'You can’t redirect the homepage.';
   if (f.includes('?') || f.includes('#')) return 'Use the plain path only — no “?” or “#”.';
-  if (!t.startsWith('/')) return 'The destination must be a path on this site, starting with “/”.';
+  if (!isSafeRedirectTarget(t))
+    return 'The destination must be a path on this site, starting with a single “/”.';
+  // Compared AFTER normalising, so `/foo` → `/foo/` is caught as the same page rather than becoming
+  // a redirect loop.
   if (f === t) return 'The old URL and the destination are the same.';
   return null;
 }

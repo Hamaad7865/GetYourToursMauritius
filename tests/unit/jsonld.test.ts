@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { organizationJsonLd, productJsonLd, serializeJsonLd } from '@/lib/seo/jsonld';
+import {
+  organizationJsonLd,
+  productJsonLd,
+  reviewsPageJsonLd,
+  serializeJsonLd,
+} from '@/lib/seo/jsonld';
 import type { TourSummary } from '@/lib/validation/tours';
 
 const base: TourSummary = {
@@ -29,6 +34,27 @@ describe('JSON-LD', () => {
     // The retired "GetYourToursMauritius" identity must not resurface in the entity markup.
     expect(JSON.stringify(org)).not.toMatch(/getyourtoursmauritius/i);
     expect(org.knowsLanguage).toEqual(['en', 'fr']);
+  });
+
+  it('carries sameAs profiles so the brand resolves to the business, not the place', () => {
+    // "Belle Mare" is also the village the company is named after, so Google needs corroborating
+    // profiles to treat the brand token as an organisation. Every entry must be an absolute URL.
+    const org = organizationJsonLd();
+    const sameAs = org.sameAs as string[];
+    expect(Array.isArray(sameAs)).toBe(true);
+    expect(sameAs.length).toBeGreaterThan(0);
+    expect(sameAs.every((u) => u.startsWith('https://'))).toBe(true);
+    expect(sameAs.some((u) => u.includes('tripadvisor.'))).toBe(true);
+  });
+
+  it('the reviews entity shares the organisation @id and its profiles', () => {
+    // Same @id => Google merges them into one entity, so the profiles must agree.
+    const org = organizationJsonLd();
+    const reviews = reviewsPageJsonLd([
+      { author: 'A', rating: 5, text: 'Great day out', date: '2026-01-02' },
+    ]);
+    expect(reviews['@id']).toBe(org['@id']);
+    expect(reviews.sameAs).toEqual(org.sameAs);
   });
 
   it('builds Product with Offer (EUR) + AggregateRating when present', () => {

@@ -1,7 +1,7 @@
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import { reviewStats } from '@/lib/content/reviews';
-import { SITE } from './site';
+import { SITE, SAME_AS } from './site';
 
 /**
  * Serialises JSON-LD for safe embedding in a <script> tag. Escapes `<` so a value
@@ -37,6 +37,9 @@ export function organizationJsonLd(): Record<string, unknown> {
     priceRange: SITE.priceRange,
     areaServed: 'Mauritius',
     knowsLanguage: [...SITE.languages],
+    // Corroborating profiles for the same entity. Our brand name is also a place name, so this is the
+    // signal that tells Google "Belle Mare Tours" is a BUSINESS at this URL and not just the village.
+    sameAs: [...SAME_AS],
     address: {
       '@type': 'PostalAddress',
       streetAddress: SITE.street,
@@ -243,6 +246,9 @@ export function reviewsPageJsonLd(
     '@id': `${SITE.url}/#operator`,
     name: SITE.operator,
     url: SITE.url,
+    // Same @id as organizationJsonLd, so Google merges the two into one entity — the profiles must
+    // match or the merged entity carries whichever it saw last.
+    sameAs: [...SAME_AS],
     // From the generated stats, not a literal — a re-scrape must not silently desync the schema
     // from the numbers the page displays.
     aggregateRating: {

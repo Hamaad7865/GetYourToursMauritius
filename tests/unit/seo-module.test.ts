@@ -17,7 +17,11 @@ vi.mock('@/lib/http/context', () => ({
 
 import { getSeoMeta, listDbPosts, getDbPost } from '@/lib/services/seo';
 import { overrideMetadata } from '@/lib/seo/override';
-import { redirectFromPathError } from '@/lib/validation/seo';
+import {
+  isSafeRedirectTarget,
+  normalizeRedirectPath,
+  redirectFromPathError,
+} from '@/lib/validation/seo';
 import { loadPosts, loadPost } from '@/lib/content/blog-live';
 import { posts as genPosts } from '@/lib/content/blog';
 
@@ -97,6 +101,47 @@ describe('redirectFromPathError', () => {
   });
   it('rejects an external destination', () => {
     expect(redirectFromPathError('/old', 'https://evil.example')).toContain('path on this site');
+  });
+
+  // A protocol-relative URL starts with "/", so the old startsWith('/') gate let it straight through
+  // and the catch-all issued a 301 to another origin — an open redirect.
+  it.each(['//evil.example', '//evil.example/path', '/\\evil.example', '/\\\\evil.example'])(
+    'rejects the protocol-relative destination %s',
+    (to) => {
+      expect(redirectFromPathError('/old', to)).toContain('path on this site');
+    },
+  );
+
+  it('rejects a destination that differs from the source only by a trailing slash', () => {
+    // Next normalises `/foo/` back to `/foo`, so this rule would bounce forever between the redirect
+    // and the catch-all. The old `f === t` check compared raw strings and never saw it.
+    expect(redirectFromPathError('/loop', '/loop/')).toContain('the same');
+    expect(redirectFromPathError('/loop/', '/loop')).toContain('the same');
+  });
+
+  it('still accepts a normal path that merely has a trailing slash', () => {
+    expect(redirectFromPathError('/old-tour/', '/mauritius-tours')).toBeNull();
+  });
+});
+
+describe('isSafeRedirectTarget', () => {
+  it.each(['/ok', '/ok/nested', '/ok?not-stripped-here'])('accepts %s', (p) => {
+    expect(isSafeRedirectTarget(p)).toBe(true);
+  });
+  it.each(['//evil.example', '/\\evil.example', 'https://evil.example', 'evil', ''])(
+    'rejects %s',
+    (p) => {
+      expect(isSafeRedirectTarget(p)).toBe(false);
+    },
+  );
+});
+
+describe('normalizeRedirectPath', () => {
+  it('strips trailing slashes but never reduces the root to empty', () => {
+    expect(normalizeRedirectPath('/a/')).toBe('/a');
+    expect(normalizeRedirectPath('/a///')).toBe('/a');
+    expect(normalizeRedirectPath('  /a/  ')).toBe('/a');
+    expect(normalizeRedirectPath('/')).toBe('/');
   });
 });
 

@@ -17,16 +17,16 @@ effort with its own verification.
 
 ## What migrating actually changes
 
-| Area            | Today (next-on-pages / Pages)                                | After (@opennextjs/cloudflare / Workers)                                                                                                   |
-| --------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| Build           | `npx @cloudflare/next-on-pages` (CI step `pages:build`)      | `npx opennextjs-cloudflare build`                                                                                                          |
-| Deploy          | Pages git-integration auto-deploy on push to main            | `wrangler deploy` (CI step or Workers Builds git integration)                                                                              |
-| Runtime         | edge runtime, `export const runtime = 'edge'` per route      | Node.js runtime on `workerd` — the `runtime = 'edge'` exports (≈ every route) must be REMOVED                                              |
-| Custom domains  | Pages project custom domains (already on bellemaretours.com) | Workers custom domains — re-attach both hosts                                                                                              |
-| Env/secrets     | Pages project settings                                       | Worker settings / `wrangler.toml` + `wrangler secret put`                                                                                  |
-| Preview deploys | `<hash>.getyourtoursmauritius.pages.dev`                     | Workers preview URLs (different shape — the canonical-host redirect in `next.config.mjs` matches exact hosts, so previews stay unaffected) |
-| Static assets   | Pages CDN                                                    | Workers static assets (bundled)                                                                                                            |
-| Cron worker     | separate `gytm-cron` Worker                                  | unchanged — but its SITE_URL target must stay correct through the cutover                                                                  |
+| Area            | Today (next-on-pages / Pages)                                | After (@opennextjs/cloudflare / Workers)                                                                                                                                               |
+| --------------- | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build           | `npx @cloudflare/next-on-pages` (CI step `pages:build`)      | `npx opennextjs-cloudflare build`                                                                                                                                                      |
+| Deploy          | Pages git-integration auto-deploy on push to main            | `wrangler deploy` (CI step or Workers Builds git integration)                                                                                                                          |
+| Runtime         | edge runtime, `export const runtime = 'edge'` per route      | Node.js runtime on `workerd` — the `runtime = 'edge'` exports (≈ every route) must be REMOVED                                                                                          |
+| Custom domains  | Pages project custom domains (already on bellemaretours.com) | Workers custom domains — re-attach both hosts                                                                                                                                          |
+| Env/secrets     | Pages project settings                                       | Worker settings / `wrangler.toml` + `wrangler secret put`                                                                                                                              |
+| Preview deploys | `<hash>.bellemaretours.pages.dev`                            | Workers preview URLs (different shape — the canonical-host redirect in `next.config.mjs` matches exact hosts, so previews stay unaffected; they carry `X-Robots-Tag: noindex` instead) |
+| Static assets   | Pages CDN                                                    | Workers static assets (bundled)                                                                                                                                                        |
+| Cron worker     | separate `gytm-cron` Worker                                  | unchanged — but its SITE_URL target must stay correct through the cutover                                                                                                              |
 
 Edge-runtime removal is the real migration: the codebase was written edge-safe (Web Crypto, fetch,
 no Node built-ins), which makes it _compatible_ with Node runtime, but every route exporting
@@ -56,6 +56,6 @@ build` + `wrangler dev`, inventory what breaks. No deploy.
 
 ## Explicitly out of scope for the migration
 
-- The Pages project name (`getyourtoursmauritius`) — cosmetic, and pages.dev URLs die with the
+- The Pages project name (`bellemaretours`) — cosmetic, and pages.dev URLs die with the
   platform move anyway.
 - Any behaviour change. The migration lands byte-identical pages or it doesn't land.
