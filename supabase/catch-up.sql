@@ -13579,3 +13579,9 @@ grant execute on function claim_notifications(jsonb) to service_role;
 
 revoke execute on function mark_notification(jsonb) from public, anon, authenticated;
 grant execute on function mark_notification(jsonb) to service_role;
+
+-- Fleet photo for the Nissan Note (public asset public/rental/nissan-note.webp). Idempotent + fills only
+-- an empty slot so an admin Image URL change is never clobbered by re-running this script.
+update rental_vehicles
+set image_url = '/rental/nissan-note.webp'
+where slug = 'nissan-note' and (image_url is null or image_url = '');

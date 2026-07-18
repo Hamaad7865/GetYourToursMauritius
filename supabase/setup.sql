@@ -17641,6 +17641,14 @@ grant execute on function claim_notifications(jsonb) to service_role;
 revoke execute on function mark_notification(jsonb) from public, anon, authenticated;
 grant execute on function mark_notification(jsonb) to service_role;
 
+-- ==================== 20260815000000_rental_note_image.sql ====================
+-- Fleet photo for the Nissan Note (public asset public/rental/nissan-note.webp). Idempotent and only
+-- fills an EMPTY slot, so a later change to the Image URL in the admin Rental screen is never clobbered
+-- by re-running catch-up.sql.
+update rental_vehicles
+set image_url = '/rental/nissan-note.webp'
+where slug = 'nissan-note' and (image_url is null or image_url = '');
+
 -- ==================== seed.sql (catalogue) ====================
 -- GENERATED from seed/catalogue.json by `npm run seed:gen`. Do not edit by hand.
 -- Apply on a fresh database via `supabase db reset` (it runs migrations then this file).
