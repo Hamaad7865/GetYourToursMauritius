@@ -138,6 +138,46 @@ describe('owner-scoped hold release', () => {
     expect(theirs).toHaveLength(0);
   });
 
+  it('refuses to release a hold attached to a booking (hold_attached), keeping capacity reserved', async () => {
+    await db.asOwner();
+    const { occurrenceId } = await seedOccurrence(db, 10);
+    const hold = await holdFor<{ holdId: string }>(db, ALICE, {
+      occurrenceId,
+      expectedSlug: null,
+      people: 2,
+      idempotencyKey: 'alice-attached:hold',
+    });
+
+    // Bind the hold to an in-flight booking, as the checkout flow does under a row lock.
+    await db.asOwner();
+    const { rows: bk } = await db.pg.query<{ id: string }>(
+      `insert into bookings (user_id, customer_name, customer_email, total_minor, currency, status)
+         values ($1, 'Alice', 'alice@example.com', 10000, 'EUR', 'payment_pending') returning id`,
+      [ALICE],
+    );
+    await db.pg.query(`update booking_holds set booking_id = $1 where id = $2`, [
+      bk[0]!.id,
+      hold.holdId,
+    ]);
+
+    // Even the owner cannot release it — freeing a hold a booking stands on would hand the seat away
+    // mid-payment. This is the guard the /holds/:id/release route now delegates to (it used to do a
+    // raw update with no booking_id check).
+    await db.as({ sub: ALICE, role: 'authenticated' });
+    await expect(db.pg.query(`select api_release_hold($1)`, [hold.holdId])).rejects.toThrow(
+      /hold_attached/,
+    );
+
+    // The hold stays active and the capacity stays reserved.
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ status: string }>(
+      `select status from booking_holds where id = $1`,
+      [hold.holdId],
+    );
+    expect(rows[0]!.status).toBe('active');
+    expect(await usedCapacity(db, occurrenceId)).toBe(2);
+  });
+
   it('release is idempotent: releasing an already-released hold is a no-op', async () => {
     await db.asOwner();
     const { occurrenceId } = await seedOccurrence(db, 10);

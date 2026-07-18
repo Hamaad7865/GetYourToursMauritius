@@ -827,6 +827,7 @@ export interface Database {
         Returns: BookingHoldsRow;
       };
       release_hold: { Args: { p_hold_id: string }; Returns: BookingHoldsRow };
+      api_release_hold: { Args: { p_hold_id: string }; Returns: BookingHoldsRow };
       expire_holds: { Args: Record<string, never>; Returns: number };
       create_booking: {
         Args: {

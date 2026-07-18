@@ -101,16 +101,32 @@ export async function createPaymentLink(
     console.error('failed to record payment charge', { paymentId: payment.paymentId, error });
   }
 
-  // Persist the Peach checkout id so a later server-side reconciliation sweep can re-query the payment's
-  // status. Best-effort like the charge record above: the checkout already succeeded, so a failure here
-  // must never strand the customer — log (no PII) and continue.
+  // Persist the Peach checkout id — REQUIRED, not best-effort (unlike the charge record above). It is
+  // what (a) lets the reconciliation sweep re-query this payment's status, and (b) makes a retry of
+  // api_create_payment REUSE this same session (existingCheckoutId) instead of minting a SECOND payable
+  // one once the 90-second single-flight lease expires. If it can't be recorded, the one-payable-session
+  // invariant is broken, so we must NOT hand back a session the system can no longer track: release the
+  // lease and fail closed. The customer's retry then mints — or, if the id did land but only the ack was
+  // lost, reuses — a properly-recorded session. The orphaned Peach session is harmless: it is never
+  // returned to the customer, so it is never paid, and it expires on its own.
   try {
     await callRpc(adminCtx, 'api_record_payment_checkout', {
       paymentId: payment.paymentId,
       checkoutId: session.checkoutId,
     });
   } catch (error) {
-    console.error('failed to record payment checkout id', { paymentId: payment.paymentId, error });
+    console.error('failed to record payment checkout id — failing closed', {
+      paymentId: payment.paymentId,
+      error: error instanceof Error ? error.message : 'unknown error',
+    });
+    try {
+      await callRpc(adminCtx, 'api_release_checkout_claim', { paymentId: payment.paymentId });
+    } catch {
+      /* lease expiry is the backstop */
+    }
+    // Surface the same 409 the caller already retries on: the lease is now free, so the retry mints a
+    // fresh recorded session (or reuses this one if the id actually landed and only the ack was lost).
+    throw new CheckoutPendingError();
   }
 
   return {

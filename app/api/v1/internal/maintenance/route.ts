@@ -78,8 +78,18 @@ export const POST = apiHandler(async (req) => {
   // boolean `errored: true`, discriminated on the VALUE, never bare `in`.
   const failedJob = (x: unknown): boolean =>
     typeof x === 'object' && x !== null && (x as { errored?: unknown }).errored === true;
+  // The payments sweep never throws per candidate — a failed or quarantined reconciliation increments a
+  // numeric `errored` COUNT instead (reconcilePaymentsPending). Those are only ever surfaced through a
+  // non-2xx response (the cron treats any 2xx as healthy), so a positive count must fail the run too,
+  // not just the boolean whole-step marker — otherwise a payment stuck un-reconciled looks fine forever.
+  const paymentsErroredCount =
+    typeof payments === 'object' &&
+    payments !== null &&
+    typeof (payments as { errored?: unknown }).errored === 'number'
+      ? (payments as { errored: number }).errored
+      : 0;
   const erroredJobs = [
-    ...(failedJob(payments) ? ['payments'] : []),
+    ...(failedJob(payments) || paymentsErroredCount > 0 ? ['payments'] : []),
     ...(failedJob(result) ? ['bookingMaintenance'] : []),
     ...(failedJob(slotsCreated) ? ['availability'] : []),
   ];

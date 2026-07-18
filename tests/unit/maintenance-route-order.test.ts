@@ -8,7 +8,7 @@ const { calls, reconcile, expire, materialize } = vi.hoisted(() => {
     calls,
     reconcile: vi.fn(async () => {
       calls.push('reconcile');
-      return { reconciled: 0 };
+      return { queried: 0, confirmed: 0, pending: 0, failed: 0, errored: 0 };
     }),
     expire: vi.fn(async () => {
       calls.push('expire');
@@ -71,5 +71,30 @@ describe('maintenance route ordering (money-safety)', () => {
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe('maintenance_partial_failure');
     expect(body.error.details?.erroredJobs).toEqual(['payments']);
+  });
+
+  it('returns 503 when the payments sweep completes but a candidate errored/quarantined (errored count > 0)', async () => {
+    // The sweep did not throw — it reconciled some and left others un-reconciled (a numeric count),
+    // which used to slip through as a 200 because only the boolean `errored: true` was checked.
+    reconcile.mockImplementationOnce(async () => {
+      calls.push('reconcile');
+      return { queried: 3, confirmed: 2, pending: 0, failed: 0, errored: 1 };
+    });
+    const res = await POST(req());
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as {
+      error: { code: string; details?: { erroredJobs?: string[] } };
+    };
+    expect(body.error.code).toBe('maintenance_partial_failure');
+    expect(body.error.details?.erroredJobs).toEqual(['payments']);
+  });
+
+  it('stays 200 when the payments sweep reconciles everything cleanly (errored count 0)', async () => {
+    reconcile.mockImplementationOnce(async () => {
+      calls.push('reconcile');
+      return { queried: 2, confirmed: 2, pending: 0, failed: 0, errored: 0 };
+    });
+    const res = await POST(req());
+    expect(res.status).toBe(200);
   });
 });
