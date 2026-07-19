@@ -507,6 +507,112 @@
   .gyt-reveal.is-in > *:nth-child(n + 9) {
     animation-delay: 560ms;
   }
+
+  /* Trust strip (homepage, above the fold). Three layers so nothing fights over `transform`: the
+     grid child fades up via .gyt-reveal, the badge pops in on the same 70ms stagger (--trust-d)
+     and scales on hover, and the emoji inside runs its own idle. The pop is `backwards`-only —
+     it holds the small state through its delay, then releases the transform on finish so the
+     hover transition is free to take over. Idle periods are loosely desynced (2.9s–4.6s) and
+     mostly at rest, so the row reads as occasional organic life rather than five synchronised
+     loops next to the hero CTA. All frozen under prefers-reduced-motion. */
+  @keyframes gytTrustPop {
+    from {
+      transform: scale(0.55);
+    }
+    to {
+      transform: scale(1);
+    }
+  }
+  .gyt-reveal.is-in .gyt-trust-badge {
+    animation: gytTrustPop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) backwards;
+    animation-delay: var(--trust-d, 0ms);
+  }
+  .gyt-trust-badge {
+    transition:
+      transform 160ms ease-out,
+      box-shadow 160ms ease-out;
+  }
+  .gyt-trust-item:hover .gyt-trust-badge {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+  }
+  .gyt-trust-emoji {
+    display: block;
+    will-change: transform;
+  }
+
+  @keyframes gytTrustTwinkle {
+    0%,
+    70%,
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+    80% {
+      transform: scale(1.18) rotate(10deg);
+    }
+    90% {
+      transform: scale(1.05) rotate(-6deg);
+    }
+  }
+  @keyframes gytTrustTick {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-2.5px);
+    }
+  }
+  @keyframes gytTrustGlint {
+    0%,
+    100% {
+      transform: rotate(-5deg);
+    }
+    50% {
+      transform: rotate(5deg);
+    }
+  }
+  @keyframes gytTrustNudge {
+    0%,
+    75%,
+    100% {
+      transform: translateX(0) rotate(0deg);
+    }
+    82% {
+      transform: translateX(-1.5px) rotate(-7deg);
+    }
+    90% {
+      transform: translateX(1.5px) rotate(7deg);
+    }
+  }
+  @keyframes gytTrustPulse {
+    0%,
+    60%,
+    100% {
+      transform: scale(1);
+    }
+    70% {
+      transform: scale(1.22);
+    }
+    80% {
+      transform: scale(0.96);
+    }
+  }
+  .gyt-trust-twinkle {
+    animation: gytTrustTwinkle 3.2s ease-in-out infinite;
+  }
+  .gyt-trust-tick {
+    animation: gytTrustTick 4.1s ease-in-out infinite;
+  }
+  .gyt-trust-glint {
+    animation: gytTrustGlint 3.7s ease-in-out infinite;
+  }
+  .gyt-trust-nudge {
+    animation: gytTrustNudge 4.6s ease-in-out infinite;
+  }
+  .gyt-trust-pulse {
+    animation: gytTrustPulse 2.9s ease-in-out infinite;
+  }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -571,5 +677,16 @@
   .gyt-reveal.is-in > * {
     animation: none !important;
     opacity: 1 !important;
+  }
+  /* Trust-strip badge pop, hover scale and the five emoji idles. `!important` beats the
+     `.gyt-reveal.is-in` descendant specificity; the resting state is the natural full-size
+     badge, so nothing is left hidden. The count-up is JS-gated on reduced motion separately. */
+  .gyt-trust-badge,
+  .gyt-trust-emoji {
+    animation: none !important;
+    transform: none !important;
+  }
+  .gyt-trust-badge {
+    transition: none;
   }
 }
