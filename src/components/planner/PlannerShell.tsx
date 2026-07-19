@@ -1114,8 +1114,7 @@ export function PlannerShell() {
         }}
         from={rangeFrom}
         to={rangeTo}
-        onFrom={(v) => applyRange(v, rangeTo)}
-        onTo={(v) => applyRange(rangeFrom, v)}
+        onRange={applyRange}
         minDate={minDate}
         isTrip={isTrip}
       />

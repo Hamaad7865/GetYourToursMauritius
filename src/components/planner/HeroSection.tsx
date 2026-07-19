@@ -1,6 +1,7 @@
 'use client';
 
 import { useT } from '@/components/site/PreferencesProvider';
+import { TripDatePicker } from './TripDatePicker';
 
 const CHIPS = [
   'A relaxed day in the south',
@@ -21,8 +22,7 @@ export function HeroSection({
   onChip,
   from,
   to,
-  onFrom,
-  onTo,
+  onRange,
   minDate,
   isTrip,
 }: {
@@ -33,8 +33,8 @@ export function HeroSection({
   /** Trip range (optional). Empty = the classic single-day planner. */
   from: string;
   to: string;
-  onFrom: (v: string) => void;
-  onTo: (v: string) => void;
+  /** Commits both ends at once (the picker only ever emits a settled range, or a clear). */
+  onRange: (from: string, to: string) => void;
   /** Earliest plannable date (tomorrow — same rule as booking). */
   minDate: string;
   /** True once a multi-day range is active (drives the CTA label). */
@@ -43,7 +43,11 @@ export function HeroSection({
   const t = useT();
   return (
     <section
-      className="relative overflow-hidden"
+      // NOT `overflow-hidden`: the trip-date popover hangs below this section, and any clip (even
+      // `overflow-x-hidden`, which CSS promotes the other axis to `auto`) would cut the calendar off.
+      // Nothing here can overflow anyway — the decorative layer is `inset-0` and the content is a
+      // max-width centred column.
+      className="relative"
       style={{
         background:
           'radial-gradient(120% 120% at 88% -8%, #EAF7F5 0%, #FFFFFF 46%), radial-gradient(90% 80% at 6% 0%, rgba(247,108,94,.10) 0%, rgba(255,255,255,0) 42%)',
@@ -134,65 +138,8 @@ export function HeroSection({
           </div>
 
           {/* Optional trip dates — picking a range (e.g. 1–5 Sep) turns on multi-day planning. */}
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-[14px] border border-[#E3EEEC] bg-white/80 px-3.5 py-2.5 shadow-[0_8px_22px_rgba(10,46,54,.06)] backdrop-blur-sm">
-            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-teal-dark">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <rect
-                  x="4"
-                  y="6"
-                  width="16"
-                  height="14"
-                  rx="2.5"
-                  stroke="#0B5C63"
-                  strokeWidth={1.7}
-                />
-                <path
-                  d="M4 10h16M8 3.5V7m8-3.5V7"
-                  stroke="#0B5C63"
-                  strokeWidth={1.7}
-                  strokeLinecap="round"
-                />
-              </svg>
-              {t('Trip dates')}
-            </span>
-            <label className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-ink-muted">
-              {t('Start')}
-              <input
-                type="date"
-                value={from}
-                min={minDate}
-                onChange={(e) => onFrom(e.target.value)}
-                aria-label={t('Trip start date')}
-                className="rounded-[9px] border border-[#E3EEEC] bg-white px-2 py-1.5 text-[12.5px] font-semibold text-ink outline-none focus:border-teal"
-              />
-            </label>
-            <label className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-ink-muted">
-              {t('End')}
-              <input
-                type="date"
-                value={to}
-                min={from || minDate}
-                onChange={(e) => onTo(e.target.value)}
-                aria-label={t('Trip end date')}
-                className="rounded-[9px] border border-[#E3EEEC] bg-white px-2 py-1.5 text-[12.5px] font-semibold text-ink outline-none focus:border-teal"
-              />
-            </label>
-            {from || to ? (
-              <button
-                type="button"
-                onClick={() => {
-                  onFrom('');
-                  onTo('');
-                }}
-                className="cursor-pointer text-[12px] font-bold text-ink-muted underline hover:text-teal-dark"
-              >
-                {t('Clear')}
-              </button>
-            ) : (
-              <span className="text-[11.5px] text-ink-muted">
-                {t('Optional — pick a range (up to 7 days) and I’ll plan every day')}
-              </span>
-            )}
+          <div className="mx-auto mt-3 max-w-[330px]">
+            <TripDatePicker from={from} to={to} onChange={onRange} minDate={minDate} />
           </div>
         </form>
 

@@ -22,6 +22,7 @@ import {
   IconUsers,
 } from '@/components/ui/icons';
 import { nominalDayKey } from '@/lib/services/day-key';
+import { monthCells } from '@/lib/calendar/month';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 /** Hard cap on the party picker — above this the customer is sent to "contact us for a quote". */
@@ -31,13 +32,6 @@ function startOfDay(d: Date): Date {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   return x;
-}
-function monthCells(year: number, month: number): Array<Date | null> {
-  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
-  const days = new Date(year, month + 1, 0).getDate();
-  const cells: Array<Date | null> = Array.from({ length: firstWeekday }, () => null);
-  for (let d = 1; d <= days; d += 1) cells.push(new Date(year, month, d));
-  return cells;
 }
 
 /** One month's grid: weekday row + day cells. Past days are struck through; days with no availability
