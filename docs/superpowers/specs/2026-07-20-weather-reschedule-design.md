@@ -35,11 +35,11 @@ every admin status filter. A new value ripples through all of them for no gain.
 
 Instead:
 
-| Thing | State |
-| --- | --- |
-| `session_occurrences.status` | → `'cancelled'` (an existing enum value). Stops new bookings on that date. |
-| `bookings.status` | unchanged — stays `'confirmed'` |
-| `bookings.disruption` | **new** `jsonb null` — `{reason, occurrenceId, declaredAt, resolvedAt, resolution}` |
+| Thing                        | State                                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------------- |
+| `session_occurrences.status` | → `'cancelled'` (an existing enum value). Stops new bookings on that date.          |
+| `bookings.status`            | unchanged — stays `'confirmed'`                                                     |
+| `bookings.disruption`        | **new** `jsonb null` — `{reason, occurrenceId, declaredAt, resolvedAt, resolution}` |
 
 Consequences, all good:
 
@@ -116,17 +116,17 @@ Input `{ref, occurrenceId}`. `security definer`, `search_path = public`.
 
 Guards, in order:
 
-| # | Check | Raises |
-| --- | --- | --- |
-| 1 | `ref` and `occurrenceId` non-empty | `invalid_request` |
-| 2 | booking exists | `booking_not_found` |
-| 3 | `is_staff() or (auth.uid() is not null and booking.user_id = auth.uid())` | `forbidden` |
-| 4 | `status = 'confirmed' and payment_state = 'paid'` | `not_reschedulable` |
-| 5 | target occurrence exists, **`for update`** | `occurrence_not_found` |
-| 6 | target `status = 'open'` and `starts_at > now()` | `occurrence_not_bookable` |
-| 7 | target `activity_option_id` = the booking's current option | `option_mismatch` |
-| 8 | **window**: current earliest start `> now() + 24h`, **unless** disrupted-and-unresolved | `reschedule_window_passed` |
-| 9 | `capacity - used_capacity(target) >= party size` | `insufficient_capacity` |
+| #   | Check                                                                                   | Raises                     |
+| --- | --------------------------------------------------------------------------------------- | -------------------------- |
+| 1   | `ref` and `occurrenceId` non-empty                                                      | `invalid_request`          |
+| 2   | booking exists                                                                          | `booking_not_found`        |
+| 3   | `is_staff() or (auth.uid() is not null and booking.user_id = auth.uid())`               | `forbidden`                |
+| 4   | `status = 'confirmed' and payment_state = 'paid'`                                       | `not_reschedulable`        |
+| 5   | target occurrence exists, **`for update`**                                              | `occurrence_not_found`     |
+| 6   | target `status = 'open'` and `starts_at > now()`                                        | `occurrence_not_bookable`  |
+| 7   | target `activity_option_id` = the booking's current option                              | `option_mismatch`          |
+| 8   | **window**: current earliest start `> now() + 24h`, **unless** disrupted-and-unresolved | `reschedule_window_passed` |
+| 9   | `capacity - used_capacity(target) >= party size`                                        | `insufficient_capacity`    |
 
 Party size is `sum(coalesce(bi.pax, bi.quantity))` — `quantity` alone undercounts a vehicle line.
 
@@ -173,7 +173,7 @@ Input `{from, to}` (Mauritius dates). Returns one row per day:
 
 Why an RPC rather than a PostgREST embed: a month across the catalogue is ~1,800 occurrences, and
 aggregating that client-side is wasteful. `src/lib/admin/bookings.ts` already records the escape
-hatch — *"if it's ever exceeded the reports should move to a SQL aggregate RPC."* This is that case.
+hatch — _"if it's ever exceeded the reports should move to a SQL aggregate RPC."_ This is that case.
 
 The **day drawer** needs no RPC — `occurrences_staff` RLS already permits the nested embed
 (§6.2), matching how the rest of admin reads data.
@@ -195,7 +195,7 @@ name the source of each copy.
 
 Signature attributes must not change: `language sql` / `stable` / **`security invoker`** /
 `set search_path = public`. It is invoker on purpose — `definer-grants-lockdown.test.ts` relies on
-`used_capacity` staying anon-executable *because* `booking_json` is invoker.
+`used_capacity` staying anon-executable _because_ `booking_json` is invoker.
 
 **`enqueue_booking_notification`** — from `20260817000000_whatsapp_owner_alerts.sql:11-186`.
 One fix only, see §7.
@@ -226,12 +226,12 @@ money-adjacent mutation and the house style applies it to those.
 New typed error codes in `src/lib/services/db-errors.ts`, added **above** the generic
 `/\bforbidden\b/` branch (first match wins):
 
-| Code | HTTP | Message |
-| --- | --- | --- |
-| `not_reschedulable` | 409 | "This booking can no longer be moved online." |
-| `reschedule_window_passed` | 409 | "Free changes have closed — please message us." |
-| `option_mismatch` | 409 | "That date is for a different option — please book it separately." |
-| `occurrence_not_bookable` | 409 | "That date is no longer available." |
+| Code                       | HTTP | Message                                                            |
+| -------------------------- | ---- | ------------------------------------------------------------------ |
+| `not_reschedulable`        | 409  | "This booking can no longer be moved online."                      |
+| `reschedule_window_passed` | 409  | "Free changes have closed — please message us."                    |
+| `option_mismatch`          | 409  | "That date is for a different option — please book it separately." |
+| `occurrence_not_bookable`  | 409  | "That date is no longer available."                                |
 
 `insufficient_capacity` and `forbidden` already map.
 
@@ -326,11 +326,11 @@ carries booking detail, an `enrich*` in `src/lib/services/notifications.ts`. Wir
 two is the dangerous failure: `render()` falls back silently to a near-empty email rather than
 throwing.
 
-| Template | Channel | To | Enqueued by |
-| --- | --- | --- | --- |
-| `booking_weather_disrupted` | email | customer | `api_weather_cancel_occurrence` |
-| `booking_rescheduled` | email | customer | `api_reschedule_booking` |
-| `owner_date_changed` | email + telegram | `'owner'` | `api_reschedule_booking` |
+| Template                    | Channel          | To        | Enqueued by                     |
+| --------------------------- | ---------------- | --------- | ------------------------------- |
+| `booking_weather_disrupted` | email            | customer  | `api_weather_cancel_occurrence` |
+| `booking_rescheduled`       | email            | customer  | `api_reschedule_booking`        |
+| `owner_date_changed`        | email + telegram | `'owner'` | `api_reschedule_booking`        |
 
 Conventions that bite: owner rows use the literal string `'owner'` (resolved at drain time);
 multi-channel rows for one event need distinct idempotency-key suffixes (`_tg`, `_wa`); a telegram
@@ -353,8 +353,8 @@ is a customer staring at a screen wondering whether anything happened.
 
 **Fix:** `api_cancel_booking` enqueues a customer email alongside its owner alert. The trigger is
 untouched, so the blast radius is one function. Copy is written to serve both the self-cancel and
-the disruption-refund case: *"We've cancelled booking X as you asked, and your refund is on its
-way."*
+the disruption-refund case: _"We've cancelled booking X as you asked, and your refund is on its
+way."_
 
 ### What is deliberately not built
 

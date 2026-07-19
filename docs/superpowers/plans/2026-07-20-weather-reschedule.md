@@ -93,7 +93,7 @@ Includes the regression that a self-cancel now enqueues a customer email.
 - banner at `BookingConfirmation.tsx:419-420`, built from the file's existing idioms
 - replacement dates as a **list**, not a calendar
 - `booking.activitySlug` / `activityOptionId` / `partySize` threaded into the local `interface
-  Booking` and `bookingSchema`
+Booking` and `bookingSchema`
 
 **Verify:** unit tests on the extracted logic; manual pass in the browser preview.
 
