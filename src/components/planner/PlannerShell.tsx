@@ -9,7 +9,9 @@ import { ChatCopilot } from './ChatCopilot';
 import { PlacesDrawer } from './PlacesDrawer';
 import { QuoteModal } from './QuoteModal';
 import { AIInsights } from './AIInsights';
-import { RouteMap, type StopKind } from '@/components/maps/RouteMap';
+import { DayTabs } from './DayTabs';
+import { ActivityCard } from './ActivityCard';
+import { RouteMap, type ActivityMarker, type StopKind } from '@/components/maps/RouteMap';
 import { PresetsSection, type PresetCard } from './PresetsSection';
 import { FeaturesSection } from './FeaturesSection';
 import { TrustSection } from './TrustSection';
@@ -18,16 +20,34 @@ import { PICKUPS, PRESETS, fmtDur, type PlannerPoint } from './planner-constants
 import { computePlannerRoute } from '@/lib/planner/route';
 import { plannerQuote, type PlannerQuote } from '@/lib/planner/pricing';
 import { addBlockReason, dayRegionLabel, MAX_STOPS } from '@/lib/planner/constraints';
-import { childSeatsCost } from '@/lib/services/pricing';
+import {
+  childSeatsCost,
+  regionDistanceBand,
+  REGION_DISTANCE_DEFAULT,
+} from '@/lib/services/pricing';
 import { stopsToParam } from '@/lib/planner/share';
+import { parseTripParams, tripDates, tripToParams, type TripDayPlan } from '@/lib/planner/trip';
+import type { BmtActivity, BmtCandidate } from '@/lib/planner/our-activities';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { ChatMsg, Boost } from './types';
-import { useT } from '@/components/site/PreferencesProvider';
+import { useMoney, useT } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
 
 const CUSTOM_SLUG = 'custom-road-trip';
 const CUSTOM_TITLE = 'Custom Road Trip';
+
+/** Belle Mare Tours activity info the shell keeps per slug — the catalogue data plus, when it came
+ *  from an availability-checked recommendation, the real seats left on its date. */
+type BmtInfo = BmtActivity & { seatsLeft?: number };
+
+/** "Tue 2 Sep" style label for a trip day. */
+function dayDateLabel(dayKey: string): string {
+  const d = new Date(`${dayKey}T00:00:00`);
+  return Number.isNaN(d.getTime())
+    ? dayKey
+    : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
 
 /**
  * AI Road Trip Planner — the design experience wired to LIVE Google Places. Places are no longer
@@ -40,6 +60,7 @@ const CUSTOM_TITLE = 'Custom Road Trip';
 export function PlannerShell() {
   const router = useRouter();
   const t = useT();
+  const money = useMoney();
   const { pricing } = usePlannerData();
 
   const [catalog, setCatalog] = useState<Map<string, PlannerPlace>>(new Map());
@@ -50,6 +71,18 @@ export function PlannerShell() {
   // survives the mobile tab remount and a "clear trip", and stays consistent with `dropoff`.
   const [wantsDropoff, setWantsDropoff] = useState(false);
   const [stopIds, setStopIds] = useState<string[]>([]);
+  // ── trip (range) mode: `days` non-null = multi-day planning; null = the classic single-day flow.
+  //    The active day drives the itinerary panel, chat context, map and booking together. ──
+  const [rangeFrom, setRangeFrom] = useState('');
+  const [rangeTo, setRangeTo] = useState('');
+  const [days, setDays] = useState<TripDayPlan[] | null>(null);
+  const [activeDayIdx, setActiveDayIdx] = useState(0);
+  // Belle Mare Tours activities the shell knows (recommendations + the browse layer), by slug.
+  const [bmtCatalog, setBmtCatalog] = useState<Map<string, BmtInfo>>(new Map());
+  const [bmtAll, setBmtAll] = useState<BmtActivity[] | null>(null);
+  const [showBmtLayer, setShowBmtLayer] = useState(false);
+  // A branded marker was clicked — the activity pop-over on the map pane.
+  const [openBmt, setOpenBmt] = useState<{ slug: string; date: string } | null>(null);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [typing, setTyping] = useState(false);
   const [hasBuilt, setHasBuilt] = useState(false);
@@ -81,9 +114,33 @@ export function PlannerShell() {
   }, []);
 
   // ── derived ──
+  const isTrip = days !== null && days.length > 0;
+  const activeDay = isTrip ? (days[Math.min(activeDayIdx, days.length - 1)] ?? null) : null;
+  // The stop ids the whole page works on: the active trip day's, or the classic single day's.
+  const activeStopIds = activeDay ? activeDay.stopIds : stopIds;
+  /** Apply a stop-list update to one specific day (by date) or, `null`, to the single-day list.
+   *  Targeted by DATE — not "the active day at set time" — so an async result (e.g. the route
+   *  optimizer) can never land on a day the visitor has since switched away from. */
+  const applyStops = useCallback((target: string | null, updater: (prev: string[]) => string[]) => {
+    if (target === null) {
+      setStopIds(updater);
+    } else {
+      setDays((prev) =>
+        prev
+          ? prev.map((d) => (d.date === target ? { ...d, stopIds: updater(d.stopIds) } : d))
+          : prev,
+      );
+    }
+  }, []);
+  const activeDate = activeDay?.date ?? null;
+  const setActiveStopIds = useCallback(
+    (updater: (prev: string[]) => string[]) => applyStops(activeDate, updater),
+    [applyStops, activeDate],
+  );
+
   const stops = useMemo(
-    () => stopIds.map((id) => catalog.get(id)).filter((p): p is PlannerPlace => Boolean(p)),
-    [stopIds, catalog],
+    () => activeStopIds.map((id) => catalog.get(id)).filter((p): p is PlannerPlace => Boolean(p)),
+    [activeStopIds, catalog],
   );
   const stopIndex = useMemo(() => new Map(stops.map((p, i) => [p.id, i])), [stops]);
   // Region guardrail inputs: the regions currently in the day, and whether the day is at the 6-stop cap.
@@ -120,8 +177,8 @@ export function PlannerShell() {
   // since reordering leaves the key unchanged, the optimizer never re-triggers itself (no loop), and a
   // manual drag-reorder stands until the next change.
   const optimizeKey = useMemo(
-    () => `${pickup.id}|${[...stopIds].sort().join(',')}`,
-    [pickup, stopIds],
+    () => `${activeDate ?? ''}|${pickup.id}|${[...activeStopIds].sort().join(',')}`,
+    [activeDate, pickup, activeStopIds],
   );
 
   let quote: PlannerQuote | null = null;
@@ -178,6 +235,9 @@ export function PlannerShell() {
     if (optimizeKey === lastOptimizedKey.current) return;
 
     let active = true;
+    // The day this optimization run belongs to, captured NOW — a slow response can never reorder a
+    // different day the visitor switched to meanwhile.
+    const targetDate = activeDate;
     const timer = setTimeout(async () => {
       try {
         const res = await fetch('/api/planner/optimize', {
@@ -197,7 +257,7 @@ export function PlannerShell() {
             .filter((id): id is string => Boolean(id));
           const current = stops.map((s) => s.id);
           if (reordered.length === current.length && reordered.join(',') !== current.join(',')) {
-            setStopIds(reordered);
+            applyStops(targetDate, () => reordered);
           }
         }
       } catch {
@@ -209,7 +269,7 @@ export function PlannerShell() {
       active = false;
       clearTimeout(timer);
     };
-  }, [optimizeKey, stops, pickup]);
+  }, [optimizeKey, stops, pickup, activeDate, applyStops]);
 
   // ── mount: responsive + dates ──
   useEffect(() => {
@@ -230,6 +290,52 @@ export function PlannerShell() {
     if (initRef.current) return;
     initRef.current = true;
     const params = new URLSearchParams(window.location.search);
+
+    // A shared TRIP link (?from&to&dN…) restores the whole multi-day plan and wins over the
+    // single-day deep-links below.
+    const tripPlan = parseTripParams(params, MAX_STOPS);
+    if (tripPlan) {
+      setDays(tripPlan);
+      setRangeFrom(tripPlan[0]!.date);
+      setRangeTo(tripPlan[tripPlan.length - 1]!.date);
+      setActiveDayIdx(0);
+      const anyPlanned = tripPlan.some((d) => d.stopIds.length || d.activitySlug);
+      if (anyPlanned) setHasBuilt(true);
+      const ids = [
+        ...new Set(tripPlan.flatMap((d) => [...d.stopIds, ...(d.dinnerId ? [d.dinnerId] : [])])),
+      ];
+      if (ids.length) {
+        (async () => {
+          try {
+            const res = await fetch(
+              `/api/planner/places?ids=${encodeURIComponent(ids.join(','))}`,
+            ).then((r) => r.json());
+            const places: PlannerPlace[] = res.ok ? res.data : [];
+            if (places.length) addToCatalog(places);
+          } catch {
+            /* unresolved ids just drop from the restored trip */
+          }
+        })();
+      }
+      if (tripPlan.some((d) => d.activitySlug)) {
+        // Anchored activity cards need catalogue data — load the (cached) BMT list once.
+        (async () => {
+          try {
+            const res = await fetch('/api/planner/our-activities').then((r) => r.json());
+            const list: BmtActivity[] = res.ok ? res.data : [];
+            setBmtAll(list);
+            setBmtCatalog((prev) => {
+              const next = new Map(prev);
+              for (const a of list) if (!next.has(a.slug)) next.set(a.slug, a);
+              return next;
+            });
+          } catch {
+            /* cards degrade to nothing; markers just don't show */
+          }
+        })();
+      }
+      return;
+    }
 
     const fromTour = params.get('fromTour');
     if (fromTour) {
@@ -320,22 +426,100 @@ export function PlannerShell() {
     const params = new URLSearchParams(window.location.search);
     // The tour hand-off is a one-shot trigger; drop it so the URL settles into the shareable form.
     params.delete('fromTour');
-    if (stopIds.length) params.set('stops', stopsToParam(stopIds));
-    else params.delete('stops');
+    if (days !== null) {
+      // Trip mode: the multi-day form replaces ?stops= entirely.
+      params.delete('stops');
+      tripToParams(params, days);
+    } else {
+      tripToParams(params, []); // clears from/to + any dN leftovers after exiting trip mode
+      if (stopIds.length) params.set('stops', stopsToParam(stopIds));
+      else params.delete('stops');
+    }
     const qs = params.toString();
     window.history.replaceState(
       null,
       '',
       qs ? `${window.location.pathname}?${qs}` : window.location.pathname,
     );
-  }, [stopIds]);
+  }, [stopIds, days]);
+
+  // ── trip range entry/exit ──
+  /** Reconcile the trip state with a (possibly partial) From/To pick. Both dates + a >1-day span ⇒
+   *  trip mode (existing days kept by date; the current single day seeds day 1). Anything else ⇒
+   *  single-day mode, keeping the active day's stops so no work is ever lost. */
+  const applyRange = useCallback(
+    (from: string, to: string) => {
+      setRangeFrom(from);
+      setRangeTo(to);
+      const dates = from && to ? tripDates(from, to) : [];
+      if (dates.length > 1) {
+        setDays((prev) => {
+          const prevByDate = new Map((prev ?? []).map((d) => [d.date, d]));
+          return dates.map((date, i) => {
+            const kept = prevByDate.get(date);
+            if (kept) return kept;
+            // Entering trip mode with a day already built: it becomes Day 1.
+            const seed = prev === null && i === 0 ? stopIds : [];
+            return { date, stopIds: seed, dinnerId: null, activitySlug: null };
+          });
+        });
+        setActiveDayIdx(0);
+      } else {
+        if (days !== null) setStopIds(activeDay?.stopIds ?? []);
+        setDays(null);
+        setActiveDayIdx(0);
+        // A single picked day still primes the booking date.
+        if (dates.length === 1) setDate(dates[0]!);
+      }
+    },
+    [stopIds, days, activeDay],
+  );
+  /** DayTabs "Single day": leave trip mode, carrying the active day's stops. */
+  const exitTrip = useCallback(() => applyRange('', ''), [applyRange]);
+
+  // ── Belle Mare Tours helpers ──
+  /** Merge browse-layer data in WITHOUT clobbering richer recommendation entries (seatsLeft). */
+  const mergeBmtList = useCallback((list: BmtActivity[]) => {
+    setBmtCatalog((prev) => {
+      const next = new Map(prev);
+      for (const a of list) if (!next.has(a.slug)) next.set(a.slug, a);
+      return next;
+    });
+  }, []);
+  /** Recommendations always win — they carry the availability facts. */
+  const mergeBmtRecommendations = useCallback((recs: BmtCandidate[]) => {
+    if (!recs.length) return;
+    setBmtCatalog((prev) => {
+      const next = new Map(prev);
+      for (const r of recs) next.set(r.slug, r);
+      return next;
+    });
+  }, []);
+  const toggleBmtLayer = useCallback(() => {
+    setShowBmtLayer((on) => !on);
+    if (bmtAll === null) {
+      (async () => {
+        try {
+          const res = await fetch('/api/planner/our-activities').then((r) => r.json());
+          const list: BmtActivity[] = res.ok ? res.data : [];
+          setBmtAll(list);
+          mergeBmtList(list);
+        } catch {
+          setBmtAll([]); // failed fetch: the toggle just shows nothing extra
+        }
+      })();
+    }
+  }, [bmtAll, mergeBmtList]);
 
   // ── stop ops ──
   // Raw committer (no guards) — used by the guarded user/AI-driven adds below and trusted REPLACE paths.
-  const commitStopId = useCallback((id: string) => {
-    setStopIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    setHasBuilt(true);
-  }, []);
+  const commitStopId = useCallback(
+    (id: string) => {
+      setActiveStopIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+      setHasBuilt(true);
+    },
+    [setActiveStopIds],
+  );
   // ChatCopilot "+ Add" on a place card. Guarded by the 6-stop cap + region rule; explains if blocked.
   const addStopId = useCallback(
     (id: string) => {
@@ -373,18 +557,21 @@ export function PlannerShell() {
     [addToCatalog, commitStopId, dayRegions, blockedMessage],
   );
   const removeStop = useCallback(
-    (id: string) => setStopIds((prev) => prev.filter((x) => x !== id)),
-    [],
+    (id: string) => setActiveStopIds((prev) => prev.filter((x) => x !== id)),
+    [setActiveStopIds],
   );
-  const moveStop = useCallback((from: number, to: number) => {
-    setStopIds((prev) => {
-      const a = [...prev];
-      const [m] = a.splice(from, 1);
-      if (m == null) return prev;
-      a.splice(to, 0, m);
-      return a;
-    });
-  }, []);
+  const moveStop = useCallback(
+    (from: number, to: number) => {
+      setActiveStopIds((prev) => {
+        const a = [...prev];
+        const [m] = a.splice(from, 1);
+        if (m == null) return prev;
+        a.splice(to, 0, m);
+        return a;
+      });
+    },
+    [setActiveStopIds],
+  );
   const clearTrip = useCallback(() => {
     setStopIds([]);
     setChat([]);
@@ -394,6 +581,23 @@ export function PlannerShell() {
     // "Start over" returns the day to a clean round trip — don't leave a stale drop-off behind.
     setDropoff(null);
     setWantsDropoff(false);
+    // …and, in trip mode, drops the whole range back to a fresh single day.
+    setDays(null);
+    setActiveDayIdx(0);
+    setRangeFrom('');
+    setRangeTo('');
+    setOpenBmt(null);
+  }, []);
+  /** Un-anchor the recommended activity / dinner from one day (the small × on their cards). */
+  const removeDayActivity = useCallback((date: string) => {
+    setDays((prev) =>
+      prev ? prev.map((d) => (d.date === date ? { ...d, activitySlug: null } : d)) : prev,
+    );
+  }, []);
+  const removeDayDinner = useCallback((date: string) => {
+    setDays((prev) =>
+      prev ? prev.map((d) => (d.date === date ? { ...d, dinnerId: null } : d)) : prev,
+    );
   }, []);
   // Changing the pickup to the current drop-off would leave a contradictory drop-off selected; clear it.
   const choosePickup = useCallback((p: PlannerPoint) => {
@@ -403,7 +607,7 @@ export function PlannerShell() {
 
   function applyBoost() {
     if (!boost) return;
-    setStopIds((prev) => {
+    setActiveStopIds((prev) => {
       const i = prev.indexOf(boost.id);
       if (i <= 0) return prev;
       const a = [...prev];
@@ -434,6 +638,23 @@ export function PlannerShell() {
     setChat((c) => [...c, { role: 'user', kind: 'text', text: trimmed }]);
     setTyping(true);
     setHasBuilt(true);
+    // Range mode: the whole trip travels with the turn, so ZilAi keeps/modifies existing days.
+    const tripPayload =
+      isTrip && days
+        ? {
+            from: days[0]!.date,
+            to: days[days.length - 1]!.date,
+            activeDate: activeDay?.date ?? days[0]!.date,
+            days: days.map((d) => ({
+              date: d.date,
+              places: d.stopIds
+                .map((id) => catalog.get(id))
+                .filter((p): p is PlannerPlace => Boolean(p)),
+              dinner: d.dinnerId ? catalog.get(d.dinnerId) : undefined,
+              activitySlug: d.activitySlug ?? undefined,
+            })),
+          }
+        : undefined;
     try {
       const res = await fetch('/api/ai/trip-planner', {
         method: 'POST',
@@ -441,7 +662,7 @@ export function PlannerShell() {
         body: JSON.stringify({
           messages: [...history, { role: 'user', content: trimmed }].slice(-12),
           // The current day, so ZilAi keeps/modifies it (e.g. "add a beach") rather than replacing it.
-          itinerary: stops,
+          ...(tripPayload ? { trip: tripPayload } : { itinerary: stops }),
         }),
       }).then((r) => r.json());
       setTyping(false);
@@ -451,7 +672,59 @@ export function PlannerShell() {
         // (empty when the model refused a far request, in which case we leave the day untouched). The
         // model's reply explains any rejected/dropped stops, so there's no separate warning to show.
         const places: PlannerPlace[] = Array.isArray(res.data.places) ? res.data.places : [];
-        if (places.length) {
+        const committedDays: Array<{
+          date: string;
+          places: PlannerPlace[];
+          dinner: PlannerPlace | null;
+          activitySlug: string | null;
+        }> = Array.isArray(res.data.days) ? res.data.days : [];
+        const recommendations: BmtCandidate[] = Array.isArray(res.data.recommendations)
+          ? res.data.recommendations
+          : [];
+        mergeBmtRecommendations(recommendations);
+
+        if (tripPayload && committedDays.length) {
+          // Merge the committed days into the trip by date (uncommitted days stay untouched).
+          const dayPlaces = committedDays.flatMap((d) => [
+            ...d.places,
+            ...(d.dinner ? [d.dinner] : []),
+          ]);
+          addToCatalog(dayPlaces);
+          const prevBySlug = new Map((days ?? []).map((d) => [d.date, d.activitySlug]));
+          setDays((prev) => {
+            if (!prev) return prev;
+            const byDate = new Map(committedDays.map((d) => [d.date, d]));
+            return prev.map((d) => {
+              const c = byDate.get(d.date);
+              return c
+                ? {
+                    date: d.date,
+                    stopIds: c.places.map((p) => p.id),
+                    dinnerId: c.dinner?.id ?? null,
+                    activitySlug: c.activitySlug,
+                  }
+                : d;
+            });
+          });
+          // Reply + a branded card for each day that GAINED a recommended activity + the day summary.
+          const newActivityCards = committedDays
+            .filter((d) => d.activitySlug && prevBySlug.get(d.date) !== d.activitySlug)
+            .map(
+              (d) =>
+                ({
+                  role: 'assistant',
+                  kind: 'activity',
+                  slug: d.activitySlug!,
+                  date: d.date,
+                }) as ChatMsg,
+            );
+          setChat((c) => [
+            ...c,
+            { role: 'assistant', kind: 'text', text: reply },
+            ...newActivityCards,
+            { role: 'assistant', kind: 'summary' } as ChatMsg,
+          ]);
+        } else if (!tripPayload && places.length) {
           addToCatalog(places);
           const ids = places.map((p) => p.id);
           const newOnes = ids.filter((id) => !stopIds.includes(id));
@@ -501,7 +774,10 @@ export function PlannerShell() {
 
   function submitHero() {
     const v =
-      heroValue.trim() || 'A relaxed day in the south — two beaches and a waterfall, back by 5pm.';
+      heroValue.trim() ||
+      (isTrip
+        ? 'Plan every day of my trip with the best of Mauritius — include lunch and dinner spots, and recommend your activities where they fit.'
+        : 'A relaxed day in the south — two beaches and a waterfall, back by 5pm.');
     scrollToPlanner();
     setMobileTab('chat');
     void sendChat(v);
@@ -512,7 +788,8 @@ export function PlannerShell() {
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
     addToCatalog(p.places);
-    setStopIds(p.places.map((x) => x.id));
+    // Replaces the day being viewed (in trip mode: the active day) with the preset.
+    setActiveStopIds(() => p.places.map((x) => x.id));
     setHasBuilt(true);
     setBannerTour(null);
     setDrawerOpen(false);
@@ -531,17 +808,19 @@ export function PlannerShell() {
   }
 
   async function bookDay() {
-    if (!quote || stops.length === 0 || !date) return;
+    // Trip mode books the ACTIVE day on its own (locked) date; single-day uses the modal's picker.
+    const bookingDate = isTrip ? (activeDay?.date ?? '') : date;
+    if (!quote || stops.length === 0 || !bookingDate) return;
     setBooking(true);
     setBookError(null);
     try {
       const avail = await fetch(
-        `/api/v1/activities/${CUSTOM_SLUG}/availability?from=${date}&to=${date}`,
+        `/api/v1/activities/${CUSTOM_SLUG}/availability?from=${bookingDate}&to=${bookingDate}`,
       ).then((r) => r.json());
       const slots: Array<{ occurrenceId: string; startsAt: string; seatsLeft: number }> = avail.ok
         ? (avail.data ?? [])
         : [];
-      const slot = slots.find((s) => utcDayKey(s.startsAt) === date) ?? slots[0];
+      const slot = slots.find((s) => utcDayKey(s.startsAt) === bookingDate) ?? slots[0];
       if (!slot) {
         setBookError(t("That date isn't open yet — try another day, or contact us to arrange it."));
         return;
@@ -583,7 +862,7 @@ export function PlannerShell() {
       } catch {
         /* sessionStorage unavailable — checkout falls back */
       }
-      const dateText = new Date(`${date}T00:00:00`).toLocaleDateString('en-GB', {
+      const dateText = new Date(`${bookingDate}T00:00:00`).toLocaleDateString('en-GB', {
         day: 'numeric',
         month: 'short',
         year: 'numeric',
@@ -644,6 +923,55 @@ export function PlannerShell() {
     ...(dropoffDiffers ? ['D'] : []),
   ];
 
+  // ── Belle Mare Tours markers: the active day's recommended activity (always, filled) + the browse
+  //    layer (toggle; near the day's region so browsing doesn't flood the map cross-island). ──
+  const selectedBmtSlug = activeDay?.activitySlug ?? null;
+  const selectedBmt = selectedBmtSlug ? (bmtCatalog.get(selectedBmtSlug) ?? null) : null;
+  const activeRegionLabel = dayRegionLabel(dayRegions);
+  const mapActivities = useMemo<ActivityMarker[]>(() => {
+    const out: ActivityMarker[] = [];
+    const priceLabel = (a: BmtInfo | BmtActivity) =>
+      a.fromPriceEur != null ? money(a.fromPriceEur) : '•';
+    if (selectedBmt && selectedBmt.lat != null && selectedBmt.lng != null) {
+      out.push({
+        slug: selectedBmt.slug,
+        title: selectedBmt.title,
+        lat: selectedBmt.lat,
+        lng: selectedBmt.lng,
+        priceLabel: priceLabel(selectedBmt),
+        selected: true,
+      });
+    }
+    if (showBmtLayer && bmtAll) {
+      for (const a of bmtAll) {
+        if (a.slug === selectedBmtSlug || a.lat == null || a.lng == null) continue;
+        if (
+          activeRegionLabel &&
+          regionDistanceBand(a.region, activeRegionLabel, REGION_DISTANCE_DEFAULT) === 'far'
+        )
+          continue;
+        out.push({
+          slug: a.slug,
+          title: a.title,
+          lat: a.lat,
+          lng: a.lng,
+          priceLabel: priceLabel(a),
+          selected: false,
+        });
+      }
+    }
+    return out;
+  }, [selectedBmt, selectedBmtSlug, showBmtLayer, bmtAll, activeRegionLabel, money]);
+  const dinnerPlace = activeDay?.dinnerId ? (catalog.get(activeDay.dinnerId) ?? null) : null;
+  const mapDinner = useMemo(
+    () =>
+      dinnerPlace ? { title: dinnerPlace.name, lat: dinnerPlace.lat, lng: dinnerPlace.lng } : null,
+    [dinnerPlace],
+  );
+  // The date a clicked marker's card books for: the active trip day, else the quote date.
+  const markerDate = activeDay?.date ?? (date || minDate);
+  const openBmtInfo = openBmt ? (bmtCatalog.get(openBmt.slug) ?? null) : null;
+
   const itinerary = (
     <ItineraryPanel
       stops={stops}
@@ -662,6 +990,19 @@ export function PlannerShell() {
       onQuote={() => setQuoteOpen(true)}
       onShare={copyLink}
       shared={shared}
+      dayLabel={
+        activeDay
+          ? `${t('Day {n}', { n: activeDayIdx + 1 })} — ${dayDateLabel(activeDay.date)}`
+          : null
+      }
+      activity={
+        selectedBmt && activeDay
+          ? { activity: selectedBmt, date: activeDay.date, seatsLeft: selectedBmt.seatsLeft }
+          : null
+      }
+      onRemoveActivity={activeDay ? () => removeDayActivity(activeDay.date) : undefined}
+      dinner={dinnerPlace}
+      onRemoveDinner={activeDay ? () => removeDayDinner(activeDay.date) : undefined}
     />
   );
   const copilot = (
@@ -683,17 +1024,70 @@ export function PlannerShell() {
       onQuote={() => setQuoteOpen(true)}
       onAddPlace={addStopId}
       addReasonById={(id) => addBlockReason(catalog.get(id)?.region ?? null, dayRegions)}
+      bmtBySlug={bmtCatalog}
     />
   );
   const map = (
-    <RouteMap
-      stops={mapStops}
-      kinds={mapKinds}
-      labels={mapLabels}
-      animate={stops.length > 0}
-      carColor="#DC2626"
-      className="h-full w-full"
-    />
+    <div className="relative h-full w-full">
+      <RouteMap
+        stops={mapStops}
+        kinds={mapKinds}
+        labels={mapLabels}
+        animate={stops.length > 0}
+        carColor="#DC2626"
+        className="h-full w-full"
+        activities={mapActivities}
+        onActivityClick={(slug) => setOpenBmt({ slug, date: markerDate })}
+        dinner={mapDinner}
+      />
+      {/* "Belle Mare Tours activities" browse layer toggle. */}
+      <button
+        type="button"
+        onClick={toggleBmtLayer}
+        aria-pressed={showBmtLayer}
+        className={`absolute left-3 top-3 z-10 inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-2 text-[12px] font-extrabold shadow-[0_6px_16px_rgba(10,46,54,.18)] transition ${
+          showBmtLayer
+            ? 'border-coral bg-coral text-white'
+            : 'border-[#F8D3CE] bg-white text-coral hover:bg-[#FDECEA]'
+        }`}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <path
+            d="M12 3l2.3 4.7 5.2.3-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z"
+            fill={showBmtLayer ? '#fff' : '#F76C5E'}
+          />
+        </svg>
+        {t('Our activities')}
+      </button>
+      {/* Clicked-marker pop-over: the branded card with the date-aware booking deep-link. */}
+      {openBmt && openBmtInfo && (
+        <div className="absolute bottom-3 left-3 right-3 z-10 mx-auto max-w-[400px]">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setOpenBmt(null)}
+              aria-label={t('Close')}
+              className="absolute -right-2 -top-2 z-10 grid h-7 w-7 cursor-pointer place-items-center rounded-full border border-[#EAF2F1] bg-white text-ink-muted shadow-[0_4px_12px_rgba(10,46,54,.2)]"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M6 6l12 12M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth={2.2}
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <ActivityCard
+              compact
+              activity={openBmtInfo}
+              date={openBmt.date}
+              seatsLeft={openBmtInfo.seatsLeft}
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
   const drawer = (
     <PlacesDrawer
@@ -718,6 +1112,12 @@ export function PlannerShell() {
           void sendChat(c);
           setHeroValue('');
         }}
+        from={rangeFrom}
+        to={rangeTo}
+        onFrom={(v) => applyRange(v, rangeTo)}
+        onTo={(v) => applyRange(rangeFrom, v)}
+        minDate={minDate}
+        isTrip={isTrip}
       />
 
       <div id="planner" style={{ background: 'linear-gradient(180deg,#FFFFFF, #F6FBFA)' }}>
@@ -764,6 +1164,19 @@ export function PlannerShell() {
 
         {isMobile ? (
           <div className="px-3 pt-2.5">
+            {isTrip && days && (
+              <div className="mb-2.5">
+                <DayTabs
+                  days={days}
+                  activeIdx={activeDayIdx}
+                  onSelect={(i) => {
+                    setActiveDayIdx(i);
+                    setOpenBmt(null);
+                  }}
+                  onExit={exitTrip}
+                />
+              </div>
+            )}
             <div className="relative h-[calc(100vh-220px)] min-h-[460px] overflow-hidden rounded-[18px] border border-[#EAF2F1] bg-white shadow-[0_14px_34px_rgba(10,46,54,.08)]">
               <div className="h-full">
                 {mobileTab === 'chat' ? copilot : mobileTab === 'map' ? map : itinerary}
@@ -813,6 +1226,19 @@ export function PlannerShell() {
           </div>
         ) : (
           <div className="mx-auto max-w-shell px-[22px] pb-2 pt-[18px]">
+            {isTrip && days && (
+              <div className="mb-3">
+                <DayTabs
+                  days={days}
+                  activeIdx={activeDayIdx}
+                  onSelect={(i) => {
+                    setActiveDayIdx(i);
+                    setOpenBmt(null);
+                  }}
+                  onExit={exitTrip}
+                />
+              </div>
+            )}
             <div
               className="grid h-[min(720px,80vh)] gap-4"
               style={{ gridTemplateColumns: '330px 1fr 0.86fr' }}
@@ -847,9 +1273,10 @@ export function PlannerShell() {
         quote={quote}
         quoteError={quoteError}
         maxParty={pricing.maxParty}
-        date={date}
+        date={isTrip ? (activeDay?.date ?? date) : date}
         setDate={setDate}
         minDate={minDate}
+        lockedDate={isTrip ? (activeDay?.date ?? null) : null}
         time={time}
         setTime={setTime}
         party={party}

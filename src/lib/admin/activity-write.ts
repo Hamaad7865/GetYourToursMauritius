@@ -72,6 +72,10 @@ export interface ActivityFormValues {
   /** Home/boarding region (North/South/East/West/Central), or '' to auto-derive from coords. Drives the
    *  region-based transport add-on for per_person / per_group activities with pickup. */
   region: string;
+  /** The activity's own map point (activities.lat/lng) — where its branded marker sits on the AI trip
+   *  planner's map. Null = derived automatically (itinerary coords, else a geocode of the location). */
+  lat: number | null;
+  lng: number | null;
   /** per_person (× people), per_group (× ceil(people/size)), or vehicle (one flat price for the
    *  vehicle that fits the party — a tier's max_guests is the vehicle's capacity). */
   pricingMode: PricingMode;
@@ -114,6 +118,8 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   isPrivate: false,
   adultsOnly: false,
   region: '',
+  lat: null,
+  lng: null,
   pricingMode: 'per_person',
   cancellationPolicy: 'Free cancellation up to 24 hours before your activity for a full refund.',
   status: 'published',
@@ -224,6 +230,8 @@ function activityRow(v: ActivityFormValues, opId: string) {
     meeting_point: v.meetingPoint.trim() || null,
     pickup_available: v.pickupAvailable,
     region: v.region.trim() || null,
+    lat: v.lat,
+    lng: v.lng,
     pricing_mode: v.pricingMode,
     languages: v.languages.filter((l) => l.trim()),
     inclusions: v.inclusions.filter((l) => l.trim()),
@@ -671,6 +679,8 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     isPrivate: extra.isPrivate ?? false,
     adultsOnly: extra.adultsOnly ?? false,
     region: act.region ?? '',
+    lat: act.lat ?? null,
+    lng: act.lng ?? null,
     pricingMode: (act.pricing_mode ?? 'per_person') as PricingMode,
     cancellationPolicy: act.cancellation_policy ?? '',
     status: act.status,

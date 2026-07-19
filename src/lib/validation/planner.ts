@@ -27,6 +27,33 @@ export const plannerChatMessageSchema = z.object({
   content: z.string().min(1).max(4000),
 });
 
+/** Calendar-day key (`YYYY-MM-DD`). Format-checked here; range/ordering rules live in the agent. */
+const dayKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/** One day of a multi-day trip as the client sends it: the date plus the places currently planned for
+ *  that day (so the co-pilot keeps/modifies rather than rebuilding). Dinner is a place suggestion off
+ *  the driving route; `activitySlug` anchors a recommended catalogue activity to the date. */
+export const plannerTripDaySchema = z.object({
+  date: dayKeySchema,
+  places: z.array(plannerPlaceSchema).max(12),
+  dinner: plannerPlaceSchema.nullish(),
+  activitySlug: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9-]{0,80}$/)
+    .nullish(),
+});
+
+/** The multi-day trip context for range mode. Hard-capped at 7 days × 12 places so one request can't
+ *  smuggle a huge context that inflates the billed Gemini token count (same posture as `messages`). */
+export const plannerTripSchema = z.object({
+  from: dayKeySchema,
+  to: dayKeySchema,
+  days: z.array(plannerTripDaySchema).min(1).max(7),
+  /** The date whose tab the visitor is on — "add a beach" applies to this day. */
+  activeDate: dayKeySchema,
+});
+export type PlannerTrip = z.infer<typeof plannerTripSchema>;
+
 /** Request body for POST /api/ai/trip-planner — the running conversation. A normal planning chat is a
  *  handful of turns; the cap is kept low (12) so one request can't smuggle a huge transcript that
  *  inflates the billed Gemini token count per call. */
@@ -35,6 +62,9 @@ export const plannerChatInputSchema = z.object({
   // The day the visitor currently has on screen (preloaded tour / preset / built earlier). Sent so the
   // co-pilot can keep and modify it instead of rebuilding from scratch (which drops loaded stops).
   itinerary: z.array(plannerPlaceSchema).max(12).optional(),
+  // Range mode: the whole multi-day trip (dates + per-day plans). When present the agent plans across
+  // days with the trip tools; when absent the single-day behaviour is byte-for-byte unchanged.
+  trip: plannerTripSchema.optional(),
 });
 export type PlannerChatInput = z.infer<typeof plannerChatInputSchema>;
 

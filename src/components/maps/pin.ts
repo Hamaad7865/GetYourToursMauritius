@@ -42,6 +42,52 @@ export function carContent(color = '#0E8C92'): HTMLElement {
   return img;
 }
 
+/**
+ * A branded Belle Mare Tours activity marker (AdvancedMarkerElement `content`): a rounded pill with a
+ * coral palm badge + the from-price. `selected` (an AI-recommended activity for the active day) fills
+ * the pill coral with a gentle pop, so recommendations read louder than the browse layer around them.
+ * Pure DOM (no PinElement) so the shape stays ours.
+ */
+export function bmtMarkerContent(opts: { priceLabel: string; selected?: boolean }): HTMLElement {
+  const { priceLabel, selected = false } = opts;
+  const coral = '#F76C5E';
+  const pill = document.createElement('div');
+  pill.style.cssText =
+    `display:flex;align-items:center;gap:5px;padding:3px 9px 3px 3px;border-radius:999px;` +
+    `border:2px solid ${coral};box-shadow:0 4px 12px rgba(10,46,54,.28);cursor:pointer;` +
+    `font:800 12px/1 system-ui,sans-serif;transition:transform .15s ease;` +
+    (selected
+      ? `background:${coral};color:#fff;transform:scale(1.08);`
+      : `background:#fff;color:#0A2E36;`);
+  const palm =
+    `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">` +
+    `<circle cx="12" cy="12" r="11" fill="${selected ? '#fff' : coral}"/>` +
+    `<path d="M12.6 19c-.3-2.8-.3-5.2.3-7.6M12.9 11.4c-2.3-1-4.6-.6-6.4.8 2-.2 3.9.1 5.6 1M12.9 11.4c.5-2.4 2.2-4 4.6-4.6-1.5 1.3-2.5 2.9-2.9 4.8M12.9 11.4c2.4-.9 4.7-.5 6.6 1-2-.3-4-.1-5.8.7M12.9 11.4c-1.4-2-3.4-3-5.9-2.9 1.9.8 3.4 2 4.4 3.7" ` +
+    `stroke="${selected ? coral : '#fff'}" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+  const badge = document.createElement('span');
+  badge.style.cssText = 'display:grid;place-items:center;';
+  badge.innerHTML = palm;
+  const price = document.createElement('span');
+  price.textContent = priceLabel;
+  pill.append(badge, price);
+  return pill;
+}
+
+/** The dinner-suggestion marker: a small white circle with a teal fork & knife. Visually distinct
+ *  from numbered stops (it isn't part of the drive) and from the coral BMT pills. */
+export function dinnerMarkerContent(): HTMLElement {
+  const teal = '#0E8C92';
+  const el = document.createElement('div');
+  el.style.cssText =
+    `display:grid;place-items:center;width:30px;height:30px;border-radius:999px;background:#fff;` +
+    `border:2px solid ${teal};box-shadow:0 3px 10px rgba(10,46,54,.25);`;
+  el.innerHTML =
+    `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">` +
+    `<path d="M7 3v7a2 2 0 0 0 2 2v9M7 3v4M11 3v7a2 2 0 0 1-2 2M11 3v4M17 3c-1.7 1-2.5 3-2.5 5.5 0 2 .8 3 2 3.5v9M17 3v18" ` +
+    `stroke="${teal}" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+  return el;
+}
+
 /** Normalise a marker position (LatLng | LatLngLiteral | null) to a plain literal. */
 export function toLatLng(
   pos: google.maps.LatLng | google.maps.LatLngLiteral | null | undefined,

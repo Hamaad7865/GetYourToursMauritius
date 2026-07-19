@@ -40,6 +40,7 @@ export function QuoteModal({
   booking,
   bookError,
   onBook,
+  lockedDate,
 }: {
   open: boolean;
   onClose: () => void;
@@ -62,6 +63,8 @@ export function QuoteModal({
   booking: boolean;
   bookError: string | null;
   onBook: () => void;
+  /** Trip mode: the day being booked has a fixed date — shown as text, no picker. */
+  lockedDate?: string | null;
 }) {
   const t = useT();
   const money = useMoney();
@@ -129,15 +132,30 @@ export function QuoteModal({
                 <label htmlFor="q-date" className={labelCls}>
                   {t('Date')}
                 </label>
-                <input
-                  id="q-date"
-                  required
-                  type="date"
-                  min={minDate}
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className={inputCls}
-                />
+                {lockedDate ? (
+                  // Booking one day of a planned trip: the date IS the day — no picker.
+                  <div
+                    id="q-date"
+                    className="w-full rounded-[11px] border border-[#E3EEEC] bg-[#F4F8F7] px-[13px] py-[11px] text-[14.5px] font-bold text-ink"
+                  >
+                    {new Date(`${lockedDate}T00:00:00`).toLocaleDateString('en-GB', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </div>
+                ) : (
+                  <input
+                    id="q-date"
+                    required
+                    type="date"
+                    min={minDate}
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    className={inputCls}
+                  />
+                )}
               </div>
               <div>
                 <label htmlFor="q-time" className={labelCls}>

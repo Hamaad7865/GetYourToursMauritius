@@ -200,6 +200,20 @@ export function BookingProvider({
     setChecked(true);
     setScrollTick((t) => t + 1);
   }, []);
+  // ?date=YYYY-MM-DD deep-link (the AI trip planner's "View & book for Sep 3") preselects the date
+  // and opens the booking card. Only a well-formed, non-past date is honoured; whether it's actually
+  // bookable is still decided by the loaded availability map, exactly like a hand-picked date.
+  useEffect(() => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get('date');
+      if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return;
+      if (raw < nominalDayKey(new Date())) return;
+      setDate(raw);
+      checkAvailability();
+    } catch {
+      /* no URL access (SSR safety) — the widget just starts unselected */
+    }
+  }, [checkAvailability]);
   const [days, setDays] = useState<Map<string, DayInfo> | null>(null);
   const [availabilityError, setAvailabilityError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);

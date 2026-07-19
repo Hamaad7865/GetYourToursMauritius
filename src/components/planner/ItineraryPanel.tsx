@@ -4,9 +4,11 @@ import { useRef, useState } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
+import type { BmtActivity } from '@/lib/planner/our-activities';
 import { PICKUPS, fmtDur, type PlannerPoint } from './planner-constants';
 import { PickupSearch } from './PickupSearch';
 import { Thumb } from './Thumb';
+import { ActivityCard } from './ActivityCard';
 import { useT } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
 
@@ -28,7 +30,9 @@ function DriveChip({ minutes, km }: { minutes: number; km: number }) {
   );
 }
 
-/** "Your day" — pickup + drop-off search, drag-reorderable stops with live drive chips, totals + quote CTA. */
+/** "Your day" — pickup + drop-off search, drag-reorderable stops with live drive chips, totals + quote
+ *  CTA. In trip mode it also carries the day's date, an anchored Belle Mare Tours activity card, and
+ *  the evening's dinner suggestion. */
 export function ItineraryPanel({
   stops,
   pickup,
@@ -46,6 +50,11 @@ export function ItineraryPanel({
   onQuote,
   onShare,
   shared,
+  dayLabel,
+  activity,
+  onRemoveActivity,
+  dinner,
+  onRemoveDinner,
 }: {
   stops: PlannerPlace[];
   pickup: PlannerPoint;
@@ -66,6 +75,14 @@ export function ItineraryPanel({
   onQuote: () => void;
   onShare: () => void;
   shared: boolean;
+  /** Trip mode: "Day 2 — Tue 2 Sep" heading (null/undefined = the classic "Your day"). */
+  dayLabel?: string | null;
+  /** Trip mode: the Belle Mare Tours activity anchored to this day, when the AI recommended one. */
+  activity?: { activity: BmtActivity; date: string; seatsLeft?: number } | null;
+  onRemoveActivity?: () => void;
+  /** Trip mode: the evening's dinner suggestion (not part of the drive). */
+  dinner?: PlannerPlace | null;
+  onRemoveDinner?: () => void;
 }) {
   const t = useT();
   const dragFrom = useRef<number | null>(null);
@@ -94,7 +111,9 @@ export function ItineraryPanel({
       {/* header */}
       <div className="flex items-center justify-between px-[15px] pt-3.5">
         <div>
-          <div className="font-display text-[18px] font-semibold text-ink">{t('Your day')}</div>
+          <div className="font-display text-[18px] font-semibold text-ink">
+            {dayLabel ?? t('Your day')}
+          </div>
           <div className="mt-px text-xs text-ink-muted">
             {stops.length ? t('{n} stops planned', { n: stops.length }) : t('No stops yet')}
           </div>
@@ -160,7 +179,18 @@ export function ItineraryPanel({
 
       {/* stops */}
       <div className="min-h-0 flex-1 overflow-y-auto px-[15px] py-3">
-        {stops.length === 0 ? (
+        {/* Trip mode: the day's anchored Belle Mare Tours activity leads the day. */}
+        {activity && (
+          <div className="mb-3">
+            <ActivityCard
+              activity={activity.activity}
+              date={activity.date}
+              seatsLeft={activity.seatsLeft}
+              onRemove={onRemoveActivity}
+            />
+          </div>
+        )}
+        {stops.length === 0 && !activity ? (
           <div className="px-2.5 py-[30px] text-center text-ink-muted">
             <div className="mx-auto mb-3 grid h-[46px] w-[46px] place-items-center rounded-[14px] border-2 border-dashed border-[#D6E5E3]">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -174,6 +204,11 @@ export function ItineraryPanel({
               {t('Stops appear here with live drive times.')}
             </p>
           </div>
+        ) : stops.length === 0 ? (
+          // Activity day with no driving stops — that's a valid plan, not an empty one.
+          <p className="m-0 px-2.5 py-3 text-center text-[12.5px] text-ink-muted">
+            {t('No driving stops this day — add some, or enjoy the activity.')}
+          </p>
         ) : (
           <div>
             {/* pickup → first */}
@@ -290,6 +325,50 @@ export function ItineraryPanel({
               {dropoffDiffers
                 ? `${t('Drop-off')} · ${dropoff!.name} · ${t('{n} min', { n: segs[segs.length - 1]?.minutes ?? 0 })}`
                 : t('Return to pick-up · {n} min', { n: segs[segs.length - 1]?.minutes ?? 0 })}
+            </div>
+          </div>
+        )}
+
+        {/* Trip mode: the evening's dinner suggestion — a recommendation, not a route stop. */}
+        {dinner && (
+          <div className="mt-3 border-t border-dashed border-[#E7EFEE] pt-3">
+            <div className="mb-[7px] text-[11px] font-bold uppercase tracking-[0.04em] text-ink-muted">
+              {t('Dinner idea')}
+            </div>
+            <div className="flex items-center gap-2.5 rounded-[14px] border border-[#D8ECEA] bg-[#FBFDFC] px-2.5 py-[9px]">
+              <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-lg bg-teal-tint">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <path
+                    d="M7 3v7a2 2 0 0 0 2 2v9M7 3v4M11 3v7a2 2 0 0 1-2 2M11 3v4M17 3c-1.7 1-2.5 3-2.5 5.5 0 2 .8 3 2 3.5v9M17 3v18"
+                    stroke="#0E8C92"
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13.5px] font-bold text-ink">{dinner.name}</div>
+                <div className="mt-px text-[11.5px] text-ink-muted">
+                  {dinner.blurb || t('Evening suggestion near your pick-up area')}
+                </div>
+              </div>
+              {onRemoveDinner && (
+                <button
+                  type="button"
+                  onClick={onRemoveDinner}
+                  aria-label={t('Remove {name}', { name: dinner.name })}
+                  className="grid place-items-center rounded-lg p-1.5 text-[#B7C6C8] transition hover:bg-[#FDECEA] hover:text-coral"
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M6 6l12 12M18 6L6 18"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </button>
+              )}
             </div>
           </div>
         )}

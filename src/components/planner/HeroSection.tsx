@@ -11,18 +11,34 @@ const CHIPS = [
 
 /**
  * Centered hero — the design's "Mauritius, planned by AI." headline, a grounded-data pill, the
- * "Tell me your perfect day…" search that kicks off the co-pilot, and starter chips.
+ * "Tell me your perfect day…" search that kicks off the co-pilot, starter chips, and the optional
+ * date-range picker that switches the planner into multi-day trip mode (e.g. Sep 1–5).
  */
 export function HeroSection({
   value,
   onChange,
   onSubmit,
   onChip,
+  from,
+  to,
+  onFrom,
+  onTo,
+  minDate,
+  isTrip,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSubmit: () => void;
   onChip: (text: string) => void;
+  /** Trip range (optional). Empty = the classic single-day planner. */
+  from: string;
+  to: string;
+  onFrom: (v: string) => void;
+  onTo: (v: string) => void;
+  /** Earliest plannable date (tomorrow — same rule as booking). */
+  minDate: string;
+  /** True once a multi-day range is active (drives the CTA label). */
+  isTrip: boolean;
 }) {
   const t = useT();
   return (
@@ -100,11 +116,11 @@ export function HeroSection({
             />
             <button
               type="submit"
-              aria-label={t('Plan my day')}
+              aria-label={isTrip ? t('Plan my trip') : t('Plan my day')}
               className="inline-flex shrink-0 items-center gap-[7px] rounded-[13px] px-[18px] py-[11px] text-[14.5px] font-bold text-white shadow-[0_8px_20px_rgba(14,140,146,.32)]"
               style={{ background: 'linear-gradient(135deg,#13A0A6,#0B5C63)' }}
             >
-              {t('Plan my day')}
+              {isTrip ? t('Plan my trip') : t('Plan my day')}
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <path
                   d="M5 12h13m0 0-5-5m5 5-5 5"
@@ -115,6 +131,68 @@ export function HeroSection({
                 />
               </svg>
             </button>
+          </div>
+
+          {/* Optional trip dates — picking a range (e.g. 1–5 Sep) turns on multi-day planning. */}
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 rounded-[14px] border border-[#E3EEEC] bg-white/80 px-3.5 py-2.5 shadow-[0_8px_22px_rgba(10,46,54,.06)] backdrop-blur-sm">
+            <span className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-teal-dark">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <rect
+                  x="4"
+                  y="6"
+                  width="16"
+                  height="14"
+                  rx="2.5"
+                  stroke="#0B5C63"
+                  strokeWidth={1.7}
+                />
+                <path
+                  d="M4 10h16M8 3.5V7m8-3.5V7"
+                  stroke="#0B5C63"
+                  strokeWidth={1.7}
+                  strokeLinecap="round"
+                />
+              </svg>
+              {t('Trip dates')}
+            </span>
+            <label className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-ink-muted">
+              {t('Start')}
+              <input
+                type="date"
+                value={from}
+                min={minDate}
+                onChange={(e) => onFrom(e.target.value)}
+                aria-label={t('Trip start date')}
+                className="rounded-[9px] border border-[#E3EEEC] bg-white px-2 py-1.5 text-[12.5px] font-semibold text-ink outline-none focus:border-teal"
+              />
+            </label>
+            <label className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-ink-muted">
+              {t('End')}
+              <input
+                type="date"
+                value={to}
+                min={from || minDate}
+                onChange={(e) => onTo(e.target.value)}
+                aria-label={t('Trip end date')}
+                className="rounded-[9px] border border-[#E3EEEC] bg-white px-2 py-1.5 text-[12.5px] font-semibold text-ink outline-none focus:border-teal"
+              />
+            </label>
+            {from || to ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onFrom('');
+                  onTo('');
+                }}
+                className="cursor-pointer text-[12px] font-bold text-ink-muted underline hover:text-teal-dark"
+              >
+                {t('Clear')}
+              </button>
+            ) : (
+              <span className="text-[11.5px] text-ink-muted">
+                {t('Optional — pick a range (up to 7 days) and I’ll plan every day')}
+              </span>
+            )}
           </div>
         </form>
 

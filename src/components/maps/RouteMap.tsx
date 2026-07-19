@@ -6,11 +6,23 @@ import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
 import { geocode } from '@/lib/maps/geocode';
 import { mapsDirectionsUrl } from '@/lib/maps/urls';
 import { MapLinkCard } from './MapLinkCard';
-import { carContent, pinElement } from './pin';
+import { bmtMarkerContent, carContent, dinnerMarkerContent, pinElement } from './pin';
 
 /** Marker role per stop: the start/pickup (coral), a fixed main stop (solid teal), or a swappable
  *  "other" stop (hollow teal). */
 export type StopKind = 'start' | 'main' | 'other';
+
+/** A Belle Mare Tours activity rendered as a branded pill marker. `selected` = recommended for the
+ *  day on screen (filled coral, joins the map bounds); unselected = the browse layer (white pill,
+ *  never affects bounds so browsing can't yank the camera off the route). */
+export interface ActivityMarker {
+  slug: string;
+  title: string;
+  lat: number;
+  lng: number;
+  priceLabel: string;
+  selected: boolean;
+}
 
 async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral | null> {
   if (typeof s.lat === 'number' && typeof s.lng === 'number') return { lat: s.lat, lng: s.lng };
@@ -80,6 +92,9 @@ export function RouteMap({
   animate = false,
   carColor = '#0E8C92',
   className,
+  activities,
+  onActivityClick,
+  dinner,
 }: {
   stops: ItineraryStop[];
   /** Marker role per stop (aligned to `stops`). Defaults to start (index 0) + main (rest). */
@@ -92,6 +107,12 @@ export function RouteMap({
   carColor?: string;
   /** Override the container classes (e.g. to fill a parent pane instead of the default fixed height). */
   className?: string;
+  /** Belle Mare Tours activities as branded pill markers (recommended + browse layer). Memoize —
+   *  a new array identity redraws the overlays. */
+  activities?: ActivityMarker[];
+  onActivityClick?: (slug: string) => void;
+  /** The active day's dinner suggestion — its own fork marker, not part of the route. */
+  dinner?: { title: string; lat: number; lng: number } | null;
 }) {
   const status = useGoogleMaps();
   const elRef = useRef<HTMLDivElement>(null);
@@ -102,6 +123,9 @@ export function RouteMap({
   // Map tiles render fine but Directions is unavailable: keep the numbered markers, draw NO line, and
   // surface a keyless "View on Google Maps" link beneath the map (never a dashed line).
   const [noRoute, setNoRoute] = useState(false);
+  // Latest click handler behind a ref so a new callback identity doesn't force a full overlay redraw.
+  const onActivityClickRef = useRef(onActivityClick);
+  onActivityClickRef.current = onActivityClick;
 
   useEffect(() => {
     if (status !== 'ready' || !elRef.current || stops.length === 0) return;
@@ -167,7 +191,39 @@ export function RouteMap({
         );
         bounds.extend(pos);
       });
-      if (points.length === 1) {
+      // Belle Mare Tours activity pills + the dinner fork. Selected activities and the dinner join
+      // the bounds (they're part of the day); the browse layer never moves the camera.
+      for (const a of activities ?? []) {
+        const marker = track(
+          new google.maps.marker.AdvancedMarkerElement({
+            map,
+            position: { lat: a.lat, lng: a.lng },
+            content: bmtMarkerContent({ priceLabel: a.priceLabel, selected: a.selected }),
+            title: a.title,
+            gmpClickable: true,
+            zIndex: a.selected ? 900 : 500,
+          }),
+        );
+        // AdvancedMarkerElement is a DOM element; 'gmp-click' is its click event (plain 'click' via
+        // addListener is deprecated and warns in console).
+        marker.addEventListener('gmp-click', () => onActivityClickRef.current?.(a.slug));
+        if (a.selected) bounds.extend({ lat: a.lat, lng: a.lng });
+      }
+      if (dinner) {
+        track(
+          new google.maps.marker.AdvancedMarkerElement({
+            map,
+            position: { lat: dinner.lat, lng: dinner.lng },
+            content: dinnerMarkerContent(),
+            title: dinner.title,
+          }),
+        );
+        bounds.extend({ lat: dinner.lat, lng: dinner.lng });
+      }
+
+      const extraBoundPoints =
+        (activities?.filter((a) => a.selected).length ?? 0) + (dinner ? 1 : 0);
+      if (points.length === 1 && extraBoundPoints === 0) {
         map.setCenter(points[0]!);
         map.setZoom(13);
       } else {
@@ -264,7 +320,7 @@ export function RouteMap({
         rafRef.current = null;
       }
     };
-  }, [status, stops, kinds, labels, animate, carColor]);
+  }, [status, stops, kinds, labels, animate, carColor, activities, dinner]);
 
   // Final teardown on unmount: drop every overlay and release the map.
   useEffect(() => {

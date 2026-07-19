@@ -437,6 +437,28 @@ export const fr: Record<string, string> = {
     'C’est fait — j’ai avancé {place} pour que vous arriviez bien avant la fermeture.',
   "Sorry — I couldn't reach ZilAi just now. Browse places on the left and I'll keep the price live.":
     'Désolé — je n’ai pas pu joindre ZilAi pour le moment. Parcourez les lieux à gauche et je garde le prix à jour.',
+  // Trip (date-range) mode
+  'Plan my trip': 'Planifier mon voyage',
+  'Trip dates': 'Dates du voyage',
+  Start: 'Début',
+  End: 'Fin',
+  'Trip start date': 'Date de début du voyage',
+  'Trip end date': 'Date de fin du voyage',
+  Clear: 'Effacer',
+  'Optional — pick a range (up to 7 days) and I’ll plan every day':
+    'Facultatif — choisissez une période (jusqu’à 7 jours) et je planifie chaque journée',
+  'Trip days': 'Jours du voyage',
+  'Day {n}': 'Jour {n}',
+  'Single day': 'Journée simple',
+  'No driving stops this day — add some, or enjoy the activity.':
+    'Aucun arrêt en voiture ce jour-là — ajoutez-en, ou profitez de l’activité.',
+  'Dinner idea': 'Idée dîner',
+  'Evening suggestion near your pick-up area':
+    'Suggestion pour le soir près de votre point de prise en charge',
+  'Belle Mare Tours activity · {date}': 'Activité Belle Mare Tours · {date}',
+  'Only {n} left': 'Plus que {n} places',
+  'View & book for {date} →': 'Voir et réserver pour le {date} →',
+  'Our activities': 'Nos activités',
   'Something went wrong — please try again in a moment.':
     'Une erreur s’est produite — veuillez réessayer dans un instant.',
   'Loaded {name} — {n} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.':

@@ -7,9 +7,11 @@ import type { PlannerPlace } from '@/lib/validation/planner';
 import type { AddBlockReason } from '@/lib/planner/constraints';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
+import type { BmtActivity } from '@/lib/planner/our-activities';
 import type { ChatMsg, Boost } from './types';
 import { fmtDur } from './planner-constants';
 import { Thumb } from './Thumb';
+import { ActivityCard } from './ActivityCard';
 import { useVoiceInput } from './useVoiceInput';
 import { Price } from '@/components/site/Price';
 import { usePreferences, useT } from '@/components/site/PreferencesProvider';
@@ -52,6 +54,7 @@ export function ChatCopilot({
   onQuote,
   onAddPlace,
   addReasonById,
+  bmtBySlug,
 }: {
   messages: ChatMsg[];
   typing: boolean;
@@ -71,6 +74,8 @@ export function ChatCopilot({
   onAddPlace: (id: string) => void;
   /** Why a suggested place can't be added right now (day full / too far), or null when it can. */
   addReasonById: (id: string) => AddBlockReason;
+  /** Trip mode: known Belle Mare Tours activities by slug, for the recommendation cards. */
+  bmtBySlug?: Map<string, BmtActivity & { seatsLeft?: number }>;
 }) {
   const { t, language } = usePreferences();
   const [draft, setDraft] = useState('');
@@ -297,6 +302,15 @@ export function ChatCopilot({
         {messages.map((m, i) => {
           if (m.kind === 'place') return placeCard(m.id, m.why, i);
           if (m.kind === 'summary') return summaryCard(i);
+          if (m.kind === 'activity') {
+            const c = bmtBySlug?.get(m.slug);
+            if (!c) return null;
+            return (
+              <div key={i} className="max-w-[88%] self-start">
+                <ActivityCard activity={c} date={m.date} seatsLeft={c.seatsLeft} />
+              </div>
+            );
+          }
           const isU = m.role === 'user';
           return (
             <div

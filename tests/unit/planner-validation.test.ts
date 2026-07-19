@@ -32,6 +32,81 @@ describe('plannerChatInputSchema message cap (P0 amplifier — lowered 40 → 12
   });
 });
 
+describe('plannerChatInputSchema trip context (range mode)', () => {
+  const place = {
+    id: 'pl-1',
+    name: 'Le Morne',
+    category: 'Beach',
+    region: 'South',
+    lat: -20.45,
+    lng: 57.31,
+    durationMin: 90,
+    closesAt: null,
+    blurb: null,
+    imageUrl: null,
+  };
+  const tripDay = (date: string) => ({ date, places: [place] });
+  const trip = {
+    from: '2026-09-01',
+    to: '2026-09-05',
+    days: ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04', '2026-09-05'].map(tripDay),
+    activeDate: '2026-09-01',
+  };
+
+  it('accepts a 5-day trip with dinner + activity anchors', () => {
+    const r = plannerChatInputSchema.safeParse({
+      messages: [msg()],
+      trip: {
+        ...trip,
+        days: [
+          { ...tripDay('2026-09-01'), dinner: place, activitySlug: 'catamaran-ile-aux-cerfs' },
+          ...trip.days.slice(1),
+        ],
+      },
+    });
+    expect(r.success).toBe(true);
+  });
+
+  it('stays optional — a single-day request without trip still parses', () => {
+    expect(plannerChatInputSchema.safeParse({ messages: [msg()] }).success).toBe(true);
+  });
+
+  it('rejects an 8-day trip (hard cap keeps the billed context bounded)', () => {
+    const days = Array.from({ length: 8 }, (_, i) => tripDay(`2026-09-0${i + 1}`));
+    const r = plannerChatInputSchema.safeParse({
+      messages: [msg()],
+      trip: { ...trip, days },
+    });
+    expect(r.success).toBe(false);
+  });
+
+  it('rejects a malformed date and a junk activity slug', () => {
+    expect(
+      plannerChatInputSchema.safeParse({
+        messages: [msg()],
+        trip: { ...trip, days: [tripDay('01-09-2026')] },
+      }).success,
+    ).toBe(false);
+    expect(
+      plannerChatInputSchema.safeParse({
+        messages: [msg()],
+        trip: { ...trip, days: [{ ...tripDay('2026-09-01'), activitySlug: 'NOT a slug!' }] },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects a day with more than 12 places', () => {
+    const r = plannerChatInputSchema.safeParse({
+      messages: [msg()],
+      trip: {
+        ...trip,
+        days: [{ date: '2026-09-01', places: Array.from({ length: 13 }, () => place) }],
+      },
+    });
+    expect(r.success).toBe(false);
+  });
+});
+
 describe('placeInsightsInputSchema bounds (≤ 12 places)', () => {
   const place = { name: 'Le Morne', category: 'Beach', region: 'South' };
   it('accepts up to 12 places', () => {
