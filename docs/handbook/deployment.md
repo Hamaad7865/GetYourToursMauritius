@@ -122,7 +122,11 @@ INTERNAL_TASK_SECRET          ← must MATCH the cron Worker's secret
 **Feature-gated:** `PEACH_*` (payments), `RESEND_API_KEY` + `RESEND_FROM` (email),
 `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` + `NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` (maps),
 `AI_PROVIDER` + `GOOGLE_GENERATIVE_AI_API_KEY` (road-trip planner),
-`OWNER_NOTIFY_EMAIL` / `WHATSAPP_*` (owner alerts).
+`OWNER_NOTIFY_EMAIL` / `TELEGRAM_*` (owner alerts),
+`WHATSAPP_WEBHOOK_VERIFY_TOKEN` + `WHATSAPP_APP_SECRET` (the Meta webhook at
+`/api/v1/webhooks/whatsapp` — required for WhatsApp number registration/connect; set + redeploy
+**before** clicking "Verify and save" in the Meta dashboard, and see `.env.example` for the full
+walkthrough).
 
 > ⚠️ **Almost every variable is optional in the schema, and the app boots without them.** Missing
 > Supabase → it serves fake seed data. Missing Peach → a **stub payment provider whose webhook confirms

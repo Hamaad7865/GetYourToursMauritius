@@ -95,6 +95,14 @@ const ServerEnvSchema = z.object({
   WHATSAPP_TEMPLATE_NAME: z.string().min(1).optional(),
   // The template's approved locale code (defaults to 'en'; use 'en_US' if approved as such).
   WHATSAPP_TEMPLATE_LANG: z.string().min(1).optional(),
+  // WhatsApp webhook (Meta app -> WhatsApp -> Configuration). Registering/connecting a number
+  // requires a live Callback URL: point it at /api/v1/webhooks/whatsapp. The verify token is an
+  // arbitrary string YOU invent — set the SAME value here and in the Meta dashboard (the endpoint
+  // answers 503 until it is set, so configure + redeploy BEFORE clicking "Verify and save").
+  WHATSAPP_WEBHOOK_VERIFY_TOKEN: z.string().min(1).optional(),
+  // The Meta APP secret (Meta app -> App settings -> Basic), verifying X-Hub-Signature-256 on
+  // webhook POSTs. Not the access token. Without it, event deliveries are rejected (503).
+  WHATSAPP_APP_SECRET: z.string().min(1).optional(),
   // Telegram owner alerts (used instead of WhatsApp — no Meta onboarding, template or per-message
   // payment). BOTH are required for delivery: a Bot API token (from @BotFather) and the destination
   // chat id — a GROUP chat id (add the owner + staff to one group) or a comma-separated list of chat
