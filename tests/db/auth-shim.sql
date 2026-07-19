@@ -45,3 +45,20 @@ end
 $$;
 
 grant usage on schema auth to anon, authenticated, service_role;
+
+-- Stock Supabase ALTER DEFAULT PRIVILEGES. Every function created in `public` is handed a DIRECT
+-- EXECUTE grant to anon + authenticated (verified live: pg_default_acl for objtype 'f' in schema
+-- public is {postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}).
+--
+-- This matters for detection, not just fidelity. `revoke execute ... from public` does NOT strip a
+-- direct role grant, so without this line a function locked down with only `from public` LOOKS closed
+-- under PGlite — anon genuinely loses the privilege, because nothing ever granted it directly — while
+-- on the real project anon/authenticated keep EXECUTE and the function stays wide open. That blind
+-- spot hid two live holes (api_booking_receipt, api_pending_payment_checkouts) from CI until
+-- 20260818000000. Replicating the default privileges makes has_function_privilege() in
+-- tests/integration/definer-grants-lockdown.test.ts mean the same thing here as in production.
+--
+-- Scope: functions only. Supabase sets the same defaults for tables and sequences; replicating those
+-- would be more faithful still, but RLS (not the table grant) is the real gate there, so it is a
+-- separate change with a much wider blast radius.
+alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;

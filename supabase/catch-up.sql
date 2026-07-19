@@ -13956,3 +13956,17 @@ $$;
 -- explicit next to the definition per the definer-grant-leak rule).
 revoke execute on function enqueue_booking_notification() from public, anon, authenticated;
 grant execute on function enqueue_booking_notification() to service_role;
+
+-- ============================================================================
+-- SECURITY: lock api_booking_receipt + api_pending_payment_checkouts to service_role
+-- (migration 20260818000000). Both were revoked `from public` ONLY, which does NOT
+-- strip Supabase's DIRECT anon/authenticated grants — verified live-callable by anon
+-- on 2026-07-20. Chained, they enumerate in-flight bookings and dump customer PII.
+-- Callers are service-role only (notification drain / maintenance sweep), so this
+-- costs the app nothing. Re-run is safe: revoke+grant are idempotent.
+-- ============================================================================
+revoke execute on function api_booking_receipt(jsonb) from public, anon, authenticated;
+grant execute on function api_booking_receipt(jsonb) to service_role;
+
+revoke execute on function api_pending_payment_checkouts(jsonb) from public, anon, authenticated;
+grant execute on function api_pending_payment_checkouts(jsonb) to service_role;

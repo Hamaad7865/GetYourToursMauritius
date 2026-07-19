@@ -18,6 +18,13 @@ const LOCKED = [
   'enqueue_booking_notification()',
   'claim_notifications(jsonb)',
   'mark_notification(jsonb)',
+  // Both were revoked `from public` ONLY, so Supabase's direct anon/authenticated grants survived and
+  // they were live-callable with the public anon key (verified against production 2026-07-20). Neither
+  // has an in-function caller guard: api_booking_receipt returns a full booking DTO — customer name,
+  // email, phone, pickup address, charge amount, provider reference — and api_pending_payment_checkouts
+  // ENUMERATES pending bookings, so it needs no id at all. Chained, the second one feeds the first.
+  'api_booking_receipt(jsonb)',
+  'api_pending_payment_checkouts(jsonb)',
 ];
 
 describe('internal SECURITY DEFINER functions are locked to service_role', () => {
