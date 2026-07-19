@@ -8,9 +8,14 @@ made**, and so that customer replies to the business number are not lost.
 | Thing           | Value                                                 |
 | --------------- | ----------------------------------------------------- |
 | Business number | +230 5743 2386                                        |
-| Phone Number ID | `1205529992644486`                                    |
-| WABA ID         | `1656059006527876`                                    |
+| Phone Number ID | `1146005161940831`                                    |
+| WABA            | "Belle Mare Tours Alert" — `2242300306547154`         |
 | Callback URL    | `https://bellemaretours.com/api/v1/webhooks/whatsapp` |
+
+> **Check these against the dashboard before pasting them anywhere.** The number was first added under a
+> different WABA ("Belle Mare Tours", `1656059006527876`, Phone Number ID `1205529992644486`). The IDs
+> above are the current ones. A stale Phone Number ID doesn't fail loudly — it sends alerts from the
+> wrong identity or 404s the Graph call.
 
 This number is a **new, dedicated API number**. It is separate from the wa.me number on the site, which
 stays a normal phone-app WhatsApp. A number registered to the Cloud API stops working in the phone app —
@@ -86,6 +91,36 @@ it in the password manager; Meta asks for it again on re-registration and there 
 > If that number is currently signed in to the WhatsApp app on a handset, delete the account in-app
 > first (Settings → Account → Delete my account). One number cannot be on both the app and the Cloud API.
 
+### "Registration failed. Please try again."
+
+The dashboard button swallows Meta's actual error. **Call the register endpoint directly** — it returns
+the real code and message, which turns this from guesswork into a two-minute fix:
+
+```bash
+curl.exe -X POST "https://graph.facebook.com/v20.0/1146005161940831/register" ^
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"messaging_product\":\"whatsapp\",\"pin\":\"YOUR_6_DIGIT_PIN\"}"
+```
+
+Use `curl.exe`, not PowerShell's `Invoke-RestMethod` — on Windows PowerShell 5.1 the latter throws away
+the response body on a 4xx, which is the only part worth reading. A temporary token from the dashboard's
+"Step 1. Try it out" tab is fine for this.
+
+Causes, most likely first:
+
+| Cause                                                                             | Fix                                                                                                                                             |
+| --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Number still active in the WhatsApp or WhatsApp Business **app**                  | Delete the account in-app (Settings → Account → Delete my account), wait ~5 minutes, retry.                                                     |
+| Number still attached to the **previous WABA** (`1656059006527876`)               | A number lives in exactly one WABA. Remove it there (WhatsApp Manager → Phone numbers) first.                                                   |
+| **Two-step PIN conflict** — the number had a PIN set from an earlier registration | Enter the _old_ PIN, or disable two-step verification before deleting the app account. A wrong PIN too many times triggers a multi-day lockout. |
+| Number **verified but not yet confirmed** by SMS/voice code                       | Re-run the verification code step on the number before registering.                                                                             |
+| Number **recently removed** from another WABA                                     | There is a cooldown. Wait and retry rather than hammering the button.                                                                           |
+| Too many attempts                                                                 | Rate limited. Wait an hour.                                                                                                                     |
+
+Note this is entirely between Meta and the phone number — the app, the webhook and the site play no part
+in registration, so there is nothing to change in the codebase for any of these.
+
 **Inbound messages.** Once registered, messages customers send to this number no longer appear on any
 phone — they arrive only as webhook events. The app forwards each one to the owner's Telegram group, so
 enquiries are still visible. Note Meta's banner on the setup screen: while the app is **unpublished**
@@ -133,7 +168,7 @@ but sends fail once the free allowance is used if no card is on file.
 | Variable                   | Value                                                    |
 | -------------------------- | -------------------------------------------------------- |
 | `WHATSAPP_ACCESS_TOKEN`    | the system-user token from step 2                        |
-| `WHATSAPP_PHONE_NUMBER_ID` | `1205529992644486`                                       |
+| `WHATSAPP_PHONE_NUMBER_ID` | `1146005161940831` (re-read it from the dashboard)       |
 | `OWNER_WHATSAPP_TO`        | owner's personal number, digits only, e.g. `23057729919` |
 | `WHATSAPP_TEMPLATE_NAME`   | `owner_booking_alert`                                    |
 | `WHATSAPP_TEMPLATE_LANG`   | `en`                                                     |
