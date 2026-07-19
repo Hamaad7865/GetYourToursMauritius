@@ -233,17 +233,15 @@ export function ChatCopilot({
       {/* header */}
       <div className="flex items-center gap-2.5 border-b border-[#EEF4F3] bg-white px-4 py-[13px]">
         <div className="relative h-[34px] w-[34px] shrink-0">
-          <div
-            className="grid h-[34px] w-[34px] place-items-center rounded-[11px]"
-            style={{ background: 'linear-gradient(140deg,#13A0A6,#0B5C63)' }}
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-              <path
-                d="M12 3l1.6 3.8L17.5 8l-3.9 1.2L12 13l-1.6-3.8L6.5 8l3.9-1.2L12 3Z"
-                fill="#fff"
-              />
-            </svg>
-          </div>
+          {/* ZilAi wears the brand mark — the tropical favicon — as its avatar. */}
+          {/* eslint-disable-next-line @next/next/no-img-element -- tiny static brand icon; next/image overhead not warranted */}
+          <img
+            src="/icon.svg"
+            alt=""
+            width={34}
+            height={34}
+            className="h-[34px] w-[34px] rounded-[11px] shadow-[0_2px_8px_rgba(10,46,54,.18)]"
+          />
           <span className="absolute -bottom-px -right-px h-2.5 w-2.5 rounded-full border-2 border-white bg-[#3FD07A]" />
         </div>
         <div className="leading-[1.2]">
@@ -272,14 +270,8 @@ export function ChatCopilot({
               className="mx-auto mb-3.5 grid h-[54px] w-[54px] place-items-center rounded-2xl border border-[#E3EEEC]"
               style={{ background: 'linear-gradient(140deg,#EAF7F5,#fff)' }}
             >
-              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3Z"
-                  fill="#F76C5E"
-                />
-                <circle cx={18} cy={17} r={1.6} fill="#C98A12" />
-                <circle cx={5.5} cy={15.5} r={1.2} fill="#0E8C92" />
-              </svg>
+              {/* eslint-disable-next-line @next/next/no-img-element -- tiny static brand icon */}
+              <img src="/icon.svg" alt="" width={34} height={34} className="rounded-[10px]" />
             </div>
             <p className="m-0 mb-1 font-display text-[17px] font-semibold text-ink">
               {t('Plan your day with me')}

@@ -46,12 +46,8 @@ export function ActivityCard({
       className={`overflow-hidden rounded-[14px] border border-[#F8D3CE] bg-white shadow-[0_8px_22px_rgba(247,108,94,.14)] ${compact ? '' : 'animate-float-in'}`}
     >
       <div className="flex items-center gap-2 bg-gradient-to-r from-[#FDECEA] to-white px-3 py-1.5">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <path
-            d="M12 3l2.3 4.7 5.2.3-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z"
-            fill="#F76C5E"
-          />
-        </svg>
+        {/* eslint-disable-next-line @next/next/no-img-element -- tiny static brand icon */}
+        <img src="/icon.svg" alt="" width={14} height={14} className="rounded-[4px]" />
         <span className="text-[10.5px] font-extrabold uppercase tracking-[0.05em] text-coral">
           {t('Belle Mare Tours activity · {date}', { date: shortDate(date) })}
         </span>
