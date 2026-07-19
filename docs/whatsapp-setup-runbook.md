@@ -96,16 +96,21 @@ it in the password manager; Meta asks for it again on re-registration and there 
 The dashboard button swallows Meta's actual error. **Call the register endpoint directly** — it returns
 the real code and message, which turns this from guesswork into a two-minute fix:
 
-```bash
-curl.exe -X POST "https://graph.facebook.com/v20.0/1146005161940831/register" ^
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"messaging_product\":\"whatsapp\",\"pin\":\"YOUR_6_DIGIT_PIN\"}"
+Open a terminal (Win → "terminal") and paste this as a **single line** — form-encoded parameters, so
+there is no nested-quote escaping to get wrong, and it behaves identically in PowerShell, CMD and bash:
+
+```
+curl.exe -X POST "https://graph.facebook.com/v20.0/1146005161940831/register" -d "messaging_product=whatsapp" -d "pin=YOUR_6_DIGIT_PIN" -d "access_token=YOUR_ACCESS_TOKEN"
 ```
 
-Use `curl.exe`, not PowerShell's `Invoke-RestMethod` — on Windows PowerShell 5.1 the latter throws away
-the response body on a 4xx, which is the only part worth reading. A temporary token from the dashboard's
-"Step 1. Try it out" tab is fine for this.
+Two Windows traps this avoids: `^` line-continuations are CMD-only and break in PowerShell, and `curl`
+in PowerShell is an alias for `Invoke-WebRequest` — which discards the response body on a 4xx, i.e. the
+only part worth reading. Hence `curl.exe` and one line. A temporary token from the dashboard's
+"Step 1. Try it out" tab is fine here.
+
+**GUI alternative:** the [Graph API Explorer](https://developers.facebook.com/tools/explorer/) does the
+same thing without a terminal — pick the app, switch `GET` to `POST`, path `1146005161940831/register`,
+add `messaging_product=whatsapp` and `pin=<six digits>`, Submit. It prints the full error JSON.
 
 Causes, most likely first:
 
