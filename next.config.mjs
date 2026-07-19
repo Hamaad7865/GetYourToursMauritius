@@ -1,4 +1,5 @@
 import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev';
+import { CANONICAL_HOST, KEEP_HOST, PREVIEW_HOST } from './config/canonical-host.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -22,31 +23,26 @@ const nextConfig = {
   // /airport-transfer page in favour of the full /airport-transfers hub. (Source paths are exact —
   // `/airport-transfer` does NOT match the `/activities/airport-transfer` product or its API route.)
   async redirects() {
-    // Canonical-host consolidation (review item 12): the app is reachable on five origins — both
-    // domains, both www variants and the bare pages.dev — which splits cookies/localStorage (a cart
-    // built on one origin is empty on another) and can change origin across a payment return. Each
-    // non-canonical host 308s to bellemaretours.com, path + query preserved. Hosts are matched
-    // EXACTLY, so hash-prefixed *.pages.dev PREVIEW deployments never redirect (they'd be unusable
-    // for testing otherwise), and localhost is untouched. Zone-level rules (owner-managed) remain
-    // preferable where they exist — these catch what reaches the app, incl. pages.dev which has no
-    // zone to put a rule on.
-    const NON_CANONICAL_HOSTS = [
-      'getyourtoursmauritius.com',
-      'www.getyourtoursmauritius.com',
-      'www.bellemaretours.com',
-      // The Pages PROJECT was renamed to `bellemaretours` (wrangler.toml), which changed the
-      // subdomain — so the old getyourtoursmauritius.pages.dev listed here no longer resolves while
-      // the real production origin went unguarded, serving a complete crawlable copy of the site (and
-      // re-opening the split-cart / payment-origin problem this list exists to prevent).
-      'bellemaretours.pages.dev',
-    ];
+    // Canonical-host consolidation (review item 12). The app is reachable on several origins — retired
+    // domains, www variants and the bare Cloudflare project origin — which splits cookies/localStorage
+    // (a cart built on one origin is empty on another) and can change origin across a payment return.
+    //
+    // This is an ALLOW-LIST, not a block-list, and that is deliberate. An earlier version enumerated the
+    // non-canonical hostnames, which failed twice: it went stale when a hostname assumption turned out
+    // to be wrong, and it silently left the REAL origin unguarded while looking correct. Inverting it
+    // means a host we have never heard of — a retired domain, a project origin, a future alias — is
+    // non-canonical BY CONSTRUCTION and 308s here with path + query preserved, without this file
+    // needing to know its name.
+    //
+    // The exemption list and the regex-precedence trap it has to avoid live in config/canonical-host.mjs,
+    // which tests/unit/canonical-host.test.ts pins against Next's real `^…$` matching semantics.
     return [
-      ...NON_CANONICAL_HOSTS.map((host) => ({
+      {
         source: '/:path*',
-        has: [{ type: 'host', value: host }],
-        destination: 'https://bellemaretours.com/:path*',
+        missing: [{ type: 'host', value: KEEP_HOST }],
+        destination: `https://${CANONICAL_HOST}/:path*`,
         permanent: true,
-      })),
+      },
       {
         source: '/mauritius-airport-transfers',
         destination: '/airport-transfers',
@@ -103,14 +99,15 @@ const nextConfig = {
     ];
     return [
       { source: '/(.*)', headers: security },
-      // Preview deployments (<hash>.bellemaretours.pages.dev) are deliberately exempt from the
-      // canonical-host 308 above so they stay usable for testing — but nothing then stopped a crawler
-      // indexing them, and a preview built without NEXT_PUBLIC_SITE_URL bakes localhost canonicals
-      // into its pages and robots.txt. Keep them out of the index at the header level, which does not
-      // depend on the preview's env being right. Matches only hash-prefixed hosts, never the apex.
+      // Preview deployments are the one origin exempt from the canonical-host 308 above (they must
+      // stay reachable to be testable), so they are also the one origin a crawler could still index —
+      // and a preview built without NEXT_PUBLIC_SITE_URL bakes localhost canonicals into its pages and
+      // robots.txt. Keep them out of the index at the header level, which does not depend on the
+      // preview's env being right. Same shape as the redirect's exemption: TWO labels before
+      // `.pages.dev` is a preview; one is a bare project origin, which 308s and never gets here.
       {
         source: '/(.*)',
-        has: [{ type: 'host', value: '.+\\.bellemaretours\\.pages\\.dev' }],
+        has: [{ type: 'host', value: PREVIEW_HOST }],
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
       },
       // /checkout must NEVER be cached or served from the bfcache: it mints/holds a booking and a
