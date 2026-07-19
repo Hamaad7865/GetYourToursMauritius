@@ -1,6 +1,7 @@
-// Owner alerts ride the same drain: resolve the Telegram sentinel so all confirmation-time rows
-// send here (the unconfigured fail-loud path is covered by booking-flow.test.ts).
+// Owner alerts ride the same drain: resolve the Telegram + WhatsApp sentinels so all
+// confirmation-time rows send here (the unconfigured fail-loud path is covered by booking-flow.test.ts).
 process.env.TELEGRAM_OWNER_CHAT_ID = '-1002233445566';
+process.env.OWNER_WHATSAPP_TO = '23057729919';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
@@ -138,7 +139,7 @@ describe('transfer booking_confirmation drain → receipt attached, e-voucher li
   it('attaches only the tax receipt and links the e-voucher (no voucher PDF in the email)', async () => {
     const provider = new CapturingProvider();
     const result = await drainNotifications(ctx, provider);
-    expect(result).toEqual({ processed: 3, sent: 3, failed: 0 });
+    expect(result).toEqual({ processed: 4, sent: 4, failed: 0 });
 
     const msg = provider.messages.find((m) => m.template === 'booking_confirmation')!;
     expect(msg).toBeTruthy();
