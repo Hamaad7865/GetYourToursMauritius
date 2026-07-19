@@ -9,6 +9,11 @@ import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
+/** Areas that have a dedicated long-form things-to-do guide beyond this overview page. */
+const AREA_GUIDES: Record<string, string> = {
+  'belle-mare': '/things-to-do-in-belle-mare',
+};
+
 export async function generateMetadata({
   params,
 }: {
@@ -109,6 +114,14 @@ export default async function DestinationDetailPage({
             Things to do in {a.name}
           </h2>
           <List items={a.highlights} />
+          {AREA_GUIDES[a.slug] && (
+            <Link
+              href={AREA_GUIDES[a.slug]!}
+              className="mt-5 mr-5 inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"
+            >
+              Read the full things-to-do guide for {a.name} →
+            </Link>
+          )}
           <Link
             href="/attractions"
             className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"

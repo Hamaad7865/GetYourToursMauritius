@@ -146,12 +146,14 @@ export default async function BelleMareToursPage() {
             Belle Mare is known for one of the island’s longest, calmest white-sand beaches and its
             turquoise lagoon, with Île aux Cerfs and Trou d’Eau Douce just down the coast. Being
             based here means quick, unhurried pickups for eastern resorts and an easy run to the
-            boat jetties — but we collect from anywhere on the island. Read more about the area and
-            its neighbours in our guide to the{' '}
+            boat jetties — but we collect from anywhere on the island. See our local guide to{' '}
+            <InlineLink href="/things-to-do-in-belle-mare">things to do in Belle Mare</InlineLink>,
+            or read about the area and its neighbours in our guide to the{' '}
             <InlineLink href="/destinations">regions of Mauritius</InlineLink>.
           </p>
           <RelatedLinks
             links={[
+              { label: 'Things to do in Belle Mare', href: '/things-to-do-in-belle-mare' },
               { label: 'Our tours', href: '/mauritius-tours' },
               { label: 'Airport transfers', href: '/airport-transfers' },
               { label: 'Things to do', href: '/attractions' },

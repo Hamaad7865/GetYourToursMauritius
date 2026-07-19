@@ -87,6 +87,13 @@ export const SEO_PAGES: SeoPage[] = [
       'The best things to do in Mauritius — beaches, waterfalls, viewpoints, islands and cultural sights, with local tips from Belle Mare Tours.',
   },
   {
+    path: '/things-to-do-in-belle-mare',
+    label: 'Things to do in Belle Mare',
+    defaultTitle: 'Things to Do in Belle Mare — Best Activities, Beaches & Day Trips',
+    defaultDescription:
+      'The best things to do in Belle Mare, Mauritius — beach and lagoon activities, Île aux Cerfs boat trips, catamaran cruises, kitesurfing, golf and day tours, from the licensed local operator based right here on the east coast.',
+  },
+  {
     path: '/destinations',
     label: 'Destinations (area guides)',
     defaultTitle: 'Mauritius Destinations — Area Guides by Region',

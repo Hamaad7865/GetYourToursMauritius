@@ -131,7 +131,8 @@ export default async function RentPage() {
           <p>
             We rent to guests staying in the Belle Mare area and deliver there for free — then talk
             you through the route options for wherever you want to drive, from a lazy coastal loop
-            to a full island day trip.
+            to a full island day trip. Need inspiration first? See our local guide to{' '}
+            <InlineLink href="/things-to-do-in-belle-mare">things to do in Belle Mare</InlineLink>.
           </p>
         </ContentSection>
 

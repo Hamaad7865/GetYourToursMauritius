@@ -36,6 +36,7 @@ const COLUMNS = [
       { label: 'Mauritius travel guide', href: '/mauritius-travel-guide' },
       { label: 'Mauritius destinations', href: '/destinations' },
       { label: 'Things to do in Mauritius', href: '/attractions' },
+      { label: 'Things to do in Belle Mare', href: '/things-to-do-in-belle-mare' },
       { label: 'Mauritius travel blog', href: '/blog' },
       { label: 'Belle Mare Tours', href: '/belle-mare-tours' },
       { label: 'About Belle Mare Tours', href: '/about' },

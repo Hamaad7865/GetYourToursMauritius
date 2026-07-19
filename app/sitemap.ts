@@ -16,6 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/activities`, changeFrequency: 'daily', priority: 0.9 },
     { url: `${base}/mauritius-tours`, changeFrequency: 'weekly', priority: 0.9 },
     { url: `${base}/attractions`, changeFrequency: 'weekly', priority: 0.7 },
+    { url: `${base}/things-to-do-in-belle-mare`, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${base}/airport-transfers`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${base}/mauritius-catamaran-cruise`, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${base}/ile-aux-cerfs-tours`, changeFrequency: 'weekly', priority: 0.8 },
