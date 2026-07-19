@@ -17,6 +17,8 @@ import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import {
   detailsHash,
   isBookingPayable,
+  routeDrift,
+  routeHash,
   selectionHash,
   shouldRehydrateBooking,
 } from '@/lib/checkout/selection';
@@ -167,8 +169,17 @@ export function Checkout() {
   // would rehydrate the OLD party's booking → pay() would skip creation AND the price-reconciliation
   // gate → wrong-amount charge (the P0). The persisted `sel` (a selectionHash of the price-relevant
   // fields) lets the caller rehydrate ONLY when the current selection matches.
-  function readBooking(): { idem: string; ref: string | null; sel: string; det: string } {
-    if (typeof window === 'undefined' || !occ) return { idem: '', ref: null, sel: '', det: '' };
+  // `rt` (the route fingerprint) is undefined — NOT '' — when the stash predates it, so the drift
+  // gate can tell "no route stored (legacy stash: skip the route check)" from a real hash.
+  function readBooking(): {
+    idem: string;
+    ref: string | null;
+    sel: string;
+    det: string;
+    rt: string | undefined;
+  } {
+    if (typeof window === 'undefined' || !occ)
+      return { idem: '', ref: null, sel: '', det: '', rt: undefined };
     try {
       const raw = window.sessionStorage.getItem(`gytm:booking:${occ}`);
       const b = raw ? JSON.parse(raw) : null;
@@ -177,9 +188,10 @@ export function Checkout() {
         ref: b?.bookingRef || null,
         sel: b?.sel || '',
         det: b?.det || '',
+        rt: typeof b?.rt === 'string' ? b.rt : undefined,
       };
     } catch {
-      return { idem: '', ref: null, sel: '', det: '' };
+      return { idem: '', ref: null, sel: '', det: '', rt: undefined };
     }
   }
   // The chosen route is stashed in sessionStorage (too big for the URL): by slug from Continue, by
@@ -705,6 +717,14 @@ export function Checkout() {
         company: 'company' in opCustomer ? opCustomer.company : null,
         specialNotes: 'specialNotes' in opCustomer ? opCustomer.specialNotes : null,
       });
+      // The route this pay() would put on the booking — read ONCE and used for BOTH the api_book
+      // payload and the route fingerprint below, so the two can never disagree about what was booked.
+      // Re-reading is deliberately avoided: pay() deletes the gytm:itinerary stash on a successful
+      // create, so a later read in the same mount (the warn→confirm re-run) sees null — harmless for
+      // the gate itself (an absent route never counts as drift, see routeDrift) but it would put a
+      // route on the payload that the hash didn't cover.
+      const itin = readItinerary();
+      const rt = routeHash(itin);
 
       // Create the booking once (idempotent + remembered); a retry reuses it.
       let ref = bookingRef;
@@ -720,7 +740,15 @@ export function Checkout() {
       // gone; such a stash also lacks `sel`, so it never rehydrates in the first place.)
       if (ref) {
         const stored = readBooking();
-        if (stored.det !== det) {
+        // Two drift inputs guard the rehydrated ref: the run-sheet DETAILS hash (review item 3's
+        // first half), and the ROUTE fingerprint (its second half — a stop swap/reorder can leave the
+        // price, and so `sel`, unchanged; paying the old booking would silently drive the customer
+        // the OLD route). The route check is skipped for legacy stashes (no `rt`) and whenever no
+        // ambient route is present at this run — see routeDrift for why absence must never drift.
+        if (
+          stored.det !== det ||
+          routeDrift({ storedRt: stored.rt, currentRt: rt, currentRouteAbsent: itin === null })
+        ) {
           // PAYABILITY CHECK — before the drift remedy may run. The remedy (abandon the ref, mint a
           // fresh payable booking) is only safe for a booking that could still be paid through. The
           // rehydrated booking may already be PAID: gytm:booking:${occ} deliberately survives payment
@@ -783,6 +811,20 @@ export function Checkout() {
           }
         }
       }
+      // NOT gated here: the no-ref replay case. The pre-create write below persists the idem key
+      // BEFORE the request, so a lost response can leave a booking on the server this client never
+      // saw a ref for; a later retry replays it and api_book returns that booking IGNORING today's
+      // payload — so a route/details change made in between is silently not booked. Detecting that is
+      // easy; REMEDYING it safely is not, and the remedy is what matters. The only remedy available
+      // (rotate the idem key so the server creates a fresh booking) would abandon a booking whose
+      // payability this client cannot check — it has no ref to GET — and that booking IS payable out
+      // of band: a payment_pending booking shows "Pay now" in /account/bookings and in the
+      // confirmation email (see ResumePaymentButton). Rotating blind would therefore re-create, on
+      // this path, exactly the double charge the payability gate above closes on the ref path.
+      // So this path deliberately keeps replaying: the customer may be booked on the old route (the
+      // pre-existing behaviour, no worse than before), and if the unseen booking was already paid the
+      // server's booking_not_payable refusal still catches it. The stash's `rt` is stamped from the
+      // RESPONSE below, so the fingerprint never lies about what a replayed booking carries.
       if (!ref) {
         // Persist the idem key + selection hash BEFORE the request so a crash/abort mid-flight still
         // reuses the same key on the retry (server then dedups → no duplicate booking), and a remount
@@ -791,7 +833,7 @@ export function Checkout() {
           if (occ)
             window.sessionStorage.setItem(
               `gytm:booking:${occ}`,
-              JSON.stringify({ idemKey: keyForBooking, sel, det }),
+              JSON.stringify({ idemKey: keyForBooking, sel, det, rt }),
             );
         } catch {
           /* sessionStorage unavailable — the key is still stable for the lifetime of this mount */
@@ -806,7 +848,7 @@ export function Checkout() {
             suv,
             childSeats,
             holdId: holdId || undefined,
-            itinerary: readItinerary(),
+            itinerary: itin,
             // Pickup + drop-off + every other run-sheet field (flight, room, luggage, trip legs) come
             // from opDetails above — the SAME object the details-drift hash covers, so the payload
             // and the hash can never disagree about what the customer typed. "I don't know yet" (tbd)
@@ -836,11 +878,28 @@ export function Checkout() {
             source: 'web',
             idempotencyKey: keyForBooking,
           }),
-        }).then((r) => parseApiJson<{ ref: string; totalEur?: number }>(r));
+        }).then((r) =>
+          parseApiJson<{
+            ref: string;
+            totalEur?: number;
+            customItinerary?: Array<{
+              title: string;
+              area?: string | null;
+              lat?: number;
+              lng?: number;
+            }> | null;
+          }>(r),
+        );
         if (!bookingRes.ok)
           throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
         ref = bookingRes.data.ref;
         setBookingRef(ref);
+        // Fingerprint the route the booking ACTUALLY carries (from the response), not the payload:
+        // on an idempotency-key replay the server returns the EXISTING booking and ignores today's
+        // itinerary, so stamping the payload's hash would record a route the booking doesn't have —
+        // and every later drift check would vouch for the wrong route. The response's customItinerary
+        // is authoritative on both the fresh-create and the replay path.
+        const bookedRt = routeHash(bookingRes.data.customItinerary ?? null);
         // Persist the booking IDENTITY (idem key + ref + selection hash + details hash) so a
         // Back/reload remount rehydrates it — but ONLY when the selection still matches, and pay()
         // re-verifies the DETAILS hash before reusing the ref — and goes straight to this booking's
@@ -850,7 +909,7 @@ export function Checkout() {
           if (occ)
             window.sessionStorage.setItem(
               `gytm:booking:${occ}`,
-              JSON.stringify({ idemKey: keyForBooking, bookingRef: ref, sel, det }),
+              JSON.stringify({ idemKey: keyForBooking, bookingRef: ref, sel, det, rt: bookedRt }),
             );
         } catch {
           /* sessionStorage unavailable — the in-state ref still guards this mount */

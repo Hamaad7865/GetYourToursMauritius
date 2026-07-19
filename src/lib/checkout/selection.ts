@@ -44,6 +44,22 @@ export type SelectionInput = {
   total: string;
 };
 
+/** A route (itinerary) normalized to only its position-bearing fields (title/area/lat/lng), keeping
+ *  stop ORDER — reordering stops is a different drive. Shared by `selectionHash` and `routeHash` so
+ *  the two can never disagree about what counts as "the same route". */
+function normalizeRoute(
+  itinerary: Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null,
+): Array<{ title: string; area: string | null; lat: number | null; lng: number | null }> | null {
+  return Array.isArray(itinerary)
+    ? itinerary.map((s) => ({
+        title: s?.title ?? '',
+        area: s?.area ?? null,
+        lat: typeof s?.lat === 'number' ? s.lat : null,
+        lng: typeof s?.lng === 'number' ? s.lng : null,
+      }))
+    : null;
+}
+
 /** A stable, order-independent string fingerprint of the price-relevant selection.
  *
  *  Pure + deterministic: a normalized object run through `JSON.stringify` with an explicit, fixed key
@@ -69,17 +85,50 @@ export function selectionHash(input: SelectionInput): string {
     pickupLng: input.pickupLng ?? null,
     pickupTbd: Boolean(input.pickupTbd),
     dropoffText: input.dropoffText ?? '',
-    itinerary: Array.isArray(input.itinerary)
-      ? input.itinerary.map((s) => ({
-          title: s?.title ?? '',
-          area: s?.area ?? null,
-          lat: typeof s?.lat === 'number' ? s.lat : null,
-          lng: typeof s?.lng === 'number' ? s.lng : null,
-        }))
-      : null,
+    itinerary: normalizeRoute(input.itinerary),
     total: input.total ?? '',
   };
   return JSON.stringify(normalized);
+}
+
+/** Fingerprint of the route pay() is about to put on the booking (audit item 3's second gate input).
+ *
+ *  Why the route is NOT simply another key inside `detailsHash`: adding a key to that hash changes
+ *  its shape, which would make every `det` already stashed in live browsers mismatch on the first
+ *  post-deploy Pay — a 100% false-drift wave through the (payability-gated but still wasteful)
+ *  abandon remedy. The route instead rides as its own `rt` field next to `det` in the booking stash;
+ *  a stash without `rt` (written by older code) simply skips the route check. Hash the SAME value the
+ *  api_book payload sends — never a fresh re-read of the gytm:itinerary stash, which pay() deletes on
+ *  a successful create. */
+export function routeHash(
+  itinerary: Array<{ title: string; area?: string | null; lat?: number; lng?: number }> | null,
+): string {
+  return JSON.stringify(normalizeRoute(itinerary));
+}
+
+/** Whether the CURRENT route diverges from the one the rehydrated booking was created with — i.e.
+ *  the customer re-customised the tour (swapped/reordered stops) after booking, in a way that may
+ *  not move the price (`sel` matches) yet changes where they'd be driven. Paying the old booking
+ *  would silently drive them the OLD route, so this joins the details drift as a reason to abandon
+ *  the ref (payability-checked first, as always).
+ *
+ *  Fails SAFE in every ambiguous case — it reports drift ONLY when all three hold:
+ *   - the stash carries `rt` (else it predates the route fingerprint: skip, never false-drift a
+ *     legacy stash during the deploy window);
+ *   - an ambient route is PRESENT at this pay() run (`currentRouteAbsent` false). An ABSENT route
+ *     stash is ambiguous — pay() deletes it on a successful create, and a mere tour-page revisit
+ *     resets the builder (which removes it) — so absence must read as "unchanged", never as "reverted
+ *     to default". The genuine revert-to-default case is therefore NOT caught here (a known,
+ *     deliberate gap: distinguishing it needs an explicit default marker from the builder);
+ *   - the two route hashes actually differ. */
+export function routeDrift(args: {
+  storedRt: string | undefined;
+  currentRt: string;
+  currentRouteAbsent: boolean;
+}): boolean {
+  if (args.storedRt === undefined) return false;
+  if (args.currentRouteAbsent) return false;
+  return args.storedRt !== args.currentRt;
 }
 
 /** Every OPERATIONAL (non-price) field pay() sends onto the booking — the run-sheet/voucher facts:

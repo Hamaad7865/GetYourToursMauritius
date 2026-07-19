@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   detailsHash,
   isBookingPayable,
+  routeDrift,
+  routeHash,
   selectionHash,
   shouldRehydrateBooking,
   type DetailsInput,
@@ -253,5 +255,65 @@ describe('isBookingPayable', () => {
     // A status/state added server-side later must not silently re-enable the risky remedy.
     expect(isBookingPayable({ status: 'some_future_state', paymentState: 'pending' })).toBe(false);
     expect(isBookingPayable({ status: 'held', paymentState: 'some_future_state' })).toBe(false);
+  });
+});
+
+// Audit item 3's second gate input: the route pay() puts on the booking, fingerprinted alongside
+// `det` so a stop swap/reorder that leaves the price (and so `sel`) unchanged still abandons the
+// rehydrated ref instead of silently driving the customer the OLD route.
+describe('routeHash', () => {
+  const route = [
+    { title: 'Black River Gorges', lat: -20.4, lng: 57.4 },
+    { title: 'Chamarel', area: 'South-West', lat: -20.43, lng: 57.39 },
+  ];
+
+  it('is deterministic and ignores non-positional metadata', () => {
+    expect(routeHash(route)).toBe(routeHash([...route.map((s) => ({ ...s }))]));
+    // Extra unknown fields on a stop don't perturb the hash (only title/area/lat/lng count).
+    const noisy: Parameters<typeof routeHash>[0] = route.map((s) => ({ ...s, image: 'x.jpg' }));
+    expect(routeHash(noisy)).toBe(routeHash(route));
+  });
+
+  it('differs on a swapped stop, a reordered route, and null-vs-route', () => {
+    expect(routeHash([route[0]!, { title: 'Grand Bassin', lat: -20.42, lng: 57.49 }])).not.toBe(
+      routeHash(route),
+    );
+    expect(routeHash([route[1]!, route[0]!])).not.toBe(routeHash(route));
+    expect(routeHash(null)).not.toBe(routeHash(route));
+  });
+
+  it('normalizes the same way selectionHash does (shared normalizer — the two can never disagree)', () => {
+    // Same route, one with undefined area, one with explicit null: identical fingerprints.
+    expect(routeHash([{ title: 'Chamarel', lat: -20.43, lng: 57.39 }])).toBe(
+      routeHash([{ title: 'Chamarel', area: null, lat: -20.43, lng: 57.39 }]),
+    );
+  });
+});
+
+describe('routeDrift', () => {
+  const r1 = routeHash([{ title: 'Chamarel', lat: -20.43, lng: 57.39 }]);
+  const r2 = routeHash([{ title: 'Grand Bassin', lat: -20.42, lng: 57.49 }]);
+  const none = routeHash(null);
+
+  it('drifts when a PRESENT ambient route differs from the stored one (the audit case)', () => {
+    expect(routeDrift({ storedRt: r1, currentRt: r2, currentRouteAbsent: false })).toBe(true);
+    // Booked the default route, then customised one: also a route change.
+    expect(routeDrift({ storedRt: none, currentRt: r2, currentRouteAbsent: false })).toBe(true);
+  });
+
+  it('does not drift when the present route matches', () => {
+    expect(routeDrift({ storedRt: r1, currentRt: r1, currentRouteAbsent: false })).toBe(false);
+  });
+
+  it('NEVER drifts on a legacy stash (no rt) — the deploy-window fail-safe', () => {
+    expect(routeDrift({ storedRt: undefined, currentRt: r2, currentRouteAbsent: false })).toBe(
+      false,
+    );
+  });
+
+  it('NEVER drifts when the ambient route is absent — deleted-on-create / tour-page-reset ambiguity', () => {
+    // pay() removes the itinerary stash on a successful create, and a mere tour-page revisit resets
+    // the builder (removing it too) — absence must read as "unchanged", not "reverted to default".
+    expect(routeDrift({ storedRt: r1, currentRt: none, currentRouteAbsent: true })).toBe(false);
   });
 });
