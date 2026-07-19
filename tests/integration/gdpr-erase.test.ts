@@ -68,8 +68,12 @@ const bookingRow = async (db: TestDb, id: string) =>
       status: string;
       total_minor: number | string;
       special_notes: string | null;
+      pickup_location: string | null;
+      dropoff_location: string | null;
     }>(
-      `select id, customer_name, customer_email, customer_phone, status, total_minor, special_notes from bookings where id = $1`,
+      `select id, customer_name, customer_email, customer_phone, status, total_minor, special_notes,
+              pickup_location, dropoff_location
+         from bookings where id = $1`,
       [id],
     )
   ).rows[0];
@@ -125,8 +129,14 @@ describe('api_erase_user — anonymize-with-retention', () => {
     const totalBefore = Number((await bookingRow(db, confirmedId))!.total_minor);
     // Stamp a transfer-PII field on the retained booking so we can assert it is nulled by erasure
     // (the airport-transfer columns must be stripped alongside name/email/phone).
+    // pickup_location / dropoff_location are real addresses the customer typed — PII, and not part of
+    // the retained money trail — so they must be nulled too. They were missed until 20260816000000.
     await db.pg.query(
-      `update bookings set special_notes = 'Wheelchair access please' where id = $1`,
+      `update bookings
+          set special_notes = 'Wheelchair access please',
+              pickup_location = '12 Rue des Manguiers, Trou d''Eau Douce',
+              dropoff_location = 'Ambre Mauritius, Palmar'
+        where id = $1`,
       [confirmedId],
     );
 
@@ -161,6 +171,9 @@ describe('api_erase_user — anonymize-with-retention', () => {
     expect(conf.customer_email).not.toBe(U_EMAIL); // real PII gone
     expect(conf.customer_phone).toBeNull();
     expect(conf.special_notes).toBeNull(); // transfer PII stripped alongside the contact fields
+    // The customer's home/hotel address must not survive an erasure request.
+    expect(conf.pickup_location).toBeNull();
+    expect(conf.dropoff_location).toBeNull();
     expect(conf.status).toBe('confirmed'); // UNCHANGED
     expect(Number(conf.total_minor)).toBe(totalBefore); // UNCHANGED
 
