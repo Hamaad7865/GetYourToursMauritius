@@ -498,17 +498,21 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
         `select channel, recipient from notification_outbox where template = 'owner_new_booking' order by channel`,
       )
     ).rows;
-    // Owner rows carry the 'owner' sentinel — the drain resolves the real address from env at send time.
+    // Owner rows carry the 'owner' sentinel — the drain resolves the real address from env at send
+    // time. Channel is an ENUM: declaration order puts 'whatsapp' before the later-added 'telegram'.
     expect(ownerRows).toEqual([
       { channel: 'email', recipient: 'owner' },
+      { channel: 'whatsapp', recipient: 'owner' },
       { channel: 'telegram', recipient: 'owner' },
     ]);
 
     // Force the unconfigured state: process.env is shared across test files within a vitest worker,
-    // so another suite may have set the chat id before this file ran.
+    // so another suite may have set the chat id / number before this file ran.
     delete process.env.TELEGRAM_OWNER_CHAT_ID;
-    // Drain with the no-op stub provider. TELEGRAM_OWNER_CHAT_ID is unset here, so the Telegram alert
-    // FAILS LOUDLY (visible in the outbox) instead of silently messaging nobody; both emails send.
+    delete process.env.OWNER_WHATSAPP_TO;
+    // Drain with the no-op stub provider. TELEGRAM_OWNER_CHAT_ID and OWNER_WHATSAPP_TO are unset
+    // here, so BOTH chat alerts FAIL LOUDLY (visible in the outbox) instead of silently messaging
+    // nobody; both emails send.
     const ctx: ServiceContext = {
       db: pgliteRpc(db.pg),
       payments: new StubPaymentProvider(),
@@ -516,7 +520,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       now: () => new Date(),
     };
     const result = await drainNotifications(ctx, new StubNotificationProvider());
-    expect(result).toEqual({ processed: 3, sent: 2, failed: 1 });
+    expect(result).toEqual({ processed: 4, sent: 2, failed: 2 });
 
     const sent = (
       await db.pg.query<{ status: string; sent_at: string | null }>(
@@ -532,5 +536,12 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
     ).rows[0]!;
     expect(tg.status).not.toBe('sent');
     expect(tg.last_error).toMatch(/TELEGRAM_OWNER_CHAT_ID/);
+    const wa = (
+      await db.pg.query<{ status: string; last_error: string | null }>(
+        `select status, last_error from notification_outbox where template = 'owner_new_booking' and channel = 'whatsapp'`,
+      )
+    ).rows[0]!;
+    expect(wa.status).not.toBe('sent');
+    expect(wa.last_error).toMatch(/OWNER_WHATSAPP_TO/);
   });
 });

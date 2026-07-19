@@ -2,6 +2,7 @@
 // (and cache) getServerEnv in this file's module registry.
 process.env.TELEGRAM_OWNER_CHAT_ID = '-1002233445566';
 process.env.OWNER_NOTIFY_EMAIL = 'owner-alerts@bellemaretours.test';
+process.env.OWNER_WHATSAPP_TO = '23057729919';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
@@ -77,7 +78,7 @@ describe('owner booking alerts', () => {
     await db.close();
   });
 
-  it('confirmation enqueues the owner email + Telegram rows with the owner sentinel', async () => {
+  it('confirmation enqueues the owner email + Telegram + WhatsApp rows with the owner sentinel', async () => {
     await db.asOwner();
     const rows = (
       await db.pg.query<{ channel: string; recipient: string; template: string }>(
@@ -85,10 +86,12 @@ describe('owner booking alerts', () => {
         [bookingId],
       )
     ).rows;
-    // order by channel, template → email/confirmation, email/owner, telegram/owner
+    // order by channel, template — notification_channel is an ENUM, so it sorts by declaration
+    // order ('email', 'whatsapp', then the later-added 'telegram'), not alphabetically.
     expect(rows).toEqual([
       { channel: 'email', recipient: 'miguel@example.com', template: 'booking_confirmation' },
       { channel: 'email', recipient: 'owner', template: 'owner_new_booking' },
+      { channel: 'whatsapp', recipient: 'owner', template: 'owner_new_booking' },
       { channel: 'telegram', recipient: 'owner', template: 'owner_new_booking' },
     ]);
   });
@@ -115,7 +118,7 @@ describe('owner booking alerts', () => {
         [bookingId],
       )
     ).rows[0]!.n;
-    expect(outboxCount).toBe(2); // one email + one telegram, not four
+    expect(outboxCount).toBe(3); // one email + one telegram + one whatsapp, not six
     const feedCount = (
       await db.pg.query<{ n: number }>(
         `select count(*)::int as n from notifications where type = 'admin_new_booking' and data ->> 'bookingId' = $1`,
@@ -135,7 +138,7 @@ describe('owner booking alerts', () => {
     };
     const provider = new CapturingProvider();
     const result = await drainNotifications(ctx, provider, 20);
-    expect(result).toEqual({ processed: 3, sent: 3, failed: 0 });
+    expect(result).toEqual({ processed: 4, sent: 4, failed: 0 });
 
     const ownerEmail = provider.messages.find(
       (m) => m.template === 'owner_new_booking' && m.channel === 'email',
@@ -152,5 +155,12 @@ describe('owner booking alerts', () => {
     expect(tg.recipient).toBe('-1002233445566');
     expect(tg.text).toContain(ref);
     expect(tg.text).toContain('3 guests');
+
+    const wa = provider.messages.find(
+      (m) => m.template === 'owner_new_booking' && m.channel === 'whatsapp',
+    )!;
+    expect(wa.recipient).toBe('23057729919');
+    expect(wa.text).toContain(ref);
+    expect(wa.text).toContain('3 guests');
   });
 });
