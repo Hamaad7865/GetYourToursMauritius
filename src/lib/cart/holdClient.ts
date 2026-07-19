@@ -73,33 +73,47 @@ export async function getHoldStatus(
 }
 
 /**
- * Release a held spot. Returns whether it actually released — the previous version was fire-and-forget
- * (`.catch(() => {})`) and never checked `res.ok`, so a 4xx/5xx silently left the seat reserved for the
- * full 30-minute hold TTL (a temporary double-reserve). Now it checks the response and retries once on a
- * transient (network / 5xx) failure. A 4xx is not retried — notably an anonymous/guest hold, which the
- * auth-gated route cannot release; that seat is reclaimed by the hold-expiry + maintenance sweep. Never
- * throws, so a caller can still fire it without awaiting.
+ * The outcome of a release attempt, and — when it failed — whether retrying could ever help.
+ *
+ * `permanent` is the important bit for the retry queue (review item 5): a 4xx means this caller will
+ * NEVER release this hold, however many times it asks — 401 on a guest hold (no owner, so the
+ * auth-gated route can't free it), 403 not-owner, 404 gone, 409 already attached to a booking. Those
+ * are dropped from the queue immediately instead of being retried every tick until the hold's TTL
+ * lapses. A transient failure (offline, 5xx, timeout) stays queued and is retried.
  */
-export async function releaseHoldRequest(holdId: string): Promise<boolean> {
+export type ReleaseOutcome = { ok: true } | { ok: false; permanent: boolean; status?: number };
+
+/**
+ * Release a held spot. The original was fire-and-forget (`.catch(() => {})`) and never checked
+ * `res.ok`, so any failure silently left the seat reserved for the full 30-minute hold TTL (a
+ * temporary double-reserve). It now reports the outcome — including WHY it failed — and retries once
+ * in-line on a transient failure; the caller's queue owns any further retries. Never throws, so a
+ * caller can still fire it without awaiting.
+ */
+export async function releaseHoldRequest(holdId: string): Promise<ReleaseOutcome> {
+  let lastStatus: number | undefined;
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
       const res = await fetch(`/api/v1/holds/${holdId}/release`, {
         method: 'POST',
         headers: await authHeaders(),
       });
-      if (res.ok) return true;
+      if (res.ok) return { ok: true };
+      lastStatus = res.status;
       if (res.status >= 400 && res.status < 500) {
-        // A permanent rejection (403 not-owner, 404, 409 attached, 401 guest) — retrying won't help.
+        // A permanent rejection (401 guest, 403 not-owner, 404 gone, 409 attached) — retrying won't
+        // help. That seat is reclaimed by the hold-expiry + maintenance sweep instead.
         console.warn(`releaseHoldRequest: ${holdId} not released (${res.status})`);
-        return false;
+        return { ok: false, permanent: true, status: res.status };
       }
       // 5xx → fall through and retry once.
     } catch {
       // Network error → retry once.
+      lastStatus = undefined;
     }
   }
   console.warn(`releaseHoldRequest: ${holdId} release failed after retry`);
-  return false;
+  return { ok: false, permanent: false, status: lastStatus };
 }
 
 /**

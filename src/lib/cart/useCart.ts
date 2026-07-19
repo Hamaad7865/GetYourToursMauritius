@@ -14,6 +14,13 @@ import {
   fetchMyPendingBookings,
   type PendingBooking,
 } from './holdClient';
+import {
+  pruneEntries,
+  queueRelease,
+  readReleaseQueue,
+  unqueueRelease,
+  writeReleaseQueue,
+} from './release-queue';
 import { pushNotification } from '@/lib/notifications/inbox';
 
 const KEY = 'gytm:cart';
@@ -24,6 +31,28 @@ const EVENT = 'gytm:cart';
  *  useEffect), so SSR never touches it. */
 const PENDING_EVENT = 'gytm:pending';
 let pendingCache: PendingBooking[] = [];
+/** Hold ids with a release request currently out, shared by every useCart() instance in the tab.
+ *  This hook is mounted site-wide (header) AND on the cart page, so without it both instances would
+ *  fire a release for the same queued hold on every tick. */
+const releasesInFlight = new Set<string>();
+
+/** Release a hold durably: record it BEFORE the request (a tab closing mid-request is exactly the
+ *  case the retry queue exists for — a write in the `.then()` would never run), then clear it once
+ *  the server confirms the release OR permanently refuses it (401 guest / 403 not-owner / 404 / 409
+ *  attached). A transient failure leaves the entry queued for the cart's tick to retry. */
+async function releaseHoldTracked(holdId: string): Promise<void> {
+  // Already out? The in-flight caller has queued it — re-queuing here would only inflate its attempt
+  // count (and burn its retry budget) for a request that hasn't come back yet.
+  if (releasesInFlight.has(holdId)) return;
+  queueRelease(holdId);
+  releasesInFlight.add(holdId);
+  try {
+    const outcome = await releaseHoldRequest(holdId);
+    if (outcome.ok || outcome.permanent) unqueueRelease(holdId);
+  } finally {
+    releasesInFlight.delete(holdId);
+  }
+}
 /** @deprecated Kept for reference only — expiry is now driven by server hold expiresAt, not addedAt.
  *  Saved lines (no hold) persist indefinitely in the cart. */
 export const CART_TTL_MS = 30 * 60 * 1000;
@@ -160,23 +189,35 @@ export function useCart(opts?: { withPending?: boolean }) {
     write(kept);
   }, []);
 
+  // Retry hold releases that failed (or never completed — a tab closed mid-request). Prune first so
+  // an entry past the hold's own TTL, or past the attempt cap, is dropped rather than retried against
+  // a seat that is already free. Runs on the cart's existing tick and on mount; `releaseHoldTracked`
+  // de-dupes across the header + cart-page instances.
+  const drainReleaseQueue = useCallback(() => {
+    const pending = pruneEntries(readReleaseQueue(), Date.now());
+    writeReleaseQueue(pending);
+    for (const entry of pending) void releaseHoldTracked(entry.holdId);
+  }, []);
+
   useEffect(() => {
     const sync = () => setItems(read());
     sync();
     reconcile();
+    drainReleaseQueue();
     window.addEventListener(EVENT, sync);
     window.addEventListener('storage', sync);
     // Re-read periodically and prune expired holds so they drop out of the UI on their own.
     const t = window.setInterval(() => {
       reconcile();
       sync();
+      drainReleaseQueue();
     }, 15_000);
     return () => {
       window.removeEventListener(EVENT, sync);
       window.removeEventListener('storage', sync);
       window.clearInterval(t);
     };
-  }, [reconcile]);
+  }, [reconcile, drainReleaseQueue]);
 
   // Server reconcile on mount (held lines only): verify each remaining hold against the server and
   // drop it ONLY on a definite non-active status. A `null` (transient/auth failure) keeps the line
@@ -286,7 +327,7 @@ export function useCart(opts?: { withPending?: boolean }) {
     const held = read().find((i) => i.id === id);
     const releasing =
       held?.status === 'held' && Boolean(held.holdId) && guests !== held.guests ? held : null;
-    if (releasing?.holdId) void releaseHoldRequest(releasing.holdId);
+    if (releasing?.holdId) void releaseHoldTracked(releasing.holdId);
     write(
       read().map((i) => {
         if (i.id !== id) return i;
@@ -323,7 +364,7 @@ export function useCart(opts?: { withPending?: boolean }) {
   const removeHeld = useCallback((id: string) => {
     const line = read().find((i) => i.id === id);
     if (line?.status === 'held' && line.holdId) {
-      void releaseHoldRequest(line.holdId);
+      void releaseHoldTracked(line.holdId);
     }
     write(read().filter((i) => i.id !== id));
   }, []);
