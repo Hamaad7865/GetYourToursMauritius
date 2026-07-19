@@ -149,6 +149,35 @@ export function detailsHash(input: DetailsInput): string {
   return JSON.stringify(normalized);
 }
 
+/** Client-side mirror of `api_create_payment`'s payability guard, for the details-drift gate.
+ *
+ *  The drift gate's remedy — abandon the rehydrated ref and mint a FRESH payable booking — is only
+ *  safe when the abandoned booking could still have been paid through. Abandoning an already-PAID
+ *  booking routes around the server's `booking_not_payable` refusal and walks the customer into a
+ *  second live payment form for the same trip (the double charge). So before abandoning, pay()
+ *  fetches the booking and asks this predicate.
+ *
+ *  ALLOW-list, not a block-list: the server refuses payment for status in (confirmed, completed,
+ *  cancelled, expired, refund_pending, refunded, failed) OR payment_state in (paid,
+ *  partially_refunded, refunded). This inverts that as "payable only when status is a known
+ *  pre-payment state AND payment_state is a known unpaid state", so an unrecognised/missing value —
+ *  a future status, a malformed response — fails SAFE (treated as not payable → no fresh payable
+ *  booking is minted; the customer is told to start a new booking instead). */
+const PAYABLE_STATUSES = new Set(['draft', 'held', 'payment_pending']);
+const UNPAID_PAYMENT_STATES = new Set(['pending', 'failed']);
+
+export function isBookingPayable(booking: {
+  status?: string | null;
+  paymentState?: string | null;
+}): boolean {
+  return (
+    typeof booking.status === 'string' &&
+    PAYABLE_STATUSES.has(booking.status) &&
+    typeof booking.paymentState === 'string' &&
+    UNPAID_PAYMENT_STATES.has(booking.paymentState)
+  );
+}
+
 /** Whether the persisted booking identity (idemKey + bookingRef) may be rehydrated for this mount.
  *
  *  Rehydrate ONLY when:

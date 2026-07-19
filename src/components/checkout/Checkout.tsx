@@ -14,7 +14,12 @@ import { transfers, type Transfer } from '@/lib/content/transfers';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
-import { detailsHash, selectionHash, shouldRehydrateBooking } from '@/lib/checkout/selection';
+import {
+  detailsHash,
+  isBookingPayable,
+  selectionHash,
+  shouldRehydrateBooking,
+} from '@/lib/checkout/selection';
 import { useCart } from '@/lib/cart/useCart';
 import { parseApiJson } from '@/lib/http/fetch-json';
 import {
@@ -716,6 +721,57 @@ export function Checkout() {
       if (ref) {
         const stored = readBooking();
         if (stored.det !== det) {
+          // PAYABILITY CHECK — before the drift remedy may run. The remedy (abandon the ref, mint a
+          // fresh payable booking) is only safe for a booking that could still be paid through. The
+          // rehydrated booking may already be PAID: gytm:booking:${occ} deliberately survives payment
+          // success precisely so a post-payment Back hits the server's booking_not_payable refusal —
+          // but that refusal lives on the rehydrated-ref path, and drifting here would route around it
+          // and hand the customer a second live payment form (a double charge; reachable today because
+          // gytm:pickup:${occ} is cleared on success while pickupLocation is volatile form state). So:
+          // fetch the booking and only abandon it when it is still payable; otherwise fall through to
+          // the SAME handling as api_create_payment's booking_not_payable. A TRANSIENT fetch failure
+          // (network / 5xx / non-JSON) fails CLOSED (retryable error, nothing abandoned, nothing
+          // created) — mirroring the rehydrated-path price GET below: never mint a payable booking on
+          // an unverified state. A DEFINITIVE miss (not_found/forbidden) instead drops the dead ref —
+          // see below.
+          const chk = await fetch(`/api/v1/bookings/${encodeURIComponent(ref)}`, {
+            headers,
+          }).then((r) => parseApiJson<{ status?: string; paymentState?: string }>(r));
+          // A DEFINITIVE ownership failure (404 RLS-hidden / 403) is not transient: the stashed ref
+          // belongs to a booking THIS caller cannot even read — a different account signed in on the
+          // same tab (the stash is occurrence-keyed, not user-keyed), or a vanished row. Retrying can
+          // never succeed, so failing closed here would present a permanent error as "try again" and
+          // brick this occurrence in this tab. Dropping the ref instead is safe: a caller who cannot
+          // read the booking can never pay it either (api_create_payment raises `forbidden` for
+          // non-owners), so no double charge can come from abandoning it.
+          const definitiveMiss =
+            !chk.ok && (chk.error?.code === 'not_found' || chk.error?.code === 'forbidden');
+          if (!chk.ok && !definitiveMiss) {
+            throw new Error(
+              t('We could not verify the price of this booking. Please try again in a moment.'),
+            );
+          }
+          if (definitiveMiss || !isBookingPayable(chk.data ?? {})) {
+            // Same handling as the booking_not_payable refusal below: drop the dead ref so a
+            // Back/reload no longer rehydrates it, and stop WITHOUT creating anything payable.
+            //
+            // Key rotation — definitive miss ONLY: the mount idemKey came from the foreign/vanished
+            // booking's stash, so a same-mount retry would replay that booking (api_book's ownership
+            // guard then rejects it forever). A fresh key lets the retry create the caller's OWN
+            // booking. Deliberately NOT rotated on the not-payable (same-user, already-PAID) case:
+            // there, a retry must keep replaying the paid booking into the server's refusal rather
+            // than silently minting a second payable booking for a customer who already paid.
+            if (definitiveMiss) setDetailsOverrideKey(crypto.randomUUID());
+            try {
+              if (occ) window.sessionStorage.removeItem(`gytm:booking:${occ}`);
+            } catch {
+              /* sessionStorage unavailable — nothing to clear */
+            }
+            setBookingRef(null);
+            setError(t('This booking is already paid or has expired — start a new booking.'));
+            setBusy(false);
+            return;
+          }
           keyForBooking = crypto.randomUUID();
           setDetailsOverrideKey(keyForBooking);
           setBookingRef(null);

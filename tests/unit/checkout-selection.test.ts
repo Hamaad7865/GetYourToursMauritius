@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   detailsHash,
+  isBookingPayable,
   selectionHash,
   shouldRehydrateBooking,
   type DetailsInput,
@@ -207,5 +208,50 @@ describe('detailsHash', () => {
     const before = selectionHash(sel);
     void detailsHash({ ...base, flightNumber: 'MK043' });
     expect(selectionHash(sel)).toBe(before);
+  });
+});
+
+// The drift gate's safety interlock: the remedy for drifted details (abandon the ref, mint a fresh
+// PAYABLE booking) may only run against a booking the server would still let the customer pay. This
+// predicate mirrors api_create_payment's booking_not_payable guard — abandoning a PAID booking would
+// route around that refusal and produce a second live charge for the same trip.
+describe('isBookingPayable', () => {
+  it('allows the pre-payment states the server allows through', () => {
+    for (const status of ['draft', 'held', 'payment_pending']) {
+      expect(isBookingPayable({ status, paymentState: 'pending' })).toBe(true);
+      // A failed earlier attempt is retryable server-side, so the drift remedy stays available.
+      expect(isBookingPayable({ status, paymentState: 'failed' })).toBe(true);
+    }
+  });
+
+  it('refuses every paid payment state regardless of status (the double-charge case)', () => {
+    for (const paymentState of ['paid', 'partially_refunded', 'refunded']) {
+      expect(isBookingPayable({ status: 'payment_pending', paymentState })).toBe(false);
+      expect(isBookingPayable({ status: 'confirmed', paymentState })).toBe(false);
+    }
+  });
+
+  it('refuses every terminal/confirmed status the server refuses', () => {
+    for (const status of [
+      'confirmed',
+      'completed',
+      'cancelled',
+      'expired',
+      'refund_pending',
+      'refunded',
+      'failed',
+    ]) {
+      expect(isBookingPayable({ status, paymentState: 'pending' })).toBe(false);
+    }
+  });
+
+  it('fails SAFE on missing or unrecognised values (allow-list, not block-list)', () => {
+    expect(isBookingPayable({})).toBe(false);
+    expect(isBookingPayable({ status: null, paymentState: null })).toBe(false);
+    expect(isBookingPayable({ status: 'payment_pending' })).toBe(false);
+    expect(isBookingPayable({ paymentState: 'pending' })).toBe(false);
+    // A status/state added server-side later must not silently re-enable the risky remedy.
+    expect(isBookingPayable({ status: 'some_future_state', paymentState: 'pending' })).toBe(false);
+    expect(isBookingPayable({ status: 'held', paymentState: 'some_future_state' })).toBe(false);
   });
 });
