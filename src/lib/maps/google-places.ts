@@ -1,6 +1,7 @@
 import { ProviderError } from '@/lib/services/errors';
 import { regionFromCoords } from '@/lib/services/pricing';
 import { cacheGet, cacheSet } from './places-cache';
+import { MAURITIUS_RECT } from '@/lib/geo/mauritius';
 import type { PlannerPlace } from '@/lib/validation/planner';
 
 // regionFromCoords lives in the pure pricing module (so client bundles can use it without this file's
@@ -36,11 +37,9 @@ const BROWSE_CATEGORIES = [
   'Market',
 ];
 
-/** Mauritius bounding box — restricts results to the island. */
-const MU_RECT = {
-  low: { latitude: -20.55, longitude: 57.29 },
-  high: { latitude: -19.95, longitude: 57.81 },
-};
+/** Mauritius bounding box — restricts results to the island. Shared with the pick-up geolocation
+ *  gate (src/lib/geo/mauritius.ts) so the two definitions of "on the island" can never drift. */
+const MU_RECT = MAURITIUS_RECT;
 
 export interface PlacesSearchArgs {
   query?: string;

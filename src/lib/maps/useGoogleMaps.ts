@@ -45,6 +45,12 @@ function loadMaps(apiKey: string): Promise<void> {
       loading: 'async',
       callback: CALLBACK,
       v: 'weekly',
+      // Pin the results language. Without this, Geocoder/Places return names in the VISITOR'S browser
+      // language — and a reverse-geocoded pick-up address flows onto the voucher PDF, whose WinAnsi
+      // encoder (toWinAnsi in src/lib/invoice/pdf.ts) DELETES anything outside printable Latin-1. A
+      // Cyrillic/Chinese/Arabic address would reach the driver mangled or blank. Matches the
+      // `languageCode: 'en'` already used server-side in src/lib/maps/google-places.ts.
+      language: 'en',
     });
     script.src = `https://maps.googleapis.com/maps/api/js?${params.toString()}`;
     script.async = true;

@@ -437,6 +437,27 @@ export const fr: Record<string, string> = {
     'C’est fait — j’ai avancé {place} pour que vous arriviez bien avant la fermeture.',
   "Sorry — I couldn't reach ZilAi just now. Browse places on the left and I'll keep the price live.":
     'Désolé — je n’ai pas pu joindre ZilAi pour le moment. Parcourez les lieux à gauche et je garde le prix à jour.',
+  // Pick-up location search + "use my current location" (Mauritius visitors only)
+  'Search a location': 'Rechercher un lieu',
+  'Popular pick-ups': 'Points de prise en charge populaires',
+  'Or type a hotel, town or place…': 'Ou saisissez un hôtel, une ville ou un lieu…',
+  'Searching…': 'Recherche…',
+  'No matches — try a nearby town or hotel name.':
+    'Aucun résultat — essayez une ville ou un hôtel à proximité.',
+  'Use my current location': 'Utiliser ma position actuelle',
+  'Finding your location…': 'Recherche de votre position…',
+  "That doesn't look like a Mauritius location — please search for your pick-up.":
+    'Cela ne semble pas être un lieu à Maurice — veuillez rechercher votre point de prise en charge.',
+  'Location is blocked for this site — allow it in your browser, or search below.':
+    'La localisation est bloquée pour ce site — autorisez-la dans votre navigateur, ou recherchez ci-dessous.',
+  "Your location isn't precise enough to pick you up — please search for it.":
+    'Votre position n’est pas assez précise pour venir vous chercher — veuillez la rechercher.',
+  'Location needs a secure connection — please search for your pick-up.':
+    'La localisation nécessite une connexion sécurisée — veuillez rechercher votre point de prise en charge.',
+  "Your browser can't share a location — please search for your pick-up.":
+    'Votre navigateur ne peut pas partager votre position — veuillez rechercher votre point de prise en charge.',
+  "We couldn't get your location — please search for your pick-up.":
+    'Nous n’avons pas pu obtenir votre position — veuillez rechercher votre point de prise en charge.',
   // Trip (date-range) mode
   'Plan my trip': 'Planifier mon voyage',
   Clear: 'Effacer',

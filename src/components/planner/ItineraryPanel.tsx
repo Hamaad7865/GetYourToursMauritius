@@ -55,6 +55,9 @@ export function ItineraryPanel({
   onRemoveActivity,
   dinner,
   onRemoveDinner,
+  onUseMyLocation,
+  locating,
+  locateError,
 }: {
   stops: PlannerPlace[];
   pickup: PlannerPoint;
@@ -83,6 +86,11 @@ export function ItineraryPanel({
   /** Trip mode: the evening's dinner suggestion (not part of the drive). */
   dinner?: PlannerPlace | null;
   onRemoveDinner?: () => void;
+  /** Offers "Use my current location" on the PICK-UP field only (never the drop-off). Undefined for
+   *  visitors outside Mauritius, who never see it. */
+  onUseMyLocation?: () => void;
+  locating?: boolean;
+  locateError?: string | null;
 }) {
   const t = useT();
   const dragFrom = useRef<number | null>(null);
@@ -138,7 +146,15 @@ export function ItineraryPanel({
         <div className="mb-[7px] block text-[11px] font-bold uppercase tracking-[0.04em] text-ink-muted">
           {t('Pick-up')}
         </div>
-        <PickupSearch value={pickup} onChange={onPickup} presets={PICKUPS} dotClassName="bg-ink" />
+        <PickupSearch
+          value={pickup}
+          onChange={onPickup}
+          presets={PICKUPS}
+          dotClassName="bg-ink"
+          onUseMyLocation={onUseMyLocation}
+          locating={locating}
+          locateError={locateError}
+        />
 
         <div className="mt-3 flex items-center justify-between">
           <span className="text-[11px] font-bold uppercase tracking-[0.04em] text-ink-muted">

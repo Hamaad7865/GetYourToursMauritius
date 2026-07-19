@@ -29,6 +29,7 @@ import { stopsToParam } from '@/lib/planner/share';
 import { parseTripParams, tripDates, tripToParams, type TripDayPlan } from '@/lib/planner/trip';
 import type { BmtActivity, BmtCandidate } from '@/lib/planner/our-activities';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
+import { detectPickup, geolocationAlreadyGranted } from '@/lib/geo/detect-pickup';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { ChatMsg, Boost } from './types';
 import { useMoney, useT } from '@/components/site/PreferencesProvider';
@@ -57,7 +58,7 @@ function dayDateLabel(dayKey: string): string {
  * them. The co-pilot is the real grounded agent; the map is the real Google map with a red car;
  * "Get my quote" runs the live availability → hold → /checkout booking.
  */
-export function PlannerShell() {
+export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLocation?: boolean }) {
   const router = useRouter();
   const t = useT();
   const money = useMoney();
@@ -600,10 +601,85 @@ export function PlannerShell() {
     );
   }, []);
   // Changing the pickup to the current drop-off would leave a contradictory drop-off selected; clear it.
+  // Every write bumps `pickupWriteSeq`, which is how the async detection below knows whether the
+  // pick-up moved under it while it was awaiting a fix + a reverse geocode.
   const choosePickup = useCallback((p: PlannerPoint) => {
+    pickupWriteSeq.current += 1;
     setPickup(p);
     setDropoff((d) => (d && d.id === p.id ? null : d));
   }, []);
+
+  // ── "Use my current location" (Mauritius only) ──
+  /** Monotonic stamp of the last pick-up write from ANY source (manual pick, preset, restore). An
+   *  in-flight detection captures it before starting and abandons if it changed — which covers every
+   *  present and future write path without a new check per path. */
+  const pickupWriteSeq = useRef(0);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
+  const autoTriedRef = useRef(false);
+
+  /** Human, actionable copy per failure. Only ever shown for an EXPLICIT attempt. */
+  const locateMessage = useCallback(
+    (reason: string) =>
+      reason === 'outside-mauritius'
+        ? t("That doesn't look like a Mauritius location — please search for your pick-up.")
+        : reason === 'denied'
+          ? t('Location is blocked for this site — allow it in your browser, or search below.')
+          : reason === 'imprecise'
+            ? t("Your location isn't precise enough to pick you up — please search for it.")
+            : reason === 'insecure'
+              ? t('Location needs a secure connection — please search for your pick-up.')
+              : reason === 'unsupported'
+                ? t("Your browser can't share a location — please search for your pick-up.")
+                : t("We couldn't get your location — please search for your pick-up."),
+    [t],
+  );
+
+  /** Detect and apply. `explicit` = the visitor tapped the button (may show errors + fall back to
+   *  coordinates); otherwise this is the silent automatic path and every failure is a no-op. */
+  const runPickupDetection = useCallback(
+    async (explicit: boolean) => {
+      const seq = pickupWriteSeq.current;
+      if (explicit) {
+        setLocating(true);
+        setLocateError(null);
+      }
+      try {
+        const found = await detectPickup({ explicit });
+        // Re-check AFTER the awaits, not just before them: the visitor may have chosen a pick-up
+        // while we were geocoding, and silently overwriting it would send a driver to the wrong place.
+        if (pickupWriteSeq.current !== seq) return;
+        if (found.ok) {
+          choosePickup({ id: found.id, name: found.name, lat: found.lat, lng: found.lng });
+        } else if (explicit) {
+          setLocateError(locateMessage(found.reason));
+        }
+      } catch {
+        if (explicit) setLocateError(locateMessage('unknown'));
+      } finally {
+        if (explicit) setLocating(false);
+      }
+    },
+    [choosePickup, locateMessage],
+  );
+
+  // Automatic path: only for visitors we may offer this to, and only when the permission was ALREADY
+  // granted — so no unrequested prompt ever appears (browsers penalise those, and a dismissal can
+  // poison the permission for the whole origin). Everyone else gets the one-tap button instead.
+  useEffect(() => {
+    if (!mayUseDeviceLocation || autoTriedRef.current) return;
+    autoTriedRef.current = true;
+    let active = true;
+    (async () => {
+      if (!(await geolocationAlreadyGranted())) return;
+      // Don't touch a pick-up the visitor (or a shared link) already established.
+      if (!active || pickupWriteSeq.current !== 0) return;
+      await runPickupDetection(false);
+    })();
+    return () => {
+      active = false;
+    };
+  }, [mayUseDeviceLocation, runPickupDetection]);
 
   function applyBoost() {
     if (!boost) return;
@@ -1003,6 +1079,9 @@ export function PlannerShell() {
       onRemoveActivity={activeDay ? () => removeDayActivity(activeDay.date) : undefined}
       dinner={dinnerPlace}
       onRemoveDinner={activeDay ? () => removeDayDinner(activeDay.date) : undefined}
+      onUseMyLocation={mayUseDeviceLocation ? () => void runPickupDetection(true) : undefined}
+      locating={locating}
+      locateError={locateError}
     />
   );
   const copilot = (

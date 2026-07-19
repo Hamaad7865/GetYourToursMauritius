@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PlannerPlace } from '@/lib/validation/planner';
 import type { PlannerPoint } from './planner-constants';
+import { useT } from '@/components/site/PreferencesProvider';
 
 function PinGlyph() {
   return (
@@ -36,6 +37,9 @@ export function PickupSearch({
   presets = [],
   placeholder = 'Search a location',
   dotClassName = 'bg-ink',
+  onUseMyLocation,
+  locating = false,
+  locateError = null,
 }: {
   value: PlannerPoint | null;
   onChange: (point: PlannerPoint) => void;
@@ -43,12 +47,26 @@ export function PickupSearch({
   placeholder?: string;
   /** Colour of the leading location dot (pickup = ink, drop-off = coral). */
   dotClassName?: string;
+  /** Offers the "Use my current location" control. Omitted entirely for the drop-off field, and for
+   *  visitors Cloudflare places outside Mauritius — they never see it and are never prompted. */
+  onUseMyLocation?: () => void;
+  /** A detection is in flight (disables the control + announces politely). */
+  locating?: boolean;
+  /** Why the last explicit attempt failed, already translated. Announced as an alert. */
+  locateError?: string | null;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<PlannerPlace[]>([]);
   const [loading, setLoading] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  // Set immediately before a programmatic focus() so the resulting focus event does NOT reopen the
+  // dropdown and blank the field — onFocus otherwise clears `query`, which would hide the value we
+  // just resolved. (Found in review: refocusing after a successful detection looked like the field
+  // had emptied itself and reopened.)
+  const skipFocusOpenRef = useRef(false);
 
   // Close when clicking outside the field.
   useEffect(() => {
@@ -95,6 +113,9 @@ export function PickupSearch({
     onChange(point);
     setOpen(false);
     setQuery('');
+    // Return focus to the field (the popup that held it just unmounted) WITHOUT reopening it.
+    skipFocusOpenRef.current = true;
+    inputRef.current?.focus();
   }
 
   const showPresets = query.trim().length < 2;
@@ -108,17 +129,25 @@ export function PickupSearch({
           <span className="h-[7px] w-[7px] rounded-full bg-white" />
         </span>
         <input
-          value={open ? query : (value?.name ?? '')}
+          ref={inputRef}
+          // Show the typed query only while there IS one; otherwise always show the current
+          // selection, so a programmatic focus can never make a chosen location look erased.
+          value={open && query ? query : (value?.name ?? '')}
           onChange={(e) => {
             setQuery(e.target.value);
             if (!open) setOpen(true);
           }}
           onFocus={() => {
+            // A focus we caused ourselves (after picking) must not reopen the list.
+            if (skipFocusOpenRef.current) {
+              skipFocusOpenRef.current = false;
+              return;
+            }
             setOpen(true);
             setQuery('');
           }}
           placeholder={value?.name ?? placeholder}
-          aria-label="Search a location"
+          aria-label={t('Search a location')}
           className="min-w-0 flex-1 border-none bg-transparent text-[13.5px] font-semibold text-ink outline-none placeholder:font-semibold placeholder:text-ink/70"
         />
         <svg
@@ -139,13 +168,66 @@ export function PickupSearch({
         </svg>
       </div>
 
+      {/* Stable, ALWAYS-mounted live region: one that appears at the same moment as its text is
+          routinely missed by screen readers (repo pattern — see Checkout.tsx). */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {locating ? t('Finding your location…') : ''}
+      </p>
+      {locateError && (
+        <p role="alert" className="mt-1.5 text-[12px] font-semibold text-coral-dark">
+          {locateError}
+        </p>
+      )}
+
       {open && (
         <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-30 max-h-64 overflow-y-auto rounded-[12px] border border-[#E6EFEE] bg-white p-1.5 shadow-[0_18px_40px_-18px_rgba(10,46,54,.4)]">
+          {/* Outside the showPresets branch on purpose: it must stay reachable once the visitor has
+              typed something that found nothing — that's exactly when they need it most. */}
+          {onUseMyLocation && (
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onUseMyLocation}
+              disabled={locating}
+              aria-busy={locating}
+              className="mb-1 flex w-full items-center gap-2 rounded-[9px] border border-[#D8ECEA] bg-teal-tint px-2.5 py-2 text-left text-[13px] font-bold text-teal-dark transition hover:bg-teal/15 focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 disabled:opacity-60"
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden
+                className={`shrink-0 ${locating ? 'animate-spin' : ''}`}
+              >
+                {locating ? (
+                  <path
+                    d="M12 3a9 9 0 1 0 9 9"
+                    stroke="currentColor"
+                    strokeWidth={2.2}
+                    strokeLinecap="round"
+                  />
+                ) : (
+                  <>
+                    <circle cx="12" cy="12" r="3.2" fill="currentColor" />
+                    <path
+                      d="M12 2v3m0 14v3M2 12h3m14 0h3"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                    />
+                    <circle cx="12" cy="12" r="7.5" stroke="currentColor" strokeWidth={1.6} />
+                  </>
+                )}
+              </svg>
+              {locating ? t('Finding your location…') : t('Use my current location')}
+            </button>
+          )}
           {showPresets ? (
             <>
               {presets.length > 0 && (
                 <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-ink-muted">
-                  Popular pick-ups
+                  {t('Popular pick-ups')}
                 </div>
               )}
               {presets.map((p) => (
@@ -161,11 +243,11 @@ export function PickupSearch({
                 </button>
               ))}
               <div className="px-2.5 pb-1 pt-1.5 text-[11px] text-ink-muted">
-                Or type a hotel, town or place…
+                {t('Or type a hotel, town or place…')}
               </div>
             </>
           ) : loading ? (
-            <div className="px-2.5 py-3 text-[12.5px] text-ink-muted">Searching…</div>
+            <div className="px-2.5 py-3 text-[12.5px] text-ink-muted">{t('Searching…')}</div>
           ) : results.length ? (
             results.map((p) => (
               <button
@@ -189,7 +271,7 @@ export function PickupSearch({
             ))
           ) : (
             <div className="px-2.5 py-3 text-[12.5px] text-ink-muted">
-              No matches — try a nearby town or hotel name.
+              {t('No matches — try a nearby town or hotel name.')}
             </div>
           )}
         </div>
