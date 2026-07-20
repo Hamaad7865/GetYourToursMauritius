@@ -81,7 +81,7 @@ export default function HelpPage() {
           <Faq>
             <FaqItem q="What is your cancellation policy?">
               Most activities can be cancelled free of charge until{' '}
-              <strong>9:00 AM Mauritius time on the day before</strong> your activity date; after
+              <strong>12:00 noon Mauritius time on the day before</strong> your activity date; after
               that they&apos;re non-refundable. Full details and examples are on our{' '}
               <Link href="/refunds">Cancellations &amp; refunds</Link> page.
             </FaqItem>

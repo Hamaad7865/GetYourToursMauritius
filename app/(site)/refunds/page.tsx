@@ -6,13 +6,13 @@ import { SITE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
-const UPDATED = '18 July 2026';
+const UPDATED = '21 July 2026';
 
 export const metadata: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
   title: { absolute: `Cancellations & refunds · ${SITE.operator}` },
   description:
-    'Free cancellation until 9:00 AM Mauritius time on the day before your activity. See exactly how cancellations, refunds and reschedules work with Belle Mare Tours.',
+    'Free cancellation until 12:00 noon Mauritius time on the day before your activity. See exactly how cancellations, refunds and reschedules work with Belle Mare Tours.',
   alternates: { canonical: '/refunds' },
 };
 
@@ -40,15 +40,15 @@ export default function RefundsPage() {
           <P>
             For most activities, you can cancel{' '}
             <strong>
-              free of charge until 9:00 AM (Mauritius time, GMT+4) on the day before your activity
-              date
+              free of charge until 12:00 noon (Mauritius time, GMT+4) on the day before your
+              activity date
             </strong>
             . Cancel within that window and you receive a full refund.
           </P>
           <Callout tone="danger" title="After the cut-off, the booking is non-refundable">
-            From <strong>9:00 AM on the day before</strong> your activity onward — and for no-shows
-            — no refund is due, because by then we have committed your boat seats, guide and vehicle
-            for the day.
+            From <strong>12:00 noon on the day before</strong> your activity onward — and for
+            no-shows — no refund is due, because by then we have committed your boat seats, guide
+            and vehicle for the day.
           </Callout>
           <P>
             A handful of experiences (private charters, multi-day trips and some third-party
@@ -61,11 +61,11 @@ export default function RefundsPage() {
           <P>
             Say you book an activity for <strong>24 July</strong>:
           </P>
-          <Callout tone="success" title="Cancel up to 23 July, 8:59 AM → full refund">
-            Any cancellation before 9:00 AM on 23 July (the day before) is refunded in full.
+          <Callout tone="success" title="Cancel up to 23 July, 11:59 AM → full refund">
+            Any cancellation before 12:00 noon on 23 July (the day before) is refunded in full.
           </Callout>
-          <Callout tone="danger" title="Cancel from 23 July, 9:00 AM onward → no refund">
-            From 9:00 AM on 23 July — or if you don&apos;t show up on 24 July — the booking is
+          <Callout tone="danger" title="Cancel from 23 July, 12:00 noon onward → no refund">
+            From 12:00 noon on 23 July — or if you don&apos;t show up on 24 July — the booking is
             non-refundable.
           </Callout>
           <P>
@@ -94,7 +94,7 @@ export default function RefundsPage() {
           />
           <P>
             Your cancellation takes effect from the time we receive it, so don&apos;t leave it to
-            the last minute around the 9:00 AM cut-off.
+            the last minute around the noon cut-off.
           </P>
         </LegalSection>
 
@@ -134,8 +134,8 @@ export default function RefundsPage() {
 
         <LegalSection id="reschedule" title="Changes & reschedules">
           <P>
-            Want to move your date or adjust your party size? Message us before the 9:00 AM cut-off
-            and we&apos;ll do our best to accommodate it, subject to availability on the new date.
+            Want to move your date or adjust your party size? Message us before the noon cut-off and
+            we&apos;ll do our best to accommodate it, subject to availability on the new date.
             Changes requested after the cut-off are treated the same as a cancellation.
           </P>
           <P>
@@ -147,7 +147,7 @@ export default function RefundsPage() {
         <LegalSection id="non-refundable" title="Non-refundable cases">
           <LegalList
             items={[
-              'Cancellations made from 9:00 AM on the day before the activity onward.',
+              'Cancellations made from 12:00 noon on the day before the activity onward.',
               'No-shows, or arriving too late to join the departure.',
               'Experiences explicitly marked as non-refundable on the activity page.',
               'Unused portions of an activity once it has started.',

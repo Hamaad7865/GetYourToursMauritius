@@ -6,7 +6,7 @@ import { SITE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
-const UPDATED = '18 July 2026';
+const UPDATED = '21 July 2026';
 
 export const metadata: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
@@ -113,7 +113,7 @@ export default function TermsPage() {
         <LegalSection id="cancellations" title="Cancellations & refunds">
           <P>
             Most activities can be cancelled free of charge until{' '}
-            <strong>9:00 AM Mauritius time on the day before</strong> your activity date. After
+            <strong>12:00 noon Mauritius time on the day before</strong> your activity date. After
             that, bookings are non-refundable. The full policy, worked examples and how refunds are
             paid are on our <Link href="/refunds">Cancellations &amp; refunds</Link> page, which
             forms part of these Terms.
