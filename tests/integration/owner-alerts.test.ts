@@ -16,10 +16,11 @@ import { StubPaymentProvider } from '@/lib/payments/stub';
 import { createStubAiProvider } from '@/lib/ai/stub';
 
 /**
- * Owner booking alerts (migration 20260804000000; chat channel moved to Telegram in 20260810000000):
- * a booking flipping to `confirmed` must alert the OWNER — an email + a Telegram outbox row (recipient
- * sentinel 'owner', resolved from env at send time) and an in-app `admin_new_booking` feed row for
- * every staff/admin profile — alongside the existing customer confirmation. Born from a real incident:
+ * Owner booking alerts (migration 20260804000000; chat channel moved WhatsApp→Telegram in
+ * 20260810000001, WhatsApp revived alongside it in 20260817000000): a booking flipping to `confirmed`
+ * must alert the OWNER — an email + a Telegram + a WhatsApp outbox row (recipient sentinel 'owner',
+ * resolved from env at send time) and an in-app `admin_new_booking` feed row for every staff/admin
+ * profile — alongside the existing customer confirmation. Born from a real incident:
  * a tourist paid, the customer email went out, and the owner learned about it days later.
  */
 const STAFF = 'b1b1b1b1-b1b1-b1b1-b1b1-b1b1b1b1b1b1';

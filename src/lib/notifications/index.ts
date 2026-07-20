@@ -42,9 +42,14 @@ class ChannelRouterProvider implements NotificationProvider {
  *   `failed` (retried once a key is set) and the outbox row stays visible.
  * - Otherwise the no-op stub (local dev / CI / tests run end-to-end with no email account).
  *
- * WhatsApp (unused by default): the Meta Cloud API provider when `WHATSAPP_ACCESS_TOKEN` +
- * `WHATSAPP_PHONE_NUMBER_ID` are set; same fail-closed / stub split otherwise. No rows are enqueued
- * on this channel anymore (owner chat alerts moved to Telegram) — kept for a future WhatsApp revival.
+ * WhatsApp (owner alerts — revived by migration 20260817000000): the Meta Cloud API provider when
+ * `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` are set; the same fail-closed / stub split
+ * otherwise. The trigger enqueues owner rows on this channel again — `owner_new_booking_wa` on
+ * confirmed, `owner_refund_pending_wa` on refund_pending — alongside the Telegram + email copies,
+ * and that redundancy is deliberate: a duplicate beats a missed booking alert. A real deployment
+ * needs `OWNER_WHATSAPP_TO` as well, because `resolveOwnerRecipient` throws on it before
+ * `provider.send()` is reached, on EVERY runtime (stub included) — so each confirmed booking
+ * otherwise burns its 5 drain retries and parks a `failed` outbox row.
  *
  * Telegram (owner alerts): the Bot API provider when `TELEGRAM_BOT_TOKEN` is set; the same fail-closed
  * / stub split otherwise, so an unconfigured Telegram row is a VISIBLE `failed` on production — never
