@@ -25,7 +25,8 @@ export interface DisruptionBannerBooking {
   serviceDate?: string | null;
   activitySlug?: string | null;
   activityOptionId?: string | null;
-  partySize?: number | null;
+  /** Booking UNITS (sum of quantity) — what a replacement date needs room for. Not the headcount. */
+  unitsNeeded?: number | null;
   disruption?: { reason?: string | null; resolvedAt?: string | null } | null;
   items?: Array<{ occurrenceId?: string | null }>;
 }
@@ -79,7 +80,7 @@ export function DisruptionBanner({
         setDates(
           pickRescheduleDates(body.data, {
             activityOptionId: booking.activityOptionId,
-            partySize: booking.partySize ?? 1,
+            unitsNeeded: booking.unitsNeeded ?? 1,
             excludeOccurrenceId: currentOccurrence,
           }),
         );
@@ -96,7 +97,7 @@ export function DisruptionBanner({
     return () => {
       active = false;
     };
-  }, [mode, dates, slug, booking.activityOptionId, booking.partySize, currentOccurrence]);
+  }, [mode, dates, slug, booking.activityOptionId, booking.unitsNeeded, currentOccurrence]);
 
   const post = useCallback(
     async (path: string, body: unknown, fallback: string): Promise<boolean> => {

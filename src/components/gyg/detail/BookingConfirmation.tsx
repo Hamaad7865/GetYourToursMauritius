@@ -69,6 +69,8 @@ interface Booking {
   activitySlug?: string | null;
   activityOptionId?: string | null;
   partySize?: number | null;
+  /** Booking UNITS (sum of quantity) — the unit seatsLeft is in, and what a new date needs room for. */
+  unitsNeeded?: number | null;
 }
 
 /** VAT is included in the booking total at this rate (matches the invoice/receipt). */

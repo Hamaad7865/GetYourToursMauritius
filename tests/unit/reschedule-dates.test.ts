@@ -27,29 +27,40 @@ describe('pickRescheduleDates', () => {
         slot({ occurrenceId: 'a', startsAt: '2026-08-01T08:00:00.000Z' }),
         slot({ occurrenceId: 'b', startsAt: '2026-08-02T08:00:00.000Z', activityOptionId: OTHER }),
       ],
-      { activityOptionId: OPT, partySize: 2 },
+      { activityOptionId: OPT, unitsNeeded: 2 },
     );
     expect(out.map((d) => d.occurrenceId)).toEqual(['a']);
   });
 
-  it('requires room for the WHOLE party, not just one seat', () => {
+  it('measures need in booking UNITS, so a 6-guest van still fits a 1-seat day', () => {
+    // A vehicle/private booking is quantity 1 (one van, one trip) with the headcount in pax, and
+    // seatsLeft counts those same units. Filtering on the headcount would hide every date with fewer
+    // than 6 vans free — including empty ones — for a booking that only ever consumed one.
+    const out = pickRescheduleDates([slot({ occurrenceId: 'van-day', seatsLeft: 1 })], {
+      activityOptionId: OPT,
+      unitsNeeded: 1,
+    });
+    expect(out.map((d) => d.occurrenceId)).toEqual(['van-day']);
+  });
+
+  it('requires room for the WHOLE booking, not just one seat', () => {
     const out = pickRescheduleDates(
       [
         slot({ occurrenceId: 'tight', startsAt: '2026-08-01T08:00:00.000Z', seatsLeft: 3 }),
         slot({ occurrenceId: 'roomy', startsAt: '2026-08-02T08:00:00.000Z', seatsLeft: 4 }),
       ],
-      { activityOptionId: OPT, partySize: 4 },
+      { activityOptionId: OPT, unitsNeeded: 4 },
     );
     // seatsLeft 3 < party 4 — offering it would just earn an insufficient_capacity rejection.
     expect(out.map((d) => d.occurrenceId)).toEqual(['roomy']);
   });
 
-  it('treats a party size of 0 or NaN as needing one seat', () => {
+  it('treats 0 or NaN units as needing one slot', () => {
     const slots = [slot({ occurrenceId: 'a', seatsLeft: 1 })];
-    expect(pickRescheduleDates(slots, { activityOptionId: OPT, partySize: 0 })).toHaveLength(1);
-    expect(pickRescheduleDates(slots, { activityOptionId: OPT, partySize: NaN })).toHaveLength(1);
+    expect(pickRescheduleDates(slots, { activityOptionId: OPT, unitsNeeded: 0 })).toHaveLength(1);
+    expect(pickRescheduleDates(slots, { activityOptionId: OPT, unitsNeeded: NaN })).toHaveLength(1);
     expect(
-      pickRescheduleDates([slot({ seatsLeft: 0 })], { activityOptionId: OPT, partySize: 0 }),
+      pickRescheduleDates([slot({ seatsLeft: 0 })], { activityOptionId: OPT, unitsNeeded: 0 }),
     ).toHaveLength(0);
   });
 
@@ -59,7 +70,7 @@ describe('pickRescheduleDates', () => {
         slot({ occurrenceId: 'current', startsAt: '2026-08-01T08:00:00.000Z' }),
         slot({ occurrenceId: 'other', startsAt: '2026-08-02T08:00:00.000Z' }),
       ],
-      { activityOptionId: OPT, partySize: 2, excludeOccurrenceId: 'current' },
+      { activityOptionId: OPT, unitsNeeded: 2, excludeOccurrenceId: 'current' },
     );
     expect(out.map((d) => d.occurrenceId)).toEqual(['other']);
   });
@@ -71,7 +82,7 @@ describe('pickRescheduleDates', () => {
         slot({ occurrenceId: 'shut', startsAt: '2026-08-02T08:00:00.000Z', status: 'closed' }),
         slot({ occurrenceId: 'ok', startsAt: '2026-08-03T08:00:00.000Z' }),
       ],
-      { activityOptionId: OPT, partySize: 1 },
+      { activityOptionId: OPT, unitsNeeded: 1 },
     );
     expect(out.map((d) => d.occurrenceId)).toEqual(['ok']);
   });
@@ -83,7 +94,7 @@ describe('pickRescheduleDates', () => {
         slot({ occurrenceId: 'early-am', startsAt: '2026-08-01T06:00:00.000Z' }),
         slot({ occurrenceId: 'early-pm', startsAt: '2026-08-01T14:00:00.000Z' }),
       ],
-      { activityOptionId: OPT, partySize: 1 },
+      { activityOptionId: OPT, unitsNeeded: 1 },
     );
     expect(out.map((d) => d.occurrenceId)).toEqual(['early-am', 'late']);
   });
@@ -96,13 +107,13 @@ describe('pickRescheduleDates', () => {
       }),
     );
     expect(
-      pickRescheduleDates(slots, { activityOptionId: OPT, partySize: 1, limit: 8 }),
+      pickRescheduleDates(slots, { activityOptionId: OPT, unitsNeeded: 1, limit: 8 }),
     ).toHaveLength(8);
   });
 
   it('offers nothing when the booking has no option (a DTO gap must not become a wrong date)', () => {
-    expect(pickRescheduleDates([slot()], { activityOptionId: null, partySize: 1 })).toEqual([]);
-    expect(pickRescheduleDates([slot()], { activityOptionId: undefined, partySize: 1 })).toEqual(
+    expect(pickRescheduleDates([slot()], { activityOptionId: null, unitsNeeded: 1 })).toEqual([]);
+    expect(pickRescheduleDates([slot()], { activityOptionId: undefined, unitsNeeded: 1 })).toEqual(
       [],
     );
   });

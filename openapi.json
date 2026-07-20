@@ -4659,6 +4659,13 @@
                           ],
                           "minimum": 0
                         },
+                        "unitsNeeded": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
                         "serviceDate": {
                           "type": [
                             "string",
@@ -5294,6 +5301,13 @@
                           ]
                         },
                         "partySize": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "unitsNeeded": {
                           "type": [
                             "integer",
                             "null"

@@ -201,8 +201,14 @@ export const bookingSchema = z.object({
    *  (the availability endpoint is keyed by slug and its slots are filtered by option). */
   activitySlug: z.string().nullish(),
   activityOptionId: z.string().nullish(),
-  /** Total headcount (pax, falling back to quantity) — a replacement date must have room for all of it. */
+  /** Total headcount (pax, falling back to quantity). For display — never for a capacity check. */
   partySize: z.coerce.number().int().nonnegative().nullish(),
+  /**
+   * Total booking UNITS (sum of quantity) — the unit `seatsLeft` and occurrence capacity are measured
+   * in. Equals partySize for a per-person option; is 1 for a vehicle/private one whatever the group
+   * size. This, not partySize, is what a replacement date must have room for.
+   */
+  unitsNeeded: z.coerce.number().int().nonnegative().nullish(),
   /** The booking's occurrence date (ISO) — the transfer's arrival/service date, for the run-sheet. */
   serviceDate: z.string().nullish(),
 });

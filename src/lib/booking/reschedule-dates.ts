@@ -24,25 +24,28 @@ export const RESCHEDULE_PAGE_SIZE = 8;
 /**
  * The dates a booking may actually move to.
  *
- * Deliberately stricter than the booking calendar's `seatsLeft > 0`: a reschedule carries the WHOLE
- * party across, so a 4-guest booking must not be offered a date with 2 seats left — the server would
- * reject it with insufficient_capacity and the guest would just hit a wall. Option is filtered here
- * too; `api_reschedule_booking` enforces it as well (same option = same price), but offering a date
- * that is guaranteed to fail is its own bug.
+ * `unitsNeeded` is the BOOKING-UNIT count (sum of `quantity`), NOT the headcount — the same unit
+ * `seatsLeft` is denominated in. For a per-person option the two coincide; for a vehicle or private
+ * option `quantity` is 1 (one van, one trip, any group size) while the headcount is in `pax`.
+ * Filtering a 6-guest transfer on its headcount would hide every date with fewer than 6 vans free,
+ * including the empty ones — and the sale that created the booking only ever consumed one van.
+ *
+ * Still stricter than the booking calendar's `seatsLeft > 0`, because a reschedule carries the whole
+ * booking across: offering a date the server will reject with insufficient_capacity is its own bug.
  */
 export function pickRescheduleDates(
   slots: readonly AvailabilitySlot[],
   opts: {
     activityOptionId: string | null | undefined;
-    partySize: number;
+    unitsNeeded: number;
     excludeOccurrenceId?: string | null;
     limit?: number;
   },
 ): RescheduleDate[] {
-  const { activityOptionId, partySize, excludeOccurrenceId, limit } = opts;
+  const { activityOptionId, unitsNeeded, excludeOccurrenceId, limit } = opts;
   if (!activityOptionId) return [];
-  // A booking with no recorded headcount still needs at least one seat to land on.
-  const needed = Number.isFinite(partySize) && partySize > 0 ? partySize : 1;
+  // A booking with no recorded units still needs somewhere to land.
+  const needed = Number.isFinite(unitsNeeded) && unitsNeeded > 0 ? unitsNeeded : 1;
 
   const seen = new Set<string>();
   const out: RescheduleDate[] = [];

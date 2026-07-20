@@ -346,6 +346,58 @@ describe('api_reschedule_booking / api_weather_cancel_occurrence', () => {
     expect(await notifCount(ref, 'booking_refund_pending')).toBe(0); // trio still suppressed
   });
 
+  it('gates capacity on booking UNITS, not people — a 6-guest van needs one slot, not six', async () => {
+    const from = await makeOccurrence('10 days');
+    const to = await makeOccurrence('12 days', 1); // ONE unit free
+    const ref = await bookConfirm(from, 'units');
+
+    // Reshape the line the way create_booking writes a vehicle/private booking: quantity = 1 (one van,
+    // one trip) with the headcount in pax. occurrence.capacity and used_capacity() are denominated in
+    // those units — 'daily_capacity counts vehicles, not people'.
+    await db.asOwner();
+    await db.pg.query(
+      `update booking_items set quantity = 1, pax = 6
+        where booking_id = (select id from bookings where ref = $1)`,
+      [ref],
+    );
+    expect(await usedCap(from)).toBe(1); // one unit, six people
+
+    // Gating on the headcount would demand 6 free vans for a party that only ever consumed 1, and
+    // would make any party larger than daily_capacity permanently un-reschedulable.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    await call(db, 'api_reschedule_booking', { ref, occurrenceId: to });
+    expect(await occurrenceOf(ref)).toBe(to);
+    expect(await usedCap(to)).toBe(1);
+  });
+
+  it('re-stamps a guest whose REPLACEMENT date is also called off', async () => {
+    const o1 = await makeOccurrence('10 days');
+    const o2 = await makeOccurrence('12 days');
+    const ref = await bookConfirm(o1, 'twice');
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await call(db, 'api_weather_cancel_occurrence', { occurrenceId: o1, reason: 'weather' });
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    await call(db, 'api_reschedule_booking', { ref, occurrenceId: o2 });
+    expect((await bookingJson(ref)).disruption).toMatchObject({ resolution: 'rescheduled' });
+
+    // The cyclone comes back for the new date. A resolved stamp is non-null forever, so filtering the
+    // fan-out on `disruption is null` skipped this guest entirely: no email, affected=0, and — because
+    // the stamp is what unlocks the 24h bypass — no way to move or refund once the date closed in.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const res = await call<{ affected: number }>(db, 'api_weather_cancel_occurrence', {
+      occurrenceId: o2,
+      reason: 'sea_conditions',
+    });
+    expect(res.affected).toBe(1);
+    expect(await notifCount(ref, 'booking_weather_disrupted')).toBe(2); // one per departure
+
+    const json = await bookingJson(ref);
+    expect(json.disruption).toMatchObject({ reason: 'sea_conditions', resolvedAt: null });
+    expect(json.reschedulable).toBe(true); // both self-service doors re-open
+    expect(json.cancellable).toBe(true);
+  });
+
   it('exposes the slug, option and party size the confirmation page needs to offer new dates', async () => {
     const occ = await makeOccurrence('10 days');
     const ref = await bookConfirm(occ, 'dto');

@@ -18098,6 +18098,21 @@ comment on column bookings.disruption is
   'the guest still owes us a choice (new date or refund) and unlocks the 24h-window bypass in '
   'api_cancel_booking / api_reschedule_booking. Never written by a customer-facing path.';
 
+-- "We called this off and the guest has not answered yet." ONE spelling, called from all five sites
+-- (both window bypasses, the fan-out filter, and booking_json's two flags). It existed as two
+-- different spellings for about an hour and they had already diverged -- the fan-out was testing
+-- `disruption is null`, which silently skipped anyone whose PREVIOUS disruption had been resolved.
+-- Invoker + granted to anon: booking_json is invoker and calls this, exactly like used_capacity.
+create or replace function booking_awaiting_choice(p_disruption jsonb)
+returns boolean
+language sql
+immutable
+security invoker
+set search_path = public
+as $$
+  select p_disruption is not null and p_disruption ->> 'resolvedAt' is null;
+$$;
+
 -- ---------------------------------------------------------------------------
 -- api_reschedule_booking. p = { ref, occurrenceId }
 -- Moves every item of a confirmed+paid booking onto another occurrence OF THE SAME OPTION.
@@ -18118,6 +18133,7 @@ declare
   v_current_option uuid;
   v_current_starts timestamptz;
   v_party int;
+  v_units int;
   v_available int;
   v_disrupted boolean;
 begin
@@ -18155,10 +18171,18 @@ begin
   select bi.activity_option_id into v_current_option
     from booking_items bi where bi.booking_id = v_booking.id order by bi.id limit 1;
 
-  -- pax is the PEOPLE count; quantity is the LINE count (a vehicle line is 1 quantity / N pax), so
-  -- summing quantity alone undercounts and would slide a 6-guest booking into a 2-seat gap.
-  select min(so.starts_at), coalesce(sum(coalesce(bi.pax, bi.quantity)), 0)
-    into v_current_starts, v_party
+  -- TWO different counts, and mixing them is a live bug class:
+  --   v_units = sum(quantity) -- the BOOKING-UNIT count, the same unit occurrence.capacity and
+  --     used_capacity() are denominated in. For a per-person option that IS the headcount; for a
+  --     vehicle/private option it is 1 (one van / one trip, any group size) -- see create_booking and
+  --     'daily_capacity counts vehicles, not people'. This is what the capacity gate must use.
+  --   v_party = sum(pax ?? quantity) -- the PEOPLE count, for humans reading the audit line.
+  -- Gating capacity on v_party would demand 6 free VANS for a 6-guest transfer and make any party
+  -- larger than daily_capacity permanently un-reschedulable, on a departure that is in fact empty.
+  select min(so.starts_at),
+         coalesce(sum(coalesce(bi.pax, bi.quantity)), 0),
+         coalesce(sum(bi.quantity), 0)
+    into v_current_starts, v_party, v_units
     from booking_items bi
     join session_occurrences so on so.id = bi.session_occurrence_id
    where bi.booking_id = v_booking.id;
@@ -18197,17 +18221,18 @@ begin
   -- The free-change window mirrors the cancellation window -- EXCEPT when we called the trip off
   -- ourselves, in which case the guest must be able to move at short notice. disruption is written
   -- only by the staff-gated api_weather_cancel_occurrence, so this bypass is not self-servable.
-  v_disrupted := v_booking.disruption is not null and v_booking.disruption ->> 'resolvedAt' is null;
+  v_disrupted := booking_awaiting_choice(v_booking.disruption);
   if not v_disrupted
      and (v_current_starts is null or v_current_starts <= now() + interval '24 hours') then
     raise exception 'reschedule_window_passed'
       using detail = 'self-service changes close 24 hours before the activity';
   end if;
 
+  -- Units, not people -- see the v_units/v_party note above.
   v_available := v_target.capacity - used_capacity(v_occ_id);
-  if v_party > v_available then
+  if v_units > v_available then
     raise exception 'insufficient_capacity'
-      using detail = format('requested %s, available %s', v_party, v_available);
+      using detail = format('requested %s, available %s', v_units, v_available);
   end if;
 
   -- Move every item. booking_items has no per-item status, so a partial move has no representation;
@@ -18332,6 +18357,12 @@ begin
     'resolution', null
   );
 
+  -- Skip only a guest who is ALREADY mid-choice; one whose PREVIOUS disruption is resolved must be
+  -- stamped again. `disruption is null` was wrong here: a guest who was called off once and
+  -- rescheduled carries a resolved stamp forever, so a second cyclone on their new date would have
+  -- skipped them entirely -- no email, not counted in `affected`, and (because the stamp is what
+  -- unlocks the 24h bypass) no way to move or refund once the new date came inside 24h. Stranded on a
+  -- departure that will not run, which is the exact opposite of what /refunds promises.
   for r in
     select distinct b.id, b.ref, b.customer_email, b.customer_name
       from bookings b
@@ -18339,7 +18370,7 @@ begin
      where bi.session_occurrence_id = v_occ_id
        and b.status = 'confirmed'
        and b.payment_state = 'paid'
-       and b.disruption is null
+       and not booking_awaiting_choice(b.disruption)
   loop
     update bookings set disruption = v_disruption, updated_at = now() where id = r.id;
 
@@ -18503,7 +18534,7 @@ begin
   -- BYPASSED when we called the trip off ourselves -- a guest whose Tuesday departure we cancelled on
   -- Monday must still be able to take the refund. disruption is written only by the staff-gated
   -- api_weather_cancel_occurrence, so this is not self-servable.
-  v_disrupted := v_booking.disruption is not null and v_booking.disruption ->> 'resolvedAt' is null;
+  v_disrupted := booking_awaiting_choice(v_booking.disruption);
   select min(so.starts_at) into v_starts_at
     from booking_items bi
     join session_occurrences so on so.id = bi.session_occurrence_id
@@ -18605,6 +18636,13 @@ as $$
       select sum(coalesce(bi.pax, bi.quantity))
         from booking_items bi where bi.booking_id = b.id
     ), 0),
+    -- The BOOKING-UNIT count, the unit seatsLeft is denominated in. For a per-person option it equals
+    -- partySize; for a vehicle/private one it is 1 (one van / one trip, any group size). The date
+    -- picker must filter on THIS, not partySize, or a 6-guest transfer is offered nothing.
+    'unitsNeeded', coalesce((
+      select sum(bi.quantity)
+        from booking_items bi where bi.booking_id = b.id
+    ), 0),
     'activityOptionId', (
       select bi.activity_option_id
         from booking_items bi where bi.booking_id = b.id order by bi.id limit 1
@@ -18620,7 +18658,7 @@ as $$
     'cancellable', (
       b.status = 'confirmed' and b.payment_state = 'paid'
       and (
-        (b.disruption is not null and b.disruption ->> 'resolvedAt' is null)
+        booking_awaiting_choice(b.disruption)
         or coalesce((
           select min(so.starts_at)
             from booking_items bi
@@ -18632,7 +18670,7 @@ as $$
     'reschedulable', (
       b.status = 'confirmed' and b.payment_state = 'paid'
       and (
-        (b.disruption is not null and b.disruption ->> 'resolvedAt' is null)
+        booking_awaiting_choice(b.disruption)
         or coalesce((
           select min(so.starts_at)
             from booking_items bi
@@ -18664,6 +18702,11 @@ $$;
 -- ([[gytm-definer-grant-leak]]). api_reschedule_booking is customer-callable (it re-checks ownership
 -- itself); the two staff RPCs need `authenticated` because admin calls them straight from the browser
 -- under is_staff().
+-- booking_awaiting_choice is a pure predicate over a jsonb argument -- no data access at all. It must
+-- be executable by anon/authenticated because the INVOKER function booking_json calls it, exactly as
+-- used_capacity is (definer-grants-lockdown pins that one as anon-executable for the same reason).
+grant execute on function booking_awaiting_choice(jsonb) to anon, authenticated, service_role;
+
 revoke execute on function api_reschedule_booking(jsonb) from public, anon;
 grant execute on function api_reschedule_booking(jsonb) to authenticated, service_role;
 

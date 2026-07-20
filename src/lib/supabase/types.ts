@@ -859,6 +859,9 @@ export interface Database {
       api_swap_category_positions: { Args: { p_id_a: string; p_id_b: string }; Returns: undefined };
       api_reorder_activities: { Args: { p: Json }; Returns: undefined };
       api_mark_refunded: { Args: { p: Json }; Returns: Json };
+      api_reschedule_booking: { Args: { p: Json }; Returns: Json };
+      api_weather_cancel_occurrence: { Args: { p: Json }; Returns: Json };
+      api_admin_calendar_month: { Args: { p: Json }; Returns: Json };
       api_erase_user: { Args: { p: Json }; Returns: Json };
       set_daily_capacity_atomic: { Args: { p: Json }; Returns: undefined };
       stop_availability_atomic: { Args: { p: Json }; Returns: undefined };
