@@ -1,10 +1,29 @@
+import { SITE } from '@/lib/seo/site';
 import type { NotificationMessage, NotificationProvider } from './types';
+
+/** Why we called a departure off, as a phrase that completes "because of …". */
+const DISRUPTION_REASON: Record<string, string> = {
+  weather: 'the weather',
+  sea_conditions: 'the sea conditions',
+  safety: 'a safety call',
+  min_group: 'too few travellers on the day',
+};
+
+/**
+ * The calendar day of an occurrence timestamp. Slots are materialised at NOON Mauritius (08:00 UTC),
+ * so the UTC calendar date and the Mauritius one always coincide — slicing the ISO string is safe and
+ * matches how the owner alerts already render `booking.when`.
+ */
+function dayOf(value: unknown): string {
+  return typeof value === 'string' && value.length >= 10 ? value.slice(0, 10) : 'your booked date';
+}
 
 /** Renders a minimal subject/body per template. Templates can grow into proper HTML later. */
 function render(message: NotificationMessage): { subject: string; text: string } {
   const p = message.payload;
   const ref = typeof p.ref === 'string' ? p.ref : '';
   const name = typeof p.customerName === 'string' && p.customerName ? p.customerName : 'there';
+  const bookingUrl = `${SITE.url}/bookings/${ref}`;
 
   if (message.template === 'booking_confirmation') {
     const currency = typeof p.currency === 'string' ? p.currency : 'EUR';
@@ -55,6 +74,71 @@ Belle Mare Tours`,
       text: `Booking ${ref}${total} by ${name} was PAID but could not stand (oversell race or paid after expiry). It is now refund_pending.
 
 Refund it in the Peach dashboard, then mark it refunded in admin.
+
+Belle Mare Tours (internal alert)`,
+    };
+  }
+  // WE called the departure off. The guest owes us a choice, so the whole mail points at one link.
+  if (message.template === 'booking_weather_disrupted') {
+    const when = dayOf(p.startsAt);
+    const reason =
+      DISRUPTION_REASON[typeof p.reason === 'string' ? p.reason : 'weather'] ?? 'the conditions';
+    return {
+      subject: `Your Belle Mare Tours trip on ${when} has been called off`,
+      text: `Hi ${name},
+
+We've had to call off your trip on ${when} (booking ${ref}) because of ${reason}. We're sorry — we don't make that call lightly, and getting you out there safely comes first.
+
+What happens next is your choice, and both options are free:
+
+  • Move to another date that suits you
+  • Take a full refund
+
+Choose here: ${bookingUrl}
+
+If you'd rather talk it through, just reply to this email.
+
+Belle Mare Tours`,
+    };
+  }
+  if (message.template === 'booking_rescheduled') {
+    const when = dayOf(p.startsAt);
+    return {
+      subject: `Your Belle Mare Tours booking ${ref} is now on ${when}`,
+      text: `Hi ${name},
+
+That's sorted — booking ${ref} has moved to ${when}. Everything else stays exactly as it was, and there's nothing more to pay.
+
+Your booking: ${bookingUrl}
+
+See you there.
+
+Belle Mare Tours`,
+    };
+  }
+  // The guest's own confirmation of a cancellation. Serves both a plain self-cancel and taking the
+  // refund arm of a called-off trip — deliberately reason-neutral so it is honest in both.
+  if (message.template === 'booking_cancelled_confirmation') {
+    return {
+      subject: `Your Belle Mare Tours booking ${ref} is cancelled — refund on its way`,
+      text: `Hi ${name},
+
+We've cancelled booking ${ref} as you asked, and your refund is on its way. You don't need to do anything — it goes back to the card you paid with and usually lands within a few days.
+
+We'd love to host you another time.
+
+Belle Mare Tours`,
+    };
+  }
+  // Owner-facing: a guest moved themselves to a different date — the run sheet changed.
+  if (message.template === 'owner_date_changed') {
+    const to = dayOf(p.startsAt);
+    const from = dayOf(p.previousStartsAt);
+    return {
+      subject: `Date changed: ${ref} moved to ${to}`,
+      text: `${name} moved booking ${ref} from ${from} to ${to}.
+
+Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
 
 Belle Mare Tours (internal alert)`,
     };

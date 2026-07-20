@@ -166,6 +166,28 @@ async function enrichOwnerNewBooking(
     </div>`;
 }
 
+/**
+ * Owner alert when a guest moves themselves to a different date — the run sheet changed.
+ *
+ * Unlike {@link enrichOwnerNewBooking} this loads nothing: the outbox payload already carries the ref,
+ * the name and both dates, so there is no DB round-trip and no failure mode that could strand the row.
+ * Chat channels MUST get `message.text` here — the Telegram provider sends `message.text` verbatim and
+ * would otherwise deliver the bare string "Belle Mare Tours — owner_date_changed".
+ */
+function enrichOwnerDateChanged(message: NotificationMessage & { bookingId: string | null }): void {
+  if (message.channel !== 'whatsapp' && message.channel !== 'telegram') return;
+  const p = message.payload;
+  const ref = typeof p.ref === 'string' ? p.ref : '';
+  const who = typeof p.customerName === 'string' && p.customerName ? p.customerName : 'A guest';
+  // Slots are materialised at noon Mauritius (08:00 UTC), so the UTC date is the Mauritius date.
+  const day = (v: unknown): string =>
+    typeof v === 'string' && v.length >= 10 ? v.slice(0, 10) : '?';
+  const adminUrl = `${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}`;
+  // Same three-line shape as the other owner alerts: headline / one sentence / bare URL last.
+  // No parse_mode is set on the Telegram send, so this is plain text — no markdown.
+  message.text = `📅 Date changed\n${who} moved booking ${ref} from ${day(p.previousStartsAt)} to ${day(p.startsAt)}.\n${adminUrl}`;
+}
+
 export interface DrainResult {
   processed: number;
   sent: number;
@@ -204,6 +226,8 @@ export async function drainNotifications(
         message.template === 'owner_refund_pending'
       ) {
         await enrichOwnerNewBooking(ctx, message);
+      } else if (message.template === 'owner_date_changed') {
+        enrichOwnerDateChanged(message);
       }
       await provider.send(message);
       await callRpc(ctx, 'mark_notification', { id: message.id, result: 'sent' });
