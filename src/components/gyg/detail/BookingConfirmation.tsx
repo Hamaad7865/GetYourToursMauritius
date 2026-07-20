@@ -12,6 +12,8 @@ import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { whatsappUrl } from '@/lib/seo/site';
 import { transferLegs } from '@/lib/transfers/leg-times';
+import { DisruptionBanner } from './DisruptionBanner';
+import { isAwaitingDisruptionChoice } from '@/lib/booking/reschedule-dates';
 import {
   CONFIRM_POLL_INTERVAL_MS,
   CONFIRM_POLL_MAX_MS,
@@ -24,6 +26,8 @@ interface BookingItem {
   quantity: number;
   pax?: number | null;
   subtotalEur: number;
+  /** The dated departure this line sits on — the date a reschedule must exclude from its options. */
+  occurrenceId?: string | null;
 }
 interface Booking {
   ref: string;
@@ -59,6 +63,12 @@ interface Booking {
   cancellable?: boolean | null;
   /** The booking's occurrence date (ISO) — the transfer's arrival/service date, for the run-sheet. */
   serviceDate?: string | null;
+  /** Set only when WE called the departure off; a null resolvedAt means the guest still owes a choice. */
+  disruption?: { reason?: string | null; resolvedAt?: string | null } | null;
+  /** Slug + option of the booked line, and the headcount — what the reschedule date list needs. */
+  activitySlug?: string | null;
+  activityOptionId?: string | null;
+  partySize?: number | null;
 }
 
 /** VAT is included in the booking total at this rate (matches the invoice/receipt). */
@@ -389,6 +399,8 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   // The genuinely celebratory states — a success seal + the confetti fire only here, never on a
   // cancellation, refund, or a still-pending payment (those stay calm by design).
   const celebrating = paid && (booking.status === 'confirmed' || booking.status === 'completed');
+  // A called-off departure the guest hasn't answered yet. Same predicate as the SQL bypass.
+  const awaitingChoice = isAwaitingDisruptionChoice(booking.disruption);
 
   return (
     <div className="mx-auto max-w-xl py-10">
@@ -416,6 +428,16 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
               </svg>
             </span>
           </span>
+        )}
+        {awaitingChoice && session && (
+          // First thing in the card: WE called this departure off and the guest owes us a choice.
+          // Above the <h1> deliberately — the status title still reads "Booking confirmed", which is
+          // technically true (status is untouched) but is not the headline that matters here.
+          <DisruptionBanner
+            booking={booking}
+            accessToken={session.access_token}
+            onResolved={fetchBooking}
+          />
         )}
         <h1
           className={`font-display text-2xl font-semibold ${copy.tone} ${celebrating ? 'animate-float-in' : ''}`}
@@ -661,7 +683,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                 </button>
               )}
             </div>
-            {booking.cancellable ? (
+            {/* Suppressed while the disruption banner is up: it already offers a refund, and two
+                refund buttons on one screen is a guest wondering which one is the real one. */}
+            {booking.cancellable && !awaitingChoice ? (
               confirmingCancel ? (
                 <div
                   role="group"
