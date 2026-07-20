@@ -27,6 +27,7 @@ import {
   IconDocument,
   IconSwap,
   IconChart,
+  IconCalendar,
 } from '@/components/ui/icons';
 
 interface NavItem {
@@ -41,6 +42,9 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: IconGrid, exact: true },
   { href: '/admin/bookings', label: 'Bookings', icon: IconBookings },
+  // Operations calendar — shows guest names, so deliberately NOT seo-flagged (RLS locks that role
+  // out of bookings/occurrences anyway; this is just navigation).
+  { href: '/admin/calendar', label: 'Calendar', icon: IconCalendar },
   // Financial — deliberately NOT seo-flagged; the seo content role is RLS-locked out of bookings/payments.
   { href: '/admin/reports', label: 'Reports', icon: IconChart },
   { href: '/admin/activities', label: 'Tours', icon: IconTag, seo: true },
