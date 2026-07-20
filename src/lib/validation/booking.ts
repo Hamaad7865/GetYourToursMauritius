@@ -182,10 +182,36 @@ export const bookingSchema = z.object({
   specialNotes: z.string().nullish(),
   /** True when the customer may self-cancel for a refund (confirmed + paid + the trip is >24h away). */
   cancellable: z.boolean().nullish(),
+  /** True when the customer may move the booking to another date. Same predicate as `cancellable`. */
+  reschedulable: z.boolean().nullish(),
+  /**
+   * Set only when WE called the departure off. A non-null value with a null `resolvedAt` means the guest
+   * still owes us a choice (new date or refund) — and is what unlocks the 24h-window bypass on both.
+   */
+  disruption: z
+    .object({
+      reason: z.enum(['weather', 'sea_conditions', 'safety', 'min_group']).catch('weather'),
+      occurrenceId: z.string().nullish(),
+      declaredAt: z.string().nullish(),
+      resolvedAt: z.string().nullish(),
+      resolution: z.enum(['rescheduled', 'refunded']).nullish(),
+    })
+    .nullish(),
+  /** Activity slug + option of the booked line — the confirmation page needs both to offer new dates
+   *  (the availability endpoint is keyed by slug and its slots are filtered by option). */
+  activitySlug: z.string().nullish(),
+  activityOptionId: z.string().nullish(),
+  /** Total headcount (pax, falling back to quantity) — a replacement date must have room for all of it. */
+  partySize: z.coerce.number().int().nonnegative().nullish(),
   /** The booking's occurrence date (ISO) — the transfer's arrival/service date, for the run-sheet. */
   serviceDate: z.string().nullish(),
 });
 export type Booking = z.infer<typeof bookingSchema>;
+
+export const rescheduleBookingInputSchema = z.object({
+  occurrenceId: z.string().uuid(),
+});
+export type RescheduleBookingInput = z.infer<typeof rescheduleBookingInputSchema>;
 
 // --- Booking history ("My Trips") -------------------------------------------
 /** One row in the signed-in customer's booking history. A thin summary — full detail stays at

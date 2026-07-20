@@ -4584,6 +4584,81 @@
                             "null"
                           ]
                         },
+                        "reschedulable": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "disruption": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "weather",
+                                "sea_conditions",
+                                "safety",
+                                "min_group"
+                              ],
+                              "default": "weather"
+                            },
+                            "occurrenceId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "declaredAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "resolvedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "resolution": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "rescheduled",
+                                "refunded",
+                                null
+                              ]
+                            }
+                          },
+                          "required": [
+                            "reason"
+                          ]
+                        },
+                        "activitySlug": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "activityOptionId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "partySize": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
                         "serviceDate": {
                           "type": [
                             "string",
@@ -5149,6 +5224,81 @@
                             "boolean",
                             "null"
                           ]
+                        },
+                        "reschedulable": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "disruption": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "reason": {
+                              "type": "string",
+                              "enum": [
+                                "weather",
+                                "sea_conditions",
+                                "safety",
+                                "min_group"
+                              ],
+                              "default": "weather"
+                            },
+                            "occurrenceId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "declaredAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "resolvedAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "resolution": {
+                              "type": [
+                                "string",
+                                "null"
+                              ],
+                              "enum": [
+                                "rescheduled",
+                                "refunded",
+                                null
+                              ]
+                            }
+                          },
+                          "required": [
+                            "reason"
+                          ]
+                        },
+                        "activitySlug": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "activityOptionId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "partySize": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
                         },
                         "serviceDate": {
                           "type": [
@@ -5760,6 +5910,303 @@
           },
           "409": {
             "description": "Outside the free-cancellation window, or not cancellable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{ref}/reschedule": {
+      "post": {
+        "operationId": "rescheduleBooking",
+        "summary": "Customer moves their own confirmed + paid booking to another date on the same option",
+        "tags": [
+          "Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "occurrenceId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "occurrenceId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reschedule result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ref": {
+                          "type": "string"
+                        },
+                        "occurrenceId": {
+                          "type": "string"
+                        },
+                        "startsAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "previousStartsAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "alreadyOnDate": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ref",
+                        "occurrenceId"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Outside the free-change window, a different option, sold out, or not reschedulable",
             "content": {
               "application/json": {
                 "schema": {

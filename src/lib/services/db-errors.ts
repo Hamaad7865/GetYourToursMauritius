@@ -54,6 +54,23 @@ export function mapDbError(error: unknown): never {
   if (/\bnot_cancellable\b/.test(message)) {
     throw new ConflictError('This booking can no longer be cancelled online.');
   }
+  // Reschedule guards (api_reschedule_booking) → friendly 409s. These sit ABOVE the generic
+  // `forbidden` branch because first match wins. `target_not_bookable` is deliberately distinct from
+  // create_hold's `occurrence_not_bookable`, which is already mapped to a generic validation message.
+  if (/\breschedule_window_passed\b/.test(message)) {
+    throw new ConflictError('Free changes have closed — please message us to move your date.');
+  }
+  if (/\bnot_reschedulable\b/.test(message)) {
+    throw new ConflictError('This booking can no longer be moved online.');
+  }
+  if (/\boption_mismatch\b/.test(message)) {
+    throw new ConflictError(
+      'That date is for a different option — please book it as a new activity.',
+    );
+  }
+  if (/\btarget_not_bookable\b/.test(message)) {
+    throw new ConflictError('That date is no longer available — please pick another.');
+  }
   if (/\bforbidden\b/.test(message)) {
     throw new ForbiddenError();
   }

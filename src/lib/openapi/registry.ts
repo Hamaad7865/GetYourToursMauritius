@@ -35,6 +35,7 @@ import {
   holdStatusSchema,
   leadSchema,
   paymentLinkSchema,
+  rescheduleBookingInputSchema,
   syncPaymentInputSchema,
 } from '@/lib/validation/booking';
 import { clientErrorReportSchema } from '@/lib/validation/telemetry';
@@ -388,6 +389,36 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '403': errorResponse('Not your booking'),
         '404': errorResponse('Booking not found'),
         '409': errorResponse('Outside the free-cancellation window, or not cancellable'),
+      },
+    },
+  },
+  '/bookings/{ref}/reschedule': {
+    post: {
+      operationId: 'rescheduleBooking',
+      summary:
+        'Customer moves their own confirmed + paid booking to another date on the same option',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      requestBody: jsonBody(rescheduleBookingInputSchema),
+      responses: {
+        '200': okJson(
+          z.object({
+            ref: z.string(),
+            occurrenceId: z.string(),
+            startsAt: z.string().nullish(),
+            previousStartsAt: z.string().nullish(),
+            alreadyOnDate: z.boolean().optional(),
+          }),
+          'Reschedule result',
+        ),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Not your booking'),
+        '404': errorResponse('Booking not found'),
+        '409': errorResponse(
+          'Outside the free-change window, a different option, sold out, or not reschedulable',
+        ),
       },
     },
   },

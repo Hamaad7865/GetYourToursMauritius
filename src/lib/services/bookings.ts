@@ -141,3 +141,28 @@ export async function cancelBooking(ctx: ServiceContext, ref: string): Promise<C
   const data = await callRpc(ctx, 'api_cancel_booking', { ref });
   return cancelResultSchema.parse(data);
 }
+
+const rescheduleResultSchema = z.object({
+  ref: z.string(),
+  occurrenceId: z.string(),
+  startsAt: z.string().nullish(),
+  previousStartsAt: z.string().nullish(),
+  alreadyOnDate: z.boolean().optional(),
+});
+export type RescheduleResult = z.infer<typeof rescheduleResultSchema>;
+
+/**
+ * Move a confirmed + paid booking to another date. `api_reschedule_booking` enforces server-side that the
+ * target is an occurrence of the SAME activity option — same option means same price, so this path never
+ * touches the payment ledger — and re-checks capacity under a row lock. The 24h window applies as it does
+ * to cancellation, EXCEPT for a booking we disrupted ourselves (staff-set flag only). Idempotent: moving to
+ * the date it is already on reports `alreadyOnDate` without re-notifying.
+ */
+export async function rescheduleBooking(
+  ctx: ServiceContext,
+  ref: string,
+  occurrenceId: string,
+): Promise<RescheduleResult> {
+  const data = await callRpc(ctx, 'api_reschedule_booking', { ref, occurrenceId });
+  return rescheduleResultSchema.parse(data);
+}

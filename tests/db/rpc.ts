@@ -12,6 +12,7 @@ const ALLOWED = new Set([
   'api_record_payment_checkout',
   'api_pending_payment_checkouts',
   'api_mark_refunded',
+  'api_reschedule_booking',
   'api_erase_user',
   'api_get_profile',
   'api_update_profile',
