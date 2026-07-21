@@ -28,6 +28,7 @@ export interface DayBooking {
   ref: string;
   status: string;
   customerName: string;
+  customerPhone: string | null;
   pax: number;
 }
 
@@ -90,18 +91,23 @@ interface RawDayRow {
     quantity: number;
     pax: number | null;
     bookings:
-      | { ref: string; status: string; customer_name: string }
-      | Array<{ ref: string; status: string; customer_name: string }>
+      | { ref: string; status: string; customer_name: string; customer_phone: string | null }
+      | Array<{ ref: string; status: string; customer_name: string; customer_phone: string | null }>
       | null;
   }> | null;
 }
 
 /**
- * Every departure on one Mauritius day with the guests booked on it.
+ * The BOOKED departures on one Mauritius day, with the guests on each.
  *
- * Only `confirmed` / `completed` bookings are listed — they are the people to actually plan for, and
- * it is the same set `used_capacity` counts. Headcount is `pax ?? quantity`: for a vehicle line
- * `quantity` is the number of VEHICLES, so summing it would undercount the people.
+ * Availability is materialised for every activity every day, so a day has ~45 occurrences but only a
+ * handful carry guests. The operator cares about the booked ones — the people to plan for and the
+ * departures worth calling off — so a departure with no confirmed/completed booking is dropped here
+ * rather than cluttering the drawer.
+ *
+ * Only `confirmed` / `completed` bookings count — the same set `used_capacity` counts. Headcount is
+ * `pax ?? quantity`: for a vehicle line `quantity` is the number of VEHICLES, so summing it would
+ * undercount the people.
  */
 export async function loadDaySchedule(day: string): Promise<DayDeparture[]> {
   const { startUtc, endUtc } = mauritiusDayBounds(day);
@@ -110,7 +116,7 @@ export async function loadDaySchedule(day: string): Promise<DayDeparture[]> {
     .select(
       `id, activity_option_id, starts_at, status, capacity,
        activity_options ( name, activities ( title ) ),
-       booking_items ( quantity, pax, bookings ( ref, status, customer_name ) )`,
+       booking_items ( quantity, pax, bookings ( ref, status, customer_name, customer_phone ) )`,
     )
     .gte('starts_at', startUtc)
     .lt('starts_at', endUtc)
@@ -118,7 +124,8 @@ export async function loadDaySchedule(day: string): Promise<DayDeparture[]> {
     .returns<RawDayRow[]>();
   if (error) throw error;
 
-  return (data ?? []).map((raw) => {
+  const out: DayDeparture[] = [];
+  for (const raw of data ?? []) {
     const opt = one(raw.activity_options);
     const bookings: DayBooking[] = [];
     for (const item of raw.booking_items ?? []) {
@@ -128,9 +135,18 @@ export async function loadDaySchedule(day: string): Promise<DayDeparture[]> {
       const existing = bookings.find((x) => x.ref === b.ref);
       // A booking with several lines on one departure is one party, not several.
       if (existing) existing.pax += pax;
-      else bookings.push({ ref: b.ref, status: b.status, customerName: b.customer_name, pax });
+      else
+        bookings.push({
+          ref: b.ref,
+          status: b.status,
+          customerName: b.customer_name,
+          customerPhone: b.customer_phone,
+          pax,
+        });
     }
-    return {
+    // Only surface departures that actually have guests on them.
+    if (bookings.length === 0) continue;
+    out.push({
       occurrenceId: raw.id,
       activityOptionId: raw.activity_option_id,
       startsAt: raw.starts_at,
@@ -140,8 +156,9 @@ export async function loadDaySchedule(day: string): Promise<DayDeparture[]> {
       optionName: opt?.name ?? '',
       pax: bookings.reduce((s, b) => s + b.pax, 0),
       bookings,
-    };
-  });
+    });
+  }
+  return out;
 }
 
 interface RawTargetRow {

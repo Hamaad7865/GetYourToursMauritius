@@ -45,9 +45,14 @@ function timeLabel(iso: string): string {
  * Month grid for the operations calendar.
  *
  * Built on the shared `monthCells()` rather than reusing the customer MonthGrid: that one disables
- * unavailable cells (an operator must be able to open a day with no departures), pins a `tomorrow`
- * lower bound (an operator looks backwards), and renders only a number with no room for a load
- * summary. Sharing the maths and writing our own cells is the pattern TripDatePicker already follows.
+ * unavailable cells, pins a `tomorrow` lower bound (an operator looks backwards), and renders only a
+ * number with no room for a load summary. Sharing the maths and writing our own cells is the pattern
+ * TripDatePicker already follows.
+ *
+ * Availability is materialised for every activity every day, so raw departure counts are noise — a
+ * day always has ~45. The grid instead surfaces the days that carry GUESTS: a day with bookings (or a
+ * called-off departure) is a solid, clickable cell; an empty day is a quiet, non-interactive number.
+ * That way the operator's eye lands straight on the days that need attention.
  */
 function AdminMonthGrid({
   month,
@@ -79,38 +84,56 @@ function AdminMonthGrid({
           const isToday = key === todayKey;
           const isSelected = key === selected;
           const calledOff = (info?.cancelled ?? 0) > 0;
-          const full = info && info.departures > 0 && info.seatsLeft === 0;
+          const pax = info?.pax ?? 0;
+          const booked = pax > 0;
+          const dateEl = (
+            <span
+              className={`text-[12.5px] font-bold ${
+                isToday ? 'text-teal' : booked || calledOff ? 'text-ink' : 'text-ink-muted'
+              }`}
+            >
+              {cell.getDate()}
+            </span>
+          );
+
+          // Quiet, non-interactive cell for a day with nothing booked and nothing called off.
+          if (!booked && !calledOff) {
+            return (
+              <div
+                key={key}
+                className="min-h-[64px] rounded-xl border border-transparent p-1.5 text-left"
+              >
+                {dateEl}
+              </div>
+            );
+          }
+
           return (
             <button
               key={key}
               type="button"
               onClick={() => onPick(key)}
               aria-pressed={isSelected}
-              aria-label={`${dayLabel(key)} — ${info?.departures ?? 0} departures, ${info?.pax ?? 0} guests${calledOff ? ', has a called-off departure' : ''}`}
+              aria-label={`${dayLabel(key)} — ${pax} guest${pax === 1 ? '' : 's'} booked${
+                calledOff ? ', has a called-off departure' : ''
+              }`}
               className={`min-h-[64px] rounded-xl border p-1.5 text-left transition ${
                 isSelected
                   ? 'border-teal bg-teal/10'
                   : calledOff
                     ? 'border-coral/40 bg-coral/[0.06] hover:border-coral/60'
-                    : 'border-[#EAEEF0] bg-white hover:border-teal/40 hover:bg-teal/[0.04]'
+                    : 'border-teal/30 bg-teal/[0.04] hover:border-teal/50 hover:bg-teal/[0.08]'
               }`}
             >
-              <span className={`text-[12.5px] font-bold ${isToday ? 'text-teal' : 'text-ink'}`}>
-                {cell.getDate()}
+              {dateEl}
+              <span className="mt-0.5 block text-[10.5px] leading-tight text-ink-muted">
+                {pax > 0 && (
+                  <span className="font-bold text-ink/80">
+                    {pax} guest{pax === 1 ? '' : 's'}
+                  </span>
+                )}
+                {calledOff && <span className="block font-bold text-coral">called off</span>}
               </span>
-              {info && info.departures > 0 && (
-                <span className="mt-0.5 block text-[10.5px] leading-tight text-ink-muted">
-                  <span className="font-bold text-ink/80">{info.departures}</span> dep
-                  {info.pax > 0 && (
-                    <>
-                      {' · '}
-                      <span className="font-bold text-ink/80">{info.pax}</span> pax
-                    </>
-                  )}
-                  {calledOff && <span className="block font-bold text-coral">called off</span>}
-                  {full && !calledOff && <span className="block font-bold text-ink/70">full</span>}
-                </span>
-              )}
             </button>
           );
         })}
@@ -263,9 +286,9 @@ function DayDrawer({
         <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[#EAEEF0] bg-white px-5 py-4">
           <div>
             <h2 className="font-display text-lg font-semibold text-ink">{dayLabel(day)}</h2>
-            {departures && (
+            {departures && departures.length > 0 && (
               <p className="mt-0.5 text-[12.5px] text-ink-muted">
-                {departures.length} departure{departures.length === 1 ? '' : 's'} ·{' '}
+                {departures.length} booked departure{departures.length === 1 ? '' : 's'} ·{' '}
                 {departures.reduce((s, d) => s + d.pax, 0)} guests
               </p>
             )}
@@ -279,9 +302,7 @@ function DayDrawer({
           {error && <AdminError>{error}</AdminError>}
           {departures === null && <p className="text-sm text-ink-muted">Loading…</p>}
           {departures?.length === 0 && !error && (
-            <p className="py-10 text-center text-sm text-ink-muted">
-              Nothing is running on this day.
-            </p>
+            <p className="py-10 text-center text-sm text-ink-muted">No bookings on this day.</p>
           )}
           {departures?.map((d) => (
             <DepartureCard key={d.occurrenceId} departure={d} onChanged={reload} />
@@ -342,10 +363,20 @@ function DepartureCard({
       {departure.bookings.length > 0 && (
         <ul className="mt-3 flex flex-col gap-1.5 border-t border-[#F2F4F6] pt-3">
           {departure.bookings.map((b) => (
-            <li key={b.ref} className="flex items-center justify-between gap-2 text-[12.5px]">
-              <span className="truncate text-ink">
-                <span className="font-bold">{b.ref}</span> · {b.customerName || 'Guest'} · {b.pax}{' '}
-                pax
+            <li key={b.ref} className="flex items-start justify-between gap-2 text-[12.5px]">
+              <span className="min-w-0 text-ink">
+                <span className="block truncate">
+                  <span className="font-bold">{b.ref}</span> · {b.customerName || 'Guest'} · {b.pax}{' '}
+                  pax
+                </span>
+                {b.customerPhone && (
+                  <a
+                    href={`tel:${b.customerPhone.replace(/\s+/g, '')}`}
+                    className="mt-0.5 inline-block font-medium text-teal underline underline-offset-2"
+                  >
+                    {b.customerPhone}
+                  </a>
+                )}
               </span>
               {!calledOff && (
                 <button
