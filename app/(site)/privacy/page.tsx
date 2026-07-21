@@ -6,7 +6,7 @@ import { SITE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
 
-const UPDATED = '22 June 2026';
+const UPDATED = '21 July 2026';
 
 export const metadata: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
@@ -98,8 +98,20 @@ export default function PrivacyPage() {
                 use them to build a marketing profile of you.
               </>,
               <>
+                <strong>Device location</strong> — only if you choose to share it. When you tap
+                &quot;Use my current location&quot; in the trip planner, your browser gives us your
+                device&apos;s coordinates so we can fill in your pick-up point. We send them to
+                Google to turn them into a readable address, and we keep only that address — and
+                only if you go on to book, so your driver can find you. We don&apos;t store the raw
+                coordinates or track where you are. Your browser controls this permission and you
+                can withdraw it there at any time.
+              </>,
+              <>
                 <strong>Usage data</strong> — basic, mostly anonymous information about how the site
-                is used, to keep it secure and working well.
+                is used, to keep it secure and working well. This includes the approximate country
+                your connection comes from, which our hosting provider works out from your IP
+                address. We use it to shape local options — for example, offering the &quot;use my
+                current location&quot; shortcut only to visitors already in Mauritius.
               </>,
             ]}
           />
@@ -132,7 +144,8 @@ export default function PrivacyPage() {
                 improve our service, balanced against your privacy.
               </>,
               <>
-                <strong>Consent</strong> — for anything optional; you can withdraw it at any time.
+                <strong>Consent</strong> — for anything optional, such as sharing your device
+                location; you can withdraw it at any time.
               </>,
             ]}
           />
@@ -161,7 +174,8 @@ export default function PrivacyPage() {
               <>
                 <strong>Google</strong> — powers maps and location search, and the AI road-trip
                 planner. Location searches and planner messages are processed by Google to return
-                results.
+                results. If you share your device location, we send those coordinates to Google to
+                turn them into a readable address.
               </>,
               <>
                 <strong>Cloudflare</strong> — hosting and content delivery (CDN) that serves the
