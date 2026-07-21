@@ -52,6 +52,31 @@
     display: none; /* Chrome/Safari */
   }
 
+  /* A slim, self-coloured scrollbar for scrollable areas on DARK surfaces (the admin sidebar nav).
+     The platform default — a light 17px track with arrow buttons on Windows — reads as a foreign
+     grey slab against the teal rail. Unlike .no-bar this keeps a visible thumb: a vertical nav that
+     scrolls needs to LOOK scrollable, or the items below the fold are undiscoverable.
+     `scrollbar-width/-color` covers Firefox + Chrome 121+; the ::-webkit rules cover older
+     Chrome/Safari. Both render the same 6px translucent thumb on a transparent track. */
+  .slim-bar-dark {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+  }
+  .slim-bar-dark::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .slim-bar-dark::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .slim-bar-dark::-webkit-scrollbar-thumb {
+    background-color: rgb(255 255 255 / 0.18);
+    border-radius: 999px;
+  }
+  .slim-bar-dark:hover::-webkit-scrollbar-thumb {
+    background-color: rgb(255 255 255 / 0.28);
+  }
+
   /* Soft staggered entrance for showcase tiles/cards (transform+opacity only). */
   @keyframes fadeUp {
     from {

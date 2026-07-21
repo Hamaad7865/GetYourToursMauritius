@@ -116,7 +116,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     // min-h-0 + overflow-y-auto: with 14 items the nav can exceed the viewport, and this is a
     // flex child of an h-dvh column — without min-h-0 it refuses to shrink and clips Dashboard and
     // the sign-out chip off the top and bottom with no way to scroll to them.
-    <nav className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
+    <nav className="slim-bar-dark flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
       {items.map((item) => {
         const active = isActive(pathname, item);
         const Icon = item.icon;
