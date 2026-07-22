@@ -34,10 +34,12 @@ const nextConfig = {
       'getyourtoursmauritius.com',
       'www.getyourtoursmauritius.com',
       'www.bellemaretours.com',
-      // The Pages PROJECT was renamed to `bellemaretours` (wrangler.toml), which changed the
-      // subdomain — so the old getyourtoursmauritius.pages.dev listed here no longer resolves while
-      // the real production origin went unguarded, serving a complete crawlable copy of the site (and
-      // re-opening the split-cart / payment-origin problem this list exists to prevent).
+      // The REAL hosted Pages project is `getyourtoursmauritius` (see CLOUDFLARE_PAGES_PROJECT in
+      // docs/handbook/deployment.md) — that is its actual *.pages.dev origin and it must be
+      // guarded, or it serves a complete crawlable, cookie-splitting copy of the site.
+      // `bellemaretours.pages.dev` is kept too in case a project with that name ever existed/exists —
+      // harmless to redirect a host that resolves nowhere.
+      'getyourtoursmauritius.pages.dev',
       'bellemaretours.pages.dev',
     ];
     return [
@@ -110,7 +112,7 @@ const nextConfig = {
       // depend on the preview's env being right. Matches only hash-prefixed hosts, never the apex.
       {
         source: '/(.*)',
-        has: [{ type: 'host', value: '.+\\.bellemaretours\\.pages\\.dev' }],
+        has: [{ type: 'host', value: '.+\\.(getyourtoursmauritius|bellemaretours)\\.pages\\.dev' }],
         headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
       },
       // /checkout must NEVER be cached or served from the bfcache: it mints/holds a booking and a

@@ -2,30 +2,64 @@
 
 [← Handbook](../HANDBOOK.md)
 
-> **This is the most dangerous file in the handbook.** The business logic lives in Postgres, production
-> is updated **by hand**, and there is a failure mode here that silently reverts security fixes with a
-> fully green build. Read it before you write any SQL.
+> **This is the most dangerous file in the handbook.** The business logic lives in Postgres, and
+> there is a failure mode here that silently reverts security fixes with a fully green build. Read
+> it before you write any SQL.
+
+**Two eras, read carefully which one you're in:** until the [release pipeline bootstrap
+checklist](deployment.md#bootstrap-checklist-do-this-once-in-this-exact-order) is complete, production
+is still updated **by hand** exactly as described below. Once bootstrapped, `release.yml` runs
+`supabase db push` automatically on every push to `main` — see
+["The automated path"](#the-automated-path-once-bootstrapped) below. The manual recipe further down
+(writing a migration, mirroring it into `catch-up.sql`, regenerating `setup.sql`) **does not change**
+either way — `catch-up.sql` stays the disaster-recovery / fresh-reconciliation script and
+`supabase/migrations/` stays the one true source of truth in both eras.
 
 ---
 
 ## The four SQL files, and what each is for
 
-| File                        | Who runs it                           | Generated?       |
-| --------------------------- | ------------------------------------- | ---------------- |
-| `supabase/migrations/*.sql` | The test suite; the source of truth   | Hand-written ✍️  |
-| `supabase/catch-up.sql`     | **The owner, on production**          | Hand-mirrored ✍️ |
-| `supabase/setup.sql`        | `npm run db:setup`, on a **fresh** DB | **Generated** 🤖 |
-| `supabase/seed.sql`         | Bundled into setup.sql                | **Generated** 🤖 |
+| File                        | Who runs it                                                                                       | Generated?       |
+| --------------------------- | ------------------------------------------------------------------------------------------------- | ---------------- |
+| `supabase/migrations/*.sql` | The test suite; `supabase db push` once bootstrapped; the source of truth                         | Hand-written ✍️  |
+| `supabase/catch-up.sql`     | The owner (manual era); `reconcile-supabase-ledger.yml` (bootstrap); disaster recovery thereafter | Hand-mirrored ✍️ |
+| `supabase/setup.sql`        | `npm run db:setup`, on a **fresh** DB                                                             | **Generated** 🤖 |
+| `supabase/seed.sql`         | Bundled into setup.sql                                                                            | **Generated** 🤖 |
 
-**`supabase/migrations/` is the source of truth.** ~98 files, applied in **filename sort order**. The
-tests apply these and only these.
+**`supabase/migrations/` is the source of truth.** ~107 files, applied in **filename sort order**.
+The tests apply these and only these; once bootstrapped, so does `supabase db push` in production.
 
-**`supabase/catch-up.sql` is what production actually gets.** There is no migration runner in
-production. The live database has never been `supabase db push`-ed. It is updated by a human pasting
-this file into the Supabase SQL editor. It's a cumulative, idempotent delta script.
+**`supabase/catch-up.sql` is the manual-era delta script and the reconciliation script.** Before
+bootstrap, there is no migration runner in production — the live database has never been `supabase db
+push`-ed, and it's updated by a human pasting this file into the Supabase SQL editor. After
+bootstrap, this file becomes step 2 of `reconcile-supabase-ledger.yml` (a one-time, human-supervised
+operation) and stays the documented disaster-recovery path if the ledger ever drifts again — it does
+NOT stop being maintained.
 
-> **So every schema change must be written twice** — once as a migration, once appended to
-> `catch-up.sql` — or production silently lags the code.
+> **So every schema change must still be written twice** — once as a migration, once appended to
+> `catch-up.sql` — in BOTH eras. Skipping the `catch-up.sql` mirror doesn't just lag production in
+> the manual era; post-bootstrap it also means a future re-reconciliation (if the ledger ever needs
+> rebuilding) would silently regress that change.
+
+## The automated path (once bootstrapped)
+
+`release.yml`'s `supabase-ledger-gate` job, on every push to `main`:
+
+1. Fails immediately unless the repository variable `SUPABASE_MIGRATION_LEDGER_RECONCILED` is
+   exactly `true` (see the [bootstrap checklist](deployment.md#bootstrap-checklist-do-this-once-in-this-exact-order)).
+2. Re-verifies the ledger (`supabase_migrations.schema_migrations`) matches `supabase/migrations/`
+   1:1 — no gaps, no unexpected remote-only versions, no non-linear history
+   (`scripts/release/supabase-ledger.mjs --mode status`).
+3. Runs `supabase db push --dry-run --linked` and fails if it reports anything pending that wasn't
+   expected.
+4. Only then runs the real `supabase db push --linked` — **never `--include-all`**.
+5. Re-verifies the ledger is synchronized afterward.
+
+This job runs BEFORE the web/cron deploys, so a migration failure blocks the whole release — the app
+never ships against a schema it doesn't match. The one-time reconciliation
+(`reconcile-supabase-ledger.yml`) that gets the ledger into a state where this is safe to do
+automatically is documented in `deployment.md` and is deliberately **manual-only, never triggered by
+this pipeline**.
 
 **`supabase/setup.sql` is the fresh-install bundle** (every migration + seed, in one file). Generated —
 never edit it.
@@ -160,6 +194,12 @@ the same: fix the error, re-run the whole file from the top.
 
 ## Owner: applying an update to production
 
+**Once the release pipeline is bootstrapped, you don't do this for ordinary changes** —
+`release.yml`'s `supabase-ledger-gate` job runs `supabase db push` automatically on every push to
+`main`, gated on the checks in ["The automated path"](#the-automated-path-once-bootstrapped) above.
+This manual recipe is the fallback (pre-bootstrap) and the disaster-recovery path (any time the
+ledger needs rebuilding from scratch):
+
 1. Supabase dashboard → **SQL Editor** → New query.
 2. Open `supabase/catch-up.sql`, copy the **whole file**, paste, **Run**.
 3. It's idempotent. Re-running it is safe, and is the expected routine after any deploy that says
@@ -175,7 +215,9 @@ npx tsx scripts/db-exec.ts supabase/catch-up.sql
 ```
 
 **Order matters:** run the SQL **before** deploying the code that needs it. The migrations are additive,
-so old code runs fine against the new schema. New code against an old schema 500s.
+so old code runs fine against the new schema. New code against an old schema 500s. (Once bootstrapped,
+the pipeline enforces this ordering for you — the ledger gate runs, and the database is pushed,
+strictly before the web/cron deploy steps.)
 
 ---
 
@@ -202,10 +244,17 @@ There are no `down` migrations. **The only way to undo SQL in production is forw
    replay files in order.
 2. Append the same SQL to the end of `catch-up.sql`.
 3. `npm run seed:gen && npm run setup:sql`, then `npm run test:coverage`.
-4. Owner pastes `catch-up.sql` into Supabase.
+4. Owner pastes `catch-up.sql` into Supabase (manual era) — or just push to `main` (automated era:
+   the new migration is a normal forward migration, `db push` applies it like any other).
 
 **If the bad migration destroyed data, SQL cannot bring it back.** Use Supabase's own backups
 (Dashboard → Database → Backups / PITR).
+
+This is also why every migration must be **additive/backward-compatible with the previously deployed
+web version**: `deployment.md`'s rollback story for a bad web deploy is "redeploy the old Pages
+build" — that only stays safe if the OLD code can still run against the (now slightly ahead) schema.
+The pipeline never attempts an automatic destructive database rollback, and neither should you by
+hand — forward-only, always.
 
 ---
 

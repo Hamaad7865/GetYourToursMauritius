@@ -16,26 +16,37 @@ Two audiences:
 A Mauritius tour-booking site. Customers browse tours, pick a date, hold a seat, pay by card, and get an
 emailed invoice. The owner runs everything from a `/admin` back-office.
 
-| Piece              | What it is                                                                     |
-| ------------------ | ------------------------------------------------------------------------------ |
-| **Web app**        | Next.js 15 (App Router). **Every route runs on the edge**, not Node.           |
-| **Hosting**        | Cloudflare Pages, project `bellemaretours`. Deploys automatically from `main`. |
-| **Database**       | Supabase (Postgres). **All business logic lives in SQL functions**, not in JS. |
-| **Payments**       | Peach Payments (embedded card widget, EUR).                                    |
-| **Email**          | Resend. Sent from `bookings@`, replies go to `info@`.                          |
-| **Scheduled work** | A **separate** Cloudflare Worker (`workers/cron/`). Deployed by hand.          |
+| Piece              | What it is                                                                                                 |
+| ------------------ | ---------------------------------------------------------------------------------------------------------- |
+| **Web app**        | Next.js 15 (App Router). **Every route runs on the edge**, not Node.                                       |
+| **Hosting**        | Cloudflare Pages, project named by the `CLOUDFLARE_PAGES_PROJECT` repo variable (`getyourtoursmauritius`). |
+| **Database**       | Supabase (Postgres). **All business logic lives in SQL functions**, not in JS.                             |
+| **Payments**       | Peach Payments (embedded card widget, EUR).                                                                |
+| **Email**          | Resend. Sent from `bookings@`, replies go to `info@`.                                                      |
+| **Scheduled work** | A **separate** Cloudflare Worker (`workers/cron/`).                                                        |
 
-**The one thing to internalise:** this app has **three moving parts that deploy separately**. Pushing to
-`main` only ships one of them.
+> ⚠️ **Two eras.** A fully-automated release pipeline (`.github/workflows/release.yml`) exists in
+> the repo, but does not run for real until a human completes its
+> [bootstrap checklist](handbook/deployment.md#bootstrap-checklist-do-this-once-in-this-exact-order).
+> Everything below describes the pipeline's target state; **check with whoever last touched
+> `deployment.md`'s top banner before assuming it's live** — until then, the three-manual-parts
+> reality further down is what's actually happening.
 
-| Part            | How it ships                                              | Ships on `git push`? |
+**Once bootstrapped**, a single `git push` to `main` ships all three parts, in order, automatically —
+web, then database (gated on an explicitly-reconciled migration ledger), then the cron Worker, then a
+battery of post-deploy verification. **Before that** (and this is the current reality as of this
+writing), this app has **three moving parts that deploy separately**, and pushing to `main` only ships
+one of them:
+
+| Part            | How it ships (manual era)                                 | Ships on `git push`? |
 | --------------- | --------------------------------------------------------- | -------------------- |
 | The web app     | Cloudflare Pages, connected to Git                        | ✅ Yes               |
 | The database    | A human pastes `supabase/catch-up.sql` into Supabase      | ❌ **No**            |
 | The cron Worker | `npx wrangler deploy --config workers/cron/wrangler.toml` | ❌ **No**            |
 
 Forgetting the second one means the site 500s on the new feature. Forgetting the third means **emails
-stop and seats stay locked forever** — silently, with a perfectly green deploy.
+stop and seats stay locked forever** — silently, with a perfectly green deploy. (Once bootstrapped,
+the pipeline itself refuses to let this happen — see `handbook/deployment.md`.)
 
 ---
 
@@ -59,8 +70,9 @@ curl -s "https://bellemaretours.com/api/v1/health?deep=true"
 ```
 
 `200` + `"status":"ok"` means config is sane. `503` + `"status":"degraded"` **names the failing check**
-in the body (`siteUrlConfigured`, `internalTasksConfigured`, `paymentsSafe`, …). It is the single most
-useful URL in this system.
+in the body (`siteUrlConfigured`, `internalTasksConfigured`, `paymentsSafe`, …). It also reports
+`releaseSha` / `releaseRunId` — compare against `git rev-parse HEAD` on `main` to confirm the deployed
+build is actually current. It is the single most useful URL in this system.
 
 ---
 
@@ -107,10 +119,14 @@ If you remember nothing else from this handbook:
 2. **A booking is only ever confirmed by `append_payment_event`.** Never `UPDATE bookings SET
 status='confirmed'` by hand — you'd skip the underpayment guard and the capacity re-check.
 
-3. **Migration first, then mirror into `catch-up.sql`, then run the SQL on prod _before_ you push the
-   code.** The pipeline does not apply SQL. Nothing will remind you.
+3. **Migration first, then mirror into `catch-up.sql`.** Pre-bootstrap, also run the SQL on prod
+   _before_ you push the code — the pipeline doesn't exist yet to apply it, and nothing will remind
+   you. Once bootstrapped, `release.yml` applies it automatically on push, in the correct order — but
+   the migration-first mirroring discipline itself never goes away.
 
-4. **The cron Worker is not deployed by `git push`.** If you touched `workers/cron/`, run wrangler.
+4. **Pre-bootstrap, the cron Worker is not deployed by `git push`.** If you touched `workers/cron/`,
+   run wrangler by hand. Once bootstrapped, `release.yml` deploys it automatically, sequentially
+   after the web app, from the same commit.
 
 5. **Run the whole gate before pushing** — including `format:check` and `test:coverage`. CI fails fast,
    so one missed formatting error hides the _five_ checks after it, including the only test that proves

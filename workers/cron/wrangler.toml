@@ -15,8 +15,20 @@ compatibility_date = "2025-02-01"
 [triggers]
 crons = ["*/2 * * * *", "*/5 * * * *"]
 
+# Workers Logs — every invocation (each cron tick, each liveness GET) is ingested/stored/queryable
+# from the dashboard for 7 days. 100% sampling: this Worker's invocation volume is tiny (two ticks a
+# minute), so there's no cost/volume reason to sample down.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
 [vars]
-# Public base URL of the live site. Change this if the domain changes.
+# Public base URL of the live site. Change this if the domain changes. release.yml asserts this
+# matches the CANONICAL_HOST repository variable before deploying, so a stale value here fails the
+# release instead of silently pinging the wrong host forever.
 SITE_URL = "https://bellemaretours.com"
+# RELEASE_SHA / RELEASE_RUN_ID are NOT set here — they change every deploy. release.yml passes them
+# with `--var RELEASE_SHA:<sha> --var RELEASE_RUN_ID:<run id>` on `wrangler deploy`, so the Worker's
+# GET / liveness response can report which release it's running without a config file edit per deploy.
 # NOTE: INTERNAL_TASK_SECRET is a SECRET — never put it here. Set it with:
 #   npx wrangler secret put INTERNAL_TASK_SECRET --config workers/cron/wrangler.toml

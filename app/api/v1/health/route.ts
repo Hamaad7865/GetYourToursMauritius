@@ -7,6 +7,7 @@ import { getPaymentProvider } from '@/lib/payments';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
 import { searchToursQuerySchema } from '@/lib/validation/tours';
+import { RELEASE_SHA, RELEASE_RUN_ID } from '@/lib/config/release-metadata.generated';
 
 export const runtime = 'edge';
 
@@ -96,6 +97,14 @@ export const GET = apiHandler(async (req) => {
     status: healthy ? 'ok' : 'degraded',
     live: isLive,
     productionLike: isProd,
+    // Release provenance, baked into the bundle at build time (src/lib/config/release-metadata.
+    // generated.ts — see its header comment for why this isn't a runtime env var). release.yml's
+    // deep-health poll asserts releaseSha === the artifact SHA it just deployed. Both are
+    // non-sensitive — a git SHA and a GitHub Actions run id — and null on any non-release build.
+    releaseSha: RELEASE_SHA,
+    releaseRunId: RELEASE_RUN_ID,
+    environment: isProd ? 'production' : 'non-production',
+    paymentMode: isLive ? 'live' : 'test',
     checks,
     time: new Date().toISOString(),
   };

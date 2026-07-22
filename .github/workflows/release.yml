@@ -1,0 +1,563 @@
+# Production release — deploys the EXACT artifact CI just built, never a rebuild. Triggered when
+# the `CI` workflow finishes on a push to `main` (workflow_run), with a safe manual retry
+# (workflow_dispatch + a CI run id) for re-running a release after a transient failure without
+# re-running CI. See docs/handbook/deployment.md for the full pipeline, the one-time bootstrap
+# order, and what each secret/variable does.
+#
+# Actions are pinned to immutable commit SHAs (see ci.yml's header for why). Jobs form a STRICT
+# linear dependency chain via `needs:` — GitHub Actions skips a job whose `needs` didn't all
+# succeed, so a failure at any stage stops everything after it with no extra logic required.
+name: Release
+
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: 'Run ID of a completed CI run to retry the release from (must be a push-to-main run in this repo that succeeded)'
+        required: true
+        type: string
+
+# A fixed group name (not keyed on ref/sha) with cancel-in-progress FALSE: releases serialize —
+# a second push while one is running WAITS instead of running concurrently — but an in-flight
+# release, once it has started touching the database, is never cancelled out from under itself.
+# This is a DIFFERENT concurrency group than ci.yml's `ci-${{ github.ref }}` (workflow-scoped, so
+# the two never collide), and ci.yml's `cancel-in-progress: true` only ever cancels a stale CI run
+# of itself — it cannot reach into this workflow's runs at all. That's what keeps a later push's CI
+# run from cancelling a release already in progress here.
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Provenance gate — proves this run is allowed to touch deployment secrets at all ──────────
+  resolve-provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      ci_run_id: ${{ steps.resolve.outputs.ci_run_id }}
+    steps:
+      - name: Resolve + validate the triggering CI run
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          WR_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WR_EVENT: ${{ github.event.workflow_run.event }}
+          WR_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WR_HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          WR_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WR_RUN_ID: ${{ github.event.workflow_run.id }}
+          DISPATCH_RUN_ID: ${{ github.event.inputs.ci_run_id }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            CONCLUSION="$WR_CONCLUSION"; TRIGGER_EVENT="$WR_EVENT"; HEAD_BRANCH="$WR_HEAD_BRANCH"
+            HEAD_REPO="$WR_HEAD_REPO"; SHA="$WR_HEAD_SHA"; CI_RUN_ID="$WR_RUN_ID"
+          elif [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            if [ -z "${DISPATCH_RUN_ID:-}" ]; then
+              echo "::error::ci_run_id input is required for a manual retry"; exit 1
+            fi
+            CI_RUN_ID="$DISPATCH_RUN_ID"
+            RUN_JSON=$(gh api "repos/$REPO/actions/runs/$CI_RUN_ID")
+            WORKFLOW_NAME=$(echo "$RUN_JSON" | jq -r '.name')
+            if [ "$WORKFLOW_NAME" != "CI" ]; then
+              echo "::error::run $CI_RUN_ID is not a CI workflow run (name=$WORKFLOW_NAME)"; exit 1
+            fi
+            CONCLUSION=$(echo "$RUN_JSON" | jq -r '.conclusion')
+            TRIGGER_EVENT=$(echo "$RUN_JSON" | jq -r '.event')
+            HEAD_BRANCH=$(echo "$RUN_JSON" | jq -r '.head_branch')
+            HEAD_REPO=$(echo "$RUN_JSON" | jq -r '.head_repository.full_name')
+            SHA=$(echo "$RUN_JSON" | jq -r '.head_sha')
+          else
+            echo "::error::unsupported trigger event: $EVENT_NAME"; exit 1
+          fi
+
+          echo "Triggering CI run: id=$CI_RUN_ID conclusion=$CONCLUSION event=$TRIGGER_EVENT branch=$HEAD_BRANCH repo=$HEAD_REPO sha=$SHA"
+
+          [ "$CONCLUSION" = "success" ] || { echo "::error::CI run $CI_RUN_ID did not succeed (conclusion=$CONCLUSION)"; exit 1; }
+          [ "$TRIGGER_EVENT" = "push" ] || { echo "::error::CI run was not triggered by a push (event=$TRIGGER_EVENT) — refusing a PR-triggered run"; exit 1; }
+          [ "$HEAD_BRANCH" = "main" ] || { echo "::error::CI run's head branch is not main (branch=$HEAD_BRANCH)"; exit 1; }
+          [ "$HEAD_REPO" = "$REPO" ] || { echo "::error::CI run's head repository ($HEAD_REPO) is not this repository ($REPO) — refusing a fork's run"; exit 1; }
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::resolved SHA is not a full 40-char hex SHA: $SHA"; exit 1; }
+
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "ci_run_id=$CI_RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ steps.resolve.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Verify the exact SHA is reachable from origin/main
+        run: |
+          set -euo pipefail
+          git fetch origin main --quiet
+          git merge-base --is-ancestor "${{ steps.resolve.outputs.sha }}" origin/main
+          echo "✓ ${{ steps.resolve.outputs.sha }} is an ancestor of origin/main"
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-${{ steps.resolve.outputs.sha }}
+          run-id: ${{ steps.resolve.outputs.ci_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Verify artifact manifest + checksum
+        run: node scripts/release/verify-manifest.mjs --manifest manifest.json --tarball release.tar.gz --expected-sha "${{ steps.resolve.outputs.sha }}"
+
+  # ── Open a tracked GitHub Deployment for this release, environment "production" ─────────────
+  create-deployment:
+    needs: resolve-provenance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      deployments: write
+    outputs:
+      deployment_id: ${{ steps.create.outputs.deployment_id }}
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        id: create
+        with:
+          script: |
+            const deployment = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: '${{ needs.resolve-provenance.outputs.sha }}',
+              environment: 'production',
+              auto_merge: false,
+              required_contexts: [],
+              description: 'Release run ${{ github.run_id }}',
+            });
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.data.id,
+              state: 'in_progress',
+              description: 'Release pipeline running',
+            });
+            core.setOutput('deployment_id', deployment.data.id);
+
+  # ── Block Cloudflare's OWN git-integration auto-deploy from racing this pipeline ─────────────
+  # `environment: production` from here down (except the DNS/health check, which needs no secrets)
+  # is NOT an approval gate — it exists so CLOUDFLARE_*/SUPABASE_*/PAYMENT_SMOKE_* MAY be scoped as
+  # environment secrets on "production" for defense-in-depth, and so each job's run shows up in that
+  # environment's deployment history. Do NOT add required reviewers to "production" itself — that
+  # would prompt for approval at every one of these jobs. The one deliberate human approval gate is
+  # `production-payment-smoke`, further down.
+  cloudflare-preflight:
+    needs: [resolve-provenance, create-deployment]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-provenance.outputs.sha }}
+      - name: Verify Cloudflare Pages automatic Git deployments are disabled
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_PAGES_PROJECT: ${{ vars.CLOUDFLARE_PAGES_PROJECT }}
+        run: node scripts/release/cloudflare-preflight.mjs
+
+  # ── Supabase migration ledger gate: fail BEFORE any DB write unless explicitly reconciled ────
+  supabase-ledger-gate:
+    needs: [resolve-provenance, cloudflare-preflight]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-provenance.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Fail unless the ledger is confirmed reconciled
+        run: |
+          if [ "${{ vars.SUPABASE_MIGRATION_LEDGER_RECONCILED }}" != "true" ]; then
+            echo "::error::SUPABASE_MIGRATION_LEDGER_RECONCILED is not exactly 'true'. Run the manual"
+            echo "::error::reconcile-supabase-ledger.yml workflow first — see docs/handbook/deployment.md."
+            exit 1
+          fi
+          echo "✓ SUPABASE_MIGRATION_LEDGER_RECONCILED=true"
+
+      - name: List migration status (informational — linked project)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          npx --yes supabase@2.109.1 link --project-ref "${{ vars.SUPABASE_PROJECT_ID }}" --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
+          npx --yes supabase@2.109.1 migration list --linked --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
+
+      - name: Verify ledger parity (1:1 with supabase/migrations, no gaps, no remote-only versions)
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ vars.SUPABASE_PROJECT_ID }}.supabase.co:5432/postgres
+        run: node scripts/release/supabase-ledger.mjs --mode status
+
+      - name: db push --dry-run must report nothing pending
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_ID: ${{ vars.SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: node scripts/release/supabase-ledger.mjs --mode dry-run
+
+      # THE ONLY WRITE in this job. Reached only after: ledger confirmed reconciled, parity
+      # verified 1:1 against supabase/migrations, and a dry-run confirmed nothing unexpected.
+      # NEVER --include-all (that would apply migrations the ledger doesn't already know about —
+      # exactly what the reconciliation gate above exists to have already resolved by hand).
+      - name: supabase db push (linked, real)
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: npx --yes supabase@2.109.1 db push --linked --password "${{ secrets.SUPABASE_DB_PASSWORD }}"
+
+      - name: Verify the remote ledger is synchronized after push
+        env:
+          SUPABASE_DB_URL: postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ vars.SUPABASE_PROJECT_ID }}.supabase.co:5432/postgres
+        run: node scripts/release/supabase-ledger.mjs --mode status
+
+  # ── Web deploy — wrangler pages deploy of the artifact ONLY, no rebuild ──────────────────────
+  deploy-web:
+    needs: [resolve-provenance, supabase-ledger-gate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.deployment_url }}
+    permissions:
+      contents: read
+    outputs:
+      deployment_url: ${{ steps.deploy.outputs.deployment_url }}
+      previous_deployment_id: ${{ steps.previous.outputs.id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-provenance.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-${{ needs.resolve-provenance.outputs.sha }}
+          run-id: ${{ needs.resolve-provenance.outputs.ci_run_id }}
+          github-token: ${{ github.token }}
+      - run: node scripts/release/verify-manifest.mjs --manifest manifest.json --tarball release.tar.gz --expected-sha "${{ needs.resolve-provenance.outputs.sha }}"
+      - run: mkdir -p .vercel/output/static && tar -xzf release.tar.gz -C .vercel/output/static
+
+      # Rollback bookkeeping — the CURRENT production deployment, captured BEFORE we replace it.
+      - name: Capture the current production deployment (for rollback)
+        id: previous
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          ID=$(npx wrangler pages deployment list --project-name "${{ vars.CLOUDFLARE_PAGES_PROJECT }}" --environment production --json | jq -r '.[0].id // "none"')
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+          echo "Previous production deployment: $ID"
+
+      - name: Deploy to Cloudflare Pages (from the verified artifact, no rebuild)
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx wrangler pages deploy .vercel/output/static \
+            --project-name "${{ vars.CLOUDFLARE_PAGES_PROJECT }}" \
+            --branch main \
+            --commit-hash "${{ needs.resolve-provenance.outputs.sha }}" \
+            --commit-message "release ${{ needs.resolve-provenance.outputs.sha }} (run ${{ github.run_id }})" \
+            | tee wrangler-deploy.log
+          URL=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.pages\.dev' wrangler-deploy.log | tail -1)
+          echo "deployment_url=${URL:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - name: Job summary
+        run: |
+          {
+            echo "### Cloudflare Pages deploy"
+            echo "- SHA: \`${{ needs.resolve-provenance.outputs.sha }}\`"
+            echo "- New deployment URL: ${{ steps.deploy.outputs.deployment_url }}"
+            echo "- Previous production deployment id: \`${{ steps.previous.outputs.id }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── Cron Worker deploy — same SHA, sequential AFTER the web deploy succeeds ──────────────────
+  deploy-cron:
+    needs: [resolve-provenance, deploy-web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+    outputs:
+      previous_version_id: ${{ steps.previous.outputs.id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-provenance.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Verify SITE_URL matches the production canonical origin
+        run: |
+          set -euo pipefail
+          CONFIGURED=$(grep -E '^SITE_URL' workers/cron/wrangler.toml | sed -E 's/^SITE_URL\s*=\s*"(.*)"$/\1/')
+          EXPECTED="https://${{ vars.CANONICAL_HOST }}"
+          if [ "$CONFIGURED" != "$EXPECTED" ]; then
+            echo "::error::workers/cron/wrangler.toml SITE_URL ($CONFIGURED) does not match CANONICAL_HOST ($EXPECTED)"
+            exit 1
+          fi
+          echo "✓ SITE_URL matches the canonical production origin"
+
+      - name: Verify INTERNAL_TASK_SECRET is configured on the Worker (never printed)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          if ! npx wrangler secret list --config workers/cron/wrangler.toml | grep -q '"name": *"INTERNAL_TASK_SECRET"'; then
+            echo "::error::INTERNAL_TASK_SECRET is not set on the gytm-cron Worker. Set it once:"
+            echo "::error::  npx wrangler secret put INTERNAL_TASK_SECRET --config workers/cron/wrangler.toml"
+            exit 1
+          fi
+          echo "✓ INTERNAL_TASK_SECRET is configured (value not read or printed)"
+
+      - name: Capture the current Worker version (for rollback)
+        id: previous
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          ID=$(npx wrangler deployments list --config workers/cron/wrangler.toml --json | jq -r '.[0].id // "none"')
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+          echo "Previous gytm-cron deployment: $ID"
+
+      # --var is documented as additive/overriding alongside wrangler.toml's own [vars] (never a
+      # wholesale replace), and secrets set via `wrangler secret put` are untouched by `deploy` —
+      # see the comment in workers/cron/wrangler.toml.
+      - name: Deploy the cron Worker from the same checked-out SHA
+        id: deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          npx wrangler deploy --config workers/cron/wrangler.toml \
+            --var "RELEASE_SHA:${{ needs.resolve-provenance.outputs.sha }}" \
+            --var "RELEASE_RUN_ID:${{ github.run_id }}" \
+            | tee wrangler-deploy.log
+          URL=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.workers\.dev' wrangler-deploy.log | tail -1)
+          echo "worker_url=${URL:-}" >> "$GITHUB_OUTPUT"
+
+      - name: Verify the deployed liveness response reports this release
+        if: steps.deploy.outputs.worker_url != ''
+        run: |
+          set -euo pipefail
+          BODY=$(curl -sS --retry 5 --retry-delay 3 --retry-all-errors "${{ steps.deploy.outputs.worker_url }}/")
+          echo "$BODY"
+          echo "$BODY" | node -e '
+            const body = JSON.parse(require("fs").readFileSync(0, "utf8"));
+            const expectedSha = process.argv[1];
+            if (body.releaseSha !== expectedSha) throw new Error(`releaseSha mismatch: got ${body.releaseSha}, expected ${expectedSha}`);
+            if (body.internalTaskSecretConfigured !== true) throw new Error("internalTaskSecretConfigured is not true");
+            console.log("✓ gytm-cron liveness confirms release " + expectedSha);
+          ' "${{ needs.resolve-provenance.outputs.sha }}"
+
+      - name: Job summary
+        run: |
+          {
+            echo "### gytm-cron Worker deploy"
+            echo "- SHA: \`${{ needs.resolve-provenance.outputs.sha }}\`"
+            echo "- Previous deployment id: \`${{ steps.previous.outputs.id }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── DNS / canonical-origin + deep health verification, SHA must match ────────────────────────
+  verify-dns-health:
+    needs: [resolve-provenance, deploy-cron]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-provenance.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Verify canonical DNS + redirects (read-only, no mutation)
+        run: node scripts/release/verify-dns.mjs --canonical-host "${{ vars.CANONICAL_HOST }}" --pages-dev-host "${{ vars.CLOUDFLARE_PAGES_PROJECT }}.pages.dev"
+
+      - name: Deep health poll — releaseSha must equal this release's SHA
+        run: node scripts/release/verify-health.mjs --url "${{ vars.PRODUCTION_URL }}" --expected-sha "${{ needs.resolve-provenance.outputs.sha }}"
+
+  # ── Automated payment PROBE (availability -> hold -> booking -> checkout creation only) ──────
+  payment-probe:
+    needs: [resolve-provenance, verify-dns-health]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.resolve-provenance.outputs.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      # PAYMENT_SMOKE_BASE_URL is a dedicated staging/sandbox target, deliberately separate from
+      # production — see scripts/release/peach-payment-probe.mjs's safety checks. Optional: if the
+      # staging deployment isn't provisioned yet, this step is skipped with a clear warning rather
+      # than failing the whole release on infrastructure that predates this pipeline.
+      - name: Peach sandbox payment probe (staging target)
+        if: vars.PAYMENT_SMOKE_BASE_URL != ''
+        env:
+          PAYMENT_SMOKE_BASE_URL: ${{ vars.PAYMENT_SMOKE_BASE_URL }}
+          PRODUCTION_URL: ${{ vars.PRODUCTION_URL }}
+          CANONICAL_HOST: ${{ vars.CANONICAL_HOST }}
+          PAYMENT_SMOKE_SUPABASE_URL: ${{ secrets.PAYMENT_SMOKE_SUPABASE_URL }}
+          PAYMENT_SMOKE_SUPABASE_ANON_KEY: ${{ secrets.PAYMENT_SMOKE_SUPABASE_ANON_KEY }}
+          PAYMENT_SMOKE_USER_EMAIL: ${{ secrets.PAYMENT_SMOKE_USER_EMAIL }}
+          PAYMENT_SMOKE_USER_PASSWORD: ${{ secrets.PAYMENT_SMOKE_USER_PASSWORD }}
+          RELEASE_RUN_ID: ${{ github.run_id }}
+        run: node scripts/release/peach-payment-probe.mjs
+
+      - name: Payment probe skipped (not configured)
+        if: vars.PAYMENT_SMOKE_BASE_URL == ''
+        run: echo "::warning::PAYMENT_SMOKE_BASE_URL is not set — skipping the automated payment probe. See docs/handbook/deployment.md."
+
+  # ── Payment SMOKE — explicit BLOCKING MANUAL gate (see docs/handbook/deployment.md) ───────────
+  # A full charge -> webhook/reconciliation -> confirmed booking -> invoice journey needs entering
+  # a card into Peach's own hosted widget, which this pipeline will not automate (see the header
+  # comment in scripts/release/peach-payment-probe.mjs). A human performs ONE real sandbox booking
+  # through the live site, then approves this GitHub Environment. Configure the
+  # `production-payment-smoke` environment's required reviewers in repo Settings → Environments —
+  # until that's done this job auto-approves, so treat that setup as part of go-live, not optional.
+  payment-smoke-manual-gate:
+    needs: [resolve-provenance, payment-probe]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production-payment-smoke
+    permissions:
+      contents: read
+    steps:
+      - run: |
+          echo "Manual payment-smoke gate for SHA ${{ needs.resolve-provenance.outputs.sha }}."
+          echo "A human must have just completed ONE real Peach SANDBOX booking through the live"
+          echo "site (availability -> checkout -> card entry with a Peach test card -> webhook or"
+          echo "/api/v1/payments/sync confirms the booking -> invoice/receipt is available) before"
+          echo "approving this environment. See docs/handbook/deployment.md 'Payment smoke gate'."
+
+  # ── Mark the GitHub production deployment successful ──────────────────────────────────────────
+  mark-deployment-success:
+    needs:
+      - resolve-provenance
+      - create-deployment
+      - cloudflare-preflight
+      - supabase-ledger-gate
+      - deploy-web
+      - deploy-cron
+      - verify-dns-health
+      - payment-probe
+      - payment-smoke-manual-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ needs.create-deployment.outputs.deployment_id }},
+              state: 'success',
+              description: 'Release ${{ needs.resolve-provenance.outputs.sha }} deployed and verified',
+              environment_url: '${{ needs.deploy-web.outputs.deployment_url }}',
+            });
+      - run: |
+          {
+            echo "## ✅ Release ${{ needs.resolve-provenance.outputs.sha }} succeeded"
+            echo "- Web: ${{ needs.deploy-web.outputs.deployment_url }}"
+            echo "- Production: ${{ vars.PRODUCTION_URL }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ── On ANY failure in the chain above, mark the deployment failed and surface rollback info ──
+  on-release-failure:
+    if: always() && needs.create-deployment.result == 'success' && contains(needs.*.result, 'failure')
+    needs:
+      - resolve-provenance
+      - create-deployment
+      - cloudflare-preflight
+      - supabase-ledger-gate
+      - deploy-web
+      - deploy-cron
+      - verify-dns-health
+      - payment-probe
+      - payment-smoke-manual-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ needs.create-deployment.outputs.deployment_id }},
+              state: 'failure',
+              description: 'Release pipeline failed — see run ${{ github.run_id }}',
+            });
+      - run: |
+          {
+            echo "## ❌ Release FAILED"
+            echo "SHA: \`${{ needs.resolve-provenance.outputs.sha }}\`"
+            echo ""
+            echo "### Rollback"
+            echo "- Cloudflare Pages: dashboard → Workers & Pages → \`${{ vars.CLOUDFLARE_PAGES_PROJECT }}\` →"
+            echo "  Deployments → find deployment \`${{ needs.deploy-web.outputs.previous_deployment_id }}\` →"
+            echo "  **Rollback to this deployment**."
+            echo "- gytm-cron Worker: previous deployment id was"
+            echo "  \`${{ needs.deploy-cron.outputs.previous_version_id }}\` (dashboard → Workers & Pages →"
+            echo "  gytm-cron → Deployments) — or re-run \`npx wrangler rollback --config"
+            echo "  workers/cron/wrangler.toml [deployment-id]\` if that deployment id is still current."
+            echo "- Database migrations are FORWARD-ONLY. Do not attempt to undo a migration here — see"
+            echo "  docs/handbook/database.md#undoing-a-bad-migration. A web rollback stays safe only"
+            echo "  because migrations are additive/backward-compatible with the previous web version."
+          } >> "$GITHUB_STEP_SUMMARY"

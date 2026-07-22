@@ -1,0 +1,28 @@
+# Supabase CLI project config. This repo never ran `supabase start` (tests use pglite — see
+# tests/db/pglite.ts — and production is provisioned by hand-pasting supabase/catch-up.sql), so this
+# file did not exist until the release pipeline needed it: `supabase link` / `supabase db push` /
+# `supabase migration list` all refuse to run outside a directory containing supabase/config.toml.
+#
+# `project_id` here is a LOCAL label only (names local Docker containers if anyone ever runs
+# `supabase start`) — it does NOT need to match the remote project. The actual remote target is
+# selected explicitly on every command with `--project-ref "$SUPABASE_PROJECT_ID"` (reconcile-
+# supabase-ledger.yml) or the state left by `supabase link` in .supabase/ (gitignored). Do not add
+# secrets to this file — see https://supabase.com/docs/guides/local-development/cli/config.
+project_id = "gytm"
+
+[db]
+# Must match the remote database's major version (`SHOW server_version;`).
+major_version = 17
+
+[db.migrations]
+enabled = true
+schema_paths = []
+
+[api]
+enabled = false
+
+[studio]
+enabled = false
+
+[auth]
+enabled = false

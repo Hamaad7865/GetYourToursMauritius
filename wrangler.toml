@@ -1,7 +1,13 @@
 # Cloudflare Pages configuration for the next-on-pages build output.
 # Read by `npm run pages:dev` (local edge runtime), `wrangler pages deploy`, and — because it sits
 # in the repo root — by the Cloudflare Pages build itself (it picks up the compatibility settings).
-name = "bellemaretours"                        # Pages project name → bellemaretours.pages.dev
+#
+# The `name` here is COSMETIC for `pages:dev` only. The real hosted Pages project — the one
+# .github/workflows/release.yml deploys to — is named by the CLOUDFLARE_PAGES_PROJECT repository
+# variable (see docs/handbook/deployment.md), not by this field, because Pages projects cannot be
+# renamed after creation and the live project is `getyourtoursmauritius`. Keep this in sync with
+# CLOUDFLARE_PAGES_PROJECT so local `wrangler pages dev`/`deploy` target the same project as CI.
+name = "getyourtoursmauritius"
 compatibility_date = "2025-02-01"
 compatibility_flags = ["nodejs_compat"]         # REQUIRED — the app 500s at runtime without it
 pages_build_output_dir = ".vercel/output/static"

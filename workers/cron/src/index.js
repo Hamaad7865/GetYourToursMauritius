@@ -79,11 +79,23 @@ const worker = {
     }
   },
 
-  /** A trivial GET so you can confirm the Worker is deployed (does nothing, exposes no secret). */
-  async fetch() {
-    return new Response('gytm-cron: alive. Jobs run on cron triggers, not on request.', {
+  /**
+   * A trivial GET so you can confirm the Worker is deployed (does nothing, exposes no secret).
+   * Reports release provenance (SHA/run id, set as plain `vars` by the release workflow's
+   * `wrangler deploy --var`) and whether the required secret is present — never its value — so
+   * the release pipeline can verify the cron deploy without printing anything sensitive.
+   */
+  async fetch(_req, env) {
+    const body = {
+      status: 'alive',
+      releaseSha: env.RELEASE_SHA ?? null,
+      releaseRunId: env.RELEASE_RUN_ID ?? null,
+      internalTaskSecretConfigured: Boolean(env.INTERNAL_TASK_SECRET),
+      siteUrl: env.SITE_URL ?? null,
+    };
+    return new Response(JSON.stringify(body), {
       status: 200,
-      headers: { 'content-type': 'text/plain' },
+      headers: { 'content-type': 'application/json' },
     });
   },
 };

@@ -1,12 +1,22 @@
 # Continuous integration — runs the full green gate on every push to main and every PR, plus the
-# Cloudflare edge bundle (`pages:build`) which is broken on the Windows dev machine and so was never
-# verified anywhere until now. Make this a required status check on main in the repo settings.
+# Cloudflare edge bundle (`pages:build`) and a cron-Worker bundle/dry-run check. On a push to `main`
+# only, after `verify` AND `e2e` both succeed, a SEPARATE `release-artifact` job packages the exact
+# `.vercel/output/static` that `verify` built into one immutable, checksummed tarball + manifest —
+# the ONLY thing release.yml is allowed to deploy. Make `verify`, `e2e`, `lint-workflows` and
+# `release-artifact` required status checks on `main` in the repo settings.
+#
+# Actions below are pinned to immutable commit SHAs (not tags/branches) per the release-pipeline
+# security requirements; the tag is kept in a trailing comment for humans. Re-pin deliberately (new
+# SHA + updated comment), never by widening back to a tag.
 name: CI
 
 on:
   push:
     branches: [main]
   pull_request:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -15,10 +25,11 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
@@ -38,10 +49,17 @@ jobs:
       - name: Format check
         run: npm run format:check
 
-      # Runs the full suite WITH coverage so the thresholds in vitest.config.ts are enforced (was
-      # unenforced; the provider was even missing). A coverage regression now fails the build.
+      # Runs the full suite WITH coverage so the thresholds in vitest.config.ts are enforced. This
+      # also runs every scripts/release/*.mjs unit test (tests/unit/release-*.test.ts) — the
+      # "workflow/script unit tests" gate — since vitest's include glob already covers tests/**.
       - name: Test (with coverage thresholds)
         run: npm run test:coverage
+
+      # Bakes this run's provenance into the bundle BEFORE `next build` compiles it (see
+      # src/lib/config/release-metadata.generated.ts for why this is a build-time constant, not a
+      # runtime env var). Harmless on a PR build — the value is simply never deployed.
+      - name: Write release metadata
+        run: node scripts/release/write-release-metadata.mjs --sha "${{ github.sha }}" --run-id "${{ github.run_id }}"
 
       - name: Build
         run: npm run build
@@ -51,16 +69,35 @@ jobs:
       - name: Edge bundle (Cloudflare Pages)
         run: npm run pages:build
 
+      # Compiles + validates the cron Worker's bundle and wrangler.toml WITHOUT deploying or needing
+      # credentials (`--dry-run` exits before any network call — verified locally with no auth
+      # configured). Catches a syntax error or bad binding before release.yml ever tries the real
+      # deploy.
+      - name: Cron Worker bundle validation (dry-run)
+        run: npx wrangler deploy --dry-run --config workers/cron/wrangler.toml --outdir /tmp/cron-dryrun
+
+      # Only a push to `main` feeds the release pipeline — skip the upload on PR runs to save minutes.
+      # 1-day retention: this is a same-workflow relay to `release-artifact` below, not a deliverable.
+      - name: Upload raw build output (intra-workflow relay only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: raw-build-output
+          path: .vercel/output/static
+          retention-days: 1
+          if-no-files-found: error
+
   # Homepage smoke in a real browser — a SEPARATE job so a browser flake can't block the unit gate. The
   # app degrades gracefully without Supabase/Peach (the catalogue fetch is try/caught to []), so this
   # needs no secrets; playwright.config.ts's webServer builds + serves the app. Catches edge-runtime boot
   # failures / hydration breakage / 500s that `next build` alone never exercises.
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
           cache: npm
@@ -73,3 +110,67 @@ jobs:
 
       - name: E2E smoke
         run: npm run test:e2e
+
+  # Validates every workflow file's syntax + common mistakes (undefined secrets/vars references,
+  # unquoted shell expansions, unpinned `uses:`, etc). Cheap and independent — runs in parallel.
+  lint-workflows:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: reviewdog/action-actionlint@6fb7acc99f4a1008869fa8a0f09cfca740837d9d # v1.72.0
+        with:
+          fail_level: error
+
+  # Packages the EXACT bundle `verify` already built into one immutable, checksummed release
+  # artifact. Never rebuilds. Gated on BOTH `verify` and `e2e` succeeding, only on a push to `main`,
+  # only in THIS repository (a fork's push can't reach this — forks can't push to this repo's `main`
+  # branch at all, and pull_request events never satisfy `github.event_name == 'push'`).
+  release-artifact:
+    needs: [verify, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'Hamaad7865/GetYourToursMauritius'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: raw-build-output
+          path: .vercel/output/static
+
+      - name: Generate manifest + immutable tarball
+        run: |
+          node scripts/release/generate-manifest.mjs \
+            --sha "${{ github.sha }}" \
+            --run-id "${{ github.run_id }}" \
+            --artifact-dir .vercel/output/static \
+            --package-lock package-lock.json \
+            --out-tarball release.tar.gz \
+            --out-manifest manifest.json
+
+      # Self-check before upload: the same verification release.yml will run on download. Catches a
+      # packaging bug here rather than at deploy time.
+      - name: Self-verify the manifest + checksum
+        run: node scripts/release/verify-manifest.mjs --manifest manifest.json --tarball release.tar.gz --expected-sha "${{ github.sha }}"
+
+      # Short, documented retention: this artifact only needs to outlive the time between CI finishing
+      # and release.yml consuming it (workflow_run fires within seconds). 14 days covers a manual
+      # workflow_dispatch retry (see release.yml) without keeping every past release forever.
+      - name: Upload release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-${{ github.sha }}
+          path: |
+            release.tar.gz
+            manifest.json
+          retention-days: 14
+          if-no-files-found: error
