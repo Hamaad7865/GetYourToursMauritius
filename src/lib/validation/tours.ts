@@ -220,6 +220,9 @@ export const searchToursQuerySchema = paginationQuerySchema.extend({
   q: z.string().trim().min(1).max(120).optional(),
   category: categorySchema.optional(),
   type: tourTypeSchema.optional(),
+  /** Home/boarding region of the activity (East/West/North/South/Central) — e.g. the Belle Mare
+   *  showcase filters to East. Not exposed in search results, filter-only. */
+  region: z.enum(['North', 'East', 'South', 'West', 'Central']).optional(),
   /** "From" price range in EUR (matched against the displayed fromPriceEur). */
   priceMin: z.coerce.number().nonnegative().optional(),
   priceMax: z.coerce.number().nonnegative().optional(),

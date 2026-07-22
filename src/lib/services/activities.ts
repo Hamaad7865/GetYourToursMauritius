@@ -42,6 +42,7 @@ export async function searchActivities(
     q: query.q ?? null,
     category: query.category ?? null,
     type: query.type ?? null,
+    region: query.region ?? null,
     priceMin: query.priceMin ?? null,
     priceMax: query.priceMax ?? null,
     durationMin: query.durationMin ?? null,
