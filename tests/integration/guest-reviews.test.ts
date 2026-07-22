@@ -469,3 +469,89 @@ describe('api_review_invite_context: read-only, token-gated, never consumes the 
     expect(await call(db, 'api_review_invite_context', { token: usedToken })).toBeNull();
   });
 });
+
+describe('api_list_approved_guest_reviews: public feed leaks nothing but approved', () => {
+  let db: TestDb;
+  let activityId: string;
+
+  beforeAll(async () => {
+    db = await createTestDb();
+    await db.asOwner();
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
+    activityId = (
+      await db.pg.query<{ id: string }>(
+        `insert into activities (operator_id, slug, type, title, category, status, pricing_mode)
+         values ($1, 'approved-feed-tour', 'activity', 'Approved Feed Tour', 'Sightseeing tours', 'published', 'per_person')
+         returning id`,
+        [operatorId],
+      )
+    ).rows[0]!.id;
+
+    // One booking per guest_reviews row (booking_id is unique on that table).
+    const bookingIds: string[] = [];
+    for (let i = 0; i < 4; i++) {
+      bookingIds.push(
+        (
+          await db.pg.query<{ id: string }>(
+            `insert into bookings (ref, status, customer_name, customer_email, total_minor, currency)
+             values ($1, 'confirmed', 'Tester', $2, 5000, 'EUR') returning id`,
+            [`BMT-AF-${i}`, `af-${i}@example.com`],
+          )
+        ).rows[0]!.id,
+      );
+    }
+
+    await db.pg.query(
+      `insert into guest_reviews (booking_id, activity_id, customer_name, rating, body, status)
+       values
+         ($1, $5, 'Pending Guest', 3, 'still awaiting moderation', 'pending'),
+         ($2, $5, 'Approved One', 5, 'Loved every minute of it', 'approved'),
+         ($3, $5, 'Approved Two', 4, 'Great value for the price', 'approved'),
+         ($4, $5, 'Rejected Guest', 1, 'this must never be public', 'rejected')`,
+      [...bookingIds, activityId],
+    );
+  });
+
+  afterAll(async () => {
+    await db.close();
+  });
+
+  it('returns only approved rows — pending and rejected never leak', async () => {
+    await db.as(null);
+    const result = await call<
+      { rating: number; body: string; customerName: string; submittedAt: string }[]
+    >(db, 'api_list_approved_guest_reviews', {});
+
+    expect(result).toHaveLength(2);
+    const names = result.map((r) => r.customerName).sort();
+    expect(names).toEqual(['Approved One', 'Approved Two']);
+    expect(result.some((r) => r.customerName === 'Pending Guest')).toBe(false);
+    expect(result.some((r) => r.customerName === 'Rejected Guest')).toBe(false);
+  });
+
+  it('returns exactly the {rating, body, customerName, submittedAt} shape the merge needs', async () => {
+    await db.as(null);
+    const result = await call<
+      { rating: number; body: string; customerName: string; submittedAt: string }[]
+    >(db, 'api_list_approved_guest_reviews', {});
+    for (const row of result) {
+      expect(typeof row.rating).toBe('number');
+      expect(typeof row.body).toBe('string');
+      expect(typeof row.customerName).toBe('string');
+      expect(typeof row.submittedAt).toBe('string');
+    }
+  });
+
+  it('is callable by anon and authenticated', async () => {
+    const { rows } = await db.pg.query<{ anon: boolean; auth: boolean }>(
+      `select has_function_privilege('anon', 'public.api_list_approved_guest_reviews(jsonb)', 'EXECUTE') as anon,
+              has_function_privilege('authenticated', 'public.api_list_approved_guest_reviews(jsonb)', 'EXECUTE') as auth`,
+    );
+    expect(rows[0]!.anon).toBe(true);
+    expect(rows[0]!.auth).toBe(true);
+  });
+});

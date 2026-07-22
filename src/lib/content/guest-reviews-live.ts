@@ -60,18 +60,24 @@ async function loadApprovedGuestReviews(): Promise<DbApprovedReview[]> {
   return Array.isArray(data) ? (data as DbApprovedReview[]) : [];
 }
 
-export async function loadReviewStats(): Promise<ReviewStats> {
+/**
+ * The single I/O boundary for the /reviews page: one `api_list_approved_guest_reviews` round-trip,
+ * merged into both the stats and the featured list. Deliberately one fetch shared by both — calling
+ * `mergeReviewStats`/`mergeFeaturedReviews` from two independent loaders would double the RPC per
+ * render. On any DB error BOTH fall back to seed-only together (never one merged, one not), same
+ * all-or-nothing guarantee as before.
+ */
+export async function loadGuestReviewsPageData(): Promise<{
+  stats: ReviewStats;
+  featured: FeaturedReview[];
+}> {
   try {
-    return mergeReviewStats(seedStats, await loadApprovedGuestReviews());
+    const db = await loadApprovedGuestReviews();
+    return {
+      stats: mergeReviewStats(seedStats, db),
+      featured: mergeFeaturedReviews(seedReviews, db),
+    };
   } catch {
-    return seedStats;
-  }
-}
-
-export async function loadFeaturedReviews(): Promise<FeaturedReview[]> {
-  try {
-    return mergeFeaturedReviews(seedReviews, await loadApprovedGuestReviews());
-  } catch {
-    return seedReviews;
+    return { stats: seedStats, featured: seedReviews };
   }
 }
