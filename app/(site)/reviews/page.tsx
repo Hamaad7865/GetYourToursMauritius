@@ -124,8 +124,8 @@ export default async function ReviewsPage() {
         </div>
 
         <p className="mt-5 text-[13.5px] text-ink-muted">
-          These are real, unedited reviews collected on TripAdvisor and Google. Click any review to
-          read it on the original platform.
+          These are real, unedited reviews from TripAdvisor, Google, and guests who booked directly
+          with us. Where available, click through to read the review on its original platform.
         </p>
 
         {/* Reviews grid */}
