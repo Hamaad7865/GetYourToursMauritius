@@ -12,7 +12,7 @@ import {
   BookDirectCta,
 } from '@/components/seo/LandingSections';
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
-import { featuredActivities } from '@/lib/seo/landing';
+import { belleMareActivityGroups } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
@@ -78,7 +78,8 @@ const FAQS = [
 ];
 
 export default async function ThingsToDoInBelleMarePage() {
-  const featured = await featuredActivities({ limit: 6 });
+  const groups = await belleMareActivityGroups();
+  const allActivities = groups.flatMap((g) => g.activities);
 
   return (
     <>
@@ -89,10 +90,10 @@ export default async function ThingsToDoInBelleMarePage() {
         ])}
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
-      {featured.length > 0 && (
+      {allActivities.length > 0 && (
         <JsonLd
           data={itemListJsonLd(
-            featured.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })),
+            allActivities.map((a) => ({ name: a.title, path: `/activities/${a.slug}` })),
           )}
         />
       )}
@@ -118,11 +119,14 @@ export default async function ThingsToDoInBelleMarePage() {
           </p>
         </ContentSection>
 
-        <FeaturedTours
-          title="Bookable Belle Mare activities"
-          intro="Live tours and boat trips you can book right now — every one includes door-to-door pickup from Belle Mare hotels and villas."
-          activities={featured}
-        />
+        {groups.map((group) => (
+          <FeaturedTours
+            key={group.title}
+            title={group.title}
+            intro={group.intro}
+            activities={group.activities}
+          />
+        ))}
 
         <ContentSection id="beach" title="The beach & the lagoon">
           <p>
