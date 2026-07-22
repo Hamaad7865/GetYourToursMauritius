@@ -913,6 +913,7 @@ export interface Database {
       stop_availability_atomic: { Args: { p: Json }; Returns: undefined };
       api_list_rental_vehicles: { Args: { p: Json }; Returns: Json };
       api_content_defaults: { Args: { p: Json }; Returns: Json };
+      api_moderate_guest_review: { Args: { p: Json }; Returns: Json };
     };
     Enums: {
       user_role: 'customer' | 'staff' | 'admin' | 'seo';
