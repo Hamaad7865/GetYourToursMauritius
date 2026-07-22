@@ -223,13 +223,18 @@ describe('api_enqueue_review_invites: the Mauritius-anchored eligibility boundar
   // `endsAt` is a raw SQL expression (e.g. `now() - interval '1 hour'`), not a literal value — it must
   // be interpolated into the query text, not bound as a parameter (a bound param is sent to Postgres as
   // a literal string and fails to parse as a timestamp).
-  async function bookingEndingAt(endsAt: string, statusExtra = ''): Promise<string> {
+  async function bookingEndingAt(
+    endsAt: string,
+    statusExtra = '',
+    status = 'confirmed',
+  ): Promise<string> {
     const bookingId = (
       await db.pg.query<{ id: string }>(
         `insert into bookings (ref, status, customer_name, customer_email, total_minor, currency)
-         values ($1, 'confirmed', 'Tester', $2, 5000, 'EUR') returning id`,
+         values ($1, $2, 'Tester', $3, 5000, 'EUR') returning id`,
         [
           `BMT-TZ-${Math.random().toString(36).slice(2, 8)}`,
+          status,
           `tester-${statusExtra || Date.now()}@example.com`,
         ],
       )
@@ -286,6 +291,32 @@ describe('api_enqueue_review_invites: the Mauritius-anchored eligibility boundar
     await db.as({ role: 'service_role' });
     const count = await callEnqueue(db);
     expect(count).toBe(0);
+  });
+
+  it("DOES enqueue an invite for a 'completed' booking too, not just 'confirmed'", async () => {
+    await db.asOwner();
+    // Same eligibility window as the 'confirmed' case above — only the booking status differs. The
+    // owner marking a booking 'completed' before the sweep runs (AdminBookings.tsx "Mark as
+    // completed") must not silently drop the guest's review invite.
+    const completedBookingId = await bookingEndingAt(
+      `now() - interval '2 days'`,
+      'completed-status',
+      'completed',
+    );
+    await db.as({ role: 'service_role' });
+    const count = await callEnqueue(db);
+    await db.asOwner();
+    expect(count).toBe(1);
+    const invite = await db.pg.query(
+      `select token from review_invites where booking_id = $1`,
+      [completedBookingId],
+    );
+    expect(invite.rows).toHaveLength(1);
+    const outbox = await db.pg.query(
+      `select 1 from notification_outbox where booking_id = $1 and template = 'review_request'`,
+      [completedBookingId],
+    );
+    expect(outbox.rows).toHaveLength(1);
   });
 
   it('anon/authenticated cannot call it directly', async () => {
