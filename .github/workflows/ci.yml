@@ -94,7 +94,12 @@ jobs:
       # Fails the build if the Supabase URL/anon key did NOT get inlined into the client bundle.
       # This is the check that would have caught the outage: it greps the actual built JS, so it
       # cannot be fooled by a server-side env var being present.
+      # Needs the SAME env as the build steps: it compares the built chunks AGAINST these expected
+      # values, so without them it can only report "not set" and never actually inspects the bundle.
       - name: Verify NEXT_PUBLIC_* were inlined into the client bundle
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         run: node scripts/release/verify-public-env-inlined.mjs
 
       # Compiles + validates the cron Worker's bundle and wrangler.toml WITHOUT deploying or needing
