@@ -21,10 +21,12 @@ export const myReviewSchema = z.object({
 export type MyReview = z.infer<typeof myReviewSchema>;
 
 /** Guest review submission via one-time invite token (post-trip request). */
-export const submitGuestReviewInputSchema = z.object({
-  token: z.string().min(1),
-  rating: z.number().int().min(1).max(5),
-  name: z.string().trim().min(1).max(120),
-  body: z.string().trim().min(5).max(2000),
-});
+export const submitGuestReviewInputSchema = z
+  .object({
+    token: z.string().min(1),
+    rating: z.number().int().min(1).max(5),
+    name: z.string().trim().min(1).max(120),
+    body: z.string().trim().min(5).max(2000),
+  })
+  .strict();
 export type SubmitGuestReviewInput = z.infer<typeof submitGuestReviewInputSchema>;

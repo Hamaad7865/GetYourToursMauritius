@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import { reviewSchema, type Review } from '@/lib/validation/tours';
-import { myReviewSchema, type MyReview, type ReviewInput, type SubmitGuestReviewInput, submitGuestReviewInputSchema } from '@/lib/validation/reviews';
+import { myReviewSchema, type MyReview, type ReviewInput, type SubmitGuestReviewInput } from '@/lib/validation/reviews';
 
 /** Submit (or update) the caller's review for an activity. Booking-gated + rating recompute happen in
  *  api_submit_review: 404 unknown slug, 403 when the caller has no confirmed/completed booking. */
