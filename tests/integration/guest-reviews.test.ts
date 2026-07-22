@@ -14,7 +14,9 @@ async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promi
 // api_enqueue_review_invites() is niladic (no jsonb argument), unlike the other RPCs — `call` above
 // always sends one, which doesn't match this function's signature.
 async function callEnqueue(db: TestDb): Promise<number> {
-  const { rows } = await db.pg.query<{ data: number }>(`select api_enqueue_review_invites() as data`);
+  const { rows } = await db.pg.query<{ data: number }>(
+    `select api_enqueue_review_invites() as data`,
+  );
   return rows[0]!.data;
 }
 
