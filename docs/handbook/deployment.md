@@ -122,20 +122,25 @@ step to actually run (it's skipped with a warning if `PAYMENT_SMOKE_BASE_URL` is
 
 | Variable                               | Example value                           | Notes                                                                                       |
 | -------------------------------------- | --------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `CLOUDFLARE_PAGES_PROJECT`             | `getyourtoursmauritius`                 | The REAL hosted Pages project name — see the note below on the historical name mismatch     |
+| `CLOUDFLARE_PAGES_PROJECT`             | `bellemaretours`                        | The REAL hosted Pages project name — see the rename note below                              |
 | `PRODUCTION_URL`                       | `https://bellemaretours.com`            | Used by health/DNS verification                                                             |
 | `CANONICAL_HOST`                       | `bellemaretours.com`                    | No scheme, no trailing slash                                                                |
 | `SUPABASE_PROJECT_ID`                  | the project ref, e.g. `abcdefghijklmno` | Dashboard → Settings → General → Reference ID                                               |
 | `SUPABASE_MIGRATION_LEDGER_RECONCILED` | `true` (only after step 4 above)        | Exact string `true` — anything else fails closed                                            |
 | `PAYMENT_SMOKE_BASE_URL`               | `https://staging.bellemaretours.com`    | A dedicated staging/sandbox deployment — MUST differ from `PRODUCTION_URL`/`CANONICAL_HOST` |
 
-### The Cloudflare project-name mismatch — fixed here, verify in the dashboard
+### The Cloudflare project name — renamed 2026-07-22
 
-The repo previously called the Pages project `bellemaretours` in `wrangler.toml`, but the actually
-hosted project is `getyourtoursmauritius`. `wrangler.toml`'s `name` field only affects local
-`wrangler pages dev`; the pipeline always deploys to whatever `CLOUDFLARE_PAGES_PROJECT` names, so
-**set that variable to the project's real name** (default documented above). Confirm in the
-dashboard which project actually serves `bellemaretours.com` before setting it.
+The hosted Pages project was renamed `getyourtoursmauritius` → `bellemaretours`. `wrangler.toml`'s
+`name` only affects local `wrangler pages dev`; the pipeline always deploys to whatever
+`CLOUDFLARE_PAGES_PROJECT` names, so **that variable is the source of truth**. A stale value fails
+`cloudflare-preflight` with a clear `404 Project not found` — which is exactly what happened during
+the rename, and is the correct fail-closed behaviour.
+
+**A rename also changes the `*.pages.dev` subdomain.** `next.config.mjs` deliberately lists BOTH
+`getyourtoursmauritius.pages.dev` and `bellemaretours.pages.dev` in its canonical-host redirects and
+in the noindex `X-Robots-Tag` rule, so an old subdomain that still resolves can never serve a
+crawlable duplicate of the site.
 
 ### Exact Cloudflare dashboard setting to disable — do this ONLY after the workflow is merged and secrets are set
 
@@ -248,7 +253,7 @@ release SHA + run id are baked into the bundle at BUILD time as literal TypeScri
 ## Cloudflare Pages
 
 Project name lives in the `CLOUDFLARE_PAGES_PROJECT` repository variable (default
-`getyourtoursmauritius` — see the mismatch note above), not hardcoded in the repo.
+`bellemaretours` — see the rename note above), not hardcoded in the repo.
 
 | Setting                | Value                                                                                                                                                                            |
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

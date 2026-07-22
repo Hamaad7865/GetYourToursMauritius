@@ -4,10 +4,14 @@
 #
 # The `name` here is COSMETIC for `pages:dev` only. The real hosted Pages project — the one
 # .github/workflows/release.yml deploys to — is named by the CLOUDFLARE_PAGES_PROJECT repository
-# variable (see docs/handbook/deployment.md), not by this field, because Pages projects cannot be
-# renamed after creation and the live project is `getyourtoursmauritius`. Keep this in sync with
-# CLOUDFLARE_PAGES_PROJECT so local `wrangler pages dev`/`deploy` target the same project as CI.
-name = "getyourtoursmauritius"
+# variable (see docs/handbook/deployment.md), not by this field. Keep this in sync with that
+# variable so local `wrangler pages dev`/`deploy` target the same project as CI.
+#
+# Renamed getyourtoursmauritius -> bellemaretours on 2026-07-22. A rename also changes the project's
+# *.pages.dev subdomain, so next.config.mjs's canonical-host redirect list and the noindex
+# X-Robots-Tag rule deliberately match BOTH names — an old subdomain that still resolves must not
+# serve a crawlable duplicate of the site.
+name = "bellemaretours"
 compatibility_date = "2025-02-01"
 compatibility_flags = ["nodejs_compat"]         # REQUIRED — the app 500s at runtime without it
 pages_build_output_dir = ".vercel/output/static"
