@@ -54,3 +54,22 @@ export function buildSearchUrl({ query, date, adults, kids }: SearchValue): stri
   const qs = params.toString();
   return `/activities${qs ? `?${qs}` : ''}`;
 }
+
+/**
+ * Just the adults/children fragment (no leading `?`, no `q`/`date`) — for carrying the header
+ * search's traveller count onward from an autocomplete pick or a browse-results card link to a
+ * specific activity's detail page, where BookingProvider reads it back out (mirrors the ?date=
+ * deep-link convention). Omits defaults (1 adult, 0 children) exactly like buildSearchUrl.
+ */
+export function travellersQueryParams(adults?: number, kids?: number): string {
+  const params = new URLSearchParams();
+  if (adults != null && adults !== 1) params.set('adults', String(adults));
+  if (kids != null && kids > 0) params.set('children', String(kids));
+  return params.toString();
+}
+
+/** Appends travellersQueryParams onto a path that has no query string of its own yet. */
+export function withTravellers(path: string, adults?: number, kids?: number): string {
+  const qs = travellersQueryParams(adults, kids);
+  return qs ? `${path}?${qs}` : path;
+}

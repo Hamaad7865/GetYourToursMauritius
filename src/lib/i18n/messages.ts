@@ -123,6 +123,9 @@ export const fr: Record<string, string> = {
   'Search tours, places or activities': 'Rechercher des excursions, lieux ou activités',
   'Recent searches': 'Recherches récentes',
   'Browse Belle Mare': 'Parcourir Belle Mare',
+  'Matching activities': 'Activités correspondantes',
+  'No matches for “{q}” — press Enter to search anyway.':
+    'Aucun résultat pour « {q} » — appuyez sur Entrée pour rechercher quand même.',
   Anytime: 'À tout moment',
   '{n} traveller': '{n} voyageur',
   '{n} travellers': '{n} voyageurs',

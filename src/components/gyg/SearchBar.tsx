@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useT } from '@/components/site/PreferencesProvider';
 import { useCategories } from '@/lib/categories/useCategories';
 import { addRecentSearch, getRecentSearches } from '@/lib/search/recent';
+import { withTravellers } from '@/lib/search/query';
+import { useActivitySuggestions } from '@/lib/search/useActivitySuggestions';
 import {
   IconChevron,
   IconChevronLeft,
@@ -72,6 +74,8 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   const [recents, setRecents] = useState<string[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
   const lastTrigger = useRef<HTMLButtonElement | null>(null);
+  const { suggestions, loading: suggestLoading } = useActivitySuggestions(query);
+  const isTyping = query.trim().length >= 2;
 
   function close() {
     setPanel(null);
@@ -130,6 +134,14 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
   }
   function submit() {
     go(query);
+  }
+  /** Jump straight to a matching activity (autocomplete pick) instead of the browse-results page —
+   *  carries the current traveller count along, same as a plain Search. */
+  function goToActivity(slug: string) {
+    const trimmed = query.trim();
+    if (trimmed) addRecentSearch(trimmed);
+    setSuggestOpen(false);
+    router.push(withTravellers(`/activities/${slug}`, adults, kids));
   }
 
   const total = adults + kids;
@@ -215,48 +227,92 @@ export function SearchBar({ variant = 'hero' }: { variant?: Variant }) {
 
       {suggestOpen && !panel && (
         <div className="absolute left-0 top-full z-30 mt-3 w-[min(560px,calc(100vw-2rem))] rounded-3xl border border-ink/10 bg-white p-3 shadow-[0_30px_60px_-25px_rgba(10,46,54,0.45)]">
-          {recents.length > 0 && (
+          {isTyping ? (
             <>
               <p className="px-3 pb-1 pt-1 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-                {t('Recent searches')}
+                {t('Matching activities')}
               </p>
-              {recents.map((r) => (
+              {suggestions.length === 0 && (
+                <p className="px-3 py-3 text-sm text-ink-muted">
+                  {suggestLoading
+                    ? t('Searching…')
+                    : t('No matches for “{q}” — press Enter to search anyway.', {
+                        q: query.trim(),
+                      })}
+                </p>
+              )}
+              {suggestions.map((s) => (
                 <button
-                  key={r}
+                  key={s.slug}
                   type="button"
-                  onClick={() => go(r)}
+                  onClick={() => goToActivity(s.slug)}
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-cream"
                 >
-                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink/[0.06] text-ink-muted">
-                    <IconClock width={16} height={16} />
+                  <span className="grid h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-teal/10">
+                    {s.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- tiny dropdown thumbnail
+                      <img src={s.imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="grid h-full w-full place-items-center bg-[linear-gradient(152deg,#13a0a6_0%,#0E8C92_46%,#0B5C63_100%)] text-xs font-bold text-white/90">
+                        {s.title.slice(0, 1)}
+                      </span>
+                    )}
                   </span>
-                  <span className="truncate text-sm font-medium text-ink">{r}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold text-ink">{s.title}</span>
+                    <span className="block truncate text-[12px] text-ink-muted">{s.category}</span>
+                  </span>
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              {recents.length > 0 && (
+                <>
+                  <p className="px-3 pb-1 pt-1 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                    {t('Recent searches')}
+                  </p>
+                  {recents.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => go(r)}
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-cream"
+                    >
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-ink/[0.06] text-ink-muted">
+                        <IconClock width={16} height={16} />
+                      </span>
+                      <span className="truncate text-sm font-medium text-ink">{r}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+              <p className="px-3 pb-1 pt-2 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+                {t('Suggestions')}
+              </p>
+              {categories.map((category) => (
+                <button
+                  key={category.slug}
+                  type="button"
+                  onClick={() => {
+                    setSuggestOpen(false);
+                    router.push(`/activities?category=${encodeURIComponent(category.name)}`);
+                  }}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-cream"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
+                    <IconPin width={17} height={17} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold text-ink">
+                      {category.name}
+                    </span>
+                    <span className="block text-[12px] text-ink-muted">Belle Mare, Mauritius</span>
+                  </span>
                 </button>
               ))}
             </>
           )}
-          <p className="px-3 pb-1 pt-2 text-[12px] font-bold uppercase tracking-wide text-ink-muted">
-            {t('Suggestions')}
-          </p>
-          {categories.map((category) => (
-            <button
-              key={category.slug}
-              type="button"
-              onClick={() => {
-                setSuggestOpen(false);
-                router.push(`/activities?category=${encodeURIComponent(category.name)}`);
-              }}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left hover:bg-cream"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-teal/10 text-teal">
-                <IconPin width={17} height={17} />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-bold text-ink">{category.name}</span>
-                <span className="block text-[12px] text-ink-muted">Belle Mare, Mauritius</span>
-              </span>
-            </button>
-          ))}
         </div>
       )}
 

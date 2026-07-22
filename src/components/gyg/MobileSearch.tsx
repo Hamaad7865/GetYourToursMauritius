@@ -13,7 +13,9 @@ import {
   monthCells,
   sameDay,
   startOfDay,
+  withTravellers,
 } from '@/lib/search/query';
+import { useActivitySuggestions } from '@/lib/search/useActivitySuggestions';
 import {
   IconCalendar,
   IconChevron,
@@ -68,6 +70,8 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   // Scroll-lock, Escape, focus the query on open + trap Tab + return focus to the trigger on close.
   const sheetRef = useDialog(true, onClose, () => inputRef.current);
+  const { suggestions, loading: suggestLoading } = useActivitySuggestions(query);
+  const isTyping = query.trim().length >= 2;
 
   useEffect(() => {
     setRecents(getRecentSearches());
@@ -80,6 +84,10 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
   }
   function search() {
     go(buildSearchUrl({ query, date, adults, kids }), query);
+  }
+  /** Jump straight to a matching activity (autocomplete pick), carrying the current traveller count. */
+  function goToActivity(slug: string) {
+    go(withTravellers(`/activities/${slug}`, adults, kids), query);
   }
 
   const total = adults + kids;
@@ -128,45 +136,91 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
 
         {/* Suggestions */}
         <div className="mt-3 overflow-hidden rounded-2xl border border-ink/10 bg-white">
-          {recents.length > 0 && (
+          {isTyping ? (
             <>
               <p className="px-4 pb-1 pt-3 text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
-                {t('Recent searches')}
+                {t('Matching activities')}
               </p>
-              {recents.map((r) => (
+              {suggestions.length === 0 && (
+                <p className="px-4 py-3 text-[14px] text-ink-muted">
+                  {suggestLoading
+                    ? t('Searching…')
+                    : t('No matches for “{q}” — press Enter to search anyway.', {
+                        q: query.trim(),
+                      })}
+                </p>
+              )}
+              {suggestions.map((s) => (
                 <button
-                  key={r}
+                  key={s.slug}
                   type="button"
-                  onClick={() => go(buildSearchUrl({ query: r, date, adults, kids }), r)}
+                  onClick={() => goToActivity(s.slug)}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-left active:bg-cream"
                 >
-                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-ink/[0.06] text-ink-muted">
-                    <IconClock width={16} height={16} />
+                  <span className="grid h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-teal/10">
+                    {s.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- tiny dropdown thumbnail
+                      <img src={s.imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="grid h-full w-full place-items-center bg-[linear-gradient(152deg,#13a0a6_0%,#0E8C92_46%,#0B5C63_100%)] text-xs font-bold text-white/90">
+                        {s.title.slice(0, 1)}
+                      </span>
+                    )}
                   </span>
-                  <span className="truncate text-[14.5px] font-medium text-ink">{r}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[14.5px] font-bold text-ink">
+                      {s.title}
+                    </span>
+                    <span className="block truncate text-[12px] text-ink-muted">{s.category}</span>
+                  </span>
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              {recents.length > 0 && (
+                <>
+                  <p className="px-4 pb-1 pt-3 text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
+                    {t('Recent searches')}
+                  </p>
+                  {recents.map((r) => (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => go(buildSearchUrl({ query: r, date, adults, kids }), r)}
+                      className="flex w-full items-center gap-3 px-4 py-2.5 text-left active:bg-cream"
+                    >
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-ink/[0.06] text-ink-muted">
+                        <IconClock width={16} height={16} />
+                      </span>
+                      <span className="truncate text-[14.5px] font-medium text-ink">{r}</span>
+                    </button>
+                  ))}
+                </>
+              )}
+              <p className="px-4 pb-1 pt-3 text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
+                {t('Browse Belle Mare')}
+              </p>
+              {categories.map((c) => (
+                <button
+                  key={c.slug}
+                  type="button"
+                  onClick={() => go(`/activities?category=${encodeURIComponent(c.name)}`)}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left active:bg-cream"
+                >
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-teal/10 text-teal">
+                    <IconPin width={17} height={17} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-[14.5px] font-bold text-ink">
+                      {c.name}
+                    </span>
+                    <span className="block text-[12px] text-ink-muted">Belle Mare, Mauritius</span>
+                  </span>
                 </button>
               ))}
             </>
           )}
-          <p className="px-4 pb-1 pt-3 text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
-            {t('Browse Belle Mare')}
-          </p>
-          {categories.map((c) => (
-            <button
-              key={c.slug}
-              type="button"
-              onClick={() => go(`/activities?category=${encodeURIComponent(c.name)}`)}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left active:bg-cream"
-            >
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-teal/10 text-teal">
-                <IconPin width={17} height={17} />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-[14.5px] font-bold text-ink">{c.name}</span>
-                <span className="block text-[12px] text-ink-muted">Belle Mare, Mauritius</span>
-              </span>
-            </button>
-          ))}
         </div>
 
         {/* Date */}

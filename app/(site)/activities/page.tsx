@@ -16,6 +16,7 @@ import {
   parseBrowseParams,
   type BrowseParams,
 } from '@/lib/catalogue/browse';
+import { travellersQueryParams } from '@/lib/search/query';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { overrideMetadata } from '@/lib/seo/override';
 import { JsonLd } from '@/components/seo/JsonLd';
@@ -49,6 +50,21 @@ export const runtime = 'edge';
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 type Translate = (key: string, vars?: Record<string, string | number>) => string;
+
+function firstParam(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+/** adults/children carried from the header search — not a filter, just forwarded onto every
+ *  result card's link so BookingProvider can seed the detail page's party size. */
+function parseTravellersQs(raw: Record<string, string | string[] | undefined>): string {
+  const adults = Number.parseInt(firstParam(raw.adults) ?? '', 10);
+  const children = Number.parseInt(firstParam(raw.children) ?? '', 10);
+  return travellersQueryParams(
+    Number.isFinite(adults) ? adults : undefined,
+    Number.isFinite(children) ? children : undefined,
+  );
+}
 
 function heading(params: BrowseParams, t: Translate): string {
   if (params.q) return t('Results for “{q}”', { q: params.q });
@@ -103,7 +119,9 @@ async function loadResults(params: BrowseParams): Promise<{ items: TourSummary[]
 }
 
 export default async function ActivitiesPage({ searchParams }: { searchParams: SearchParams }) {
-  const params = parseBrowseParams(await searchParams);
+  const rawParams = await searchParams;
+  const params = parseBrowseParams(rawParams);
+  const travellersQs = parseTravellersQs(rawParams);
   const t = await getT();
   const { items, total } = await loadResults(params);
   const totalPages = Math.max(1, Math.ceil(total / BROWSE_PAGE_SIZE));
@@ -165,6 +183,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
 
           <ActivityGrid
             activities={items}
+            travellersQs={travellersQs}
             leadingCard={
               isSightseeingCategory(params.category) && page === 1 ? (
                 <PlannerPromoCard />

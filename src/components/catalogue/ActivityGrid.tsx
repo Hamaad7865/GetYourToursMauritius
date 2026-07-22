@@ -7,11 +7,14 @@ import { RevealGroup } from '@/components/site/RevealGroup';
 export async function ActivityGrid({
   activities,
   leadingCard,
+  travellersQs,
 }: {
   activities: TourSummary[];
   /** An optional card rendered as the first grid cell (e.g. the AI planner promo on the
    *  sightseeing listing). The grid still renders when it's the only card. */
   leadingCard?: ReactNode;
+  /** Forwarded to every ActivityCard — see its own doc comment. */
+  travellersQs?: string;
 }) {
   const t = await getT();
   if (activities.length === 0 && !leadingCard) {
@@ -27,7 +30,7 @@ export async function ActivityGrid({
     <RevealGroup className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
       {leadingCard}
       {activities.map((activity) => (
-        <ActivityCard key={activity.id} activity={activity} />
+        <ActivityCard key={activity.id} activity={activity} travellersQs={travellersQs} />
       ))}
     </RevealGroup>
   );

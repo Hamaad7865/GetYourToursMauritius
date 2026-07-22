@@ -11,7 +11,15 @@ import { activityRating } from '@/lib/content/activity-reviews';
 
 /* eslint-disable @next/next/no-img-element -- CF Pages serves images unoptimized. */
 
-export function ActivityCard({ activity }: { activity: TourSummary }) {
+export function ActivityCard({
+  activity,
+  travellersQs,
+}: {
+  activity: TourSummary;
+  /** adults/children query fragment (no leading '?') carried from the header search's traveller
+   *  picker, so BookingProvider can seed the detail page's party size. Omit when there's none. */
+  travellersQs?: string;
+}) {
   const t = useT();
   const duration = durationLabel(activity.durationMinutes);
   // An activity with no reviews of its own shows the aggregate of the operator's real reviews that are
@@ -87,7 +95,7 @@ export function ActivityCard({ activity }: { activity: TourSummary }) {
 
       {/* Stretched link to detail — below the heart + category chip so they stay clickable. */}
       <Link
-        href={`/activities/${activity.slug}`}
+        href={`/activities/${activity.slug}${travellersQs ? `?${travellersQs}` : ''}`}
         aria-label={activity.title}
         className="absolute inset-0 z-0"
       />

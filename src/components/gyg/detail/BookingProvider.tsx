@@ -295,6 +295,45 @@ export function BookingProvider({
     if (isAgeBanded && primaryLabel) setBandCounts({ [primaryLabel]: 1 });
     else setBandCounts({});
   }, [selectedOptionId, isAgeBanded, primaryLabel]);
+
+  // ?adults=&children= deep-link from the header search's traveller picker — same one-shot
+  // "read once, then clean the URL" convention as ?fromTour= elsewhere. Declared AFTER the band-reset
+  // effect above so it runs after it (hook order = commit order) and overrides that default rather
+  // than being clobbered by it. Non-age-banded activities have no adult/child split, so the header's
+  // two numbers just fold into the single participants count; age-banded ones seed the primary
+  // (adult) band plus whichever non-primary band's label looks like "child" (best-effort — price-tier
+  // labels are admin free text, so there's no guaranteed "Child" band to target).
+  useEffect(() => {
+    let params: URLSearchParams;
+    try {
+      params = new URLSearchParams(window.location.search);
+    } catch {
+      return; // SSR safety
+    }
+    const adultsRaw = params.get('adults');
+    const childrenRaw = params.get('children');
+    if (!adultsRaw && !childrenRaw) return;
+    const adults = Math.max(1, Number.parseInt(adultsRaw ?? '1', 10) || 1);
+    const kids = Math.max(0, Number.parseInt(childrenRaw ?? '0', 10) || 0);
+    if (isAgeBanded && primaryLabel) {
+      const childLabel = bandTiers.find(
+        (b) => b.label !== primaryLabel && /child/i.test(b.label),
+      )?.label;
+      setBandCounts((cur) => {
+        const next = { ...cur, [primaryLabel]: adults };
+        if (childLabel && kids > 0) next[childLabel] = kids;
+        return next;
+      });
+    } else if (!isAgeBanded) {
+      setParticipants(Math.max(1, adults + kids));
+    }
+    // One-shot trigger — drop it so the URL settles into its shareable form.
+    params.delete('adults');
+    params.delete('children');
+    const qs = params.toString();
+    window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAgeBanded, primaryLabel]);
   const totalGuests = isAgeBanded ? partyGuests(bandCounts) : participants;
 
   const today = useMemo(() => {
