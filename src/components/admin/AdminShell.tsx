@@ -28,6 +28,7 @@ import {
   IconSwap,
   IconChart,
   IconCalendar,
+  IconStar,
 } from '@/components/ui/icons';
 
 interface NavItem {
@@ -57,6 +58,9 @@ const NAV: NavItem[] = [
   { href: '/admin/blog', label: 'Blog', icon: IconDocument, seo: true },
   { href: '/admin/redirects', label: 'Redirects', icon: IconSwap, seo: true },
   { href: '/admin/leads', label: 'Leads', icon: IconUsers },
+  // Customer-submitted content awaiting approval — deliberately NOT seo-flagged (guest_reviews RLS
+  // is is_staff()-only; the seo role has no access, matching Tours' pricing/availability panels).
+  { href: '/admin/reviews', label: 'Reviews', icon: IconStar },
 ];
 
 /** Sections visible to a role: the 'seo' content role sees only the seo-flagged items; staff/admin
