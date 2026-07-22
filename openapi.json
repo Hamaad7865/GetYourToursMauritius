@@ -118,6 +118,20 @@
           },
           {
             "in": "query",
+            "name": "region",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "North",
+                "South",
+                "East",
+                "West",
+                "Central"
+              ]
+            }
+          },
+          {
+            "in": "query",
             "name": "priceMin",
             "schema": {
               "type": "number",
