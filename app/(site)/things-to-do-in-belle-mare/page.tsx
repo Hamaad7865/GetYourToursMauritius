@@ -119,6 +119,21 @@ export default async function ThingsToDoInBelleMarePage() {
           </p>
         </ContentSection>
 
+        <ContentSection id="best-time" title="Best time to visit Belle Mare">
+          <p>
+            The east coast is at its best from May to December, when the trade winds are steady,
+            rainfall stays low and the lagoon runs flat and clear — October to December is the
+            driest, warmest stretch within that window. Those same trade winds are why Belle Mare
+            draws kitesurfers and windsurfers: they blow most reliably from May to September, with
+            April through mid-October the core season for flat-water sailing. November to April is
+            cyclone season, with the highest chance of a direct system in January to March; most
+            years bring tropical storms and heavier rain rather than a direct hit, but it is worth
+            building some flexibility into a booking made for that stretch. Outside of storms, the
+            sea rarely drops below 23°C even in the coolest months, so there is no bad time to swim
+            — only a best time to plan around the wind and the rain.
+          </p>
+        </ContentSection>
+
         {groups.map((group) => (
           <FeaturedTours
             key={group.title}
@@ -163,6 +178,23 @@ export default async function ThingsToDoInBelleMarePage() {
             <InlineLink href="/mauritius-tours">full list of day tours</InlineLink> or the
             island-wide guide to{' '}
             <InlineLink href="/attractions">things to do in Mauritius</InlineLink>.
+          </p>
+        </ContentSection>
+
+        <ContentSection id="dining" title="Where to eat near Belle Mare">
+          <p>
+            Belle Mare Public Beach has its own beach shack, Sun And Sand Chez Charlene, serving
+            paella and mine frite a few steps from the sand — about as local as lunch gets. In the
+            village, Symon’s Restaurant covers Indian, Chinese, seafood and grills all day at prices
+            well below resort menus. For something dressier, Beach Rouge at LUX* Belle Mare puts
+            Italian and seafood tables right on the beachfront, and Dolce Vita at Ambre Resort &amp;
+            Spa in nearby Palmar does the same in a trattoria setting. Down the coast in Trou d’Eau
+            Douce, about 15 minutes by road and a stop on any{' '}
+            <InlineLink href="/ile-aux-cerfs-tours">Île aux Cerfs day</InlineLink>, Chez Tino has
+            served Creole, Chinese and seafood since 1989, and La Case Poisson grills the day’s
+            catch — bought straight off local fishermen — over charcoal. Between the public beach,
+            the village and Trou d’Eau Douce, you are rarely more than ten minutes from a table,
+            whether you want a beach shack or a resort dining room.
           </p>
         </ContentSection>
 
