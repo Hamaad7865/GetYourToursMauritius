@@ -47,7 +47,7 @@ factors (backlinks, GBP, indexing) outside this page's control.
    guessing from free-text prose. **Correction (post-ship review, 2026-07-22): all 7 previously-null rows
    had a canonical `location` value, so the backfill fills all 7** (2 → East, 2 → North, 3 → West), not
    just the 2 Île aux Cerfs ones as originally written here — an inaccuracy in this doc, not in the SQL.
-   The 5 non-East rows are still correctly excluded from *this page* by the `region = 'East'` filter; the
+   The 5 non-East rows are still correctly excluded from _this page_ by the `region = 'East'` filter; the
    backfill itself is a general-purpose, page-agnostic fill of the column and is a net improvement for the
    region-based transport-pricing feature that owns it (`src/lib/services/pricing.ts`,
    `supabase/migrations/20260720000000_activity_transport_pricing.sql`), which now has real data instead
