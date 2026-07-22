@@ -43,10 +43,13 @@ export const SITE = {
     tripadvisor:
       'https://www.tripadvisor.com/Attraction_Review-g298342-d6553120-Reviews-Belle_Mare_Tours-Belle_Mare.html',
     google: 'https://www.google.com/maps?cid=2271389619635672229',
-    /** The direct "leave a review" link from Business Profile Manager → Read reviews → Get more
-     *  reviews. Placeholder until the owner grabs the real one — see docs/handbook/operations.md. */
-    googleReview: 'https://g.page/r/REPLACE_ME/review',
   },
+  /** The direct "leave a review" link from Business Profile Manager → Read reviews → Get more
+   *  reviews — a submission CTA, NOT a corroborating business profile, so it deliberately lives
+   *  OUTSIDE `profiles` (which feeds `SAME_AS`/schema.org `sameAs`; a review link there would
+   *  pollute that structured data). Placeholder until the owner grabs the real one — see
+   *  docs/handbook/operations.md. */
+  googleReview: 'https://g.page/r/REPLACE_ME/review',
 } as const;
 
 /** `SITE.profiles` as the flat array schema.org wants. Derived, so a profile added above is picked up

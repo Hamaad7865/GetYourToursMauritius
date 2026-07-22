@@ -204,7 +204,7 @@ function enrichReviewRequest(message: NotificationMessage): void {
     customerName,
     activityTitle,
     siteReviewUrl: `${SITE.url}/reviews/write?token=${encodeURIComponent(token)}`,
-    googleReviewUrl: SITE.profiles.googleReview,
+    googleReviewUrl: SITE.googleReview,
   });
   message.subject = email.subject;
   message.html = email.html;
