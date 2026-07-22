@@ -79,7 +79,7 @@ export async function belleMareActivityGroups(): Promise<ActivityGroup[]> {
   ]);
 
   const boatTrips = east.filter((a) => BOAT_TRIP_CATEGORIES.includes(a.category));
-  const claimed = new Set(boatTrips.map((a) => a.id));
+  const claimed = new Set([...boatTrips, ...sightseeing].map((a) => a.id));
   const catchAll = east.filter((a) => !claimed.has(a.id));
 
   return [

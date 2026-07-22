@@ -69,7 +69,9 @@ describe('belleMareActivityGroups', () => {
     expect(groups[0]!.title).toBe('Boat trips & Île aux Cerfs');
     expect(groups[0]!.activities).toHaveLength(2);
     expect(searchActivities.mock.calls[0]![1]).toMatchObject({ region: 'East' });
-    expect(searchActivities.mock.calls[1]![1]).toMatchObject({ category: 'Taxi Sightseeing tours' });
+    expect(searchActivities.mock.calls[1]![1]).toMatchObject({
+      category: 'Taxi Sightseeing tours',
+    });
   });
 
   it('always includes Taxi Sightseeing tours as its own group, regardless of region', async () => {
@@ -106,5 +108,20 @@ describe('belleMareActivityGroups', () => {
   it('never throws — a malformed catalogue response yields no groups', async () => {
     searchActivities.mockResolvedValue(null);
     await expect(belleMareActivityGroups()).resolves.toEqual([]);
+  });
+
+  it('never double-lists an activity that matches both region=East and the sightseeing category', async () => {
+    searchActivities
+      .mockResolvedValueOnce({
+        items: [{ id: 'dual-1', slug: 'dual-tour', category: 'Taxi Sightseeing tours' }],
+        total: 1,
+      }) // region: East — happens to also be a sightseeing tour
+      .mockResolvedValueOnce({
+        items: [{ id: 'dual-1', slug: 'dual-tour', category: 'Taxi Sightseeing tours' }],
+        total: 1,
+      }); // category: Taxi Sightseeing tours — same activity, independent fetch
+    const groups = await belleMareActivityGroups();
+    const allIds = groups.flatMap((g) => g.activities.map((a) => a.id));
+    expect(allIds).toEqual(['dual-1']); // appears exactly once, not twice across groups
   });
 });
