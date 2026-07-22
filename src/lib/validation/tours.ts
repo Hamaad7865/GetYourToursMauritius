@@ -165,6 +165,11 @@ export const activityExtraSchema = z.object({
   adultsOnly: z.boolean().optional(),
   /** Optional per-activity price-list PDF (uploaded in admin) → the "Price list" section. */
   priceList: z.object({ url: z.string(), label: z.string().optional() }).nullable().optional(),
+  /** Skips the normal checkout/availability flow (e.g. skydiving — needs planning, not an instant
+   *  slot pick). The detail page shows a trip-request form (InquiryWidget) instead of BookingWidget:
+   *  no hold, no create_hold/api_book, no payment — the customer submits via WhatsApp or email and a
+   *  lead row records the request for staff follow-up. */
+  inquiryOnly: z.boolean().optional(),
 });
 export type ActivityExtra = z.infer<typeof activityExtraSchema>;
 

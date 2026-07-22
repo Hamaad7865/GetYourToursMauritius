@@ -268,6 +268,17 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             />
             Adults only (18+) — no children; hides the baby &amp; child seats add-on
           </label>
+          <label className="flex items-center gap-2.5 text-sm font-medium text-ink">
+            <input
+              type="checkbox"
+              className="h-4 w-4 accent-teal"
+              checked={v.inquiryOnly}
+              onChange={(e) => set('inquiryOnly', e.target.checked)}
+            />
+            Enquiry only — skip online checkout; the customer submits a trip request (dates, party
+            size, contact details) via WhatsApp or email instead. For planning-heavy activities like
+            skydiving.
+          </label>
           <Field label="Start time / departure">
             <input
               className={inputClass}

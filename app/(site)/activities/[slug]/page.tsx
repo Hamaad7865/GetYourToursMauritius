@@ -9,6 +9,7 @@ import { WishHeart } from '@/components/gyg/WishHeart';
 import { RecordView } from '@/components/gyg/RecordView';
 import { Gallery } from '@/components/gyg/detail/Gallery';
 import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
+import { InquiryWidget } from '@/components/gyg/detail/InquiryWidget';
 import { BookingProvider } from '@/components/gyg/detail/BookingProvider';
 import { MobileBookBar } from '@/components/gyg/detail/MobileBookBar';
 import { BookingOptionCard } from '@/components/gyg/detail/BookingOptionCard';
@@ -138,6 +139,8 @@ export default async function ActivityDetailPage({
     .filter(Boolean);
   const itinerary = activity.extra.itinerary ?? [];
   const badges = activity.extra.badges ?? [];
+  // Skydiving-style activities that need personal planning skip checkout entirely — see InquiryWidget.
+  const isInquiryOnly = Boolean(activity.extra.inquiryOnly);
 
   // Standard content per CATEGORY, editable in /admin/content (was two hardcoded files keyed off
   // pricingMode/category). Highlights are REPLACED by the category's standard set; the other lists
@@ -253,6 +256,7 @@ export default async function ActivityDetailPage({
               durationMinutes: activity.durationMinutes,
               pickupAvailable: activity.pickupAvailable,
               adultsOnly: activity.extra.adultsOnly ?? false,
+              inquiryOnly: isInquiryOnly,
               cancellationPolicy: activity.cancellationPolicy,
               minAdvanceDays: activity.minAdvanceDays,
               image: activity.heroImage?.url ?? activity.images[0]?.url ?? null,
@@ -272,7 +276,24 @@ export default async function ActivityDetailPage({
                 id="book"
                 className="relative z-30 order-last mt-8 lg:order-none lg:col-start-2 lg:row-start-1 lg:mb-0 lg:mt-0 lg:sticky lg:top-6"
               >
-                <BookingWidget />
+                {isInquiryOnly ? (
+                  <InquiryWidget
+                    activity={{
+                      id: activity.id,
+                      slug: activity.slug,
+                      title: activity.title,
+                      fromPriceEur: activity.fromPriceEur,
+                      unitLabel:
+                        activity.pricingMode === 'vehicle'
+                          ? 'per vehicle'
+                          : activity.pricingMode === 'per_group'
+                            ? 'per group'
+                            : 'per person',
+                    }}
+                  />
+                ) : (
+                  <BookingWidget />
+                )}
               </aside>
 
               {/* Gallery + ALL content share ONE normal-flow column so the description can NEVER overlap the
@@ -292,7 +313,7 @@ export default async function ActivityDetailPage({
                   <SightseeingHighlights durationMinutes={activity.durationMinutes} />
                 )}
 
-                <BookingOptionCard />
+                {!isInquiryOnly && <BookingOptionCard />}
 
                 {showLoved && <LovedBanner ratingAvg={ratingAvg} ratingCount={ratingCount} />}
 
@@ -526,7 +547,14 @@ export default async function ActivityDetailPage({
               <SectionTitle>{t('You might also like')}</SectionTitle>
               <Rail ariaLabel={t('You might also like')}>
                 {related.map((item) => (
-                  <PlaceCard key={item.id} activity={item} rail />
+                  // A plain auto-height flex wrapper (NOT h-full) is the actual direct flex child here —
+                  // it stretches to the row's tallest card via the rail's default align-items, and THEN
+                  // PlaceCard's own h-full fills that now-definite height. PlaceCard alone as the direct
+                  // child never stretched: percentage heights don't resolve against a flex row whose own
+                  // height is content-driven, so every card fell back to its own (shorter) content height.
+                  <div key={item.id} className="flex shrink-0">
+                    <PlaceCard activity={item} rail />
+                  </div>
                 ))}
               </Rail>
             </section>

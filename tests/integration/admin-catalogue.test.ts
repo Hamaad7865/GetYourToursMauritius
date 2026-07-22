@@ -28,7 +28,10 @@ interface DetailDto {
     name: string;
     prices: Array<{ label: string; amountEur: number; maxGuests: number | null }>;
   }>;
-  extra: { itinerary?: Array<{ title: string; area: string | null; tags: string[] }> };
+  extra: {
+    itinerary?: Array<{ title: string; area: string | null; tags: string[] }>;
+    inquiryOnly?: boolean;
+  };
 }
 
 describe('admin add-activity → website read', () => {
@@ -71,6 +74,7 @@ describe('admin add-activity → website read', () => {
           tags: ['city', 'market'],
         },
       ],
+      inquiryOnly: true,
     });
     const { rows } = await db.pg.query<{ id: string }>(
       `insert into activities
@@ -139,6 +143,10 @@ describe('admin add-activity → website read', () => {
     expect(detail.options[0]!.prices[0]!.maxGuests).toBe(4);
     expect(detail.extra.itinerary?.[0]?.title).toBe('Port Louis');
     expect(detail.extra.itinerary?.[0]?.tags).toEqual(['city', 'market']);
+    // extra is passed through api_get_activity opaquely (no per-key SQL mapping) — this is the one
+    // key the tests didn't already cover; proves a brand-new extra flag needs no migration to reach
+    // the public detail page once the admin form writes it.
+    expect(detail.extra.inquiryOnly).toBe(true);
   });
 
   it('a draft admin activity stays hidden from the public website', async () => {

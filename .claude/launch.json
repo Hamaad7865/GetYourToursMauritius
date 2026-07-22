@@ -7,6 +7,16 @@
       "runtimeArgs": ["/c", "cd /d C:\\Projects\\GetYourToursMauritius && npm run dev"],
       "port": 3000,
       "autoPort": false
+    },
+    {
+      "name": "gytm-dev-turbo",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd /d C:\\Projects\\GetYourToursMauritius && npx next dev --turbopack -p 3057"
+      ],
+      "port": 3057,
+      "autoPort": false
     }
   ]
 }

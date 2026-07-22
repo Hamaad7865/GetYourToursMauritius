@@ -69,6 +69,9 @@ export interface ActivityFormValues {
   isPrivate: boolean;
   /** Adults only (18+) — hides the baby/child-seats add-on and shows an "18+" note. E.g. hiking. */
   adultsOnly: boolean;
+  /** Skips online checkout — the detail page shows a trip-request form (name/phone/email/date/party
+   *  size) with WhatsApp/email submit buttons instead of BookingWidget. E.g. skydiving. */
+  inquiryOnly: boolean;
   /** Home/boarding region (North/South/East/West/Central), or '' to auto-derive from coords. Drives the
    *  region-based transport add-on for per_person / per_group activities with pickup. */
   region: string;
@@ -117,6 +120,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   startWindow: '',
   isPrivate: false,
   adultsOnly: false,
+  inquiryOnly: false,
   region: '',
   lat: null,
   lng: null,
@@ -172,6 +176,7 @@ const MANAGED_EXTRA_KEYS = new Set([
   'isPrivate',
   'adultsOnly',
   'priceList',
+  'inquiryOnly',
 ]);
 
 function buildExtra(v: ActivityFormValues) {
@@ -207,6 +212,7 @@ function buildExtra(v: ActivityFormValues) {
   if (v.startWindow.trim()) out.startWindow = v.startWindow.trim();
   if (v.isPrivate) out.isPrivate = true;
   if (v.adultsOnly) out.adultsOnly = true;
+  if (v.inquiryOnly) out.inquiryOnly = true;
   if (v.priceListUrl.trim()) {
     out.priceList = v.priceListLabel.trim()
       ? { url: v.priceListUrl.trim(), label: v.priceListLabel.trim() }
@@ -622,6 +628,7 @@ interface ExtraShape {
   isPrivate?: boolean;
   adultsOnly?: boolean;
   priceList?: { url?: string; label?: string } | null;
+  inquiryOnly?: boolean;
 }
 
 /** Load an existing activity into the editable form shape. */
@@ -678,6 +685,7 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     startWindow: extra.startWindow ?? '',
     isPrivate: extra.isPrivate ?? false,
     adultsOnly: extra.adultsOnly ?? false,
+    inquiryOnly: extra.inquiryOnly ?? false,
     region: act.region ?? '',
     lat: act.lat ?? null,
     lng: act.lng ?? null,

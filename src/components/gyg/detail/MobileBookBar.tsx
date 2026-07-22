@@ -42,7 +42,7 @@ export function MobileBookBar() {
         }
         className="gyt-press shrink-0 rounded-full bg-teal px-6 py-3 text-sm font-bold text-white shadow-[0_10px_22px_-12px_rgba(14,140,146,0.8)] hover:bg-teal-dark"
       >
-        {t('Check availability')}
+        {b.activity.inquiryOnly ? t('Enquire now') : t('Check availability')}
       </button>
     </div>
   );

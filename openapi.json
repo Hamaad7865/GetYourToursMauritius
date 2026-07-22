@@ -911,6 +911,9 @@
                               "required": [
                                 "url"
                               ]
+                            },
+                            "inquiryOnly": {
+                              "type": "boolean"
                             }
                           },
                           "default": {}

@@ -88,12 +88,15 @@ export function QuickFacts({
     });
   }
   // Payment is taken at checkout (instantly) — never promise "pay later". The instant-confirmation
-  // reassurance is its own fact further down, so this slot carries the payment-security one.
-  facts.push({
-    icon: <IconWallet width={22} height={22} />,
-    title: t('Secure payment'),
-    sub: t('Card payment protected by Peach.'),
-  });
+  // reassurance is its own fact further down, so this slot carries the payment-security one. Neither
+  // claim holds for an inquiry-only activity (skydiving-style) — it has no checkout/payment at all.
+  if (!activity.inquiryOnly) {
+    facts.push({
+      icon: <IconWallet width={22} height={22} />,
+      title: t('Secure payment'),
+      sub: t('Card payment protected by Peach.'),
+    });
+  }
   if (duration) {
     facts.push({
       icon: <IconClock width={22} height={22} />,
@@ -148,11 +151,19 @@ export function QuickFacts({
       sub: t('Minimum age 18 — no children'),
     });
   }
-  facts.push({
-    icon: <IconBolt width={22} height={22} />,
-    title: t('Instant confirmation'),
-    sub: t('E-voucher sent straight to your inbox'),
-  });
+  if (activity.inquiryOnly) {
+    facts.push({
+      icon: <IconBolt width={22} height={22} />,
+      title: t('Personal trip planning'),
+      sub: t('We’ll confirm by WhatsApp or email'),
+    });
+  } else {
+    facts.push({
+      icon: <IconBolt width={22} height={22} />,
+      title: t('Instant confirmation'),
+      sub: t('E-voucher sent straight to your inbox'),
+    });
+  }
 
   return (
     <div className="border-t border-ink/10 pt-6">

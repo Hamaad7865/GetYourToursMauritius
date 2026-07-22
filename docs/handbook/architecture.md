@@ -113,6 +113,17 @@ and does the work in `after()`. It confirms a booking only via an HMAC-verified 
 Peach using **the checkout id we stored ourselves at create time**. The id in the incoming body is
 deliberately not used.
 
+### The one activity type that skips this whole path
+
+`activities.extra.inquiryOnly` (e.g. skydiving) opts an activity **out of every step above** — no hold,
+no `api_book`, no Peach checkout, no `append_payment_event`. The detail page renders `InquiryWidget`
+instead of `BookingWidget`/`BookingOptionCard` (branch in `app/(site)/activities/[slug]/page.tsx` on
+`activity.extra.inquiryOnly`); the customer sends trip details straight to the owner via a `wa.me`/`mailto:`
+link (pre-filled, client-side, same pattern as the car/scooter rental widget), and a best-effort
+`POST /api/v1/leads` row (existing endpoint, `interestActivityId` set) gives staff a durable record in
+`/admin/leads` even if that send fails. There is no price reconciliation because there is no price to
+reconcile — the "From €X" shown is the plain `fromPriceEur` display value, an estimate only.
+
 ---
 
 ## 4. Availability and holds

@@ -50,6 +50,9 @@ export interface BookingActivity {
   pickupAvailable: boolean;
   /** Adults-only activity (e.g. hiking) — hides the baby/child-seats add-on + drives the "18+" quick-fact. */
   adultsOnly: boolean;
+  /** Skips online checkout (e.g. skydiving) — the page renders InquiryWidget instead of BookingWidget
+   *  in the aside, and MobileBookBar/QuickFacts drop the checkout-specific copy this flag would make false. */
+  inquiryOnly: boolean;
   /** Free-cancellation policy text, if the activity offers one (drives the card's reassurance strip). */
   cancellationPolicy: string | null;
   /** Minimum advance booking (lead time) in days — the earliest bookable day is today + this. */

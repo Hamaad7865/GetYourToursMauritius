@@ -963,6 +963,23 @@ export const fr: Record<string, string> = {
   'Company (leave this empty)': 'Société (laissez ce champ vide)',
   Name: 'Nom',
   'Phone / WhatsApp (optional)': 'Téléphone / WhatsApp (facultatif)',
+  // InquiryWidget (activity detail page — skydiving-style "needs planning" activities)
+  'Needs personal planning': 'Nécessite une planification personnalisée',
+  'This experience needs personal planning. Send us your trip details and we’ll confirm availability and the final price directly.':
+    'Cette expérience nécessite une planification personnalisée. Envoyez-nous les détails de votre voyage et nous confirmerons directement la disponibilité et le prix final.',
+  'Preferred date': 'Date souhaitée',
+  People: 'Personnes',
+  'Phone / WhatsApp number': 'Numéro de téléphone / WhatsApp',
+  'Fill in your name, email, phone, date and party size first.':
+    'Veuillez d’abord renseigner votre nom, e-mail, téléphone, date et nombre de personnes.',
+  'Send via WhatsApp': 'Envoyer via WhatsApp',
+  'Send by email': 'Envoyer par e-mail',
+  'Request noted': 'Demande enregistrée',
+  'Continue in the app that just opened — we’ll also follow up directly.':
+    'Poursuivez dans l’application qui vient de s’ouvrir — nous vous recontacterons aussi directement.',
+  'Personal trip planning': 'Planification personnalisée',
+  'We’ll confirm by WhatsApp or email': 'Nous confirmerons par WhatsApp ou e-mail',
+  'Enquire now': 'Faire une demande',
   'How can we help?': 'Comment pouvons-nous vous aider ?',
   'Tell us what you’re looking for — dates, party size, activities…':
     'Dites-nous ce que vous recherchez — dates, nombre de personnes, activités…',
