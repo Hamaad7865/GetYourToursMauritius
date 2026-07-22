@@ -318,4 +318,154 @@ describe('guest review RPC grants: precise anon/authenticated shape', () => {
     expect(rows[0]!.anon).toBe(false);
     expect(rows[0]!.auth).toBe(true);
   });
+
+  it('api_review_invite_context is callable by both anon and authenticated (guests included)', async () => {
+    const { rows } = await db.pg.query<{ anon: boolean; auth: boolean }>(
+      `select has_function_privilege('anon', 'public.api_review_invite_context(jsonb)', 'EXECUTE') as anon,
+              has_function_privilege('authenticated', 'public.api_review_invite_context(jsonb)', 'EXECUTE') as auth`,
+    );
+    expect(rows[0]!.anon).toBe(true);
+    expect(rows[0]!.auth).toBe(true);
+  });
+});
+
+describe('api_review_invite_context: read-only, token-gated, never consumes the token', () => {
+  let db: TestDb;
+  let activityId: string;
+  let bookingId: string;
+
+  beforeAll(async () => {
+    db = await createTestDb();
+    await db.asOwner();
+    await db.pg.query(
+      `insert into operators (name, slug) values ('Belle Mare Tours', 'belle-mare-tours')`,
+    );
+    const operatorId = (await db.pg.query<{ id: string }>(`select id from operators limit 1`))
+      .rows[0]!.id;
+    activityId = (
+      await db.pg.query<{ id: string }>(
+        `insert into activities (operator_id, slug, type, title, category, status, pricing_mode)
+         values ($1, 'invite-context-tour', 'activity', 'Invite Context Tour', 'Sightseeing tours', 'published', 'per_person')
+         returning id`,
+        [operatorId],
+      )
+    ).rows[0]!.id;
+    bookingId = (
+      await db.pg.query<{ id: string }>(
+        `insert into bookings (ref, status, customer_name, customer_email, total_minor, currency)
+         values ('BMT-IC-1', 'confirmed', 'Jamie Guest', 'jamie@example.com', 5000, 'EUR')
+         returning id`,
+      )
+    ).rows[0]!.id;
+    const optionId = (
+      await db.pg.query<{ id: string }>(
+        `insert into activity_options (activity_id, name) values ($1, 'Standard') returning id`,
+        [activityId],
+      )
+    ).rows[0]!.id;
+    const occId = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity, status)
+         values ($1, $2, '2026-08-15 09:00:00+04', '2026-08-15 12:00:00+04', 10, 'open')
+         returning id`,
+        [optionId, operatorId],
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into booking_items (booking_id, session_occurrence_id, activity_option_id, price_label, quantity, unit_amount_minor, subtotal_minor)
+       values ($1, $2, $3, 'Adult', 1, 5000, 5000)`,
+      [bookingId, occId, optionId],
+    );
+  });
+
+  afterAll(async () => {
+    await db.close();
+  });
+
+  it('a valid token returns the activity title and trip date', async () => {
+    await db.asOwner();
+    const token = 'invite-context-valid-token';
+    await db.pg.query(
+      `insert into review_invites (booking_id, activity_id, token) values ($1, $2, $3)`,
+      [bookingId, activityId, token],
+    );
+
+    await db.as(null);
+    const result = await call<{ activityTitle: string; tripDate: string } | null>(
+      db,
+      'api_review_invite_context',
+      { token },
+    );
+    expect(result).not.toBeNull();
+    expect(result!.activityTitle).toBe('Invite Context Tour');
+    expect(new Date(result!.tripDate).toISOString()).toBe(
+      new Date('2026-08-15 09:00:00+04').toISOString(),
+    );
+  });
+
+  it('does NOT consume the token — used_at stays null after a call', async () => {
+    await db.asOwner();
+    const token = 'invite-context-no-consume-token';
+    await db.pg.query(
+      `insert into review_invites (booking_id, activity_id, token) values ($1, $2, $3)`,
+      [
+        (
+          await db.pg.query<{ id: string }>(
+            `insert into bookings (ref, status, customer_name, customer_email, total_minor, currency)
+             values ('BMT-IC-2', 'confirmed', 'Robin Guest', 'robin@example.com', 5000, 'EUR')
+             returning id`,
+          )
+        ).rows[0]!.id,
+        activityId,
+        token,
+      ],
+    );
+
+    await db.as(null);
+    await call(db, 'api_review_invite_context', { token });
+    await call(db, 'api_review_invite_context', { token }); // repeat — still must not consume
+
+    await db.asOwner();
+    const row = await db.pg.query<{ used_at: string | null }>(
+      `select used_at from review_invites where token = $1`,
+      [token],
+    );
+    expect(row.rows[0]!.used_at).toBeNull();
+  });
+
+  it('returns null (not a throw) for missing, unknown, expired, and already-used tokens', async () => {
+    await db.asOwner();
+    const expiredToken = 'invite-context-expired-token';
+    const usedToken = 'invite-context-used-token';
+    const bookingId2 = (
+      await db.pg.query<{ id: string }>(
+        `insert into bookings (ref, status, customer_name, customer_email, total_minor, currency)
+         values ('BMT-IC-3', 'confirmed', 'Casey Guest', 'casey@example.com', 5000, 'EUR')
+         returning id`,
+      )
+    ).rows[0]!.id;
+    const bookingId3 = (
+      await db.pg.query<{ id: string }>(
+        `insert into bookings (ref, status, customer_name, customer_email, total_minor, currency)
+         values ('BMT-IC-4', 'confirmed', 'Drew Guest', 'drew@example.com', 5000, 'EUR')
+         returning id`,
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into review_invites (booking_id, activity_id, token, expires_at)
+       values ($1, $2, $3, now() - interval '1 day')`,
+      [bookingId2, activityId, expiredToken],
+    );
+    await db.pg.query(
+      `insert into review_invites (booking_id, activity_id, token, used_at)
+       values ($1, $2, $3, now())`,
+      [bookingId3, activityId, usedToken],
+    );
+
+    await db.as(null);
+    expect(await call(db, 'api_review_invite_context', {})).toBeNull();
+    expect(await call(db, 'api_review_invite_context', { token: 'not-a-real-token' })).toBeNull();
+    expect(await call(db, 'api_review_invite_context', { token: expiredToken })).toBeNull();
+    expect(await call(db, 'api_review_invite_context', { token: usedToken })).toBeNull();
+  });
 });

@@ -38,6 +38,7 @@ export default async function ReviewWritePage({
       <ReviewWriteForm
         token={token}
         activityTitle={context.activityTitle}
+        tripDate={context.tripDate}
         googleReviewUrl={SITE.googleReview}
       />
     </InfoPage>

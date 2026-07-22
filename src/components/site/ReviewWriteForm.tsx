@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { IconStar } from '@/components/ui/icons';
+import { usePreferences } from '@/components/site/PreferencesProvider';
+import { formatLocaleDate } from '@/lib/i18n/format';
 
 function errMessage(err: unknown, fallback: string): string {
   if (err instanceof Error) return err.message;
@@ -11,12 +13,17 @@ function errMessage(err: unknown, fallback: string): string {
 export function ReviewWriteForm({
   token,
   activityTitle,
+  tripDate,
   googleReviewUrl,
 }: {
   token: string;
   activityTitle: string;
+  /** ISO trip start date/time, or null when the booking's occurrence couldn't be resolved — disambiguates
+   *  review links for a guest with multiple bookings of the same activity on different dates. */
+  tripDate: string | null;
   googleReviewUrl: string;
 }) {
+  const { language } = usePreferences();
   const [rating, setRating] = useState(0);
   const [name, setName] = useState('');
   const [body, setBody] = useState('');
@@ -76,9 +83,14 @@ export function ReviewWriteForm({
     );
   }
 
+  const when = tripDate ? formatLocaleDate(tripDate, language) : null;
+
   return (
     <form onSubmit={submit} className="rounded-2xl border border-ink/10 bg-white p-6">
-      <h1 className="text-xl font-extrabold text-ink">Reviewing: {activityTitle}</h1>
+      <h2 className="text-xl font-extrabold text-ink">
+        Reviewing: {activityTitle}
+        {when ? `, ${when}` : ''}
+      </h2>
       <div className="mt-4 flex gap-1">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
