@@ -16,7 +16,11 @@ import {
   tourDetailSchema,
   tourSummarySchema,
 } from '@/lib/validation/tours';
-import { myReviewSchema, reviewInputSchema } from '@/lib/validation/reviews';
+import {
+  myReviewSchema,
+  reviewInputSchema,
+  submitGuestReviewInputSchema,
+} from '@/lib/validation/reviews';
 import {
   accountExportSchema,
   deleteAccountResultSchema,
@@ -75,6 +79,7 @@ const jsonBody = (schema: z.ZodTypeAny) => ({ content: { 'application/json': { s
 const slugParam = z.object({ slug: z.string() });
 const refParam = z.object({ ref: z.string() });
 const idParam = z.object({ id: z.string() });
+const placeIdParam = z.object({ placeId: z.string().min(1) });
 
 /**
  * Versioned /api/v1 paths. Each operation reuses the exact Zod schemas the route
@@ -137,6 +142,28 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/reviews/submit': {
+    post: {
+      operationId: 'submitGuestReview',
+      summary: 'Submit a review via a one-time invite token (no login required)',
+      tags: ['Reviews'],
+      requestBody: jsonBody(submitGuestReviewInputSchema),
+      responses: {
+        '200': okJson(
+          z.object({
+            id: z.string(),
+            status: z.enum(['pending', 'approved', 'rejected']),
+            submittedAt: z.string(),
+          }),
+          'Review submitted',
+        ),
+        '400': errorResponse('Invalid request'),
+        '409': errorResponse(
+          'This review link is no longer valid — it may have already been used or expired',
+        ),
+      },
+    },
+  },
   '/categories': {
     get: {
       operationId: 'listCategories',
@@ -155,6 +182,38 @@ export const apiPaths: ZodOpenApiPathsObject = {
       responses: {
         '200': okJson(z.array(myReviewSchema), 'Paginated reviews'),
         '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/reviews/google-live': {
+    get: {
+      operationId: 'getGoogleLiveReviews',
+      summary: "Live fetch of the business's own Google reviews (staff-only)",
+      tags: ['Reviews'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { query: placeIdParam },
+      responses: {
+        '200': okJson(
+          z.object({
+            rating: z.number().nullable(),
+            userRatingCount: z.number().nullable(),
+            reviews: z.array(
+              z.object({
+                authorName: z.string(),
+                authorPhotoUrl: z.string().nullable(),
+                rating: z.number(),
+                text: z.string().nullable(),
+                relativeTime: z.string().nullable(),
+                googleMapsUri: z.string().nullable(),
+              }),
+            ),
+          }),
+          'Live Google reviews',
+        ),
+        '400': errorResponse('Invalid query parameters'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Staff only'),
+        '503': errorResponse('Google Maps API key is not configured'),
       },
     },
   },
