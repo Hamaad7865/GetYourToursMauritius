@@ -725,6 +725,50 @@ type SeoRedirectsInsert = {
   updated_by?: string | null;
 };
 
+type ReviewInvitesRow = {
+  id: string;
+  booking_id: string;
+  activity_id: string;
+  token: string;
+  created_at: string;
+  expires_at: string;
+  used_at: string | null;
+};
+type ReviewInvitesInsert = {
+  id?: string;
+  booking_id: string;
+  activity_id: string;
+  token: string;
+  created_at?: string;
+  expires_at?: string;
+  used_at?: string | null;
+};
+
+type GuestReviewsRow = {
+  id: string;
+  booking_id: string;
+  activity_id: string;
+  customer_name: string;
+  rating: number;
+  body: string;
+  status: 'pending' | 'approved' | 'rejected';
+  submitted_at: string;
+  moderated_at: string | null;
+  moderated_by: string | null;
+};
+type GuestReviewsInsert = {
+  id?: string;
+  booking_id: string;
+  activity_id: string;
+  customer_name: string;
+  rating: number;
+  body: string;
+  status?: 'pending' | 'approved' | 'rejected';
+  submitted_at?: string;
+  moderated_at?: string | null;
+  moderated_by?: string | null;
+};
+
 type RentalVehiclesRow = {
   slug: string;
   name: string;
@@ -810,6 +854,8 @@ export interface Database {
       seo_meta: TableDef<SeoMetaRow, SeoMetaInsert>;
       posts: TableDef<PostsRow, PostsInsert>;
       seo_redirects: TableDef<SeoRedirectsRow, SeoRedirectsInsert>;
+      review_invites: TableDef<ReviewInvitesRow, ReviewInvitesInsert>;
+      guest_reviews: TableDef<GuestReviewsRow, GuestReviewsInsert>;
       planner_places: TableDef<PlannerPlacesRow, PlannerPlacesInsert>;
       places_cache: TableDef<PlacesCacheRow, PlacesCacheInsert>;
       rental_vehicles: TableDef<RentalVehiclesRow, RentalVehiclesInsert>;

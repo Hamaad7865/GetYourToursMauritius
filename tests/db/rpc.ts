@@ -46,6 +46,9 @@ const ALLOWED = new Set([
   'api_list_posts',
   'api_get_post',
   'api_lookup_redirect',
+  'api_submit_guest_review',
+  'api_moderate_guest_review',
+  'api_enqueue_review_invites',
 ]);
 
 /**
