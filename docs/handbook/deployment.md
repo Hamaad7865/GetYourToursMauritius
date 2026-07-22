@@ -4,18 +4,27 @@
 
 ---
 
-## ⚠️ Read this before assuming any of this is live
+## ✅ This pipeline is LIVE (since 2026-07-22)
 
-This file describes a **fully-automated release pipeline** (`.github/workflows/release.yml` +
-`.github/workflows/ci.yml`) that exists in the repository as of 2026-07-21. The repository-side
-implementation is complete and unit-tested. **It is NOT yet operating in production.** Nothing in
-this pipeline runs for real until a human completes the [Bootstrap checklist](#bootstrap-checklist-do-this-once-in-this-exact-order)
-below — secrets and variables configured, the Cloudflare dashboard toggle flipped, the ledger
-reconciled. Until then, the OLD manual process (further down, [Rolling back](#rolling-back) /
-["the part everyone forgets"](#the-cron-worker--the-part-everyone-forgets)) is still what's actually
-happening: Cloudflare Pages Git integration deploys on every push, and the database is still updated
-by hand. **Do not tell anyone "the release pipeline is live" until you've watched one real
-push-to-main go all the way through and verified the deployed SHA from `/api/v1/health`.**
+`git push origin main` now deploys everything — web, database, and cron Worker — automatically, in
+that strict order. **Cloudflare Pages' own Git auto-deploy is DISABLED** (both production and
+preview); `wrangler pages deploy` from the CI-built artifact is the only deploy path, and
+`cloudflare-preflight` fails the release if anyone re-enables it.
+
+Verified end-to-end on SHA `c5fcdfa`: web and cron both confirmed running the same SHA via
+`/api/v1/health` and the Worker's liveness JSON, canonical redirects checked, `supabase db push`
+clean against a reconciled ledger (111 migrations, 1:1).
+
+**Fastest way to confirm what's deployed:**
+
+```bash
+curl -s "https://bellemaretours.com/api/v1/health?deep=true" | jq '.data.releaseSha'
+```
+
+Two things are still not fully armed, deliberately: `PAYMENT_SMOKE_BASE_URL` is unset so
+`payment-probe` skips with a warning, and `payment-smoke-manual-gate` auto-approves until required
+reviewers are configured on the `production-payment-smoke` environment. See
+[Payment smoke gate](#payment-smoke-gate).
 
 ---
 

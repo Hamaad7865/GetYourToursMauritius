@@ -25,28 +25,20 @@ emailed invoice. The owner runs everything from a `/admin` back-office.
 | **Email**          | Resend. Sent from `bookings@`, replies go to `info@`.                                                      |
 | **Scheduled work** | A **separate** Cloudflare Worker (`workers/cron/`).                                                        |
 
-> ⚠️ **Two eras.** A fully-automated release pipeline (`.github/workflows/release.yml`) exists in
-> the repo, but does not run for real until a human completes its
-> [bootstrap checklist](handbook/deployment.md#bootstrap-checklist-do-this-once-in-this-exact-order).
-> Everything below describes the pipeline's target state; **check with whoever last touched
-> `deployment.md`'s top banner before assuming it's live** — until then, the three-manual-parts
-> reality further down is what's actually happening.
+This app has **three moving parts** — the web app, the database, and the cron Worker. They used to
+deploy separately, and forgetting one was the single most common way to break production silently.
+**Since 2026-07-22 a single `git push origin main` ships all three**, in a strict order, with
+post-deploy verification:
 
-**Once bootstrapped**, a single `git push` to `main` ships all three parts, in order, automatically —
-web, then database (gated on an explicitly-reconciled migration ledger), then the cron Worker, then a
-battery of post-deploy verification. **Before that** (and this is the current reality as of this
-writing), this app has **three moving parts that deploy separately**, and pushing to `main` only ships
-one of them:
+| Part            | How it ships                                                     | Ships on `git push`? |
+| --------------- | ---------------------------------------------------------------- | -------------------- |
+| The web app     | `release.yml` → `wrangler pages deploy` of the CI-built artifact | ✅ Yes               |
+| The database    | `release.yml` → `supabase db push` (reconciled ledger)           | ✅ Yes               |
+| The cron Worker | `release.yml` → `wrangler deploy`, same SHA, after the web       | ✅ Yes               |
 
-| Part            | How it ships (manual era)                                 | Ships on `git push`? |
-| --------------- | --------------------------------------------------------- | -------------------- |
-| The web app     | Cloudflare Pages, connected to Git                        | ✅ Yes               |
-| The database    | A human pastes `supabase/catch-up.sql` into Supabase      | ❌ **No**            |
-| The cron Worker | `npx wrangler deploy --config workers/cron/wrangler.toml` | ❌ **No**            |
-
-Forgetting the second one means the site 500s on the new feature. Forgetting the third means **emails
-stop and seats stay locked forever** — silently, with a perfectly green deploy. (Once bootstrapped,
-the pipeline itself refuses to let this happen — see `handbook/deployment.md`.)
+**Cloudflare Pages' own Git auto-deploy is DISABLED** — the pipeline is the only deploy path, and it
+refuses to run if anyone re-enables it. Full detail, including rollback:
+[Deployment](handbook/deployment.md).
 
 ---
 
