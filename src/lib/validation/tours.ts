@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { categorySchema, paginationQuerySchema, tourTypeSchema } from './common';
+import { REGIONS } from '@/lib/services/pricing';
 
 // Catalogue DTOs — these match the `api_*` Postgres function output exactly.
 
@@ -222,7 +223,7 @@ export const searchToursQuerySchema = paginationQuerySchema.extend({
   type: tourTypeSchema.optional(),
   /** Home/boarding region of the activity (East/West/North/South/Central) — e.g. the Belle Mare
    *  showcase filters to East. Not exposed in search results, filter-only. */
-  region: z.enum(['North', 'East', 'South', 'West', 'Central']).optional(),
+  region: z.enum(REGIONS).optional(),
   /** "From" price range in EUR (matched against the displayed fromPriceEur). */
   priceMin: z.coerce.number().nonnegative().optional(),
   priceMax: z.coerce.number().nonnegative().optional(),
