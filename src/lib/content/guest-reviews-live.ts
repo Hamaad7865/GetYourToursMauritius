@@ -43,7 +43,7 @@ export function mergeFeaturedReviews(
 ): FeaturedReview[] {
   const mapped: FeaturedReview[] = db.map((r, i) => ({
     id: `guest-${i}`,
-    source: 'site',
+    source: 'Verified Guest',
     rating: r.rating,
     title: null,
     text: r.body,

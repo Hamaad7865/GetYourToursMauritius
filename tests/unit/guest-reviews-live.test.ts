@@ -59,7 +59,7 @@ describe('mergeFeaturedReviews', () => {
     const merged = mergeFeaturedReviews(seed, db);
     expect(merged).toHaveLength(2);
     expect(merged[0]!.author).toBe('New Guest');
-    expect(merged[0]!.source).toBe('site');
+    expect(merged[0]!.source).toBe('Verified Guest');
     expect(merged[1]!.author).toBe('Seed Author');
   });
 });
