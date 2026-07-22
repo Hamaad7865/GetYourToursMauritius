@@ -7,6 +7,12 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
  * and recompute the activity's rating — see api_moderate_guest_review.
  */
 
+/** PostgREST embeds a to-one relation as an object|array|null; normalise to a single row. */
+function one<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
 export interface GuestReviewRow {
   id: string;
   activityTitle: string;
@@ -26,7 +32,9 @@ export async function loadGuestReviews(): Promise<GuestReviewRow[]> {
   return (data ?? []).map((r) => ({
     id: r.id,
     activityTitle:
-      (r as unknown as { activities: { title: string } | null }).activities?.title ?? 'Unknown activity',
+      one(
+        (r as unknown as { activities: { title: string } | { title: string }[] | null }).activities,
+      )?.title ?? 'Unknown activity',
     customerName: r.customer_name,
     rating: r.rating,
     body: r.body,
@@ -65,6 +73,15 @@ export async function loadGoogleReviewsLive(placeId: string): Promise<GoogleRevi
   const res = await fetch(`/api/v1/reviews/google-live?placeId=${encodeURIComponent(placeId)}`, {
     headers: session ? { authorization: `Bearer ${session.access_token}` } : {},
   });
-  if (!res.ok) throw new Error('Could not load Google reviews.');
+  if (!res.ok) {
+    let msg = 'Could not load Google reviews.';
+    try {
+      const body = (await res.json()) as { error?: { message?: string } };
+      if (body?.error?.message) msg = body.error.message;
+    } catch {
+      /* non-JSON (e.g. a gateway error) — keep the generic message */
+    }
+    throw new Error(msg);
+  }
   return (await res.json()) as GoogleReviewsResult;
 }
