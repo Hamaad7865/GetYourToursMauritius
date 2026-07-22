@@ -376,19 +376,14 @@ jobs:
           URL=$(grep -Eo 'https://[a-zA-Z0-9.-]+\.workers\.dev' wrangler-deploy.log | tail -1)
           echo "worker_url=${URL:-}" >> "$GITHUB_OUTPUT"
 
+      # POLLS (bounded) rather than checking once: a Workers deploy is eventually consistent, so the
+      # edge can still serve the previous version for a few seconds after `wrangler deploy` returns.
       - name: Verify the deployed liveness response reports this release
         if: steps.deploy.outputs.worker_url != ''
         run: |
-          set -euo pipefail
-          BODY=$(curl -sS --retry 5 --retry-delay 3 --retry-all-errors "${{ steps.deploy.outputs.worker_url }}/")
-          echo "$BODY"
-          echo "$BODY" | node -e '
-            const body = JSON.parse(require("fs").readFileSync(0, "utf8"));
-            const expectedSha = process.argv[1];
-            if (body.releaseSha !== expectedSha) throw new Error(`releaseSha mismatch: got ${body.releaseSha}, expected ${expectedSha}`);
-            if (body.internalTaskSecretConfigured !== true) throw new Error("internalTaskSecretConfigured is not true");
-            console.log("✓ gytm-cron liveness confirms release " + expectedSha);
-          ' "${{ needs.resolve-provenance.outputs.sha }}"
+          node scripts/release/verify-worker-liveness.mjs \
+            --url "${{ steps.deploy.outputs.worker_url }}" \
+            --expected-sha "${{ needs.resolve-provenance.outputs.sha }}"
 
       - name: Job summary
         run: |
