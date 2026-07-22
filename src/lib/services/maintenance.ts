@@ -2,6 +2,7 @@ import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import { reconcilePaymentEvent } from '@/lib/payments/reconcile';
+import { enqueueReviewInvites as enqueueReviewInvitesRpc } from './reviews';
 
 const maintenanceResultSchema = z.object({
   holdsExpired: z.number().int(),
@@ -60,6 +61,13 @@ export async function materializeAvailability(
 ): Promise<number> {
   const data = await callRpc(ctx, 'materialize_availability', activityId ? { activityId } : {});
   return z.number().int().parse(data);
+}
+
+/** Re-exported under the maintenance module's naming convention (the internal route imports every
+ *  step from here). Not money-critical, so — unlike the payment/expiry steps — its position in the
+ *  maintenance sequence doesn't matter for correctness. */
+export async function enqueueReviewInvites(ctx: ServiceContext): Promise<number> {
+  return enqueueReviewInvitesRpc(ctx);
 }
 
 /**

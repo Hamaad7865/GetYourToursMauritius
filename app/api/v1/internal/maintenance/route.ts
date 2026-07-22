@@ -8,6 +8,7 @@ import {
   runBookingMaintenance,
   materializeAvailability,
   reconcilePaymentsPending,
+  enqueueReviewInvites,
 } from '@/lib/services/maintenance';
 
 export const runtime = 'edge';
@@ -68,6 +69,14 @@ export const POST = apiHandler(async (req) => {
     log('availability materialize', err);
   }
 
+  // 4) Post-trip review requests — not money-critical, so position doesn't matter for correctness.
+  let reviewInvitesCreated: number | { errored: true } = { errored: true };
+  try {
+    reviewInvitesCreated = await enqueueReviewInvites(ctx);
+  } catch (err) {
+    log('review invites sweep', err);
+  }
+
   // HONEST STATUS (review item 7): every job above ran regardless (each isolated in its own
   // try/catch), but a failed one used to be reported inside a 200 — the cron Worker treats any 2xx
   // as success, so a persistently broken sweep looked healthy on the Cloudflare dashboard forever.
@@ -92,16 +101,17 @@ export const POST = apiHandler(async (req) => {
     ...(failedJob(payments) || paymentsErroredCount > 0 ? ['payments'] : []),
     ...(failedJob(result) ? ['bookingMaintenance'] : []),
     ...(failedJob(slotsCreated) ? ['availability'] : []),
+    ...(failedJob(reviewInvitesCreated) ? ['reviewInvites'] : []),
   ];
   if (erroredJobs.length > 0) {
     return jsonError(
       503,
       'maintenance_partial_failure',
       `Maintenance job(s) failed: ${erroredJobs.join(', ')} — see server logs`,
-      { ...result, slotsCreated, payments, erroredJobs },
+      { ...result, slotsCreated, payments, reviewInvitesCreated, erroredJobs },
     );
   }
-  return jsonOk({ ...result, slotsCreated, payments });
+  return jsonOk({ ...result, slotsCreated, payments, reviewInvitesCreated });
 });
 
 export function OPTIONS(req: Request): Response {
