@@ -5278,10 +5278,26 @@ update airport_transfer_hotels set zone = 'zone2'
 update airport_transfer_hotels set zone = 'zone1'
   where slug not in ('shandrani-beachcomber', 'preskil-island-resort');
 
--- airport_transfer_fare: re-key region → zone. Drop + recreate keyed by zone (only owner config; no FK
--- references it). Zone 2 standard = €35 (confirmed); every other cell is an owner-tunable placeholder.
-drop table if exists airport_transfer_fare;
-create table airport_transfer_fare (
+-- airport_transfer_fare: re-key region → zone. Zone 2 standard = €35 (confirmed); every other cell is
+-- an owner-tunable placeholder.
+--
+-- GUARDED (this was an idempotency bug): the drop is a ONE-TIME re-key of a table that used to be
+-- keyed by `region`. Unconditional, it re-fired on EVERY catch-up.sql run — and since catch-up.sql is
+-- re-run routinely after deploys, it silently reset the owner's tuned airport fares back to the
+-- placeholders below every single time. Now it only fires on a DB still holding the old region-keyed
+-- shape; once re-keyed to `zone`, the owner's rates are left alone.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+     where table_schema = 'public'
+       and table_name = 'airport_transfer_fare'
+       and column_name = 'region'
+  ) then
+    drop table airport_transfer_fare;
+  end if;
+end $$;
+create table if not exists airport_transfer_fare (
   zone          text primary key check (zone in ('zone1', 'zone2')),
   sedan_minor   int not null,   -- Standard car 1-4
   suv_minor     int not null,   -- 1-4 upgrade

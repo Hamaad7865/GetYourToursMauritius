@@ -75,6 +75,28 @@ describe('catch-up.sql stays in parity with the migrations', () => {
     ).toEqual([]);
   });
 
+  // Re-runs catch-up.sql against the SAME db beforeAll already patched (a second createTestDb here
+  // contends for WASM memory and flakes — see beforeAll). That re-run is exactly the scenario this
+  // guards: the operator pastes catch-up.sql after every deploy.
+  it('preserves owner-tuned airport fares across a catch-up.sql re-run', async () => {
+    // Simulate the owner tuning fares in /admin, away from the seeded placeholders.
+    await db.pg.exec(
+      `update airport_transfer_fare set sedan_minor = 9999, suv_minor = 8888 where zone = 'zone1'`,
+    );
+
+    // Re-run catch-up.sql, exactly as the operator does after a deploy.
+    await db.pg.exec(CATCH_UP);
+
+    const { rows } = await db.pg.query<{ sedan_minor: number; suv_minor: number }>(
+      `select sedan_minor, suv_minor from airport_transfer_fare where zone = 'zone1'`,
+    );
+    // Before the guard, `drop table if exists airport_transfer_fare` fired unconditionally on every
+    // run, so the tuned rates silently reverted to the seeded placeholders (5500/7000) — wiping the
+    // owner's pricing with a completely green deploy.
+    expect(rows[0]?.sedan_minor, 'catch-up.sql reset a tuned airport fare').toBe(9999);
+    expect(rows[0]?.suv_minor, 'catch-up.sql reset a tuned airport fare').toBe(8888);
+  });
+
   it('contains the additive objects from the 120000–120500 fix series', () => {
     const required: Array<[string, RegExp]> = [
       ['bookings_no_public_insert trigger (F2 forged-booking guard)', /bookings_no_public_insert/],
