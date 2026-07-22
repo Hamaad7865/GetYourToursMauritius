@@ -108,7 +108,7 @@ describe('Private Cruises region backfill', () => {
     expect(rows[0]!.region).toBe('West'); // untouched — location says East, but region was already West
   });
 
-  it('does not touch a different category or pricing_mode', async () => {
+  it('does not touch a different category', async () => {
     const seeded = await seedOccurrence(db, 5); // category defaults to 'Catamaran cruises'
     await db.pg.query(
       `update activities set pricing_mode = 'per_person', region = null, location = 'East' where id = $1`,
@@ -120,5 +120,33 @@ describe('Private Cruises region backfill', () => {
       [seeded.activityId],
     );
     expect(rows[0]!.region).toBeNull(); // wrong category — untouched
+  });
+
+  it('does not touch a different pricing_mode', async () => {
+    const seeded = await seedOccurrence(db, 5);
+    await db.pg.query(
+      `update activities set category = 'Private Cruises', pricing_mode = 'vehicle', region = null, location = 'East' where id = $1`,
+      [seeded.activityId],
+    );
+    await rerunBackfill();
+    const { rows } = await db.pg.query<{ region: string | null }>(
+      `select region from activities where id = $1`,
+      [seeded.activityId],
+    );
+    expect(rows[0]!.region).toBeNull(); // wrong pricing_mode (vehicle, not per_person) — untouched
+  });
+
+  it('does not touch a non-canonical location value', async () => {
+    const seeded = await seedOccurrence(db, 5);
+    await db.pg.query(
+      `update activities set category = 'Private Cruises', pricing_mode = 'per_person', region = null, location = 'Grand Baie' where id = $1`,
+      [seeded.activityId],
+    );
+    await rerunBackfill();
+    const { rows } = await db.pg.query<{ region: string | null }>(
+      `select region from activities where id = $1`,
+      [seeded.activityId],
+    );
+    expect(rows[0]!.region).toBeNull(); // 'Grand Baie' isn't a canonical region string — untouched
   });
 });
