@@ -33,11 +33,17 @@ function jsFiles(dir, acc = []) {
 }
 
 function main() {
-  // Prefer the edge bundle (what actually ships); fall back to the Next client chunks.
-  const roots = ['.vercel/output/static/_next/static', '.next/static'].filter((d) => existsSync(d));
+  // ONLY the edge bundle — the artifact that actually ships. Scanning `.next/static` as well was a
+  // real bug: `npm run build` (plain `next build`) inherits process.env and inlines correctly, but
+  // `pages:build` shells out to `npx vercel build`, which does its OWN Next build in a subprocess
+  // that does NOT inherit those vars. With both directories in one haystack, `.next`'s good copy
+  // masked `.vercel`'s broken one and this guard went green while the live site was down.
+  const artifactRoot = '.vercel/output/static/_next/static';
+  const roots = [artifactRoot].filter((d) => existsSync(d));
   if (roots.length === 0) {
     throw new Error(
-      'No built client output found (.vercel/output/static or .next) — run the build first',
+      `No edge bundle found at ${artifactRoot} — run \`npm run pages:build\` before this check. ` +
+        `(.next/static is deliberately NOT accepted as a substitute: it is not what gets deployed.)`,
     );
   }
   const files = roots.flatMap((r) => jsFiles(r));

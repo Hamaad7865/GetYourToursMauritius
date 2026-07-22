@@ -61,15 +61,24 @@ jobs:
       - name: Write release metadata
         run: node scripts/release/write-release-metadata.mjs --sha "${{ github.sha }}" --run-id "${{ github.run_id }}"
 
-      # ⚠️ NEXT_PUBLIC_* MUST be present here. Next.js INLINES them into the CLIENT bundle at build
-      # time — they are NOT read from the runtime environment in the browser. Cloudflare Pages used
-      # to run this build with its own project env vars set, so they were baked in for free; now
-      # that CI builds the artifact and Pages only serves it, CI is the only place they can come
-      # from. Missing, the browser Supabase client throws "not configured" and the app dies behind
-      # its error boundary — while /api/v1/health still reports supabaseConfigured:true, because the
-      # SERVER runtime does have them. That exact gap took the site down once; see
-      # tests/unit/build-public-env.test.ts and the verify-public-env step below.
-      - name: Build
+      # ⚠️ NEXT_PUBLIC_* MUST reach the build, and a step-level `env:` is NOT sufficient.
+      #
+      # Next.js INLINES NEXT_PUBLIC_* into the CLIENT bundle at build time — they are never read
+      # from the runtime environment in the browser. Cloudflare Pages used to run the build with its
+      # own project vars set, so they were baked in for free; now CI is the only source.
+      #
+      # THE TRAP (this took the live site down): `npm run build` runs `next build` directly and
+      # inherits process.env, so `.next/` inlines fine — but `npm run pages:build` shells out to
+      # `npx vercel build`, which runs its OWN Next build in a subprocess that does NOT inherit
+      # these vars. So `.vercel/output/static` — the artifact that actually SHIPS — came out with
+      # `undefined`, every page died behind the React error boundary, and /api/v1/health still said
+      # supabaseConfigured:true because the SERVER runtime had the vars.
+      #
+      # Writing a .env file fixes both paths: Next.js loads .env during the build regardless of who
+      # invokes it, so the nested vercel build picks it up too. The file is ephemeral (never
+      # committed — .gitignore covers .env*) and these values are public by design: they ship in the
+      # client bundle either way.
+      - name: Write build-time .env for Next (reaches the nested `vercel build` too)
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
@@ -77,18 +86,25 @@ jobs:
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
           NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID }}
           NEXT_PUBLIC_GSC_VERIFICATION: ${{ vars.NEXT_PUBLIC_GSC_VERIFICATION }}
+        run: |
+          set -euo pipefail
+          {
+            printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n'        "$NEXT_PUBLIC_SUPABASE_URL"
+            printf 'NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n'   "$NEXT_PUBLIC_SUPABASE_ANON_KEY"
+            printf 'NEXT_PUBLIC_SITE_URL=%s\n'            "$NEXT_PUBLIC_SITE_URL"
+            printf 'NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=%s\n' "$NEXT_PUBLIC_GOOGLE_MAPS_API_KEY"
+            printf 'NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID=%s\n'  "$NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID"
+            printf 'NEXT_PUBLIC_GSC_VERIFICATION=%s\n'    "$NEXT_PUBLIC_GSC_VERIFICATION"
+          } > .env.production.local
+          # Names only — never the values.
+          echo "wrote .env.production.local with:"; cut -d= -f1 .env.production.local
+
+      - name: Build
         run: npm run build
 
       # The actual deployable artifact. If this fails, the edge bundle is broken even though
       # `next build` passed — exactly the gap this CI closes.
       - name: Edge bundle (Cloudflare Pages)
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
-          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
-          NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID }}
-          NEXT_PUBLIC_GSC_VERIFICATION: ${{ vars.NEXT_PUBLIC_GSC_VERIFICATION }}
         run: npm run pages:build
 
       # Fails the build if the Supabase URL/anon key did NOT get inlined into the client bundle.
