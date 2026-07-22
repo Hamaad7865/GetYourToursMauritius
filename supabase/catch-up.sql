@@ -14681,6 +14681,9 @@ drop policy if exists guest_reviews_public_read on guest_reviews;
 create policy guest_reviews_public_read on guest_reviews for select using (status = 'approved');
 -- No insert/update policy for anon/authenticated — writes go through the RPCs below.
 
+grant select on guest_reviews to anon, authenticated, service_role;
+grant select on review_invites to authenticated, service_role;
+
 -- ── api_submit_guest_review ─────────────────────────────────────────────────────────────────────
 -- The real security boundary: the token (not auth.uid(), which guests don't have) proves the caller
 -- is the actual customer. Single-use — used_at is set atomically in the same transaction as the
@@ -14860,7 +14863,7 @@ $$;
 
 revoke execute on function api_submit_guest_review(jsonb) from public;
 revoke execute on function api_moderate_guest_review(jsonb) from public;
-revoke execute on function api_enqueue_review_invites() from public;
+revoke execute on function api_enqueue_review_invites() from public, anon, authenticated;
 grant execute on function api_submit_guest_review(jsonb) to anon, authenticated;
 grant execute on function api_moderate_guest_review(jsonb) to authenticated;
 grant execute on function api_enqueue_review_invites() to service_role;
