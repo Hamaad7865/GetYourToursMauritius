@@ -15,6 +15,15 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+function formatWhen(iso: string): string {
+  const d = new Date(iso);
+  return (
+    d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) +
+    ', ' +
+    d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+  );
+}
+
 function Stars({ n }: { n: number }) {
   return (
     <span className="flex items-center gap-0.5" aria-label={`${n} out of 5 stars`}>
@@ -45,7 +54,7 @@ export function AdminReviews() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<GuestReviewRow['status'] | 'all'>('pending');
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busyIds, setBusyIds] = useState<Set<string>>(new Set());
 
   const [google, setGoogle] = useState<GoogleReviewsResult | null>(null);
   const [googleError, setGoogleError] = useState<string | null>(null);
@@ -83,7 +92,7 @@ export function AdminReviews() {
   }, []);
 
   async function decide(id: string, action: 'approve' | 'reject') {
-    setBusy(id);
+    setBusyIds((ids) => new Set(ids).add(id));
     try {
       await moderateReview(id, action);
       setReviews((rows) =>
@@ -94,7 +103,11 @@ export function AdminReviews() {
     } catch (err) {
       setError(errMessage(err, 'Could not update this review.'));
     } finally {
-      setBusy(null);
+      setBusyIds((ids) => {
+        const next = new Set(ids);
+        next.delete(id);
+        return next;
+      });
     }
   }
 
@@ -118,6 +131,8 @@ export function AdminReviews() {
           {(['pending', 'approved', 'rejected', 'all'] as const).map((f) => (
             <button
               key={f}
+              type="button"
+              aria-pressed={filter === f}
               onClick={() => setFilter(f)}
               className={`rounded-full px-3.5 py-1.5 text-[13px] font-bold ${
                 filter === f ? 'bg-teal text-white' : 'bg-ink/5 text-ink-muted hover:bg-ink/10'
@@ -137,10 +152,11 @@ export function AdminReviews() {
             {shown.map((r) => (
               <article key={r.id} className="rounded-xl border border-ink/10 bg-white p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <Stars n={r.rating} />
                     <span className="text-sm font-bold text-ink">{r.customerName}</span>
                     <span className="text-xs text-ink-muted">· {r.activityTitle}</span>
+                    <span className="text-xs text-ink-muted">· {formatWhen(r.submittedAt)}</span>
                   </div>
                   <span
                     className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase ${STATUS_STYLE[r.status]}`}
@@ -152,16 +168,20 @@ export function AdminReviews() {
                 {r.status === 'pending' && (
                   <div className="mt-3 flex gap-2">
                     <button
-                      disabled={busy === r.id}
+                      type="button"
+                      disabled={busyIds.has(r.id)}
                       onClick={() => decide(r.id, 'approve')}
+                      aria-label={`Approve review by ${r.customerName}`}
                       className="rounded-full bg-teal px-4 py-1.5 text-[12.5px] font-bold text-white hover:bg-teal-dark disabled:opacity-50"
                     >
                       Approve
                     </button>
                     <button
-                      disabled={busy === r.id}
+                      type="button"
+                      disabled={busyIds.has(r.id)}
                       onClick={() => decide(r.id, 'reject')}
-                      className="rounded-full bg-ink/5 px-4 py-1.5 text-[12.5px] font-bold text-ink-muted hover:bg-ink/10 disabled:opacity-50"
+                      aria-label={`Reject review by ${r.customerName}`}
+                      className="rounded-full px-4 py-1.5 text-[12.5px] font-bold text-coral hover:bg-coral/10 disabled:opacity-50"
                     >
                       Reject
                     </button>
@@ -187,7 +207,10 @@ export function AdminReviews() {
             </p>
             <div className="flex flex-col gap-3">
               {google.reviews.map((r, i) => (
-                <article key={i} className="rounded-xl border border-ink/10 bg-white p-4">
+                <article
+                  key={r.googleMapsUri ?? i}
+                  className="rounded-xl border border-ink/10 bg-white p-4"
+                >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-bold text-ink">{r.authorName}</span>
                     <Stars n={r.rating} />
