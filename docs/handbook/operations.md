@@ -131,9 +131,10 @@ This is the failure mode that hides the longest. Check the job the moment anythi
 ## Customer reviews aren't coming in
 
 Same root cause as the other post-trip jobs: **the background job is dead.** Review-request emails
-are only sent by the same 5-minute maintenance sweep that reconciles payments and expires holds — if
-it's down, nothing else in this list is broken, but no review requests go out either. Check it the
-same way as in [Nothing is emailing anyone](#nothing-is-emailing-anyone).
+are **queued** by the same 5-minute maintenance sweep that reconciles payments and expires holds,
+then **sent** by the same 2-minute job that sends every other queued email — if either is down, no
+review requests go out. Check it the same way as in
+[Nothing is emailing anyone](#nothing-is-emailing-anyone).
 
 One more thing worth knowing: **every submitted review sits in the Reviews queue until you approve
 it** — nothing a customer writes appears on the site automatically, by design.
@@ -166,12 +167,13 @@ Production and Preview. Without it, every page fails at runtime — on a build t
 
 ## The background job (`gytm-cron`) — why it matters so much
 
-It's a small Cloudflare Worker, **separate from the website**, that does four jobs on a timer:
+It's a small Cloudflare Worker, **separate from the website**, that does five jobs on a timer:
 
 1. Sends every queued email (every 2 minutes)
 2. Confirms payments that got stuck (every 5 minutes)
 3. Releases abandoned bookings
 4. **Keeps the booking calendar filled ~6 months ahead**
+5. Queues review-request emails for recently completed trips
 
 **If it stops, the website keeps working perfectly.** Pages load, tours display, customers can browse.
 Nothing looks wrong. But no email goes out, and the calendar quietly runs down.
