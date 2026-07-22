@@ -37,6 +37,7 @@ All of this is in `/admin`:
 | A page's Google title & description          | **SEO** (18 pages)                                                                                     |
 | Blog posts                                   | **Blog**                                                                                               |
 | Redirect an old URL to a new one             | **Redirects**                                                                                          |
+| Approve or reject a customer review          | **Reviews**                                                                                            |
 
 Prices are typed in euros and take effect immediately — the server prices every new quote from those
 rows.
@@ -126,6 +127,16 @@ job. If it stops, the calendar doesn't break — it slowly empties from the far 
 appear fully booked.
 
 This is the failure mode that hides the longest. Check the job the moment anything looks odd.
+
+## Customer reviews aren't coming in
+
+Same root cause as the other post-trip jobs: **the background job is dead.** Review-request emails
+are only sent by the same 5-minute maintenance sweep that reconciles payments and expires holds — if
+it's down, nothing else in this list is broken, but no review requests go out either. Check it the
+same way as in [Nothing is emailing anyone](#nothing-is-emailing-anyone).
+
+One more thing worth knowing: **every submitted review sits in the Reviews queue until you approve
+it** — nothing a customer writes appears on the site automatically, by design.
 
 ## Seats appear taken but nobody booked them
 
