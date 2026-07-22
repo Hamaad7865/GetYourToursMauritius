@@ -47,9 +47,8 @@ export const SITE = {
   /** The direct "leave a review" link from Business Profile Manager → Read reviews → Get more
    *  reviews — a submission CTA, NOT a corroborating business profile, so it deliberately lives
    *  OUTSIDE `profiles` (which feeds `SAME_AS`/schema.org `sameAs`; a review link there would
-   *  pollute that structured data). Placeholder until the owner grabs the real one — see
-   *  docs/handbook/operations.md. */
-  googleReview: 'https://g.page/r/REPLACE_ME/review',
+   *  pollute that structured data). */
+  googleReview: 'https://g.page/r/CaXU5CDTmIUfEAE/review',
 } as const;
 
 /** `SITE.profiles` as the flat array schema.org wants. Derived, so a profile added above is picked up
