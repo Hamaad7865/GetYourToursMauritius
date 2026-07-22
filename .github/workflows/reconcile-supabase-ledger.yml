@@ -107,21 +107,21 @@ jobs:
       # proceed to step 3 — fix the error and re-run this whole workflow from the top (idempotent).
       - name: 'Step 2: run supabase/catch-up.sql'
         env:
-          SUPABASE_DB_URL: postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ vars.SUPABASE_PROJECT_ID }}.supabase.co:5432/postgres
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: npx tsx scripts/db-exec.ts supabase/catch-up.sql
 
       # Step 3: ONLY reached if step 2 succeeded. Backfills the ledger to record every migration in
       # supabase/migrations as already-applied (idempotent — `on conflict (version) do nothing`).
       - name: 'Step 3: run supabase/backfill-migration-ledger.sql'
         env:
-          SUPABASE_DB_URL: postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ vars.SUPABASE_PROJECT_ID }}.supabase.co:5432/postgres
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: npx tsx scripts/db-exec.ts supabase/backfill-migration-ledger.sql
 
       # Step 4: the ledger must now match supabase/migrations 1:1 — no gaps, no unexpected
       # remote-only versions, no non-linear history.
       - name: 'Step 4: verify ledger versions/names match supabase/migrations 1:1'
         env:
-          SUPABASE_DB_URL: postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ vars.SUPABASE_PROJECT_ID }}.supabase.co:5432/postgres
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: node scripts/release/supabase-ledger.mjs --mode status
 
       # Steps 5-6: `supabase db push --dry-run` must independently agree there is nothing pending —
@@ -137,7 +137,7 @@ jobs:
       # secret values.
       - name: 'Step 7: sanitized audit summary'
         env:
-          SUPABASE_DB_URL: postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ vars.SUPABASE_PROJECT_ID }}.supabase.co:5432/postgres
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           {
             echo "## ✅ Supabase migration ledger reconciled"

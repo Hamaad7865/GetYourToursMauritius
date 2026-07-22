@@ -209,7 +209,7 @@ jobs:
 
       - name: Verify ledger parity (1:1 with supabase/migrations, no gaps, no remote-only versions)
         env:
-          SUPABASE_DB_URL: postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ vars.SUPABASE_PROJECT_ID }}.supabase.co:5432/postgres
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: node scripts/release/supabase-ledger.mjs --mode status
 
       - name: db push --dry-run must report nothing pending
@@ -230,7 +230,7 @@ jobs:
 
       - name: Verify the remote ledger is synchronized after push
         env:
-          SUPABASE_DB_URL: postgresql://postgres:${{ secrets.SUPABASE_DB_PASSWORD }}@db.${{ vars.SUPABASE_PROJECT_ID }}.supabase.co:5432/postgres
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: node scripts/release/supabase-ledger.mjs --mode status
 
   # ── Web deploy — wrangler pages deploy of the artifact ONLY, no rebuild ──────────────────────
