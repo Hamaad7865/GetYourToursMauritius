@@ -10,6 +10,7 @@ import { loadBookingForReceipt } from './receipt';
 import { buildInvoice } from '@/lib/invoice/model';
 import { renderInvoicePdf } from '@/lib/invoice/pdf';
 import { renderConfirmationEmail } from '@/lib/email/booking-confirmation';
+import { renderReviewRequestEmail } from '@/lib/email/review-request';
 import { INVOICE_BUSINESS } from '@/lib/invoice/business';
 import { SITE } from '@/lib/seo/site';
 import { getServerEnv } from '@/lib/config/env';
@@ -188,6 +189,28 @@ function enrichOwnerDateChanged(message: NotificationMessage & { bookingId: stri
   message.text = `📅 Date changed\n${who} moved booking ${ref} from ${day(p.previousStartsAt)} to ${day(p.startsAt)}.\n${adminUrl}`;
 }
 
+/**
+ * Review-request email. Payload-only — the enqueue sweep already embedded activityTitle and
+ * customerName at insert time (mirroring enrichOwnerDateChanged's no-DB-load pattern), so this is a
+ * pure, synchronous render. The Google button is ALWAYS present — see renderReviewRequestEmail.
+ */
+function enrichReviewRequest(message: NotificationMessage): void {
+  const p = message.payload;
+  const token = typeof p.token === 'string' ? p.token : '';
+  const activityTitle = typeof p.activityTitle === 'string' ? p.activityTitle : 'your trip';
+  const customerName =
+    typeof p.customerName === 'string' && p.customerName ? p.customerName : 'there';
+  const email = renderReviewRequestEmail({
+    customerName,
+    activityTitle,
+    siteReviewUrl: `${SITE.url}/reviews/write?token=${encodeURIComponent(token)}`,
+    googleReviewUrl: SITE.profiles.googleReview,
+  });
+  message.subject = email.subject;
+  message.html = email.html;
+  message.text = email.text;
+}
+
 export interface DrainResult {
   processed: number;
   sent: number;
@@ -228,6 +251,8 @@ export async function drainNotifications(
         await enrichOwnerNewBooking(ctx, message);
       } else if (message.template === 'owner_date_changed') {
         enrichOwnerDateChanged(message);
+      } else if (message.template === 'review_request') {
+        enrichReviewRequest(message);
       }
       await provider.send(message);
       await callRpc(ctx, 'mark_notification', { id: message.id, result: 'sent' });
