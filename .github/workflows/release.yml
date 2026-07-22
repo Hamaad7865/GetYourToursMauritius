@@ -243,6 +243,9 @@ jobs:
       url: ${{ steps.deploy.outputs.deployment_url }}
     permissions:
       contents: read
+      # Required to download the artifact from the CI run (a DIFFERENT workflow run) — without it
+      # actions/download-artifact 403s on the cross-run artifacts API.
+      actions: read
     outputs:
       deployment_url: ${{ steps.deploy.outputs.deployment_url }}
       previous_deployment_id: ${{ steps.previous.outputs.id }}
