@@ -61,13 +61,41 @@ jobs:
       - name: Write release metadata
         run: node scripts/release/write-release-metadata.mjs --sha "${{ github.sha }}" --run-id "${{ github.run_id }}"
 
+      # ⚠️ NEXT_PUBLIC_* MUST be present here. Next.js INLINES them into the CLIENT bundle at build
+      # time — they are NOT read from the runtime environment in the browser. Cloudflare Pages used
+      # to run this build with its own project env vars set, so they were baked in for free; now
+      # that CI builds the artifact and Pages only serves it, CI is the only place they can come
+      # from. Missing, the browser Supabase client throws "not configured" and the app dies behind
+      # its error boundary — while /api/v1/health still reports supabaseConfigured:true, because the
+      # SERVER runtime does have them. That exact gap took the site down once; see
+      # tests/unit/build-public-env.test.ts and the verify-public-env step below.
       - name: Build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID }}
+          NEXT_PUBLIC_GSC_VERIFICATION: ${{ vars.NEXT_PUBLIC_GSC_VERIFICATION }}
         run: npm run build
 
       # The actual deployable artifact. If this fails, the edge bundle is broken even though
       # `next build` passed — exactly the gap this CI closes.
       - name: Edge bundle (Cloudflare Pages)
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID: ${{ vars.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID }}
+          NEXT_PUBLIC_GSC_VERIFICATION: ${{ vars.NEXT_PUBLIC_GSC_VERIFICATION }}
         run: npm run pages:build
+
+      # Fails the build if the Supabase URL/anon key did NOT get inlined into the client bundle.
+      # This is the check that would have caught the outage: it greps the actual built JS, so it
+      # cannot be fooled by a server-side env var being present.
+      - name: Verify NEXT_PUBLIC_* were inlined into the client bundle
+        run: node scripts/release/verify-public-env-inlined.mjs
 
       # Compiles + validates the cron Worker's bundle and wrangler.toml WITHOUT deploying or needing
       # credentials (`--dry-run` exits before any network call — verified locally with no auth
