@@ -307,10 +307,9 @@ describe('api_enqueue_review_invites: the Mauritius-anchored eligibility boundar
     const count = await callEnqueue(db);
     await db.asOwner();
     expect(count).toBe(1);
-    const invite = await db.pg.query(
-      `select token from review_invites where booking_id = $1`,
-      [completedBookingId],
-    );
+    const invite = await db.pg.query(`select token from review_invites where booking_id = $1`, [
+      completedBookingId,
+    ]);
     expect(invite.rows).toHaveLength(1);
     const outbox = await db.pg.query(
       `select 1 from notification_outbox where booking_id = $1 and template = 'review_request'`,
