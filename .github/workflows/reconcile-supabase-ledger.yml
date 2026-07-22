@@ -47,6 +47,9 @@ jobs:
     environment: production
     permissions:
       contents: read
+      # Required by the `gh api repos/.../actions/runs/<id>` call below — without it the CI-run
+      # validation 403s ("Resource not accessible by integration").
+      actions: read
     steps:
       - name: Assert the typed backup confirmation
         run: |
