@@ -273,7 +273,7 @@ describe('api_enqueue_review_invites: the Mauritius-anchored eligibility boundar
     expect(count).toBe(1);
     const invites = await db.pg.query(`select token from review_invites`);
     expect(invites.rows).toHaveLength(1);
-    const outbox = await db.pg.query(
+    const outbox = await db.pg.query<{ template: string; payload: unknown }>(
       `select template, payload from notification_outbox where template = 'review_request'`,
     );
     expect(outbox.rows).toHaveLength(1);
