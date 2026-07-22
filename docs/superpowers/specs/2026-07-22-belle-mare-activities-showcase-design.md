@@ -42,10 +42,16 @@ factors (backlinks, GBP, indexing) outside this page's control.
 2. **Inclusion rule**: an activity appears on this page if `region = 'East'` **or**
    `category = 'Taxi Sightseeing tours'` (every sightseeing tour, regardless of region — it's a flagship
    product line the owner explicitly wants included regardless of which part of the island it explores).
-3. **Region backfill**: idempotent migration sets `region = location` for the 7 null-region Private
-   Cruises, but only where `location` already holds a canonical region word (`North|East|South|West|Central`)
-   — i.e. only the 2 Île aux Cerfs trips get filled; the other 5 (genuinely West/North) are correctly
-   left out of this page. No guessing from free-text prose.
+3. **Region backfill**: idempotent migration sets `region = location` for null-region Private Cruises,
+   but only where `location` already holds a canonical region word (`North|East|South|West|Central`) — no
+   guessing from free-text prose. **Correction (post-ship review, 2026-07-22): all 7 previously-null rows
+   had a canonical `location` value, so the backfill fills all 7** (2 → East, 2 → North, 3 → West), not
+   just the 2 Île aux Cerfs ones as originally written here — an inaccuracy in this doc, not in the SQL.
+   The 5 non-East rows are still correctly excluded from *this page* by the `region = 'East'` filter; the
+   backfill itself is a general-purpose, page-agnostic fill of the column and is a net improvement for the
+   region-based transport-pricing feature that owns it (`src/lib/services/pricing.ts`,
+   `supabase/migrations/20260720000000_activity_transport_pricing.sql`), which now has real data instead
+   of nulls for these rows too.
 4. **Layout — grouped by theme** (chosen over a flat grid or a hero-led single grid): matching activities
    split into labelled sections so the page reads as a curated guide, not a filtered catalogue dump:
    - **"Boat trips & Île aux Cerfs"** — Catamaran cruises + Private Cruises + Speedboat Tours (East) = 8
@@ -74,6 +80,16 @@ factors (backlinks, GBP, indexing) outside this page's control.
   `category`), so it is **not** added to the output JSON or to `tourSummarySchema` (YAGNI).
 - Extend `searchToursQuerySchema` ([tours.ts](../../../src/lib/validation/tours.ts)) with an optional
   `region` field, and forward it through in `searchActivities` ([activities.ts](../../../src/lib/services/activities.ts)).
+- **Known trade-off (flagged twice in review, not fixed — documenting instead):** the filter compares the
+  raw `a.region` column only. Every other RPC touching this column (`api_get_activity`, `api_book`, the
+  transport-pricing path) reads `coalesce(a.region, region_from_coords(a.lat, a.lng))` instead — the admin
+  form's "Auto (from map coordinates)" option for this field only works through that coalesced read. Today
+  this is a no-op (every activity has `lat`/`lng = null`), so there's no live bug. But the next East-coast
+  activity added with a map pin and "Auto" left selected will correctly resolve to East everywhere else
+  (detail page, transport fare, AI planner) while silently never appearing on this showcase, since this
+  filter alone won't see it. Left as a known gap rather than fixed, since matching the coalesced form here
+  would need its own migration + test cycle for a currently-hypothetical case — revisit if/when the admin
+  team starts using map-pin-based regions.
 
 ### Grouping helper
 
