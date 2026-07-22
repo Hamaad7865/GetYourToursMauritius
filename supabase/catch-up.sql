@@ -14861,8 +14861,8 @@ begin
 end;
 $$;
 
-revoke execute on function api_submit_guest_review(jsonb) from public;
-revoke execute on function api_moderate_guest_review(jsonb) from public;
+revoke execute on function api_submit_guest_review(jsonb) from public, anon, authenticated;
+revoke execute on function api_moderate_guest_review(jsonb) from public, anon;
 revoke execute on function api_enqueue_review_invites() from public, anon, authenticated;
 grant execute on function api_submit_guest_review(jsonb) to anon, authenticated;
 grant execute on function api_moderate_guest_review(jsonb) to authenticated;

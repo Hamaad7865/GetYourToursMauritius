@@ -291,3 +291,31 @@ describe('api_enqueue_review_invites: the Mauritius-anchored eligibility boundar
     await expect(callEnqueue(db)).rejects.toThrow(/forbidden|permission denied/);
   });
 });
+
+describe('guest review RPC grants: precise anon/authenticated shape', () => {
+  let db: TestDb;
+  beforeAll(async () => {
+    db = await createTestDb();
+  });
+  afterAll(async () => {
+    await db.close();
+  });
+
+  it('api_submit_guest_review is callable by both anon and authenticated (guests included)', async () => {
+    const { rows } = await db.pg.query<{ anon: boolean; auth: boolean }>(
+      `select has_function_privilege('anon', 'public.api_submit_guest_review(jsonb)', 'EXECUTE') as anon,
+              has_function_privilege('authenticated', 'public.api_submit_guest_review(jsonb)', 'EXECUTE') as auth`,
+    );
+    expect(rows[0]!.anon).toBe(true);
+    expect(rows[0]!.auth).toBe(true);
+  });
+
+  it('api_moderate_guest_review is callable by authenticated but NOT anon (staff-only, in-body guarded)', async () => {
+    const { rows } = await db.pg.query<{ anon: boolean; auth: boolean }>(
+      `select has_function_privilege('anon', 'public.api_moderate_guest_review(jsonb)', 'EXECUTE') as anon,
+              has_function_privilege('authenticated', 'public.api_moderate_guest_review(jsonb)', 'EXECUTE') as auth`,
+    );
+    expect(rows[0]!.anon).toBe(false);
+    expect(rows[0]!.auth).toBe(true);
+  });
+});

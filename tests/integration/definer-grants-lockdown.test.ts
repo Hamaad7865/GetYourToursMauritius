@@ -25,6 +25,7 @@ const LOCKED = [
   // ENUMERATES pending bookings, so it needs no id at all. Chained, the second one feeds the first.
   'api_booking_receipt(jsonb)',
   'api_pending_payment_checkouts(jsonb)',
+  'api_enqueue_review_invites()',
 ];
 
 describe('internal SECURITY DEFINER functions are locked to service_role', () => {
