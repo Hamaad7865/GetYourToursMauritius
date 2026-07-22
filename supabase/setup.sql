@@ -18879,6 +18879,7 @@ declare
   v_count int := 0;
   v_candidate record;
   v_token text;
+  v_inserted int;
 begin
   if auth.role() <> 'service_role' then
     raise exception 'forbidden' using errcode = '42501';
@@ -18907,7 +18908,16 @@ begin
     v_token := replace(gen_random_uuid()::text, '-', '') || replace(gen_random_uuid()::text, '-', '');
 
     insert into review_invites (booking_id, activity_id, token)
-    values (v_candidate.booking_id, v_candidate.activity_id, v_token);
+    values (v_candidate.booking_id, v_candidate.activity_id, v_token)
+    on conflict (booking_id) do nothing;
+
+    -- A concurrent run may have already created this invite (or a duplicate cron tick, if the
+    -- previous run overlapped) — skip the matching notification too, so we never send a review
+    -- request pointing at a token nobody actually created.
+    get diagnostics v_inserted = row_count;
+    if v_inserted = 0 then
+      continue;
+    end if;
 
     insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
     values (
@@ -18919,7 +18929,8 @@ begin
       ),
       v_candidate.booking_id,
       'review_request:' || v_candidate.booking_id
-    );
+    )
+    on conflict (idempotency_key) do nothing;
 
     v_count := v_count + 1;
   end loop;
