@@ -638,6 +638,38 @@
   .gyt-trust-pulse {
     animation: gytTrustPulse 2.9s ease-in-out infinite;
   }
+
+  /* Floating WhatsApp widget (global, bottom-right). Gentle idle bob + a slow breathing ring pulse
+     (expand-and-fade, THEN a rest beat before repeating) so it reads as occasional organic life
+     rather than a nervous continuous churn; the label pill slides out on hover. */
+  @keyframes gytWaFloat {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6px);
+    }
+  }
+  @keyframes gytWaRingPulse {
+    0% {
+      transform: scale(0.85);
+      opacity: 0.45;
+    }
+    50%,
+    100% {
+      transform: scale(1.9);
+      opacity: 0;
+    }
+  }
+  .gyt-wa-float {
+    animation: gytWaFloat 3.2s ease-in-out infinite;
+    will-change: transform;
+  }
+  .gyt-wa-ring {
+    animation: gytWaRingPulse 3s ease-out infinite;
+    will-change: transform, opacity;
+  }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -713,5 +745,13 @@
   }
   .gyt-trust-badge {
     transition: none;
+  }
+  /* Floating WhatsApp widget: kill the idle bob + ring pulse, keep the button itself visible/static. */
+  .gyt-wa-float,
+  .gyt-wa-ring {
+    animation: none !important;
+  }
+  .gyt-wa-ring {
+    display: none !important;
   }
 }

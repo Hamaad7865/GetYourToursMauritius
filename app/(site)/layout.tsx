@@ -3,6 +3,7 @@ import { AuthProvider } from '@/components/auth/AuthProvider';
 import { CookieNotice } from '@/components/site/CookieNotice';
 import { PreferencesProvider } from '@/components/site/PreferencesProvider';
 import { ToastProvider } from '@/components/site/ToastProvider';
+import { WhatsAppFloat } from '@/components/site/WhatsAppFloat';
 import { getLocale, getServerCurrency } from '@/lib/i18n/server';
 import { getUsdRate } from '@/lib/money/fx';
 
@@ -30,6 +31,7 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       <ToastProvider>
         <AuthProvider>{children}</AuthProvider>
       </ToastProvider>
+      <WhatsAppFloat />
       <CookieNotice />
     </PreferencesProvider>
   );
