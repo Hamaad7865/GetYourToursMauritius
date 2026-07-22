@@ -60,3 +60,18 @@ export async function enqueueReviewInvites(ctx: ServiceContext): Promise<number>
   const data = await callRpc(ctx, 'api_enqueue_review_invites', {});
   return z.number().int().parse(data);
 }
+
+const inviteContextSchema = z
+  .object({ activityTitle: z.string(), tripDate: z.string().nullable() })
+  .nullable();
+export type InviteContext = z.infer<typeof inviteContextSchema>;
+
+/** Public, token-gated read for the write-a-review page — does NOT consume the token (only
+ *  api_submit_guest_review does that). Returns null for any invalid/expired/used token. */
+export async function getReviewInviteContext(
+  ctx: ServiceContext,
+  token: string,
+): Promise<InviteContext> {
+  const data = await callRpc(ctx, 'api_review_invite_context', { token });
+  return inviteContextSchema.parse(data);
+}

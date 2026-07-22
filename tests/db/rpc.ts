@@ -49,6 +49,7 @@ const ALLOWED = new Set([
   'api_submit_guest_review',
   'api_moderate_guest_review',
   'api_enqueue_review_invites',
+  'api_review_invite_context',
 ]);
 
 /**
