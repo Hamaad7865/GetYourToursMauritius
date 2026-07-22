@@ -93,8 +93,13 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
           {/* Mobile: an edge-to-edge horizontal snap rail (cards peek the next), GetYourGuide style.
               sm+: the original responsive grid. */}
           <RevealGroup className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+            {/* w-[80%] + shrink-0 sizes the mobile rail cell; h-full only from sm: (grid mode), where
+                the row has a definite track height for it to resolve against. Below sm: the cell is a
+                plain auto-height flex child of the snap rail — the rail's own height is content-driven,
+                so a percentage h-full there can't resolve against it and every cell fell back to its own
+                (shorter) content height instead of stretching to match its tallest sibling. */}
             {isSightseeingCategory(cat.name) && (
-              <div className="h-full w-[80%] shrink-0 snap-start sm:w-auto sm:shrink">
+              <div className="w-[80%] shrink-0 snap-start sm:h-full sm:w-auto sm:shrink">
                 <PlannerPromoCard titleAs="h4" />
               </div>
             )}
@@ -102,7 +107,7 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
             {cat.items.slice(0, isSightseeingCategory(cat.name) ? 3 : 4).map((activity) => (
               <div
                 key={activity.id}
-                className="h-full w-[80%] shrink-0 snap-start sm:w-auto sm:shrink"
+                className="w-[80%] shrink-0 snap-start sm:h-full sm:w-auto sm:shrink"
               >
                 <PlaceCard activity={activity} titleAs="h4" />
               </div>
