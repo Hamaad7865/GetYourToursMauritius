@@ -4,7 +4,7 @@ import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { ReviewCard } from '@/components/site/ReviewCard';
 import { RevealGroup } from '@/components/site/RevealGroup';
-import { featuredReviews, reviewStats } from '@/lib/content/reviews';
+import { loadFeaturedReviews, loadReviewStats } from '@/lib/content/guest-reviews-live';
 import { breadcrumbListJsonLd, reviewsPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { IconStar } from '@/components/ui/icons';
@@ -53,9 +53,14 @@ function Bar({ stars, count, total }: { stars: number; count: number; total: num
   );
 }
 
-export default function ReviewsPage() {
+export default async function ReviewsPage() {
+  const [reviewStats, featuredReviews] = await Promise.all([
+    loadReviewStats(),
+    loadFeaturedReviews(),
+  ]);
   const histTotal = Object.values(reviewStats.histogram).reduce((a, b) => a + b, 0) || 1;
   const jsonld = reviewsPageJsonLd(
+    reviewStats,
     featuredReviews
       .slice(0, 12)
       .map((r) => ({ author: r.author, rating: r.rating, text: r.text, date: r.date })),

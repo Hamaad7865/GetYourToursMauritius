@@ -14901,3 +14901,22 @@ $$;
 
 revoke execute on function api_review_invite_context(jsonb) from public;
 grant execute on function api_review_invite_context(jsonb) to anon, authenticated;
+
+-- Public feed for the /reviews page merge (guest-reviews-live.ts). Approved only — RLS on
+-- guest_reviews already restricts anon to approved rows, but the RPC makes the intent explicit and
+-- returns exactly the shape the merge needs, capped so the page can't be made to load thousands.
+create or replace function api_list_approved_guest_reviews(p jsonb default '{}'::jsonb)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object(
+    'rating', rating, 'body', body, 'customerName', customer_name, 'submittedAt', submitted_at
+  ) order by submitted_at desc), '[]'::jsonb)
+  from (select * from guest_reviews where status = 'approved' order by submitted_at desc limit 50) g;
+$$;
+
+revoke execute on function api_list_approved_guest_reviews(jsonb) from public;
+grant execute on function api_list_approved_guest_reviews(jsonb) to anon, authenticated;

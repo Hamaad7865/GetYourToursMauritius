@@ -50,7 +50,7 @@ describe('JSON-LD', () => {
   it('the reviews entity shares the organisation @id and its profiles', () => {
     // Same @id => Google merges them into one entity, so the profiles must agree.
     const org = organizationJsonLd();
-    const reviews = reviewsPageJsonLd([
+    const reviews = reviewsPageJsonLd({ average: 4.8, total: 100 }, [
       { author: 'A', rating: 5, text: 'Great day out', date: '2026-01-02' },
     ]);
     expect(reviews['@id']).toBe(org['@id']);

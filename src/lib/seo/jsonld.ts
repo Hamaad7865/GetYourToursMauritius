@@ -1,6 +1,5 @@
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
 import type { PlannerPlace } from '@/lib/validation/planner';
-import { reviewStats } from '@/lib/content/reviews';
 import { SITE, SAME_AS } from './site';
 
 /**
@@ -238,6 +237,7 @@ export function articleJsonLd(opts: {
 
 /** TravelAgency (same @id as the global Organization) enriched with displayed reviews. */
 export function reviewsPageJsonLd(
+  stats: { average: number; total: number },
   reviews: { author: string; rating: number; text: string; date: string | null }[],
 ): Record<string, unknown> {
   return {
@@ -253,8 +253,8 @@ export function reviewsPageJsonLd(
     // from the numbers the page displays.
     aggregateRating: {
       '@type': 'AggregateRating',
-      ratingValue: String(reviewStats.average),
-      reviewCount: String(reviewStats.total),
+      ratingValue: String(stats.average),
+      reviewCount: String(stats.total),
       bestRating: '5',
     },
     review: reviews.map((r) => ({
