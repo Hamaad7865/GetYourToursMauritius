@@ -47,7 +47,7 @@ const STATUS_STYLE: Record<GuestReviewRow['status'], string> = {
 
 /** The business's own Google place_id — the geo CID in SITE.profiles.google resolves to the same
  *  listing but Places API needs the place_id form. Set once the owner's place_id is known. */
-const BUSINESS_PLACE_ID = 'REPLACE_WITH_PLACE_ID';
+const BUSINESS_PLACE_ID = 'ChIJU1VVVaD7fCERpdTkINOYhR8';
 
 export function AdminReviews() {
   const [reviews, setReviews] = useState<GuestReviewRow[]>([]);
