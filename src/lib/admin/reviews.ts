@@ -73,15 +73,15 @@ export async function loadGoogleReviewsLive(placeId: string): Promise<GoogleRevi
   const res = await fetch(`/api/v1/reviews/google-live?placeId=${encodeURIComponent(placeId)}`, {
     headers: session ? { authorization: `Bearer ${session.access_token}` } : {},
   });
-  if (!res.ok) {
-    let msg = 'Could not load Google reviews.';
-    try {
-      const body = (await res.json()) as { error?: { message?: string } };
-      if (body?.error?.message) msg = body.error.message;
-    } catch {
-      /* non-JSON (e.g. a gateway error) — keep the generic message */
-    }
-    throw new Error(msg);
+  // Every /api/v1 route wraps its payload in the standard { ok, data } envelope (see
+  // src/lib/http/envelope.ts) — the actual result is at body.data, not the top level.
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: GoogleReviewsResult;
+    error?: { message?: string };
+  } | null;
+  if (!res.ok || !body?.ok || !body.data) {
+    throw new Error(body?.error?.message ?? 'Could not load Google reviews.');
   }
-  return (await res.json()) as GoogleReviewsResult;
+  return body.data;
 }
