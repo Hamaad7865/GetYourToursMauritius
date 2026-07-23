@@ -11,6 +11,9 @@ export interface AreaContent {
   intro: string;
   highlights: string[];
   beaches: string[];
+  /** Named hotels/resorts actually in or immediately by the area. Optional — most areas don't set
+   *  this yet; the destination page hides the section entirely when it's empty. */
+  stayOptions?: string[];
   gettingThere: string;
   goodFor: string[];
   nearbyAttractions: string[];

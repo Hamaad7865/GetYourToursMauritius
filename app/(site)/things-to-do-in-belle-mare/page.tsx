@@ -53,7 +53,7 @@ const DEFAULT_METADATA: Metadata = {
 const FAQS = [
   {
     q: 'What are the best things to do in Belle Mare?',
-    a: 'Start with the beach itself — Belle Mare Public Beach is one of the longest white-sand stretches on the island, with a calm, shallow lagoon that is ideal for swimming and snorkelling. From there the classics are a boat or catamaran trip to Île aux Cerfs, a glass-bottom boat or snorkel over the reef, kitesurfing or windsurfing on the trade winds, a round of golf at Anahita or Île aux Cerfs Golf Club, and day tours to the island’s south or north with a local driver-guide.',
+    a: 'Start with the beach itself — Belle Mare Public Beach is one of the longest white-sand stretches on the island, with a calm, shallow lagoon that is ideal for swimming and snorkelling. From there the classics are a boat or catamaran trip to Île aux Cerfs, a glass-bottom boat or snorkel over the reef, kitesurfing or windsurfing on the trade winds, a round of golf at Constance Belle Mare Plage’s Legend or Links courses, and day tours to the island’s south or north with a local driver-guide.',
   },
   {
     q: 'How do I get to Île aux Cerfs from Belle Mare?',
@@ -151,6 +151,9 @@ export default async function ThingsToDoInBelleMarePage() {
             south. On the water, the lagoon does everything — snorkelling and glass-bottom boat
             trips over the reef, and steady south-east trade winds that make this one of the
             island’s most reliable spots for kitesurfing and windsurfing on flat, protected water.
+            Just back from the sand on Coastal Road, Splash n Fun Leisure Park adds pirate-themed
+            water slides and pools — a good option for kids, or any day the sea is too rough to
+            enjoy.
           </p>
         </ContentSection>
 
@@ -173,8 +176,9 @@ export default async function ThingsToDoInBelleMarePage() {
             capital and botanical garden, or an early-morning{' '}
             <InlineLink href="/dolphin-swim-mauritius">swim with wild dolphins</InlineLink> off the
             west coast. Closer to home there is Bras d’Eau National Park’s quiet forest trails, the
-            market town of Centre de Flacq, and two championship golf courses at Anahita and Île aux
-            Cerfs Golf Club. Browse the{' '}
+            market town of Centre de Flacq, and championship golf — The Legend and The Links at
+            Constance Belle Mare Plage right on the coast, or Anahita and Île aux Cerfs Golf Club a
+            little further out. Browse the{' '}
             <InlineLink href="/mauritius-tours">full list of day tours</InlineLink> or the
             island-wide guide to{' '}
             <InlineLink href="/attractions">things to do in Mauritius</InlineLink>.

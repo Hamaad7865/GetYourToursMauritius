@@ -149,6 +149,25 @@ export default async function DestinationDetailPage({
           </section>
         )}
 
+        {/* Where to stay */}
+        {a.stayOptions && a.stayOptions.length > 0 && (
+          <section className="mt-9 border-t border-ink/10 pt-8">
+            <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+              Where to stay in {a.name}
+            </h2>
+            <div className="mt-4 flex flex-wrap gap-2.5">
+              {a.stayOptions.map((s) => (
+                <span
+                  key={s}
+                  className="rounded-full border border-ink/12 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
+                >
+                  {s}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Getting there */}
         <section className="mt-9 border-t border-ink/10 pt-8">
           <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
