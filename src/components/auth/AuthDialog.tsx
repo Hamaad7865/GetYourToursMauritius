@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import type { Provider } from '@supabase/supabase-js';
-import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { getAuthPersistence, getBrowserSupabase, setAuthPersistence } from '@/lib/supabase/browser';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { usePreferences, useT } from '@/components/site/PreferencesProvider';
 import {
@@ -76,6 +76,9 @@ export function AuthDialog({
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  // "Keep me signed in". True = the long-standing behaviour (session in localStorage); unticking it
+  // keeps the session in sessionStorage so it dies with the browser — for shared/hotel computers.
+  const [remember, setRemember] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -94,6 +97,12 @@ export function AuthDialog({
   useEffect(() => {
     setView('auth');
   }, [mode]);
+
+  // Show the visitor's last choice back to them. Read after mount rather than in the initial
+  // state so the first render never depends on storage (and never mismatches the server HTML).
+  useEffect(() => {
+    setRemember(getAuthPersistence());
+  }, []);
 
   // Toggling the forgot-password view unmounts/remounts the email field; move focus to the new
   // one after React commits. The initial open is already focused by useDialog, so skip first run.
@@ -115,6 +124,8 @@ export function AuthDialog({
     setBusy(true);
     setError(null);
     setNotice(null);
+    // Record the choice BEFORE the call: the session is written to storage inside it.
+    setAuthPersistence(remember);
     const sb = getBrowserSupabase();
     try {
       if (signup) {
@@ -182,6 +193,9 @@ export function AuthDialog({
   async function oauth(provider: Provider) {
     setBusy(true);
     setError(null);
+    // Must be set before the redirect: the PKCE verifier is written on the way out and read
+    // back at /auth/callback, and both have to land in the same store.
+    setAuthPersistence(remember);
     try {
       const { error } = await getBrowserSupabase().auth.signInWithOAuth({
         provider,
@@ -426,8 +440,17 @@ export function AuthDialog({
                   {t('Password must be at least 6 characters.')}
                 </span>
 
-                {!signup && (
-                  <div className="-mt-1 flex justify-end">
+                <div className="-mt-1 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <label className="flex cursor-pointer items-center gap-2 text-[13px] font-medium text-ink-muted">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                      className="h-4 w-4 shrink-0 cursor-pointer rounded border-ink/25 accent-teal-dark"
+                    />
+                    {t('Keep me signed in')}
+                  </label>
+                  {!signup && (
                     <button
                       type="button"
                       onClick={() => {
@@ -439,8 +462,11 @@ export function AuthDialog({
                     >
                       {t('Forgot password?')}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
+                <p className="-mt-2 text-[12px] text-ink-muted">
+                  {t('Uncheck this on a shared or public computer.')}
+                </p>
 
                 {error && (
                   <p
