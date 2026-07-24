@@ -164,4 +164,51 @@ describe('owner booking alerts', () => {
     expect(wa.text).toContain(ref);
     expect(wa.text).toContain('3 guests');
   });
+
+  it('surfaces the customer phone + pickup location so the owner can actually reach the guest', async () => {
+    await db.asOwner();
+    const seed = await seedOccurrence(db, 10);
+    const slug = (
+      await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [
+        seed.activityId,
+      ])
+    ).rows[0]!.slug;
+    const booked = await apiBook<{ ref: string }>(db, {
+      occurrenceId: seed.occurrenceId,
+      expectedSlug: slug,
+      party: { Adult: 2 },
+      customerName: 'Amina Patel',
+      customerEmail: 'amina@example.com',
+      customerPhone: '+230 5771 2345',
+      pickupLocation: 'Le Touessrok Resort, room 214',
+      source: 'web',
+      idempotencyKey: 'owner-alerts-phone-1',
+    });
+    const phoneBookingId = (
+      await db.pg.query<{ id: string }>(`select id from bookings where ref = $1`, [booked.ref])
+    ).rows[0]!.id;
+    await db.pg.query(`update bookings set status = 'confirmed' where id = $1`, [phoneBookingId]);
+
+    const ctx: ServiceContext = {
+      db: pgliteRpc(db.pg),
+      payments: new StubPaymentProvider(),
+      ai: createStubAiProvider(),
+      now: () => new Date('2026-07-10T08:00:00Z'),
+    };
+    const provider = new CapturingProvider();
+    await drainNotifications(ctx, provider, 20);
+
+    const ownerEmail = provider.messages.find(
+      (m) => m.template === 'owner_new_booking' && m.channel === 'email',
+    )!;
+    expect(ownerEmail.text).toContain('Phone: +230 5771 2345');
+    expect(ownerEmail.text).toContain('Pick-up: Le Touessrok Resort, room 214');
+    expect(ownerEmail.html).toContain('href="tel:+230 5771 2345"');
+    expect(ownerEmail.html).toContain('Le Touessrok Resort, room 214');
+
+    const tg = provider.messages.find(
+      (m) => m.template === 'owner_new_booking' && m.channel === 'telegram',
+    )!;
+    expect(tg.text).toContain('📞 +230 5771 2345');
+  });
 });

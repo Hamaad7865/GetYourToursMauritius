@@ -9,7 +9,7 @@ import type {
 import { loadBookingForReceipt } from './receipt';
 import { buildInvoice } from '@/lib/invoice/model';
 import { renderInvoicePdf } from '@/lib/invoice/pdf';
-import { renderConfirmationEmail } from '@/lib/email/booking-confirmation';
+import { escapeHtml, renderConfirmationEmail } from '@/lib/email/booking-confirmation';
 import { renderReviewRequestEmail } from '@/lib/email/review-request';
 import { INVOICE_BUSINESS } from '@/lib/invoice/business';
 import { SITE } from '@/lib/seo/site';
@@ -142,26 +142,78 @@ async function enrichOwnerNewBooking(
     : `${booking.customerName || 'A guest'} booked ${what} on ${when} — ${guests}${total} (ref ${booking.ref}).`;
   const adminUrl = `${SITE.url}/admin/bookings?q=${encodeURIComponent(booking.ref)}`;
 
-  // Chat channels (WhatsApp / Telegram) take the same one-glance text — no HTML, no PDF.
+  // Chat channels (WhatsApp / Telegram) take the same one-glance text — no HTML, no PDF — plus the
+  // phone number when there is one, since that's the fastest way to reach a guest from a phone in hand.
   if (message.channel === 'whatsapp' || message.channel === 'telegram') {
-    message.text = `${refund ? '⚠️ Refund needed' : '🔔 New paid booking'}\n${line}\n${adminUrl}`;
+    const phoneLine = booking.customerPhone ? `\n📞 ${booking.customerPhone}` : '';
+    message.text = `${refund ? '⚠️ Refund needed' : '🔔 New paid booking'}\n${line}${phoneLine}\n${adminUrl}`;
     return;
   }
+
+  // Everything beyond name/email that helps the owner actually reach or serve the guest: phone first
+  // (the headline ask), then pickup/dropoff, then — for airport/hotel transfers — the driver's run-sheet
+  // fields (already loaded onto `booking.transfer` for the customer's own voucher, just never shown to
+  // the owner before). Built as label/value pairs so the plain-text and HTML branches can't drift apart.
+  const tr = booking.transfer;
+  const details: Array<{ label: string; value: string }> = [];
+  if (booking.customerPhone) details.push({ label: 'Phone', value: booking.customerPhone });
+  if (booking.pickupLocation) details.push({ label: 'Pick-up', value: booking.pickupLocation });
+  if (booking.dropoffLocation) details.push({ label: 'Drop-off', value: booking.dropoffLocation });
+  if (tr?.roomOrCabin) details.push({ label: 'Room/cabin', value: tr.roomOrCabin });
+  if (tr && (tr.flightNumber || tr.arrivalTime)) {
+    details.push({
+      label: 'Arrival flight',
+      value: [tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' · '),
+    });
+  }
+  if (tr && (tr.departureFlightNumber || tr.returnDate || tr.returnTime)) {
+    details.push({
+      label: 'Departure',
+      value: [tr.departureFlightNumber, [tr.returnDate, tr.returnTime].filter(Boolean).join(' ')]
+        .filter(Boolean)
+        .join(' · '),
+    });
+  }
+  if (tr?.travellerCountry) details.push({ label: 'Country', value: tr.travellerCountry });
+  if (tr?.specialNotes) details.push({ label: 'Notes', value: tr.specialNotes });
+
   message.subject = refund
     ? `Action needed: refund ${booking.ref} — ${what} · ${total}`
     : `New paid booking — ${what} · ${when} · ${total}`;
-  message.text = `${line}\n\nCustomer: ${booking.customerEmail}\nOpen in admin: ${adminUrl}\n\nBelle Mare Tours (internal alert)`;
+  message.text = [
+    line,
+    '',
+    `Customer: ${booking.customerName} · ${booking.customerEmail}`,
+    ...details.map((d) => `${d.label}: ${d.value}`),
+    `Open in admin: ${adminUrl}`,
+    '',
+    'Belle Mare Tours (internal alert)',
+  ].join('\n');
+  // Every interpolated value below is customer-supplied free text (name, phone, pickup notes, special
+  // requests…) landing in an HTML email an owner opens in a normal mail client — escape it so a hostile
+  // booking field can never break the layout or inject markup (same rule booking-confirmation.ts follows).
+  const detailRows = details
+    .map(
+      (d) =>
+        `<tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">${escapeHtml(d.label)}</td><td>${
+          d.label === 'Phone'
+            ? `<a href="tel:${escapeHtml(d.value)}" style="color:#0E8C92;text-decoration:none">${escapeHtml(d.value)}</a>`
+            : escapeHtml(d.value)
+        }</td></tr>`,
+    )
+    .join('');
   message.html = `
     <div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#11201f;line-height:1.5">
       <h2 style="margin:0 0 12px;color:#0B5C63">${refund ? 'Refund needed' : 'New paid booking'}</h2>
-      <p style="margin:0 0 14px">${line}</p>
+      <p style="margin:0 0 14px">${escapeHtml(line)}</p>
       <table style="border-collapse:collapse;font-size:14px" cellpadding="0">
-        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Reference</td><td><b>${booking.ref}</b></td></tr>
-        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Tour</td><td>${booking.activityTitle}</td></tr>
-        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Date</td><td>${when}</td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Reference</td><td><b>${escapeHtml(booking.ref)}</b></td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Tour</td><td>${escapeHtml(booking.activityTitle)}</td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Date</td><td>${escapeHtml(when)}</td></tr>
         <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Guests</td><td>${pax}</td></tr>
-        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Total</td><td><b>${total}</b></td></tr>
-        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Customer</td><td>${booking.customerName} · ${booking.customerEmail}</td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Total</td><td><b>${escapeHtml(total)}</b></td></tr>
+        <tr><td style="padding:2px 14px 2px 0;color:#5c6b6a">Customer</td><td>${escapeHtml(booking.customerName)} · ${escapeHtml(booking.customerEmail)}</td></tr>
+        ${detailRows}
       </table>
       <p style="margin:16px 0 0"><a href="${adminUrl}" style="background:#0E8C92;color:#fff;text-decoration:none;padding:10px 18px;border-radius:10px;display:inline-block">Open in admin</a></p>
     </div>`;

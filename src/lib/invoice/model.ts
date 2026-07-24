@@ -40,6 +40,7 @@ export interface InvoiceBookingInput {
   ref: string;
   customerName: string;
   customerEmail: string;
+  customerPhone?: string | null;
   currency: string;
   /** Order total in EUR, VAT-inclusive — the authoritative figure the lines must reconcile to. */
   totalEur: number;
