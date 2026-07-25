@@ -3,6 +3,12 @@
 import { useCallback, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useT } from '@/components/site/PreferencesProvider';
+import { PayProgress } from './PayProgress';
+import {
+  SESSION_COMPLETE_PERCENT,
+  clearPayHandoff,
+  savePayHandoff,
+} from '@/lib/checkout/pay-progress';
 
 /**
  * Resume payment for an existing, unpaid booking — the recovery path for a customer who returns via
@@ -36,6 +42,9 @@ export function useResumePayment(bookingRef: string) {
     setBusy(true);
     setError(null);
     setNotPayable(false);
+    // Same multi-second provider round-trip as the checkout page's pay step, so it gets the same
+    // ring — starting at the session stage, since the booking already exists here.
+    clearPayHandoff();
     try {
       const start = () =>
         fetch('/api/v1/payments', {
@@ -69,6 +78,8 @@ export function useResumePayment(bookingRef: string) {
       if (link.checkoutId) {
         // Embedded Peach checkout: the pay page mounts the widget from this id. (Leave `busy` true —
         // we're navigating away, so the button stays disabled until the page unloads.)
+        // Hand the ring's position over so the pay page continues it instead of restarting.
+        savePayHandoff(SESSION_COMPLETE_PERCENT, Date.now());
         window.location.href = `/bookings/${bookingRef}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
       } else if (link.redirectUrl) {
         // Hosted redirect (and the dev stub).
@@ -79,6 +90,7 @@ export function useResumePayment(bookingRef: string) {
     } catch (err) {
       setError(err instanceof Error ? err.message : t('Could not start payment.'));
       setBusy(false);
+      clearPayHandoff();
     }
   }, [busy, session, bookingRef, t]);
 
@@ -120,6 +132,9 @@ export function ResumePaymentButton({
           {error}
         </p>
       )}
+      {/* No `booking` stage here: the booking already exists, so the wait is purely the provider
+          opening a checkout session. */}
+      <PayProgress stage={busy && !error ? 'session' : null} />
     </>
   );
 }

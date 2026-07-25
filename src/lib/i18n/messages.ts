@@ -755,6 +755,13 @@ export const fr: Record<string, string> = {
   'Please sign in to complete your payment.':
     'Veuillez vous connecter pour finaliser votre paiement.',
   'Starting your payment…': 'Démarrage de votre paiement…',
+  // Progress ring shown between "Pay" and the card form (PayProgress).
+  'Confirming your booking': 'Confirmation de votre réservation',
+  'Opening a secure payment session': 'Ouverture d’une session de paiement sécurisée',
+  'Loading the secure card form': 'Chargement du formulaire de carte sécurisé',
+  Ready: 'Prêt',
+  'Please don’t close this page or press back.':
+    'Merci de ne pas fermer cette page ni revenir en arrière.',
   'Starting…': 'Démarrage…',
   'Pay now': 'Payer maintenant',
   'Try again': 'Réessayer',

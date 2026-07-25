@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useT } from '@/components/site/PreferencesProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { SYNC_RETRY_ATTEMPTS, nextDelayMs } from '@/lib/checkout/confirm-poll';
+import { PayProgress } from './PayProgress';
+import { clearPayHandoff, readPayHandoff } from '@/lib/checkout/pay-progress';
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -74,6 +76,21 @@ export function EmbeddedCheckout({
   const t = useT();
   const [error, setError] = useState<string | null>(null);
   const initiated = useRef(false);
+  // Continue the progress ring the checkout page started, rather than restarting at zero after the
+  // full-document navigation. Read (not consumed) on mount; absent for a customer arriving straight
+  // here from the confirmation email, who then gets the whole bar for this stage alone.
+  const [handoff] = useState(() =>
+    typeof window === 'undefined' ? null : readPayHandoff(Date.now()),
+  );
+  // The card form is only really "there" once the widget has laid it out inside #payment-form —
+  // `render()` returning just means the request is under way. This is what takes the ring to 100%.
+  const [formReady, setFormReady] = useState(false);
+
+  // Retire the hand-off once the form is up: it has done its job, and leaving it behind would let an
+  // unrelated later visit within the staleness window resume from a position it never earned.
+  useEffect(() => {
+    if (formReady) clearPayHandoff();
+  }, [formReady]);
 
   useEffect(() => {
     if (initiated.current) return;
@@ -84,6 +101,12 @@ export function EmbeddedCheckout({
     // so no `load` and no `error` event ever fires. Without it the payment form stays blank forever.
     let settled = false;
     let watchdog: ReturnType<typeof setTimeout> | undefined;
+    // Teardown for anything started after mount (the card-form watcher's observer + timers), run by
+    // every cleanup path below so an unmount mid-load never leaves an observer attached.
+    const cleanups: Array<() => void> = [];
+    const runCleanups = () => {
+      for (const fn of cleanups.splice(0)) fn();
+    };
     const fail = (msg: string) => {
       if (settled || cancelled) return;
       settled = true;
@@ -140,6 +163,47 @@ export function EmbeddedCheckout({
       router.replace(confirmed ? returnUrl : withJustPaid(returnUrl));
     };
 
+    // "The customer can now type a card number" is a DOM outcome, not a return value — `render()`
+    // only starts the work. So watch #payment-form until the widget has actually laid something out.
+    //
+    // NOT an iframe check: Peach's card-only widget renders INLINE (a `div[data-testid=checkout-root]`),
+    // so an iframe-only signal never fires and the ring sits at 99% covering a form that has been
+    // ready for seconds — worse than showing no ring at all. Verified against the live sandbox widget.
+    // Both shapes are accepted, since Peach uses an iframe for some payment methods.
+    const watchForCardForm = () => {
+      const target = document.getElementById('payment-form');
+      if (!target) return;
+      const finish = () => {
+        if (!cancelled) setFormReady(true);
+      };
+      // Laid-out content, not merely an inserted node: the widget's root is injected before it has
+      // painted, and MIN_FORM_HEIGHT is the difference between "an empty box exists" and "there is a
+      // form here". An iframe still gets to announce itself via `load`.
+      const ready = (): boolean => {
+        const frame = target.querySelector('iframe');
+        if (frame) return frame.offsetHeight > MIN_FORM_HEIGHT;
+        const root = target.firstElementChild as HTMLElement | null;
+        return !!root && root.offsetHeight > MIN_FORM_HEIGHT;
+      };
+      const check = () => {
+        if (cancelled) return;
+        if (ready()) finish();
+      };
+      const observer = new MutationObserver(check);
+      observer.observe(target, { childList: true, subtree: true });
+      // Layout can settle without a further mutation (fonts, images, the widget's own async paint),
+      // so poll alongside the observer. Cheap, and only for the few seconds the ring is up.
+      const poll = setInterval(check, 150);
+      // Last resort: never leave the ring covering the page if neither signal ever satisfies us.
+      const fallback = setTimeout(finish, 8000);
+      cleanups.push(() => {
+        observer.disconnect();
+        clearInterval(poll);
+        clearTimeout(fallback);
+      });
+      check();
+    };
+
     const mount = () => {
       if (cancelled || settled) return;
       const Checkout = window.Checkout;
@@ -168,6 +232,7 @@ export function EmbeddedCheckout({
         // Rendered without throwing → the widget is up; stand the watchdog down.
         settled = true;
         if (watchdog) clearTimeout(watchdog);
+        watchForCardForm();
       } catch {
         fail(t('We could not start the payment form. Please try again.'));
       }
@@ -178,6 +243,7 @@ export function EmbeddedCheckout({
       return () => {
         cancelled = true;
         if (watchdog) clearTimeout(watchdog);
+        runCleanups();
       };
     }
 
@@ -208,6 +274,7 @@ export function EmbeddedCheckout({
     return () => {
       cancelled = true;
       if (watchdog) clearTimeout(watchdog);
+      runCleanups();
     };
   }, [scriptUrl, entityId, checkoutId, returnUrl, router, t]);
 
@@ -246,7 +313,22 @@ export function EmbeddedCheckout({
   return (
     <>
       <style>{PEACH_WIDGET_CSS}</style>
-      <div id="payment-form" className="w-full" style={{ minHeight: MIN_WIDGET_HEIGHT }} />
+      {/* The progress ring is OVERLAID on the target rather than rendered in its place: Peach measures
+          and sizes its iframe against this element, so swapping it out (or collapsing it) while the
+          widget boots would hand the widget a zero-height box to lay itself out in. */}
+      <div className="relative w-full">
+        <div id="payment-form" className="w-full" style={{ minHeight: MIN_WIDGET_HEIGHT }} />
+        {!formReady && (
+          <div className="absolute inset-0 flex items-start justify-center bg-white pt-16">
+            <PayProgress
+              stage="form"
+              resumed={handoff != null}
+              startPercent={handoff?.percent ?? 0}
+              variant="inline"
+            />
+          </div>
+        )}
+      </div>
     </>
   );
 }
@@ -256,6 +338,10 @@ export function EmbeddedCheckout({
 // its own content with no stretched gap. Tuned for the card-only form; nudge this single number if the
 // live widget ends up slightly short (scroll) or slightly tall (a little dead space).
 const MIN_WIDGET_HEIGHT = 480;
+/** Rendered height that counts as "the form is really there" for the progress ring. Comfortably above
+ *  an empty/placeholder box and well below the widget's own ~360px minimum, so it trips as soon as
+ *  Peach lays the form out rather than waiting on every last asset. */
+const MIN_FORM_HEIGHT = 120;
 const PEACH_WIDGET_CSS = `
 #payment-form, #payment-form > div { min-height: ${MIN_WIDGET_HEIGHT}px; overflow: visible !important; }
 #payment-form iframe { display: block; width: 100% !important; min-height: ${MIN_WIDGET_HEIGHT}px; border: 0; }`;

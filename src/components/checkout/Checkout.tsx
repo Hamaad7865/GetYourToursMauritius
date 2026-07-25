@@ -14,6 +14,13 @@ import { transfers, type Transfer } from '@/lib/content/transfers';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
+import { PayProgress } from '@/components/checkout/PayProgress';
+import {
+  SESSION_COMPLETE_PERCENT,
+  clearPayHandoff,
+  savePayHandoff,
+  type PayStage,
+} from '@/lib/checkout/pay-progress';
 import {
   detailsHash,
   isBookingPayable,
@@ -374,6 +381,9 @@ export function Checkout() {
   const [phone, setPhone] = useState('');
   const [country, setCountry] = useState<string>(COUNTRIES[0]);
   const [busy, setBusy] = useState(false);
+  // Which milestone of the pay round-trip we're on, or null when not paying. Separate from `busy`,
+  // which also covers the step 1 -> 2 transition; only the pay flow gets the progress ring.
+  const [payStage, setPayStage] = useState<PayStage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [secs, setSecs] = useState(() => {
     if (expiresAt) {
@@ -612,6 +622,8 @@ export function Checkout() {
         t('The price for this date is {price}. Tap Pay again to continue.', { price: money(srv) }),
       );
       setBusy(false);
+      // The attempt stops here for the customer to confirm the new price — take the ring down with it.
+      setPayStage(null);
       return true;
     }
     return false;
@@ -624,6 +636,11 @@ export function Checkout() {
     }
     if (!session) return openAuth('signin');
     setBusy(true);
+    // Stage 1 of the ring: everything up to and including having a confirmed, priced booking.
+    setPayStage('booking');
+    // A hand-off left by an earlier attempt that errored would make this run's pay page resume from
+    // someone else's position — start clean.
+    clearPayHandoff();
     setError(null);
     try {
       const headers = {
@@ -798,6 +815,7 @@ export function Checkout() {
             setBookingRef(null);
             setError(t('This booking is already paid or has expired — start a new booking.'));
             setBusy(false);
+            setPayStage(null);
             return;
           }
           keyForBooking = crypto.randomUUID();
@@ -975,6 +993,9 @@ export function Checkout() {
       // Peach session (two tabs / a double-click hitting the single-flight lease). The winner records
       // its session within seconds — then this retry gets the SAME session back — so a short retry
       // resolves the race invisibly instead of erroring a legitimate customer.
+      // Stage 2: the booking is settled; from here we're waiting on the payment provider to open a
+      // checkout session. This is the leg with the long tail, and the ring decelerates through it.
+      setPayStage('session');
       let payRes = await fetch('/api/v1/payments', {
         method: 'POST',
         headers,
@@ -1005,6 +1026,7 @@ export function Checkout() {
           setBookingRef(null);
           setError(t('This booking is already paid or has expired — start a new booking.'));
           setBusy(false);
+          setPayStage(null);
           return;
         }
         throw new Error(payRes.error?.message ?? 'Could not start payment.');
@@ -1013,9 +1035,13 @@ export function Checkout() {
       if (link.checkoutId) {
         // Embedded Peach checkout: mount the widget on the pay step. The booking is confirmed by
         // the verified webhook, never by this navigation.
+        //
+        // The navigation destroys this page, so the ring's position is handed to the pay page rather
+        // than lost — the customer sees ONE bar continuing, not a second one restarting at zero.
+        savePayHandoff(SESSION_COMPLETE_PERCENT, Date.now());
         window.location.href = `/bookings/${ref}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
       } else if (link.redirectUrl) {
-        // Hosted redirect (and the dev stub).
+        // Hosted redirect (and the dev stub) — a third-party page we don't render, so no hand-off.
         window.location.href = link.redirectUrl;
       } else {
         throw new Error(t('Could not start payment.'));
@@ -1028,6 +1054,9 @@ export function Checkout() {
           : msg,
       );
       setBusy(false);
+      // The ring must not outlive the attempt it was reporting on — the error takes over from here.
+      setPayStage(null);
+      clearPayHandoff();
     }
   }
 
@@ -1896,6 +1925,10 @@ export function Checkout() {
           </button>
         )}
       </div>
+      {/* Covers the whole checkout while the pay round-trip runs: it reports what is happening across
+          a wait that can run to double digits of seconds, and it blocks the second click that wait
+          used to provoke. It continues on the pay page via the hand-off in pay(). */}
+      <PayProgress stage={payStage} />
     </div>
   );
 }
