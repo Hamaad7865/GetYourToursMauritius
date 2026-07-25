@@ -3,6 +3,7 @@ import { Suspense } from 'react';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { BookingConfirmation } from '@/components/gyg/detail/BookingConfirmation';
+import { PeachWidgetPreload } from '@/components/checkout/PeachWidgetPreload';
 
 export const runtime = 'edge';
 
@@ -15,6 +16,8 @@ export default async function BookingPage({ params }: { params: Promise<{ ref: s
   const { ref } = await params;
   return (
     <>
+      {/* An unpaid booking shows "Complete payment", which lands on the widget — warm it now. */}
+      <PeachWidgetPreload />
       <GygHeader sticky showSearch={false} />
       <main className="min-h-[60vh] bg-white">
         <div className="mx-auto max-w-shell px-6">

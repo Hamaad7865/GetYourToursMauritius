@@ -140,9 +140,13 @@ describe('single-flight checkout lease', () => {
   });
 
   it('a STALE recorded checkout (>25 min) is not reused — the caller claims and re-mints', async () => {
+    // Age the CHECKOUT, not the row: since 20260827000000 the window is anchored to
+    // checkout_created_at, because updated_at moves on every unrelated write (notably the reconcile
+    // sweep's deduped append) and so re-armed the window forever on a dead session.
     await db.asOwner();
     await db.pg.query(
-      `update payments set updated_at = now() - interval '26 minutes' where id = $1`,
+      `update payments set checkout_created_at = now() - interval '26 minutes', updated_at = now()
+        where id = $1`,
       [paymentId],
     );
     await db.as({ sub: ALICE, role: 'authenticated' });

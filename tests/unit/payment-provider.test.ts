@@ -257,6 +257,90 @@ describe('PeachPaymentProvider.createCheckout', () => {
   });
 });
 
+/**
+ * `prewarm()` exists to take Peach's OAuth round-trip off the critical path — it starts while the DB
+ * work runs, so the customer waits for the slower of the two instead of their sum. That is only a win
+ * if the token request it starts is the SAME one createCheckout ends up using: without in-flight
+ * de-duplication the two would race and open two connections to the auth host, making the cold path
+ * slower than before the optimisation.
+ */
+describe('PeachPaymentProvider.prewarm', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it('shares ONE token round-trip with a concurrent createCheckout', async () => {
+    // Fresh module scope: the OAuth token cache is module-scoped, and earlier tests have filled it.
+    vi.resetModules();
+    const { PeachPaymentProvider: FreshPeach } = await import('@/lib/payments/peach');
+
+    let tokenFetches = 0;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string | URL) => {
+        const u = String(url);
+        if (u.endsWith('/api/oauth/token')) {
+          tokenFetches += 1;
+          // Slow enough that createCheckout is guaranteed to ask while this is still in flight.
+          await new Promise((r) => setTimeout(r, 25));
+          return new Response(JSON.stringify({ access_token: 'tok', expires_in: 300 }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+        if (u.endsWith('/v2/checkout')) {
+          return new Response(JSON.stringify({ checkoutId: 'cid_warm' }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+        throw new Error(`unexpected fetch: ${u}`);
+      }),
+    );
+
+    const provider = new FreshPeach(CONFIG);
+    provider.prewarm(); // fire-and-forget, exactly as createPaymentLink calls it
+    const session = await provider.createCheckout({
+      bookingRef: 'BMT-2',
+      amount: 10,
+      currency: 'EUR',
+      customerEmail: 'a@b.com',
+      description: 'Belle Mare Tours booking BMT-2',
+      returnUrl: 'https://site.example.com/bookings/BMT-2',
+    });
+
+    expect(session.checkoutId).toBe('cid_warm');
+    expect(tokenFetches).toBe(1); // not 2 — the racing callers shared the in-flight promise
+  });
+
+  it('never rejects when the token call fails — the real call reports it instead', async () => {
+    vi.resetModules();
+    const { PeachPaymentProvider: FreshPeach } = await import('@/lib/payments/peach');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response('nope', { status: 500 })),
+    );
+
+    const provider = new FreshPeach(CONFIG);
+    expect(() => provider.prewarm()).not.toThrow();
+    // Give the fire-and-forget promise a turn to settle — an unhandled rejection here would fail the run.
+    await new Promise((r) => setTimeout(r, 10));
+
+    // And the failure still surfaces properly on the call that actually needs the token.
+    await expect(
+      provider.createCheckout({
+        bookingRef: 'BMT-3',
+        amount: 10,
+        currency: 'EUR',
+        customerEmail: 'a@b.com',
+        description: 'Belle Mare Tours booking BMT-3',
+        returnUrl: 'https://site.example.com/bookings/BMT-3',
+      }),
+    ).rejects.toThrow(/Peach auth failed/);
+  });
+});
+
 describe('PeachPaymentProvider.getCheckoutStatus', () => {
   afterEach(() => {
     vi.unstubAllGlobals();

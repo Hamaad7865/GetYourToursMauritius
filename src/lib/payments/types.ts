@@ -57,12 +57,31 @@ export interface PaymentEvent {
    * wrong currency credited at face value would mis-settle the ledger.
    */
   currency?: string | null;
+  /**
+   * TRUE only when the provider says this checkout session can never be paid — the customer
+   * abandoned/cancelled it, so the session is closed rather than merely unfinished.
+   *
+   * `createPaymentLink` reuses an already-minted session rather than opening a second payable one
+   * (the double-charge guard); a closed session makes that reuse a trap — the widget reports
+   * "cancelled" the instant it mounts and bounces the customer back to their booking, forever.
+   * This flag is the ONLY signal that licenses minting a replacement, so providers must set it
+   * conservatively: never for a decline or a timeout (where the session usually still accepts a
+   * retry, and a second session could double-charge), and never when the state is uncertain.
+   */
+  checkoutTerminal?: boolean;
   raw: unknown;
 }
 
 export interface PaymentProvider {
   readonly name: string;
   createCheckout(input: CreateCheckoutInput): Promise<CheckoutSession>;
+  /**
+   * Optional: begin any expensive setup a later `createCheckout` will need (Peach's OAuth token, and
+   * the connection to the host serving it), WITHOUT blocking. Called as early as possible so that
+   * work overlaps the DB round-trips instead of queueing behind them. Must never throw or reject —
+   * it is fire-and-forget, and the real call reports any failure.
+   */
+  prewarm?(): void;
   /** Verifies the webhook signature and normalises the payload. Throws on invalid signature. */
   verifyWebhook(input: VerifyWebhookInput): Promise<PaymentEvent>;
   /**

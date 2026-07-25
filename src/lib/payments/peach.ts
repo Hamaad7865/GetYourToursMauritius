@@ -42,24 +42,60 @@ export interface PeachConfig {
 const SUCCESS_CODE = /^(000\.000\.|000\.100\.1)/;
 /** Peach result-code prefix for a still-pending transaction. */
 const PENDING_CODE = /^(000\.200)/;
+/**
+ * "Cancelled by user" — the customer closed or abandoned the widget. Peach CLOSES the session on this
+ * code: it can never be paid, and re-mounting the widget with it fires `onCancelled` immediately.
+ *
+ * Deliberately this ONE code, not the whole 100.396.* family: its siblings cover timeouts and
+ * `100.396.104 Uncertain status`, where the session may still be payable — treating those as dead
+ * would let us mint a SECOND payable session and double-charge the card. Verified against the live
+ * status endpoint for the booking that exposed the trap (2026-07-24).
+ */
+const CANCELLED_BY_USER_CODE = '100.396.101';
 
 /** Module-scoped OAuth token cache (reused across requests within an edge isolate). */
 let tokenCache: { key: string; token: string; expiresAt: number } | null = null;
+/**
+ * The token request currently in flight, so concurrent callers share ONE round-trip instead of each
+ * opening their own. Without this, `prewarm()` racing `createCheckout()` in the same request would
+ * fetch the token twice — the exact opposite of the point.
+ */
+let tokenInFlight: { key: string; promise: Promise<string> } | null = null;
 
 /** Hard timeout for every outbound Peach call. Without it a slow / unreachable Peach hangs the edge
  *  worker until Cloudflare gives up and returns a 502 Bad Gateway (an HTML page the client can't parse).
  *  With it the call fails fast as a ProviderError → a clean JSON 5xx the UI can show. */
 const PEACH_TIMEOUT_MS = 12_000;
 
+/** Above this, a Peach call is logged as a warning rather than info — it's the difference between
+ *  "normal" and "the customer is staring at a spinner". Peach's own create-checkout has a heavy tail
+ *  (measured 2026-07-25: median ~0.84s, but roughly 1 call in 12 takes 5-10s on an already-warm
+ *  connection), so this is the line between the two populations, not an error threshold. */
+const PEACH_SLOW_MS = 3_000;
+
 /** fetch() with an AbortController timeout, normalising a timeout/network failure into a ProviderError
- *  (so it surfaces as our JSON envelope, never as a worker hang → CDN 502). */
-async function fetchPeach(url: string, init: RequestInit): Promise<Response> {
+ *  (so it surfaces as our JSON envelope, never as a worker hang → CDN 502).
+ *
+ *  Every call is TIMED and logged. When a customer reports "the payment form took ages", the answer
+ *  has to come from production rather than be reconstructed afterwards from the provider's own
+ *  timestamps — which is what the 2026-07-24 investigation had to do, and it could only attribute the
+ *  wait to "somewhere inside the Peach leg". `op` keeps the line greppable without logging URLs
+ *  (which carry checkout ids). */
+async function fetchPeach(url: string, init: RequestInit, op: string): Promise<Response> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), PEACH_TIMEOUT_MS);
+  const startedAt = Date.now();
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const res = await fetch(url, { ...init, signal: controller.signal });
+    const ms = Date.now() - startedAt;
+    const fields = { op, ms, status: res.status };
+    if (ms >= PEACH_SLOW_MS) log.warn('peach_call_slow', fields);
+    else log.info('peach_call', fields);
+    return res;
   } catch (error) {
+    const ms = Date.now() - startedAt;
     const timedOut = error instanceof Error && error.name === 'AbortError';
+    log.error('peach_call_failed', { op, ms, timedOut, timeoutMs: PEACH_TIMEOUT_MS });
     throw new ProviderError(
       timedOut
         ? `Peach request timed out after ${PEACH_TIMEOUT_MS}ms`
@@ -97,15 +133,19 @@ export class PeachPaymentProvider implements PaymentProvider {
     };
     if (this.config.webhookUrl) body.notificationUrl = this.config.webhookUrl;
 
-    const res = await fetchPeach(`${trimSlash(this.config.checkoutBaseUrl)}/v2/checkout`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        Origin: originOf(input.returnUrl),
+    const res = await fetchPeach(
+      `${trimSlash(this.config.checkoutBaseUrl)}/v2/checkout`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Origin: originOf(input.returnUrl),
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    });
+      'create_checkout',
+    );
     if (!res.ok) {
       // Capture Peach's rejection reason in the logs (no secrets — entityId is the public widget key,
       // the rest is request metadata + Peach's own error body) so a create-checkout 4xx is diagnosable.
@@ -172,6 +212,7 @@ export class PeachPaymentProvider implements PaymentProvider {
     const res = await fetchPeach(
       `${trimSlash(this.config.checkoutBaseUrl)}/v2/checkout/${encodeURIComponent(checkoutId)}/status`,
       { headers: { Authorization: `Bearer ${token}` } },
+      'checkout_status',
     );
     if (!res.ok) {
       throw new ProviderError(`Peach status query failed (${res.status})`, await safeText(res));
@@ -191,8 +232,25 @@ export class PeachPaymentProvider implements PaymentProvider {
       providerReference: str('id') ?? checkoutId,
       amountMinor: Number.isFinite(amount) ? Math.round(amount * 100) : null,
       currency: str('currency'),
+      checkoutTerminal: str('result.code') === CANCELLED_BY_USER_CODE,
       raw: data,
     };
+  }
+
+  /**
+   * Start the OAuth round-trip NOW, without waiting for its result.
+   *
+   * The token is a prerequisite of create-checkout but depends on nothing else in the request, and it
+   * lives on a THIRD host (the auth base) whose DNS/TCP/TLS a cold isolate has to set up from scratch
+   * — measured at 1.0–1.8s. Kicking it off alongside the DB work that has to happen first means the
+   * customer waits for the slower of the two rather than their sum. Fire-and-forget on purpose: the
+   * token is cached, so `createCheckout` picks it up (or joins the same in-flight promise), and any
+   * failure surfaces there, where it can be handled properly.
+   */
+  prewarm(): void {
+    void this.accessToken().catch(() => {
+      // Swallowed here only — createCheckout re-requests and reports the real failure.
+    });
   }
 
   /** Cached OAuth bearer token; refreshes shortly before expiry. */
@@ -205,15 +263,37 @@ export class PeachPaymentProvider implements PaymentProvider {
     ) {
       return tokenCache.token;
     }
-    const res = await fetchPeach(`${trimSlash(this.config.authBaseUrl)}/api/oauth/token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clientId: this.config.clientId,
-        clientSecret: this.config.clientSecret,
-        merchantId: this.config.merchantId,
-      }),
-    });
+    // Someone (usually prewarm) already asked — wait on their round-trip rather than opening a second.
+    if (tokenInFlight && tokenInFlight.key === this.config.clientId) {
+      return tokenInFlight.promise;
+    }
+    const promise = this.fetchAccessToken();
+    tokenInFlight = { key: this.config.clientId, promise };
+    void promise
+      .catch(() => {
+        // Handled by whoever awaits `promise`; this chain exists only to clear the slot.
+      })
+      .finally(() => {
+        if (tokenInFlight?.promise === promise) tokenInFlight = null;
+      });
+    return promise;
+  }
+
+  private async fetchAccessToken(): Promise<string> {
+    const now = Date.now();
+    const res = await fetchPeach(
+      `${trimSlash(this.config.authBaseUrl)}/api/oauth/token`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: this.config.clientId,
+          clientSecret: this.config.clientSecret,
+          merchantId: this.config.merchantId,
+        }),
+      },
+      'oauth_token',
+    );
     if (!res.ok) {
       throw new ProviderError(`Peach auth failed (${res.status})`, await safeText(res));
     }

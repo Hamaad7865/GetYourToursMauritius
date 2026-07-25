@@ -57,6 +57,35 @@ numbers are comparable.)
 minutes ago, and `createPaymentLink` reuses it. Remove that and a customer who hits Back or reloads gets
 a **second live checkout** for the same booking — and can be charged twice.
 
+### …but never reuse a checkout without asking Peach whether it's still payable
+
+The mirror image of the guard above, and it cost a real customer their booking (production
+2026-07-24, `BMTE5CAD9FB1A5E3`). Abandon the widget and Peach CLOSES that session —
+`/v2/checkout/{id}/status` returns `100.396.101 Cancelled by user`. Nothing cleared
+`payments.provider_checkout_id`, so the guard kept handing the corpse back; the widget fired
+`onCancelled` the instant it mounted and `EmbeddedCheckout` bounced the customer to their booking page,
+whose only affordance was the button that had just handed them the same dead session. **Unpayable
+forever, with no error message anywhere.**
+
+`createPaymentLink` now calls `getCheckoutStatus` before reusing, and retires a session Peach reports
+as terminal via `api_clear_payment_checkout` (compare-and-clear, so a concurrent request that already
+minted a replacement doesn't lose it). Keep that check, and keep it CONSERVATIVE in the money
+direction: only `checkoutTerminal` (set for the one verified cancellation code) licenses minting a
+replacement. A decline or a timeout usually leaves the session retryable, so treating those as dead
+would open a second payable session — the double charge the guard above exists to prevent.
+
+### Don't anchor the checkout-reuse window to `payments.updated_at`
+
+It is a generic row-mtime, and `append_payment_event` bumps it **even when it writes nothing**. The
+reconcile sweep re-queries a stuck checkout every 2–5 minutes; on a dead one its ledger append is
+deduped away (the status re-query reuses the checkout id as its `provider_event_id`, which the earlier
+webhook event already occupies) — but `updated_at` still moves. Observed live climbing 21:00 → 21:06
+with the customer doing nothing: the 25-minute stale-session escape hatch could never fire, which is
+what turned the trap above from a 25-minute annoyance into a permanent one.
+
+The window reads `payments.checkout_created_at` (stamped only by `api_record_payment_checkout`, when a
+session is actually minted). Don't "simplify" it back to `updated_at`.
+
 ### Don't reorder the maintenance steps
 
 `/api/v1/internal/maintenance` runs: **payment-reconcile → expire bookings → materialize availability.**

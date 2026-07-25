@@ -3,6 +3,7 @@ import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { EmbeddedCheckout } from '@/components/checkout/EmbeddedCheckout';
 import { PayPageFallback } from '@/components/checkout/PayPageFallback';
+import { PeachWidgetPreload } from '@/components/checkout/PeachWidgetPreload';
 import { getPeachWidgetConfig } from '@/lib/payments';
 import { getT } from '@/lib/i18n/server';
 
@@ -33,6 +34,9 @@ export default async function PayPage({
 
   return (
     <>
+      {/* Starts the script fetch from the server response, without waiting for EmbeddedCheckout
+          (a client component) to hydrate and append the tag itself. */}
+      <PeachWidgetPreload />
       <GygHeader sticky showSearch={false} />
       <main className="min-h-[60vh] bg-white">
         <div className="mx-auto max-w-xl px-6 py-10">
