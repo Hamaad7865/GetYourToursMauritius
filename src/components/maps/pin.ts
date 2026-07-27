@@ -72,6 +72,51 @@ export function bmtMarkerContent(opts: { priceLabel: string; selected?: boolean 
   return pill;
 }
 
+/**
+ * A hotel marker for the airport-transfers map: a white pill carrying a region-coloured dot, the
+ * resort's name and its from-price.
+ *
+ * Replaces a blank coloured teardrop, which told a traveller nothing until they clicked it — on a
+ * coast where a dozen resorts sit within a few kilometres, that meant clicking blind. The two facts
+ * that actually decide a transfer (which resort, what it costs) now sit on the pin itself.
+ *
+ * We show name + price rather than a photo on purpose: the resorts' own photography is theirs, not
+ * ours to publish, and we hold no first-party pictures of them.
+ */
+export function hotelMarkerContent(opts: {
+  name: string;
+  priceLabel: string;
+  color: string;
+  selected?: boolean;
+}): HTMLElement {
+  const { name, priceLabel, color, selected = false } = opts;
+  const pill = document.createElement('div');
+  pill.style.cssText =
+    `display:flex;align-items:center;gap:6px;padding:4px 10px 4px 7px;border-radius:999px;` +
+    `box-shadow:0 3px 10px rgba(10,46,54,.26);cursor:pointer;white-space:nowrap;` +
+    `font:700 12px/1 system-ui,sans-serif;transition:transform .15s ease,box-shadow .15s ease;` +
+    (selected
+      ? `background:${color};color:#fff;border:2px solid #fff;transform:scale(1.06);` +
+        `box-shadow:0 6px 18px rgba(10,46,54,.4);`
+      : `background:#fff;color:#0A2E36;border:2px solid ${color};`);
+
+  const dot = document.createElement('span');
+  dot.style.cssText =
+    `width:8px;height:8px;border-radius:999px;flex:0 0 auto;` +
+    `background:${selected ? '#fff' : color};`;
+
+  const label = document.createElement('span');
+  // Long resort names would stretch the pill across the coast and collide with its neighbours.
+  label.textContent = name.length > 22 ? `${name.slice(0, 21).trimEnd()}…` : name;
+
+  const price = document.createElement('span');
+  price.textContent = priceLabel;
+  price.style.cssText = `font-weight:800;${selected ? '' : `color:${color};`}`;
+
+  pill.append(dot, label, price);
+  return pill;
+}
+
 /** The dinner-suggestion marker: a small white circle with a teal fork & knife. Visually distinct
  *  from numbered stops (it isn't part of the drive) and from the coral BMT pills. */
 export function dinnerMarkerContent(): HTMLElement {

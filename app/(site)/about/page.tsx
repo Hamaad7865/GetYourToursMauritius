@@ -11,6 +11,7 @@ import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
 import { RevealOnScroll } from '@/components/about/RevealOnScroll';
 import { HeroWaves } from '@/components/about/HeroWaves';
+import { BAND_PHOTO, STORY_PHOTOS, PHOTO_CREDITS } from '@/lib/content/about-photos';
 
 export const runtime = 'edge';
 
@@ -514,10 +515,16 @@ export default async function AboutPage() {
 
         {/* ============ TRUST STRIP ============ */}
         <section
-          aria-label={t('Why travellers trust us')}
+          aria-labelledby="trust-heading"
           className="relative z-[5] mx-auto max-w-shell"
           style={{ marginTop: 'clamp(-90px,-9vw,-110px)', padding: '0 clamp(18px,5vw,72px)' }}
         >
+          {/* The cards are h3s, so without an h2 here the outline jumped h1 → h3. The design has no
+              visible heading for this strip, so it is carried for assistive tech only — and it
+              doubles as the section's accessible name. */}
+          <h2 id="trust-heading" className="sr-only">
+            {t('Why travellers trust us')}
+          </h2>
           <div
             className="grid gap-[clamp(12px,1.5vw,18px)]"
             style={{ gridTemplateColumns: `repeat(auto-fit, minmax(220px, 1fr))` }}
@@ -621,18 +628,56 @@ export default async function AboutPage() {
               </p>
             </div>
 
-            {/* photo collage */}
+            {/* photo collage — three layered plates, deepest first. Each carries an explicit
+                aspect-ratio so the layout never shifts as they decode (CLS). */}
             <div data-reveal className="relative">
+              {/* small accent plate, furthest back, peeking from behind the lead */}
               <div
-                className="relative overflow-hidden rounded-[24px]"
-                style={{ boxShadow: '0 30px 60px rgba(11,92,99,0.22)', aspectRatio: '4 / 5' }}
+                className="absolute hidden overflow-hidden rounded-[16px] sm:block"
+                style={{
+                  top: '8%',
+                  right: '-34px',
+                  width: '34%',
+                  aspectRatio: '3 / 4',
+                  border: `5px solid ${CREAM}`,
+                  boxShadow: '0 18px 38px rgba(17,32,31,0.18)',
+                  transform: 'rotate(4deg)',
+                  zIndex: 0,
+                }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/hero/islands/speedboat.jpg"
-                  alt={t('A speedboat crossing calm turquoise water off the Mauritius coast')}
+                  src={STORY_PHOTOS[2]!.src}
+                  alt={t(STORY_PHOTOS[2]!.alt)}
                   loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
+                />
+              </div>
+              <div
+                className="relative overflow-hidden rounded-[24px]"
+                style={{
+                  boxShadow: '0 30px 60px rgba(11,92,99,0.22)',
+                  aspectRatio: '4 / 5',
+                  zIndex: 1,
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={STORY_PHOTOS[0]!.src}
+                  alt={t(STORY_PHOTOS[0]!.alt)}
+                  loading="lazy"
+                  decoding="async"
+                  className="h-full w-full object-cover"
+                />
+                {/* a whisper of teal so the photography sits inside the brand, not beside it */}
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0"
+                  style={{
+                    background:
+                      'linear-gradient(200deg, rgba(14,140,146,0) 45%, rgba(11,92,99,0.34) 100%)',
+                  }}
                 />
               </div>
               <div
@@ -644,13 +689,15 @@ export default async function AboutPage() {
                   border: `5px solid ${CREAM}`,
                   boxShadow: '0 22px 44px rgba(17,32,31,0.22)',
                   aspectRatio: '1 / 1',
+                  zIndex: 2,
                 }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/activities/pereybere-beach.jpg"
-                  alt={t('Sunlit shallows breaking over pale sand on a Mauritius beach')}
+                  src={STORY_PHOTOS[1]!.src}
+                  alt={t(STORY_PHOTOS[1]!.alt)}
                   loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                 />
               </div>
@@ -665,6 +712,8 @@ export default async function AboutPage() {
                   padding: `13px 18px`,
                   boxShadow: '0 14px 30px rgba(233,185,73,0.4)',
                   transform: 'rotate(3deg)',
+                  // Above all three photo plates (they claim 0/1/2), or the lead photo covers it.
+                  zIndex: 3,
                 }}
               >
                 <div className="text-[24px] font-extrabold leading-none" style={displayFont}>
@@ -821,6 +870,91 @@ export default async function AboutPage() {
                 {t('Plan my day')} <ArrowIcon size={14} />
               </span>
             </Link>
+          </div>
+        </section>
+
+        {/* ============ FULL-BLEED PULL-QUOTE BAND ============
+            The page's one photographic statement. It sits directly above the dark "why" section and
+            its scrim resolves to the same TEAL_DARK, so the two read as a single dark passage
+            rather than two stacked blocks — that continuity is why it lives here and not earlier.
+            The photo is atmospheric on purpose: it claims no location (see about-photos.ts). */}
+        <section
+          // Labelled by the short eyebrow, not the quote — pointing at the blockquote would make
+          // the region's accessible name the whole sentence.
+          aria-labelledby="band-eyebrow"
+          className="relative flex items-center overflow-hidden"
+          style={{ minHeight: 'clamp(420px, 62vh, 620px)' }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={BAND_PHOTO.src}
+            alt={t(BAND_PHOTO.alt)}
+            loading="lazy"
+            decoding="async"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+          {/* Three scrims, each doing one job — a flat overlay dark enough for AA would have
+              smothered the photograph:
+              1. a light teal wash, so the image reads as ours rather than as stock;
+              2. a DIRECTIONAL ramp that darkens only the left, where the quote sits, leaving the
+                 right side of the frame open;
+              3. a bottom ramp to TEAL_DARK so this melts into the dark section beneath. */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(180deg, rgba(3,38,43,0.28) 0%, rgba(10,73,83,0.30) 45%, rgba(11,92,99,0.85) 100%)',
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-0"
+            style={{
+              // Holds ≥0.72 alpha right across the quote's measure (it runs to ~860px) and only
+              // opens up past it. A softer mid-stop tested under 3:1 against the bright sky.
+              background:
+                'linear-gradient(100deg, rgba(3,38,43,0.86) 0%, rgba(3,38,43,0.74) 46%, rgba(3,38,43,0.34) 74%, rgba(3,38,43,0) 96%)',
+            }}
+          />
+          <div
+            aria-hidden="true"
+            className="absolute inset-x-0 bottom-0 h-[34%]"
+            style={{
+              background: `linear-gradient(180deg, rgba(11,92,99,0) 0%, ${TEAL_DARK} 100%)`,
+            }}
+          />
+
+          <div
+            className="relative z-[2] mx-auto w-full max-w-shell text-white"
+            style={{ padding: 'clamp(56px,8vw,96px) clamp(18px,5vw,72px)' }}
+          >
+            <div className="max-w-[860px]">
+              <span id="band-eyebrow">
+                <Eyebrow color={GOLD}>{t('Why we do it this way')}</Eyebrow>
+              </span>
+              <blockquote
+                className="m-0 mt-5 font-bold"
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(27px,4.6vw,54px)',
+                  lineHeight: 1.1,
+                  letterSpacing: '-0.02em',
+                  textWrap: 'balance',
+                  textShadow: '0 2px 22px rgba(3,38,43,0.45)',
+                }}
+              >
+                {t(
+                  'We show you the island the way we’d want to see it ourselves — the quiet hours, the right tide, and the road that’s worth the detour.',
+                )}
+              </blockquote>
+              <p
+                className="mt-6 text-[15px] font-semibold"
+                style={{ color: 'rgba(255,255,255,0.82)' }}
+              >
+                {t('Belle Mare Tours — licensed local operator, based on the east coast')}
+              </p>
+            </div>
           </div>
         </section>
 
@@ -1045,32 +1179,59 @@ export default async function AboutPage() {
                 ? {
                     background: 'linear-gradient(150deg, #0E8C92, #0B5C63)',
                     color: '#fff',
-                    boxShadow: '0 18px 40px rgba(11,92,99,0.25)',
+                    boxShadow: '0 22px 48px rgba(11,92,99,0.3)',
                   }
-                : { background: '#fff', border: '1px solid rgba(17,32,31,0.08)' };
+                : {
+                    background: '#fff',
+                    border: '1px solid rgba(17,32,31,0.08)',
+                    boxShadow: '0 10px 26px rgba(17,32,31,0.05)',
+                  };
               return (
                 <div
                   key={region.title}
                   data-reveal
                   data-reveal-delay={region.delay}
-                  className="rounded-[20px] p-[24px_22px] transition duration-300 hover:-translate-y-[5px]"
+                  className="group relative overflow-hidden rounded-[20px] p-[24px_22px] transition-[transform,box-shadow] duration-300 hover:-translate-y-[6px] motion-reduce:transform-none motion-reduce:transition-none"
                   style={cardStyle}
                 >
+                  {/* A contour-line motif — the shape of a coast without claiming to BE one, which
+                      is the honest way to illustrate these cards until we own location photos.
+                      Decorative, so it never reaches the accessibility tree. */}
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 200 120"
+                    preserveAspectRatio="none"
+                    className="pointer-events-none absolute inset-x-0 bottom-0 h-[62%] w-full opacity-[0.13] transition-opacity duration-300 group-hover:opacity-25 motion-reduce:transition-none"
+                  >
+                    {[0, 14, 28, 42].map((offset) => (
+                      <path
+                        key={offset}
+                        d={`M-10 ${86 - offset} C 30 ${70 - offset}, 62 ${104 - offset}, 104 ${84 - offset} S 172 ${62 - offset}, 210 ${80 - offset}`}
+                        fill="none"
+                        stroke={region.highlight ? GOLD : TEAL}
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                      />
+                    ))}
+                  </svg>
+
                   <div
-                    className="flex items-center gap-[9px] text-[13px] font-bold uppercase tracking-[0.08em]"
+                    className="relative flex items-center gap-[9px] text-[13px] font-bold uppercase tracking-[0.08em]"
                     style={{ color: region.highlight ? GOLD : TEAL }}
                   >
                     <PinIcon color={region.highlight ? GOLD : TEAL} />
                     {region.tag}
                   </div>
+                  {/* `relative` on the text too: the motif is positioned, so without it the SVG
+                      would paint over these static blocks. */}
                   <h3
-                    className="mb-1.5 mt-3 text-[18px] font-bold tracking-[-0.01em]"
+                    className="relative mb-1.5 mt-3 text-[18px] font-bold tracking-[-0.01em]"
                     style={{ ...displayFont, color: region.highlight ? '#fff' : INK }}
                   >
                     {region.title}
                   </h3>
                   <p
-                    className="m-0 text-[14px] leading-[1.5]"
+                    className="relative m-0 text-[14px] leading-[1.5]"
                     style={{
                       color: region.highlight ? 'rgba(255,255,255,0.8)' : 'rgba(17,32,31,0.62)',
                     }}
@@ -1229,6 +1390,13 @@ export default async function AboutPage() {
               {t(
                 'English & French spoken · Door-to-door island-wide · Free cancellation up to 24h',
               )}
+            </p>
+            {/* Pexels does not require attribution — we credit anyway, and keeping the line here
+                makes it obvious at a glance which photography is still licensed stock rather than
+                Belle Mare Tours' own. It disappears the moment about-photos.ts points at our own
+                shoot. */}
+            <p className="mt-4 text-[12px] text-white/40">
+              {t('Photography')}: {PHOTO_CREDITS.join(' · ')} (Pexels)
             </p>
           </div>
         </section>

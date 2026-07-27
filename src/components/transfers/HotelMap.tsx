@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
-import { pinElement } from '@/components/maps/pin';
+import { pinElement, hotelMarkerContent } from '@/components/maps/pin';
 import { drawRoute } from '@/components/maps/draw-route';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import { Price } from '@/components/site/Price';
+import { useMoney } from '@/components/site/PreferencesProvider';
 import { SSR_AIRPORT } from './TransferRouteMap';
 
 /** Region pin colours — distinct but on-brand, so travellers can scan the coasts. */
@@ -31,9 +32,13 @@ const PINNED: Array<Transfer & { lat: number; lng: number }> = transfers.filter(
  */
 export function HotelMap() {
   const status = useGoogleMaps();
+  const money = useMoney();
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const lineRef = useRef<google.maps.Polyline[]>([]);
+  // Markers are rebuilt whenever the display currency changes, so they must be tracked and torn
+  // down — previously nothing removed them and a re-run would have stacked a second full set.
+  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
   const [selected, setSelected] = useState<(Transfer & { lat: number; lng: number }) | null>(null);
 
   useEffect(() => {
@@ -51,19 +56,41 @@ export function HotelMap() {
       }));
 
     const bounds = new google.maps.LatLngBounds();
+    /** slug → its marker, so selecting one can repaint the others back to their resting state. */
+    const bySlug = new Map<
+      string,
+      { marker: google.maps.marker.AdvancedMarkerElement; hotel: Transfer }
+    >();
 
-    // Airport (fixed origin).
-    new google.maps.marker.AdvancedMarkerElement({
-      map,
-      position: { lat: SSR_AIRPORT.lat, lng: SSR_AIRPORT.lng },
-      content: pinElement({ color: '#F76C5E', glyph: 'A' }),
-      title: SSR_AIRPORT.title,
-      zIndex: 1000,
-    });
+    // Airport (fixed origin). Tracked like the rest so a rebuild can't leave a second one behind.
+    markersRef.current.push(
+      new google.maps.marker.AdvancedMarkerElement({
+        map,
+        position: { lat: SSR_AIRPORT.lat, lng: SSR_AIRPORT.lng },
+        content: pinElement({ color: '#F76C5E', glyph: 'A' }),
+        title: SSR_AIRPORT.title,
+        // Above every hotel pill (they top out just under 1000) — the origin must never be hidden.
+        zIndex: 2000,
+        collisionBehavior: google.maps.CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL,
+      }),
+    );
     bounds.extend({ lat: SSR_AIRPORT.lat, lng: SSR_AIRPORT.lng });
+
+    /** Repaint every hotel pill so exactly one reads as selected. */
+    function paint(activeSlug: string | null) {
+      for (const [slug, entry] of bySlug) {
+        entry.marker.content = hotelMarkerContent({
+          name: entry.hotel.hotelName,
+          priceLabel: money(entry.hotel.fromPriceEur),
+          color: REGION_COLOR[entry.hotel.region] ?? '#0E8C92',
+          selected: slug === activeSlug,
+        });
+      }
+    }
 
     async function select(hotel: Transfer & { lat: number; lng: number }) {
       setSelected(hotel);
+      paint(hotel.slug);
       lineRef.current.forEach((pl) => pl.setMap(null));
       lineRef.current = [];
       const rbounds = new google.maps.LatLngBounds();
@@ -90,14 +117,27 @@ export function HotelMap() {
     }
 
     for (const hotel of PINNED) {
+      const color = REGION_COLOR[hotel.region] ?? '#0E8C92';
       const marker = new google.maps.marker.AdvancedMarkerElement({
         map,
         position: { lat: hotel.lat, lng: hotel.lng },
-        content: pinElement({ color: REGION_COLOR[hotel.region] ?? '#0E8C92', glyph: ' ' }),
-        title: hotel.hotelName,
+        content: hotelMarkerContent({
+          name: hotel.hotelName,
+          priceLabel: money(hotel.fromPriceEur),
+          color,
+        }),
+        title: `${hotel.hotelName} — from ${money(hotel.fromPriceEur)}`,
         gmpClickable: true,
+        // Named pills are far wider than a teardrop, and the north and east coasts stack a dozen
+        // resorts within a few km. Let Maps drop whichever labels collide and reveal them as the
+        // traveller zooms, rather than rendering an unreadable pile.
+        collisionBehavior: google.maps.CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY,
+        // Closer-to-airport resorts win a collision — they're the cheapest, most common transfers.
+        zIndex: Math.round(1000 - hotel.distanceKmFromAirport),
       });
       marker.addListener('gmp-click', () => void select(hotel));
+      markersRef.current.push(marker);
+      bySlug.set(hotel.slug, { marker, hotel });
       bounds.extend({ lat: hotel.lat, lng: hotel.lng });
     }
 
@@ -107,8 +147,12 @@ export function HotelMap() {
       cancelled = true;
       lineRef.current.forEach((pl) => pl.setMap(null));
       lineRef.current = [];
+      markersRef.current.forEach((m) => {
+        m.map = null;
+      });
+      markersRef.current = [];
     };
-  }, [status]);
+  }, [status, money]);
 
   // Maps failed to load — the page already lists every hotel by region, so render nothing.
   if (status === 'error' || PINNED.length === 0) return null;
