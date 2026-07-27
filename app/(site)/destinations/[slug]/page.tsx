@@ -5,6 +5,7 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getArea, areaMetaTitle, areaMetaDescription } from '@/lib/content/areas';
 import { destinationJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
+import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
@@ -24,7 +25,7 @@ export async function generateMetadata({
   if (!a) return { title: 'Destination not found' };
   const title = areaMetaTitle(a);
   const description = areaMetaDescription(a);
-  return {
+  return overrideMetadata(a.path, {
     title,
     description,
     alternates: { canonical: a.path },
@@ -36,7 +37,7 @@ export async function generateMetadata({
       locale: 'en_GB',
       images: [OG_IMAGE],
     },
-  };
+  });
 }
 
 function List({ items }: { items: string[] }) {

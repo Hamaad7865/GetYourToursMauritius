@@ -19,6 +19,7 @@ import {
   ATTRACTION_EXTRA,
 } from '@/lib/content/attractions';
 import { attractionJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
+import { overrideMetadata } from '@/lib/seo/override';
 import { SITE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
@@ -37,7 +38,7 @@ export async function generateMetadata({
   const img = attractionImage(place.id);
   // Local photos are stored as a root-relative path; crawlers need an absolute OG image URL.
   const ogImage = img ? (img.url.startsWith('http') ? img.url : `${SITE.url}${img.url}`) : null;
-  return {
+  return overrideMetadata(canonical, {
     title,
     description,
     alternates: { canonical },
@@ -49,7 +50,7 @@ export async function generateMetadata({
       locale: 'en_GB',
       ...(ogImage ? { images: [{ url: ogImage }] } : {}),
     },
-  };
+  });
 }
 
 function Fact({ label, value }: { label: string; value: string }) {

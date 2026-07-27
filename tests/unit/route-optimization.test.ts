@@ -2,10 +2,9 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   buildOptimizeToursModel,
   parseOptimizedOrder,
-  buildJwtClaims,
-  pemToPkcs8,
   getOptimizedStopOrder,
 } from '@/lib/maps/route-optimization';
+import { buildJwtClaims, pemToPkcs8, CLOUD_PLATFORM_SCOPE } from '@/lib/google/service-account';
 import { resetServerEnvCache } from '@/lib/config/env';
 
 const PICKUP = { lat: -20.1833, lng: 57.774 };
@@ -73,7 +72,7 @@ describe('parseOptimizedOrder', () => {
 
 describe('buildJwtClaims', () => {
   it('builds a 1-hour cloud-platform assertion for the service account', () => {
-    const claims = buildJwtClaims('svc@proj.iam.gserviceaccount.com', 1000);
+    const claims = buildJwtClaims('svc@proj.iam.gserviceaccount.com', 1000, CLOUD_PLATFORM_SCOPE);
     expect(claims).toEqual({
       iss: 'svc@proj.iam.gserviceaccount.com',
       scope: 'https://www.googleapis.com/auth/cloud-platform',

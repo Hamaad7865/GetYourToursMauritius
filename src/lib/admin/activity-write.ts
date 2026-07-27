@@ -83,6 +83,17 @@ export interface ActivityFormValues {
    *  vehicle that fits the party — a tier's max_guests is the vehicle's capacity). */
   pricingMode: PricingMode;
   cancellationPolicy: string;
+  /**
+   * Search-appearance overrides for the tour's own page. Both are OPTIONAL — '' stores null and the
+   * page falls back to its built-ins (`<title>` → "<title> | Belle Mare Tours", description →
+   * summary → description). See generateMetadata in app/(site)/activities/[slug]/page.tsx.
+   *
+   * `seoTitle` is emitted as an ABSOLUTE title, so whatever is typed here must carry its own brand
+   * suffix — the root "%s | Belle Mare Tours" template is deliberately bypassed to keep tour
+   * keywords inside the SERP truncation budget.
+   */
+  seoTitle: string;
+  seoDescription: string;
   status: 'draft' | 'published';
   languages: string[];
   highlights: string[];
@@ -126,6 +137,8 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   lng: null,
   pricingMode: 'per_person',
   cancellationPolicy: 'Free cancellation up to 24 hours before your activity for a full refund.',
+  seoTitle: '',
+  seoDescription: '',
   status: 'published',
   languages: ['English'],
   highlights: [],
@@ -221,7 +234,8 @@ function buildExtra(v: ActivityFormValues) {
   return out;
 }
 
-function activityRow(v: ActivityFormValues, opId: string) {
+/** The `activities` column payload for one form value set. Pure, so it's unit-tested. */
+export function activityRow(v: ActivityFormValues, opId: string) {
   return {
     operator_id: opId,
     slug: v.slug.trim(),
@@ -244,6 +258,10 @@ function activityRow(v: ActivityFormValues, opId: string) {
     exclusions: v.exclusions.filter((l) => l.trim()),
     highlights: v.highlights.filter((l) => l.trim()),
     cancellation_policy: v.cancellationPolicy.trim() || null,
+    // Empty → null, so clearing the field genuinely restores the built-in fallback rather than
+    // shipping an empty <title>/description.
+    seo_title: v.seoTitle.trim() || null,
+    seo_description: v.seoDescription.trim() || null,
     status: v.status,
     extra: buildExtra(v) as never,
   };
@@ -691,6 +709,8 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     lng: act.lng ?? null,
     pricingMode: (act.pricing_mode ?? 'per_person') as PricingMode,
     cancellationPolicy: act.cancellation_policy ?? '',
+    seoTitle: act.seo_title ?? '',
+    seoDescription: act.seo_description ?? '',
     status: act.status,
     languages: act.languages.length ? act.languages : ['English'],
     highlights: act.highlights,

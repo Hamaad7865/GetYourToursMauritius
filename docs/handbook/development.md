@@ -111,6 +111,16 @@ Two steps — **both required**, or the editor shows a row that silently does no
 > If your default title already contains the brand, it **must** be `title: { absolute: … }` — otherwise
 > the root template appends a second one: _"Contact Belle Mare Tours | Belle Mare Tours"_.
 
+For a whole **family** of pages (one route, many slugs), don't hand-list them: add a group to
+`buildSeoPageGroups()` in `src/lib/seo/page-groups.ts`, deriving each entry's defaults from the same
+helpers the page uses. Set `templated: true` when the page hands Next a plain title and lets the root
+template append the brand — an override ships as `title: { absolute }`, so the editor must be shown
+the _branded_ default or it will save a title that silently drops the brand.
+
+A page whose meta lives in its **own columns** (tours, blog posts) does not belong in a group — give
+it fields on its own editor instead, and mark it `overridable: false` in the audit so a stray
+`seo_meta` row is never measured against a page that ignores it.
+
 ### Change how something is priced
 
 Prices are computed in SQL. Do **not** move the calculation into TypeScript.

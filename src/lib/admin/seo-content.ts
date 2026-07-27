@@ -53,6 +53,42 @@ export async function saveSeoMeta(input: SeoMetaInput): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Every published tour's search-appearance state, for the SEO health panel.
+ *
+ * Read here rather than through the public catalogue RPC because `api_search_activities` returns
+ * summaries WITHOUT `seo_title` / `seo_description` — auditing those summaries would measure the
+ * fallback title on tours that actually carry an override. Only staff/admin/seo can select the
+ * table, which is exactly who sees this panel.
+ */
+export interface TourSeoRow {
+  slug: string;
+  title: string;
+  summary: string | null;
+  description: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+}
+
+export async function loadTourSeoRows(): Promise<TourSeoRow[]> {
+  const { data, error } = await getBrowserSupabase()
+    .from('activities')
+    .select('slug, title, summary, description, seo_title, seo_description')
+    // Drafts are noindex-by-absence (not in the sitemap, not linked) — auditing them would bury the
+    // pages that are actually live under noise.
+    .eq('status', 'published')
+    .order('title');
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    slug: r.slug,
+    title: r.title,
+    summary: r.summary,
+    description: r.description,
+    seoTitle: r.seo_title,
+    seoDescription: r.seo_description,
+  }));
+}
+
 // ── Blog posts ─────────────────────────────────────────────────────────────────
 
 export interface PostInput {

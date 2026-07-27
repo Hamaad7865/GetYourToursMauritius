@@ -81,6 +81,24 @@ const refParam = z.object({ ref: z.string() });
 const idParam = z.object({ id: z.string() });
 const placeIdParam = z.object({ placeId: z.string().min(1) });
 
+const searchConsoleQuery = z.object({
+  days: z.coerce.number().int().min(1).max(180).default(28),
+});
+const searchConsoleMetrics = {
+  clicks: z.number(),
+  impressions: z.number(),
+  ctr: z.number(),
+  position: z.number(),
+};
+const searchConsoleRowSchema = z.object({ key: z.string(), ...searchConsoleMetrics });
+const searchConsoleReportSchema = z.object({
+  startDate: z.string(),
+  endDate: z.string(),
+  totals: z.object(searchConsoleMetrics),
+  topPages: z.array(searchConsoleRowSchema),
+  topQueries: z.array(searchConsoleRowSchema),
+});
+
 /**
  * Versioned /api/v1 paths. Each operation reuses the exact Zod schemas the route
  * handlers validate with, so the spec and runtime validation cannot drift.
@@ -214,6 +232,22 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '401': errorResponse('Authentication required'),
         '403': errorResponse('Staff only'),
         '503': errorResponse('Google Maps API key is not configured'),
+      },
+    },
+  },
+  '/seo/search-console': {
+    get: {
+      operationId: 'getSearchConsoleReport',
+      summary: 'Google Search Console performance for the site (content editors only)',
+      tags: ['SEO'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { query: searchConsoleQuery },
+      responses: {
+        '200': okJson(searchConsoleReportSchema, 'Search performance for the window'),
+        '400': errorResponse('Invalid query parameters'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Content editors only'),
+        '503': errorResponse('Search Console is not connected'),
       },
     },
   },

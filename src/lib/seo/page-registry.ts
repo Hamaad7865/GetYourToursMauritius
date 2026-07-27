@@ -13,6 +13,24 @@ export interface SeoPage {
   label: string;
   defaultTitle: string;
   defaultDescription: string;
+  /**
+   * True when `defaultTitle` is what the page hands to Next, and the ROOT layout template then
+   * appends the brand (`%s | Belle Mare Tours`). The content-module pages (attractions,
+   * destinations, hotel transfers) all work this way — their helpers deliberately omit the brand.
+   *
+   * It matters here because an override does NOT go through the template: `overrideMetadata` emits
+   * `title: { absolute }`, so a saved override replaces the WHOLE title, brand included. The editor
+   * uses this flag to preview the branded default and to warn the editor to carry the brand across.
+   */
+  templated?: boolean;
+}
+
+/** The root layout's title template suffix (app/layout.tsx). Keep the two in step. */
+export const BRAND_SUFFIX = ' | Belle Mare Tours';
+
+/** What a page's `<title>` actually ships as when no override is set. */
+export function effectiveDefaultTitle(page: SeoPage): string {
+  return page.templated ? `${page.defaultTitle}${BRAND_SUFFIX}` : page.defaultTitle;
 }
 
 export const SEO_PAGES: SeoPage[] = [

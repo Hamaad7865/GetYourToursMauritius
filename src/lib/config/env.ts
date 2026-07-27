@@ -53,6 +53,17 @@ const ServerEnvSchema = z.object({
   GOOGLE_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
   GOOGLE_CLOUD_PROJECT: z.string().min(1).optional(),
 
+  // Google **Search Console** (the search-performance panel in /admin/seo). Read-only, scope
+  // `webmasters.readonly`. Falls back to GOOGLE_SERVICE_ACCOUNT_JSON when unset, so one service
+  // account can serve both — whichever account is used must be added as a USER on the property in
+  // Search Console, which is the only way the API grants access.
+  //
+  // GSC_SITE_URL must match the property EXACTLY. bellemaretours.com is verified as a domain
+  // property, so it is `sc-domain:bellemaretours.com`; the `https://…/` URL-prefix form is a
+  // different property and returns 403. Unset ⇒ the panel shows setup instructions, nothing breaks.
+  GSC_SERVICE_ACCOUNT_JSON: z.string().min(1).optional(),
+  GSC_SITE_URL: z.string().min(1).optional(),
+
   AI_PROVIDER: z.enum(['google', 'workersai', 'anthropic', 'openai']).default('google'),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1).optional(),
   // Gemini model id for the AI Road Trip Planner co-pilot. Override when Google retires a model

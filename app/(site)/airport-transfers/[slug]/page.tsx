@@ -8,6 +8,7 @@ import { TransferReviews } from '@/components/transfers/TransferReviews';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getTransfer, transferMetaTitle, transferMetaDescription } from '@/lib/content/transfers';
 import { transferServiceJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
+import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
@@ -23,7 +24,7 @@ export async function generateMetadata({
   const title = transferMetaTitle(t);
   const description = transferMetaDescription(t);
   const canonical = t.path;
-  return {
+  return overrideMetadata(canonical, {
     title,
     description,
     alternates: { canonical },
@@ -35,7 +36,7 @@ export async function generateMetadata({
       locale: 'en_GB',
       images: [OG_IMAGE],
     },
-  };
+  });
 }
 
 function Fact({ label, value }: { label: string; value: string }) {

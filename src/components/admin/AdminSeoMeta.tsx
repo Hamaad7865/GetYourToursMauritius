@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/components/auth/AuthProvider';
-import { SEO_PAGES, type SeoPage } from '@/lib/seo/page-registry';
+import { effectiveDefaultTitle, type SeoPage } from '@/lib/seo/page-registry';
+import type { SeoPageGroup } from '@/lib/seo/page-groups';
 import { loadSeoMetaOverrides, saveSeoMeta, type SeoMetaInput } from '@/lib/admin/seo-content';
 import {
   AdminHeading,
@@ -12,20 +13,7 @@ import {
   INPUT_CLS,
   TEXTAREA_CLS,
 } from '@/components/admin/ui';
-
-/** Google-recommended display budgets — counters turn coral past them (a hint, not a hard cap). */
-const TITLE_BUDGET = 60;
-const DESC_BUDGET = 160;
-
-function Counter({ len, budget }: { len: number; budget: number }) {
-  return (
-    <span
-      className={`text-[11.5px] font-semibold ${len > budget ? 'text-coral' : 'text-ink-muted'}`}
-    >
-      {len}/{budget}
-    </span>
-  );
-}
+import { Counter, SerpPreview, TITLE_BUDGET, DESC_BUDGET } from '@/components/admin/SerpPreview';
 
 /** One page's editor card: title/description/OG inputs + a live Google-style snippet preview. */
 function PageCard({
@@ -49,7 +37,9 @@ function PageCard({
   }, [value]);
 
   const overridden = Boolean(v.title.trim() || v.description.trim() || v.ogImageUrl.trim());
-  const shownTitle = v.title.trim() || page.defaultTitle;
+  // An override ships ABSOLUTE — it replaces the brand suffix the root template would have added,
+  // so the default must be shown branded or the preview lies about what changes.
+  const shownTitle = v.title.trim() || effectiveDefaultTitle(page);
   const shownDesc = v.description.trim() || page.defaultDescription;
 
   async function save(next: SeoMetaInput) {
@@ -73,13 +63,8 @@ function PageCard({
         </span>
       </div>
 
-      {/* Google-style snippet preview */}
-      <div className="mt-3 rounded-xl border border-[#EAEEF0] bg-[#F7F8FA] px-4 py-3">
-        <p className="truncate text-[13px] text-[#1a6f38]">
-          bellemaretours.com{page.path === '/' ? '' : page.path}
-        </p>
-        <p className="mt-0.5 truncate text-[16.5px] font-medium text-[#1a0dab]">{shownTitle}</p>
-        <p className="mt-0.5 line-clamp-2 text-[13px] text-ink/70">{shownDesc}</p>
+      <div className="mt-3">
+        <SerpPreview path={page.path} title={shownTitle} description={shownDesc} />
       </div>
 
       <div className="mt-4 grid gap-3">
@@ -90,9 +75,15 @@ function PageCard({
           <input
             value={v.title}
             onChange={(e) => setV({ ...v, title: e.target.value })}
-            placeholder={page.defaultTitle}
+            placeholder={effectiveDefaultTitle(page)}
             className={`mt-1 w-full ${INPUT_CLS}`}
           />
+          {page.templated && (
+            <span className="mt-1 block text-[12px] font-normal text-ink-muted">
+              This replaces the whole title — end it with “| Belle Mare Tours” yourself, or the page
+              loses the brand.
+            </span>
+          )}
         </label>
         <label className="block text-[13px] font-semibold text-ink">
           <span className="flex items-center justify-between">
@@ -146,12 +137,15 @@ function PageCard({
   );
 }
 
-export function AdminSeoMeta() {
+export function AdminSeoMeta({ groups }: { groups: SeoPageGroup[] }) {
   const { profile } = useAuth();
   const canEdit = profile?.role === 'admin' || profile?.role === 'staff' || profile?.role === 'seo';
   const [overrides, setOverrides] = useState<Map<string, SeoMetaInput> | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [groupKey, setGroupKey] = useState(groups[0]?.key ?? 'core');
+  const [query, setQuery] = useState('');
+  const [onlyOverridden, setOnlyOverridden] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -166,20 +160,87 @@ export function AdminSeoMeta() {
     if (canEdit) void load();
   }, [canEdit, load]);
 
+  const group = groups.find((g) => g.key === groupKey) ?? groups[0];
+
+  // Cards are heavy (each holds its own draft state), and a group can be 40 pages long — filter
+  // before rendering rather than hiding with CSS.
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return (group?.pages ?? []).filter((p) => {
+      if (onlyOverridden && !overrides?.get(p.path)) return false;
+      if (!q) return true;
+      return p.label.toLowerCase().includes(q) || p.path.toLowerCase().includes(q);
+    });
+  }, [group, query, onlyOverridden, overrides]);
+
   if (!canEdit) return <p className="text-sm text-coral">Access denied.</p>;
+
+  const overriddenCount = (g: SeoPageGroup) =>
+    g.pages.reduce((n, p) => n + (overrides?.get(p.path) ? 1 : 0), 0);
 
   return (
     <div>
       <AdminHeading
         title="Page titles & descriptions"
-        subtitle="Tune each public page's <title> tag, meta description and social share image. Empty fields fall back to the built-in default — Reset returns the page to it."
+        subtitle="Tune each public page's <title> tag, meta description and social share image. Empty fields fall back to the built-in default — Reset returns the page to it. Tours are edited on the tour itself (Search appearance), blog posts in the Blog editor."
       />
       {error && <AdminError>{error}</AdminError>}
+
+      <div className="mb-4 flex flex-wrap gap-2">
+        {groups.map((g) => {
+          const n = overrides ? overriddenCount(g) : 0;
+          const active = g.key === group?.key;
+          return (
+            <button
+              key={g.key}
+              type="button"
+              onClick={() => setGroupKey(g.key)}
+              aria-pressed={active}
+              className={`rounded-full border px-3.5 py-1.5 text-[13px] font-bold transition ${
+                active
+                  ? 'border-teal bg-teal text-white'
+                  : 'border-[#EAEEF0] bg-white text-ink hover:border-teal/40'
+              }`}
+            >
+              {g.label}
+              <span
+                className={`ml-1.5 font-semibold ${active ? 'text-white/75' : 'text-ink-muted'}`}
+              >
+                {n ? `${n}/${g.pages.length}` : g.pages.length}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {group && <p className="mb-3 text-[13px] text-ink-muted">{group.hint}</p>}
+
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Filter by name or URL…"
+          aria-label="Filter pages"
+          className={`max-w-xs flex-1 ${INPUT_CLS}`}
+        />
+        <label className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+          <input
+            type="checkbox"
+            className="h-4 w-4 accent-teal"
+            checked={onlyOverridden}
+            onChange={(e) => setOnlyOverridden(e.target.checked)}
+          />
+          Only pages I&rsquo;ve edited
+        </label>
+      </div>
+
       {!overrides ? (
         <p className="text-sm text-ink-muted">Loading…</p>
+      ) : visible.length === 0 ? (
+        <p className="text-sm text-ink-muted">No pages match that filter.</p>
       ) : (
         <div className="grid gap-4">
-          {SEO_PAGES.map((page) => (
+          {visible.map((page) => (
             <PageCard
               key={page.path}
               page={page}

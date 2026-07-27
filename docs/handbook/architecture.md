@@ -199,9 +199,23 @@ A recurring waste of effort: hardcoding something the owner can already edit.
   `/admin/vehicle-pricing` (8 tables)
 - Rental fleet — `/admin/rental`
 - Categories, planner places, leads
-- **Page titles & meta descriptions for 18 public pages** — `/admin/seo`
+- **Page titles & meta descriptions** — `/admin/seo`. Four groups: the hand-listed hubs
+  (`SEO_PAGES`) plus destination guides, hotel transfers and attractions, built at request time by
+  `buildSeoPageGroups()` (`src/lib/seo/page-groups.ts`).
+- **A tour's own title & description** — the "Search appearance" panel in `/admin/activities`
+  (writes `activities.seo_title` / `seo_description`). Tours are deliberately **not** in `/admin/seo`
+  — two editors for one page would silently overwrite each other.
 - **Blog posts** — `/admin/blog` (DB posts override the code-generated seed posts by slug)
 - **Redirects** — `/admin/redirects`
+
+`/admin/seo` also carries two read-only panels:
+
+- **Health check** — a self-audit (`src/lib/seo/audit.ts`) over every editable page: missing,
+  overlong or thin titles/descriptions, plus duplicate titles and descriptions across the site.
+  Computed from our own data, so it works with nothing indexed.
+- **Search performance** — Google Search Console clicks/impressions/position and top queries, via
+  the content-editor-gated `/api/v1/seo/search-console`. Needs `GSC_SERVICE_ACCOUNT_JSON` +
+  `GSC_SITE_URL`; unset ⇒ the panel prints setup steps and nothing else is affected.
 
 **In code:**
 
