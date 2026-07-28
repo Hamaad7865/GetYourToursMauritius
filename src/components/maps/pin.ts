@@ -88,13 +88,22 @@ export function hotelMarkerContent(opts: {
   priceLabel: string;
   color: string;
   selected?: boolean;
+  /**
+   * `false` drops the resort name and shows just the price. At the island-wide zoom the map opens
+   * at, twenty full-width pills cannot fit the few hundred pixels of coastline they share — collision
+   * alone would answer that by hiding most of them, which trades one problem for another. Shrinking
+   * the label instead keeps every resort on screen; the name returns as you zoom into a coast.
+   */
+  detailed?: boolean;
 }): HTMLElement {
-  const { name, priceLabel, color, selected = false } = opts;
+  const { name, priceLabel, color, selected = false, detailed = true } = opts;
   const pill = document.createElement('div');
   pill.style.cssText =
-    `display:flex;align-items:center;gap:6px;padding:4px 10px 4px 7px;border-radius:999px;` +
+    `display:flex;align-items:center;gap:${detailed ? 6 : 4}px;` +
+    `padding:${detailed ? '4px 10px 4px 7px' : '3px 7px 3px 5px'};border-radius:999px;` +
     `box-shadow:0 3px 10px rgba(10,46,54,.26);cursor:pointer;white-space:nowrap;` +
-    `font:700 12px/1 system-ui,sans-serif;transition:transform .15s ease,box-shadow .15s ease;` +
+    `font:700 ${detailed ? 12 : 11}px/1 system-ui,sans-serif;` +
+    `transition:transform .15s ease,box-shadow .15s ease;` +
     (selected
       ? `background:${color};color:#fff;border:2px solid #fff;transform:scale(1.06);` +
         `box-shadow:0 6px 18px rgba(10,46,54,.4);`
@@ -102,19 +111,63 @@ export function hotelMarkerContent(opts: {
 
   const dot = document.createElement('span');
   dot.style.cssText =
-    `width:8px;height:8px;border-radius:999px;flex:0 0 auto;` +
+    `width:${detailed ? 8 : 6}px;height:${detailed ? 8 : 6}px;border-radius:999px;flex:0 0 auto;` +
     `background:${selected ? '#fff' : color};`;
+  pill.append(dot);
 
-  const label = document.createElement('span');
-  // Long resort names would stretch the pill across the coast and collide with its neighbours.
-  label.textContent = name.length > 22 ? `${name.slice(0, 21).trimEnd()}…` : name;
+  if (detailed) {
+    const label = document.createElement('span');
+    // Long resort names would stretch the pill across the coast and collide with its neighbours.
+    label.textContent = name.length > 22 ? `${name.slice(0, 21).trimEnd()}…` : name;
+    pill.append(label);
+  }
 
   const price = document.createElement('span');
   price.textContent = priceLabel;
   price.style.cssText = `font-weight:800;${selected ? '' : `color:${color};`}`;
-
-  pill.append(dot, label, price);
+  pill.append(price);
   return pill;
+}
+
+/**
+ * Above this zoom the hotel pills carry their resort name; at or below it they shrink to a coloured
+ * dot and a price. Mauritius fits a typical map container at roughly zoom 9–10, so the map opens in
+ * compact mode and names appear once a traveller leans into one coast.
+ */
+export const HOTEL_LABEL_ZOOM = 11;
+
+/**
+ * A group of nearby resorts, shown as one bubble with a count and the cheapest fare in the group.
+ *
+ * Clustering — not smaller labels — is what makes the opening view legible: 45 resorts share a few
+ * coastlines, so at island zoom they overlap regardless of how little each pin says. Clicking a
+ * bubble zooms to its members, which splits it apart.
+ */
+export function hotelClusterContent(opts: {
+  count: number;
+  fromLabel: string;
+  color: string;
+}): HTMLElement {
+  const { count, fromLabel, color } = opts;
+  const el = document.createElement('div');
+  el.style.cssText =
+    `display:flex;align-items:center;gap:6px;padding:5px 11px 5px 6px;border-radius:999px;` +
+    `background:#fff;border:2px solid ${color};color:#0A2E36;white-space:nowrap;cursor:pointer;` +
+    `box-shadow:0 4px 12px rgba(10,46,54,.3);font:700 12px/1 system-ui,sans-serif;` +
+    `transition:transform .15s ease;`;
+
+  const badge = document.createElement('span');
+  badge.textContent = String(count);
+  badge.style.cssText =
+    `display:grid;place-items:center;min-width:20px;height:20px;padding:0 5px;border-radius:999px;` +
+    `background:${color};color:#fff;font-weight:800;font-size:11.5px;flex:0 0 auto;`;
+
+  const label = document.createElement('span');
+  label.textContent = `from ${fromLabel}`;
+  label.style.cssText = 'font-weight:700;';
+
+  el.append(badge, label);
+  return el;
 }
 
 /** The dinner-suggestion marker: a small white circle with a teal fork & knife. Visually distinct

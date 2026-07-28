@@ -3,7 +3,13 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
-import { pinElement, hotelMarkerContent } from '@/components/maps/pin';
+import {
+  pinElement,
+  hotelMarkerContent,
+  hotelClusterContent,
+  HOTEL_LABEL_ZOOM,
+} from '@/components/maps/pin';
+import { clusterByGrid } from '@/components/maps/cluster';
 import { drawRoute } from '@/components/maps/draw-route';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import { Price } from '@/components/site/Price';
@@ -36,9 +42,6 @@ export function HotelMap() {
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const lineRef = useRef<google.maps.Polyline[]>([]);
-  // Markers are rebuilt whenever the display currency changes, so they must be tracked and torn
-  // down — previously nothing removed them and a re-run would have stacked a second full set.
-  const markersRef = useRef<google.maps.marker.AdvancedMarkerElement[]>([]);
   const [selected, setSelected] = useState<(Transfer & { lat: number; lng: number }) | null>(null);
 
   useEffect(() => {
@@ -56,41 +59,31 @@ export function HotelMap() {
       }));
 
     const bounds = new google.maps.LatLngBounds();
-    /** slug → its marker, so selecting one can repaint the others back to their resting state. */
-    const bySlug = new Map<
-      string,
-      { marker: google.maps.marker.AdvancedMarkerElement; hotel: Transfer }
-    >();
 
-    // Airport (fixed origin). Tracked like the rest so a rebuild can't leave a second one behind.
-    markersRef.current.push(
-      new google.maps.marker.AdvancedMarkerElement({
-        map,
-        position: { lat: SSR_AIRPORT.lat, lng: SSR_AIRPORT.lng },
-        content: pinElement({ color: '#F76C5E', glyph: 'A' }),
-        title: SSR_AIRPORT.title,
-        // Above every hotel pill (they top out just under 1000) — the origin must never be hidden.
-        zIndex: 2000,
-        collisionBehavior: google.maps.CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL,
-      }),
-    );
+    // Airport (fixed origin). Kept out of the clustered set — it's the one pin that must always be
+    // visible, and it never moves.
+    const airport = new google.maps.marker.AdvancedMarkerElement({
+      map,
+      position: { lat: SSR_AIRPORT.lat, lng: SSR_AIRPORT.lng },
+      content: pinElement({ color: '#F76C5E', glyph: 'A' }),
+      title: SSR_AIRPORT.title,
+      // Above every hotel pill (they top out just under 1000) — the origin must never be hidden.
+      zIndex: 2000,
+      collisionBehavior: google.maps.CollisionBehavior.REQUIRED_AND_HIDES_OPTIONAL,
+    });
     bounds.extend({ lat: SSR_AIRPORT.lat, lng: SSR_AIRPORT.lng });
+    for (const hotel of PINNED) bounds.extend({ lat: hotel.lat, lng: hotel.lng });
 
-    /** Repaint every hotel pill so exactly one reads as selected. */
-    function paint(activeSlug: string | null) {
-      for (const [slug, entry] of bySlug) {
-        entry.marker.content = hotelMarkerContent({
-          name: entry.hotel.hotelName,
-          priceLabel: money(entry.hotel.fromPriceEur),
-          color: REGION_COLOR[entry.hotel.region] ?? '#0E8C92',
-          selected: slug === activeSlug,
-        });
-      }
-    }
+    /** The resort that currently reads as selected; survives re-clustering on zoom. */
+    let activeSlug: string | null = null;
+    /** Hotel/cluster markers only — rebuilt on every zoom, so tracked apart from the airport. */
+    let pins: google.maps.marker.AdvancedMarkerElement[] = [];
+    let lastSignature = '';
 
     async function select(hotel: Transfer & { lat: number; lng: number }) {
       setSelected(hotel);
-      paint(hotel.slug);
+      activeSlug = hotel.slug;
+      render();
       lineRef.current.forEach((pl) => pl.setMap(null));
       lineRef.current = [];
       const rbounds = new google.maps.LatLngBounds();
@@ -116,41 +109,102 @@ export function HotelMap() {
       }
     }
 
-    for (const hotel of PINNED) {
-      const color = REGION_COLOR[hotel.region] ?? '#0E8C92';
-      const marker = new google.maps.marker.AdvancedMarkerElement({
-        map,
-        position: { lat: hotel.lat, lng: hotel.lng },
-        content: hotelMarkerContent({
-          name: hotel.hotelName,
-          priceLabel: money(hotel.fromPriceEur),
-          color,
-        }),
-        title: `${hotel.hotelName} — from ${money(hotel.fromPriceEur)}`,
-        gmpClickable: true,
-        // Named pills are far wider than a teardrop, and the north and east coasts stack a dozen
-        // resorts within a few km. Let Maps drop whichever labels collide and reveal them as the
-        // traveller zooms, rather than rendering an unreadable pile.
-        collisionBehavior: google.maps.CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY,
-        // Closer-to-airport resorts win a collision — they're the cheapest, most common transfers.
-        zIndex: Math.round(1000 - hotel.distanceKmFromAirport),
-      });
-      marker.addListener('gmp-click', () => void select(hotel));
-      markersRef.current.push(marker);
-      bySlug.set(hotel.slug, { marker, hotel });
-      bounds.extend({ lat: hotel.lat, lng: hotel.lng });
+    /**
+     * Rebuild the pins for the current zoom: a lone resort renders as its own pill, a group renders
+     * as one counted bubble. Cheap to re-run because it no-ops unless the grouping actually changed
+     * — panning within a zoom level leaves the signature identical.
+     */
+    function render() {
+      const zoom = map.getZoom() ?? 9;
+      const detailed = zoom >= HOTEL_LABEL_ZOOM;
+      const clusters = clusterByGrid(PINNED, zoom);
+      const signature = `${detailed}|${activeSlug ?? ''}|${clusters
+        .map((c) => c.members.map((m) => m.slug).join(','))
+        .join('|')}`;
+      if (signature === lastSignature) return;
+      lastSignature = signature;
+
+      for (const pin of pins) pin.map = null;
+      pins = [];
+
+      for (const cluster of clusters) {
+        if (cluster.members.length === 1) {
+          const hotel = cluster.members[0]!;
+          const color = REGION_COLOR[hotel.region] ?? '#0E8C92';
+          const marker = new google.maps.marker.AdvancedMarkerElement({
+            map,
+            position: { lat: hotel.lat, lng: hotel.lng },
+            content: hotelMarkerContent({
+              name: hotel.hotelName,
+              priceLabel: money(hotel.fromPriceEur),
+              color,
+              selected: hotel.slug === activeSlug,
+              detailed,
+            }),
+            title: `${hotel.hotelName} — from ${money(hotel.fromPriceEur)}`,
+            gmpClickable: true,
+            // Clustering does the heavy lifting; this catches the residual overlap between two
+            // adjacent cells whose full-width name pills still touch.
+            collisionBehavior: google.maps.CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY,
+            // Closer-to-airport resorts win a collision — the cheapest, most common transfers.
+            zIndex: Math.round(1000 - hotel.distanceKmFromAirport),
+          });
+          marker.addListener('gmp-click', () => void select(hotel));
+          pins.push(marker);
+          continue;
+        }
+
+        // A group: show how many and the cheapest fare among them, and zoom to split it on click.
+        const cheapest = cluster.members.reduce((a, b) =>
+          a.fromPriceEur <= b.fromPriceEur ? a : b,
+        );
+        const marker = new google.maps.marker.AdvancedMarkerElement({
+          map,
+          position: { lat: cluster.lat, lng: cluster.lng },
+          content: hotelClusterContent({
+            count: cluster.members.length,
+            fromLabel: money(cheapest.fromPriceEur),
+            color: REGION_COLOR[cheapest.region] ?? '#0E8C92',
+          }),
+          title: cluster.members.map((m) => m.hotelName).join(', '),
+          gmpClickable: true,
+          zIndex: 1200,
+        });
+        marker.addListener('gmp-click', () => {
+          const b = new google.maps.LatLngBounds();
+          for (const m of cluster.members) b.extend({ lat: m.lat, lng: m.lng });
+          const ne = b.getNorthEast();
+          const sw = b.getSouthWest();
+          // Resorts sharing effectively one spot give a zero-size bounds, and fitBounds answers
+          // that with maximum zoom. Step in by a fixed amount instead. Reading getZoom() straight
+          // after fitBounds would race it — the map has not necessarily applied the new zoom yet —
+          // so the two cases are handled separately rather than fitting and then correcting.
+          const degenerate =
+            Math.abs(ne.lat() - sw.lat()) < 1e-4 && Math.abs(ne.lng() - sw.lng()) < 1e-4;
+          if (degenerate) {
+            map.setCenter({ lat: cluster.lat, lng: cluster.lng });
+            map.setZoom(Math.min((map.getZoom() ?? 10) + 3, 16));
+          } else {
+            map.fitBounds(b, 80);
+          }
+        });
+        pins.push(marker);
+      }
     }
+
+    // `idle` fires once after a zoom or pan settles, rather than on every intermediate frame.
+    const idleListener = map.addListener('idle', render);
 
     map.fitBounds(bounds, 48);
 
     return () => {
       cancelled = true;
+      idleListener.remove();
       lineRef.current.forEach((pl) => pl.setMap(null));
       lineRef.current = [];
-      markersRef.current.forEach((m) => {
-        m.map = null;
-      });
-      markersRef.current = [];
+      for (const pin of pins) pin.map = null;
+      pins = [];
+      airport.map = null;
     };
   }, [status, money]);
 
