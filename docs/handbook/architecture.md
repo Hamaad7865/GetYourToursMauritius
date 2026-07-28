@@ -113,6 +113,31 @@ and does the work in `after()`. It confirms a booking only via an HMAC-verified 
 Peach using **the checkout id we stored ourselves at create time**. The id in the incoming body is
 deliberately not used.
 
+### The total is NOT the sum of the line items
+
+`bookings.total_minor` ≠ `Σ booking_items.subtotal_minor`. Two priced components are folded into the
+total by `api_book` **without** a `booking_items` row of their own:
+
+| Charge                  | Where it lives                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Region transport add-on | `bookings.transport_minor` (its own column)                                                                                    |
+| Child-seat extra        | nowhere — only the **count** (`bookings.child_seats`) is stored; the €6-per-extra-seat cost is added straight to `total_minor` |
+
+So anything that shows why a booking was charged what it was must add these lines back explicitly.
+Three surfaces do it, and they should agree:
+
+- `bookingExtraCharges()` (`src/lib/admin/bookings.ts`) — the `/admin` drawer's Items card. Both
+  charges, plus the residue guard below.
+- `buildInvoice()` (`src/lib/invoice/model.ts`) — the VAT invoice / receipt PDF. Both charges; its
+  lines reconcile to `totalEur` by construction.
+- `BookingConfirmation.tsx` — the customer's confirmation screen. **Transport only.** Its totals list
+  does not carry a child-seat money line (the seats appear as a separate detail block further down),
+  so a booking with 2+ child seats shows a Total larger than its own visible lines.
+
+`bookingExtraCharges()` also emits an **"Unaccounted"** line for any residue it cannot attribute. If
+that line ever appears in the admin drawer, a priced component has been added to `api_book` and not
+mirrored here — the point is that it shows up as a visible line instead of silently inflating a total.
+
 ### The one activity type that skips this whole path
 
 `activities.extra.inquiryOnly` (e.g. skydiving) opts an activity **out of every step above** — no hold,
@@ -172,19 +197,20 @@ The mail split matters: mail is **sent** as `bookings@` (`RESEND_FROM`) and **re
 
 This is the table to check before every commit.
 
-| If you change…                          | You must also…                                                                                                                                                       |
-| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A file in `supabase/migrations/`        | Mirror it into the **end** of `supabase/catch-up.sql`, run `npm run seed:gen && npm run setup:sql`, and **have the owner run the SQL on prod before the code ships** |
-| A Zod schema in `src/lib/validation/`   | `npm run openapi:write` (a test compares `openapi.json` byte-for-byte)                                                                                               |
-| Add a new `api_*` RPC                   | Add its name to the `ALLOWED` set in `tests/db/rpc.ts`, or tests throw `unknown rpc <fn>`                                                                            |
-| Add a table / column / enum value       | Hand-edit `src/lib/supabase/types.ts` — it is **not** generated, despite the `gen:types` script                                                                      |
-| Add an API route                        | `export const runtime = 'edge'` — the Cloudflare build fails without it (a unit test catches this)                                                                   |
-| A public page's title / description     | Nothing — but check it isn't already **admin-editable** (`src/lib/seo/page-registry.ts`)                                                                             |
-| A price or fare                         | Nothing in code — fares are **admin-editable rows** (`/admin/vehicle-pricing`)                                                                                       |
-| Anything under `workers/cron/`          | `npx wrangler deploy --config workers/cron/wrangler.toml` — `git push` does **not** ship it                                                                          |
-| The domain                              | `NEXT_PUBLIC_SITE_URL` (Pages env) **and** `SITE_URL` in `workers/cron/wrangler.toml` **and** `PEACH_WEBHOOK_URL` **and** re-verify the Resend sending domain        |
-| An English UI string passed to `t(...)` | Update the matching key in `src/lib/i18n/messages.ts` — translation is an **exact string match**, and a near-miss silently falls back to English                     |
-| A `create or replace function`          | Find the **winning** (last-in-filename-order) body first — see [landmines](landmines.md#the-worst-one-migration-revert-drift)                                        |
+| If you change…                                                              | You must also…                                                                                                                                                                                    |
+| --------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A file in `supabase/migrations/`                                            | Mirror it into the **end** of `supabase/catch-up.sql`, run `npm run seed:gen && npm run setup:sql`, and **have the owner run the SQL on prod before the code ships**                              |
+| A Zod schema in `src/lib/validation/`                                       | `npm run openapi:write` (a test compares `openapi.json` byte-for-byte)                                                                                                                            |
+| Add a new `api_*` RPC                                                       | Add its name to the `ALLOWED` set in `tests/db/rpc.ts`, or tests throw `unknown rpc <fn>`                                                                                                         |
+| Add a table / column / enum value                                           | Hand-edit `src/lib/supabase/types.ts` — it is **not** generated, despite the `gen:types` script                                                                                                   |
+| Add an API route                                                            | `export const runtime = 'edge'` — the Cloudflare build fails without it (a unit test catches this)                                                                                                |
+| A public page's title / description                                         | Nothing — but check it isn't already **admin-editable** (`src/lib/seo/page-registry.ts`)                                                                                                          |
+| A price or fare                                                             | Nothing in code — fares are **admin-editable rows** (`/admin/vehicle-pricing`)                                                                                                                    |
+| A charge `api_book` adds to `total_minor` **without** a `booking_items` row | Add it to `bookingExtraCharges()` **and** `buildInvoice()` **and** `BookingConfirmation.tsx` — otherwise the total can't be explained ([money path](#the-total-is-not-the-sum-of-the-line-items)) |
+| Anything under `workers/cron/`                                              | `npx wrangler deploy --config workers/cron/wrangler.toml` — `git push` does **not** ship it                                                                                                       |
+| The domain                                                                  | `NEXT_PUBLIC_SITE_URL` (Pages env) **and** `SITE_URL` in `workers/cron/wrangler.toml` **and** `PEACH_WEBHOOK_URL` **and** re-verify the Resend sending domain                                     |
+| An English UI string passed to `t(...)`                                     | Update the matching key in `src/lib/i18n/messages.ts` — translation is an **exact string match**, and a near-miss silently falls back to English                                                  |
+| A `create or replace function`                                              | Find the **winning** (last-in-filename-order) body first — see [landmines](landmines.md#the-worst-one-migration-revert-drift)                                                                     |
 
 ---
 

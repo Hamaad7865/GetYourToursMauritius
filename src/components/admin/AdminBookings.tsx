@@ -10,6 +10,7 @@ import {
   markBookingRefunded,
   eraseCustomerData,
   saveBookingNotes,
+  bookingExtraCharges,
   type BookingRow,
   type BookingDetail,
   type BookingStatus,
@@ -613,6 +614,9 @@ function BookingDrawer({
   const busyRef = useRef<string | null>(null);
   busyRef.current = busy;
 
+  // Priced components that carry no booking_items row of their own — see bookingExtraCharges.
+  const extraCharges = useMemo(() => (booking ? bookingExtraCharges(booking) : []), [booking]);
+
   const requestClose = useCallback(() => {
     if (!busyRef.current) onClose();
   }, [onClose]);
@@ -786,21 +790,47 @@ function BookingDrawer({
               </h3>
               <ul className="mt-2 flex flex-col gap-3">
                 {booking.items.map((it, i) => (
-                  <li key={i} className="text-sm">
-                    <p className="font-bold text-ink">{it.activityTitle}</p>
-                    <p className="text-[13px] text-ink-muted">
-                      {it.optionName ? `${it.optionName} · ` : ''}
-                      {it.quantity} × {it.priceLabel} · {eur(it.unitAmountEur)}
-                    </p>
-                    <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink/70">
-                      <IconCalendar width={13} height={13} className="text-teal" />{' '}
-                      {fmtDate(it.startsAt)}
-                      <IconUsers width={13} height={13} className="ml-2 text-teal" />{' '}
-                      {it.pax ?? it.quantity}
-                    </p>
+                  <li key={i} className="flex items-start justify-between gap-3 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-bold text-ink">{it.activityTitle}</p>
+                      <p className="text-[13px] text-ink-muted">
+                        {/* On a single-option activity the option name IS the price label; printing
+                            both gives "X · 1 × X". */}
+                        {it.optionName && it.optionName !== it.priceLabel
+                          ? `${it.optionName} · `
+                          : ''}
+                        {it.quantity} × {it.priceLabel}
+                        {/* Unit price only when it differs from the line total, else it reads twice. */}
+                        {it.quantity > 1 ? ` · ${eur(it.unitAmountEur)} each` : ''}
+                      </p>
+                      <p className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-ink/70">
+                        <IconCalendar width={13} height={13} className="text-teal" />{' '}
+                        {fmtDate(it.startsAt)}
+                        <IconUsers width={13} height={13} className="ml-2 text-teal" />{' '}
+                        {it.pax ?? it.quantity}
+                      </p>
+                    </div>
+                    <span className="shrink-0 font-semibold text-ink">{eur(it.subtotalEur)}</span>
                   </li>
                 ))}
               </ul>
+              {/* Charges with no booking_items row (transport add-on, child seats). Without these the
+                  Total silently exceeds the lines above and staff cannot explain the amount charged. */}
+              {extraCharges.length > 0 && (
+                <ul className="mt-2.5 flex flex-col gap-1.5 border-t border-ink/10 pt-2.5">
+                  {extraCharges.map((charge) => (
+                    <li
+                      key={charge.label}
+                      className="flex items-baseline justify-between gap-3 text-[13px]"
+                    >
+                      <span className="text-ink-muted">{charge.label}</span>
+                      <span className="shrink-0 font-semibold text-ink">
+                        {eur(charge.amountEur)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
               <div className="mt-3 flex items-center justify-between border-t border-ink/10 pt-3">
                 <span className="text-sm font-bold text-ink">Total</span>
                 <span className="text-lg font-extrabold text-ink">{eur(booking.totalEur)}</span>

@@ -1,3 +1,4 @@
+import { childSeatsCost } from '@/lib/services/pricing';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 
 /* Admin booking reads + lifecycle writes. Staff/admin RLS (`*_staff` policies) grants full
@@ -66,6 +67,9 @@ export interface BookingRow {
   pickupPending: boolean;
   /** Child seats on the booking (first free, €6 each extra; the charge is in the total). */
   childSeats: number;
+  /** Region-based transport add-on in EUR — already inside totalEur, but it has NO booking_items
+   *  row, so the drawer must render it explicitly or the Total looks unexplained. */
+  transportEur: number;
   /** Airport-transfer details (null for non-transfer bookings) — shown in the admin drawer + voucher. */
   transfer: AdminTransferDetails | null;
 }
@@ -150,6 +154,7 @@ interface RawBooking {
   dropoff_location: string | null;
   pickup_pending: boolean | null;
   child_seats: number | null;
+  transport_minor: number | null;
   trip_direction: string | null;
   room_or_cabin: string | null;
   flight_number: string | null;
@@ -171,6 +176,7 @@ interface RawBooking {
 const BOOKING_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
   source, currency, total_minor, notes, custom_itinerary, pickup_location, dropoff_location, pickup_pending, child_seats,
+  transport_minor,
   trip_direction, room_or_cabin, flight_number, arrival_time, return_date, return_time, departure_flight_number,
   luggage_details, child_seat_age, traveller_country, traveller_company, traveller_gender, special_notes, created_at,
   booking_items (
@@ -228,6 +234,7 @@ function mapBooking(raw: RawBooking): BookingRow {
     dropoffLocation: raw.dropoff_location ?? null,
     pickupPending: raw.pickup_pending ?? false,
     childSeats: raw.child_seats ?? 0,
+    transportEur: (raw.transport_minor ?? 0) / 100,
     // Only build a transfer block when there's a direction (i.e. it's an airport transfer).
     transfer: raw.trip_direction
       ? {
@@ -247,6 +254,52 @@ function mapBooking(raw: RawBooking): BookingRow {
         }
       : null,
   };
+}
+
+/** A charge that is inside `totalEur` but has no `booking_items` row of its own. */
+export interface BookingChargeLine {
+  label: string;
+  amountEur: number;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * The charges that make up `totalEur` without a `booking_items` row behind them: the region
+ * transport add-on (`bookings.transport_minor`) and the child-seat extra (folded straight into
+ * `total_minor` by api_book, which persists only the seat *count*).
+ *
+ * Labels mirror `buildInvoice()` in `@/lib/invoice/model` on purpose — the staff drawer and the
+ * customer's VAT invoice must never disagree about why a total is what it is.
+ *
+ * Any residue that still doesn't add up becomes an "Unaccounted" line. That is deliberate: a
+ * component we forget to model here should show as a visible line, not silently inflate the Total
+ * (which is exactly how a €30 transport fee once made a €730 booking look like a €700 one).
+ */
+export function bookingExtraCharges(booking: BookingRow): BookingChargeLine[] {
+  const lines: BookingChargeLine[] = [];
+
+  if (booking.transportEur > 0) {
+    lines.push({ label: 'Door-to-door transport', amountEur: round2(booking.transportEur) });
+  }
+
+  const childSeatEur = childSeatsCost(booking.childSeats);
+  if (childSeatEur > 0) {
+    lines.push({ label: `Child seats (${booking.childSeats})`, amountEur: childSeatEur });
+  }
+
+  const accounted = lines.reduce(
+    (sum, line) => sum + line.amountEur,
+    booking.items.reduce((sum, it) => sum + it.subtotalEur, 0),
+  );
+  // round2 before comparing: both sides come from minor units, so a non-zero residue here is a real
+  // missing charge, never float noise from summing cents.
+  const residue = round2(booking.totalEur - accounted);
+  if (residue !== 0) lines.push({ label: 'Unaccounted', amountEur: residue });
+
+  return lines;
 }
 
 /** All bookings, newest first. Staff RLS returns every row. */
