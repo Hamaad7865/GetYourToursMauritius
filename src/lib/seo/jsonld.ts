@@ -53,6 +53,36 @@ export function organizationJsonLd(): Record<string, unknown> {
   };
 }
 
+/**
+ * The `WebSite` entity for the brand name itself.
+ *
+ * `organizationJsonLd` above describes the BUSINESS; this describes the SITE, and it is the node
+ * Google leans on to decide which URL is a brand's home. That distinction matters here because
+ * "Belle Mare Tours" collides with the place name, and several of our own pages are plausible
+ * answers for it (`/things-to-do-in-belle-mare`, `/belle-mare-tours`, `/destinations/belle-mare`) —
+ * on a young domain Google's pick between them is unstable and has flipped day to day.
+ *
+ * `publisher` ties the site back to the TravelAgency `@id`, so the two nodes read as one entity
+ * rather than two unrelated things that happen to share a name.
+ *
+ * A supporting signal, not a lever: which page wins a brand query is still decided mostly by links
+ * and authority. This removes our own ambiguity; it does not overrule Google.
+ */
+export function websiteJsonLd(): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${SITE.url}/#website`,
+    url: SITE.url,
+    name: SITE.name,
+    // How people actually type it — both are real queries in Search Console.
+    alternateName: ['Belle Mare Tours Mauritius', 'bellemaretours.com'],
+    description: SITE.description,
+    inLanguage: 'en',
+    publisher: { '@id': `${SITE.url}/#operator` },
+  };
+}
+
 /** Product + Offer (EUR) + AggregateRating for an activity detail page. */
 export function productJsonLd(activity: TourDetail | TourSummary): Record<string, unknown> {
   const summary = 'summary' in activity ? activity.summary : null;

@@ -4,7 +4,9 @@ import {
   productJsonLd,
   reviewsPageJsonLd,
   serializeJsonLd,
+  websiteJsonLd,
 } from '@/lib/seo/jsonld';
+import { SITE } from '@/lib/seo/site';
 import type { TourSummary } from '@/lib/validation/tours';
 
 const base: TourSummary = {
@@ -76,5 +78,33 @@ describe('JSON-LD', () => {
     );
     expect(out).not.toContain('</script>');
     expect(out).toContain('\\u003c/script>');
+  });
+});
+
+/* The brand name collides with the place name, and several of our own pages are plausible answers
+ * for "belle mare tours" — Google's pick between them flipped day to day in Search Console. The
+ * WebSite node is what states which URL is the brand's home. */
+describe('websiteJsonLd', () => {
+  it('names the site and points it at the homepage, not a subpage', () => {
+    const w = websiteJsonLd();
+    expect(w['@type']).toBe('WebSite');
+    expect(w.url).toBe(SITE.url);
+    expect(w.name).toBe(SITE.name);
+  });
+
+  it('joins the site to the business entity, so the two are one thing to Google', () => {
+    const w = websiteJsonLd();
+    const org = organizationJsonLd();
+    expect(w.publisher).toEqual({ '@id': org['@id'] });
+    // A dangling publisher reference would make the link silently meaningless.
+    expect(org['@id']).toBe(`${SITE.url}/#operator`);
+  });
+
+  it('carries the ways people actually type the brand', () => {
+    expect(websiteJsonLd().alternateName).toContain('Belle Mare Tours Mauritius');
+  });
+
+  it('does not collide with the organization node', () => {
+    expect(websiteJsonLd()['@id']).not.toBe(organizationJsonLd()['@id']);
   });
 });

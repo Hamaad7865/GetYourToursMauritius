@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { organizationJsonLd } from '@/lib/seo/jsonld';
+import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 import './globals.css';
 
 const display = Fraunces({
@@ -58,6 +58,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
         <JsonLd data={organizationJsonLd()} />
+        {/* The site entity, paired with the business entity above — see websiteJsonLd for why the
+            brand query needs both. */}
+        <JsonLd data={websiteJsonLd()} />
         {children}
       </body>
     </html>
