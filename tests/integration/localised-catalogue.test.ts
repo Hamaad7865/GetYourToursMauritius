@@ -226,4 +226,50 @@ describe('locale-aware catalogue RPCs', () => {
     expect(fr.total).toBe(en.total);
     expect(fr.items.length).toBe(en.items.length);
   });
+
+  it('finds an activity by its FRENCH title', async () => {
+    // The whole point of translating: a French visitor sees "Titre en français" on the card, types
+    // part of it, and must get the activity back. Matching only English columns returns nothing.
+    const res = await rpc<{ items: { slug: string }[] }>(db, 'api_search_activities', {
+      q: 'français', category: null, type: null, region: null, priceMin: null, priceMax: null,
+      durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100, locale: 'fr',
+    });
+    expect(res.items.map((i) => i.slug)).toContain(slug);
+  });
+
+  it('still finds an activity by its ENGLISH title while browsing in French', async () => {
+    // Place names and brand terms are shared across languages, so an English query must keep
+    // working in a French session.
+    const { rows } = await db.pg.query<{ title: string }>(
+      `select title from activities where slug = $1`, [slug],
+    );
+    const word = rows[0]!.title.split(' ')[0]!;
+    const res = await rpc<{ items: { slug: string }[] }>(db, 'api_search_activities', {
+      q: word, category: null, type: null, region: null, priceMin: null, priceMax: null,
+      durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100, locale: 'fr',
+    });
+    expect(res.items.map((i) => i.slug)).toContain(slug);
+  });
+
+  it('matches the French title even for an English session', async () => {
+    const res = await rpc<{ items: { slug: string }[] }>(db, 'api_search_activities', {
+      q: 'français', category: null, type: null, region: null, priceMin: null, priceMax: null,
+      durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100,
+    });
+    expect(res.items.map((i) => i.slug)).toContain(slug);
+  });
+
+  it('does not duplicate a row that matches in BOTH languages', async () => {
+    // An activity whose English and French text both match the query must appear ONCE. An OR
+    // across joined columns is safe, but a careless join or a UNION would double it.
+    const res = await rpc<{ items: { slug: string }[]; total: number }>(
+      db, 'api_search_activities', {
+        q: 'a', category: null, type: null, region: null, priceMin: null, priceMax: null,
+        durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100, locale: 'fr',
+      },
+    );
+    const slugs = res.items.map((i) => i.slug);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    expect(res.total).toBe(slugs.length);
+  });
 });

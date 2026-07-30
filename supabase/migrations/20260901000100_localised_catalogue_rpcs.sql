@@ -133,11 +133,22 @@ $$;
 -- api_get_activity above, extended to the search/cards/rails RPC — this is what actually puts
 -- French on every surface a visitor sees BEFORE opening an activity (cards, search results,
 -- home rails, related tours, wishlist). TourSummary only carries two translatable fields
--- (title, summary), so those are the only two coalesced; everything else — filtering,
--- faceting, prices, ratings, images, ordering, pagination, the total — is carried over
--- verbatim from the winning body. The join lives in the `filtered` CTE so it flows unchanged
--- into `priced` (and therefore `total`) and `paged`: activity_translations is unique on
--- (activity_id, locale), so a left join on that key cannot fan out rows or inflate the count.
+-- (title, summary), so those are the only two coalesced; faceting, prices, ratings, images,
+-- ordering, pagination, the total — is carried over verbatim from the winning body. The join
+-- lives in the `filtered` CTE so it flows unchanged into `priced` (and therefore `total`) and
+-- `paged`: activity_translations is unique on (activity_id, locale), so a left join on that key
+-- cannot fan out rows or inflate the count.
+-- The free-text `q` predicate matches BOTH a.title/a.summary (English) AND tf.title/tf.summary
+-- (French — via a SECOND, unconditional join to locale = 'fr', see below), regardless of the
+-- requested locale: place names and brand terms are shared across languages, so an English query
+-- must keep working in a French session and vice versa. Matching both is strictly more useful than
+-- gating the translated match behind locale = 'fr', and it keeps the predicate independent of the
+-- locale parameter. The existing locale-parameterized `t` join (used for display) can't serve
+-- double duty here: it resolves to whichever locale was requested, defaulting to 'en' — which is
+-- NULL for almost every activity, since English content lives in the base `activities` columns,
+-- not an 'en' overlay row — so it would silently fail to match French during an English session.
+-- Ordering stays on the English `title` column — sorting by the translated title would be a
+-- cosmetic nicety, not a defect, and isn't worth disturbing the pagination contract for.
 -- ---------------------------------------------------------------------------
 create or replace function api_search_activities(p jsonb)
 returns jsonb
@@ -181,6 +192,16 @@ as $$
     left join activity_translations t
       on t.activity_id = a.id
      and t.locale = coalesce(nullif(p ->> 'locale', ''), 'en')::content_locale
+    -- Second, UNCONDITIONAL join to the French row, used only by the `q` predicate below. `t` above
+    -- is locale-parameterized (it resolves to whichever locale was requested, defaulting to 'en' —
+    -- which is usually NULL, since English content lives in the base `activities` columns, not an
+    -- 'en' overlay row), so it cannot be relied on to hold French text for an English session. tf
+    -- always holds the French overlay regardless of the requested locale, which is what lets the
+    -- free-text search match French independently of the locale parameter. Same unique-key join
+    -- (activity_id, locale), so it cannot fan out rows either.
+    left join activity_translations tf
+      on tf.activity_id = a.id
+     and tf.locale = 'fr'::content_locale
     where a.status = 'published'
       and coalesce(a.is_custom_planner, false) = false
       and (p ->> 'category' is null or a.category::text = p ->> 'category')
@@ -190,6 +211,8 @@ as $$
         p ->> 'q' is null
         or a.title ilike '%' || (p ->> 'q') || '%'
         or coalesce(a.summary, '') ilike '%' || (p ->> 'q') || '%'
+        or coalesce(tf.title, '') ilike '%' || (p ->> 'q') || '%'
+        or coalesce(tf.summary, '') ilike '%' || (p ->> 'q') || '%'
       )
       and (p ->> 'durationMin' is null or coalesce(a.duration_minutes, 0) >= (p ->> 'durationMin')::int)
       and (p ->> 'durationMax' is null or coalesce(a.duration_minutes, 0) <= (p ->> 'durationMax')::int)
