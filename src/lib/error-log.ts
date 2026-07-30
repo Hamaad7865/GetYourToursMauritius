@@ -9,15 +9,22 @@
  * Three rules hold everywhere this is called from:
  *  1. **It never throws.** It runs inside catch blocks that are already handling a failure; a throw
  *     here would convert a handled 500 into an unhandled one — the exact blindness the table fixes.
- *  2. **It never blocks for long.** A 3-second client timeout, not the 15-second default: a customer
- *     staring at a failing page must not also wait on a sick database. A write that misses the window
- *     is dropped, and the console line still carries the error.
- *  3. **It stores no personal data.** No IP, no email, no request bodies, no tokens. Only what the
- *     operator needs to find the bug.
+ *  2. **It never blocks for long.** A 3-second abort, not the 15-second upstream default: a customer
+ *     staring at a failing page must not also wait on a sick database.
+ *  3. **It stores no personal data.** No IP, no email, no request bodies, no tokens.
+ *
+ * ── Why this module imports NOTHING ────────────────────────────────────────────────────────────
+ * It is called from `instrumentation.ts`, which Next inlines into EVERY edge function. Any module
+ * this file imports is therefore shared between the instrumentation prelude and the route body of
+ * the same generated function — and when webpack chunks such a module, next-on-pages' dedup pass
+ * sees the same chunk identifier twice in one function file and aborts the build with "A duplicated
+ * identifier has been detected in the same function file" (dedupeEdgeFunctions → collectIdentifiers).
+ * That is exactly what a `@supabase/supabase-js` import here did. Keeping this a dependency-free leaf
+ * — a single fetch, `process.env` read directly instead of through the zod-backed env module — keeps
+ * instrumentation's module graph disjoint from the routes'. Do not add imports to this file.
+ *
+ * PostgREST's RPC endpoint is a plain POST, so the Supabase client bought us nothing here anyway.
  */
-import { createServiceRoleClient } from '@/lib/supabase/admin';
-import { supabaseRpc } from '@/lib/supabase/rpc';
-import { getServerEnv } from '@/lib/config/env';
 
 /** Which layer produced the failure — the first thing you filter on when triaging. */
 export type ErrorSource = 'api' | 'ssr' | 'browser' | 'cron';
@@ -57,25 +64,43 @@ function clamp(value: string | undefined, max: number): string | undefined {
  */
 export async function recordError(record: ErrorRecord): Promise<void> {
   try {
-    const env = getServerEnv();
+    // Read straight from process.env — see the module note above on why this file imports nothing.
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
     // No service key (local dev, preview builds, the seed-fixture fallback) — the console line is the
     // whole story there, and there is no database to write to.
-    if (!env.NEXT_PUBLIC_SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) return;
+    if (!url || !key) return;
 
-    const db = supabaseRpc(createServiceRoleClient(ERROR_LOG_TIMEOUT_MS));
-    await db.rpc('api_log_error', {
-      source: record.source,
-      event: record.event,
-      message: clamp(record.message, MAX_MESSAGE) ?? '(no message)',
-      errorName: record.errorName,
-      stack: clamp(record.stack, MAX_STACK),
-      route: record.route,
-      method: record.method,
-      status: record.status,
-      requestId: record.requestId,
-      userAgent: record.userAgent,
-      context: record.context,
+    const res = await fetch(`${url.replace(/\/+$/, '')}/rest/v1/rpc/api_log_error`, {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        authorization: `Bearer ${key}`,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        p: {
+          source: record.source,
+          event: record.event,
+          message: clamp(record.message, MAX_MESSAGE) ?? '(no message)',
+          errorName: record.errorName,
+          stack: clamp(record.stack, MAX_STACK),
+          route: record.route,
+          method: record.method,
+          status: record.status,
+          requestId: record.requestId,
+          userAgent: record.userAgent,
+          context: record.context,
+        },
+      }),
+      // Hard bound on an already-failing request. AbortSignal.timeout is available on the edge
+      // runtime and in Node 18+; the catch below covers the abort like any other failure.
+      signal: AbortSignal.timeout(ERROR_LOG_TIMEOUT_MS),
     });
+
+    if (!res.ok) {
+      console.error(`[error-log] api_log_error returned ${res.status}`);
+    }
   } catch (error) {
     // Deliberately a bare console line, NOT `log.error` and never a retry: this path runs when the
     // database is the thing that's broken, and anything cleverer risks recursing or stalling.

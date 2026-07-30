@@ -66,8 +66,19 @@ and is excluded too.
 
 **The write is awaited, not fire-and-forget.** The edge runtime may cancel work that outlives the
 response, so a floating promise would drop rows exactly when the platform is unhealthy. The cost is
-bounded by giving the sink its own **3-second** Supabase client rather than the 15-second default: a
-customer already looking at a failing page must not also wait out a sick database.
+bounded by a **3-second** `AbortSignal.timeout` rather than the 15-second upstream default: a customer
+already looking at a failing page must not also wait out a sick database.
+
+**`src/lib/error-log.ts` imports nothing — and must stay that way.** It is called from
+`instrumentation.ts`, which Next inlines into _every_ edge function, so any module it imports is
+shared between the instrumentation prelude and the route body of the same generated function. When
+webpack chunks such a module, next-on-pages' dedup pass finds the same chunk identifier twice in one
+function file and aborts the whole build with "A duplicated identifier has been detected in the same
+function file". A `@supabase/supabase-js` import here did exactly that — CI 30572567405, green through
+typecheck, lint, format, tests and `next build`, then dead at the Edge-bundle step. The sink is now a
+single `fetch` to PostgREST's `/rest/v1/rpc/api_log_error` reading `process.env` directly, which the
+Supabase client bought us nothing over anyway. `tests/unit/error-log.test.ts` asserts the file has
+zero static imports so this cannot regress.
 
 **The sink can never make things worse.** `recordError` swallows its own failures to a plain
 `console.error` (never `log.error`, never a retry, never a recursive record), and does nothing at all
