@@ -55,6 +55,8 @@ const ALLOWED = new Set([
   'api_upsert_fx_rate',
   'api_fx_rate_status',
   'api_flag_settlement_review',
+  'api_log_error',
+  'api_purge_error_logs',
 ]);
 
 /**

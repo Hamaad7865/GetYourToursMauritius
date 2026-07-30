@@ -26,6 +26,11 @@ const LOCKED = [
   'api_booking_receipt(jsonb)',
   'api_pending_payment_checkouts(jsonb)',
   'api_enqueue_review_invites(jsonb)',
+  // The error-log pair (20260831000000). api_log_error is called on every failure, so an open grant
+  // would be a free, unauthenticated write channel into the operator's diagnostics; api_purge_error_logs
+  // DELETES, which would let anyone erase the record of what they just broke.
+  'api_log_error(jsonb)',
+  'api_purge_error_logs(jsonb)',
 ];
 
 describe('internal SECURITY DEFINER functions are locked to service_role', () => {

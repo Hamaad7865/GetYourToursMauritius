@@ -66,6 +66,15 @@ in the body (`siteUrlConfigured`, `internalTasksConfigured`, `paymentsSafe`, …
 `releaseSha` / `releaseRunId` — compare against `git rev-parse HEAD` on `main` to confirm the deployed
 build is actually current. It is the single most useful URL in this system.
 
+**Second diagnostic — what actually broke.** In the Supabase SQL Editor:
+
+```sql
+select * from error_logs order by created_at desc;
+```
+
+Every server crash, page-render crash, browser crash and failed cron step of the last 30 days, newest
+first. See [Operations → the error log](handbook/operations.md#what-broke-the-error-log).
+
 ---
 
 ## The handbook

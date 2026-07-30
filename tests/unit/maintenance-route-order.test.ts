@@ -2,32 +2,38 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Record the order the maintenance steps run in. The money-safety property is that reconcile
 // (confirm-paid) runs BEFORE the booking-expiry sweep, and that each step is isolated.
-const { calls, reconcile, expire, materialize, reviewInvites, fxRefresh } = vi.hoisted(() => {
-  const calls: string[] = [];
-  return {
-    calls,
-    reconcile: vi.fn(async () => {
-      calls.push('reconcile');
-      return { queried: 0, confirmed: 0, pending: 0, failed: 0, errored: 0 };
-    }),
-    expire: vi.fn(async () => {
-      calls.push('expire');
-      return { holdsExpired: 0, bookingsExpired: 0 };
-    }),
-    materialize: vi.fn(async () => {
-      calls.push('materialize');
-      return 0;
-    }),
-    reviewInvites: vi.fn(async () => {
-      calls.push('reviewInvites');
-      return 0;
-    }),
-    fxRefresh: vi.fn(async () => {
-      calls.push('fx');
-      return { refreshed: true, rate: 53.98, ageHours: 0 };
-    }),
-  };
-});
+const { calls, reconcile, expire, materialize, reviewInvites, fxRefresh, purgeErrors } = vi.hoisted(
+  () => {
+    const calls: string[] = [];
+    return {
+      calls,
+      purgeErrors: vi.fn(async () => {
+        calls.push('purgeErrors');
+        return { deleted: 0, aged: 0, overflow: 0 };
+      }),
+      reconcile: vi.fn(async () => {
+        calls.push('reconcile');
+        return { queried: 0, confirmed: 0, pending: 0, failed: 0, errored: 0 };
+      }),
+      expire: vi.fn(async () => {
+        calls.push('expire');
+        return { holdsExpired: 0, bookingsExpired: 0 };
+      }),
+      materialize: vi.fn(async () => {
+        calls.push('materialize');
+        return 0;
+      }),
+      reviewInvites: vi.fn(async () => {
+        calls.push('reviewInvites');
+        return 0;
+      }),
+      fxRefresh: vi.fn(async () => {
+        calls.push('fx');
+        return { refreshed: true, rate: 53.98, ageHours: 0 };
+      }),
+    };
+  },
+);
 
 vi.mock('@/lib/services/maintenance', () => ({
   reconcilePaymentsPending: reconcile,
@@ -35,6 +41,7 @@ vi.mock('@/lib/services/maintenance', () => ({
   materializeAvailability: materialize,
   enqueueReviewInvites: reviewInvites,
   refreshFxRate: fxRefresh,
+  purgeErrorLogs: purgeErrors,
 }));
 vi.mock('@/lib/http/context', () => ({ serviceRoleServiceContext: () => ({}) }));
 vi.mock('@/lib/config/env', () => ({ getServerEnv: () => ({ INTERNAL_TASK_SECRET: 'secret' }) }));
@@ -54,6 +61,7 @@ beforeEach(() => {
   materialize.mockClear();
   reviewInvites.mockClear();
   fxRefresh.mockClear();
+  purgeErrors.mockClear();
   fxRefresh.mockImplementation(async () => {
     calls.push('fx');
     return { refreshed: true, rate: 53.98, ageHours: 0 };
@@ -103,6 +111,17 @@ describe('maintenance route ordering (money-safety)', () => {
     };
     expect(body.error.code).toBe('maintenance_partial_failure');
     expect(body.error.details?.erroredJobs).toEqual(['payments']);
+  });
+
+  it('prunes error_logs, but a failed prune does NOT turn the cron red', async () => {
+    purgeErrors.mockImplementationOnce(async () => {
+      throw new Error('purge failed');
+    });
+    const res = await POST(req());
+    // Housekeeping only. A red cron means customers are affected (money, emails, availability); an
+    // unpruned diagnostics table is neither, and it reports itself INTO error_logs where it's visible.
+    expect(res.status).toBe(200);
+    expect(purgeErrors).toHaveBeenCalled();
   });
 
   it('stays 200 when the payments sweep reconciles everything cleanly (errored count 0)', async () => {

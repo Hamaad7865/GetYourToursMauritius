@@ -71,6 +71,27 @@ export async function enqueueReviewInvites(ctx: ServiceContext): Promise<number>
   return enqueueReviewInvitesRpc(ctx);
 }
 
+const purgeResultSchema = z.object({
+  deleted: z.coerce.number().int(),
+  aged: z.coerce.number().int(),
+  overflow: z.coerce.number().int(),
+});
+export type PurgeErrorLogsResult = z.infer<typeof purgeResultSchema>;
+
+/** Errors older than this are dropped. A month covers "it broke sometime last week" without letting
+ *  the table grow into something nobody wants to open. */
+const ERROR_LOG_RETENTION_DAYS = 30;
+
+/**
+ * Prune `error_logs` (see 20260831000000): rows past the retention window, plus anything beyond the
+ * row cap the SQL enforces as a crash-loop backstop. Pure housekeeping — it touches no booking, no
+ * payment and no customer-visible state.
+ */
+export async function purgeErrorLogs(ctx: ServiceContext): Promise<PurgeErrorLogsResult> {
+  const data = await callRpc(ctx, 'api_purge_error_logs', { days: ERROR_LOG_RETENTION_DAYS });
+  return purgeResultSchema.parse(data);
+}
+
 const fxStatusSchema = z.object({
   rate: z.coerce.number().nullish(),
   ageHours: z.coerce.number().nullish(),

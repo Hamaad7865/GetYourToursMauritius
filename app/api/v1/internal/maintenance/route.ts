@@ -10,7 +10,9 @@ import {
   reconcilePaymentsPending,
   enqueueReviewInvites,
   refreshFxRate,
+  purgeErrorLogs,
 } from '@/lib/services/maintenance';
+import { recordError, describeThrown } from '@/lib/error-log';
 
 export const runtime = 'edge';
 
@@ -33,11 +35,23 @@ export const POST = apiHandler(async (req) => {
   // then excluded from the expire predicate — it can never be wrongly auto-cancelled. Each step is
   // isolated in its own try/catch so one failure (e.g. the provider is briefly unreachable) never blocks
   // the others; the failed step simply re-runs on the next cron tick.
-  const log = (step: string, err: unknown) =>
-    console.error(
-      `[maintenance] ${step} failed:`,
-      err instanceof Error ? err.message : 'unknown error',
-    );
+
+  // A failed step is logged AND recorded durably: the cron runs unattended every few minutes, so
+  // "which sweep has been failing since Tuesday?" is exactly the question error_logs exists to answer.
+  const log = async (step: string, err: unknown): Promise<void> => {
+    const { errorName, message, stack } = describeThrown(err);
+    console.error(`[maintenance] ${step} failed:`, message);
+    await recordError({
+      source: 'cron',
+      event: 'cron_step_failed',
+      message,
+      errorName,
+      stack,
+      route: '/api/v1/internal/maintenance',
+      method: 'POST',
+      context: { step },
+    });
+  };
 
   // 0) Refresh the server-controlled EUR→MUR charge rate (api_create_payment pins charges from it).
   //    Off the checkout critical path by design; tolerant of upstream failures while the stored rate
@@ -46,7 +60,7 @@ export const POST = apiHandler(async (req) => {
   try {
     fx = await refreshFxRate(ctx);
   } catch (err) {
-    log('fx rate refresh', err);
+    await log('fx rate refresh', err);
   }
 
   // 1) Webhook-less safety net: re-query the provider for stuck `payment_pending` bookings and confirm
@@ -57,7 +71,7 @@ export const POST = apiHandler(async (req) => {
   try {
     payments = await reconcilePaymentsPending(ctx);
   } catch (err) {
-    log('payment reconcile sweep', err);
+    await log('payment reconcile sweep', err);
   }
 
   // 2) Sweep stale holds + expire genuinely-abandoned bookings (now that any real payment is confirmed).
@@ -67,7 +81,7 @@ export const POST = apiHandler(async (req) => {
   try {
     result = await runBookingMaintenance(ctx);
   } catch (err) {
-    log('booking maintenance sweep', err);
+    await log('booking maintenance sweep', err);
   }
 
   // 3) Roll the open-ended availability window forward (now that the read path no longer fills it).
@@ -77,7 +91,7 @@ export const POST = apiHandler(async (req) => {
   try {
     slotsCreated = await materializeAvailability(ctx);
   } catch (err) {
-    log('availability materialize', err);
+    await log('availability materialize', err);
   }
 
   // 4) Post-trip review requests — not money-critical, so position doesn't matter for correctness.
@@ -85,7 +99,20 @@ export const POST = apiHandler(async (req) => {
   try {
     reviewInvitesCreated = await enqueueReviewInvites(ctx);
   } catch (err) {
-    log('review invites sweep', err);
+    await log('review invites sweep', err);
+  }
+
+  // 5) Prune error_logs (retention + the crash-loop row cap). Housekeeping, and deliberately NOT part
+  //    of the pass/fail verdict below: a red cron on this dashboard means customers are affected
+  //    (money, emails, availability). A purge that failed is recorded in error_logs itself — where
+  //    anyone reading the table will see it — and retried on the next tick.
+  let errorLogsPurged: Awaited<ReturnType<typeof purgeErrorLogs>> | { errored: true } = {
+    errored: true,
+  };
+  try {
+    errorLogsPurged = await purgeErrorLogs(ctx);
+  } catch (err) {
+    await log('error log purge', err);
   }
 
   // HONEST STATUS (review item 7): every job above ran regardless (each isolated in its own
@@ -120,10 +147,10 @@ export const POST = apiHandler(async (req) => {
       503,
       'maintenance_partial_failure',
       `Maintenance job(s) failed: ${erroredJobs.join(', ')} — see server logs`,
-      { ...result, slotsCreated, payments, reviewInvitesCreated, fx, erroredJobs },
+      { ...result, slotsCreated, payments, reviewInvitesCreated, fx, errorLogsPurged, erroredJobs },
     );
   }
-  return jsonOk({ ...result, slotsCreated, payments, reviewInvitesCreated, fx });
+  return jsonOk({ ...result, slotsCreated, payments, reviewInvitesCreated, fx, errorLogsPurged });
 });
 
 export function OPTIONS(req: Request): Response {

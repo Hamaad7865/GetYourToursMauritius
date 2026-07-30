@@ -165,15 +165,65 @@ Production and Preview. Without it, every page fails at runtime — on a build t
 
 ---
 
+## What broke — the error log
+
+Every failure the app notices is written to a table you can read yourself. In Supabase → **SQL Editor**:
+
+```sql
+select * from error_logs order by created_at desc;
+```
+
+Newest first. Useful narrower queries:
+
+```sql
+-- Just today, just the server
+select created_at, route, message from error_logs
+where source in ('api', 'ssr') and created_at > now() - interval '1 day'
+order by created_at desc;
+
+-- What is failing MOST (the thing worth fixing first)
+select event, route, count(*), max(created_at) as last_seen
+from error_logs group by 1, 2 order by count(*) desc limit 20;
+
+-- A customer sent you an error id from the website
+select * from error_logs where request_id = 'paste-the-id-here';
+```
+
+Reading a row:
+
+| Column              | What it tells you                                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `source`            | `api` = an API call, `ssr` = a page failed to render, `browser` = it broke on the customer's device, `cron` = the background job |
+| `message` / `stack` | The real, unedited failure — this is what a developer needs                                                                      |
+| `route`             | Which page or endpoint                                                                                                           |
+| `request_id`        | Matches the error id shown to the customer, so their report maps to exactly one row                                              |
+
+Things to know before you draw conclusions from it:
+
+- **A few rows is normal.** Browser rows in particular include crashes caused by ad-blockers, flaky
+  phone networks and browser extensions — not necessarily your site. Look for _repeats_.
+- **Rejected requests are not in here.** A wrong password or a sold-out date is the request being
+  refused correctly, not a failure. Only genuine breakage is recorded.
+- **It holds 30 days**, then rows are deleted automatically by the background job. If the cron is dead,
+  the table stops being pruned (and stops being the whole story) — see below.
+- **It contains no customer personal data** — no IP addresses, no emails, no card details.
+- If it is **empty and the site is clearly broken**, the failure is upstream of the app itself: check
+  `/api/v1/health`, then Cloudflare. The app can't record an error it never ran to produce.
+
+---
+
 ## The background job (`gytm-cron`) — why it matters so much
 
-It's a small Cloudflare Worker, **separate from the website**, that does five jobs on a timer:
+It's a small Cloudflare Worker, **separate from the website**, that does these jobs on a timer:
 
 1. Sends every queued email (every 2 minutes)
 2. Confirms payments that got stuck (every 5 minutes)
 3. Releases abandoned bookings
 4. **Keeps the booking calendar filled ~6 months ahead**
 5. Queues review-request emails for recently completed trips
+6. Refreshes the EUR→MUR rate cards are charged at
+7. Deletes error-log rows older than 30 days (housekeeping — a failure here alone does not turn the
+   job red, because no customer is affected by it)
 
 **If it stops, the website keeps working perfectly.** Pages load, tours display, customers can browse.
 Nothing looks wrong. But no email goes out, and the calendar quietly runs down.

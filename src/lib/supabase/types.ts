@@ -824,6 +824,38 @@ type ActivityContentDefaultsInsert = {
   updated_at?: string;
 };
 
+/** 20260831000000 — durable failure record. Written only through api_log_error (service_role). */
+type ErrorLogsRow = {
+  id: string;
+  created_at: string;
+  source: 'api' | 'ssr' | 'browser' | 'cron';
+  event: string;
+  message: string;
+  error_name: string | null;
+  stack: string | null;
+  route: string | null;
+  method: string | null;
+  status: number | null;
+  request_id: string | null;
+  user_agent: string | null;
+  context: Json | null;
+};
+type ErrorLogsInsert = {
+  id?: string;
+  created_at?: string;
+  source: 'api' | 'ssr' | 'browser' | 'cron';
+  event: string;
+  message: string;
+  error_name?: string | null;
+  stack?: string | null;
+  route?: string | null;
+  method?: string | null;
+  status?: number | null;
+  request_id?: string | null;
+  user_agent?: string | null;
+  context?: Json | null;
+};
+
 type TableDef<Row, Insert> = { Row: Row; Insert: Insert; Update: Partial<Insert>; Relationships: [] };
 
 export interface Database {
@@ -870,6 +902,7 @@ export interface Database {
         ActivityContentDefaultsRow,
         ActivityContentDefaultsInsert
       >;
+      error_logs: TableDef<ErrorLogsRow, ErrorLogsInsert>;
     };
     Views: { [_ in never]: never };
     Functions: {

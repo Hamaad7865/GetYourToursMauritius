@@ -406,6 +406,11 @@ only stays safe if the old code can still run against the (now slightly ahead) s
   Workers Logs are already on).
 - **Server crashes** anywhere in the App Router are captured by `instrumentation.ts`.
 - **Browser crashes** POST to `/api/v1/client-errors` and appear in the logs as `client_error`.
+- **`error_logs`** — the durable copy. Every one of the above (plus failed cron steps) also writes a
+  row, so a failure outlives its log line: `select * from error_logs order by created_at desc`. 4xx
+  responses are excluded by design; rows hold no personal data and are pruned after 30 days by the
+  maintenance cron. This is the answer to "what broke last Tuesday?" **without** Logpush enabled —
+  Logpush is still the way to search the full request stream, including successful requests.
 
 ---
 

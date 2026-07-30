@@ -1,6 +1,7 @@
 import { z, ZodError, type ZodTypeAny } from 'zod';
-import { ValidationError } from '@/lib/services/errors';
+import { ValidationError, isServiceError } from '@/lib/services/errors';
 import { log, newCorrelationId } from '@/lib/log';
+import { recordError, describeThrown } from '@/lib/error-log';
 import { corsHeaders } from './cors';
 import { errorToResponse } from './envelope';
 
@@ -59,12 +60,18 @@ export function apiHandler<C = unknown>(
     }
 
     let res: Response;
+    // Kept so the durable error row below can carry the REAL message/stack — the response body only
+    // ever gets the generic, non-revealing text.
+    let thrown: unknown;
+    let crashed = false;
     try {
       res = await handler(req, routeCtx as C);
       for (const [key, value] of Object.entries(cors)) {
         res.headers.set(key, value);
       }
     } catch (error) {
+      crashed = true;
+      thrown = error;
       // errorToResponse is defensive, but guard it too: a throw HERE would escape the wrapper and
       // surface to the client as a CDN HTML 500 ("Unexpected token '<'" when parsed) — the one thing
       // this layer must never do. Fall back to a minimal JSON envelope.
@@ -88,6 +95,33 @@ export function apiHandler<C = unknown>(
     } catch {
       /* immutable headers — skip the correlation header */
     }
+
+    // Measured BEFORE the error-log write below, so the latency figure stays a measure of the HANDLER.
+    // Folding a slow diagnostic write into it would make every 500 look like a 3-second endpoint.
+    const ms = Date.now() - start;
+
+    // Durable record of anything that actually crashed, so `select * from error_logs order by
+    // created_at desc` can answer "what broke?" long after the log stream has rolled away. Only real
+    // failures: a 4xx ServiceError describes the CALLER's mistake and would bury the genuine ones, and
+    // a deliberately-returned 5xx (a config gate, say) never reaches this branch. Awaited, not
+    // fire-and-forget — the edge runtime may cancel work that outlives the response — but bounded by
+    // recordError's own short timeout, and it can neither throw nor slow a successful request.
+    if (crashed && res.status >= 500) {
+      const { errorName, message, stack } = describeThrown(thrown);
+      await recordError({
+        source: 'api',
+        event: isServiceError(thrown) ? 'service_error' : 'unhandled_api_error',
+        message,
+        errorName,
+        stack,
+        route,
+        method: req.method,
+        status: res.status,
+        requestId,
+        ...(isServiceError(thrown) ? { context: { code: thrown.code } } : {}),
+      });
+    }
+
     // One structured line per API request (method, path, status, latency). 5xx/unhandled errors get
     // an additional detail line from errorToResponse sharing this requestId.
     log.info('request', {
@@ -95,7 +129,7 @@ export function apiHandler<C = unknown>(
       method: req.method,
       route,
       status: res.status,
-      ms: Date.now() - start,
+      ms,
     });
     return res;
   };

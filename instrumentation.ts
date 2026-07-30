@@ -1,4 +1,5 @@
 import { log } from '@/lib/log';
+import { recordError, describeThrown } from '@/lib/error-log';
 
 /** Required hook; nothing to initialise here, but its presence enables instrumentation. */
 export function register(): void {}
@@ -9,20 +10,38 @@ export function register(): void {}
  * the user sees as a friendly fallback still produces one structured log line here. This is the single
  * place that captures server errors that never reach the `apiHandler` (e.g. a page that throws on SSR).
  */
-export function onRequestError(
+export async function onRequestError(
   error: unknown,
   request: { path?: string; method?: string },
   context: { routerKind?: string; routePath?: string; routeType?: string; renderSource?: string },
-): void {
+): Promise<void> {
+  const { errorName, message, stack } = describeThrown(error);
   log.error('request_error', {
-    name: error instanceof Error ? error.name : typeof error,
-    message: error instanceof Error ? error.message : String(error),
-    stack: error instanceof Error ? error.stack : undefined,
+    name: errorName,
+    message,
+    stack,
     path: request?.path,
     method: request?.method,
     routerKind: context?.routerKind,
     routePath: context?.routePath,
     routeType: context?.routeType,
     renderSource: context?.renderSource,
+  });
+  // …and durably, so an SSR crash is still findable tomorrow. A page render that throws never reaches
+  // apiHandler, so without this the whole non-API half of the app would be missing from error_logs.
+  await recordError({
+    source: 'ssr',
+    event: 'request_error',
+    message,
+    errorName,
+    stack,
+    route: request?.path,
+    method: request?.method,
+    context: {
+      routerKind: context?.routerKind,
+      routePath: context?.routePath,
+      routeType: context?.routeType,
+      renderSource: context?.renderSource,
+    },
   });
 }
