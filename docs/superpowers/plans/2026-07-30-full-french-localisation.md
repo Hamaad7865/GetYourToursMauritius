@@ -40,7 +40,7 @@ No manual owner step.
 2. `supabase/catch-up.sql` — append the same statements. Backs drift recovery and the parity tests.
 3. `supabase/backfill-migration-ledger.sql` — add a `('<version>', '<name>')` row.
    `tests/unit/migration-ledger.test.ts` asserts this file mirrors the migrations directory **1:1**,
-   by version *and* name. This is the step people forget.
+   by version _and_ name. This is the step people forget.
 4. `supabase/setup.sql` — regenerate with `npm run setup:sql`, never hand-edit.
 
 **Version numbers must sort AFTER every existing migration.** Check the current maximum first:
@@ -1019,8 +1019,8 @@ update it. `ActivityTranslationsRow` and `ActivityTranslationsInsert` are both m
 and this task is the first to read or write it. Add to both:
 
 ```ts
-  /** 'human' = written or approved by staff; 'machine' = auto-drafted, awaiting review in /admin. */
-  source: string;
+/** 'human' = written or approved by staff; 'machine' = auto-drafted, awaiting review in /admin. */
+source: string;
 ```
 
 On the `Insert` type make it optional (`source?: string`) — the column has a default, so an insert
