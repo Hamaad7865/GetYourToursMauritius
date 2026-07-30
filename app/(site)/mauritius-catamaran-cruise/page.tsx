@@ -14,6 +14,7 @@ import {
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { featuredActivities } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -71,19 +72,23 @@ const FAQS = [
 ];
 
 export default async function MauritiusCatamaranCruisePage() {
+  const t = await getT();
   const featured = await featuredActivities({
     category: 'Catamaran cruises',
     q: 'catamaran',
     limit: 6,
   });
+  const homeLabel = t('Home');
+  const activitiesLabel = t('Activities');
+  const pageLabel = t('Catamaran cruises');
 
   return (
     <>
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Activities', path: '/activities' },
-          { name: 'Catamaran cruises', path: PATH },
+          { name: homeLabel, path: '/' },
+          { name: activitiesLabel, path: '/activities' },
+          { name: pageLabel, path: PATH },
         ])}
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
@@ -96,20 +101,25 @@ export default async function MauritiusCatamaranCruisePage() {
       )}
 
       <InfoPage
-        eyebrow="Catamaran cruises"
-        title="Mauritius catamaran cruise"
-        intro="The signature Mauritius day out: a relaxed sail across the lagoon, snorkelling in clear water, a barbecue lunch on board and time on a beach or island — shared or fully private, booked direct."
-        meta={`Operated by ${SITE.operator} · rated 4.8/5 from 1,000+ reviews · door-to-door pickup island-wide.`}
+        eyebrow={pageLabel}
+        title={t('Mauritius catamaran cruise')}
+        intro={t(
+          'The signature Mauritius day out: a relaxed sail across the lagoon, snorkelling in clear water, a barbecue lunch on board and time on a beach or island — shared or fully private, booked direct.',
+        )}
+        meta={t(
+          'Operated by {operator} · rated 4.8/5 from 1,000+ reviews · door-to-door pickup island-wide.',
+          { operator: SITE.operator },
+        )}
       >
         <Breadcrumb
           trail={[
-            { label: 'Home', href: '/' },
-            { label: 'Activities', href: '/activities' },
+            { label: homeLabel, href: '/' },
+            { label: activitiesLabel, href: '/activities' },
           ]}
-          current="Catamaran cruises"
+          current={pageLabel}
         />
 
-        <ContentSection id="intro" title="A full day on the Mauritius lagoon">
+        <ContentSection id="intro" title={t('A full day on the Mauritius lagoon')}>
           <p>
             A catamaran cruise is, for many visitors, the highlight of the trip. You set sail across
             the turquoise lagoon, drop anchor over coral to snorkel, then settle in for a barbecue
@@ -125,12 +135,14 @@ export default async function MauritiusCatamaranCruisePage() {
         </ContentSection>
 
         <FeaturedTours
-          title="Catamaran cruises you can book"
-          intro="Live dates and prices from our catalogue — tap a cruise to reserve online with instant confirmation."
+          title={t('Catamaran cruises you can book')}
+          intro={t(
+            'Live dates and prices from our catalogue — tap a cruise to reserve online with instant confirmation.',
+          )}
           activities={featured}
         />
 
-        <ContentSection id="routes" title="Choose your route">
+        <ContentSection id="routes" title={t('Choose your route')}>
           <p>
             <strong>East — Île aux Cerfs.</strong> The classic: sail to the famous island and its
             sandbars, with snorkelling and a beach barbecue. Best from Belle Mare and the eastern
@@ -148,7 +160,7 @@ export default async function MauritiusCatamaranCruisePage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="private" title="Shared cruises or private charters">
+        <ContentSection id="private" title={t('Shared cruises or private charters')}>
           <p>
             Shared cruises are sociable and the best value — you join other guests on a larger
             catamaran. For a special occasion, a family group or a wedding, a private charter gives
@@ -157,20 +169,20 @@ export default async function MauritiusCatamaranCruisePage() {
           </p>
           <RelatedLinks
             links={[
-              { label: 'Île aux Cerfs tours', href: '/ile-aux-cerfs-tours' },
-              { label: 'Dolphin swim', href: '/dolphin-swim-mauritius' },
-              { label: 'All Mauritius tours', href: '/mauritius-tours' },
-              { label: 'Sea walks & diving', href: '/activities?category=Sea walks & diving' },
-              { label: 'Airport transfers', href: '/airport-transfers' },
+              { label: t('Île aux Cerfs tours'), href: '/ile-aux-cerfs-tours' },
+              { label: t('Dolphin swim'), href: '/dolphin-swim-mauritius' },
+              { label: t('All Mauritius tours'), href: '/mauritius-tours' },
+              { label: t('Sea walks & diving'), href: '/activities?category=Sea walks & diving' },
+              { label: t('Airport transfers'), href: '/airport-transfers' },
             ]}
           />
         </ContentSection>
 
-        <ContentSection id="faq" title="Catamaran cruise FAQ">
+        <ContentSection id="faq" title={t('Catamaran cruise FAQ')}>
           <FaqAccordion items={FAQS} />
         </ContentSection>
 
-        <ContentSection id="book" title="Set sail with Belle Mare Tours">
+        <ContentSection id="book" title={t('Set sail with Belle Mare Tours')}>
           <p>
             Pick a shared cruise and book online in minutes, or message us for a private charter
             quote — direct with the operator, no reseller markup.
@@ -178,7 +190,7 @@ export default async function MauritiusCatamaranCruisePage() {
           <BookDirectCta
             primary={{
               href: '/activities?category=Catamaran cruises',
-              label: 'See all catamaran cruises',
+              label: t('See all catamaran cruises'),
             }}
           />
         </ContentSection>

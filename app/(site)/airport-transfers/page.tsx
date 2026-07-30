@@ -25,6 +25,7 @@ import {
   centsToEur,
   type AirportFare,
 } from '@/lib/services/pricing';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -139,7 +140,10 @@ function Arrow() {
 
 const eur = (cents: number) => `€${centsToEur(cents)}`;
 
-export default function AirportTransfersPage() {
+export default async function AirportTransfersPage() {
+  const t = await getT();
+  // FAQ text feeds faqPageJsonLd() below verbatim — kept in English so the visible copy never
+  // diverges from the structured data crawlers read.
   const faqs = [
     {
       q: 'How do I find my driver at the airport?',
@@ -183,10 +187,10 @@ export default function AirportTransfersPage() {
     key: 'sedanMinor' | 'familyMinor' | 'vanMinor' | 'coasterMinor';
     label: string;
   }[] = [
-    { key: 'sedanMinor', label: 'Standard · ≤4' },
-    { key: 'familyMinor', label: 'Family · 5–6' },
-    { key: 'vanMinor', label: 'Minibus · 7–14' },
-    { key: 'coasterMinor', label: 'Coaster · 15–25' },
+    { key: 'sedanMinor', label: t('Standard · ≤4') },
+    { key: 'familyMinor', label: t('Family · 5–6') },
+    { key: 'vanMinor', label: t('Minibus · 7–14') },
+    { key: 'coasterMinor', label: t('Coaster · 15–25') },
   ];
   // Belt-and-braces: the seed always has both zones, but Record<string, …> is loosely typed.
   const EMPTY_FARE: AirportFare = {
@@ -200,12 +204,13 @@ export default function AirportTransfersPage() {
   const zone1Fare: AirportFare = AIRPORT_FARE_DEFAULT.zone1 ?? EMPTY_FARE;
   const fareRows: { zone: string; hint: string; fare: AirportFare }[] = [
     {
-      zone: 'Zone 2 — near the airport',
+      zone: t('Zone 2 — near the airport'),
+      // Place-name list — left in English (no translatable words to route through t()).
       hint: 'Mahébourg · Blue Bay · Pointe d’Esny · Grand Port · Ferney',
       fare: zone2Fare,
     },
     {
-      zone: 'Zone 1 — elsewhere in Mauritius',
+      zone: t('Zone 1 — elsewhere in Mauritius'),
       hint: 'North · East · West · Central · South · Le Morne',
       fare: zone1Fare,
     },
@@ -213,8 +218,10 @@ export default function AirportTransfersPage() {
 
   const why = [
     {
-      title: 'Fixed, transparent EUR price',
-      body: 'No meters, no surprises. You agree the fare before you fly — metered airport taxis can’t promise that.',
+      title: t('Fixed, transparent EUR price'),
+      body: t(
+        'No meters, no surprises. You agree the fare before you fly — metered airport taxis can’t promise that.',
+      ),
       icon: (
         <svg
           width="24"
@@ -232,8 +239,10 @@ export default function AirportTransfersPage() {
       ),
     },
     {
-      title: 'The same licensed driver, door-to-door',
-      body: 'One trusted local driver-guide for your whole journey — English- and French-speaking, from your door to your destination.',
+      title: t('The same licensed driver, door-to-door'),
+      body: t(
+        'One trusted local driver-guide for your whole journey — English- and French-speaking, from your door to your destination.',
+      ),
       icon: (
         <svg
           width="24"
@@ -253,8 +262,10 @@ export default function AirportTransfersPage() {
       ),
     },
     {
-      title: 'Book direct, no OTA commission',
-      body: 'You book straight with Belle Mare Tours — no reseller in the middle taking a cut, so the price stays lower for you.',
+      title: t('Book direct, no OTA commission'),
+      body: t(
+        'You book straight with Belle Mare Tours — no reseller in the middle taking a cut, so the price stays lower for you.',
+      ),
       icon: (
         <svg
           width="24"
@@ -273,8 +284,10 @@ export default function AirportTransfersPage() {
       ),
     },
     {
-      title: 'Meet & greet + flight tracking',
-      body: 'Name board in arrivals, real-time flight monitoring and free waiting time — so a late landing never leaves you stranded.',
+      title: t('Meet & greet + flight tracking'),
+      body: t(
+        'Name board in arrivals, real-time flight monitoring and free waiting time — so a late landing never leaves you stranded.',
+      ),
       icon: (
         <svg
           width="24"
@@ -296,80 +309,89 @@ export default function AirportTransfersPage() {
   const steps = [
     {
       n: '1',
-      title: 'Find your hotel & price',
-      body: 'Search your hotel, or pick your area and vehicle. Your fixed EUR fare appears instantly — no waiting for a quote.',
+      title: t('Find your hotel & price'),
+      body: t(
+        'Search your hotel, or pick your area and vehicle. Your fixed EUR fare appears instantly — no waiting for a quote.',
+      ),
     },
     {
       n: '2',
-      title: 'Book & get your e-voucher',
-      body: 'Pay securely by card and your confirmation e-voucher lands in your inbox right away.',
+      title: t('Book & get your e-voucher'),
+      body: t(
+        'Pay securely by card and your confirmation e-voucher lands in your inbox right away.',
+      ),
     },
     {
       n: '3',
-      title: 'We meet you in arrivals',
-      body: 'We track your flight and your driver-guide is waiting with a name board the moment you walk out.',
+      title: t('We meet you in arrivals'),
+      body: t(
+        'We track your flight and your driver-guide is waiting with a name board the moment you walk out.',
+      ),
     },
   ];
 
   const fleet = [
     {
-      name: 'Standard Car',
-      tagline: 'Couples & solo travellers.',
-      pax: '1–4 seats',
-      bags: '2–3 bags',
+      name: t('Standard Car'),
+      tagline: t('Couples & solo travellers.'),
+      pax: t('1–4 seats'),
+      bags: t('2–3 bags'),
       premium: false,
       feats: [
-        'Air-conditioned saloon car',
-        'Free meet & greet + name board',
-        'Free first child seat',
+        t('Air-conditioned saloon car'),
+        t('Free meet & greet + name board'),
+        t('Free first child seat'),
       ],
     },
     {
-      name: 'Family Car',
-      tagline: 'Small families.',
-      pax: '5–6 seats',
-      bags: '5–6 bags',
+      name: t('Family Car'),
+      tagline: t('Small families.'),
+      pax: t('5–6 seats'),
+      bags: t('5–6 bags'),
       premium: false,
       feats: [
-        'Spacious A/C estate / MPV',
-        'Room for surfboards & buggies',
-        'Free first child seat',
+        t('Spacious A/C estate / MPV'),
+        t('Room for surfboards & buggies'),
+        t('Free first child seat'),
       ],
     },
     {
-      name: 'Minibus',
-      tagline: 'Bigger groups.',
-      pax: '7–14 seats',
-      bags: '14+ bags',
+      name: t('Minibus'),
+      tagline: t('Bigger groups.'),
+      pax: t('7–14 seats'),
+      bags: t('14+ bags'),
       premium: false,
       feats: [
-        'Air-conditioned minibus',
-        'Plenty of luggage space',
-        'One driver for the whole group',
+        t('Air-conditioned minibus'),
+        t('Plenty of luggage space'),
+        t('One driver for the whole group'),
       ],
     },
     {
-      name: 'Coaster',
-      tagline: 'Large groups & events.',
-      pax: '15–25 seats',
-      bags: '25+ bags',
+      name: t('Coaster'),
+      tagline: t('Large groups & events.'),
+      pax: t('15–25 seats'),
+      bags: t('25+ bags'),
       premium: true,
       feats: [
-        'Air-conditioned coaster',
-        'Group travel in one vehicle',
-        'Ideal for weddings & events',
+        t('Air-conditioned coaster'),
+        t('Group travel in one vehicle'),
+        t('Ideal for weddings & events'),
       ],
     },
   ];
 
   const included = [
-    { title: 'Meet & greet', body: 'Your driver waits in arrivals with a name board.' },
-    { title: 'Real-time flight monitoring', body: 'We watch your flight and adjust the pickup.' },
-    { title: 'Free waiting time', body: 'No charge if your flight runs late.' },
-    { title: 'Free first child seat', body: 'Just tell us your child’s age.' },
-    { title: 'Free cancellation 24h', body: 'Full refund up to 24 hours before.' },
-    { title: '24/7 service', body: 'Any flight, any hour, day or night.' },
-    { title: 'WhatsApp coordination', body: 'Message your driver directly, anytime.' },
+    { title: t('Meet & greet'), body: t('Your driver waits in arrivals with a name board.') },
+    {
+      title: t('Real-time flight monitoring'),
+      body: t('We watch your flight and adjust the pickup.'),
+    },
+    { title: t('Free waiting time'), body: t('No charge if your flight runs late.') },
+    { title: t('Free first child seat'), body: t('Just tell us your child’s age.') },
+    { title: t('Free cancellation 24h'), body: t('Full refund up to 24 hours before.') },
+    { title: t('24/7 service'), body: t('Any flight, any hour, day or night.') },
+    { title: t('WhatsApp coordination'), body: t('Message your driver directly, anytime.') },
   ];
 
   const coverageChips = [
@@ -384,6 +406,9 @@ export default function AirportTransfersPage() {
     'Flic en Flac',
     'Blue Bay',
   ];
+  // The four cardinal directions + "Central" are translatable region words (existing keys shared with
+  // the region/coast labels elsewhere); the rest of this list is place names, left untranslated.
+  const REGION_WORDS = new Set(['North', 'East', 'South', 'West', 'Central']);
 
   const breadcrumb = breadcrumbListJsonLd([
     { name: 'Home', path: '/' },
@@ -477,7 +502,7 @@ export default function AirportTransfersPage() {
                   <path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5z" />
                   <path d="m9 12 2 2 4-4" />
                 </svg>
-                Licensed by the Mauritius Tourism Authority
+                {t('Licensed by the Mauritius Tourism Authority')}
               </div>
               <h1
                 className="m-0 mb-4 font-extrabold"
@@ -489,8 +514,8 @@ export default function AirportTransfersPage() {
                   textWrap: 'balance',
                 }}
               >
-                Land in Mauritius to a driver who’s already waiting — at a{' '}
-                <span style={{ color: GOLD }}>fixed price.</span>
+                {t('Land in Mauritius to a driver who’s already waiting — at a')}{' '}
+                <span style={{ color: GOLD }}>{t('fixed price.')}</span>
               </h1>
               <p
                 className="m-0 mb-5 max-w-[560px]"
@@ -500,10 +525,11 @@ export default function AirportTransfersPage() {
                   color: 'rgba(251,247,239,0.92)',
                 }}
               >
-                Private door-to-door transfers between SSR Airport (MRU) and any hotel, Airbnb or
-                cruise port — up to 40% less than metered airport taxis.{' '}
+                {t(
+                  'Private door-to-door transfers between SSR Airport (MRU) and any hotel, Airbnb or cruise port — up to 40% less than metered airport taxis.',
+                )}{' '}
                 <strong className="font-bold text-white">
-                  Booked direct with the operator, no reseller markup.
+                  {t('Booked direct with the operator, no reseller markup.')}
                 </strong>
               </p>
               <div className="mb-[clamp(16px,3vw,26px)] flex flex-wrap items-center gap-x-[26px] gap-y-[14px] text-[15px] font-semibold">
@@ -511,19 +537,19 @@ export default function AirportTransfersPage() {
                   <span className="text-[17px] tracking-[1px]" style={{ color: GOLD }}>
                     ★★★★★
                   </span>{' '}
-                  4.8 · 1,000+ reviews
+                  {t('4.8 · 1,000+ reviews')}
                 </span>
                 <span
                   className="inline-flex items-center gap-2"
                   style={{ color: 'rgba(251,247,239,0.92)' }}
                 >
-                  <Check color={CORAL} size={17} /> Same driver-guide all day
+                  <Check color={CORAL} size={17} /> {t('Same driver-guide all day')}
                 </span>
                 <span
                   className="inline-flex items-center gap-2"
                   style={{ color: 'rgba(251,247,239,0.92)' }}
                 >
-                  <Check color={CORAL} size={17} /> English &amp; French
+                  <Check color={CORAL} size={17} /> {t('English & French')}
                 </span>
               </div>
             </div>
@@ -535,26 +561,26 @@ export default function AirportTransfersPage() {
                 className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.16em]"
                 style={{ color: 'rgba(255,255,255,0.9)' }}
               >
-                Where are you staying?
+                {t('Where are you staying?')}
               </div>
               <TransferSearch />
               <p
                 className="mt-3.5 text-[14px] font-semibold"
                 style={{ color: 'rgba(255,255,255,0.92)' }}
               >
-                Not sure of the exact hotel?{' '}
+                {t('Not sure of the exact hotel?')}{' '}
                 <a
                   href="#quote"
                   className="font-bold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white"
                 >
-                  Price by area
+                  {t('Price by area')}
                 </a>{' '}
-                or{' '}
+                {t('or')}{' '}
                 <a
                   href="#map"
                   className="font-bold text-white underline decoration-white/40 underline-offset-4 hover:decoration-white"
                 >
-                  browse the map
+                  {t('browse the map')}
                 </a>
                 .
               </p>
@@ -576,7 +602,7 @@ export default function AirportTransfersPage() {
               data-reveal
               className="mx-auto mb-[clamp(28px,4vw,42px)] max-w-[600px] text-center"
             >
-              <Eyebrow>Instant price</Eyebrow>
+              <Eyebrow>{t('Instant price')}</Eyebrow>
               <h2
                 className="m-0 mb-3.5 font-bold"
                 style={{
@@ -587,14 +613,15 @@ export default function AirportTransfersPage() {
                   textWrap: 'balance',
                 }}
               >
-                Get your fixed fare in seconds.
+                {t('Get your fixed fare in seconds.')}
               </h2>
               <p
                 className="m-0"
                 style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.55, color: INK_BODY }}
               >
-                Pick your route and vehicle — airport-to-hotel or hotel-to-hotel — and your
-                transparent EUR price appears instantly, no waiting around for a quote.
+                {t(
+                  'Pick your route and vehicle — airport-to-hotel or hotel-to-hotel — and your transparent EUR price appears instantly, no waiting around for a quote.',
+                )}
               </p>
             </div>
             <div data-reveal>
@@ -610,7 +637,7 @@ export default function AirportTransfersPage() {
           style={{ padding: sectionPad }}
         >
           <div data-reveal className="mx-auto max-w-[780px] text-center">
-            <Eyebrow>Island-wide taxi service</Eyebrow>
+            <Eyebrow>{t('Island-wide taxi service')}</Eyebrow>
             <h2
               className="m-0 mb-4 font-bold"
               style={{
@@ -621,18 +648,19 @@ export default function AirportTransfersPage() {
                 textWrap: 'balance',
               }}
             >
-              A fixed-price taxi anywhere in Mauritius — not just the airport.
+              {t('A fixed-price taxi anywhere in Mauritius — not just the airport.')}
             </h2>
             <p
               className="m-0"
               style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.6, color: INK_BODY }}
             >
-              Need a taxi between two hotels, from your villa to a restaurant, or from the cruise
-              port to your resort? Our private taxi service runs island-wide on the same
-              fixed-price, book-direct basis as our airport transfers. Pick{' '}
-              <strong style={{ color: INK }}>Location&nbsp;↔&nbsp;Location</strong> in the price
-              tool above, choose your two points, and your transparent EUR fare appears in seconds —
-              no meter, no haggling, the same trusted licensed driver-guide door to door.
+              {t(
+                'Need a taxi between two hotels, from your villa to a restaurant, or from the cruise port to your resort? Our private taxi service runs island-wide on the same fixed-price, book-direct basis as our airport transfers. Pick',
+              )}{' '}
+              <strong style={{ color: INK }}>Location&nbsp;↔&nbsp;Location</strong>{' '}
+              {t(
+                'in the price tool above, choose your two points, and your transparent EUR fare appears in seconds — no meter, no haggling, the same trusted licensed driver-guide door to door.',
+              )}
             </p>
             <div className="mt-6">
               <a
@@ -640,7 +668,7 @@ export default function AirportTransfersPage() {
                 className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-[15px] font-extrabold text-white no-underline"
                 style={{ background: CORAL, boxShadow: '0 12px 26px -10px rgba(247,108,94,0.6)' }}
               >
-                Get a fixed taxi fare
+                {t('Get a fixed taxi fare')}
               </a>
             </div>
           </div>
@@ -648,7 +676,7 @@ export default function AirportTransfersPage() {
 
         {/* ============ TRUST BAR ============ */}
         <section
-          aria-label="Why travellers trust us"
+          aria-label={t('Why travellers trust us')}
           style={{ background: TEAL_DARK, color: CREAM }}
         >
           <div
@@ -669,11 +697,11 @@ export default function AirportTransfersPage() {
               >
                 <path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5z" />
               </svg>
-              Licensed · Mauritius Tourism Authority
+              {t('Licensed · Mauritius Tourism Authority')}
             </span>
             <span className="opacity-35">·</span>
             <span className="inline-flex items-center gap-2.5">
-              <span style={{ color: GOLD }}>★</span> 4.8 from 1,000+ reviews
+              <span style={{ color: GOLD }}>★</span> {t('4.8 from 1,000+ reviews')}
             </span>
             <span className="opacity-35">·</span>
             <span className="inline-flex items-center gap-2.5">
@@ -690,7 +718,7 @@ export default function AirportTransfersPage() {
               >
                 <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
               </svg>
-              Fixed price, no hidden fees
+              {t('Fixed price, no hidden fees')}
             </span>
             <span className="opacity-35">·</span>
             <span className="inline-flex items-center gap-2.5">
@@ -708,7 +736,7 @@ export default function AirportTransfersPage() {
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 7v5l3 2" />
               </svg>
-              Free cancellation 24h
+              {t('Free cancellation 24h')}
             </span>
           </div>
         </section>
@@ -720,7 +748,7 @@ export default function AirportTransfersPage() {
           style={{ padding: sectionPad }}
         >
           <div data-reveal className="mb-[clamp(28px,4vw,44px)] max-w-[680px]">
-            <Eyebrow>Find your hotel</Eyebrow>
+            <Eyebrow>{t('Find your hotel')}</Eyebrow>
             <h2
               className="m-0 mb-4 font-bold"
               style={{
@@ -731,15 +759,15 @@ export default function AirportTransfersPage() {
                 textWrap: 'balance',
               }}
             >
-              Every hotel we serve — pinned on the map.
+              {t('Every hotel we serve — pinned on the map.')}
             </h2>
             <p
               className="m-0 max-w-[560px]"
               style={{ fontSize: 'clamp(16px,1.5vw,18px)', lineHeight: 1.55, color: INK_BODY }}
             >
-              Tap your resort to see the drive from SSR International Airport and your starting
-              price — or search it by name up top. Door-to-door across the whole island, plus the
-              Port Louis cruise terminal.
+              {t(
+                'Tap your resort to see the drive from SSR International Airport and your starting price — or search it by name up top. Door-to-door across the whole island, plus the Port Louis cruise terminal.',
+              )}
             </p>
           </div>
           <div data-reveal>
@@ -750,7 +778,7 @@ export default function AirportTransfersPage() {
               className="mb-3 text-[13px] font-bold uppercase tracking-[0.14em]"
               style={{ color: INK_SOFT }}
             >
-              Island-wide coverage
+              {t('Island-wide coverage')}
             </div>
             <div className="flex flex-wrap gap-2.5">
               {coverageChips.map((c) => (
@@ -759,7 +787,7 @@ export default function AirportTransfersPage() {
                   className="rounded-full border bg-white px-4 py-2.5 text-[14px] font-semibold"
                   style={{ borderColor: 'rgba(17,32,31,0.10)', color: TEAL_DARK }}
                 >
-                  {c}
+                  {REGION_WORDS.has(c) ? t(c) : c}
                 </span>
               ))}
             </div>
@@ -769,7 +797,7 @@ export default function AirportTransfersPage() {
         {/* ============ WHY BOOK WITH US ============ */}
         <section id="why" className="mx-auto max-w-shell" style={{ padding: sectionPad }}>
           <div data-reveal className="mb-[clamp(34px,5vw,52px)] max-w-[680px]">
-            <Eyebrow>Beat the airport taxi</Eyebrow>
+            <Eyebrow>{t('Beat the airport taxi')}</Eyebrow>
             <h2
               className="m-0 mb-4 font-bold"
               style={{
@@ -780,14 +808,15 @@ export default function AirportTransfersPage() {
                 textWrap: 'balance',
               }}
             >
-              No meters. No surprises. Just the price you agreed.
+              {t('No meters. No surprises. Just the price you agreed.')}
             </h2>
             <p
               className="m-0"
               style={{ fontSize: 'clamp(16px,1.5vw,19px)', lineHeight: 1.55, color: INK_BODY }}
             >
-              Belle Mare Tours has driven this island for years. You book straight with us — so the
-              savings stay with you, not a booking site.
+              {t(
+                'Belle Mare Tours has driven this island for years. You book straight with us — so the savings stay with you, not a booking site.',
+              )}
             </p>
           </div>
           <div
@@ -829,7 +858,7 @@ export default function AirportTransfersPage() {
               data-reveal
               className="mx-auto mb-[clamp(40px,5vw,60px)] max-w-[620px] text-center"
             >
-              <Eyebrow color={GOLD}>How it works</Eyebrow>
+              <Eyebrow color={GOLD}>{t('How it works')}</Eyebrow>
               <h2
                 className="m-0 font-bold"
                 style={{
@@ -839,7 +868,7 @@ export default function AirportTransfersPage() {
                   letterSpacing: '-0.02em',
                 }}
               >
-                From booking to name board in three steps.
+                {t('From booking to name board in three steps.')}
               </h2>
             </div>
             <div
@@ -879,7 +908,7 @@ export default function AirportTransfersPage() {
           style={{ padding: sectionPad }}
         >
           <div data-reveal className="mb-[clamp(28px,4vw,40px)] max-w-[680px]">
-            <Eyebrow>Fixed fares</Eyebrow>
+            <Eyebrow>{t('Fixed fares')}</Eyebrow>
             <h2
               className="m-0 mb-3 font-bold"
               style={{
@@ -889,11 +918,13 @@ export default function AirportTransfersPage() {
                 letterSpacing: '-0.02em',
               }}
             >
-              Every fare, in EUR, up front.
+              {t('Every fare, in EUR, up front.')}
             </h2>
             <p className="m-0" style={{ fontSize: '15.5px', lineHeight: 1.55, color: INK_BODY }}>
-              All prices are fixed, per vehicle, and include meet &amp; greet, name board and free
-              waiting time. Each cell shows <strong>one-way / return</strong>.
+              {t(
+                'All prices are fixed, per vehicle, and include meet & greet, name board and free waiting time. Each cell shows',
+              )}{' '}
+              <strong>{t('one-way / return')}</strong>.
             </p>
           </div>
           <div
@@ -904,7 +935,7 @@ export default function AirportTransfersPage() {
             <table className="w-full min-w-[640px] border-collapse text-[15px]">
               <thead>
                 <tr style={{ background: TEAL_DARK, color: CREAM }}>
-                  <th className="p-[16px_20px] text-left text-[14px] font-bold">Zone</th>
+                  <th className="p-[16px_20px] text-left text-[14px] font-bold">{t('Zone')}</th>
                   {vehicleCols.map((v) => (
                     <th key={v.key} className="p-[16px_16px] text-center text-[14px] font-bold">
                       {v.label}
@@ -954,7 +985,7 @@ export default function AirportTransfersPage() {
             style={{ padding: 'clamp(48px,6vw,72px) ' + padX + ' clamp(72px,10vw,128px)' }}
           >
             <div data-reveal className="mb-[clamp(28px,4vw,44px)] max-w-[640px]">
-              <Eyebrow>The fleet</Eyebrow>
+              <Eyebrow>{t('The fleet')}</Eyebrow>
               <h2
                 className="m-0 font-bold"
                 style={{
@@ -964,7 +995,7 @@ export default function AirportTransfersPage() {
                   letterSpacing: '-0.02em',
                 }}
               >
-                Clean, air-conditioned, the right size for your group.
+                {t('Clean, air-conditioned, the right size for your group.')}
               </h2>
             </div>
             <div
@@ -992,7 +1023,7 @@ export default function AirportTransfersPage() {
                         className="absolute left-3 top-3 rounded-full px-2.5 py-[5px] text-[11px] font-extrabold uppercase tracking-[0.04em]"
                         style={{ background: GOLD, color: INK }}
                       >
-                        Luxury tier
+                        {t('Luxury tier')}
                       </span>
                     )}
                     <svg
@@ -1097,8 +1128,9 @@ export default function AirportTransfersPage() {
               >
                 <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />
               </svg>
-              Travelling with little ones? Your <strong>first child seat is free</strong> — just
-              tell us their age when you book.
+              {t('Travelling with little ones? Your')}{' '}
+              <strong>{t('first child seat is free')}</strong>{' '}
+              {t('— just tell us their age when you book.')}
             </p>
           </div>
         </section>
@@ -1107,7 +1139,7 @@ export default function AirportTransfersPage() {
         <section style={{ background: TEAL, color: '#fff' }}>
           <div className="mx-auto max-w-shell" style={{ padding: 'clamp(64px,9vw,112px) ' + padX }}>
             <div data-reveal className="mb-[clamp(34px,5vw,52px)] max-w-[620px]">
-              <Eyebrow color={GOLD}>Included with every transfer</Eyebrow>
+              <Eyebrow color={GOLD}>{t('Included with every transfer')}</Eyebrow>
               <h2
                 className="m-0 font-bold"
                 style={{
@@ -1117,7 +1149,7 @@ export default function AirportTransfersPage() {
                   letterSpacing: '-0.02em',
                 }}
               >
-                All of this. At no extra cost.
+                {t('All of this. At no extra cost.')}
               </h2>
             </div>
             <div
@@ -1169,7 +1201,7 @@ export default function AirportTransfersPage() {
           style={{ padding: sectionPad }}
         >
           <div data-reveal className="mb-[clamp(30px,4vw,46px)] text-center">
-            <Eyebrow>Good to know</Eyebrow>
+            <Eyebrow>{t('Good to know')}</Eyebrow>
             <h2
               className="m-0 font-bold"
               style={{
@@ -1179,7 +1211,7 @@ export default function AirportTransfersPage() {
                 letterSpacing: '-0.02em',
               }}
             >
-              Your questions, answered up front.
+              {t('Your questions, answered up front.')}
             </h2>
           </div>
           <div className="flex flex-col gap-3">
@@ -1242,7 +1274,7 @@ export default function AirportTransfersPage() {
                 textWrap: 'balance',
               }}
             >
-              Land, walk out, and there we are.
+              {t('Land, walk out, and there we are.')}
             </h2>
             <p
               className="mx-auto mb-[30px] max-w-[560px]"
@@ -1252,8 +1284,9 @@ export default function AirportTransfersPage() {
                 color: 'rgba(251,247,239,0.85)',
               }}
             >
-              Get your fixed price in seconds — booked direct with Noorani and the team in Belle
-              Mare.
+              {t(
+                'Get your fixed price in seconds — booked direct with Noorani and the team in Belle Mare.',
+              )}
             </p>
             <div className="flex flex-wrap justify-center gap-3.5">
               <a
@@ -1261,7 +1294,7 @@ export default function AirportTransfersPage() {
                 className="inline-flex items-center gap-2.5 rounded-full px-8 py-4 text-[17px] font-extrabold text-white no-underline"
                 style={{ background: CORAL, boxShadow: '0 14px 30px -8px rgba(247,108,94,0.6)' }}
               >
-                Find your hotel <Arrow />
+                {t('Find your hotel')} <Arrow />
               </a>
               <a
                 href={whatsappUrl(
@@ -1288,7 +1321,7 @@ export default function AirportTransfersPage() {
                 >
                   <path d="M21 11.5a8.4 8.4 0 0 1-12.3 7.4L3 21l2.2-5.6A8.4 8.4 0 1 1 21 11.5z" />
                 </svg>
-                Chat on WhatsApp
+                {t('Chat on WhatsApp')}
               </a>
             </div>
           </div>
@@ -1303,7 +1336,7 @@ export default function AirportTransfersPage() {
         className="fixed bottom-4 left-4 right-4 z-[60] mx-auto flex max-w-[520px] items-center justify-center gap-2.5 rounded-[14px] p-[15px] text-[16px] font-extrabold text-white no-underline sm:hidden"
         style={{ background: CORAL, boxShadow: '0 14px 30px -6px rgba(247,108,94,0.6)' }}
       >
-        Find your hotel <Arrow />
+        {t('Find your hotel')} <Arrow />
       </a>
     </div>
   );

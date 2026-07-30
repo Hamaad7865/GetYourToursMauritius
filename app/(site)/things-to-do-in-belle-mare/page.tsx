@@ -14,6 +14,7 @@ import {
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { belleMareActivityGroups } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -78,15 +79,18 @@ const FAQS = [
 ];
 
 export default async function ThingsToDoInBelleMarePage() {
+  const t = await getT();
   const groups = await belleMareActivityGroups();
   const allActivities = groups.flatMap((g) => g.activities);
+  const homeLabel = t('Home');
+  const pageLabel = t('Things to do in Belle Mare');
 
   return (
     <>
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Things to do in Belle Mare', path: PATH },
+          { name: homeLabel, path: '/' },
+          { name: pageLabel, path: PATH },
         ])}
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
@@ -99,14 +103,18 @@ export default async function ThingsToDoInBelleMarePage() {
       )}
 
       <InfoPage
-        eyebrow="Belle Mare · east coast Mauritius"
-        title="Things to do in Belle Mare"
-        intro="Beach days, Île aux Cerfs boat trips, lagoon activities, golf and island day tours — a local's guide to Belle Mare, from the licensed operator based right here on the east coast."
-        meta={`Written by ${SITE.operator} · based in Belle Mare · rated 4.8/5 from 1,000+ reviews.`}
+        eyebrow={t('Belle Mare · east coast Mauritius')}
+        title={pageLabel}
+        intro={t(
+          "Beach days, Île aux Cerfs boat trips, lagoon activities, golf and island day tours — a local's guide to Belle Mare, from the licensed operator based right here on the east coast.",
+        )}
+        meta={t('Written by {operator} · based in Belle Mare · rated 4.8/5 from 1,000+ reviews.', {
+          operator: SITE.operator,
+        })}
       >
-        <Breadcrumb trail={[{ label: 'Home', href: '/' }]} current="Things to do in Belle Mare" />
+        <Breadcrumb trail={[{ label: homeLabel, href: '/' }]} current={pageLabel} />
 
-        <ContentSection id="why" title="Why Belle Mare is the east coast's best base">
+        <ContentSection id="why" title={t("Why Belle Mare is the east coast's best base")}>
           <p>
             Belle Mare is a long, low-rise stretch of coast known for some of the island’s whitest
             sand and a wide turquoise lagoon protected by the reef. It is calmer and greener than
@@ -119,7 +127,7 @@ export default async function ThingsToDoInBelleMarePage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="best-time" title="Best time to visit Belle Mare">
+        <ContentSection id="best-time" title={t('Best time to visit Belle Mare')}>
           <p>
             The east coast is at its best from May to December, when the trade winds are steady,
             rainfall stays low and the lagoon runs flat and clear — October to December is the
@@ -143,7 +151,7 @@ export default async function ThingsToDoInBelleMarePage() {
           />
         ))}
 
-        <ContentSection id="beach" title="The beach & the lagoon">
+        <ContentSection id="beach" title={t('The beach & the lagoon')}>
           <p>
             Belle Mare Public Beach is the obvious first stop: a long ribbon of fine white sand with
             shallow, calm water and natural shade, made for slow mornings and long swims. Palmar
@@ -157,7 +165,7 @@ export default async function ThingsToDoInBelleMarePage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="ile-aux-cerfs" title="Île aux Cerfs — the classic day out">
+        <ContentSection id="ile-aux-cerfs" title={t('Île aux Cerfs — the classic day out')}>
           <p>
             The east coast’s signature trip leaves from just down the road: sandbank beaches,
             snorkelling stops and the Grand River South East waterfall, by{' '}
@@ -169,7 +177,7 @@ export default async function ThingsToDoInBelleMarePage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="day-trips" title="Day trips from Belle Mare">
+        <ContentSection id="day-trips" title={t('Day trips from Belle Mare')}>
           <p>
             When you have had your fill of the lagoon, the rest of the island is a private day tour
             away: the wild south with its waterfalls, viewpoints and volcanic crater, the north’s
@@ -185,7 +193,7 @@ export default async function ThingsToDoInBelleMarePage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="dining" title="Where to eat near Belle Mare">
+        <ContentSection id="dining" title={t('Where to eat near Belle Mare')}>
           <p>
             Belle Mare Public Beach has its own beach shack, Sun And Sand Chez Charlene, serving
             paella and mine frite a few steps from the sand — about as local as lunch gets. In the
@@ -202,7 +210,7 @@ export default async function ThingsToDoInBelleMarePage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="getting-around" title="Getting around from Belle Mare">
+        <ContentSection id="getting-around" title={t('Getting around from Belle Mare')}>
           <p>
             There is no practical public transport for visitors, so plan on wheels: hire a{' '}
             <InlineLink href="/rent">car or scooter in Belle Mare</InlineLink> for independent
@@ -214,27 +222,27 @@ export default async function ThingsToDoInBelleMarePage() {
           </p>
           <RelatedLinks
             links={[
-              { label: 'Belle Mare area guide', href: '/destinations/belle-mare' },
-              { label: 'Car & scooter rental', href: '/rent' },
-              { label: 'Île aux Cerfs tours', href: '/ile-aux-cerfs-tours' },
-              { label: 'Catamaran cruises', href: '/mauritius-catamaran-cruise' },
-              { label: 'All Mauritius tours', href: '/mauritius-tours' },
-              { label: 'Airport transfers', href: '/airport-transfers' },
+              { label: t('Belle Mare area guide'), href: '/destinations/belle-mare' },
+              { label: t('Car & scooter rental'), href: '/rent' },
+              { label: t('Île aux Cerfs tours'), href: '/ile-aux-cerfs-tours' },
+              { label: t('Catamaran cruises'), href: '/mauritius-catamaran-cruise' },
+              { label: t('All Mauritius tours'), href: '/mauritius-tours' },
+              { label: t('Airport transfers'), href: '/airport-transfers' },
             ]}
           />
         </ContentSection>
 
-        <ContentSection id="faq" title="Belle Mare activities — FAQ">
+        <ContentSection id="faq" title={t('Belle Mare activities — FAQ')}>
           <FaqAccordion items={FAQS} />
         </ContentSection>
 
-        <ContentSection id="book" title="Book it all in one place">
+        <ContentSection id="book" title={t('Book it all in one place')}>
           <p>
             Every activity on this page can be booked online with live availability and fixed EUR
             prices — no reseller markup, and the operator answering your WhatsApp is the one driving
             the boatside pickup. Tell us your dates and we will build the week around them.
           </p>
-          <BookDirectCta primary={{ href: '/activities', label: 'Browse all activities' }} />
+          <BookDirectCta primary={{ href: '/activities', label: t('Browse all activities') }} />
         </ContentSection>
 
         <EnquireRow message="Hi Belle Mare Tours! I'm staying near Belle Mare — what do you recommend for my dates?" />

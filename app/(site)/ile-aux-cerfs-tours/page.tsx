@@ -14,6 +14,7 @@ import {
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { featuredActivities } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -71,15 +72,19 @@ const FAQS = [
 ];
 
 export default async function IleAuxCerfsToursPage() {
+  const t = await getT();
   const featured = await featuredActivities({ category: 'Île aux Cerfs', q: 'cerfs', limit: 6 });
+  const homeLabel = t('Home');
+  const activitiesLabel = t('Activities');
+  const pageLabel = t('Île aux Cerfs tours');
 
   return (
     <>
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Activities', path: '/activities' },
-          { name: 'Île aux Cerfs tours', path: PATH },
+          { name: homeLabel, path: '/' },
+          { name: activitiesLabel, path: '/activities' },
+          { name: pageLabel, path: PATH },
         ])}
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
@@ -93,19 +98,26 @@ export default async function IleAuxCerfsToursPage() {
 
       <InfoPage
         eyebrow="Île aux Cerfs"
-        title="Île aux Cerfs tours & day trips"
-        intro="Cruise to Mauritius’s most famous island — turquoise lagoon, powder-white sandbars, the GRSE waterfall and a beach barbecue. By catamaran or speedboat, booked direct from just down the coast."
-        meta={`Operated by ${SITE.operator} from Belle Mare, minutes from the Trou d’Eau Douce jetty.`}
+        title={t('Île aux Cerfs tours & day trips')}
+        intro={t(
+          'Cruise to Mauritius’s most famous island — turquoise lagoon, powder-white sandbars, the GRSE waterfall and a beach barbecue. By catamaran or speedboat, booked direct from just down the coast.',
+        )}
+        meta={t(
+          'Operated by {operator} from Belle Mare, minutes from the Trou d’Eau Douce jetty.',
+          {
+            operator: SITE.operator,
+          },
+        )}
       >
         <Breadcrumb
           trail={[
-            { label: 'Home', href: '/' },
-            { label: 'Activities', href: '/activities' },
+            { label: homeLabel, href: '/' },
+            { label: activitiesLabel, href: '/activities' },
           ]}
-          current="Île aux Cerfs tours"
+          current={pageLabel}
         />
 
-        <ContentSection id="intro" title="The island day trip every Mauritius visitor wants">
+        <ContentSection id="intro" title={t('The island day trip every Mauritius visitor wants')}>
           <p>
             Île aux Cerfs is a small island off the east coast, famous for a lagoon so clear and
             shallow you can wade out to its sandbars. It’s the picture most people have in mind when
@@ -122,12 +134,14 @@ export default async function IleAuxCerfsToursPage() {
         </ContentSection>
 
         <FeaturedTours
-          title="Île aux Cerfs trips you can book"
-          intro="Live availability and prices — tap a trip to choose your date and book online in minutes."
+          title={t('Île aux Cerfs trips you can book')}
+          intro={t(
+            'Live availability and prices — tap a trip to choose your date and book online in minutes.',
+          )}
           activities={featured}
         />
 
-        <ContentSection id="do" title="What to do on the island">
+        <ContentSection id="do" title={t('What to do on the island')}>
           <p>
             The lagoon is the star: warm, calm and ideal for swimming and snorkelling. Beyond that,
             you can walk the sandbars, settle on the beach, or get active with parasailing, tubing,
@@ -137,7 +151,7 @@ export default async function IleAuxCerfsToursPage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="waterfall" title="The GRSE waterfall & speedboat option">
+        <ContentSection id="waterfall" title={t('The GRSE waterfall & speedboat option')}>
           <p>
             On the way to or from the island, speedboat trips detour to the foot of the Grande
             Rivière Sud-Est waterfall, where freshwater tumbles into the sea among the mangroves — a
@@ -147,7 +161,7 @@ export default async function IleAuxCerfsToursPage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="book-direct" title="Book your Île aux Cerfs day direct">
+        <ContentSection id="book-direct" title={t('Book your Île aux Cerfs day direct')}>
           <p>
             Booking direct with {SITE.operator} (BRN {SITE.brn}) means no hotel-desk or reseller
             markup, a fixed EUR price agreed before you go, and the same local team looking after
@@ -156,25 +170,25 @@ export default async function IleAuxCerfsToursPage() {
           </p>
           <RelatedLinks
             links={[
-              { label: 'Catamaran cruises', href: '/mauritius-catamaran-cruise' },
-              { label: 'Dolphin swim', href: '/dolphin-swim-mauritius' },
-              { label: 'All Mauritius tours', href: '/mauritius-tours' },
-              { label: 'Belle Mare area', href: '/destinations' },
-              { label: 'Airport transfers', href: '/airport-transfers' },
+              { label: t('Catamaran cruises'), href: '/mauritius-catamaran-cruise' },
+              { label: t('Dolphin swim'), href: '/dolphin-swim-mauritius' },
+              { label: t('All Mauritius tours'), href: '/mauritius-tours' },
+              { label: t('Belle Mare area'), href: '/destinations' },
+              { label: t('Airport transfers'), href: '/airport-transfers' },
             ]}
           />
         </ContentSection>
 
-        <ContentSection id="faq" title="Île aux Cerfs FAQ">
+        <ContentSection id="faq" title={t('Île aux Cerfs FAQ')}>
           <FaqAccordion items={FAQS} />
         </ContentSection>
 
-        <ContentSection id="book" title="Ready for your island day?">
+        <ContentSection id="book" title={t('Ready for your island day?')}>
           <p>
             Pick a catamaran or speedboat trip and book online, or message us for a private charter.
           </p>
           <BookDirectCta
-            primary={{ href: '/mauritius-catamaran-cruise', label: 'See catamaran cruises' }}
+            primary={{ href: '/mauritius-catamaran-cruise', label: t('See catamaran cruises') }}
           />
         </ContentSection>
 

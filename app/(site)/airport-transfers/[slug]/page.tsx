@@ -10,6 +10,7 @@ import { getTransfer, transferMetaTitle, transferMetaDescription } from '@/lib/c
 import { transferServiceJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -54,82 +55,92 @@ export default async function TransferDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const t = getTransfer(slug);
-  if (!t) notFound();
+  const hotel = getTransfer(slug);
+  if (!hotel) notFound();
+  const t = await getT();
 
-  const path = t.path;
+  const path = hotel.path;
+  const homeLabel = t('Home');
+  const airportTransfersLabel = t('Airport transfers');
 
   return (
     <>
       <JsonLd
         data={transferServiceJsonLd({
-          name: `Airport transfer to ${t.hotelName}`,
-          description: transferMetaDescription(t),
+          name: `Airport transfer to ${hotel.hotelName}`,
+          description: transferMetaDescription(hotel),
           path,
-          area: t.area,
-          fromPriceEur: t.fromPriceEur,
+          area: hotel.area,
+          fromPriceEur: hotel.fromPriceEur,
         })}
       />
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Airport transfers', path: '/airport-transfers' },
-          { name: t.hotelName, path },
+          { name: homeLabel, path: '/' },
+          { name: airportTransfersLabel, path: '/airport-transfers' },
+          { name: hotel.hotelName, path },
         ])}
       />
-      <JsonLd data={faqPageJsonLd(t.faq)} />
+      <JsonLd data={faqPageJsonLd(hotel.faq)} />
 
       <InfoPage
-        eyebrow={`Airport transfer · ${t.area}`}
-        title={`Airport transfer to ${t.hotelName}`}
-        intro={`Private, fixed-price transfer from SSR International Airport to ${t.hotelName} — from €${t.fromPriceEur} per car, about ${t.durationMinFromAirport} minutes.`}
+        eyebrow={`${t('Airport transfer')} · ${hotel.area}`}
+        title={t('Airport transfer to {hotel}', { hotel: hotel.hotelName })}
+        intro={t(
+          'Private, fixed-price transfer from SSR International Airport to {hotel} — from €{price} per car, about {min} minutes.',
+          {
+            hotel: hotel.hotelName,
+            price: hotel.fromPriceEur,
+            min: hotel.durationMinFromAirport,
+          },
+        )}
       >
         {/* Breadcrumb */}
         <nav
-          aria-label="Breadcrumb"
+          aria-label={t('Breadcrumb')}
           className="mb-6 flex flex-wrap items-center gap-2 text-[13px] text-ink-muted"
         >
           <Link href="/" className="hover:text-teal">
-            Home
+            {homeLabel}
           </Link>
           <span className="text-ink/25">/</span>
           <Link href="/airport-transfers" className="hover:text-teal">
-            Airport transfers
+            {airportTransfersLabel}
           </Link>
           <span className="text-ink/25">/</span>
-          <span className="font-semibold text-ink">{t.hotelName}</span>
+          <span className="font-semibold text-ink">{hotel.hotelName}</span>
         </nav>
 
         <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-10">
           <div className="min-w-0">
             {/* Quick facts */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Fact label="From" value={`€${t.fromPriceEur} / car`} />
-              <Fact label="Drive time" value={`~${t.durationMinFromAirport} min`} />
-              <Fact label="Distance" value={`~${t.distanceKmFromAirport} km`} />
-              <Fact label="Coast" value={`${t.region} (${t.area})`} />
+              <Fact label={t('From')} value={`€${hotel.fromPriceEur} / car`} />
+              <Fact label={t('Drive time')} value={`~${hotel.durationMinFromAirport} min`} />
+              <Fact label={t('Distance')} value={`~${hotel.distanceKmFromAirport} km`} />
+              <Fact label={t('Coast')} value={`${hotel.region} (${hotel.area})`} />
             </div>
 
             {/* Route map: SSR airport → this hotel */}
             <div className="mt-6">
-              <TransferRouteMap hotelName={t.hotelName} lat={t.lat} lng={t.lng} />
+              <TransferRouteMap hotelName={hotel.hotelName} lat={hotel.lat} lng={hotel.lng} />
             </div>
 
             {/* Intro */}
             <section className="mt-9 border-t border-ink/10 pt-8">
               <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-                Your transfer to {t.hotelName}
+                {t('Your transfer to {hotel}', { hotel: hotel.hotelName })}
               </h2>
-              <p className="mt-4 text-[15px] leading-relaxed text-ink/80">{t.intro}</p>
+              <p className="mt-4 text-[15px] leading-relaxed text-ink/80">{hotel.intro}</p>
             </section>
 
             {/* Included */}
             <section className="mt-9 border-t border-ink/10 pt-8">
               <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-                What&apos;s included
+                {t("What's included")}
               </h2>
               <ul className="m-0 mt-4 grid list-none grid-cols-1 gap-2.5 p-0 sm:grid-cols-2">
-                {t.included.map((item) => (
+                {hotel.included.map((item) => (
                   <li
                     key={item}
                     className="flex items-start gap-2.5 text-[14.5px] leading-snug text-ink/85"
@@ -142,13 +153,13 @@ export default async function TransferDetailPage({
             </section>
 
             {/* Nearby */}
-            {t.nearbyAttractions.length > 0 && (
+            {hotel.nearbyAttractions.length > 0 && (
               <section className="mt-9 border-t border-ink/10 pt-8">
                 <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-                  Things to do near {t.area}
+                  {t('Things to do near {area}', { area: hotel.area })}
                 </h2>
                 <ul className="m-0 mt-4 flex flex-wrap gap-2.5 p-0">
-                  {t.nearbyAttractions.map((a) => (
+                  {hotel.nearbyAttractions.map((a) => (
                     <li
                       key={a}
                       className="rounded-full border border-ink/12 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
@@ -161,7 +172,7 @@ export default async function TransferDetailPage({
                   href="/attractions"
                   className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"
                 >
-                  Explore things to do in Mauritius →
+                  {t('Explore things to do in Mauritius →')}
                 </Link>
               </section>
             )}
@@ -169,10 +180,10 @@ export default async function TransferDetailPage({
             {/* FAQ */}
             <section className="mt-9 border-t border-ink/10 pt-8">
               <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-                Frequently asked questions
+                {t('Frequently asked questions')}
               </h2>
               <div className="mt-4 flex flex-col gap-2.5">
-                {t.faq.map((f) => (
+                {hotel.faq.map((f) => (
                   <details
                     key={f.q}
                     className="group rounded-xl border border-ink/10 bg-white px-4 py-3 open:bg-cream/40"
@@ -191,10 +202,10 @@ export default async function TransferDetailPage({
           <div className="mt-8 lg:mt-0">
             <div className="lg:sticky lg:top-24">
               <TransferBookingWidget
-                slug={t.slug}
-                hotelName={t.hotelName}
-                region={t.region}
-                durationMin={t.durationMinFromAirport}
+                slug={hotel.slug}
+                hotelName={hotel.hotelName}
+                region={hotel.region}
+                durationMin={hotel.durationMinFromAirport}
               />
             </div>
           </div>
@@ -204,10 +215,10 @@ export default async function TransferDetailPage({
 
         <div className="mt-10 border-t border-ink/10 pt-8">
           <p className="text-[13px] text-ink-muted">
-            Prefer to arrange by message? We’re happy to help.
+            {t('Prefer to arrange by message? We’re happy to help.')}
           </p>
           <EnquireRow
-            message={`Hi Belle Mare Tours! I'd like an airport transfer to ${t.hotelName}. Here are my flight details and party size:`}
+            message={`Hi Belle Mare Tours! I'd like an airport transfer to ${hotel.hotelName}. Here are my flight details and party size:`}
           />
         </div>
       </InfoPage>

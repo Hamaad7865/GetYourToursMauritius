@@ -14,6 +14,7 @@ import {
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { featuredActivities } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -75,13 +76,17 @@ const FAQS = [
 ];
 
 export default async function BelleMareToursPage() {
+  const t = await getT();
   const featured = await featuredActivities({ limit: 6 });
+  const homeLabel = t('Home');
+  // "Belle Mare Tours" is the brand name — a proper noun, left untranslated everywhere it appears
+  // alone (breadcrumb, JSON-LD name, page title).
 
   return (
     <>
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
+          { name: homeLabel, path: '/' },
           { name: 'Belle Mare Tours', path: PATH },
         ])}
       />
@@ -95,14 +100,22 @@ export default async function BelleMareToursPage() {
       )}
 
       <InfoPage
-        eyebrow="Licensed Mauritius tour operator"
+        eyebrow={t('Licensed Mauritius tour operator')}
         title="Belle Mare Tours"
-        intro="Your local east-coast operator for catamaran cruises, island day tours, dolphin swims and fixed-price airport transfers — booked direct, with the same driver-guide all day."
-        meta={`${SITE.legalName} · Belle Mare, Mauritius · BRN ${SITE.brn} · rated 4.8/5 from 1,000+ reviews.`}
+        intro={t(
+          'Your local east-coast operator for catamaran cruises, island day tours, dolphin swims and fixed-price airport transfers — booked direct, with the same driver-guide all day.',
+        )}
+        meta={t(
+          '{legalName} · Belle Mare, Mauritius · BRN {brn} · rated 4.8/5 from 1,000+ reviews.',
+          {
+            legalName: SITE.legalName,
+            brn: SITE.brn,
+          },
+        )}
       >
-        <Breadcrumb trail={[{ label: 'Home', href: '/' }]} current="Belle Mare Tours" />
+        <Breadcrumb trail={[{ label: homeLabel, href: '/' }]} current="Belle Mare Tours" />
 
-        <ContentSection id="who" title="A local operator who knows the island">
+        <ContentSection id="who" title={t('A local operator who knows the island')}>
           <p>
             {SITE.operator} is a licensed Mauritian tour and airport-transfer operator based in
             Belle Mare, on the island’s calm east coast. Run by veteran driver-guide Noorani and his
@@ -119,12 +132,14 @@ export default async function BelleMareToursPage() {
         </ContentSection>
 
         <FeaturedTours
-          title="Book direct with Belle Mare Tours"
-          intro="A selection of our most-booked experiences — tap any one for live dates, prices and instant confirmation."
+          title={t('Book direct with Belle Mare Tours')}
+          intro={t(
+            'A selection of our most-booked experiences — tap any one for live dates, prices and instant confirmation.',
+          )}
           activities={featured}
         />
 
-        <ContentSection id="what" title="What we offer">
+        <ContentSection id="what" title={t('What we offer')}>
           <p>
             We cover the experiences most visitors come to Mauritius for:{' '}
             <InlineLink href="/mauritius-catamaran-cruise">catamaran cruises</InlineLink> to{' '}
@@ -141,7 +156,7 @@ export default async function BelleMareToursPage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="east-coast" title="Belle Mare & the east coast">
+        <ContentSection id="east-coast" title={t('Belle Mare & the east coast')}>
           <p>
             Belle Mare is known for one of the island’s longest, calmest white-sand beaches and its
             turquoise lagoon, with Île aux Cerfs and Trou d’Eau Douce just down the coast. Being
@@ -153,27 +168,27 @@ export default async function BelleMareToursPage() {
           </p>
           <RelatedLinks
             links={[
-              { label: 'Things to do in Belle Mare', href: '/things-to-do-in-belle-mare' },
-              { label: 'Our tours', href: '/mauritius-tours' },
-              { label: 'Airport transfers', href: '/airport-transfers' },
-              { label: 'Things to do', href: '/attractions' },
-              { label: 'Travel guide', href: '/mauritius-travel-guide' },
-              { label: 'About us', href: '/about' },
-              { label: 'Contact', href: '/contact' },
+              { label: t('Things to do in Belle Mare'), href: '/things-to-do-in-belle-mare' },
+              { label: t('Our tours'), href: '/mauritius-tours' },
+              { label: t('Airport transfers'), href: '/airport-transfers' },
+              { label: t('Things to do'), href: '/attractions' },
+              { label: t('Travel guide'), href: '/mauritius-travel-guide' },
+              { label: t('About us'), href: '/about' },
+              { label: t('Contact'), href: '/contact' },
             ]}
           />
         </ContentSection>
 
-        <ContentSection id="faq" title="Belle Mare Tours FAQ">
+        <ContentSection id="faq" title={t('Belle Mare Tours FAQ')}>
           <FaqAccordion items={FAQS} />
         </ContentSection>
 
-        <ContentSection id="book" title="Plan your trip with us">
+        <ContentSection id="book" title={t('Plan your trip with us')}>
           <p>
             Tell us your dates and where you’re staying and we’ll put together the right mix of
             tours and transfers — or book any experience online right now.
           </p>
-          <BookDirectCta primary={{ href: '/mauritius-tours', label: 'See our tours' }} />
+          <BookDirectCta primary={{ href: '/mauritius-tours', label: t('See our tours') }} />
         </ContentSection>
 
         <EnquireRow message="Hi Belle Mare Tours! I'd like to plan some tours and transfers. Here are my dates and hotel:" />

@@ -1867,4 +1867,329 @@ export const fr: Record<string, string> = {
 
   // Task 10 batch A — TransferSearch.tsx
   'To — your hotel': 'Vers — votre hôtel',
+
+  // Task 10 batch B — app/(site)/airport-transfers/page.tsx
+  'Standard · ≤4': 'Standard · ≤4',
+  'Family · 5–6': 'Familiale · 5–6',
+  'Minibus · 7–14': 'Minibus · 7–14',
+  'Coaster · 15–25': 'Autocar · 15–25',
+  'Zone 2 — near the airport': 'Zone 2 — près de l’aéroport',
+  'Zone 1 — elsewhere in Mauritius': 'Zone 1 — ailleurs à Maurice',
+  'Fixed, transparent EUR price': 'Prix fixe et transparent en euros',
+  'No meters, no surprises. You agree the fare before you fly — metered airport taxis can’t promise that.':
+    'Pas de compteur, pas de surprise. Vous convenez du tarif avant de partir — les taxis aéroport au compteur ne peuvent pas en dire autant.',
+  'The same licensed driver, door-to-door': 'Le même chauffeur agréé, porte à porte',
+  'One trusted local driver-guide for your whole journey — English- and French-speaking, from your door to your destination.':
+    'Un seul chauffeur-guide local de confiance pour tout le trajet — anglophone et francophone, de votre porte à votre destination.',
+  'Book direct, no OTA commission': 'Réservez en direct, sans commission d’agence',
+  'You book straight with Belle Mare Tours — no reseller in the middle taking a cut, so the price stays lower for you.':
+    'Vous réservez directement avec Belle Mare Tours — aucun revendeur ne prend de commission, donc le prix reste plus bas pour vous.',
+  'Meet & greet + flight tracking': 'Accueil personnalisé + suivi de vol',
+  'Name board in arrivals, real-time flight monitoring and free waiting time — so a late landing never leaves you stranded.':
+    'Pancarte à votre nom aux arrivées, suivi du vol en temps réel et attente gratuite — un atterrissage retardé ne vous laissera jamais en plan.',
+  'Find your hotel & price': 'Trouvez votre hôtel et votre prix',
+  'Search your hotel, or pick your area and vehicle. Your fixed EUR fare appears instantly — no waiting for a quote.':
+    'Recherchez votre hôtel, ou choisissez votre zone et votre véhicule. Votre tarif fixe en euros s’affiche instantanément — pas d’attente pour un devis.',
+  'Book & get your e-voucher': 'Réservez et recevez votre e-billet',
+  'Pay securely by card and your confirmation e-voucher lands in your inbox right away.':
+    'Payez en toute sécurité par carte et recevez immédiatement votre e-billet de confirmation.',
+  'We meet you in arrivals': 'Nous vous accueillons aux arrivées',
+  'We track your flight and your driver-guide is waiting with a name board the moment you walk out.':
+    'Nous suivons votre vol et votre chauffeur-guide vous attend avec une pancarte dès votre sortie.',
+  'Standard Car': 'Voiture standard',
+  'Couples & solo travellers.': 'Couples et voyageurs solo.',
+  '1–4 seats': '1 à 4 places',
+  '2–3 bags': '2 à 3 bagages',
+  'Air-conditioned saloon car': 'Berline climatisée',
+  'Free meet & greet + name board': 'Accueil personnalisé et pancarte offerts',
+  'Free first child seat': 'Premier siège enfant offert',
+  'Family Car': 'Voiture familiale',
+  'Small families.': 'Petites familles.',
+  '5–6 bags': '5 à 6 bagages',
+  'Spacious A/C estate / MPV': 'Break ou monospace climatisé, spacieux',
+  'Room for surfboards & buggies': 'De la place pour planches de surf et poussettes',
+  'Bigger groups.': 'Groupes plus importants.',
+  '14+ bags': '14 bagages et plus',
+  'Air-conditioned minibus': 'Minibus climatisé',
+  'Plenty of luggage space': 'Beaucoup d’espace pour les bagages',
+  'One driver for the whole group': 'Un seul chauffeur pour tout le groupe',
+  'Large groups & events.': 'Grands groupes et événements.',
+  '25+ bags': '25 bagages et plus',
+  'Air-conditioned coaster': 'Autocar climatisé',
+  'Group travel in one vehicle': 'Voyagez en groupe dans un seul véhicule',
+  'Ideal for weddings & events': 'Idéal pour mariages et événements',
+  'Your driver waits in arrivals with a name board.':
+    'Votre chauffeur vous attend aux arrivées avec une pancarte.',
+  'Real-time flight monitoring': 'Suivi du vol en temps réel',
+  'We watch your flight and adjust the pickup.':
+    'Nous surveillons votre vol et ajustons la prise en charge.',
+  'Free waiting time': 'Attente gratuite',
+  'No charge if your flight runs late.': 'Aucun supplément si votre vol est retardé.',
+  'Just tell us your child’s age.': 'Indiquez-nous simplement l’âge de votre enfant.',
+  'Full refund up to 24 hours before.': 'Remboursement intégral jusqu’à 24 heures avant.',
+  '24/7 service': 'Service 24 h/24 et 7 j/7',
+  'Any flight, any hour, day or night.':
+    'Quel que soit le vol, à toute heure, de jour comme de nuit.',
+  'WhatsApp coordination': 'Coordination par WhatsApp',
+  'Message your driver directly, anytime.': 'Contactez votre chauffeur directement, à tout moment.',
+  'Licensed by the Mauritius Tourism Authority': 'Agréé par la Mauritius Tourism Authority',
+  'Land in Mauritius to a driver who’s already waiting — at a':
+    'Atterrissez à Maurice, un chauffeur vous attend déjà — à un',
+  'fixed price.': 'prix fixe.',
+  'Private door-to-door transfers between SSR Airport (MRU) and any hotel, Airbnb or cruise port — up to 40% less than metered airport taxis.':
+    'Transferts privés porte à porte entre l’aéroport SSR (MRU) et n’importe quel hôtel, Airbnb ou port de croisière — jusqu’à 40 % moins cher que les taxis aéroport au compteur.',
+  'Booked direct with the operator, no reseller markup.':
+    'Réservé en direct avec l’opérateur, sans marge de revendeur.',
+  '4.8 · 1,000+ reviews': '4,8 · plus de 1 000 avis',
+  'Same driver-guide all day': 'Même chauffeur-guide toute la journée',
+  'English & French': 'Anglais et français',
+  'Where are you staying?': 'Où logez-vous ?',
+  'Not sure of the exact hotel?': 'Vous n’êtes pas sûr du nom exact de l’hôtel ?',
+  'Price by area': 'Prix par zone',
+  'browse the map': 'parcourez la carte',
+  'Instant price': 'Prix instantané',
+  'Get your fixed fare in seconds.': 'Obtenez votre tarif fixe en quelques secondes.',
+  'Pick your route and vehicle — airport-to-hotel or hotel-to-hotel — and your transparent EUR price appears instantly, no waiting around for a quote.':
+    'Choisissez votre trajet et votre véhicule — aéroport-hôtel ou hôtel-hôtel — et votre prix transparent en euros s’affiche instantanément, sans attendre de devis.',
+  'Island-wide taxi service': 'Service de taxi sur toute l’île',
+  'A fixed-price taxi anywhere in Mauritius — not just the airport.':
+    'Un taxi à prix fixe partout à Maurice — pas seulement à l’aéroport.',
+  'Need a taxi between two hotels, from your villa to a restaurant, or from the cruise port to your resort? Our private taxi service runs island-wide on the same fixed-price, book-direct basis as our airport transfers. Pick':
+    'Besoin d’un taxi entre deux hôtels, de votre villa à un restaurant, ou du port de croisière à votre hôtel ? Notre service de taxi privé fonctionne partout sur l’île, avec le même principe de prix fixe et de réservation directe que nos transferts aéroport. Choisissez',
+  'in the price tool above, choose your two points, and your transparent EUR fare appears in seconds — no meter, no haggling, the same trusted licensed driver-guide door to door.':
+    'dans l’outil de tarification ci-dessus, sélectionnez vos deux points, et votre tarif transparent en euros s’affiche en quelques secondes — pas de compteur, pas de marchandage, le même chauffeur-guide agréé de confiance, porte à porte.',
+  'Get a fixed taxi fare': 'Obtenez un tarif de taxi fixe',
+  'Licensed · Mauritius Tourism Authority': 'Agréé · Mauritius Tourism Authority',
+  '4.8 from 1,000+ reviews': '4,8 sur plus de 1 000 avis',
+  'Fixed price, no hidden fees': 'Prix fixe, sans frais cachés',
+  'Find your hotel': 'Trouvez votre hôtel',
+  'Every hotel we serve — pinned on the map.':
+    'Tous les hôtels que nous desservons — repérés sur la carte.',
+  'Tap your resort to see the drive from SSR International Airport and your starting price — or search it by name up top. Door-to-door across the whole island, plus the Port Louis cruise terminal.':
+    'Touchez votre hôtel pour voir le trajet depuis l’aéroport international SSR et votre prix de départ — ou recherchez-le par son nom en haut de page. Porte à porte sur toute l’île, ainsi qu’au terminal de croisière de Port-Louis.',
+  'Island-wide coverage': 'Couverture sur toute l’île',
+  'Beat the airport taxi': 'Mieux que le taxi de l’aéroport',
+  'No meters. No surprises. Just the price you agreed.':
+    'Pas de compteur. Pas de surprise. Juste le prix convenu.',
+  'Belle Mare Tours has driven this island for years. You book straight with us — so the savings stay with you, not a booking site.':
+    'Belle Mare Tours sillonne cette île depuis des années. Vous réservez directement avec nous — l’économie reste donc pour vous, pas pour un site de réservation.',
+  'From booking to name board in three steps.':
+    'De la réservation à la pancarte à votre nom, en trois étapes.',
+  'Fixed fares': 'Tarifs fixes',
+  'Every fare, in EUR, up front.': 'Chaque tarif, en euros, annoncé à l’avance.',
+  'All prices are fixed, per vehicle, and include meet & greet, name board and free waiting time. Each cell shows':
+    'Tous les prix sont fixes, par véhicule, et incluent l’accueil personnalisé, la pancarte et l’attente gratuite. Chaque case indique',
+  'one-way / return': 'aller simple / aller-retour',
+  Zone: 'Zone',
+  'The fleet': 'La flotte',
+  'Clean, air-conditioned, the right size for your group.':
+    'Propre, climatisé, à la bonne taille pour votre groupe.',
+  'Luxury tier': 'Gamme de luxe',
+  'Travelling with little ones? Your': 'Vous voyagez avec de jeunes enfants ? Votre',
+  'first child seat is free': 'premier siège enfant est offert',
+  '— just tell us their age when you book.':
+    '— indiquez-nous simplement leur âge lors de la réservation.',
+  'Included with every transfer': 'Inclus avec chaque transfert',
+  'All of this. At no extra cost.': 'Tout cela. Sans frais supplémentaires.',
+  'Your questions, answered up front.': 'Vos questions, avec des réponses claires dès le départ.',
+  'Land, walk out, and there we are.': 'Atterrissez, sortez, et nous sommes là.',
+  'Get your fixed price in seconds — booked direct with Noorani and the team in Belle Mare.':
+    'Obtenez votre prix fixe en quelques secondes — réservé en direct avec Noorani et l’équipe de Belle Mare.',
+
+  // Task 10 batch B — app/(site)/airport-transfers/[slug]/page.tsx
+  Home: 'Accueil',
+  'Airport transfer to {hotel}': 'Transfert aéroport vers {hotel}',
+  'Private, fixed-price transfer from SSR International Airport to {hotel} — from €{price} per car, about {min} minutes.':
+    'Transfert privé à prix fixe depuis l’aéroport international SSR jusqu’à {hotel} — à partir de {price} € par voiture, environ {min} minutes.',
+  'Drive time': 'Temps de trajet',
+  Coast: 'Côte',
+  'Your transfer to {hotel}': 'Votre transfert vers {hotel}',
+  "What's included": 'Ce qui est inclus',
+  'Things to do near {area}': 'Activités à proximité de {area}',
+  'Explore things to do in Mauritius →': 'Découvrez les activités à Maurice →',
+  'Prefer to arrange by message? We’re happy to help.':
+    'Vous préférez organiser cela par message ? Nous serons ravis de vous aider.',
+
+  // Task 10 batch B — app/(site)/belle-mare-tours/page.tsx
+  'Licensed Mauritius tour operator': 'Opérateur de tours agréé à Maurice',
+  'Your local east-coast operator for catamaran cruises, island day tours, dolphin swims and fixed-price airport transfers — booked direct, with the same driver-guide all day.':
+    'Votre opérateur local de la côte est pour les croisières en catamaran, les excursions à la journée, la nage avec les dauphins et les transferts aéroport à prix fixe — réservés en direct, avec le même chauffeur-guide toute la journée.',
+  '{legalName} · Belle Mare, Mauritius · BRN {brn} · rated 4.8/5 from 1,000+ reviews.':
+    '{legalName} · Belle Mare, Maurice · BRN {brn} · noté 4,8/5 sur plus de 1 000 avis.',
+  'A local operator who knows the island': 'Un opérateur local qui connaît l’île',
+  'Book direct with Belle Mare Tours': 'Réservez en direct avec Belle Mare Tours',
+  'A selection of our most-booked experiences — tap any one for live dates, prices and instant confirmation.':
+    'Une sélection de nos expériences les plus réservées — touchez-en une pour voir les dates, prix et la confirmation instantanée.',
+  'Belle Mare & the east coast': 'Belle Mare et la côte est',
+  'Things to do in Belle Mare': 'Activités à faire à Belle Mare',
+  'Our tours': 'Nos excursions',
+  'Travel guide': 'Guide de voyage',
+  'Belle Mare Tours FAQ': 'FAQ Belle Mare Tours',
+  'Plan your trip with us': 'Organisez votre séjour avec nous',
+  'See our tours': 'Voir nos excursions',
+
+  // Task 10 batch B — app/(site)/dolphin-swim-mauritius/page.tsx
+  'Swim with dolphins in Mauritius': 'Nager avec les dauphins à Maurice',
+  'An early-morning boat trip to the calm west-coast bays to meet wild spinner and bottlenose dolphins — responsibly, on small boats, booked direct with a local operator.':
+    'Une sortie en bateau tôt le matin dans les baies calmes de la côte ouest pour rencontrer des dauphins à long bec et des grands dauphins sauvages — de façon responsable, sur de petits bateaux, réservée en direct avec un opérateur local.',
+  'Operated by {operator} · door-to-door pickup island-wide · rated 4.8/5 from 1,000+ reviews.':
+    'Exploité par {operator} · prise en charge porte à porte sur toute l’île · noté 4,8/5 sur plus de 1 000 avis.',
+  'Meet wild dolphins off the west coast':
+    'Rencontrez des dauphins sauvages au large de la côte ouest',
+  'Dolphin trips you can book': 'Sorties dauphins à réserver',
+  'Live dates and prices — tap a trip to reserve your early-morning departure online.':
+    'Dates et prix en direct — touchez une sortie pour réserver votre départ matinal en ligne.',
+  'Doing it responsibly': 'Une démarche responsable',
+  'Make a morning of it': 'Faites-en une matinée complète',
+  'Île aux Cerfs tours': 'Excursions à l’Île aux Cerfs',
+  'All Mauritius tours': 'Toutes les excursions à Maurice',
+  'Dolphin swim FAQ': 'FAQ nage avec les dauphins',
+  'Book your dolphin morning direct': 'Réservez votre matinée dauphins en direct',
+  'See all dolphin trips': 'Voir toutes les sorties dauphins',
+
+  // Task 10 batch B — app/(site)/help/page.tsx
+  'Booking & payment': 'Réservation et paiement',
+  'Before your trip': 'Avant votre départ',
+  'Cancellations & changes': 'Annulations et modifications',
+  'Vouchers & confirmation': 'Bons et confirmation',
+  'Account & login': 'Compte et connexion',
+  "Quick answers to the questions we get most. Can't find what you need? We're a local team in Belle Mare and a message away.":
+    'Des réponses rapides aux questions les plus fréquentes. Vous ne trouvez pas ce qu’il vous faut ? Nous sommes une équipe locale basée à Belle Mare, à un message de vous.',
+  'How do I book an activity?': 'Comment réserver une activité ?',
+  'Pick your activity, choose a date and party size, then go through checkout. Your place is confirmed once payment is complete and we email your e-voucher. You can':
+    'Choisissez votre activité, une date et le nombre de participants, puis passez à la validation. Votre place est confirmée une fois le paiement effectué et nous vous envoyons votre e-billet par e-mail. Vous pouvez',
+  'browse all activities': 'parcourir toutes les activités',
+  'to get started.': 'pour commencer.',
+  'What payment methods can I use?': 'Quels moyens de paiement puis-je utiliser ?',
+  'You pay securely by card at checkout. Prices are shown in euro (EUR); your card is charged the equivalent in Mauritian rupees (MUR) at the rate applied at checkout — the exact amount is shown before you enter your card details. Your card details go straight to our payment provider — we never see or store them.':
+    'Vous payez en toute sécurité par carte au moment du paiement. Les prix sont affichés en euros (EUR) ; votre carte est débitée de l’équivalent en roupies mauriciennes (MUR) au taux appliqué lors du paiement — le montant exact s’affiche avant la saisie de vos coordonnées bancaires. Vos coordonnées bancaires vont directement à notre prestataire de paiement — nous ne les voyons ni ne les conservons jamais.',
+  'When am I charged?': 'Quand suis-je débité ?',
+  "Payment is taken at the time of booking to confirm your place. If a payment fails or a place sells out before your booking is confirmed, you're not charged.":
+    'Le paiement est prélevé au moment de la réservation pour confirmer votre place. En cas d’échec du paiement ou si les places sont épuisées avant la confirmation de votre réservation, vous n’êtes pas débité.',
+  'Do I need an account to book?': 'Ai-je besoin d’un compte pour réserver ?',
+  'An account makes it easy to see your bookings, but you can complete most bookings by providing just your name, email and phone number.':
+    'Un compte facilite le suivi de vos réservations, mais vous pouvez finaliser la plupart des réservations en indiquant simplement votre nom, votre e-mail et votre numéro de téléphone.',
+  'Where and when do I meet?': 'Où et quand dois-je me présenter ?',
+  'Your e-voucher shows the meeting point or pickup details and the time to be ready. If pickup is included, be ready a few minutes early at the location you gave us.':
+    'Votre e-billet indique le point de rendez-vous ou les détails de prise en charge, ainsi que l’heure à laquelle être prêt. Si la prise en charge est incluse, soyez prêt quelques minutes à l’avance à l’endroit indiqué.',
+  'Do you offer hotel pickup?': 'Proposez-vous la prise en charge à l’hôtel ?',
+  "Many activities include pickup across the island — it's shown on the activity page. Add your hotel or address at checkout, or message us if you're unsure whether your location is covered.":
+    'De nombreuses activités incluent la prise en charge partout sur l’île — c’est indiqué sur la page de l’activité. Ajoutez votre hôtel ou votre adresse lors du paiement, ou contactez-nous si vous n’êtes pas sûr que votre lieu soit couvert.',
+  'What should I bring?': 'Que dois-je apporter ?',
+  'For water activities: swimwear, a towel, reef-safe sunscreen, a hat and water. Bring your booking reference (on your phone is fine). Specific items are noted on the activity page.':
+    'Pour les activités nautiques : maillot de bain, serviette, crème solaire respectueuse des récifs, chapeau et eau. Apportez votre référence de réservation (sur votre téléphone, c’est parfait). Les éléments spécifiques sont indiqués sur la page de l’activité.',
+  'Can children join? Are baby seats available?':
+    'Les enfants peuvent-ils participer ? Des sièges bébé sont-ils disponibles ?',
+  'Most activities welcome families. Where car seats are relevant, the first baby/child seat is free and any extra seats are a small add-on — choose them when you book.':
+    'La plupart des activités sont adaptées aux familles. Lorsque des sièges auto sont pertinents, le premier siège bébé/enfant est gratuit et les sièges supplémentaires sont un petit supplément — à choisir lors de la réservation.',
+  'Most activities can be cancelled free of charge until':
+    'La plupart des activités peuvent être annulées gratuitement jusqu’à',
+  '12:00 noon Mauritius time on the day before': 'midi (heure de Maurice) la veille',
+  "your activity date; after that they're non-refundable. Full details and examples are on our":
+    'de la date de votre activité ; passé ce délai, elles ne sont plus remboursables. Tous les détails et exemples se trouvent sur notre',
+  'page.': 'page.',
+  'How do I cancel or change my booking?': 'Comment annuler ou modifier ma réservation ?',
+  'Message us on WhatsApp, call': 'Contactez-nous sur WhatsApp, appelez',
+  'or email': 'ou envoyez un e-mail à',
+  'with your': 'avec votre',
+  'reference, before the cut-off. Changes are subject to availability on the new date.':
+    'référence, avant la date limite. Les modifications sont soumises à la disponibilité à la nouvelle date.',
+  'What if you cancel because of the weather?':
+    'Que se passe-t-il si vous annulez à cause de la météo ?',
+  'Your safety comes first. If we cancel for weather, sea conditions or safety, you choose a full refund or a free reschedule to another date.':
+    'Votre sécurité passe avant tout. Si nous annulons pour des raisons météo, d’état de la mer ou de sécurité, vous choisissez entre un remboursement intégral ou un report gratuit à une autre date.',
+  'How long does a refund take?': 'Combien de temps prend un remboursement ?',
+  'We process eligible refunds within 1–2 business days to your original payment method; your bank then takes a further 5–10 business days to show it.':
+    'Nous traitons les remboursements éligibles sous 1 à 2 jours ouvrés vers votre moyen de paiement d’origine ; votre banque prend ensuite 5 à 10 jours ouvrés supplémentaires pour l’afficher.',
+  'I haven’t received my confirmation email': 'Je n’ai pas reçu mon e-mail de confirmation',
+  "Check your spam or promotions folder first. If it's still missing after a few minutes, message us with the name and date you booked under and we'll resend it.":
+    'Vérifiez d’abord votre dossier spam ou promotions. S’il manque toujours après quelques minutes, contactez-nous avec le nom et la date de votre réservation et nous vous le renverrons.',
+  'Do I need to print my voucher?': 'Dois-je imprimer mon bon ?',
+  'No — showing it on your phone at check-in is perfectly fine.':
+    'Non — le présenter sur votre téléphone à l’enregistrement suffit amplement.',
+  'How do I see my bookings?': 'Comment consulter mes réservations ?',
+  'Sign in and open': 'Connectez-vous et ouvrez',
+  'your bookings': 'vos réservations',
+  'to see upcoming and past trips.': 'pour voir vos voyages à venir et passés.',
+  'I’ve forgotten my password': 'J’ai oublié mon mot de passe',
+  'Use the "forgot password" option on the sign-in screen to reset it by email.':
+    'Utilisez l’option « mot de passe oublié » sur l’écran de connexion pour le réinitialiser par e-mail.',
+  'Still stuck, or want a tailored recommendation? Talk to our local team directly —':
+    'Toujours bloqué, ou envie d’une recommandation sur mesure ? Parlez directement à notre équipe locale —',
+  "we're happy to help plan your day. You can also read our":
+    'nous serons ravis de vous aider à organiser votre journée. Vous pouvez aussi consulter nos',
+  and: 'et',
+
+  // Task 10 batch B — app/(site)/ile-aux-cerfs-tours/page.tsx
+  'Île aux Cerfs tours & day trips': 'Excursions et sorties à la journée à l’Île aux Cerfs',
+  'Cruise to Mauritius’s most famous island — turquoise lagoon, powder-white sandbars, the GRSE waterfall and a beach barbecue. By catamaran or speedboat, booked direct from just down the coast.':
+    'Naviguez vers l’île la plus célèbre de Maurice — lagon turquoise, bancs de sable d’un blanc poudré, la cascade GRSE et un barbecue sur la plage. En catamaran ou en vedette rapide, réservé en direct à deux pas de la côte.',
+  'Operated by {operator} from Belle Mare, minutes from the Trou d’Eau Douce jetty.':
+    'Exploité par {operator} depuis Belle Mare, à quelques minutes de l’embarcadère de Trou d’Eau Douce.',
+  'The island day trip every Mauritius visitor wants':
+    'L’excursion à l’île que tout visiteur de Maurice souhaite faire',
+  'Île aux Cerfs trips you can book': 'Sorties à l’Île aux Cerfs à réserver',
+  'Live availability and prices — tap a trip to choose your date and book online in minutes.':
+    'Disponibilités et prix en direct — touchez une sortie pour choisir votre date et réserver en ligne en quelques minutes.',
+  'What to do on the island': 'Que faire sur l’île',
+  'The GRSE waterfall & speedboat option': 'La cascade GRSE et l’option vedette rapide',
+  'Book your Île aux Cerfs day direct': 'Réservez votre journée à l’Île aux Cerfs en direct',
+  'Dolphin swim': 'Nage avec les dauphins',
+  'Belle Mare area': 'Région de Belle Mare',
+  'Île aux Cerfs FAQ': 'FAQ Île aux Cerfs',
+  'Ready for your island day?': 'Prêt pour votre journée sur l’île ?',
+  'See catamaran cruises': 'Voir les croisières en catamaran',
+
+  // Task 10 batch B — app/(site)/mauritius-catamaran-cruise/page.tsx
+  'Mauritius catamaran cruise': 'Croisière en catamaran à Maurice',
+  'The signature Mauritius day out: a relaxed sail across the lagoon, snorkelling in clear water, a barbecue lunch on board and time on a beach or island — shared or fully private, booked direct.':
+    'La sortie emblématique de Maurice : une navigation tranquille sur le lagon, du snorkeling en eau claire, un déjeuner barbecue à bord et du temps sur une plage ou une île — en partagé ou en privatif complet, réservé en direct.',
+  'Operated by {operator} · rated 4.8/5 from 1,000+ reviews · door-to-door pickup island-wide.':
+    'Exploité par {operator} · noté 4,8/5 sur plus de 1 000 avis · prise en charge porte à porte sur toute l’île.',
+  'A full day on the Mauritius lagoon': 'Une journée complète sur le lagon de Maurice',
+  'Catamaran cruises you can book': 'Croisières en catamaran à réserver',
+  'Live dates and prices from our catalogue — tap a cruise to reserve online with instant confirmation.':
+    'Dates et prix en direct de notre catalogue — touchez une croisière pour réserver en ligne avec confirmation instantanée.',
+  'Choose your route': 'Choisissez votre itinéraire',
+  'Shared cruises or private charters': 'Croisières partagées ou privatisées',
+  'Catamaran cruise FAQ': 'FAQ croisière en catamaran',
+  'Set sail with Belle Mare Tours': 'Prenez le large avec Belle Mare Tours',
+  'See all catamaran cruises': 'Voir toutes les croisières en catamaran',
+
+  // Task 10 batch B — app/(site)/mauritius-tours/page.tsx
+  'Mauritius tours': 'Excursions à Maurice',
+  'Mauritius tours & day trips': 'Excursions et sorties à la journée à Maurice',
+  'Catamaran cruises, dolphin swims, island day trips and private sightseeing — booked direct with a licensed local operator, with door-to-door pickup and fixed, transparent prices.':
+    'Croisières en catamaran, nage avec les dauphins, excursions à la journée et visites privées — réservées en direct avec un opérateur local agréé, avec prise en charge porte à porte et des prix fixes et transparents.',
+  'Operated by {operator}, a licensed Mauritius tour operator (BRN {brn}), rated 4.8/5 across 1,000+ reviews.':
+    'Exploité par {operator}, opérateur de tours agréé à Maurice (BRN {brn}), noté 4,8/5 sur plus de 1 000 avis.',
+  'Every kind of Mauritius tour, from one local operator':
+    'Toutes sortes d’excursions à Maurice, avec un seul opérateur local',
+  'Popular tours you can book now': 'Excursions populaires à réserver dès maintenant',
+  'A live selection from our catalogue — tap any tour for dates, prices and instant online booking.':
+    'Une sélection en direct de notre catalogue — touchez une excursion pour voir les dates, prix et réserver en ligne instantanément.',
+  'The tours we run': 'Les excursions que nous proposons',
+  'Private, tailor-made & group tours': 'Excursions privées, sur mesure et en groupe',
+  'Where we pick up': 'Où nous assurons la prise en charge',
+  'Why book direct with Belle Mare Tours': 'Pourquoi réserver en direct avec Belle Mare Tours',
+  'Mauritius tours FAQ': 'FAQ excursions à Maurice',
+  'Ready to plan your Mauritius tours?': 'Prêt à organiser vos excursions à Maurice ?',
+
+  // Task 10 batch B — app/(site)/things-to-do-in-belle-mare/page.tsx
+  'Belle Mare · east coast Mauritius': 'Belle Mare · côte est de Maurice',
+  "Beach days, Île aux Cerfs boat trips, lagoon activities, golf and island day tours — a local's guide to Belle Mare, from the licensed operator based right here on the east coast.":
+    'Journées plage, sorties en bateau vers l’Île aux Cerfs, activités sur le lagon, golf et excursions à la journée — le guide local de Belle Mare, par l’opérateur agréé basé ici même, sur la côte est.',
+  'Written by {operator} · based in Belle Mare · rated 4.8/5 from 1,000+ reviews.':
+    'Rédigé par {operator} · basé à Belle Mare · noté 4,8/5 sur plus de 1 000 avis.',
+  "Why Belle Mare is the east coast's best base":
+    'Pourquoi Belle Mare est la meilleure base de la côte est',
+  'Best time to visit Belle Mare': 'Meilleure période pour visiter Belle Mare',
+  'The beach & the lagoon': 'La plage et le lagon',
+  'Île aux Cerfs — the classic day out': 'Île aux Cerfs — la sortie classique',
+  'Day trips from Belle Mare': 'Excursions à la journée depuis Belle Mare',
+  'Where to eat near Belle Mare': 'Où manger près de Belle Mare',
+  'Getting around from Belle Mare': 'Se déplacer depuis Belle Mare',
+  'Belle Mare area guide': 'Guide de la région de Belle Mare',
+  'Belle Mare activities — FAQ': 'Activités à Belle Mare — FAQ',
+  'Book it all in one place': 'Tout réserver au même endroit',
 };

@@ -14,6 +14,7 @@ import {
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { featuredActivities } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -71,15 +72,19 @@ const FAQS = [
 ];
 
 export default async function DolphinSwimMauritiusPage() {
+  const t = await getT();
   const featured = await featuredActivities({ category: 'Dolphin swims', q: 'dolphin', limit: 6 });
+  const homeLabel = t('Home');
+  const activitiesLabel = t('Activities');
+  const pageLabel = t('Dolphin swims');
 
   return (
     <>
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Activities', path: '/activities' },
-          { name: 'Dolphin swims', path: PATH },
+          { name: homeLabel, path: '/' },
+          { name: activitiesLabel, path: '/activities' },
+          { name: pageLabel, path: PATH },
         ])}
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
@@ -92,20 +97,25 @@ export default async function DolphinSwimMauritiusPage() {
       )}
 
       <InfoPage
-        eyebrow="Dolphin swims"
-        title="Swim with dolphins in Mauritius"
-        intro="An early-morning boat trip to the calm west-coast bays to meet wild spinner and bottlenose dolphins — responsibly, on small boats, booked direct with a local operator."
-        meta={`Operated by ${SITE.operator} · door-to-door pickup island-wide · rated 4.8/5 from 1,000+ reviews.`}
+        eyebrow={pageLabel}
+        title={t('Swim with dolphins in Mauritius')}
+        intro={t(
+          'An early-morning boat trip to the calm west-coast bays to meet wild spinner and bottlenose dolphins — responsibly, on small boats, booked direct with a local operator.',
+        )}
+        meta={t(
+          'Operated by {operator} · door-to-door pickup island-wide · rated 4.8/5 from 1,000+ reviews.',
+          { operator: SITE.operator },
+        )}
       >
         <Breadcrumb
           trail={[
-            { label: 'Home', href: '/' },
-            { label: 'Activities', href: '/activities' },
+            { label: homeLabel, href: '/' },
+            { label: activitiesLabel, href: '/activities' },
           ]}
-          current="Dolphin swims"
+          current={pageLabel}
         />
 
-        <ContentSection id="intro" title="Meet wild dolphins off the west coast">
+        <ContentSection id="intro" title={t('Meet wild dolphins off the west coast')}>
           <p>
             One of the most memorable mornings in Mauritius is spent on the water off Tamarin and
             Black River, where pods of wild spinner dolphins gather in the calm bays at first light.
@@ -121,12 +131,14 @@ export default async function DolphinSwimMauritiusPage() {
         </ContentSection>
 
         <FeaturedTours
-          title="Dolphin trips you can book"
-          intro="Live dates and prices — tap a trip to reserve your early-morning departure online."
+          title={t('Dolphin trips you can book')}
+          intro={t(
+            'Live dates and prices — tap a trip to reserve your early-morning departure online.',
+          )}
           activities={featured}
         />
 
-        <ContentSection id="responsible" title="Doing it responsibly">
+        <ContentSection id="responsible" title={t('Doing it responsibly')}>
           <p>
             Wild dolphins deserve respect. We work with skippers who keep a sensible distance, never
             surround or pursue the pods, limit how long guests spend in the water, and follow
@@ -136,7 +148,7 @@ export default async function DolphinSwimMauritiusPage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="combine" title="Make a morning of it">
+        <ContentSection id="combine" title={t('Make a morning of it')}>
           <p>
             Most dolphin trips pair naturally with a west-coast snorkel at the Crystal Rock or Île
             aux Bénitiers and a beach barbecue. Prefer a full day afloat? Look at our{' '}
@@ -147,26 +159,29 @@ export default async function DolphinSwimMauritiusPage() {
           </p>
           <RelatedLinks
             links={[
-              { label: 'Catamaran cruises', href: '/mauritius-catamaran-cruise' },
-              { label: 'Île aux Cerfs tours', href: '/ile-aux-cerfs-tours' },
-              { label: 'All Mauritius tours', href: '/mauritius-tours' },
-              { label: 'Things to do', href: '/attractions' },
-              { label: 'Airport transfers', href: '/airport-transfers' },
+              { label: t('Catamaran cruises'), href: '/mauritius-catamaran-cruise' },
+              { label: t('Île aux Cerfs tours'), href: '/ile-aux-cerfs-tours' },
+              { label: t('All Mauritius tours'), href: '/mauritius-tours' },
+              { label: t('Things to do'), href: '/attractions' },
+              { label: t('Airport transfers'), href: '/airport-transfers' },
             ]}
           />
         </ContentSection>
 
-        <ContentSection id="faq" title="Dolphin swim FAQ">
+        <ContentSection id="faq" title={t('Dolphin swim FAQ')}>
           <FaqAccordion items={FAQS} />
         </ContentSection>
 
-        <ContentSection id="book" title="Book your dolphin morning direct">
+        <ContentSection id="book" title={t('Book your dolphin morning direct')}>
           <p>
             Reserve online and we’ll confirm your early pickup — direct with {SITE.operator}, fixed
             price, no reseller markup, free cancellation up to 24 hours before.
           </p>
           <BookDirectCta
-            primary={{ href: '/activities?category=Dolphin swims', label: 'See all dolphin trips' }}
+            primary={{
+              href: '/activities?category=Dolphin swims',
+              label: t('See all dolphin trips'),
+            }}
           />
         </ContentSection>
 

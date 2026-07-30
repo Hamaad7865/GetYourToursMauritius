@@ -14,6 +14,7 @@ import {
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { featuredActivities } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -72,14 +73,17 @@ const FAQS = [
 ];
 
 export default async function MauritiusToursPage() {
+  const t = await getT();
   const featured = await featuredActivities({ limit: 8 });
+  const homeLabel = t('Home');
+  const pageLabel = t('Mauritius tours');
 
   return (
     <>
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Mauritius tours', path: PATH },
+          { name: homeLabel, path: '/' },
+          { name: pageLabel, path: PATH },
         ])}
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
@@ -92,14 +96,22 @@ export default async function MauritiusToursPage() {
       )}
 
       <InfoPage
-        eyebrow="Mauritius tours"
-        title="Mauritius tours & day trips"
-        intro="Catamaran cruises, dolphin swims, island day trips and private sightseeing — booked direct with a licensed local operator, with door-to-door pickup and fixed, transparent prices."
-        meta={`Operated by ${SITE.operator}, a licensed Mauritius tour operator (BRN ${SITE.brn}), rated 4.8/5 across 1,000+ reviews.`}
+        eyebrow={pageLabel}
+        title={t('Mauritius tours & day trips')}
+        intro={t(
+          'Catamaran cruises, dolphin swims, island day trips and private sightseeing — booked direct with a licensed local operator, with door-to-door pickup and fixed, transparent prices.',
+        )}
+        meta={t(
+          'Operated by {operator}, a licensed Mauritius tour operator (BRN {brn}), rated 4.8/5 across 1,000+ reviews.',
+          { operator: SITE.operator, brn: SITE.brn },
+        )}
       >
-        <Breadcrumb trail={[{ label: 'Home', href: '/' }]} current="Mauritius tours" />
+        <Breadcrumb trail={[{ label: homeLabel, href: '/' }]} current={pageLabel} />
 
-        <ContentSection id="intro" title="Every kind of Mauritius tour, from one local operator">
+        <ContentSection
+          id="intro"
+          title={t('Every kind of Mauritius tour, from one local operator')}
+        >
           <p>
             Mauritius is small but wonderfully varied: a turquoise lagoon ringed by white-sand
             beaches, a wild volcanic south, waterfalls and rainforest inland, and busy markets in
@@ -117,12 +129,14 @@ export default async function MauritiusToursPage() {
         </ContentSection>
 
         <FeaturedTours
-          title="Popular tours you can book now"
-          intro="A live selection from our catalogue — tap any tour for dates, prices and instant online booking."
+          title={t('Popular tours you can book now')}
+          intro={t(
+            'A live selection from our catalogue — tap any tour for dates, prices and instant online booking.',
+          )}
           activities={featured}
         />
 
-        <ContentSection id="types" title="The tours we run">
+        <ContentSection id="types" title={t('The tours we run')}>
           <p>
             <strong>Catamaran cruises.</strong> A full day on the water with snorkelling stops and a
             grilled lunch on board — the signature Mauritius day out. See{' '}
@@ -156,7 +170,7 @@ export default async function MauritiusToursPage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="private" title="Private, tailor-made & group tours">
+        <ContentSection id="private" title={t('Private, tailor-made & group tours')}>
           <p>
             Most of our land tours are fully private: just your party, your own English- and
             French-speaking driver-guide, and a route you can shape on the day. That suits couples,
@@ -172,7 +186,7 @@ export default async function MauritiusToursPage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="pickup" title="Where we pick up">
+        <ContentSection id="pickup" title={t('Where we pick up')}>
           <p>
             We’re based in Belle Mare on the east coast and cover the whole island, door to door:
             the north (Grand Baie, Pereybère, Trou aux Biches), the west (Flic-en-Flac, Tamarin, Le
@@ -185,7 +199,7 @@ export default async function MauritiusToursPage() {
           </p>
         </ContentSection>
 
-        <ContentSection id="book-direct" title="Why book direct with Belle Mare Tours">
+        <ContentSection id="book-direct" title={t('Why book direct with Belle Mare Tours')}>
           <p>
             {SITE.operator} is a licensed Mauritian tour operator (BRN {SITE.brn}) that has run
             tours and transfers on the island for years, rated 4.8/5 across more than a thousand
@@ -196,21 +210,21 @@ export default async function MauritiusToursPage() {
           </p>
           <RelatedLinks
             links={[
-              { label: 'Catamaran cruises', href: '/mauritius-catamaran-cruise' },
-              { label: 'Île aux Cerfs tours', href: '/ile-aux-cerfs-tours' },
-              { label: 'Dolphin swim', href: '/dolphin-swim-mauritius' },
-              { label: 'Airport transfers', href: '/airport-transfers' },
-              { label: 'Things to do', href: '/attractions' },
-              { label: 'Guest reviews', href: '/reviews' },
+              { label: t('Catamaran cruises'), href: '/mauritius-catamaran-cruise' },
+              { label: t('Île aux Cerfs tours'), href: '/ile-aux-cerfs-tours' },
+              { label: t('Dolphin swim'), href: '/dolphin-swim-mauritius' },
+              { label: t('Airport transfers'), href: '/airport-transfers' },
+              { label: t('Things to do'), href: '/attractions' },
+              { label: t('Guest reviews'), href: '/reviews' },
             ]}
           />
         </ContentSection>
 
-        <ContentSection id="faq" title="Mauritius tours FAQ">
+        <ContentSection id="faq" title={t('Mauritius tours FAQ')}>
           <FaqAccordion items={FAQS} />
         </ContentSection>
 
-        <ContentSection id="book" title="Ready to plan your Mauritius tours?">
+        <ContentSection id="book" title={t('Ready to plan your Mauritius tours?')}>
           <p>
             Book online in minutes, or message us and we’ll tailor a day around you. Either way
             you’re dealing direct with {SITE.operator} in Belle Mare.
