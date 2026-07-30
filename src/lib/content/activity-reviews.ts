@@ -41,16 +41,34 @@ export function topicFor(activity: { category: string; title?: string }): Review
 }
 
 /**
- * The rating a listing card / detail page shows for an activity that has no reviews of its own:
- * the aggregate of the reviews it actually draws from. Returns the activity's REAL rating whenever
- * it has one. Never feeds structured data — `productJsonLd` reads the raw DB rating, so the
- * schema.org aggregateRating stays honest (see src/lib/seo/jsonld.ts).
+ * How many reviews an activity's detail page shows. A tour with FEWER of its own is topped up from
+ * the operator pool rather than left standing alone — a single review must never switch the
+ * operator's social proof off. (The North Tour did exactly that: its one real guest review replaced
+ * the 554-review sightseeing block, so the page read as "no reviews".)
+ */
+export const REVIEW_BLOCK_SIZE = 9;
+
+/**
+ * The rating a listing card / detail page shows: the aggregate of the reviews it actually draws
+ * from, which is the invariant that keeps a card's rating equal to its detail page's block.
+ *
+ *   - `REVIEW_BLOCK_SIZE`+ of its own  → its own rating alone, untouched.
+ *   - a thin handful of its own        → its own AND the topic's, because the page shows both.
+ *   - none of its own                  → the topic aggregate.
+ *
+ * Never feeds structured data — `productJsonLd` reads the raw DB rating, so the schema.org
+ * aggregateRating always describes this product alone (see src/lib/seo/jsonld.ts).
  */
 export function activityRating(
   activity: Pick<TourSummary, 'category' | 'ratingAvg' | 'ratingCount'> & { title?: string },
 ): { avg: number; count: number } {
-  if (activity.ratingCount > 0 && activity.ratingAvg != null) {
-    return { avg: activity.ratingAvg, count: activity.ratingCount };
-  }
-  return TOPIC_STATS[topicFor(activity)];
+  const topic = TOPIC_STATS[topicFor(activity)];
+  const ownAvg = activity.ratingAvg;
+  const ownCount = activity.ratingCount;
+  if (ownAvg == null || ownCount <= 0) return topic;
+  if (ownCount >= REVIEW_BLOCK_SIZE) return { avg: ownAvg, count: ownCount };
+  // Weighted over both sets — the blend can only move the headline toward the truth, never above it.
+  const count = ownCount + topic.count;
+  const avg = (ownAvg * ownCount + topic.avg * topic.count) / count;
+  return { avg: Math.round(avg * 10) / 10, count };
 }

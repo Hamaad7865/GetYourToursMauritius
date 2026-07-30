@@ -1,7 +1,7 @@
 import type { Review } from '@/lib/validation/tours';
 import { REVIEW_POOL, type PoolReview } from './_review-pool.gen';
 import { TOPIC_STATS } from './_review-stats.gen';
-import { topicFor } from './activity-reviews';
+import { REVIEW_BLOCK_SIZE, topicFor } from './activity-reviews';
 
 /**
  * SERVER-ONLY review selection. `_review-pool.gen` is ~186 KB, so importing this from a `'use client'`
@@ -59,4 +59,22 @@ export function activityReviews(
   if (pool.length <= n) return pool.map(toReview);
   const offset = seedOffset(activity.slug, pool.length);
   return [...pool.slice(offset), ...pool.slice(0, offset)].slice(0, n).map(toReview);
+}
+
+/**
+ * The review block a detail page renders: the activity's OWN reviews first, then enough
+ * topic-relevant operator reviews to fill out the block.
+ *
+ * Topping up rather than switching (`own.length ? own : pool`) is the point — one guest review used
+ * to hide the operator's whole review history, which left the best-reviewed kind of page looking the
+ * emptiest. `pooled` tells the caller to label the block as operator-wide.
+ */
+export function activityReviewBlock(
+  activity: { category: string; title?: string; slug: string },
+  own: Review[],
+): { reviews: Review[]; pooled: boolean } {
+  const topUp = REVIEW_BLOCK_SIZE - own.length;
+  if (topUp <= 0) return { reviews: own, pooled: false };
+  const filler = activityReviews(activity, topUp);
+  return { reviews: [...own, ...filler], pooled: filler.length > 0 };
 }

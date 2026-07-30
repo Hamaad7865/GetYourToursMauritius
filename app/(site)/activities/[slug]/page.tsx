@@ -28,7 +28,7 @@ import { PriceListViewer } from '@/components/gyg/detail/PriceListViewer';
 import { LocationMap } from '@/components/maps/LocationMap';
 import { ReviewList } from '@/components/catalogue/ReviewList';
 import { activityRating } from '@/lib/content/activity-reviews';
-import { activityReviews } from '@/lib/content/activity-reviews-pool';
+import { activityReviewBlock } from '@/lib/content/activity-reviews-pool';
 import { applyDefaults } from '@/lib/catalogue/content-defaults';
 import { loadContentDefaults } from '@/lib/services/content-defaults';
 import { Faq } from '@/components/catalogue/Faq';
@@ -161,17 +161,15 @@ export default async function ActivityDetailPage({
   );
   const { highlights, whatToBring, importantInfo } = content;
 
-  // Reviews + rating: use the tour's own when it has them; otherwise fall back to the operator's real
-  // TripAdvisor/Google reviews, picking the ones whose text is RELEVANT to this activity (a catamaran
-  // review on a catamaran tour) and the honest aggregate for that topic. The block is labelled as
-  // operator-wide reviews below, and the per-product JSON-LD still reads the tour's REAL own rating
-  // (productJsonLd), so this visual fallback never inflates the structured aggregateRating.
-  const hasOwnReviews = activity.ratingCount > 0;
-  const reviewsFallback = !hasOwnReviews;
-  const fallbackRating = activityRating(activity);
-  const reviews = reviewsFallback ? activityReviews(activity, 9) : activity.reviews;
-  const ratingAvg = reviewsFallback ? fallbackRating.avg : activity.ratingAvg;
-  const ratingCount = reviewsFallback ? fallbackRating.count : activity.ratingCount;
+  // Reviews + rating: the tour's own reviews first, TOPPED UP with the operator's real
+  // TripAdvisor/Google reviews — the ones whose text is RELEVANT to this activity (a catamaran review
+  // on a catamaran tour). The top-up matters: this used to switch rather than fill, so a tour with a
+  // single guest review showed that one card and nothing else while every review-less tour showed
+  // nine. The block is labelled as operator-wide below whenever pool reviews are mixed in, the
+  // headline aggregates exactly the sets on show, and the per-product JSON-LD still reads the tour's
+  // REAL own rating (productJsonLd), so none of this inflates the structured aggregateRating.
+  const { reviews, pooled: reviewsFallback } = activityReviewBlock(activity, activity.reviews);
+  const { avg: ratingAvg, count: ratingCount } = activityRating(activity);
   const showLoved = ratingAvg != null && ratingAvg >= 4.5 && ratingCount > 0;
 
   return (

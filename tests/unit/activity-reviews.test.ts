@@ -1,8 +1,12 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { activityRating, topicFor } from '@/lib/content/activity-reviews';
-import { activityReviews, activityReviewPool } from '@/lib/content/activity-reviews-pool';
+import { REVIEW_BLOCK_SIZE, activityRating, topicFor } from '@/lib/content/activity-reviews';
+import {
+  activityReviewBlock,
+  activityReviews,
+  activityReviewPool,
+} from '@/lib/content/activity-reviews-pool';
 import { TOPIC_STATS } from '@/lib/content/_review-stats.gen';
 import { REVIEW_POOL } from '@/lib/content/_review-pool.gen';
 
@@ -58,18 +62,40 @@ describe('topicFor', () => {
 });
 
 describe('activityRating', () => {
-  it("returns the activity's OWN rating whenever it has one", () => {
+  it("returns the activity's OWN rating once it has a block's worth", () => {
     expect(
-      activityRating({ category: 'Catamaran cruises', ratingAvg: 4.2, ratingCount: 7 }),
-    ).toEqual({
-      avg: 4.2,
-      count: 7,
-    });
+      activityRating({
+        category: 'Catamaran cruises',
+        ratingAvg: 4.2,
+        ratingCount: REVIEW_BLOCK_SIZE,
+      }),
+    ).toEqual({ avg: 4.2, count: REVIEW_BLOCK_SIZE });
   });
 
   it('falls back to the topic aggregate when the activity has no reviews', () => {
     expect(activityRating(act('Catamaran cruises'))).toEqual(TOPIC_STATS.catamaran);
     expect(activityRating(act('Airport transfers'))).toEqual(TOPIC_STATS.transfer);
+  });
+
+  it('aggregates BOTH sets when a thin tour is topped up from the pool', () => {
+    // Regression (North Tour): one 5★ guest review replaced the whole sightseeing block, so the page
+    // showed a single card. Its own review now counts alongside the pool reviews shown beneath it.
+    const topic = TOPIC_STATS.sightseeing;
+    const rating = activityRating({
+      category: 'Taxi Sightseeing tours',
+      title: 'Private North Tour Mauritius',
+      ratingAvg: 5,
+      ratingCount: 1,
+    });
+    expect(rating.count).toBe(topic.count + 1);
+    expect(rating.avg).toBeGreaterThanOrEqual(topic.avg);
+    expect(rating.avg).toBeLessThanOrEqual(5);
+  });
+
+  it('a poor review of its own can never be hidden by the pool aggregate', () => {
+    const topic = TOPIC_STATS.sightseeing;
+    const rating = activityRating({ category: 'Sightseeing tours', ratingAvg: 1, ratingCount: 1 });
+    expect(rating.avg).toBeLessThanOrEqual(topic.avg);
   });
 
   it('never reports a rating above the operator average by cherry-picking', () => {
@@ -110,6 +136,49 @@ describe('activityReviews', () => {
       expect(r.author).toBeTruthy();
       expect(r.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}/);
     }
+  });
+});
+
+describe('activityReviewBlock', () => {
+  const own = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      id: `own-${i}`,
+      author: 'Guest',
+      rating: 5,
+      text: 'Great day out.',
+      createdAt: '2026-07-22',
+    }));
+
+  it("fills a thin block with pool reviews, keeping the tour's own on top", () => {
+    // Regression: the North Tour's single guest review switched the operator pool OFF, so the page
+    // rendered one card where every sibling tour rendered nine.
+    const block = activityReviewBlock(
+      {
+        category: 'Taxi Sightseeing tours',
+        title: 'Private North Tour Mauritius',
+        slug: 'north-tour',
+      },
+      own(1),
+    );
+    expect(block.reviews).toHaveLength(REVIEW_BLOCK_SIZE);
+    expect(block.reviews[0]?.id).toBe('own-0');
+    expect(block.pooled).toBe(true);
+    expect(new Set(block.reviews.map((r) => r.id)).size).toBe(REVIEW_BLOCK_SIZE); // no duplicates
+  });
+
+  it('leaves a well-reviewed tour entirely to its own reviews', () => {
+    const block = activityReviewBlock(
+      { category: 'Taxi Sightseeing tours', slug: 'north-tour' },
+      own(REVIEW_BLOCK_SIZE),
+    );
+    expect(block.pooled).toBe(false);
+    expect(block.reviews.every((r) => r.id.startsWith('own-'))).toBe(true);
+  });
+
+  it('still fills the whole block for a tour with no reviews of its own', () => {
+    const block = activityReviewBlock({ category: 'Catamaran cruises', slug: 'x' }, []);
+    expect(block.reviews).toHaveLength(REVIEW_BLOCK_SIZE);
+    expect(block.pooled).toBe(true);
   });
 });
 
