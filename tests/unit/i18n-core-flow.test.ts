@@ -16,7 +16,7 @@ import { fr } from '@/lib/i18n/messages';
  */
 const CORE_FLOW_STRINGS = {
   // src/components/gyg/detail/BookingOptionCard.tsx — transport / pickup block
-  'BookingOptionCard': [
+  BookingOptionCard: [
     'Hotel pickup & drop-off',
     'Add your hotel and we’ll add door-to-door transport based on the distance. Skip it to meet at the boarding point.',
     'Drop-off same as pickup',
@@ -31,7 +31,7 @@ const CORE_FLOW_STRINGS = {
     'Add to cart',
   ],
   // src/components/checkout/Checkout.tsx
-  'Checkout': [
+  Checkout: [
     'Door-to-door transport',
     'Could not start payment.',
     'Do you want pickup?',
@@ -45,7 +45,7 @@ const CORE_FLOW_STRINGS = {
     'Total',
   ],
   // src/components/gyg/detail/BookingConfirmation.tsx
-  'BookingConfirmation': [
+  BookingConfirmation: [
     'Pickup to be arranged',
     'Pickup location',
     'Same as pickup',

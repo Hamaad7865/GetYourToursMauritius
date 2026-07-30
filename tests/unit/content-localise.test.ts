@@ -7,8 +7,12 @@ import type { Area, AreaContent } from '@/lib/content/areas';
  * swap would blank whole sections of a partially translated guide.
  */
 describe('localiseContent', () => {
-  const en = { slug: 'grand-baie', name: 'Grand Baie', intro: 'A lively hub.',
-    highlights: ['Catamaran cruise', 'Dive the reefs'] };
+  const en = {
+    slug: 'grand-baie',
+    name: 'Grand Baie',
+    intro: 'A lively hub.',
+    highlights: ['Catamaran cruise', 'Dive the reefs'],
+  };
 
   it('returns English untouched for the en locale', () => {
     expect(localiseContent(en, { intro: 'Un pôle animé.' }, 'en')).toEqual(en);
@@ -49,9 +53,16 @@ describe('localiseContent', () => {
     // from the narrower translation type and the result silently loses fields Area adds on top of
     // AreaContent — `path` here — which only surfaces as a type error at the call site later.
     const area: Area = {
-      slug: 'grand-baie', name: 'Grand Baie', region: 'North', intro: 'A lively hub.',
-      highlights: [], beaches: ['La Cuvette Beach'], gettingThere: 'About an hour from SSR.',
-      goodFor: ['Families'], nearbyAttractions: ['Pereybere Beach'], faq: [],
+      slug: 'grand-baie',
+      name: 'Grand Baie',
+      region: 'North',
+      intro: 'A lively hub.',
+      highlights: [],
+      beaches: ['La Cuvette Beach'],
+      gettingThere: 'About an hour from SSR.',
+      goodFor: ['Families'],
+      nearbyAttractions: ['Pereybere Beach'],
+      faq: [],
       path: '/destinations/grand-baie',
     };
     const translation: Partial<Pick<AreaContent, 'intro' | 'gettingThere'>> = {

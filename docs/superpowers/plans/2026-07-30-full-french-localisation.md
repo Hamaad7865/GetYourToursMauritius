@@ -14,13 +14,14 @@
 
 ## Background an engineer new to this codebase needs
 
-**The i18n system is gettext-style.** There are no message IDs. The English sentence *is* the key:
+**The i18n system is gettext-style.** There are no message IDs. The English sentence _is_ the key:
 `t('Book now')` looks up `'Book now'` in the `fr` table in `src/lib/i18n/messages.ts`. A missing key
 returns the key itself, which is the English text — so an untranslated string renders as readable
 English, never as a raw identifier. This is why the site currently looks "half translated" rather
 than broken.
 
 **Two ways to translate, depending on component type:**
+
 - Client components (`'use client'`): `const t = useT()` from `@/components/site/PreferencesProvider`.
 - Server components: `const t = await getT()` from `@/lib/i18n/server`.
 
@@ -42,6 +43,7 @@ session may share the working tree. Always `git add` explicit paths, as every co
 ## File Structure
 
 **Created:**
+
 - `tests/unit/i18n-coverage.test.ts` — the guard rail; asserts every `t()` key exists in `fr`.
 - `scripts/i18n-scan.mjs` — shared scanner used by the test and runnable by hand for progress.
 - `supabase/migrations/20260815000000_activity_translation_source.sql` — `source` column.
@@ -53,6 +55,7 @@ session may share the working tree. Always `git add` explicit paths, as every co
 - `src/lib/content/localise.ts` — the generic per-field merge helper the four wrappers share.
 
 **Modified:**
+
 - `src/lib/i18n/messages.ts` — +36 keys (31 missing + 5 category labels).
 - `src/lib/services/context.ts` — add `locale`.
 - `src/lib/http/context.ts` — populate `locale` in all five constructors.
@@ -76,6 +79,7 @@ This lands **first** and is **expected to fail**. Its failure list is the accept
 Task 2, and afterwards it is the mechanism that keeps the site French forever.
 
 **Files:**
+
 - Create: `scripts/i18n-scan.mjs`
 - Create: `tests/unit/i18n-coverage.test.ts`
 
@@ -139,7 +143,9 @@ if (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}`) {
   const fr = frenchKeys();
   const used = usedKeys();
   const missing = [...used.keys()].filter((k) => !fr.has(k));
-  console.log(`French keys: ${fr.size}   t() keys in use: ${used.size}   missing: ${missing.length}`);
+  console.log(
+    `French keys: ${fr.size}   t() keys in use: ${used.size}   missing: ${missing.length}`,
+  );
   for (const k of missing) console.log(`  ${JSON.stringify(k)}  ← ${[...used.get(k)][0]}`);
 }
 ```
@@ -215,6 +221,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 2: Add the 31 missing keys and 5 category labels
 
 **Files:**
+
 - Modify: `src/lib/i18n/messages.ts`
 - Test: `tests/unit/i18n-coverage.test.ts` (already written)
 
@@ -353,6 +360,7 @@ reviewable and independently revertable, separate from the large content seed in
 ### Task 3: Add `source` to `activity_translations`
 
 **Files:**
+
 - Create: `supabase/migrations/20260815000000_activity_translation_source.sql`
 - Modify: `supabase/catch-up.sql`
 
@@ -411,6 +419,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 4: Carry the locale on `ServiceContext`
 
 **Files:**
+
 - Modify: `src/lib/services/context.ts`
 - Modify: `src/lib/http/context.ts`
 - Test: `tests/unit/service-context-locale.test.ts` (create)
@@ -472,12 +481,12 @@ import type { Locale } from '@/lib/i18n/config';
 Add to the `ServiceContext` interface, after `now`:
 
 ```ts
-  /**
-   * The visitor's language. Travels into the `api_*` catalogue functions so Postgres returns
-   * already-resolved text (per-field `coalesce(translation, english)`), rather than each of the ~30
-   * call sites reaching into a translations map and one of them eventually forgetting.
-   */
-  locale: Locale;
+/**
+ * The visitor's language. Travels into the `api_*` catalogue functions so Postgres returns
+ * already-resolved text (per-field `coalesce(translation, english)`), rather than each of the ~30
+ * call sites reaching into a translations map and one of them eventually forgetting.
+ */
+locale: Locale;
 ```
 
 - [ ] **Step 4: Populate it in the constructors**
@@ -594,6 +603,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 5: Make `api_get_activity` locale-aware
 
 **Files:**
+
 - Create: `supabase/migrations/20260815000100_localised_catalogue_rpcs.sql`
 - Modify: `supabase/catch-up.sql`
 - Test: `tests/integration/localised-catalogue.test.ts` (create)
@@ -724,7 +734,7 @@ Copy the current `api_get_activity` body from `supabase/setup.sql` (search for
 ```
 
 2. Replace each translatable field in the `jsonb_build_object` with a per-field coalesce. **Only
-these nine** — leave ids, prices, images, options and flags exactly as they are:
+   these nine** — leave ids, prices, images, options and flags exactly as they are:
 
 ```sql
     'title', coalesce(t.title, a.title),
@@ -743,7 +753,7 @@ array means "not translated", whereas plain `coalesce` would treat `{}` as a rea
 and render an empty highlights list.
 
 3. Leave the existing `'translations', ...` key in place. It is part of `tourDetailSchema` and
-removing it is an unrelated breaking change.
+   removing it is an unrelated breaking change.
 
 - [ ] **Step 4: Run the test to verify it passes**
 
@@ -784,6 +794,7 @@ This is what finally puts French on cards, search results, home rails, related t
 — the surfaces a French visitor sees before ever opening an activity.
 
 **Files:**
+
 - Modify: `supabase/migrations/20260815000100_localised_catalogue_rpcs.sql`
 - Modify: `supabase/catch-up.sql`
 - Modify: `tests/integration/localised-catalogue.test.ts`
@@ -793,27 +804,41 @@ This is what finally puts French on cards, search results, home rails, related t
 Append inside the `describe` block in `tests/integration/localised-catalogue.test.ts`:
 
 ```ts
-  it('returns French titles in search results, not just on the detail page', async () => {
-    const res = await rpc<{ items: { slug: string; title: string }[] }>(
-      db,
-      'api_search_activities',
-      { q: null, category: null, type: null, region: null, priceMin: null, priceMax: null,
-        durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100,
-        locale: 'fr' },
-    );
-    const hit = res.items.find((i) => i.slug === slug);
-    expect(hit?.title).toBe('Titre en français');
+it('returns French titles in search results, not just on the detail page', async () => {
+  const res = await rpc<{ items: { slug: string; title: string }[] }>(db, 'api_search_activities', {
+    q: null,
+    category: null,
+    type: null,
+    region: null,
+    priceMin: null,
+    priceMax: null,
+    durationMin: null,
+    durationMax: null,
+    minRating: null,
+    page: 1,
+    pageSize: 100,
+    locale: 'fr',
   });
+  const hit = res.items.find((i) => i.slug === slug);
+  expect(hit?.title).toBe('Titre en français');
+});
 
-  it('leaves search results English by default', async () => {
-    const res = await rpc<{ items: { slug: string; title: string }[] }>(
-      db,
-      'api_search_activities',
-      { q: null, category: null, type: null, region: null, priceMin: null, priceMax: null,
-        durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100 },
-    );
-    expect(res.items.find((i) => i.slug === slug)?.title).not.toBe('Titre en français');
+it('leaves search results English by default', async () => {
+  const res = await rpc<{ items: { slug: string; title: string }[] }>(db, 'api_search_activities', {
+    q: null,
+    category: null,
+    type: null,
+    region: null,
+    priceMin: null,
+    priceMax: null,
+    durationMin: null,
+    durationMax: null,
+    minRating: null,
+    page: 1,
+    pageSize: 100,
   });
+  expect(res.items.find((i) => i.slug === slug)?.title).not.toBe('Titre en français');
+});
 ```
 
 - [ ] **Step 2: Run to verify it fails**
@@ -863,6 +888,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 7: Pass the locale from the app into the RPCs
 
 **Files:**
+
 - Modify: `src/lib/services/activities.ts`
 - Modify: 15 server-component call sites (listed below)
 
@@ -871,20 +897,20 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 In `src/lib/services/activities.ts`, add `locale: ctx.locale` to both RPC payloads:
 
 ```ts
-  const data = await callRpc(ctx, 'api_search_activities', {
-    q: query.q ?? null,
-    category: query.category ?? null,
-    type: query.type ?? null,
-    region: query.region ?? null,
-    priceMin: query.priceMin ?? null,
-    priceMax: query.priceMax ?? null,
-    durationMin: query.durationMin ?? null,
-    durationMax: query.durationMax ?? null,
-    minRating: query.minRating ?? null,
-    page: query.page,
-    pageSize: query.pageSize,
-    locale: ctx.locale,
-  });
+const data = await callRpc(ctx, 'api_search_activities', {
+  q: query.q ?? null,
+  category: query.category ?? null,
+  type: query.type ?? null,
+  region: query.region ?? null,
+  priceMin: query.priceMin ?? null,
+  priceMax: query.priceMax ?? null,
+  durationMin: query.durationMin ?? null,
+  durationMax: query.durationMax ?? null,
+  minRating: query.minRating ?? null,
+  page: query.page,
+  pageSize: query.pageSize,
+  locale: ctx.locale,
+});
 ```
 
 ```ts
@@ -916,6 +942,7 @@ Add `import { getLocale } from '@/lib/i18n/server';` to each file below and chan
 - `src/lib/seo/override.ts:13`
 
 **Leave these two on the English default — do not add `getLocale()`:**
+
 - `app/sitemap.ts:65` — the sitemap lists URLs for crawlers, has no reader locale, and calling
   `cookies()` here would force it into dynamic rendering.
 - `app/api/v1/health/route.ts:17` — a health probe with no locale.
@@ -949,6 +976,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 8: French fields in the admin activity editor
 
 **Files:**
+
 - Modify: `src/lib/admin/activity-write.ts`
 - Modify: `src/components/admin/ActivityForm.tsx`
 - Test: `tests/unit/admin-activity-translations.test.ts` (create)
@@ -977,15 +1005,27 @@ import { translationRowFromForm, isMachineDraft } from '@/lib/admin/activity-wri
  * become noise and get ignored, which defeats the point of flagging drafts at all.
  */
 describe('activity translation save', () => {
-  const base = { title: 'Titre', summary: null, description: null, meetingPoint: null,
-    seoTitle: null, seoDescription: null, highlights: [], inclusions: [], exclusions: [] };
+  const base = {
+    title: 'Titre',
+    summary: null,
+    description: null,
+    meetingPoint: null,
+    seoTitle: null,
+    seoDescription: null,
+    highlights: [],
+    inclusions: [],
+    exclusions: [],
+  };
 
   it('marks an owner-edited translation as human-reviewed', () => {
     expect(translationRowFromForm('act-1', base).source).toBe('human');
   });
 
   it('maps camelCase form fields onto snake_case columns', () => {
-    const row = translationRowFromForm('act-1', { ...base, meetingPoint: 'Quai de Trou d’Eau Douce' });
+    const row = translationRowFromForm('act-1', {
+      ...base,
+      meetingPoint: 'Quai de Trou d’Eau Douce',
+    });
     expect(row.meeting_point).toBe('Quai de Trou d’Eau Douce');
     expect(row.activity_id).toBe('act-1');
     expect(row.locale).toBe('fr');
@@ -1080,11 +1120,13 @@ field components. When the loaded translation row satisfies `isMachineDraft`, re
 the panel:
 
 ```tsx
-{isMachineDraft(translation) && (
-  <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-    Machine draft — not yet reviewed. Edit any field, or save, to mark it reviewed.
-  </p>
-)}
+{
+  isMachineDraft(translation) && (
+    <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+      Machine draft — not yet reviewed. Edit any field, or save, to mark it reviewed.
+    </p>
+  );
+}
 ```
 
 Admin is staff-only and stays English, so this string is deliberately **not** wrapped in `t()`.
@@ -1117,6 +1159,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 This is the phase where the site visibly becomes French for a French visitor.
 
 **Files:**
+
 - Create: `supabase/seed-fr-catalogue.sql`
 - Modify: `supabase/catch-up.sql`
 
@@ -1189,28 +1232,30 @@ Expected: PASS.
 Then confirm the protection clause actually holds. Add to that test file:
 
 ```ts
-  it('a re-run of the seed does not clobber owner-reviewed copy', async () => {
-    const { rows } = await db.pg.query<{ id: string }>(
-      `select id from activities where slug = $1`, [slug],
-    );
-    const id = rows[0]!.id;
-    await db.pg.query(
-      `update activity_translations set title = 'Titre approuvé', source = 'human'
-       where activity_id = $1 and locale = 'fr'`, [id],
-    );
-    await db.pg.query(
-      `insert into activity_translations (activity_id, locale, title, source)
+it('a re-run of the seed does not clobber owner-reviewed copy', async () => {
+  const { rows } = await db.pg.query<{ id: string }>(`select id from activities where slug = $1`, [
+    slug,
+  ]);
+  const id = rows[0]!.id;
+  await db.pg.query(
+    `update activity_translations set title = 'Titre approuvé', source = 'human'
+       where activity_id = $1 and locale = 'fr'`,
+    [id],
+  );
+  await db.pg.query(
+    `insert into activity_translations (activity_id, locale, title, source)
        values ($1, 'fr', 'Brouillon machine', 'machine')
        on conflict (activity_id, locale) do update set title = excluded.title
-       where activity_translations.source = 'machine'`, [id],
-    );
-    const { rows: after } = await db.pg.query<{ title: string; source: string }>(
-      `select title, source from activity_translations where activity_id = $1 and locale = 'fr'`,
-      [id],
-    );
-    expect(after[0]!.title).toBe('Titre approuvé');
-    expect(after[0]!.source).toBe('human');
-  });
+       where activity_translations.source = 'machine'`,
+    [id],
+  );
+  const { rows: after } = await db.pg.query<{ title: string; source: string }>(
+    `select title, source from activity_translations where activity_id = $1 and locale = 'fr'`,
+    [id],
+  );
+  expect(after[0]!.title).toBe('Titre approuvé');
+  expect(after[0]!.source).toBe('human');
+});
 ```
 
 - [ ] **Step 5: Append to catch-up.sql and commit**
@@ -1271,6 +1316,7 @@ export default async function Page() {
 Then add the English source string as a key to `src/lib/i18n/messages.ts` with its French value.
 
 **Rules for every batch:**
+
 - Copy the English string **verbatim** into `t()`, including its apostrophe style. Do not normalise.
 - Do not wrap: `className` values, `href`s, `data-*`, test ids, or proper nouns rendered alone
   (`Belle Mare Tours`, `Île aux Cerfs`).
@@ -1365,6 +1411,7 @@ Legal text stays English because a mistranslated clause is still binding. A Fren
 told that, rather than silently hitting three English pages.
 
 **Files:**
+
 - Modify: `app/(site)/terms/page.tsx`, `app/(site)/privacy/page.tsx`, `app/(site)/refunds/page.tsx`
 - Modify: `src/lib/i18n/messages.ts`
 
@@ -1386,11 +1433,15 @@ import { getLocale, getT } from '@/lib/i18n/server';
 const locale = await getLocale();
 const t = await getT();
 
-{locale !== 'en' && (
-  <p className="mb-6 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
-    {t('This page is available in English only. The English text is the legally binding version.')}
-  </p>
-)}
+{
+  locale !== 'en' && (
+    <p className="mb-6 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+      {t(
+        'This page is available in English only. The English text is the legally binding version.',
+      )}
+    </p>
+  );
+}
 ```
 
 - [ ] **Step 3: Verify and commit**
@@ -1413,6 +1464,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 12: The per-field merge helper
 
 **Files:**
+
 - Create: `src/lib/content/localise.ts`
 - Test: `tests/unit/content-localise.test.ts` (create)
 
@@ -1429,8 +1481,12 @@ import { localiseContent } from '@/lib/content/localise';
  * swap would blank whole sections of a partially translated guide.
  */
 describe('localiseContent', () => {
-  const en = { slug: 'grand-baie', name: 'Grand Baie', intro: 'A lively hub.',
-    highlights: ['Catamaran cruise', 'Dive the reefs'] };
+  const en = {
+    slug: 'grand-baie',
+    name: 'Grand Baie',
+    intro: 'A lively hub.',
+    highlights: ['Catamaran cruise', 'Dive the reefs'],
+  };
 
   it('returns English untouched for the en locale', () => {
     expect(localiseContent(en, { intro: 'Un pôle animé.' }, 'en')).toEqual(en);
@@ -1527,6 +1583,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 13: Translate the destination guides
 
 **Files:**
+
 - Create: `src/lib/content/_areas.fr.gen.ts`
 - Modify: `src/lib/content/areas.ts`
 
@@ -1666,6 +1723,7 @@ npm run typecheck && npm run lint && npm test
 ### Task 15: Record the guest's language on the booking
 
 **Files:**
+
 - Create: `supabase/migrations/20260815000200_booking_locale.sql`
 - Modify: `supabase/catch-up.sql`, the checkout booking path
 
@@ -1699,10 +1757,10 @@ fails the enum cast, so both must collapse to `'en'` or an older client would br
 In `src/lib/services/bookings.ts`, add `locale: ctx.locale` to the `api_book` payload:
 
 ```ts
-  const data = await callRpc(ctx, 'api_book', {
-    // …existing fields unchanged…
-    locale: ctx.locale,
-  });
+const data = await callRpc(ctx, 'api_book', {
+  // …existing fields unchanged…
+  locale: ctx.locale,
+});
 ```
 
 Because checkout runs through an API route, `buildServiceContext(req)` (Task 4) has already read the
@@ -1731,6 +1789,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 16: Localise the confirmation email and PDFs
 
 **Files:**
+
 - Modify: `src/lib/email/booking-confirmation.ts`, `src/lib/invoice/voucher-pdf.ts`,
   `src/lib/invoice/pdf.ts`
 - Test: `tests/unit/outbound-locale.test.ts` (create)
@@ -1746,8 +1805,14 @@ import { renderBookingConfirmation } from '@/lib/email/booking-confirmation';
  * meaningless, so the booking's stored locale is the only correct source.
  */
 describe('booking confirmation email', () => {
-  const booking = { ref: 'BM12345678', locale: 'fr' as const, activityTitle: 'Croisière',
-    date: '2026-08-14', guests: 2, totalEur: 240 };
+  const booking = {
+    ref: 'BM12345678',
+    locale: 'fr' as const,
+    activityTitle: 'Croisière',
+    date: '2026-08-14',
+    guests: 2,
+    totalEur: 240,
+  };
 
   it('renders French for a French booking', () => {
     const out = renderBookingConfirmation({ ...booking, locale: 'fr' });
@@ -1783,7 +1848,11 @@ Fix the hardcoded format at `src/lib/invoice/voucher-pdf.ts:46`:
 
 ```ts
 // Before: new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-GB', { … })
-return formatLocaleDate(`${ymd}T00:00:00Z`, locale, { day: 'numeric', month: 'short', year: 'numeric' });
+return formatLocaleDate(`${ymd}T00:00:00Z`, locale, {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+});
 ```
 
 Add every new English source string to `src/lib/i18n/messages.ts`.
@@ -1806,6 +1875,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 ### Task 17: Localise SEO metadata, then finish
 
 **Files:**
+
 - Modify: `app/(site)/activities/[slug]/page.tsx` (`generateMetadata`)
 - Modify: `docs/HANDBOOK.md`
 

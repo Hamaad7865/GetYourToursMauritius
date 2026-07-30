@@ -57,6 +57,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const fr = frenchKeys();
   const used = usedKeys();
   const missing = [...used.keys()].filter((k) => !fr.has(k));
-  console.log(`French keys: ${fr.size}   t() keys in use: ${used.size}   missing: ${missing.length}`);
+  console.log(
+    `French keys: ${fr.size}   t() keys in use: ${used.size}   missing: ${missing.length}`,
+  );
   for (const k of missing) console.log(`  ${JSON.stringify(k)}  ← ${[...used.get(k)][0]}`);
 }
