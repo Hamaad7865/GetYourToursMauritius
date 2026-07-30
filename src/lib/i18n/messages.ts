@@ -2337,4 +2337,9 @@ export const fr: Record<string, string> = {
   'the sea conditions': 'les conditions de mer',
   'a safety call': 'une décision de sécurité',
   'too few travellers on the day': 'trop peu de voyageurs ce jour-là',
+
+  // Task 11 — French notice on legal pages (Terms, Privacy, Refunds stay English; this tells French
+  // visitors why)
+  'This page is available in English only. The English text is the legally binding version.':
+    'Cette page est disponible en anglais uniquement. Le texte anglais est la version juridiquement contraignante.',
 };

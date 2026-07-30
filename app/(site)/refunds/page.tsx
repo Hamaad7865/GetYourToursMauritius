@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { SITE } from '@/lib/seo/site';
+import { getLocale, getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -27,7 +28,8 @@ const TOC = [
   { id: 'help', label: 'Still need a hand?' },
 ];
 
-export default function RefundsPage() {
+export default async function RefundsPage() {
+  const [locale, t] = await Promise.all([getLocale(), getT()]);
   return (
     <InfoPage
       eyebrow="Cancellations & refunds"
@@ -35,6 +37,13 @@ export default function RefundsPage() {
       intro="Most activities can be cancelled free of charge right up to the day before you travel. This page sets out the cut-off, how refunds are paid, and what happens if the weather or we have to change your plans."
       meta={`Last updated ${UPDATED} · ${SITE.legalName}`}
     >
+      {locale !== 'en' && (
+        <Callout tone="info">
+          {t(
+            'This page is available in English only. The English text is the legally binding version.',
+          )}
+        </Callout>
+      )}
       <LegalArticle toc={TOC}>
         <LegalSection id="window" title="Free-cancellation window">
           <P>

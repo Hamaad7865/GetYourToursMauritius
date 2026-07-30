@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { SITE } from '@/lib/seo/site';
+import { getLocale, getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -30,7 +31,8 @@ const TOC = [
   { id: 'contact', label: 'Contact & complaints' },
 ];
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const [locale, t] = await Promise.all([getLocale(), getT()]);
   return (
     <InfoPage
       eyebrow="Legal"
@@ -38,6 +40,13 @@ export default function PrivacyPage() {
       intro="We only collect what we need to take your booking and run your trip, and we never sell your data. This page explains what we hold, why, and the control you have over it."
       meta={`Last updated ${UPDATED} · ${SITE.legalName}`}
     >
+      {locale !== 'en' && (
+        <Callout tone="info">
+          {t(
+            'This page is available in English only. The English text is the legally binding version.',
+          )}
+        </Callout>
+      )}
       <LegalArticle toc={TOC}>
         <LegalSection id="controller" title="Who controls your data">
           <P>

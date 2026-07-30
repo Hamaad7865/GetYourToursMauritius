@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { SITE } from '@/lib/seo/site';
+import { getLocale, getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -31,7 +32,8 @@ const TOC = [
   { id: 'contact', label: 'Contact' },
 ];
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const [locale, t] = await Promise.all([getLocale(), getT()]);
   return (
     <InfoPage
       eyebrow="Legal"
@@ -39,6 +41,13 @@ export default function TermsPage() {
       intro="These terms explain how booking with us works and the conditions that apply when you book an activity, transfer or rental through this platform. Please read them before you book."
       meta={`Last updated ${UPDATED} · ${SITE.legalName}`}
     >
+      {locale !== 'en' && (
+        <Callout tone="info">
+          {t(
+            'This page is available in English only. The English text is the legally binding version.',
+          )}
+        </Callout>
+      )}
       <LegalArticle toc={TOC}>
         <LegalSection id="about" title="About these terms">
           <P>
