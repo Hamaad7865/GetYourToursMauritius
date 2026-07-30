@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
+import { useT } from '@/components/site/PreferencesProvider';
 import { toLatLng } from './pin';
 
 /* Belle Mare, east-coast Mauritius — the default map centre when no pickup is chosen yet. */
@@ -17,7 +18,7 @@ export function PickupMap({
   value,
   onChange,
   onCoords,
-  placeholder = 'Hotel name or address',
+  placeholder,
 }: {
   value: string;
   onChange: (address: string) => void;
@@ -27,6 +28,8 @@ export function PickupMap({
   placeholder?: string;
 }) {
   const status = useGoogleMaps();
+  const t = useT();
+  const effectivePlaceholder = placeholder ?? t('Hotel name or address');
   const inputRef = useRef<HTMLInputElement>(null);
   const mapElRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
@@ -55,7 +58,7 @@ export function PickupMap({
       map,
       position: BELLE_MARE,
       gmpDraggable: true,
-      title: 'Pickup location',
+      title: t('Pickup location'),
     });
     markerRef.current = marker;
 
@@ -74,7 +77,10 @@ export function PickupMap({
         onChangeRef.current(
           gStatus === 'OK' && results?.[0]?.formatted_address
             ? results[0].formatted_address
-            : `Pinned location (${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)})`,
+            : t('Pinned location ({lat}, {lng})', {
+                lat: pos.lat.toFixed(5),
+                lng: pos.lng.toFixed(5),
+              }),
         );
       });
     };
@@ -130,6 +136,7 @@ export function PickupMap({
       mapRef.current = null;
       markerRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is read once at map-setup time, like the other refs below
   }, [status]);
 
   return (
@@ -143,7 +150,7 @@ export function PickupMap({
           // (from an earlier pin/selection) can't price a different address.
           onCoords?.(null);
         }}
-        placeholder={placeholder}
+        placeholder={effectivePlaceholder}
         className="w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm outline-none focus:border-teal"
       />
       {status === 'ready' && (
@@ -154,7 +161,7 @@ export function PickupMap({
       )}
       {status === 'ready' && (
         <p className="mt-1.5 text-[12px] text-ink-muted">
-          Search for your hotel or drag the pin to mark your pickup point.
+          {t('Search for your hotel or drag the pin to mark your pickup point.')}
         </p>
       )}
     </div>

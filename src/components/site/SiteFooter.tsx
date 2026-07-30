@@ -107,8 +107,14 @@ export async function SiteFooter() {
         </div>
 
         <div className="mt-12 border-t border-cream/10 pt-6 text-xs text-cream/50">
-          © {new Date().getFullYear()} {SITE.legalName}. {SITE.street}, {SITE.region}, Mauritius ·
-          BRN {SITE.brn} · VAT {SITE.vat} ·{' '}
+          {t('© {year} {legalName}. {street}, {region}, Mauritius · BRN {brn} · VAT {vat} ·', {
+            year: new Date().getFullYear(),
+            legalName: SITE.legalName,
+            street: SITE.street,
+            region: SITE.region,
+            brn: SITE.brn,
+            vat: SITE.vat,
+          })}{' '}
           {/* Required attribution for the EUR→MUR charge-rate feed (open tier ToS). */}
           <a
             href="https://www.exchangerate-api.com"

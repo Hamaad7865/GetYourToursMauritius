@@ -1,4 +1,5 @@
 import { IconArrowRight, IconPin } from '@/components/ui/icons';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /**
  * Keyless fallback shown when the Google Maps JS API isn't available (no key, API not enabled
@@ -6,6 +7,7 @@ import { IconArrowRight, IconPin } from '@/components/ui/icons';
  * traveller always has a working way to see the location instead of a broken map.
  */
 export function MapLinkCard({ href, label }: { href: string; label: string }) {
+  const t = useT();
   return (
     <a
       href={href}
@@ -17,7 +19,7 @@ export function MapLinkCard({ href, label }: { href: string; label: string }) {
         <IconPin width={20} height={20} />
       </span>
       <span className="min-w-0">
-        <span className="block text-[14px] font-bold text-ink">View on Google Maps</span>
+        <span className="block text-[14px] font-bold text-ink">{t('View on Google Maps')}</span>
         <span className="block truncate text-[13px] text-ink-muted">{label}</span>
       </span>
       <IconArrowRight width={16} height={16} className="ml-auto shrink-0 text-teal" />

@@ -1,15 +1,21 @@
 import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
-export default function PostNotFound() {
+export default async function PostNotFound() {
+  const t = await getT();
   return (
-    <InfoPage eyebrow="Blog" title="Article not found" intro="We couldn't find that guide.">
+    <InfoPage
+      eyebrow={t('Blog')}
+      title={t('Article not found')}
+      intro={t("We couldn't find that guide.")}
+    >
       <p className="text-[15px] text-ink/75">
-        Browse all{' '}
+        {t('Browse all')}{' '}
         <Link href="/blog" className="font-bold text-teal hover:text-teal-dark">
-          Mauritius travel guides
+          {t('Mauritius travel guides')}
         </Link>
         .
       </p>

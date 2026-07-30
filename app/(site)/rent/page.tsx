@@ -81,8 +81,8 @@ export default async function RentPage() {
     <>
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Car & scooter rental', path: '/rent' },
+          { name: t('Home'), path: '/' },
+          { name: t('Car & scooter rental'), path: '/rent' },
         ])}
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />

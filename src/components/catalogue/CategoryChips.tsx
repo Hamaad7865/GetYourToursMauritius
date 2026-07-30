@@ -96,7 +96,7 @@ export function CategoryChips({ active }: { active?: string }) {
           <button
             type="button"
             onClick={() => scrollBy(-1)}
-            aria-label="Scroll categories left"
+            aria-label={t('Scroll categories left')}
             className="absolute left-0 top-1/2 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-ink/10 bg-white text-ink shadow-[0_6px_18px_-6px_rgba(10,46,54,0.5)] hover:border-teal hover:text-teal md:grid"
           >
             <IconChevronLeft width={18} height={18} />
@@ -109,7 +109,7 @@ export function CategoryChips({ active }: { active?: string }) {
           <button
             type="button"
             onClick={() => scrollBy(1)}
-            aria-label="Scroll categories right"
+            aria-label={t('Scroll categories right')}
             className="absolute right-0 top-1/2 hidden h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-ink/10 bg-white text-ink shadow-[0_6px_18px_-6px_rgba(10,46,54,0.5)] hover:border-teal hover:text-teal md:grid"
           >
             <IconChevronRight width={18} height={18} />

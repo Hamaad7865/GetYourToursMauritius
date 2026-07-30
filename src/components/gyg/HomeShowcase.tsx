@@ -69,7 +69,7 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
           <div className="mb-4 flex items-end justify-between gap-4">
             <div className="min-w-0">
               <h3 className="font-display text-[clamp(19px,2.1vw,25px)] font-semibold tracking-tight text-ink">
-                {cat.name}
+                {t(cat.name)}
               </h3>
               <p className="mt-0.5 text-[13px] text-ink-muted">
                 {cat.items.length === 1

@@ -68,7 +68,7 @@ function parseTravellersQs(raw: Record<string, string | string[] | undefined>): 
 
 function heading(params: BrowseParams, t: Translate): string {
   if (params.q) return t('Results for “{q}”', { q: params.q });
-  if (params.category) return params.category;
+  if (params.category) return t(params.category);
   if (params.type === 'transport') return t('Airport transfers & transport');
   if (params.type === 'activity') return t('Things to do');
   // Base (unfiltered) view: keyword-forward H1 — this is the page that should rank for "Mauritius activities".
@@ -137,8 +137,8 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
     <>
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Mauritius Activities', path: '/activities' },
+          { name: t('Home'), path: '/' },
+          { name: t('Mauritius Activities'), path: '/activities' },
         ])}
       />
       {isBase && <JsonLd data={faqPageJsonLd(ACTIVITIES_FAQS)} />}
@@ -166,9 +166,9 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
             </p>
             {isBase && (
               <p className="mt-3 max-w-2xl text-[14.5px] leading-relaxed text-ink/70">
-                Browse and book the full range of Mauritius activities and tours direct with Belle
-                Mare Tours — catamaran cruises, dolphin swims, Île aux Cerfs trips, sea walks and
-                private island day tours, all with instant confirmation and no reseller markup.
+                {t(
+                  'Browse and book the full range of Mauritius activities and tours direct with Belle Mare Tours — catamaran cruises, dolphin swims, Île aux Cerfs trips, sea walks and private island day tours, all with instant confirmation and no reseller markup.',
+                )}
               </p>
             )}
           </div>
@@ -231,7 +231,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
           {isBase && (
             <section className="mt-14 border-t border-ink/10 pt-10">
               <h2 className="text-2xl font-extrabold tracking-tight text-ink">
-                Mauritius activities — frequently asked questions
+                {t('Mauritius activities — frequently asked questions')}
               </h2>
               <div className="mt-5 max-w-3xl">
                 <FaqAccordion items={ACTIVITIES_FAQS} />

@@ -171,7 +171,9 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
                     <span className="block truncate text-[14.5px] font-bold text-ink">
                       {s.title}
                     </span>
-                    <span className="block truncate text-[12px] text-ink-muted">{s.category}</span>
+                    <span className="block truncate text-[12px] text-ink-muted">
+                      {t(s.category)}
+                    </span>
                   </span>
                 </button>
               ))}
@@ -213,9 +215,11 @@ function SearchSheet({ onClose }: { onClose: () => void }) {
                   </span>
                   <span className="min-w-0">
                     <span className="block truncate text-[14.5px] font-bold text-ink">
-                      {c.name}
+                      {t(c.name)}
                     </span>
-                    <span className="block text-[12px] text-ink-muted">Belle Mare, Mauritius</span>
+                    <span className="block text-[12px] text-ink-muted">
+                      {t('Belle Mare, Mauritius')}
+                    </span>
                   </span>
                 </button>
               ))}

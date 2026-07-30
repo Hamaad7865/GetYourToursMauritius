@@ -910,7 +910,7 @@ export function Checkout() {
           }>(r),
         );
         if (!bookingRes.ok)
-          throw new Error(bookingRes.error?.message ?? 'Could not create the booking.');
+          throw new Error(bookingRes.error?.message ?? t('Could not create the booking.'));
         ref = bookingRes.data.ref;
         setBookingRef(ref);
         // Fingerprint the route the booking ACTUALLY carries (from the response), not the payload:
@@ -1030,7 +1030,7 @@ export function Checkout() {
           setPayStage(null);
           return;
         }
-        throw new Error(payRes.error?.message ?? 'Could not start payment.');
+        throw new Error(payRes.error?.message ?? t('Could not start payment.'));
       }
       const link = payRes.data as {
         checkoutId?: string;

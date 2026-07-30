@@ -1,11 +1,13 @@
 import Link from 'next/link';
 import type { Crumb } from '@/lib/catalogue/detail';
+import { getT } from '@/lib/i18n/server';
 
 /** Breadcrumb trail with the current page title rendered as the (non-link) last item. */
-export function Breadcrumb({ trail, current }: { trail: Crumb[]; current: string }) {
+export async function Breadcrumb({ trail, current }: { trail: Crumb[]; current: string }) {
+  const t = await getT();
   return (
     <nav
-      aria-label="Breadcrumb"
+      aria-label={t('Breadcrumb')}
       className="mb-4 flex flex-wrap items-center gap-2 text-[13px] text-ink-muted"
     >
       {trail.map((crumb) => (

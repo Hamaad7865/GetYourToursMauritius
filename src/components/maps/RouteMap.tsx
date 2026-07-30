@@ -5,6 +5,7 @@ import type { ItineraryStop } from '@/lib/validation/tours';
 import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
 import { geocode } from '@/lib/maps/geocode';
 import { mapsDirectionsUrl } from '@/lib/maps/urls';
+import { useT } from '@/components/site/PreferencesProvider';
 import { MapLinkCard } from './MapLinkCard';
 import { bmtMarkerContent, carContent, dinnerMarkerContent, pinElement } from './pin';
 
@@ -115,6 +116,7 @@ export function RouteMap({
   dinner?: { title: string; lat: number; lng: number } | null;
 }) {
   const status = useGoogleMaps();
+  const t = useT();
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const overlaysRef = useRef<MapOverlay[]>([]);
@@ -336,7 +338,10 @@ export function RouteMap({
   if (stops.length === 0) return null;
   if (status === 'error' || failed) {
     return (
-      <MapLinkCard href={mapsDirectionsUrl(stops.map((s) => s.title))} label="See the full route" />
+      <MapLinkCard
+        href={mapsDirectionsUrl(stops.map((s) => s.title))}
+        label={t('See the full route')}
+      />
     );
   }
 
@@ -354,7 +359,7 @@ export function RouteMap({
         <div className="mt-2">
           <MapLinkCard
             href={mapsDirectionsUrl(stops.map((s) => s.title))}
-            label="See the full route"
+            label={t('See the full route')}
           />
         </div>
       )}

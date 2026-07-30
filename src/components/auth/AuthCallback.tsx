@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /** True if the string contains any ASCII control character (CR/LF/NUL/etc.). */
 function hasControlChar(value: string): boolean {
@@ -57,6 +58,7 @@ function resolveRedirect(): string {
  */
 export function AuthCallback() {
   const router = useRouter();
+  const t = useT();
   const [error, setError] = useState<string | null>(null);
   // Resolve during render, before the Supabase client strips the OAuth params (?code) — and
   // our ?next alongside them — off the URL.
@@ -85,14 +87,14 @@ export function AuthCallback() {
 
     // Fallback: if no session arrives, surface a retry instead of hanging.
     const timer = setTimeout(() => {
-      if (!done) setError('We could not complete sign-in. Please try again.');
+      if (!done) setError(t('We could not complete sign-in. Please try again.'));
     }, 6000);
 
     return () => {
       sub.subscription.unsubscribe();
       clearTimeout(timer);
     };
-  }, [router, target]);
+  }, [router, target, t]);
 
   return (
     <div className="grid min-h-[60vh] place-items-center px-6 text-center">
@@ -103,7 +105,7 @@ export function AuthCallback() {
             href="/"
             className="mt-3 inline-block text-sm font-bold text-teal hover:text-teal-dark"
           >
-            Back to home
+            {t('Back to home')}
           </Link>
         </div>
       ) : (
@@ -113,7 +115,7 @@ export function AuthCallback() {
             className="h-10 w-10 animate-spin rounded-full border-[3px] border-teal/25 border-t-teal"
           />
           <p role="status" aria-live="polite" className="text-sm font-medium text-ink-muted">
-            Signing you in…
+            {t('Signing you in…')}
           </p>
         </div>
       )}

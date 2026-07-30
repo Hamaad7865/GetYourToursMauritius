@@ -155,7 +155,7 @@ export function DisruptionBanner({
   }, [booking.ref, post, t]);
 
   const when = booking.serviceDate ? formatLocaleDate(booking.serviceDate, language) : null;
-  const reason = REASON_COPY[booking.disruption?.reason ?? 'weather'] ?? t('the conditions');
+  const reason = t(REASON_COPY[booking.disruption?.reason ?? 'weather'] ?? 'the conditions');
   const visible = dates && !showAll ? dates.slice(0, RESCHEDULE_PAGE_SIZE) : (dates ?? []);
 
   return (

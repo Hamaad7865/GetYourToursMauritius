@@ -1,19 +1,21 @@
 import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
-export default function DestinationNotFound() {
+export default async function DestinationNotFound() {
+  const t = await getT();
   return (
     <InfoPage
-      eyebrow="Destinations"
-      title="Destination not found"
-      intro="We couldn't find that area guide."
+      eyebrow={t('Destinations')}
+      title={t('Destination not found')}
+      intro={t("We couldn't find that area guide.")}
     >
       <p className="text-[15px] text-ink/75">
-        See all{' '}
+        {t('Explore all')}{' '}
         <Link href="/destinations" className="font-bold text-teal hover:text-teal-dark">
-          Mauritius destinations
+          {t('Mauritius destinations')}
         </Link>
         .
       </p>

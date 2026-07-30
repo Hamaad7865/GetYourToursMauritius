@@ -159,13 +159,13 @@ export async function GygHero({ children }: { children?: ReactNode }) {
               />
               <span aria-hidden className="relative h-2 w-2 rounded-full bg-teal-bright" />
             </span>
-            Belle Mare Tours · Mauritius
+            Belle Mare Tours · {t('Mauritius')}
           </p>
 
           <h1 className="animate-fade-up mt-5 font-display text-5xl font-medium leading-[0.92] tracking-[-0.02em] text-white drop-shadow-[0_2px_16px_rgba(10,46,54,0.45)] [animation-delay:80ms] sm:text-6xl lg:text-7xl xl:text-[5.25rem]">
             {t('Explore')}
             <br />
-            Mauritius
+            {t('Mauritius')}
             <br />
             <span className="font-semibold italic">{t('your way.')}</span>
           </h1>

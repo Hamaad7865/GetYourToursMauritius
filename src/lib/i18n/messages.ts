@@ -2262,4 +2262,79 @@ export const fr: Record<string, string> = {
   'Mauritius travel FAQ': 'FAQ voyage à Maurice',
   "From turquoise lagoons and waterfalls to volcanic craters and colonial heritage, here are {count} of the island's best attractions — and how to visit each one with a local driver-guide from {operator}.":
     'Des lagons turquoise et des cascades aux cratères volcaniques et au patrimoine colonial, voici {count} des plus belles attractions de l’île — et comment visiter chacune d’elles avec un chauffeur-guide local de {operator}.',
+
+  // Task 10 batch D — error screens, empty states and the long tail
+  'We could not complete sign-in. Please try again.':
+    'Nous n’avons pas pu terminer la connexion. Veuillez réessayer.',
+  "You're logged in": 'Vous êtes connecté',
+  'Signed in as {name}.': 'Connecté en tant que {name}.',
+  'Signed in to Belle Mare Tours.': 'Connecté à Belle Mare Tours.',
+  'Signed out': 'Déconnecté',
+  'See you next time.': 'À la prochaine !',
+  'Scroll categories left': 'Défiler les catégories vers la gauche',
+  'Scroll categories right': 'Défiler les catégories vers la droite',
+  'Could not create the booking.': 'Impossible de créer la réservation.',
+  Mauritius: 'Maurice',
+  'Belle Mare, Mauritius': 'Belle Mare, Maurice',
+  'Scroll left': 'Défiler vers la gauche',
+  'Scroll right': 'Défiler vers la droite',
+  'Main stop': 'Arrêt principal',
+  'Other stop': 'Autre arrêt',
+  'View on Google Maps': 'Voir sur Google Maps',
+  'Pinned location ({lat}, {lng})': 'Position épinglée ({lat}, {lng})',
+  'Search for your hotel or drag the pin to mark your pickup point.':
+    'Recherchez votre hôtel ou faites glisser le repère pour indiquer votre point de prise en charge.',
+  'See the full route': 'Voir l’itinéraire complet',
+  'What our guests say': 'Ce que disent nos clients',
+  'Rated {avg}/5 from {total} reviews on TripAdvisor & Google.':
+    'Noté {avg}/5 sur {total} avis TripAdvisor et Google.',
+  'Read all reviews →': 'Voir tous les avis →',
+  'Popular on Belle Mare Tours': 'Populaire sur Belle Mare Tours',
+  'Jump straight to the experiences Mauritius is known for — all bookable direct with the operator, with door-to-door pickup and no reseller markup.':
+    'Accédez directement aux expériences qui font la réputation de Maurice — toutes réservables en direct avec l’opérateur, avec prise en charge porte-à-porte et sans majoration de revendeur.',
+  '© {year} {legalName}. {street}, {region}, Mauritius · BRN {brn} · VAT {vat} ·':
+    '© {year} {legalName}. {street}, {region}, Maurice · BRN {brn} · TVA {vat} ·',
+  'Mauritius airport transfer tips & guides':
+    'Conseils et guides pour les transferts aéroport à Maurice',
+  'Read all guides →': 'Voir tous les guides →',
+  'See why guests love us': 'Découvrez pourquoi nos clients nous adorent',
+  'from {total} reviews · TripAdvisor {ta} · Google {google}':
+    'sur {total} avis · TripAdvisor {ta} · Google {google}',
+  'Mauritius Activities': 'Activités à Maurice',
+  'Browse and book the full range of Mauritius activities and tours direct with Belle Mare Tours — catamaran cruises, dolphin swims, Île aux Cerfs trips, sea walks and private island day tours, all with instant confirmation and no reseller markup.':
+    'Parcourez et réservez toute la gamme d’activités et d’excursions à Maurice en direct avec Belle Mare Tours — croisières en catamaran, nage avec les dauphins, sorties à l’Île aux Cerfs, randonnées sous-marines et excursions privées à la journée, avec confirmation instantanée et sans majoration de revendeur.',
+  'Mauritius activities — frequently asked questions': 'Activités à Maurice — questions fréquentes',
+  "We couldn't find that activity": 'Nous n’avons pas trouvé cette activité',
+  'It may have been unpublished or the link is out of date. Browse everything Belle Mare Tours runs on the east coast instead.':
+    'Elle a peut-être été dépubliée ou le lien n’est plus valide. Parcourez plutôt tout ce que Belle Mare Tours propose sur la côte est.',
+  'Transfer not found': 'Transfert introuvable',
+  "We couldn't find that hotel transfer page.":
+    'Nous n’avons pas trouvé cette page de transfert d’hôtel.',
+  'Browse all': 'Voir tous les',
+  'Mauritius airport transfers': 'transferts aéroport à Maurice',
+  'or message us for a quote to any hotel.':
+    'ou contactez-nous pour un devis vers n’importe quel hôtel.',
+  'Article not found': 'Article introuvable',
+  "We couldn't find that guide.": 'Nous n’avons pas trouvé ce guide.',
+  'Mauritius travel guides': 'guides de voyage à Maurice',
+  'Destination not found': 'Destination introuvable',
+  "We couldn't find that area guide.": 'Nous n’avons pas trouvé ce guide de région.',
+  'Explore all': 'Découvrez toutes les',
+  'Mauritius destinations': 'destinations à Maurice',
+  'Something went wrong': 'Une erreur s’est produite',
+  'We hit an unexpected error loading this page. Please try again — any booking or payment in progress is safe.':
+    'Une erreur inattendue s’est produite lors du chargement de cette page. Veuillez réessayer — toute réservation ou paiement en cours reste protégé.',
+  Review: 'Avis',
+  'This link has expired': 'Ce lien a expiré',
+  'This review link is no longer valid — it may have already been used or has expired.':
+    'Ce lien d’avis n’est plus valide — il a peut-être déjà été utilisé ou a expiré.',
+  "Thanks for your interest in leaving a review! If you think this is a mistake, get in touch and we'll sort it out.":
+    'Merci de votre intérêt pour laisser un avis ! Si vous pensez qu’il s’agit d’une erreur, contactez-nous et nous arrangerons cela.',
+  'Tell us about your trip': 'Parlez-nous de votre voyage',
+  'A couple of minutes is all it takes — your review helps other travellers pick the right trip.':
+    'Cela ne prend que quelques minutes — votre avis aide d’autres voyageurs à choisir la bonne excursion.',
+  'the weather': 'la météo',
+  'the sea conditions': 'les conditions de mer',
+  'a safety call': 'une décision de sécurité',
+  'too few travellers on the day': 'trop peu de voyageurs ce jour-là',
 };

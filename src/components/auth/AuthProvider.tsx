@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { useToast } from '@/components/site/ToastProvider';
+import { useT } from '@/components/site/PreferencesProvider';
 import { AuthDialog } from './AuthDialog';
 
 /** Best-effort display name from the auth user's metadata, for the welcome toast. */
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [dialogMode, setDialogMode] = useState<AuthMode | null>(null);
   const { showToast } = useToast();
+  const t = useT();
 
   // Load (and create if missing) the caller's profile row under RLS.
   const loadProfile = useCallback(async (current: User): Promise<void> => {
@@ -167,11 +169,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (freshLogin) {
         const name = displayName(u);
         showToast({
-          title: "You're logged in",
-          description: name ? `Signed in as ${name}.` : 'Signed in to Belle Mare Tours.',
+          title: t("You're logged in"),
+          description: name
+            ? t('Signed in as {name}.', { name })
+            : t('Signed in to Belle Mare Tours.'),
         });
       } else if (signedOut) {
-        showToast({ title: 'Signed out', description: 'See you next time.', variant: 'info' });
+        showToast({
+          title: t('Signed out'),
+          description: t('See you next time.'),
+          variant: 'info',
+        });
       }
       if (nextId == null) sawSignedOut = true;
       prevUserId = nextId;
@@ -198,7 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       active = false;
       sub.subscription.unsubscribe();
     };
-  }, [loadProfile, showToast]);
+  }, [loadProfile, showToast, t]);
 
   const openAuth = useCallback((mode: AuthMode = 'signin') => setDialogMode(mode), []);
   const closeAuth = useCallback(() => setDialogMode(null), []);

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { IconChevronLeft, IconChevronRight } from '@/components/ui/icons';
+import { useT } from '@/components/site/PreferencesProvider';
 
 /**
  * Horizontal, scroll-snapping rail with GetYourGuide-style circular ‹ › arrow
@@ -17,6 +18,7 @@ export function Rail({
   /** Centre the cards when they don't fill the width (still scrolls if they overflow). */
   center?: boolean;
 }) {
+  const t = useT();
   const trackRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -62,7 +64,7 @@ export function Rail({
         <button
           type="button"
           onClick={() => scrollBy(-1)}
-          aria-label="Scroll left"
+          aria-label={t('Scroll left')}
           className="absolute -left-3 top-[38%] hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-ink/10 bg-white text-ink shadow-[0_6px_18px_-6px_rgba(10,46,54,0.5)] hover:border-teal hover:text-teal md:grid"
         >
           <IconChevronLeft width={20} height={20} />
@@ -72,7 +74,7 @@ export function Rail({
         <button
           type="button"
           onClick={() => scrollBy(1)}
-          aria-label="Scroll right"
+          aria-label={t('Scroll right')}
           className="absolute -right-3 top-[38%] hidden h-11 w-11 -translate-y-1/2 place-items-center rounded-full border border-ink/10 bg-white text-ink shadow-[0_6px_18px_-6px_rgba(10,46,54,0.5)] hover:border-teal hover:text-teal md:grid"
         >
           <IconChevronRight width={20} height={20} />

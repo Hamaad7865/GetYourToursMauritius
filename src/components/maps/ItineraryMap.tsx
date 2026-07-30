@@ -1,6 +1,7 @@
 'use client';
 
 import type { ItineraryStop } from '@/lib/validation/tours';
+import { useT } from '@/components/site/PreferencesProvider';
 import { RouteMap, type StopKind } from './RouteMap';
 
 /** Whether any stop on the map is a swappable "other" stop — drives showing that legend entry. */
@@ -41,6 +42,7 @@ function LegendPin({ kind }: { kind: StopKind }) {
  * solid teal "main" pins; swappable stops are hollow teal "other" pins.
  */
 export function ItineraryMap({ stops, kinds }: { stops: ItineraryStop[]; kinds?: StopKind[] }) {
+  const t = useT();
   const hasStart = (kinds ?? []).includes('start');
   return (
     <div>
@@ -48,15 +50,15 @@ export function ItineraryMap({ stops, kinds }: { stops: ItineraryStop[]; kinds?:
       <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-muted">
         {hasStart && (
           <span className="flex items-center gap-1.5">
-            <LegendPin kind="start" /> Pickup
+            <LegendPin kind="start" /> {t('Pickup')}
           </span>
         )}
         <span className="flex items-center gap-1.5">
-          <LegendPin kind="main" /> Main stop
+          <LegendPin kind="main" /> {t('Main stop')}
         </span>
         {hasOther(kinds) && (
           <span className="flex items-center gap-1.5">
-            <LegendPin kind="other" /> Other stop
+            <LegendPin kind="other" /> {t('Other stop')}
           </span>
         )}
       </div>
