@@ -186,8 +186,13 @@ describe('French translation coverage', () => {
 npx vitest run tests/unit/i18n-coverage.test.ts
 ```
 
-Expected: FAIL. The first test lists **31** missing keys, most from
-`src/components/gyg/detail/DisruptionBanner.tsx`. The second test PASSES.
+Expected: FAIL. The first test lists **27** missing keys (25 of them from
+`src/components/gyg/detail/DisruptionBanner.tsx`, plus one each in `Checkout.tsx` and
+`TransferBookingWidget.tsx`). The second test PASSES.
+
+Take the count from `node scripts/i18n-scan.mjs` rather than from this document — `messages.ts` is
+being edited by a parallel session, so the exact number is a moving target. Do **not** tune the
+regex to hit a target number.
 
 If the second test fails, the scanner is broken — fix it before continuing, because a broken scanner
 makes the guard rail worthless.
@@ -269,14 +274,14 @@ Append inside the `fr` object in `src/lib/i18n/messages.ts`, before the closing 
   // Transfer widget (src/components/transfers/TransferBookingWidget.tsx)
   "That date isn't open yet — please try another day, or contact us to arrange it.":
     'Cette date n’est pas encore ouverte — essayez un autre jour ou contactez-nous pour l’organiser.',
-  // About page (app/(site)/about/page.tsx)
-  'Why we do it this way': 'Pourquoi nous procédons ainsi',
-  'We show you the island the way we’d want to see it ourselves — the quiet hours, the right tide, and the road that’s worth the detour.':
-    'Nous vous faisons découvrir l’île comme nous aimerions la découvrir nous-mêmes — les heures calmes, la bonne marée, et la route qui vaut le détour.',
-  'Belle Mare Tours — licensed local operator, based on the east coast':
-    'Belle Mare Tours — opérateur local agréé, basé sur la côte est',
-  Photography: 'Photographie',
 ```
+
+> **DO NOT touch `app/(site)/about/page.tsx` or its keys.** An earlier draft of this plan listed 4
+> About-page keys and a total of 31. A **parallel session owns that page** and is rewriting both it
+> and `src/lib/i18n/messages.ts` right now (both show as modified in `git status`). Its `t()` calls
+> have already changed, which is why the real count is **27**, not 31. Add only what
+> `node scripts/i18n-scan.mjs` currently reports, and when staging, `git add` only the files you
+> edited — never `git add -A`, or you will commit the other session's in-flight work.
 
 - [ ] **Step 3: Append the category labels**
 
