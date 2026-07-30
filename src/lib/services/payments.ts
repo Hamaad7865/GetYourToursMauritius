@@ -38,12 +38,19 @@ export interface CreatePaymentLinkInput {
  * only from the DB (api_create_payment reads the booking total); the model/client
  * never supplies it. Confirmation happens later via the verified webhook.
  *
- * `adminCtx` (service-role rpc port) is REQUIRED for the two post-checkout writes:
- * api_record_payment_charge / api_record_payment_checkout are locked to service_role, because their
- * values (what the card was charged; which checkout the reconcile sweep queries) are server-derived
- * facts — an authenticated booking owner must not be able to falsify their own invoice's charge or the
- * sweep's checkout pointer. `ctx` stays the CALLER's context so api_create_payment keeps enforcing
- * booking ownership on the caller's identity. The route passes serviceRoleRpcContext().
+ * THE CHARGE IS PINNED IN SQL, NOT COMPUTED HERE: api_create_payment converts the EUR total to whole
+ * MUR rupees at the server-controlled fx_rates rate ONCE per payment row (first-write-wins) and hands
+ * the figure back as chargedAmountMinor/chargedCurrency. This function charges exactly that figure —
+ * every re-minted session for a payment charges the identical amount, the pay page displays it, and
+ * reconcile measures the settlement against it. Do NOT reintroduce a conversion here: a per-session
+ * figure at a moved rate would drift from the pinned expectation and quarantine real payments.
+ *
+ * `adminCtx` (service-role rpc port) is REQUIRED for the post-checkout write:
+ * api_record_payment_checkout (and api_clear_payment_checkout above) are locked to service_role,
+ * because the checkout pointer the reconcile sweep queries is a server-derived fact — an
+ * authenticated booking owner must not be able to falsify it. `ctx` stays the CALLER's context so
+ * api_create_payment keeps enforcing booking ownership on the caller's identity. The route passes
+ * serviceRoleRpcContext().
  */
 export async function createPaymentLink(
   ctx: ServiceContext,
@@ -94,6 +101,9 @@ export async function createPaymentLink(
         sessionId: payment.existingCheckoutId,
         checkoutId: payment.existingCheckoutId,
         provider: ctx.payments.name,
+        // Exact figures: the pin is per-PAYMENT, so a reused session's charge is identical.
+        chargeAmountMinor: payment.chargedAmountMinor ?? undefined,
+        chargeCurrency: payment.chargedCurrency ?? undefined,
       };
     }
 
@@ -119,16 +129,24 @@ export async function createPaymentLink(
         sessionId: payment.existingCheckoutId,
         checkoutId: payment.existingCheckoutId,
         provider: ctx.payments.name,
+        chargeAmountMinor: payment.chargedAmountMinor ?? undefined,
+        chargeCurrency: payment.chargedCurrency ?? undefined,
       };
     }
   }
 
-  // Peach now accepts EUR on the card (enabled 2026-06-24), so we charge the EUR booking total directly
-  // — no FX conversion, and the card statement matches the price shown. The ledger is already EUR, so a
-  // successful full settlement confirms it cleanly. (Alt methods like MCB Juice / Maucus are MUR-only and
-  // aren't offered here.)
-  const chargeCurrency = 'EUR';
-  const chargeAmount = payment.amountMinor / 100;
+  // Charge EXACTLY what the DB pinned (MUR since 2026-07-30 — the live Peach account has no EUR
+  // facility). The pinned figure is what every session for this payment charges, what the pay page
+  // displays, and what reconcile measures the settlement against — three things that must be one
+  // number. The EUR fallback exists only for a legacy pre-cutover row whose pin the migration
+  // deliberately left (a settled/terminal booking); a payable legacy row was un-pinned by the
+  // cutover fix and re-pins in MUR on this very call.
+  const chargeCurrency = payment.chargedCurrency ?? 'EUR';
+  const chargeMinor = payment.chargedAmountMinor ?? payment.amountMinor;
+  // chargeMinor is whole rupees (a multiple of 100), so /100 is exact and peach.ts's `.toFixed(2)`
+  // round-trips byte-identically against what api_create_payment recorded. No float crosses the
+  // provider boundary with sub-cent precision.
+  const chargeAmount = chargeMinor / 100;
   let session;
   try {
     session = await ctx.payments.createCheckout({
@@ -150,23 +168,11 @@ export async function createPaymentLink(
     throw error;
   }
 
-  // Persist what the card was actually charged (EUR, minor units) for the receipt/invoice. Now that we
-  // charge EUR it equals the ledger total, but recording it keeps the receipt accurate if the charge
-  // currency ever changes again. Best-effort: the checkout already succeeded, so a failure here must
-  // never strand the customer — log and continue.
-  //
-  // Started HERE but awaited BELOW, alongside the checkout-id write: the two are independent writes
-  // that the customer is sitting and waiting on, and running them back-to-back spent a whole extra
-  // network round-trip on the critical path for no reason.
-  const chargeRecorded = callRpc(adminCtx, 'api_record_payment_charge', {
-    paymentId: payment.paymentId,
-    chargedAmountMinor: Math.round(chargeAmount * 100),
-    chargedCurrency: chargeCurrency,
-  }).catch((error: unknown) => {
-    console.error('failed to record payment charge', { paymentId: payment.paymentId, error });
-  });
+  // (The charge record is NOT written here any more: api_create_payment pinned it before this
+  // function ever saw the payment — atomically, first-write-wins — so there is nothing best-effort
+  // left to fail. api_record_payment_charge still exists for its original callers/tests.)
 
-  // Persist the Peach checkout id — REQUIRED, not best-effort (unlike the charge record above). It is
+  // Persist the Peach checkout id — REQUIRED, not best-effort. It is
   // what (a) lets the reconciliation sweep re-query this payment's status, and (b) makes a retry of
   // api_create_payment REUSE this same session (existingCheckoutId) instead of minting a SECOND payable
   // one once the 90-second single-flight lease expires. If it can't be recorded, the one-payable-session
@@ -175,17 +181,10 @@ export async function createPaymentLink(
   // lost, reuses — a properly-recorded session. The orphaned Peach session is harmless: it is never
   // returned to the customer, so it is never paid, and it expires on its own.
   try {
-    await Promise.all([
-      callRpc(adminCtx, 'api_record_payment_checkout', {
-        paymentId: payment.paymentId,
-        checkoutId: session.checkoutId,
-      }),
-      // Already in flight (see above) — joined here so a success never returns with the charge write
-      // still outstanding, which on the edge could be torn down with the isolate. It has its own
-      // `.catch`, so it can only settle, never reject: the fail-closed branch below stays owned
-      // exclusively by the checkout-id write.
-      chargeRecorded,
-    ]);
+    await callRpc(adminCtx, 'api_record_payment_checkout', {
+      paymentId: payment.paymentId,
+      checkoutId: session.checkoutId,
+    });
   } catch (error) {
     console.error('failed to record payment checkout id — failing closed', {
       paymentId: payment.paymentId,
@@ -206,5 +205,7 @@ export async function createPaymentLink(
     redirectUrl: session.redirectUrl,
     checkoutId: session.checkoutId,
     provider: session.provider,
+    chargeAmountMinor: payment.chargedAmountMinor ?? undefined,
+    chargeCurrency: payment.chargedCurrency ?? undefined,
   };
 }

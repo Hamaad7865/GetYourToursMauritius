@@ -104,7 +104,8 @@ export default function RefundsPage() {
               'Refunds go back to the original payment method — we can’t redirect them elsewhere.',
               'We process eligible refunds within 1–2 business days of your cancellation.',
               'Your bank or card issuer then takes a further 5–10 business days to show the money, depending on their timings.',
-              'Refunds are made in the currency you paid in (EUR); we don’t cover any exchange-rate movement between payment and refund.',
+              'Refunds are issued as the original Mauritian rupee (MUR) amount charged to your card.',
+              'Your bank converts the refunded MUR back to your own currency at its own rate, so the amount you receive may differ slightly from what you originally paid — we don’t cover exchange-rate movement between payment and refund.',
             ]}
           />
         </LegalSection>

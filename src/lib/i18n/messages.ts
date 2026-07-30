@@ -711,9 +711,15 @@ export const fr: Record<string, string> = {
   'Signed in as {email}.': 'Connecté en tant que {email}.',
   Pay: 'Payer',
   'Continue to payment': 'Continuer vers le paiement',
-  'You will be charged in EUR': 'Vous serez débité en EUR',
-  'You will be charged in USD': 'Vous serez débité en USD',
-  'Your card will be charged in USD': 'Votre carte sera débitée en USD',
+  'Your card is charged in Mauritian rupees (MUR). The exact amount is shown on the next screen.':
+    'Votre carte est débitée en roupies mauriciennes (MUR). Le montant exact est affiché sur l’écran suivant.',
+  'Your card will be charged {amount} — the {eur} total converted at today’s rate.':
+    'Votre carte sera débitée de {amount} — le total de {eur} converti au taux du jour.',
+  'Your card will be charged {amount} at today’s rate.':
+    'Votre carte sera débitée de {amount} au taux du jour.',
+  'Your card will be charged in Mauritian rupees (MUR) at today’s rate.':
+    'Votre carte sera débitée en roupies mauriciennes (MUR) au taux du jour.',
+  'Your bank may apply its own conversion.': 'Votre banque peut appliquer sa propre conversion.',
   'You’ll confirm the payment on the next screen.':
     'Vous confirmerez le paiement sur l’écran suivant.',
   'Complete your payment': 'Finalisez votre paiement',

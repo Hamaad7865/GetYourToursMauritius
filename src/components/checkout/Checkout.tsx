@@ -21,6 +21,7 @@ import {
   savePayHandoff,
   type PayStage,
 } from '@/lib/checkout/pay-progress';
+import { saveChargeHandoff } from '@/lib/checkout/charge-handoff';
 import {
   detailsHash,
   isBookingPayable,
@@ -1031,7 +1032,12 @@ export function Checkout() {
         }
         throw new Error(payRes.error?.message ?? 'Could not start payment.');
       }
-      const link = payRes.data as { checkoutId?: string; redirectUrl?: string };
+      const link = payRes.data as {
+        checkoutId?: string;
+        redirectUrl?: string;
+        chargeAmountMinor?: number;
+        chargeCurrency?: string;
+      };
       if (link.checkoutId) {
         // Embedded Peach checkout: mount the widget on the pay step. The booking is confirmed by
         // the verified webhook, never by this navigation.
@@ -1039,6 +1045,17 @@ export function Checkout() {
         // The navigation destroys this page, so the ring's position is handed to the pay page rather
         // than lost — the customer sees ONE bar continuing, not a second one restarting at zero.
         savePayHandoff(SESSION_COMPLETE_PERCENT, Date.now());
+        // Hand over the server-pinned card charge (MUR) so the pay page can disclose the exact
+        // figure next to the card form. Display-only; the server charges its pinned amount
+        // regardless.
+        if (typeof link.chargeAmountMinor === 'number' && link.chargeCurrency) {
+          saveChargeHandoff({
+            ref,
+            chargeCurrency: link.chargeCurrency,
+            chargeAmountMinor: link.chargeAmountMinor,
+            totalEurMinor: displayTotalNum != null ? Math.round(displayTotalNum * 100) : undefined,
+          });
+        }
         window.location.href = `/bookings/${ref}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
       } else if (link.redirectUrl) {
         // Hosted redirect (and the dev stub) — a third-party page we don't render, so no hand-off.
@@ -1778,7 +1795,11 @@ export function Checkout() {
                 )}
               </button>
               {displayTotalNum != null && (
-                <p className="mt-2 text-[12px] text-ink-muted">{t('You will be charged in EUR')}</p>
+                <p className="mt-2 text-[12px] text-ink-muted">
+                  {t(
+                    'Your card is charged in Mauritian rupees (MUR). The exact amount is shown on the next screen.',
+                  )}
+                </p>
               )}
               <p className="mt-2 text-[12px] text-ink-muted">
                 {t('You’ll confirm the payment on the next screen.')}

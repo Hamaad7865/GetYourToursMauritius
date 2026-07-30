@@ -40,8 +40,10 @@ export default function HelpPage() {
               <Link href="/activities">browse all activities</Link> to get started.
             </FaqItem>
             <FaqItem q="What payment methods can I use?">
-              You pay securely by card at checkout. Prices are shown and charged in euro (EUR). Your
-              card details go straight to our payment provider — we never see or store them.
+              You pay securely by card at checkout. Prices are shown in euro (EUR); your card is
+              charged the equivalent in Mauritian rupees (MUR) at the rate applied at checkout — the
+              exact amount is shown before you enter your card details. Your card details go
+              straight to our payment provider — we never see or store them.
             </FaqItem>
             <FaqItem q="When am I charged?">
               Payment is taken at the time of booking to confirm your place. If a payment fails or a

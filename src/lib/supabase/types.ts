@@ -368,6 +368,13 @@ type PaymentsRow = {
   refunded_minor: number;
   charged_amount_minor: number | null;
   charged_currency: string | null;
+  /** EUR→charged-currency rate pinned with the charge (20260830000000), for refund/VAT evidence. */
+  charged_fx_rate: number | null;
+  charged_fx_source: string | null;
+  charged_fx_at: string | null;
+  /** Set when a settled provider event was quarantined — blocks the auto-expiry sweep. */
+  settlement_review_at: string | null;
+  settlement_review_reason: string | null;
   provider_checkout_id: string | null;
   prev_provider_checkout_id: string | null;
   checkout_claimed_until: string | null;
@@ -915,6 +922,9 @@ export interface Database {
       api_list_rental_vehicles: { Args: { p: Json }; Returns: Json };
       api_content_defaults: { Args: { p: Json }; Returns: Json };
       api_moderate_guest_review: { Args: { p: Json }; Returns: Json };
+      api_flag_settlement_review: { Args: { p: Json }; Returns: Json };
+      api_upsert_fx_rate: { Args: { p: Json }; Returns: Json };
+      api_fx_rate_status: { Args: { p: Json }; Returns: Json };
     };
     Enums: {
       user_role: 'customer' | 'staff' | 'admin' | 'seo';

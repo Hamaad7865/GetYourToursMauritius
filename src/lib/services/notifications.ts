@@ -127,10 +127,17 @@ async function enrichOwnerNewBooking(
   if (!message.bookingId) {
     throw new Error('owner_new_booking: missing bookingId on the outbox row');
   }
-  const { booking } = await loadBookingForReceipt(ctx, message.bookingId);
+  const { booking, payment } = await loadBookingForReceipt(ctx, message.bookingId);
   const pax = booking.items.reduce((s, i) => s + (i.pax ?? i.quantity), 0);
   const when = booking.when ? booking.when.slice(0, 10) : 'date TBC';
-  const total = `€${booking.totalEur.toFixed(2)}`;
+  // The CARD amount rides along with the EUR total whenever the charge currency differs (MUR since
+  // 2026-07-30): the owner refunds BY HAND in the Peach dashboard, where the transaction is MUR — an
+  // alert quoting only the euro figure invites refunding the wrong number.
+  const chargedNote =
+    payment.chargedCurrency.toUpperCase() !== 'EUR' && payment.chargedAmountMinor > 0
+      ? ` (card: ${payment.chargedCurrency} ${(payment.chargedAmountMinor / 100).toFixed(2)})`
+      : '';
+  const total = `€${booking.totalEur.toFixed(2)}${chargedNote}`;
   const what = booking.activityTitle || 'a booking';
   // Item-less bookings (rare custom itineraries) have no headcount — omit the guests clause rather
   // than announcing "0 guests".

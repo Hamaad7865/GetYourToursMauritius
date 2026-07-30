@@ -52,6 +52,9 @@ const ALLOWED = new Set([
   'api_enqueue_review_invites',
   'api_review_invite_context',
   'api_list_approved_guest_reviews',
+  'api_upsert_fx_rate',
+  'api_fx_rate_status',
+  'api_flag_settlement_review',
 ]);
 
 /**

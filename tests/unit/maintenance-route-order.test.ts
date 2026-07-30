@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Record the order the maintenance steps run in. The money-safety property is that reconcile
 // (confirm-paid) runs BEFORE the booking-expiry sweep, and that each step is isolated.
-const { calls, reconcile, expire, materialize, reviewInvites } = vi.hoisted(() => {
+const { calls, reconcile, expire, materialize, reviewInvites, fxRefresh } = vi.hoisted(() => {
   const calls: string[] = [];
   return {
     calls,
@@ -22,6 +22,10 @@ const { calls, reconcile, expire, materialize, reviewInvites } = vi.hoisted(() =
       calls.push('reviewInvites');
       return 0;
     }),
+    fxRefresh: vi.fn(async () => {
+      calls.push('fx');
+      return { refreshed: true, rate: 53.98, ageHours: 0 };
+    }),
   };
 });
 
@@ -30,6 +34,7 @@ vi.mock('@/lib/services/maintenance', () => ({
   runBookingMaintenance: expire,
   materializeAvailability: materialize,
   enqueueReviewInvites: reviewInvites,
+  refreshFxRate: fxRefresh,
 }));
 vi.mock('@/lib/http/context', () => ({ serviceRoleServiceContext: () => ({}) }));
 vi.mock('@/lib/config/env', () => ({ getServerEnv: () => ({ INTERNAL_TASK_SECRET: 'secret' }) }));
@@ -48,6 +53,11 @@ beforeEach(() => {
   expire.mockClear();
   materialize.mockClear();
   reviewInvites.mockClear();
+  fxRefresh.mockClear();
+  fxRefresh.mockImplementation(async () => {
+    calls.push('fx');
+    return { refreshed: true, rate: 53.98, ageHours: 0 };
+  });
 });
 
 describe('maintenance route ordering (money-safety)', () => {

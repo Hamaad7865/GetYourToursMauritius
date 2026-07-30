@@ -300,7 +300,10 @@ export async function renderVoucherPdf(
     color: RULE,
   });
   y -= 20;
-  draw('Total paid', y, { size: 9.5, color: MUTED });
+  // "Order total", not "Total paid": the EUR figure is the ORDER's value — the card was actually
+  // charged in MUR (see the tax receipt) — and this voucher is handed to a driver, so it must not
+  // assert a payment in a currency that never touched the card.
+  draw('Order total', y, { size: 9.5, color: MUTED });
   drawRight(`${currency} ${model.totalGrossEur.toFixed(2)}`, CONTENT_RIGHT, y, {
     size: 13,
     font: bold,

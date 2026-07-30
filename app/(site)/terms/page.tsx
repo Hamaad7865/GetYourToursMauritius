@@ -92,6 +92,8 @@ export default function TermsPage() {
             items={[
               'Prices are shown in euro (EUR) and include applicable taxes unless stated otherwise on the activity page.',
               'The price you pay is the total shown at checkout for your selected date, party size and any add-ons.',
+              'Your card is charged in Mauritian rupees (MUR): the EUR total is converted at the exchange rate applied at checkout, and the exact MUR amount is shown before you enter your card details.',
+              'The EUR total shown at checkout is the contractual price of your booking; the MUR figure is that price expressed in the charge currency.',
               'We may change listed prices at any time, but a change never affects a booking already confirmed.',
               'Your bank or card issuer may apply its own currency-conversion or transaction fees, which are outside our control.',
             ]}

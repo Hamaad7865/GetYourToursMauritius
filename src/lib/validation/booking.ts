@@ -286,6 +286,11 @@ export const paymentLinkSchema = z.object({
   /** Embedded-checkout instance id — the browser mounts the Peach widget with this. */
   checkoutId: z.string().optional(),
   provider: z.string(),
+  /** What the CARD is charged, in `chargeCurrency` minor units — the MUR figure pinned by
+   *  api_create_payment (differs from the EUR booking total). Surfaced so the pay page can disclose
+   *  the exact charge; absent only for legacy EUR-era sessions. */
+  chargeAmountMinor: z.number().int().optional(),
+  chargeCurrency: z.string().optional(),
 });
 export type PaymentLink = z.infer<typeof paymentLinkSchema>;
 
@@ -307,6 +312,13 @@ export const paymentCreateResultSchema = z.object({
   /** Another request holds the single-flight checkout lease right now (20260812000000). The service
    *  re-checks once, then surfaces checkout_pending (409) for the caller to retry briefly. */
   checkoutPending: z.boolean().nullish(),
+  /** The charge pinned by api_create_payment (20260830000000): what the card is asked to pay, in
+   *  chargedCurrency minor units — MUR post-cutover. The service charges EXACTLY this figure; it
+   *  never converts currency itself. Nullish only for a legacy row minted before the cutover. */
+  chargedAmountMinor: z.coerce.number().int().nullish(),
+  chargedCurrency: z.string().nullish(),
+  /** EUR→chargedCurrency rate used for the pin — persisted for refunds/chargebacks/VAT evidence. */
+  chargedFxRate: z.coerce.number().nullish(),
 });
 
 // --- Lead -------------------------------------------------------------------

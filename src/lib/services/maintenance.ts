@@ -3,6 +3,7 @@ import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
 import { reconcilePaymentEvent } from '@/lib/payments/reconcile';
 import { enqueueReviewInvites as enqueueReviewInvitesRpc } from './reviews';
+import { fetchEurMurRate } from '@/lib/money/fx';
 
 const maintenanceResultSchema = z.object({
   holdsExpired: z.number().int(),
@@ -68,6 +69,54 @@ export async function materializeAvailability(
  *  maintenance sequence doesn't matter for correctness. */
 export async function enqueueReviewInvites(ctx: ServiceContext): Promise<number> {
   return enqueueReviewInvitesRpc(ctx);
+}
+
+const fxStatusSchema = z.object({
+  rate: z.coerce.number().nullish(),
+  ageHours: z.coerce.number().nullish(),
+});
+
+export interface FxRefreshResult {
+  /** True when a fresh upstream rate was fetched and stored this run. */
+  refreshed: boolean;
+  /** The rate now in force (stored value when the fetch failed), null only before any row exists. */
+  rate: number | null;
+  /** Hours since the in-force rate was quoted upstream. */
+  ageHours: number | null;
+}
+
+/** A stored EUR→MUR rate older than this is an incident: checkout keeps charging (the pin falls back
+ *  to the in-SQL floor rather than failing the customer), but the maintenance run must go loud so the
+ *  cron dashboard shows red instead of a silently drifting charge rate. */
+const FX_STALE_ALARM_HOURS = 48;
+
+/**
+ * Keep the server-controlled EUR→MUR rate fresh (the charge pin in api_create_payment reads it —
+ * see 20260830000000). Runs on the maintenance cron, NEVER on a checkout request. Fetch failures are
+ * tolerated silently while the stored rate is recent (last-known-good keeps charging); only a rate
+ * stale beyond FX_STALE_ALARM_HOURS throws, which fails the maintenance run and surfaces on the cron
+ * dashboard. Never fails the checkout path either way.
+ */
+export async function refreshFxRate(ctx: ServiceContext): Promise<FxRefreshResult> {
+  const fresh = await fetchEurMurRate();
+  if (fresh) {
+    await callRpc(ctx, 'api_upsert_fx_rate', {
+      rate: fresh.rate,
+      source: fresh.source,
+      fetchedAt: fresh.fetchedAt,
+    });
+    return { refreshed: true, rate: fresh.rate, ageHours: 0 };
+  }
+
+  const status = fxStatusSchema.parse(await callRpc(ctx, 'api_fx_rate_status', {}));
+  const ageHours = status.ageHours ?? null;
+  if (ageHours === null || ageHours > FX_STALE_ALARM_HOURS) {
+    throw new Error(
+      `EUR->MUR rate is stale (age ${ageHours === null ? 'unknown' : `${Math.round(ageHours)}h`}) ` +
+        'and the upstream fetch keeps failing — charges are running on an old rate',
+    );
+  }
+  return { refreshed: false, rate: status.rate ?? null, ageHours };
 }
 
 /**

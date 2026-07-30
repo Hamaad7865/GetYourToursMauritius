@@ -62,8 +62,12 @@ export class StubPaymentProvider implements PaymentProvider {
       typeof parsed?.amountMinor === 'number' && Number.isFinite(parsed.amountMinor)
         ? parsed.amountMinor
         : (known?.amountMinor ?? null);
+    // No hardcoded fallback currency: a fabricated/unknown checkout must surface as `currency: null`
+    // (→ quarantined:no_currency), never masquerade as a real provider's currency_mismatch. This is
+    // also what keeps CI honest — the stub reports the currency it was asked to charge (MUR post-
+    // cutover), so tests exercise the same charge-vs-ledger conversion production runs.
     const currency =
-      typeof parsed?.currency === 'string' ? parsed.currency : (known?.currency ?? 'EUR');
+      typeof parsed?.currency === 'string' ? parsed.currency : (known?.currency ?? null);
 
     return { outcome, bookingRef, providerReference, amountMinor, currency, raw: parsed };
   }
@@ -78,7 +82,9 @@ export class StubPaymentProvider implements PaymentProvider {
       bookingRef,
       providerReference: `stub_status_${bookingRef ?? 'unknown'}`,
       amountMinor: known?.amountMinor ?? null,
-      currency: known?.currency ?? 'EUR',
+      // null, not 'EUR': an id this stub never minted must quarantine as no_currency, exactly like a
+      // malformed real-provider payload — see verifyWebhook.
+      currency: known?.currency ?? null,
       raw: { checkoutId },
     };
   }

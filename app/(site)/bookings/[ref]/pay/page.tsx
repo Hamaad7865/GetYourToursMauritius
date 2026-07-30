@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
+import { ChargeNotice } from '@/components/checkout/ChargeNotice';
 import { EmbeddedCheckout } from '@/components/checkout/EmbeddedCheckout';
 import { PayPageFallback } from '@/components/checkout/PayPageFallback';
 import { PeachWidgetPreload } from '@/components/checkout/PeachWidgetPreload';
@@ -43,7 +44,10 @@ export default async function PayPage({
           <h1 className="font-display text-2xl font-semibold text-ink">
             {t('Complete your payment')}
           </h1>
-          <p className="mt-2 text-sm text-ink-muted">{t('You will be charged in EUR')}</p>
+          {/* The card is charged in MUR (the EUR price converted at the server-pinned rate). This is
+              the screen where the card number is typed, so the charge is disclosed HERE — exact
+              figure when the minting page handed it over, currency-only otherwise. */}
+          <ChargeNotice bookingRef={ref} />
 
           <div className="mt-6">
             {cid && widget ? (

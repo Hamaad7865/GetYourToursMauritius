@@ -153,7 +153,10 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
     );
 
     const provider = new SweepStubProvider({
-      chk_paid: { outcome: 'paid', ref: a.ref, amountMinor: 10000 }, // 2 × €50, the full total
+      // Peach settles in the CHARGE currency: api_create_payment pinned 2 × €50 = 10000 EUR minor at
+      // the 53.00 fx floor (no fresh rate seeded here) → 5300 whole rupees = 530000 MUR minor. The
+      // sweep confirms only when the status echo matches that pin exactly.
+      chk_paid: { outcome: 'paid', ref: a.ref, amountMinor: 530000, currency: 'MUR' },
       chk_pending: { outcome: 'pending', ref: b.ref },
     });
 
@@ -215,9 +218,11 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
     expect(await paidEventCount(a.paymentId)).toBe(1); // no second paid event — the append deduped
   });
 
-  it('does NOT confirm a short/underpaid "paid" settlement — only the full amount confirms', async () => {
-    // Booking total = 2 × €50 = 10000 minor. A success-code event must credit what was ACTUALLY settled,
-    // so a half-amount capture leaves the booking pending (the underpayment guard), while a full one confirms.
+  it('QUARANTINES a short "paid" settlement (review-flagged); the exact pinned amount confirms', async () => {
+    // Booking total = 2 × €50 = 10000 EUR minor, pinned at the 53.00 floor → 530000 MUR minor. A
+    // short 'paid' is never partially credited (a partial write burns the dedup slot and leaves the
+    // expiry sweep armed) — it quarantines and flags the payment for human review. The full pinned
+    // amount credits the FULL EUR total.
     const short = await seedPending('underpay-short', null);
     const full = await seedPending('underpay-full', null);
 
@@ -228,18 +233,22 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
       outcome: 'paid',
       bookingRef: short.ref,
       providerReference: 'peach_short',
-      amountMinor: 5000, // half the €100 total
-      currency: 'EUR',
+      amountMinor: 265000, // half the pinned MUR charge
+      currency: 'MUR',
       raw: {},
     });
-    expect(shortResult.confirmed).toBe(false);
+    expect(shortResult).toEqual({
+      found: true,
+      confirmed: false,
+      outcome: 'quarantined:short_settlement',
+    });
 
     const fullResult = await reconcilePaymentEvent(admin, {
       outcome: 'paid',
       bookingRef: full.ref,
       providerReference: 'peach_full',
-      amountMinor: 10000, // the full total
-      currency: 'EUR',
+      amountMinor: 530000, // the pinned charge, exactly
+      currency: 'MUR',
       raw: {},
     });
     expect(fullResult.confirmed).toBe(true);
@@ -252,8 +261,39 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
           [ref],
         )
       ).rows[0]!;
-    expect((await statusOf(short.ref)).status).toBe('payment_pending'); // underpaid → not confirmed
+    expect((await statusOf(short.ref)).status).toBe('payment_pending'); // quarantined → untouched
+
+    // The quarantine wrote NOTHING to the ledger but flagged the payment for review (money may be real).
+    const shortRow = (
+      await db.pg.query<{ review_at: string | null; review_reason: string | null; n: number }>(
+        `select p.settlement_review_at as review_at, p.settlement_review_reason as review_reason,
+                (select count(*)::int from payment_events pe
+                  where pe.payment_id = p.id and pe.type = 'paid') as n
+         from payments p where p.id = $1`,
+        [short.paymentId],
+      )
+    ).rows[0]!;
+    expect(shortRow.n).toBe(0);
+    expect(shortRow.review_at).not.toBeNull();
+    expect(shortRow.review_reason).toBe('short_settlement');
+
+    // The full settlement credited the EUR ledger total and confirmed — with the conversion audit
+    // trail persisted on the event for chargeback/VAT reconstruction.
     expect(await statusOf(full.ref)).toEqual({ status: 'confirmed', payment_state: 'paid' });
+    const audit = (
+      await db.pg.query<{ payload: { _settlement?: Record<string, unknown> } }>(
+        `select payload from payment_events where payment_id = $1 and type = 'paid'`,
+        [full.paymentId],
+      )
+    ).rows[0]!.payload._settlement;
+    expect(audit).toMatchObject({
+      settledMinor: 530000,
+      settledCurrency: 'MUR',
+      expectedMinor: 530000,
+      expectedCurrency: 'MUR',
+      ledgerCreditMinor: 10000,
+      ledgerCurrency: 'EUR',
+    });
   });
 
   it('QUARANTINES a settled event missing its amount — never credited as the full total', async () => {
@@ -296,8 +336,8 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
       outcome: 'paid',
       bookingRef: q.ref,
       providerReference: 'peach_wrong_currency',
-      amountMinor: 10000, // right number, wrong unit — 10000 MUR is ~€200 short
-      currency: 'MUR',
+      amountMinor: 10000, // the LEDGER figure in the LEDGER currency — but the card was charged MUR.
+      currency: 'EUR', //   Face-value crediting here is the exact 54× mis-settlement the gate kills.
       raw: {},
     });
     expect(res.outcome).toBe('quarantined:currency_mismatch');
@@ -337,5 +377,165 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
     });
     expect(res.outcome).toBe('failed');
     expect(res.found).toBe(true);
+  });
+
+  it('a review-flagged booking is EXCLUDED from the expiry sweep; an unflagged one expires', async () => {
+    // The whole point of the flag: a quarantined settlement means money may have left the card, so
+    // the auto-expiry sweep must not release the seat while a human reconciles it by hand.
+    const flagged = await seedPending('review-hold', null);
+    const control = await seedPending('review-control', null);
+
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+    const res = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: flagged.ref,
+      providerReference: 'peach_review_hold',
+      amountMinor: 100000, // far short of the 530000 pin → quarantined + flagged
+      currency: 'MUR',
+      raw: {},
+    });
+    expect(res.outcome).toBe('quarantined:short_settlement');
+
+    // Age BOTH far past every expiry window, then run the real sweep.
+    await db.asOwner();
+    await db.pg.query(
+      `update bookings set created_at = now() - interval '10 hours' where ref = any($1)`,
+      [[flagged.ref, control.ref]],
+    );
+    await db.as({ sub: 'service', role: 'service_role' });
+    await db.pg.query(`select run_booking_maintenance($1::jsonb)`, [JSON.stringify({})]);
+
+    await db.asOwner();
+    const statusOf = async (ref: string): Promise<string> =>
+      (await db.pg.query<{ status: string }>(`select status from bookings where ref = $1`, [ref]))
+        .rows[0]!.status;
+    expect(await statusOf(flagged.ref)).toBe('payment_pending'); // protected by the review flag
+    expect(await statusOf(control.ref)).toBe('expired'); // proves the sweep actually ran
+  });
+
+  it('legacy EUR-era row (no charge record): the EUR ledger figure still settles it', async () => {
+    // Payments minted BEFORE the MUR cutover carry no charged_* pin. For those the ledger IS the
+    // expectation — the pre-MUR invariant — so a late-arriving EUR webhook still confirms cleanly.
+    const legacy = await seedPending('legacy-eur', null);
+    await db.asOwner();
+    await db.pg.query(
+      `update payments set charged_amount_minor = null, charged_currency = null,
+              charged_fx_rate = null, charged_fx_source = null, charged_fx_at = null
+       where id = $1`,
+      [legacy.paymentId],
+    );
+
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+    const res = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: legacy.ref,
+      providerReference: 'peach_legacy_eur',
+      amountMinor: 10000,
+      currency: 'EUR',
+      raw: {},
+    });
+    expect(res.confirmed).toBe(true);
+
+    await db.asOwner();
+    const status = (
+      await db.pg.query<{ status: string }>(`select status from bookings where ref = $1`, [
+        legacy.ref,
+      ])
+    ).rows[0]!.status;
+    expect(status).toBe('confirmed');
+  });
+
+  it('legacy row settled in a FOREIGN currency quarantines — the rate is unknown, never guess', async () => {
+    const legacy = await seedPending('legacy-cross', null);
+    await db.asOwner();
+    await db.pg.query(
+      `update payments set charged_amount_minor = null, charged_currency = null,
+              charged_fx_rate = null, charged_fx_source = null, charged_fx_at = null
+       where id = $1`,
+      [legacy.paymentId],
+    );
+
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+    const res = await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: legacy.ref,
+      providerReference: 'peach_legacy_cross',
+      amountMinor: 530000,
+      currency: 'MUR', // no charge record ⇒ no rate on file ⇒ cannot convert ⇒ quarantine
+      raw: {},
+    });
+    expect(res.outcome).toBe('quarantined:no_charge_record');
+    expect(res.confirmed).toBe(false);
+  });
+
+  it('a FULL MUR refund flips the payment to refunded at the full EUR ledger figure', async () => {
+    const r = await seedPending('refund-full', null);
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+
+    await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: r.ref,
+      providerReference: 'peach_rf_paid',
+      amountMinor: 530000,
+      currency: 'MUR',
+      raw: {},
+    });
+    const refund = await reconcilePaymentEvent(admin, {
+      outcome: 'refunded',
+      bookingRef: r.ref,
+      providerReference: 'peach_rf_refund',
+      amountMinor: 530000, // the owner refunds the full MUR charge in the Peach dashboard
+      currency: 'MUR',
+      raw: {},
+    });
+    expect(refund.found).toBe(true);
+
+    await db.asOwner();
+    const row = (
+      await db.pg.query<{ status: string; paid_minor: number; refunded_minor: number }>(
+        `select status, paid_minor, refunded_minor from payments where id = $1`,
+        [r.paymentId],
+      )
+    ).rows[0]!;
+    expect(row.status).toBe('refunded');
+    expect(Number(row.paid_minor)).toBe(10000);
+    expect(Number(row.refunded_minor)).toBe(10000); // EUR ledger credit, never the raw MUR figure
+  });
+
+  it('a PARTIAL MUR refund pro-rates into EUR at the ORIGINAL charge ratio', async () => {
+    const r = await seedPending('refund-part', null);
+    await db.as({ sub: 'service', role: 'service_role' });
+    const admin = makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>;
+
+    await reconcilePaymentEvent(admin, {
+      outcome: 'paid',
+      bookingRef: r.ref,
+      providerReference: 'peach_rp_paid',
+      amountMinor: 530000,
+      currency: 'MUR',
+      raw: {},
+    });
+    await reconcilePaymentEvent(admin, {
+      outcome: 'refunded',
+      bookingRef: r.ref,
+      providerReference: 'peach_rp_refund',
+      amountMinor: 265000, // half the charge — refunds are legitimately partial, never quarantined
+      currency: 'MUR',
+      raw: {},
+    });
+
+    await db.asOwner();
+    const row = (
+      await db.pg.query<{ status: string; refunded_minor: number }>(
+        `select status, refunded_minor from payments where id = $1`,
+        [r.paymentId],
+      )
+    ).rows[0]!;
+    expect(row.status).toBe('partially_refunded');
+    expect(Number(row.refunded_minor)).toBe(5000); // 10000 × 265000/530000 — the original ratio
   });
 });

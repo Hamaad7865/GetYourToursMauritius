@@ -134,6 +134,16 @@ export interface InvoiceModel {
   payment: {
     chargedAmount: number;
     chargedCurrency: string;
+    /** True when the card was charged in a different currency than the (EUR) invoice — MUR since
+     *  2026-07-30. Renderers show the conversion line only when set, so EUR-era documents are
+     *  byte-identical to before. */
+    isConverted: boolean;
+    /** The EFFECTIVE EUR→chargedCurrency rate (chargedAmount / totalGrossEur), null when not
+     *  converted. Deliberately derived from the two printed figures rather than copied from
+     *  payments.charged_fx_rate, so the arithmetic ON THE DOCUMENT closes exactly even after the
+     *  whole-rupee rounding of the pin. (MUR is an ISO exponent-2 currency, so the /100 in
+     *  chargedAmount stays aligned with the provider boundary.) */
+    fxRate: number | null;
     paidAt?: string | null;
     providerRef?: string | null;
   };
@@ -221,11 +231,25 @@ export function buildInvoice(
     vatAmountEur,
     totalGrossEur,
     currency: booking.currency,
-    payment: {
-      chargedAmount: round2(payment.chargedAmountMinor / 100),
-      chargedCurrency: payment.chargedCurrency,
-      paidAt: payment.paidAt ?? null,
-      providerRef: payment.providerRef ?? null,
-    },
+    payment: buildPaymentBlock(payment, booking.currency, totalGrossEur),
+  };
+}
+
+/** The payment block, with the cross-currency facts derived once here so renderers stay dumb. */
+function buildPaymentBlock(
+  payment: InvoicePaymentInput,
+  invoiceCurrency: string,
+  totalGrossEur: number,
+): InvoiceModel['payment'] {
+  const chargedAmount = round2(payment.chargedAmountMinor / 100);
+  const isConverted =
+    payment.chargedCurrency.toUpperCase() !== invoiceCurrency.toUpperCase() && chargedAmount > 0;
+  return {
+    chargedAmount,
+    chargedCurrency: payment.chargedCurrency,
+    isConverted,
+    fxRate: isConverted && totalGrossEur > 0 ? chargedAmount / totalGrossEur : null,
+    paidAt: payment.paidAt ?? null,
+    providerRef: payment.providerRef ?? null,
   };
 }

@@ -47,6 +47,19 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
   const when = formatMauritiusDateTime(model.booking.when);
   const totalStr = money(model.currency, model.totalGrossEur);
   const totalHtml = escapeHtml(totalStr);
+  // Cross-currency charge (MUR since 2026-07-30): state what the CARD actually paid, right under the
+  // EUR total, so the customer's statement line matches something in the email. Rendered only when
+  // converted — EUR-era emails are unchanged.
+  const chargedStr = model.payment?.isConverted
+    ? `${model.payment.chargedCurrency} ${model.payment.chargedAmount.toFixed(2)}`
+    : null;
+  const chargedRowHtml = chargedStr
+    ? `
+                <tr>
+                  <td style="padding:4px 0 0 0;color:${MUTED};font-size:12.5px;">Charged to your card</td>
+                  <td style="padding:4px 0 0 0;color:${MUTED};font-size:12.5px;text-align:right;white-space:nowrap;">${escapeHtml(chargedStr)}</td>
+                </tr>`
+    : '';
 
   const subject = `Your ${operator} booking ${ref} — invoice & receipt`;
 
@@ -160,6 +173,7 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
                   <td style="padding:12px 0 0 0;color:${INK};font-size:15px;font-weight:bold;">Total</td>
                   <td style="padding:12px 0 0 0;color:${INK};font-size:15px;font-weight:bold;text-align:right;white-space:nowrap;">${totalHtml}</td>
                 </tr>
+                ${chargedRowHtml}
               </table>
               <p style="margin:4px 0 20px 0;color:${MUTED};font-size:12px;">(incl. ${escapeHtml(vatPct)}% VAT)</p>
 ${voucherHtml}
@@ -219,6 +233,7 @@ ${voucherHtml}
   }
   textLines.push('');
   textLines.push(`Total: ${totalStr} (incl. ${vatPct}% VAT)`);
+  if (chargedStr) textLines.push(`Charged to your card: ${chargedStr}`);
   textLines.push('');
   if (tr && bookingUrl) {
     textLines.push(

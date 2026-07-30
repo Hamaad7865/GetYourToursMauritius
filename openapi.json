@@ -7129,6 +7129,12 @@
                         },
                         "provider": {
                           "type": "string"
+                        },
+                        "chargeAmountMinor": {
+                          "type": "integer"
+                        },
+                        "chargeCurrency": {
+                          "type": "string"
                         }
                       },
                       "required": [

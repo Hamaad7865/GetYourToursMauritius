@@ -44,12 +44,20 @@ Related: don't "fix" the webhook to return a non-200 on failure so Peach retries
 ACK-first. Durability comes from the customer's sync poll and the reconcile cron, not from provider
 retries.
 
-### Don't credit the expected total instead of what actually settled
+### Never ledger the provider's raw settlement figure — the card and the ledger speak different currencies
 
-`reconcile.ts` credits `event.amountMinor` — the amount the provider _actually_ took. Swap that for the
-booking's expected total and the underpayment guard becomes meaningless: a partial capture would confirm
-as fully paid. (The card is charged in EUR — the same currency as the ledger — precisely so these two
-numbers are comparable.)
+Since 2026-07-30 the card is charged in **MUR** (the live Peach account has no EUR facility) while the
+ledger stays **EUR**. `append_payment_event` sums `payment_events.amount_minor` against
+`payments.amount_minor` with zero currency awareness, so crediting Peach's raw MUR figure would mark a
+booking paid **~54× over** — and an amount-less or short payload credited at face value is the same bug
+in the other direction. `reconcile.ts` therefore measures every settled event against the **pinned
+expected settlement** (`payments.charged_amount_minor` / `charged_currency`, written once inside
+`api_create_payment`): an exact match (±MUR 1.00) credits the **full EUR total**; anything else —
+short, wrong currency, missing amount/reference, cross-currency with no charge record — **quarantines**
+with no ledger write and flags `settlement_review_at`, which also blocks the expiry sweep from
+releasing a booking whose money may be real. Don't "simplify" this back to crediting
+`event.amountMinor`, and don't compute MUR anywhere but the SQL pin — a per-session conversion at a
+moved rate is exactly the charge/expectation drift the pin exists to kill.
 
 ### Don't remove the double-charge guard
 

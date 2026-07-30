@@ -1,15 +1,22 @@
 /**
  * Payment provider interface. The concrete Peach Payments implementation and a
  * deterministic stub both satisfy this, so booking/payment logic and tests never
- * depend on a real account. Currency is EUR throughout (prices come from the DB).
+ * depend on a real account.
+ *
+ * TWO CURRENCIES, ONE LEDGER: prices and the ledger are EUR (the contractual price), but the CARD
+ * is charged in MUR — the live Peach account has no EUR facility (2026-07-30). The MUR figure is
+ * pinned once per payment row inside `api_create_payment` (server-controlled rate, whole rupees) and
+ * recorded as `payments.charged_amount_minor`/`charged_currency`: the EXPECTED SETTLEMENT that
+ * reconcile measures provider events against — not receipt decoration. The service charges exactly
+ * the pinned figure; nothing outside SQL ever converts currency.
  */
 export interface CreateCheckoutInput {
   /** Our booking reference (idempotency anchor across provider + webhook). */
   bookingRef: string;
-  /** Amount to charge, in `currency`'s major units (server-computed from the DB price). */
+  /** Amount to charge, in `currency`'s major units — the PINNED charge figure handed back by
+   *  api_create_payment, never a figure computed here. */
   amount: number;
-  /** ISO-4217 currency to charge in. The Mauritius card acquirer settles in USD, so the EUR booking
-   *  total is converted to USD at charge time while the ledger stays in EUR. */
+  /** ISO-4217 currency to charge in — the pinned charge currency (MUR; EUR only on legacy rows). */
   currency: string;
   customerEmail: string;
   description: string;
@@ -53,8 +60,9 @@ export interface PaymentEvent {
   amountMinor?: number | null;
   /**
    * ISO-4217 currency of the settled amount, as reported by the provider. Settled events must carry
-   * it and it must match the payment's currency, or the event is quarantined — an amount in the
-   * wrong currency credited at face value would mis-settle the ledger.
+   * it and it must match the payment's EXPECTED settlement currency (`charged_currency`, i.e. MUR —
+   * the ledger currency only for legacy EUR-era rows), or the event is quarantined — an amount in
+   * the wrong currency credited at face value would mis-settle the ledger.
    */
   currency?: string | null;
   /**

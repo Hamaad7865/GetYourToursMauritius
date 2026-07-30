@@ -9,6 +9,7 @@ import {
   clearPayHandoff,
   savePayHandoff,
 } from '@/lib/checkout/pay-progress';
+import { saveChargeHandoff } from '@/lib/checkout/charge-handoff';
 
 /**
  * Resume payment for an existing, unpaid booking — the recovery path for a customer who returns via
@@ -74,12 +75,25 @@ export function useResumePayment(bookingRef: string) {
         throw new Error(res.error?.message ?? t('Could not start payment.'));
       }
 
-      const link = res.data as { checkoutId?: string; redirectUrl?: string };
+      const link = res.data as {
+        checkoutId?: string;
+        redirectUrl?: string;
+        chargeAmountMinor?: number;
+        chargeCurrency?: string;
+      };
       if (link.checkoutId) {
         // Embedded Peach checkout: the pay page mounts the widget from this id. (Leave `busy` true —
         // we're navigating away, so the button stays disabled until the page unloads.)
         // Hand the ring's position over so the pay page continues it instead of restarting.
         savePayHandoff(SESSION_COMPLETE_PERCENT, Date.now());
+        // And the server-pinned card charge (MUR), so the pay page discloses the exact figure.
+        if (typeof link.chargeAmountMinor === 'number' && link.chargeCurrency) {
+          saveChargeHandoff({
+            ref: bookingRef,
+            chargeCurrency: link.chargeCurrency,
+            chargeAmountMinor: link.chargeAmountMinor,
+          });
+        }
         window.location.href = `/bookings/${bookingRef}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
       } else if (link.redirectUrl) {
         // Hosted redirect (and the dev stub).

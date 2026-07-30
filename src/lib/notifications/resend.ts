@@ -18,6 +18,17 @@ function dayOf(value: unknown): string {
   return typeof value === 'string' && value.length >= 10 ? value.slice(0, 10) : 'your booked date';
 }
 
+/** ` (card: MUR 5938.00)` when the payload carries a cross-currency card charge, else ''. The owner
+ *  refunds by hand in Peach where the transaction is MUR, so refund-flavoured alerts append this
+ *  whenever the enqueueing side supplies it (enriched alerts already do; SQL-built payloads may not). */
+function chargedNote(p: Record<string, unknown>): string {
+  const minor = p.chargedAmountMinor;
+  const ccy = p.chargedCurrency;
+  return typeof minor === 'number' && minor > 0 && typeof ccy === 'string' && ccy !== 'EUR'
+    ? ` (card: ${ccy} ${(minor / 100).toFixed(2)})`
+    : '';
+}
+
 /** Renders a minimal subject/body per template. Templates can grow into proper HTML later. */
 function render(message: NotificationMessage): { subject: string; text: string } {
   const p = message.payload;
@@ -46,7 +57,9 @@ function render(message: NotificationMessage): { subject: string; text: string }
   if (message.template === 'booking_cancellation') {
     const currency = typeof p.currency === 'string' ? p.currency : 'EUR';
     const total =
-      typeof p.totalMinor === 'number' ? ` (${currency} ${(p.totalMinor / 100).toFixed(2)})` : '';
+      typeof p.totalMinor === 'number'
+        ? ` (${currency} ${(p.totalMinor / 100).toFixed(2)}${chargedNote(p)})`
+        : '';
     return {
       subject: `Action needed: booking ${ref} cancelled — refund to process`,
       text: `${name} cancelled booking ${ref}${total}. It is now refund_pending and the seat has been released.\n\nRefund it in the Peach dashboard, then mark it refunded in admin.\n\nBelle Mare Tours (internal alert)`,
@@ -68,7 +81,9 @@ Belle Mare Tours`,
   if (message.template === 'owner_refund_pending') {
     const currency = typeof p.currency === 'string' ? p.currency : 'EUR';
     const total =
-      typeof p.totalMinor === 'number' ? ` (${currency} ${(p.totalMinor / 100).toFixed(2)})` : '';
+      typeof p.totalMinor === 'number'
+        ? ` (${currency} ${(p.totalMinor / 100).toFixed(2)}${chargedNote(p)})`
+        : '';
     return {
       subject: `Action needed: booking ${ref} is refund_pending — refund to process`,
       text: `Booking ${ref}${total} by ${name} was PAID but could not stand (oversell race or paid after expiry). It is now refund_pending.

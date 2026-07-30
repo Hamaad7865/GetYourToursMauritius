@@ -44,6 +44,14 @@ export function toWinAnsi(input: string): string {
   return replaced.replace(/[^\x20-\xFF]/g, '');
 }
 
+/** 2-decimal amount with comma thousands grouping (`5938 -> "5,938.00"`). MUR figures are 4-6 digits
+ * where an ungrouped run misreads at a glance; EUR figures stay small enough that grouping is a
+ * no-op, so this is safe to apply to any charge amount. ASCII comma — WinAnsi-safe by construction. */
+export function formatGrouped(amount: number): string {
+  const [int, frac] = amount.toFixed(2).split('.');
+  return `${int!.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}.${frac}`;
+}
+
 /** Truncate to fit `maxWidth` at `size`, appending an ellipsis when clipped. Exported for the voucher. */
 export function fitText(text: string, font: PDFFont, size: number, maxWidth: number): string {
   const clean = toWinAnsi(text);
@@ -275,7 +283,23 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     size: 12,
     font: bold,
   });
-  y -= 30;
+  y -= 14;
+  // Cross-currency charge disclosure (MUR since 2026-07-30) — in the TOTALS block, not the PAID box
+  // (whose 64pt height is fully consumed; a fourth line would render outside its border). The rate
+  // printed is the EFFECTIVE one (chargedAmount / total), so the document's own arithmetic closes.
+  // EUR-era documents (isConverted false) render byte-identically to before.
+  if (model.payment?.isConverted) {
+    const rate = model.payment.fxRate;
+    textRight(
+      `Charged to card: ${toWinAnsi(model.payment.chargedCurrency)} ${formatGrouped(
+        model.payment.chargedAmount,
+      )}${rate != null ? ` (1 ${currency} = ${rate.toFixed(4)} ${toWinAnsi(model.payment.chargedCurrency)})` : ''}`,
+      CONTENT_RIGHT,
+      { size: 9, color: MUTED },
+    );
+    y -= 16;
+  }
+  y -= 16;
 
   // 7. PAID stamp — a bordered box on the left.
   const pay = model.payment;
@@ -297,7 +321,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   const chargeParts: string[] = [];
   if (pay && typeof pay.chargedAmount === 'number') {
     chargeParts.push(
-      `${toWinAnsi(pay.chargedCurrency || currency)} ${pay.chargedAmount.toFixed(2)}`,
+      `${toWinAnsi(pay.chargedCurrency || currency)} ${formatGrouped(pay.chargedAmount)}`,
     );
   }
   if (pay?.paidAt) chargeParts.push(`on ${formatMauritiusDate(pay.paidAt)}`);

@@ -17,7 +17,8 @@ without them — the schema alone won't tell you that.
 | **Supabase**                      | Database, auth, file storage. All business logic (43 `api_*` SQL functions) | API 500s; in dev it silently serves fake seed data instead        |
 | **Cloudflare Pages**              | Hosts the web app on the edge. Deploys from `main`                          | Missing `nodejs_compat` → every page 500s on a green build        |
 | **Cloudflare Worker `gytm-cron`** | The scheduler. Pages has no cron                                            | **Email stops and the calendar empties.** Silent                  |
-| **Peach Payments**                | Card checkout (embedded widget, EUR)                                        | Fails closed on production rather than serving a fake provider    |
+| **Peach Payments**                | Card checkout (embedded widget; charges **MUR**, ledger stays EUR)          | Fails closed on production rather than serving a fake provider    |
+| **open.er-api.com**               | EUR→MUR rate for the charge pin (maintenance cron → `fx_rates`)             | Keeps last-known-good row; pin falls back to the 53.00 floor      |
 | **Resend**                        | All transactional email                                                     | Outbox rows go `failed` and stay visible — never silently dropped |
 | **Google Maps Platform**          | Maps, geocoding, Routes, Places                                             | Degrades gracefully to keyless map links                          |
 | **Google Route Optimization**     | Auto-orders planner stops (service account, not a key)                      | Nothing — returns `null`, planner keeps the chosen order          |
