@@ -1012,6 +1012,20 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Modify: `src/components/admin/ActivityForm.tsx`
 - Test: `tests/unit/admin-activity-translations.test.ts` (create)
 
+- [ ] **Step 0: Add `source` to the hand-maintained row type**
+
+`src/lib/supabase/types.ts` is maintained by hand, not generated, so Task 3's migration did not
+update it. `ActivityTranslationsRow` and `ActivityTranslationsInsert` are both missing `source`,
+and this task is the first to read or write it. Add to both:
+
+```ts
+  /** 'human' = written or approved by staff; 'machine' = auto-drafted, awaiting review in /admin. */
+  source: string;
+```
+
+On the `Insert` type make it optional (`source?: string`) — the column has a default, so an insert
+that omits it is valid.
+
 - [ ] **Step 1: Read the existing form and write path first**
 
 ```bash
