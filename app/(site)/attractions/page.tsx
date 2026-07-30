@@ -8,6 +8,7 @@ import { loadPlaces } from '@/lib/catalogue/places';
 import { REGION_ORDER, REGION_INTRO, attractionPath } from '@/lib/content/attractions';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -39,6 +40,7 @@ const DEFAULT_METADATA: Metadata = {
 
 export default async function AttractionsIndexPage() {
   const places = await loadPlaces();
+  const t = await getT();
   const groups = REGION_ORDER.map((region) => ({
     region,
     intro: REGION_INTRO[region],
@@ -46,8 +48,8 @@ export default async function AttractionsIndexPage() {
   })).filter((g) => g.items.length > 0);
 
   const breadcrumb = breadcrumbListJsonLd([
-    { name: 'Home', path: '/' },
-    { name: 'Things to do in Mauritius', path: '/attractions' },
+    { name: t('Home'), path: '/' },
+    { name: t('Things to do in Mauritius'), path: '/attractions' },
   ]);
   const itemList = itemListJsonLd(
     places.map((p) => ({ name: p.name, path: attractionPath(p.id) })),
@@ -58,15 +60,18 @@ export default async function AttractionsIndexPage() {
       <JsonLd data={breadcrumb} />
       <JsonLd data={itemList} />
       <InfoPage
-        eyebrow="Mauritius travel guide"
-        title="Things to do in Mauritius"
-        intro={`From turquoise lagoons and waterfalls to volcanic craters and colonial heritage, here are ${places.length || 'the'} of the island's best attractions — and how to visit each one with a local driver-guide from ${SITE.operator}.`}
+        eyebrow={t('Mauritius travel guide')}
+        title={t('Things to do in Mauritius')}
+        intro={t(
+          "From turquoise lagoons and waterfalls to volcanic craters and colonial heritage, here are {count} of the island's best attractions — and how to visit each one with a local driver-guide from {operator}.",
+          { count: places.length || 'the', operator: SITE.operator },
+        )}
       >
         {groups.length === 0 ? (
           <p className="text-[15px] text-ink/70">
-            Our attractions guide is coming online shortly. In the meantime,{' '}
+            {t('Our attractions guide is coming online shortly. In the meantime,')}{' '}
             <Link href="/activities" className="font-bold text-teal hover:text-teal-dark">
-              browse our tours and activities
+              {t('browse our tours and activities')}
             </Link>
             .
           </p>
@@ -77,7 +82,7 @@ export default async function AttractionsIndexPage() {
               className="scroll-mt-28 border-t border-ink/10 py-9 first:border-t-0 first:pt-0"
             >
               <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-                {group.region} Mauritius
+                {t('{region} Mauritius', { region: group.region })}
               </h2>
               <p className="mt-2 max-w-3xl text-[15px] leading-relaxed text-ink/70">
                 {group.intro}
@@ -92,7 +97,9 @@ export default async function AttractionsIndexPage() {
         )}
 
         <section className="mt-10 rounded-2xl border border-teal/20 bg-teal-tint/50 p-6 sm:p-8">
-          <h2 className="text-[20px] font-extrabold tracking-tight text-ink">See them your way</h2>
+          <h2 className="text-[20px] font-extrabold tracking-tight text-ink">
+            {t('See them your way')}
+          </h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/75">
             Pick a ready-made sightseeing tour, or design a custom day around the places you choose
             with our free AI road-trip planner — then book online in minutes with door-to-door
@@ -103,13 +110,13 @@ export default async function AttractionsIndexPage() {
               href="/activities"
               className="inline-flex items-center gap-2 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
             >
-              Browse tours &amp; activities
+              {t('Browse tours & activities')}
             </Link>
             <Link
               href="/ai-road-trip-planner"
               className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-5 py-2.5 text-sm font-bold text-ink hover:border-teal hover:text-teal"
             >
-              Plan a custom day with AI
+              {t('Plan a custom day with AI')}
             </Link>
           </div>
         </section>

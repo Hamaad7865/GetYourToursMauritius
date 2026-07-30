@@ -8,6 +8,7 @@ import { formatPostDate } from '@/lib/content/blog';
 import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -68,6 +69,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
   const p = await loadPost(slug);
   if (!p) notFound();
   const related = await loadRelatedPosts(p.slug, 3);
+  const t = await getT();
 
   return (
     <>
@@ -82,18 +84,21 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
       />
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Blog', path: '/blog' },
+          { name: t('Home'), path: '/' },
+          { name: t('Blog'), path: '/blog' },
           { name: p.title, path: p.path },
         ])}
       />
       {p.faq.length > 0 && <JsonLd data={faqPageJsonLd(p.faq)} />}
 
       <InfoPage
-        eyebrow={`Mauritius travel blog · ${p.readMins} min read`}
+        eyebrow={t('Mauritius travel blog · {mins} min read', { mins: p.readMins })}
         title={p.title}
         intro={p.excerpt}
-        meta={`Published ${formatPostDate(p.datePublished)} by ${SITE.operator}`}
+        meta={t('Published {date} by {operator}', {
+          date: formatPostDate(p.datePublished),
+          operator: SITE.operator,
+        })}
         heroImage={p.heroImageUrl ?? undefined}
       >
         {/* Breadcrumb */}
@@ -102,11 +107,11 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           className="mb-6 flex flex-wrap items-center gap-2 text-[13px] text-ink-muted"
         >
           <Link href="/" className="hover:text-teal">
-            Home
+            {t('Home')}
           </Link>
           <span className="text-ink/25">/</span>
           <Link href="/blog" className="hover:text-teal">
-            Blog
+            {t('Blog')}
           </Link>
           <span className="text-ink/25">/</span>
           <span className="font-semibold text-ink">{p.title}</span>
@@ -140,7 +145,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
           {p.faq.length > 0 && (
             <section className="mt-10 border-t border-ink/10 pt-8">
               <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-                Frequently asked questions
+                {t('Frequently asked questions')}
               </h2>
               <div className="mt-4 flex flex-col gap-2.5">
                 {p.faq.map((f) => (
@@ -161,7 +166,9 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
 
         {related.length > 0 && (
           <section className="mt-12 border-t border-ink/10 pt-8">
-            <h2 className="text-[20px] font-extrabold tracking-tight text-ink">Keep reading</h2>
+            <h2 className="text-[20px] font-extrabold tracking-tight text-ink">
+              {t('Keep reading')}
+            </h2>
             <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
               {related.map((r) => (
                 <Link
@@ -170,7 +177,7 @@ export default async function BlogPostPage({ params }: { params: Promise<{ slug:
                   className="group rounded-2xl border border-ink/10 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   <div className="text-[12px] font-semibold text-ink-muted">
-                    {r.readMins} min read
+                    {t('{mins} min read', { mins: r.readMins })}
                   </div>
                   <h3 className="mt-1.5 text-[15.5px] font-extrabold leading-snug text-ink group-hover:text-teal">
                     {r.title}

@@ -7,6 +7,7 @@ import { getArea, areaMetaTitle, areaMetaDescription } from '@/lib/content/areas
 import { destinationJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -62,21 +63,23 @@ export default async function DestinationDetailPage({
   const a = getArea(slug);
   if (!a) notFound();
 
+  const t = await getT();
+
   return (
     <>
       <JsonLd data={destinationJsonLd({ name: a.name, description: a.intro, path: a.path })} />
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Destinations', path: '/destinations' },
+          { name: t('Home'), path: '/' },
+          { name: t('Destinations'), path: '/destinations' },
           { name: a.name, path: a.path },
         ])}
       />
       <JsonLd data={faqPageJsonLd(a.faq)} />
 
       <InfoPage
-        eyebrow={`Destination guide · ${a.region} coast`}
-        title={`${a.name}, Mauritius`}
+        eyebrow={t('Destination guide · {region} coast', { region: a.region })}
+        title={t('{name}, Mauritius', { name: a.name })}
         intro={a.intro}
       >
         {/* Breadcrumb */}
@@ -85,11 +88,11 @@ export default async function DestinationDetailPage({
           className="mb-6 flex flex-wrap items-center gap-2 text-[13px] text-ink-muted"
         >
           <Link href="/" className="hover:text-teal">
-            Home
+            {t('Home')}
           </Link>
           <span className="text-ink/25">/</span>
           <Link href="/destinations" className="hover:text-teal">
-            Destinations
+            {t('Destinations')}
           </Link>
           <span className="text-ink/25">/</span>
           <span className="font-semibold text-ink">{a.name}</span>
@@ -112,7 +115,7 @@ export default async function DestinationDetailPage({
         {/* Highlights */}
         <section className="mt-9 border-t border-ink/10 pt-8">
           <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-            Things to do in {a.name}
+            {t('Things to do in {name}', { name: a.name })}
           </h2>
           <List items={a.highlights} />
           {AREA_GUIDES[a.slug] && (
@@ -120,14 +123,14 @@ export default async function DestinationDetailPage({
               href={AREA_GUIDES[a.slug]!}
               className="mt-5 mr-5 inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"
             >
-              Read the full things-to-do guide for {a.name} →
+              {t('Read the full things-to-do guide for {name} →', { name: a.name })}
             </Link>
           )}
           <Link
             href="/attractions"
             className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"
           >
-            Browse all Mauritius attractions →
+            {t('Browse all Mauritius attractions →')}
           </Link>
         </section>
 
@@ -135,7 +138,7 @@ export default async function DestinationDetailPage({
         {a.beaches.length > 0 && (
           <section className="mt-9 border-t border-ink/10 pt-8">
             <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-              Beaches near {a.name}
+              {t('Beaches near {name}', { name: a.name })}
             </h2>
             <div className="mt-4 flex flex-wrap gap-2.5">
               {a.beaches.map((b) => (
@@ -154,7 +157,7 @@ export default async function DestinationDetailPage({
         {a.stayOptions && a.stayOptions.length > 0 && (
           <section className="mt-9 border-t border-ink/10 pt-8">
             <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-              Where to stay in {a.name}
+              {t('Where to stay in {name}', { name: a.name })}
             </h2>
             <div className="mt-4 flex flex-wrap gap-2.5">
               {a.stayOptions.map((s) => (
@@ -172,14 +175,14 @@ export default async function DestinationDetailPage({
         {/* Getting there */}
         <section className="mt-9 border-t border-ink/10 pt-8">
           <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-            Getting to {a.name}
+            {t('Getting to {name}', { name: a.name })}
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-ink/80">{a.gettingThere}</p>
           <Link
             href="/airport-transfers"
             className="mt-5 inline-flex items-center gap-1.5 text-sm font-bold text-teal hover:text-teal-dark"
           >
-            See airport transfers &amp; prices →
+            {t('See airport transfers & prices →')}
           </Link>
         </section>
 
@@ -187,7 +190,7 @@ export default async function DestinationDetailPage({
         {a.nearbyAttractions.length > 0 && (
           <section className="mt-9 border-t border-ink/10 pt-8">
             <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-              What&apos;s nearby
+              {t("What's nearby")}
             </h2>
             <div className="mt-4 flex flex-wrap gap-2.5">
               {a.nearbyAttractions.map((n) => (
@@ -205,7 +208,7 @@ export default async function DestinationDetailPage({
         {/* CTA */}
         <section className="mt-9 border-t border-ink/10 pt-8">
           <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-            Explore from {a.name}
+            {t('Explore from {name}', { name: a.name })}
           </h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/75">
             Book a private day tour or excursion, or design your own day around {a.name} with our
@@ -216,13 +219,13 @@ export default async function DestinationDetailPage({
               href="/activities"
               className="inline-flex items-center gap-2 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
             >
-              Browse tours &amp; activities
+              {t('Browse tours & activities')}
             </Link>
             <Link
               href="/ai-road-trip-planner"
               className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-5 py-2.5 text-sm font-bold text-ink hover:border-teal hover:text-teal"
             >
-              Plan a custom day with AI
+              {t('Plan a custom day with AI')}
             </Link>
           </div>
         </section>
@@ -230,7 +233,7 @@ export default async function DestinationDetailPage({
         {/* FAQ */}
         <section className="mt-9 border-t border-ink/10 pt-8">
           <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-            Frequently asked questions
+            {t('Frequently asked questions')}
           </h2>
           <div className="mt-4 flex flex-col gap-2.5">
             {a.faq.map((f) => (

@@ -7,6 +7,7 @@ import { formatPostDate, type Post } from '@/lib/content/blog';
 import { loadPosts } from '@/lib/content/blog-live';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -35,7 +36,8 @@ const DEFAULT_METADATA: Metadata = {
   },
 };
 
-function PostCard({ p }: { p: Post }) {
+async function PostCard({ p }: { p: Post }) {
+  const t = await getT();
   return (
     <Link
       href={p.path}
@@ -51,22 +53,23 @@ function PostCard({ p }: { p: Post }) {
         />
       )}
       <div className="text-[12px] font-semibold text-ink-muted">
-        {formatPostDate(p.datePublished)} · {p.readMins} min read
+        {formatPostDate(p.datePublished)} · {t('{mins} min read', { mins: p.readMins })}
       </div>
       <h2 className="mt-2 text-[18px] font-extrabold leading-snug text-ink group-hover:text-teal">
         {p.title}
       </h2>
       <p className="mt-2 text-[14px] leading-snug text-ink/70">{p.excerpt}</p>
-      <span className="mt-4 text-sm font-bold text-teal">Read guide →</span>
+      <span className="mt-4 text-sm font-bold text-teal">{t('Read guide →')}</span>
     </Link>
   );
 }
 
 export default async function BlogIndexPage() {
   const posts = await loadPosts();
+  const t = await getT();
   const breadcrumb = breadcrumbListJsonLd([
-    { name: 'Home', path: '/' },
-    { name: 'Blog', path: '/blog' },
+    { name: t('Home'), path: '/' },
+    { name: t('Blog'), path: '/blog' },
   ]);
   const itemList = itemListJsonLd(posts.map((p) => ({ name: p.title, path: p.path })));
 
@@ -75,9 +78,9 @@ export default async function BlogIndexPage() {
       <JsonLd data={breadcrumb} />
       <JsonLd data={itemList} />
       <InfoPage
-        eyebrow="Mauritius travel blog"
-        title="Guides, tips & itineraries for Mauritius"
-        intro={DESCRIPTION}
+        eyebrow={t('Mauritius travel blog')}
+        title={t('Guides, tips & itineraries for Mauritius')}
+        intro={t(DESCRIPTION)}
       >
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {posts.map((p) => (

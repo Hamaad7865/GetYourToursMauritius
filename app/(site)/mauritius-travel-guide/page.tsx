@@ -6,6 +6,7 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -80,7 +81,8 @@ const FAQS = [
   },
 ];
 
-export default function MauritiusTravelGuidePage() {
+export default async function MauritiusTravelGuidePage() {
+  const t = await getT();
   return (
     <>
       <JsonLd
@@ -94,19 +96,21 @@ export default function MauritiusTravelGuidePage() {
       />
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Mauritius travel guide', path: PATH },
+          { name: t('Home'), path: '/' },
+          { name: t('Mauritius travel guide'), path: PATH },
         ])}
       />
       <JsonLd data={faqPageJsonLd(FAQS)} />
 
       <InfoPage
-        eyebrow="Mauritius travel guide"
-        title="The complete Mauritius travel guide"
-        intro={DESCRIPTION}
-        meta={`Written and kept up to date by ${SITE.operator}, a licensed Mauritius tour operator.`}
+        eyebrow={t('Mauritius travel guide')}
+        title={t('The complete Mauritius travel guide')}
+        intro={t(DESCRIPTION)}
+        meta={t('Written and kept up to date by {operator}, a licensed Mauritius tour operator.', {
+          operator: SITE.operator,
+        })}
       >
-        <Section id="intro" title="Why visit Mauritius">
+        <Section id="intro" title={t('Why visit Mauritius')}>
           <p>
             Mauritius is a volcanic island in the Indian Ocean, ringed by one of the world&apos;s
             largest coral lagoons. In a single short trip you can swim with dolphins at dawn, hike a
@@ -122,7 +126,7 @@ export default function MauritiusTravelGuidePage() {
           </p>
         </Section>
 
-        <Section id="when" title="When to visit">
+        <Section id="when" title={t('When to visit')}>
           <p>
             Mauritius is a year-round destination. The warm, humid summer runs roughly November to
             April (best for diving and the warmest sea); the cooler, drier winter runs May to
@@ -137,7 +141,7 @@ export default function MauritiusTravelGuidePage() {
           </p>
         </Section>
 
-        <Section id="getting-around" title="Getting there & getting around">
+        <Section id="getting-around" title={t('Getting there & getting around')}>
           <p>
             Flights land at SSR International Airport in the south-east. There is no Uber or
             ride-hailing app, and metered island taxis are known to overcharge visitors, so the
@@ -153,7 +157,7 @@ export default function MauritiusTravelGuidePage() {
           </p>
         </Section>
 
-        <Section id="regions" title="The five regions of Mauritius">
+        <Section id="regions" title={t('The five regions of Mauritius')}>
           <p>
             Mauritius divides neatly into five areas, each with its own character. The{' '}
             <strong>north</strong> (Grand Baie) is the liveliest, with the best nightlife and boat
@@ -170,7 +174,7 @@ export default function MauritiusTravelGuidePage() {
           </p>
         </Section>
 
-        <Section id="things-to-do" title="The best things to do">
+        <Section id="things-to-do" title={t('The best things to do')}>
           <p>
             The classics are a catamaran cruise to Île aux Cerfs, swimming with wild dolphins off
             Tamarin, an underwater sea walk, a 4x4 day in the south to Chamarel and Grand Bassin,
@@ -188,7 +192,7 @@ export default function MauritiusTravelGuidePage() {
           </p>
         </Section>
 
-        <Section id="itinerary" title="A sample week in Mauritius">
+        <Section id="itinerary" title={t('A sample week in Mauritius')}>
           <p>
             A good rhythm is to alternate beach days at your hotel with two or three full-day tours
             covering different regions — north one day, south the next, a catamaran or island day in
@@ -203,7 +207,7 @@ export default function MauritiusTravelGuidePage() {
           </p>
         </Section>
 
-        <Section id="beaches-nature" title="Beaches, waterfalls & nature">
+        <Section id="beaches-nature" title={t('Beaches, waterfalls & nature')}>
           <p>
             Trou aux Biches and Belle Mare are among the longest and calmest beaches; Flic-en-Flac
             and Le Morne are the west-coast favourites. Inland, the Tamarind (Seven Cascades) and
@@ -217,7 +221,7 @@ export default function MauritiusTravelGuidePage() {
           </p>
         </Section>
 
-        <Section id="money" title="Food, money & practical tips">
+        <Section id="money" title={t('Food, money & practical tips')}>
           <p>
             The currency is the Mauritian rupee; euros, dollars and cards are widely accepted at
             hotels and with us. Don&apos;t miss Creole and street food — dholl puri, gateaux
@@ -231,7 +235,7 @@ export default function MauritiusTravelGuidePage() {
           </p>
         </Section>
 
-        <Section id="book" title="Book direct with Belle Mare Tours">
+        <Section id="book" title={t('Book direct with Belle Mare Tours')}>
           <p>
             {SITE.operator} is a licensed Mauritian tour operator (BRN {SITE.brn}) that has run
             tours and transfers on the island since the early 2000s, rated 4.8/5 across more than a
@@ -244,18 +248,18 @@ export default function MauritiusTravelGuidePage() {
               href="/activities"
               className="inline-flex items-center gap-2 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
             >
-              Browse tours &amp; activities
+              {t('Browse tours & activities')}
             </Link>
             <Link
               href="/airport-transfers"
               className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-5 py-2.5 text-sm font-bold text-ink hover:border-teal hover:text-teal"
             >
-              Book an airport transfer
+              {t('Book an airport transfer')}
             </Link>
           </div>
         </Section>
 
-        <Section id="faq" title="Mauritius travel FAQ">
+        <Section id="faq" title={t('Mauritius travel FAQ')}>
           <div className="flex flex-col gap-2.5">
             {FAQS.map((f) => (
               <details

@@ -21,6 +21,7 @@ import {
 import { attractionJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE } from '@/lib/seo/site';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -71,6 +72,7 @@ export default async function AttractionDetailPage({
   const place = await getPlace(slug);
   if (!place) notFound();
 
+  const t = await getT();
   const all = await loadPlaces();
   const nearby = nearbyPlaces(all, place, 4);
   const faqs = buildAttractionFaq(place);
@@ -96,8 +98,8 @@ export default async function AttractionDetailPage({
       />
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Things to do in Mauritius', path: '/attractions' },
+          { name: t('Home'), path: '/' },
+          { name: t('Things to do in Mauritius'), path: '/attractions' },
           { name: place.name, path },
         ])}
       />
@@ -117,11 +119,11 @@ export default async function AttractionDetailPage({
           className="mb-6 flex flex-wrap items-center gap-2 text-[13px] text-ink-muted"
         >
           <Link href="/" className="hover:text-teal">
-            Home
+            {t('Home')}
           </Link>
           <span className="text-ink/25">/</span>
           <Link href="/attractions" className="hover:text-teal">
-            Things to do in Mauritius
+            {t('Things to do in Mauritius')}
           </Link>
           <span className="text-ink/25">/</span>
           <span className="font-semibold text-ink">{place.name}</span>
@@ -138,7 +140,7 @@ export default async function AttractionDetailPage({
             />
             {/(wikimedia|wikipedia)\.org/.test(img.source) && (
               <figcaption className="px-4 py-2 text-[11px] text-ink-muted">
-                Photo via{' '}
+                {t('Photo via')}{' '}
                 <a
                   href={img.source}
                   target="_blank"
@@ -154,18 +156,20 @@ export default async function AttractionDetailPage({
 
         {/* Quick facts */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Fact label="Region" value={`${place.region} coast`} />
-          <Fact label="Type" value={meta.label} />
-          <Fact label="Time to spend" value={formatVisitDuration(place.durationMin)} />
+          <Fact label={t('Region')} value={t('{region} coast', { region: place.region })} />
+          <Fact label={t('Type')} value={meta.label} />
+          <Fact label={t('Time to spend')} value={formatVisitDuration(place.durationMin)} />
           <Fact
-            label="Opening hours"
-            value={place.closesAt ? `Until ~${place.closesAt}` : 'Open access'}
+            label={t('Opening hours')}
+            value={place.closesAt ? t('Until ~{time}', { time: place.closesAt }) : t('Open access')}
           />
         </div>
 
         {/* About */}
         <section className="mt-9 border-t border-ink/10 pt-8">
-          <h2 className="text-[22px] font-extrabold tracking-tight text-ink">About {place.name}</h2>
+          <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+            {t('About {name}', { name: place.name })}
+          </h2>
           <div className="mt-4 flex flex-col gap-3.5">
             {aboutParas.map((para, i) => (
               <p key={i} className="m-0 text-[15px] leading-relaxed text-ink/80">
@@ -175,7 +179,7 @@ export default async function AttractionDetailPage({
           </div>
           {extra?.bestTime && (
             <p className="mt-4 rounded-xl border border-gold/30 bg-gold/[0.07] px-4 py-3 text-[14.5px] text-ink/85">
-              <b className="text-ink">Best time to visit:</b> {extra.bestTime}
+              <b className="text-ink">{t('Best time to visit:')}</b> {extra.bestTime}
             </p>
           )}
           {extra?.tips && extra.tips.length > 0 && (
@@ -196,7 +200,7 @@ export default async function AttractionDetailPage({
         {/* Map */}
         <section className="mt-9 border-t border-ink/10 pt-8">
           <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-            Where is {place.name}?
+            {t('Where is {name}?', { name: place.name })}
           </h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/70">
             {place.name} is on the {place.region.toLowerCase()} side of Mauritius. We collect you
@@ -210,14 +214,14 @@ export default async function AttractionDetailPage({
         {/* Plan your visit / CTA */}
         <section className="mt-9 border-t border-ink/10 pt-8">
           <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-            Visit {place.name} with {SITE.operator}
+            {t('Visit {name} with {operator}', { name: place.name, operator: SITE.operator })}
           </h2>
           <ul className="m-0 mt-4 grid list-none grid-cols-1 gap-2.5 p-0 sm:grid-cols-2">
             {[
-              'Door-to-door hotel pickup anywhere in Mauritius',
-              'Licensed, English- & French-speaking driver-guides',
-              'Transparent fixed pricing — no meter, no commission stops',
-              'Book online in minutes with instant confirmation',
+              t('Door-to-door hotel pickup anywhere in Mauritius'),
+              t('Licensed, English- & French-speaking driver-guides'),
+              t('Transparent fixed pricing — no meter, no commission stops'),
+              t('Book online in minutes with instant confirmation'),
             ].map((item) => (
               <li
                 key={item}
@@ -233,13 +237,13 @@ export default async function AttractionDetailPage({
               href="/activities"
               className="inline-flex items-center gap-2 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
             >
-              See tours that visit here
+              {t('See tours that visit here')}
             </Link>
             <Link
               href="/ai-road-trip-planner"
               className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-5 py-2.5 text-sm font-bold text-ink hover:border-teal hover:text-teal"
             >
-              Add to a custom day with AI
+              {t('Add to a custom day with AI')}
             </Link>
           </div>
         </section>
@@ -248,7 +252,7 @@ export default async function AttractionDetailPage({
         {nearby.length > 0 && (
           <section className="mt-9 border-t border-ink/10 pt-8">
             <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-              Nearby attractions
+              {t('Nearby attractions')}
             </h2>
             <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {nearby.map((p) => (
@@ -261,7 +265,7 @@ export default async function AttractionDetailPage({
         {/* FAQ */}
         <section className="mt-9 border-t border-ink/10 pt-8">
           <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-            Frequently asked questions
+            {t('Frequently asked questions')}
           </h2>
           <div className="mt-4 flex flex-col gap-2.5">
             {faqs.map((f) => (
