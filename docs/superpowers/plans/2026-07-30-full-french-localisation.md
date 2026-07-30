@@ -1741,6 +1741,14 @@ and MUST be. Read each interface before writing its type.
       define `TransferTranslation`, add `localisedTransfer` to `src/lib/content/transfers.ts`, use it
       in the transfer pages. Hotel, resort and place names must be outside the allowlist. Commit.
 
+> **Blog has TWO sources and only one is safely localisable here.** Static posts come from
+> `_blog.gen.ts` and localise via the overlay below. DB-backed posts come through
+> `src/lib/content/blog-live.ts`, which Task 7 deliberately left on the English default because
+> `app/sitemap.ts` calls it directly — adding `getLocale()` there would force the sitemap into
+> dynamic rendering. `src/lib/catalogue/places.ts` is in the same position. If DB-backed posts need
+> French later, give those functions an explicit `locale` parameter that the page passes and the
+> sitemap omits; do **not** make them read cookies.
+
 - [ ] **Step 3: Blog** — create `src/lib/content/_blog.fr.gen.ts` (3,078 lines, the largest single
       chunk in the project), define `PostTranslation`, add `localisedPost` to
       `src/lib/content/blog.ts`, use it in `app/(site)/blog/[slug]/page.tsx`. Allowlist `title`,
