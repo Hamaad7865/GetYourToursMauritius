@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 const ROOT = process.cwd();
 
@@ -49,7 +50,10 @@ export function usedKeys() {
 }
 
 // Run directly for a progress report: `node scripts/i18n-scan.mjs`
-if (import.meta.url === `file://${process.argv[1]?.replace(/\\/g, '/')}`) {
+// Compare resolved absolute paths: process.argv[1] is the raw string as typed on the command line
+// (e.g. a relative "scripts/i18n-scan.mjs"), so comparing it to import.meta.url directly never
+// matched and the report silently never ran.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const fr = frenchKeys();
   const used = usedKeys();
   const missing = [...used.keys()].filter((k) => !fr.has(k));
