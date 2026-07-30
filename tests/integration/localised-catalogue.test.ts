@@ -109,9 +109,20 @@ describe('locale-aware catalogue RPCs', () => {
     const res = await rpc<{ items: { slug: string; title: string }[] }>(
       db,
       'api_search_activities',
-      { q: null, category: null, type: null, region: null, priceMin: null, priceMax: null,
-        durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100,
-        locale: 'fr' },
+      {
+        q: null,
+        category: null,
+        type: null,
+        region: null,
+        priceMin: null,
+        priceMax: null,
+        durationMin: null,
+        durationMax: null,
+        minRating: null,
+        page: 1,
+        pageSize: 100,
+        locale: 'fr',
+      },
     );
     const hit = res.items.find((i) => i.slug === slug);
     expect(hit?.title).toBe('Titre en français');
@@ -121,8 +132,19 @@ describe('locale-aware catalogue RPCs', () => {
     const res = await rpc<{ items: { slug: string; title: string }[] }>(
       db,
       'api_search_activities',
-      { q: null, category: null, type: null, region: null, priceMin: null, priceMax: null,
-        durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100 },
+      {
+        q: null,
+        category: null,
+        type: null,
+        region: null,
+        priceMin: null,
+        priceMax: null,
+        durationMin: null,
+        durationMax: null,
+        minRating: null,
+        page: 1,
+        pageSize: 100,
+      },
     );
     expect(res.items.find((i) => i.slug === slug)?.title).not.toBe('Titre en français');
   });
@@ -131,15 +153,39 @@ describe('locale-aware catalogue RPCs', () => {
     // The partial fixture has a French title but NO French summary — the summary must stay English
     // rather than coming back null and rendering a card with a blank line.
     const en = await rpc<{ items: { slug: string; summary: string | null }[] }>(
-      db, 'api_search_activities',
-      { q: null, category: null, type: null, region: null, priceMin: null, priceMax: null,
-        durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100 },
+      db,
+      'api_search_activities',
+      {
+        q: null,
+        category: null,
+        type: null,
+        region: null,
+        priceMin: null,
+        priceMax: null,
+        durationMin: null,
+        durationMax: null,
+        minRating: null,
+        page: 1,
+        pageSize: 100,
+      },
     );
     const fr = await rpc<{ items: { slug: string; summary: string | null }[] }>(
-      db, 'api_search_activities',
-      { q: null, category: null, type: null, region: null, priceMin: null, priceMax: null,
-        durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100,
-        locale: 'fr' },
+      db,
+      'api_search_activities',
+      {
+        q: null,
+        category: null,
+        type: null,
+        region: null,
+        priceMin: null,
+        priceMax: null,
+        durationMin: null,
+        durationMax: null,
+        minRating: null,
+        page: 1,
+        pageSize: 100,
+        locale: 'fr',
+      },
     );
     const enHit = en.items.find((i) => i.slug === slug);
     const frHit = fr.items.find((i) => i.slug === slug);
@@ -150,17 +196,33 @@ describe('locale-aware catalogue RPCs', () => {
     // Guard against the join fanning out rows. activity_translations is unique on
     // (activity_id, locale), so a correct join cannot duplicate — but a missing locale predicate
     // in the ON clause would silently multiply every activity by its number of translations.
-    const en = await rpc<{ total: number; items: unknown[] }>(
-      db, 'api_search_activities',
-      { q: null, category: null, type: null, region: null, priceMin: null, priceMax: null,
-        durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100 },
-    );
-    const fr = await rpc<{ total: number; items: unknown[] }>(
-      db, 'api_search_activities',
-      { q: null, category: null, type: null, region: null, priceMin: null, priceMax: null,
-        durationMin: null, durationMax: null, minRating: null, page: 1, pageSize: 100,
-        locale: 'fr' },
-    );
+    const en = await rpc<{ total: number; items: unknown[] }>(db, 'api_search_activities', {
+      q: null,
+      category: null,
+      type: null,
+      region: null,
+      priceMin: null,
+      priceMax: null,
+      durationMin: null,
+      durationMax: null,
+      minRating: null,
+      page: 1,
+      pageSize: 100,
+    });
+    const fr = await rpc<{ total: number; items: unknown[] }>(db, 'api_search_activities', {
+      q: null,
+      category: null,
+      type: null,
+      region: null,
+      priceMin: null,
+      priceMax: null,
+      durationMin: null,
+      durationMax: null,
+      minRating: null,
+      page: 1,
+      pageSize: 100,
+      locale: 'fr',
+    });
     expect(fr.total).toBe(en.total);
     expect(fr.items.length).toBe(en.items.length);
   });
