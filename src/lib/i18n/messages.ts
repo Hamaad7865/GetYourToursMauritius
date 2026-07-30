@@ -795,6 +795,13 @@ export const fr: Record<string, string> = {
   'Cancel this booking and claim a refund? Your refund is processed back to your card within a few business days.':
     'Annuler cette réservation et demander un remboursement ? Le remboursement est crédité sur votre carte sous quelques jours ouvrés.',
   'Yes, cancel & claim refund': 'Oui, annuler et demander le remboursement',
+  'Staff view': 'Vue équipe',
+  '— {name}’s booking, not yours. You can open it because your account has staff access. The buttons below act on the guest’s real booking.':
+    '— la réservation de {name}, pas la vôtre. Vous pouvez l’ouvrir car votre compte a un accès équipe. Les boutons ci-dessous agissent sur la vraie réservation du client.',
+  'Cancel this guest’s booking (staff)': 'Annuler la réservation de ce client (équipe)',
+  'Cancel {name}’s booking and start their refund? The refund goes back to the guest’s card within a few business days.':
+    'Annuler la réservation de {name} et lancer son remboursement ? Le remboursement est reversé sur la carte du client sous quelques jours ouvrés.',
+  'Yes, cancel the guest’s booking': 'Oui, annuler la réservation du client',
   'Cancelling…': 'Annulation…',
   'Keep my booking': 'Conserver ma réservation',
   'Free cancellation has passed.': 'Le délai d’annulation gratuite est dépassé.',

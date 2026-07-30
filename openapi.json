@@ -5276,6 +5276,12 @@
                             "null"
                           ]
                         },
+                        "isOwn": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
                         "childSeats": {
                           "type": [
                             "integer",
@@ -5919,6 +5925,12 @@
                           ]
                         },
                         "pickupPending": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "isOwn": {
                           "type": [
                             "boolean",
                             "null"

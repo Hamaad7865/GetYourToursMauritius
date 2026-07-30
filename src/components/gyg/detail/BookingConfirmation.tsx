@@ -10,6 +10,7 @@ import { Confetti } from '@/components/site/Confetti';
 import { IconDownload } from '@/components/ui/icons';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
+import { isStaffViewing } from '@/lib/booking/staff-view';
 import { whatsappUrl } from '@/lib/seo/site';
 import { transferLegs } from '@/lib/transfers/leg-times';
 import { DisruptionBanner } from './DisruptionBanner';
@@ -61,6 +62,8 @@ interface Booking {
   specialNotes?: string | null;
   /** True when the customer may self-cancel for a refund (confirmed + paid + the trip is >24h away). */
   cancellable?: boolean | null;
+  /** False when the signed-in viewer is not this booking's owner — i.e. a staff view. */
+  isOwn?: boolean | null;
   /** The booking's occurrence date (ISO) — the transfer's arrival/service date, for the run-sheet. */
   serviceDate?: string | null;
   /** Set only when WE called the departure off; a null resolvedAt means the guest still owes a choice. */
@@ -403,11 +406,26 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   const celebrating = paid && (booking.status === 'confirmed' || booking.status === 'completed');
   // A called-off departure the guest hasn't answered yet. Same predicate as the SQL bypass.
   const awaitingChoice = isAwaitingDisruptionChoice(booking.disruption);
+  // A staff account on another guest's booking (RLS admits no one else non-own). Flag it loudly,
+  // skip the celebration (it's the guest's, not ours), and de-personalise the cancel copy.
+  const staffView = isStaffViewing(booking);
 
   return (
     <div className="mx-auto max-w-xl py-10">
-      {celebrating && <Confetti />}
+      {celebrating && !staffView && <Confetti />}
       <div className="rounded-2xl border border-ink/10 bg-white p-6 sm:p-8">
+        {staffView && (
+          <div
+            role="status"
+            className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-[13px] leading-relaxed text-amber-800"
+          >
+            <span className="font-bold">{t('Staff view')}</span>{' '}
+            {t(
+              '— {name}’s booking, not yours. You can open it because your account has staff access. The buttons below act on the guest’s real booking.',
+              { name: booking.customerName },
+            )}
+          </div>
+        )}
         {celebrating && (
           // A success seal stamps in: the badge pops, the tick draws itself, and a soft ring echoes
           // out — the focal anchor the confetti bursts from. Reuses the sign-in success motions;
@@ -695,9 +713,14 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                   className="mt-4 rounded-xl border border-coral/30 bg-coral/[0.06] p-4"
                 >
                   <p className="text-[13px] text-ink">
-                    {t(
-                      'Cancel this booking and claim a refund? Your refund is processed back to your card within a few business days.',
-                    )}
+                    {staffView
+                      ? t(
+                          'Cancel {name}’s booking and start their refund? The refund goes back to the guest’s card within a few business days.',
+                          { name: booking.customerName },
+                        )
+                      : t(
+                          'Cancel this booking and claim a refund? Your refund is processed back to your card within a few business days.',
+                        )}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <button
@@ -707,7 +730,11 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                       aria-busy={cancelling}
                       className="rounded-full bg-coral px-4 py-2 text-[13px] font-bold text-white hover:bg-coral/90 disabled:opacity-60"
                     >
-                      {cancelling ? t('Cancelling…') : t('Yes, cancel & claim refund')}
+                      {cancelling
+                        ? t('Cancelling…')
+                        : staffView
+                          ? t('Yes, cancel the guest’s booking')
+                          : t('Yes, cancel & claim refund')}
                     </button>
                     <button
                       type="button"
@@ -725,7 +752,9 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                   onClick={() => setConfirmingCancel(true)}
                   className="mt-4 inline-flex items-center gap-2 rounded-full border border-coral/50 px-4 py-2 text-[13px] font-bold text-coral hover:bg-coral/5"
                 >
-                  {t('Cancel activity & claim refund')}
+                  {staffView
+                    ? t('Cancel this guest’s booking (staff)')
+                    : t('Cancel activity & claim refund')}
                 </button>
               )
             ) : booking.status === 'confirmed' ? (

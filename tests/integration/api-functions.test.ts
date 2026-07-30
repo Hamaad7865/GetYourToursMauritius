@@ -205,6 +205,43 @@ describe('api_* service functions', () => {
     await db.asOwner();
   });
 
+  it('api_get_booking marks ownership: isOwn for the owner, staff view for staff, nothing for others', async () => {
+    const STAFF = '5faf5faf-5faf-5faf-5faf-5faf5faf5faf';
+    const OTHER = '07e60c05-07e6-4c05-a7e6-07e60c0507e6';
+    await db.asOwner();
+    await db.pg.query(`insert into auth.users (id) values ($1), ($2)`, [STAFF, OTHER]);
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'staff'), ($2, 'customer')`, [
+      STAFF,
+      OTHER,
+    ]);
+
+    await db.as({ sub: USER, role: 'authenticated' });
+    const booking = await apiBook<{ ref: string }>(db, {
+      occurrenceId,
+      party: { 'Private group': 1 },
+      customerName: 'Olive Owner',
+      customerEmail: 'olive@example.com',
+      idempotencyKey: 'api-book-isown',
+      expectedSlug: 'private-south-tour-with-pickup',
+    });
+    const own = await rpc<{ isOwn?: boolean }>(db, 'api_get_booking', { ref: booking.ref });
+    expect(own.isOwn).toBe(true);
+
+    // Staff can open any booking (the RLS staff branch) — the DTO must SAY it isn't theirs.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const staffView = await rpc<{ ref: string; isOwn?: boolean }>(db, 'api_get_booking', {
+      ref: booking.ref,
+    });
+    expect(staffView.ref).toBe(booking.ref);
+    expect(staffView.isOwn).toBe(false);
+
+    // A different CUSTOMER gets nothing at all for someone else's ref — the not-an-IDOR property.
+    await db.as({ sub: OTHER, role: 'authenticated' });
+    const denied = await rpc<{ ref: string } | null>(db, 'api_get_booking', { ref: booking.ref });
+    expect(denied).toBeNull();
+    await db.asOwner();
+  });
+
   it('api_book rejects an occurrence that does not belong to the asserted activity slug', async () => {
     await db.as({ sub: USER, role: 'authenticated' });
     await expect(

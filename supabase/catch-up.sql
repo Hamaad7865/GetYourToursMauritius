@@ -15540,3 +15540,20 @@ $$;
 
 revoke execute on function api_enqueue_review_invites(jsonb) from public, anon, authenticated;
 grant execute on function api_enqueue_review_invites(jsonb) to service_role;
+
+-- ---- 20260829000000_booking_is_own -----------------------------------------------------------
+-- Staff accounts legitimately open other guests' /bookings/[ref] pages (bookings RLS staff
+-- branch); the DTO now carries isOwn so the UI can show a "staff view" banner instead of
+-- looking like a data leak. Idempotent; create-or-replace preserves the existing ACL.
+create or replace function api_get_booking(p jsonb)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public
+as $$
+  select booking_json(b.id)
+         || jsonb_build_object('isOwn', coalesce(b.user_id = auth.uid(), false))
+  from bookings b
+  where b.ref = p ->> 'ref';
+$$;

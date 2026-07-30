@@ -158,6 +158,9 @@ export const bookingSchema = z.object({
   dropoffLocation: z.string().nullish(),
   /** True when the pickup is "to be arranged" (TBD) rather than a fixed address or no pickup. */
   pickupPending: z.boolean().nullish(),
+  /** False when the signed-in viewer is NOT this booking's owner — RLS admits no one else, so
+   *  that's a STAFF view of a guest's booking. Absent on service-role DTOs (api_book, receipts). */
+  isOwn: z.boolean().nullish(),
   /** Child seats on the booking (first free, €6 each extra; the charge is in totalEur). */
   childSeats: z.number().int().nonnegative().nullish(),
   /** Region-based transport add-on charged on this booking (already included in totalEur). */
