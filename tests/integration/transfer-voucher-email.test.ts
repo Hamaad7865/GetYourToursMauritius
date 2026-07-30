@@ -129,6 +129,7 @@ describe('transfer booking_confirmation drain → receipt attached, e-voucher li
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date('2026-06-23T12:00:00Z'),
+      locale: 'en',
     };
   });
 

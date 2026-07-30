@@ -70,6 +70,7 @@ describe('pending bookings in cart + safe auto-cancel', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
   });
 

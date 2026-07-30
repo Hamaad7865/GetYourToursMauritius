@@ -99,6 +99,7 @@ describe('P0: trip-planner route returns 429 after its per-IP limit', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(), // no Gemini model → graceful fallback, zero billed calls
       now: () => new Date(),
+      locale: 'en',
     });
   });
 

@@ -142,6 +142,7 @@ describe('GET /api/v1/bookings — booking history', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     });
   });
 

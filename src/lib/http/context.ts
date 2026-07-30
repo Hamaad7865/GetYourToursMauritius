@@ -11,6 +11,23 @@ import { getServerEnv } from '@/lib/config/env';
 import { getPaymentProvider } from '@/lib/payments';
 import { getAiProvider } from '@/lib/ai';
 import { getBearerToken } from './auth';
+import { DEFAULT_LOCALE, LANG_COOKIE, isLocale, type Locale } from '@/lib/i18n/config';
+
+/**
+ * The visitor's locale from a raw Cookie header. Used instead of next/headers `cookies()` because
+ * `cookies()` opts a route into dynamic rendering, which would be wrong for app/sitemap.ts.
+ */
+export function localeFromCookieHeader(header: string | null): Locale {
+  if (!header) return DEFAULT_LOCALE;
+  for (const part of header.split(';')) {
+    const [name, ...rest] = part.trim().split('=');
+    if (name === LANG_COOKIE) {
+      const value = rest.join('=');
+      return isLocale(value) ? value : DEFAULT_LOCALE;
+    }
+  }
+  return DEFAULT_LOCALE;
+}
 
 /**
  * Builds a ServiceContext with a LAZY payment provider: it is constructed on first access and
@@ -18,7 +35,11 @@ import { getBearerToken } from './auth';
  * otherwise the fail-closed payment gate (refuses the stub on a real backend) would 500 an
  * unrelated read. Payment routes access `ctx.payments` and get the gate as intended.
  */
-function makeContext(db: DbRpc, admin?: SupabaseClient<Database>): ServiceContext {
+function makeContext(
+  db: DbRpc,
+  admin?: SupabaseClient<Database>,
+  locale: Locale = DEFAULT_LOCALE,
+): ServiceContext {
   let payments: PaymentProvider | null = null;
   return {
     db,
@@ -29,6 +50,7 @@ function makeContext(db: DbRpc, admin?: SupabaseClient<Database>): ServiceContex
     ai: getAiProvider(),
     ...(admin ? { admin } : {}),
     now: () => new Date(),
+    locale,
   };
 }
 
@@ -57,7 +79,11 @@ function selectDb(token: string | null): DbRpc {
  * this runs.
  */
 export function buildServiceContext(req: Request): ServiceContext {
-  return makeContext(selectDb(getBearerToken(req)));
+  return makeContext(
+    selectDb(getBearerToken(req)),
+    undefined,
+    localeFromCookieHeader(req.headers.get('cookie')),
+  );
 }
 
 /**
@@ -69,9 +95,13 @@ export function userServiceContext(token: string): ServiceContext {
   return makeContext(selectDb(token));
 }
 
-/** Anonymous context for public server components (RLS shows published only). */
-export function publicServiceContext(): ServiceContext {
-  return makeContext(selectDb(null));
+/**
+ * Anonymous context for public server components (RLS shows published only). Pass the locale from
+ * `await getLocale()` at the call site — deliberately explicit rather than reading cookies() in
+ * here, so a caller like app/sitemap.ts is not silently forced into dynamic rendering.
+ */
+export function publicServiceContext(locale: Locale = DEFAULT_LOCALE): ServiceContext {
+  return makeContext(selectDb(null), undefined, locale);
 }
 
 /**

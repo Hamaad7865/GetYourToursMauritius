@@ -74,6 +74,7 @@ describe('single-flight checkout lease', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
     const booking = await createBooking(
       { ...ctx, db: pgliteServiceRoleRpc(db.pg) },

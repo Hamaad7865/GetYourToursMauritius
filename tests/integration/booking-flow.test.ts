@@ -518,6 +518,7 @@ describe('booking flow: availability → book → pay → webhook → confirmed'
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
     const result = await drainNotifications(ctx, new StubNotificationProvider());
     expect(result).toEqual({ processed: 4, sent: 2, failed: 2 });

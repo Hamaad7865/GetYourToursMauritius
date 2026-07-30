@@ -85,6 +85,7 @@ describe('transfers (read endpoints)', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     });
   });
 

@@ -138,6 +138,7 @@ describe('booking_confirmation drain → invoice + receipt email', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date('2026-06-20T12:00:00Z'),
+      locale: 'en',
     };
   });
 

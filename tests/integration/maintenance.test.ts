@@ -84,6 +84,7 @@ describe('run_booking_maintenance: sweep holds + expire abandoned bookings', () 
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
     const result = await runBookingMaintenance(ctx, 30);
     expect(result.bookingsExpired).toBe(1);

@@ -136,6 +136,7 @@ describe('owner booking alerts', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date('2026-07-10T08:00:00Z'),
+      locale: 'en',
     };
     const provider = new CapturingProvider();
     const result = await drainNotifications(ctx, provider, 20);
@@ -194,6 +195,7 @@ describe('owner booking alerts', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date('2026-07-10T08:00:00Z'),
+      locale: 'en',
     };
     const provider = new CapturingProvider();
     await drainNotifications(ctx, provider, 20);

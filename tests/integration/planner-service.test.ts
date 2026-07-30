@@ -18,6 +18,7 @@ describe('planner service', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
   });
   afterAll(async () => {

@@ -35,6 +35,7 @@ describe('service layer (via PGlite rpc)', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
     const { rows } = await db.pg.query<{ id: string }>(
       `select so.id from session_occurrences so

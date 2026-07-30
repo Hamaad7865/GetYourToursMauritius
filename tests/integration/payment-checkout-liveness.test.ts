@@ -128,6 +128,7 @@ describe('a cancelled Peach session is never handed back to the customer', () =>
       payments: provider,
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
     adminCtx = { ...ctx, db: pgliteServiceRoleRpc(db.pg) };
 
@@ -244,6 +245,7 @@ describe('the 25-minute reuse window is anchored to the checkout, not to row mti
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
     await db.as({ sub: USER, role: 'authenticated' });
     const booking = await createBooking(
@@ -329,6 +331,7 @@ describe('api_clear_payment_checkout', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
     await db.as({ sub: USER, role: 'authenticated' });
     const booking = await createBooking(

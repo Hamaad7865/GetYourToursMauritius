@@ -53,6 +53,7 @@ describe('api_record_payment_checkout persists + overwrites the checkout id, ser
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
     const booking = await createBooking(
       { ...ctx, db: pgliteServiceRoleRpc(db.pg) },

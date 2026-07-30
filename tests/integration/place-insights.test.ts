@@ -23,6 +23,7 @@ describe('place insights (no-model fallback)', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     };
   });
   afterAll(async () => {

@@ -183,6 +183,7 @@ describe('reviews + filters', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     });
   });
 

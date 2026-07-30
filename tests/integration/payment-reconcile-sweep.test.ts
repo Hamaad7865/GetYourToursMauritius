@@ -168,6 +168,7 @@ describe('reconcilePaymentsPending: server-side sweep confirms paid stuck bookin
       ai: createStubAiProvider(),
       admin: makeSupabaseShim(db.pg) as unknown as SupabaseClient<Database>,
       now: () => new Date(),
+      locale: 'en',
     };
 
     // The enumeration RPC itself excludes C (no checkout id) and D (out of grace) — only A + B.

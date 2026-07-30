@@ -3,6 +3,7 @@ import type { DbRpc } from '@/lib/db/rpc';
 import type { Database } from '@/lib/supabase/types';
 import type { PaymentProvider } from '@/lib/payments/types';
 import type { AiProvider } from '@/lib/ai/types';
+import type { Locale } from '@/lib/i18n/config';
 
 /**
  * The single dependency bundle every service function receives as its first
@@ -27,4 +28,10 @@ export interface ServiceContext {
   admin?: SupabaseClient<Database>;
   /** Injectable clock for deterministic tests. */
   now: () => Date;
+  /**
+   * The visitor's language. Travels into the `api_*` catalogue functions so Postgres returns
+   * already-resolved text (per-field `coalesce(translation, english)`), rather than each of the ~30
+   * call sites reaching into a translations map and one of them eventually forgetting.
+   */
+  locale: Locale;
 }

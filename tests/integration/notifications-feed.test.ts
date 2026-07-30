@@ -87,6 +87,7 @@ describe('notifications feed', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     });
   });
 

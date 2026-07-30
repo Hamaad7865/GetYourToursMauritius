@@ -86,6 +86,7 @@ describe('account (profile / export / delete)', () => {
       payments: new StubPaymentProvider(),
       ai: createStubAiProvider(),
       now: () => new Date(),
+      locale: 'en',
     });
   });
 
