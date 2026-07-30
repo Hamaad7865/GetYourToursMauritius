@@ -1530,19 +1530,38 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 - Create: `src/lib/content/_areas.fr.gen.ts`
 - Modify: `src/lib/content/areas.ts`
 
+- [ ] **Step 0: Define the translation type as an ALLOWLIST**
+
+Do this first — it is what makes the rest of the task safe. Add to `src/lib/content/areas.ts`:
+
+```ts
+/**
+ * The fields of an area guide that may be translated. An ALLOWLIST, deliberately: everything
+ * omitted here — `slug`, `region`, `name`, `beaches`, `stayOptions`, `nearbyAttractions` — is a
+ * real Mauritian place, beach or hotel name, and a translation file that tried to set one would
+ * invent French names for real places. Omitting them makes that a compile error rather than a
+ * production defect nobody notices.
+ */
+export type AreaTranslation = Partial<
+  Pick<AreaContent, 'intro' | 'highlights' | 'gettingThere' | 'goodFor' | 'faq'>
+>;
+```
+
+`localiseContent` also keeps a runtime backstop for `slug`/`path`/`id`, but the type is the real
+defence. Do not widen it to `Partial<AreaContent>`.
+
 - [ ] **Step 1: Create the French file**
 
-Keyed by slug, carrying only translatable fields — `intro`, `highlights`, `gettingThere`, `goodFor`,
-`faq`. Omit `slug`, `region`, `beaches`, `nearbyAttractions`, `stayOptions`: those are lists of real
-place and hotel names, which must not be translated.
+Keyed by slug, typed `Record<string, AreaTranslation>` so the allowlist is enforced. If you find
+yourself wanting to translate a field the type rejects, that is the type working — do not widen it.
 
 ```ts
 // AUTO-GENERATED French overlay for _areas.gen.ts. MACHINE-DRAFTED — not yet owner-reviewed.
 // Translatable prose only: slugs, regions, beach names, hotel names and attraction names are
-// deliberately absent, because they are real proper nouns.
-import type { AreaContent } from './areas';
+// deliberately absent, because they are real proper nouns. AreaTranslation enforces this.
+import type { AreaTranslation } from './areas';
 
-export const AREAS_FR: Record<string, Partial<AreaContent>> = {
+export const AREAS_FR: Record<string, AreaTranslation> = {
   'grand-baie': {
     intro:
       'Grand Baie est le cœur animé de la côte nord de Maurice, bâti autour d’une baie turquoise abritée qui a donné son nom au village. Autrefois paisible village de pêcheurs, c’est aujourd’hui la station la plus fréquentée de l’île…',
@@ -1606,18 +1625,24 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 Repeat Task 13's shape for the remaining three modules. Each is a separate commit.
 
+Each module defines its **own** allowlist translation type first, exactly as Task 13 Step 0 does.
+Do not reuse `AreaTranslation` and do not fall back to `Partial<TheWholeInterface>` — the whole
+point is that each type names only its prose fields. Note the allowlists genuinely differ: an area's
+`name` is a place name and must NOT be translatable, whereas a blog post's `title` is our own copy
+and MUST be. Read each interface before writing its type.
+
 - [ ] **Step 1: Attractions** — create `src/lib/content/_additional-attractions.fr.gen.ts`
-      (395 lines of source), add `localisedAttraction` to `src/lib/content/attractions.ts`, use it in
-      `app/(site)/attractions/[slug]/page.tsx`. Commit.
+      (395 lines of source), define `AttractionTranslation`, add `localisedAttraction` to
+      `src/lib/content/attractions.ts`, use it in `app/(site)/attractions/[slug]/page.tsx`. Commit.
 
 - [ ] **Step 2: Transfer guides** — create `src/lib/content/_transfers.fr.gen.ts` (2,080 lines),
-      add `localisedTransfer` to `src/lib/content/transfers.ts`, use it in the transfer pages.
-      Do not translate hotel, resort or place names. Commit.
+      define `TransferTranslation`, add `localisedTransfer` to `src/lib/content/transfers.ts`, use it
+      in the transfer pages. Hotel, resort and place names must be outside the allowlist. Commit.
 
 - [ ] **Step 3: Blog** — create `src/lib/content/_blog.fr.gen.ts` (3,078 lines, the largest single
-      chunk in the project), add `localisedPost` to `src/lib/content/blog.ts`, use it in
-      `app/(site)/blog/[slug]/page.tsx`. Translate `title`, `excerpt` and body prose; leave `slug`,
-      `date`, author names and image paths alone. Commit.
+      chunk in the project), define `PostTranslation`, add `localisedPost` to
+      `src/lib/content/blog.ts`, use it in `app/(site)/blog/[slug]/page.tsx`. Allowlist `title`,
+      `excerpt` and body prose; leave `slug`, `date`, author names and image paths out of it. Commit.
 
 - [ ] **Step 4: Confirm reviews were left alone**
 
