@@ -1518,4 +1518,272 @@ export const fr: Record<string, string> = {
   Camera: 'Appareil photo',
   Sunscreen: 'Crème solaire',
   'Snorkeling gear': 'Équipement de snorkeling',
+
+  // ── /about ────────────────────────────────────────────────────────────────────────────────
+  // Credentials bar (the licence + rating keys themselves are older and live further up)
+  '{avg}/5 from {count} reviews': '{avg}/5 sur {count} avis',
+
+  // Hero
+  'The Smart Way to Experience Mauritius': 'La façon intelligente de découvrir l’île Maurice',
+  'Your Journey Begins Here': 'Votre voyage commence ici',
+  'Welcome to {brand}, your trusted gateway to discovering the extraordinary beauty, vibrant culture, and unforgettable experiences that make Mauritius one of the world’s most captivating island destinations.':
+    'Bienvenue sur {brand}, votre porte d’entrée de confiance vers la beauté extraordinaire, la culture vibrante et les expériences inoubliables qui font de l’île Maurice l’une des destinations insulaires les plus captivantes au monde.',
+  'Discover more. Experience more. Create memories that last a lifetime.':
+    'Découvrez plus. Vivez plus. Créez des souvenirs pour toute une vie.',
+  'Discover Experiences': 'Découvrir les expériences',
+
+  // Trust strip — the first four reasons from "Why choose {brand}"
+  'Why choose {brand} — at a glance': 'Pourquoi choisir {brand} — en un coup d’œil',
+  'Curated Experiences': 'Expériences sélectionnées',
+  'Every experience is carefully selected to ensure exceptional quality, safety and outstanding customer satisfaction.':
+    'Chaque expérience est soigneusement sélectionnée pour garantir une qualité exceptionnelle, la sécurité et une satisfaction client irréprochable.',
+  'Trusted Destination Experts': 'Experts de la destination',
+  'Benefit from extensive tourism expertise and insider knowledge to discover Mauritius with confidence.':
+    'Profitez d’une solide expertise touristique et de conseils d’initiés pour découvrir l’île Maurice en toute confiance.',
+  'Secure Online Payments': 'Paiements en ligne sécurisés',
+  'Book with complete peace of mind through our encrypted and secure payment gateway.':
+    'Réservez en toute tranquillité grâce à notre passerelle de paiement chiffrée et sécurisée.',
+  'Instant Booking Confirmation': 'Confirmation immédiate',
+  'Receive immediate confirmation and all the information you need before your experience begins.':
+    'Recevez une confirmation immédiate et toutes les informations utiles avant le début de votre expérience.',
+
+  // Our story
+  'Mauritius is more than our destination — it is our passion':
+    'L’île Maurice est bien plus qu’une destination — c’est notre passion',
+  '{brand} was created to help travellers experience the island beyond the ordinary.':
+    '{brand} a été créé pour aider les voyageurs à découvrir l’île au-delà de l’ordinaire.',
+  'We believe every visitor deserves more than simply booking activities. They deserve carefully crafted experiences, genuine hospitality and personalised service that transform holidays into lifelong memories.':
+    'Nous pensons que chaque visiteur mérite mieux que de simplement réserver des activités. Il mérite des expériences pensées avec soin, une hospitalité sincère et un service personnalisé qui transforment des vacances en souvenirs pour la vie.',
+  'Through our expertise, commitment to excellence and passion for showcasing Mauritius, we have created a platform where visitors can confidently discover, compare and book the island’s finest travel experiences.':
+    'Grâce à notre expertise, notre exigence de qualité et notre passion pour l’île Maurice, nous avons créé une plateforme où les visiteurs peuvent découvrir, comparer et réserver en toute confiance les plus belles expériences de l’île.',
+  'Island-wide': 'Partout sur l’île',
+  'North · South · East · West · Central': 'Nord · Sud · Est · Ouest · Centre',
+
+  // Discover experiences — the six collections
+  'Discover experiences': 'Nos expériences',
+  'Every traveller is unique, and so is every journey':
+    'Chaque voyageur est unique, et chaque voyage l’est aussi',
+  'Whether you dream of sailing across crystal-clear lagoons, exploring lush forests and waterfalls, discovering charming villages, enjoying authentic Mauritian cuisine, or simply relaxing in paradise, we make every journey effortless, memorable, and uniquely yours.':
+    'Que vous rêviez de naviguer sur des lagons cristallins, d’explorer forêts luxuriantes et cascades, de découvrir des villages pittoresques, de savourer une cuisine mauricienne authentique ou simplement de vous détendre au paradis, nous rendons chaque voyage simple, mémorable et vraiment le vôtre.',
+  'From carefully curated excursions and private experiences to seamless transfers and bespoke holiday planning, we bring together the very best of Mauritius in one trusted platform.':
+    'Des excursions soigneusement sélectionnées et des expériences privées aux transferts sans souci et à l’organisation de séjours sur mesure, nous réunissons le meilleur de l’île Maurice sur une seule plateforme de confiance.',
+  'Best Sellers': 'Meilleures ventes',
+  'Explore our most popular experiences loved by visitors from around the world.':
+    'Découvrez nos expériences les plus populaires, plébiscitées par des voyageurs du monde entier.',
+  'Luxury Collection': 'Collection luxe',
+  'Exclusive experiences designed for travellers seeking comfort, privacy and exceptional service.':
+    'Des expériences exclusives pensées pour les voyageurs en quête de confort, d’intimité et d’un service d’exception.',
+  'Family Adventures': 'Aventures en famille',
+  'Fun-filled activities and excursions suitable for families of every age.':
+    'Des activités et excursions ludiques, adaptées aux familles de tous âges.',
+  'Romantic Escapes': 'Escapades romantiques',
+  'Create unforgettable moments with experiences designed for couples, honeymooners and special celebrations.':
+    'Créez des moments inoubliables grâce à des expériences conçues pour les couples, les voyages de noces et les grandes occasions.',
+  'Nature & Adventure': 'Nature & aventure',
+  'From mountains and waterfalls to marine parks and nature reserves, discover the adventurous side of Mauritius.':
+    'Des montagnes et cascades aux parcs marins et réserves naturelles, découvrez le côté aventurier de l’île Maurice.',
+  'Sea Experiences': 'Expériences en mer',
+  'Sail, snorkel, dive, fish or simply unwind on the spectacular turquoise waters surrounding the island.':
+    'Naviguez, faites du snorkeling, plongez, pêchez ou détendez-vous simplement sur les eaux turquoise spectaculaires qui entourent l’île.',
+  'Browse all experiences': 'Voir toutes les expériences',
+
+  // Discover our services
+  'Discover our services': 'Nos services',
+  'Everything your Mauritius holiday needs, in one place':
+    'Tout ce qu’il faut à vos vacances à Maurice, au même endroit',
+  'From the moment you land to the day you fly home — transfers, wheels, tours and the sea, all booked through one trusted platform.':
+    'De votre atterrissage à votre vol retour — transferts, véhicules, excursions et sorties en mer, tout se réserve sur une seule plateforme de confiance.',
+  'Airport & Island Transfers': 'Transferts aéroport & sur l’île',
+  'Reliable and comfortable transportation throughout Mauritius, ensuring every journey begins and ends with complete peace of mind.':
+    'Un transport fiable et confortable partout à l’île Maurice, pour que chaque voyage commence et se termine en toute sérénité.',
+  'Book a transfer': 'Réserver un transfert',
+  'Car Hire': 'Location de voiture',
+  'Choose from a wide range of well-maintained vehicles, from compact city cars to spacious family SUVs, giving you the freedom to explore Mauritius at your own pace.':
+    'Choisissez parmi une large gamme de véhicules bien entretenus, de la citadine compacte au SUV familial spacieux, pour explorer l’île Maurice à votre rythme.',
+  'View vehicles': 'Voir les véhicules',
+  'Scooter Rentals': 'Location de scooters',
+  'Discover the island with flexibility and convenience through our modern scooter rental solutions — perfect for couples and independent travellers seeking a more adventurous way to explore.':
+    'Découvrez l’île en toute liberté avec nos solutions modernes de location de scooters — parfaites pour les couples et les voyageurs indépendants en quête d’aventure.',
+  'View scooters': 'Voir les scooters',
+  'Sightseeing Experiences': 'Excursions découverte',
+  'Discover Mauritius through carefully curated island tours that reveal breathtaking landscapes, cultural landmarks, botanical gardens, heritage sites, scenic viewpoints, and hidden gems.':
+    'Découvrez l’île Maurice à travers des circuits soigneusement conçus qui révèlent paysages à couper le souffle, hauts lieux culturels, jardins botaniques, sites patrimoniaux, points de vue panoramiques et trésors cachés.',
+  'Land Adventures': 'Aventures terrestres',
+  'Experience unforgettable activities including hiking, quad biking, ziplining, wildlife parks, rum distilleries, tea plantations, shopping tours, food discoveries, and eco-tourism experiences.':
+    'Vivez des activités inoubliables : randonnée, quad, tyrolienne, parcs animaliers, distilleries de rhum, plantations de thé, circuits shopping, découvertes gastronomiques et expériences écotouristiques.',
+  'See what’s on': 'Voir le programme',
+  'Enjoy catamaran cruises, dolphin and whale watching, snorkelling, scuba diving, speedboat excursions, private island escapes, sunset cruises, deep-sea fishing, and unforgettable moments on the Indian Ocean.':
+    'Profitez de croisières en catamaran, de l’observation des dauphins et des baleines, du snorkeling, de la plongée, de sorties en hors-bord, d’escapades sur des îlots privés, de croisières au coucher du soleil, de pêche au gros et de moments inoubliables sur l’océan Indien.',
+  'Head to the water': 'Prendre le large',
+  'Personalised Experiences': 'Expériences sur mesure',
+  'Our travel specialists create bespoke itineraries designed around your interests, schedule, and budget — whether you’re celebrating a honeymoon, anniversary, family holiday, corporate retreat, or simply creating unforgettable memories.':
+    'Nos spécialistes du voyage créent des itinéraires sur mesure, pensés autour de vos envies, de votre planning et de votre budget — voyage de noces, anniversaire, vacances en famille, séminaire d’entreprise ou simplement de beaux souvenirs à créer.',
+  'Talk to a specialist': 'Parler à un spécialiste',
+  'Plan Your Trip with AI': 'Planifiez votre séjour avec l’IA',
+  'Tell us your dates, interests and pace — and get a tailored island itinerary in seconds.':
+    'Indiquez vos dates, vos envies et votre rythme — et recevez un itinéraire sur mesure en quelques secondes.',
+
+  // Pull-quote band
+  'Our purpose': 'Notre raison d’être',
+  'Our purpose is simple: to help every traveller experience the true spirit of Mauritius.':
+    'Notre raison d’être est simple : permettre à chaque voyageur de vivre le véritable esprit de l’île Maurice.',
+
+  // Why choose us — the remaining five reasons
+  'Why choose us': 'Pourquoi nous choisir',
+  'Why Choose {brand}': 'Pourquoi choisir {brand}',
+  'Curated experiences, destination expertise and secure payments are only the start. Here is what else you get every time you book with us.':
+    'Des expériences sélectionnées, une expertise de la destination et des paiements sécurisés ne sont qu’un début. Voici ce que vous obtenez en plus à chaque réservation.',
+  'Best Value': 'Le meilleur rapport qualité-prix',
+  'Competitive pricing with transparent rates and no hidden costs.':
+    'Des tarifs compétitifs et transparents, sans frais cachés.',
+  'Transparent Pricing': 'Tarifs transparents',
+  'Clear pricing with no hidden surprises, allowing you to book with confidence.':
+    'Des prix clairs, sans mauvaise surprise, pour réserver en toute confiance.',
+  'Flexible Booking Options': 'Réservation flexible',
+  'Enjoy greater flexibility with selected experiences offering convenient cancellation and rescheduling policies.':
+    'Profitez de plus de souplesse : certaines expériences offrent des conditions d’annulation et de report avantageuses.',
+  'Island-Wide Service': 'Service partout sur l’île',
+  'Whether you’re staying in the north, south, east, west or central region, our services are available across Mauritius.':
+    'Que vous séjourniez au nord, au sud, à l’est, à l’ouest ou dans le centre, nos services sont disponibles partout à l’île Maurice.',
+  'Dedicated Customer Support': 'Un service client dédié',
+  'Our friendly travel specialists are available before, during and after your holiday to ensure everything runs perfectly.':
+    'Nos spécialistes du voyage sont disponibles avant, pendant et après votre séjour pour que tout se passe parfaitement.',
+
+  // Explore Mauritius
+  'Explore Mauritius': 'Explorer l’île Maurice',
+  'Every region tells a different story': 'Chaque région raconte une histoire différente',
+  'Every journey reveals something unforgettable.':
+    'Chaque voyage révèle quelque chose d’inoubliable.',
+  'Central Plateau': 'Plateau central',
+  'Beaches, nightlife & coastal villages': 'Plages, vie nocturne & villages côtiers',
+  'Beautiful beaches, vibrant nightlife, shopping, restaurants and lively coastal villages.':
+    'De belles plages, une vie nocturne animée, des boutiques, des restaurants et des villages côtiers pleins de vie.',
+  'Cliffs, waterfalls & wild scenery': 'Falaises, cascades & nature sauvage',
+  'Untouched nature, dramatic cliffs, waterfalls and breathtaking scenery.':
+    'Une nature préservée, des falaises spectaculaires, des cascades et des paysages à couper le souffle.',
+  'Lagoons & island excursions': 'Lagons & excursions vers les îlots',
+  'Crystal-clear lagoons, white sandy beaches and world-renowned island excursions.':
+    'Des lagons cristallins, des plages de sable blanc et des excursions vers des îlots de renommée mondiale.',
+  'Dolphins, mountains & sunsets': 'Dauphins, montagnes & couchers de soleil',
+  'Dolphin encounters, mountain landscapes, spectacular sunsets and outdoor adventures.':
+    'Rencontres avec les dauphins, paysages de montagne, couchers de soleil spectaculaires et aventures en plein air.',
+  'Gardens, museums & markets': 'Jardins, musées & marchés',
+  'Discover the cultural heart of Mauritius with gardens, museums, markets and charming towns.':
+    'Découvrez le cœur culturel de l’île Maurice : jardins, musées, marchés et villes pleines de charme.',
+
+  // Vision · mission · values
+  'Our vision': 'Notre vision',
+  'To become the leading digital travel platform for Mauritius by inspiring travellers through exceptional experiences, innovative services and world-class hospitality.':
+    'Devenir la première plateforme de voyage en ligne de l’île Maurice, en inspirant les voyageurs par des expériences exceptionnelles, des services innovants et une hospitalité de classe mondiale.',
+  'Our mission': 'Notre mission',
+  'To connect travellers with the finest experiences Mauritius has to offer while delivering outstanding customer service, secure bookings and personalised travel solutions that exceed expectations.':
+    'Mettre les voyageurs en relation avec les plus belles expériences de l’île Maurice, avec un service client irréprochable, des réservations sécurisées et des solutions de voyage personnalisées qui dépassent les attentes.',
+  'Our values': 'Nos valeurs',
+  'What we stand for': 'Ce qui nous anime',
+  Passion: 'Passion',
+  'We love sharing the beauty and diversity of Mauritius.':
+    'Nous aimons partager la beauté et la diversité de l’île Maurice.',
+  Excellence: 'Excellence',
+  'We continuously strive for exceptional quality in everything we do.':
+    'Nous recherchons sans cesse une qualité exceptionnelle dans tout ce que nous faisons.',
+  Integrity: 'Intégrité',
+  'Honesty, transparency and trust guide every relationship we build.':
+    'L’honnêteté, la transparence et la confiance guident chacune de nos relations.',
+  Personalisation: 'Personnalisation',
+  'Every traveller deserves an experience tailored to their individual expectations.':
+    'Chaque voyageur mérite une expérience adaptée à ses attentes.',
+  Sustainability: 'Durabilité',
+  'We encourage responsible tourism that protects Mauritius for future generations.':
+    'Nous encourageons un tourisme responsable qui préserve l’île Maurice pour les générations futures.',
+  Hospitality: 'Hospitalité',
+  'Welcoming guests with warmth, professionalism and genuine care is at the heart of everything we do.':
+    'Accueillir nos clients avec chaleur, professionnalisme et attention sincère est au cœur de tout ce que nous faisons.',
+
+  // FAQ
+  'Frequently Asked Questions': 'Questions fréquentes',
+  'How do I book?': 'Comment réserver ?',
+  'Booking is quick and secure through our online platform.':
+    'La réservation est rapide et sécurisée depuis notre plateforme en ligne.',
+  'Can I customise my itinerary?': 'Puis-je personnaliser mon itinéraire ?',
+  'Yes. Our travel specialists can create personalised itineraries tailored to your preferences.':
+    'Oui. Nos spécialistes du voyage peuvent créer des itinéraires personnalisés selon vos préférences.',
+  'Is online payment secure?': 'Le paiement en ligne est-il sécurisé ?',
+  'Absolutely. All payments are processed through secure encrypted payment systems.':
+    'Absolument. Tous les paiements sont traités via des systèmes de paiement chiffrés et sécurisés.',
+  'Do you provide airport transfers?': 'Proposez-vous des transferts aéroport ?',
+  'Yes. We provide island-wide airport arrival and departure services.':
+    'Oui. Nous assurons les transferts à l’arrivée et au départ, partout sur l’île.',
+  'Can I book private experiences?': 'Puis-je réserver des expériences privées ?',
+  'Yes. Many of our tours and activities are available as exclusive private experiences.':
+    'Oui. Beaucoup de nos excursions et activités sont disponibles en version privée exclusive.',
+  'What happens in case of bad weather?': 'Que se passe-t-il en cas de mauvais temps ?',
+  'Where required, experiences may be rescheduled or refunded in accordance with the applicable booking conditions.':
+    'Le cas échéant, les expériences peuvent être reportées ou remboursées conformément aux conditions de réservation applicables.',
+  'Can you organise honeymoon or special occasions?':
+    'Organisez-vous les voyages de noces et les occasions spéciales ?',
+  'Yes. We create personalised experiences for honeymoons, anniversaries, birthdays, proposals and corporate events.':
+    'Oui. Nous créons des expériences personnalisées pour les voyages de noces, les anniversaires de mariage, les anniversaires, les demandes en mariage et les événements d’entreprise.',
+
+  // Closing CTA
+  'Start planning your adventure today': 'Commencez à préparer votre aventure dès aujourd’hui',
+  'Let Your Mauritius Story Begin': 'Que votre histoire mauricienne commence',
+  'Whether you’re planning your first visit or returning to discover something new, {brand} is here to make every moment unforgettable.':
+    'Que vous prépariez votre premier séjour ou que vous reveniez découvrir autre chose, {brand} est là pour rendre chaque instant inoubliable.',
+  'Hi! I’d like to plan my trip to Mauritius.':
+    'Bonjour ! J’aimerais préparer mon séjour à l’île Maurice.',
+  'Talk to a travel specialist': 'Parler à un spécialiste du voyage',
+  'Explore. Discover. Experience Mauritius Like Never Before.':
+    'Explorez. Découvrez. Vivez l’île Maurice comme jamais.',
+  Photography: 'Photographies',
+
+  // Weather call-off / disruption flow (src/components/gyg/detail/DisruptionBanner.tsx).
+  // NOTE: apostrophe style below matches the source strings exactly — do not normalise.
+  'Your trip was called off — choose what happens next':
+    'Votre sortie a été annulée — choisissez la suite',
+  'Your trip on {date} has been called off': 'Votre sortie du {date} a été annulée',
+  'Your trip has been called off': 'Votre sortie a été annulée',
+  "We're sorry — we called it off because of {reason}, and we don't make that decision lightly.":
+    'Nous sommes désolés — nous l’avons annulée en raison de {reason}, et nous ne prenons pas cette décision à la légère.',
+  'What happens next is your choice, and both options are free.':
+    'La suite vous appartient, et les deux options sont gratuites.',
+  'the conditions': 'les conditions',
+  'Move to another date': 'Reporter à une autre date',
+  'Get a full refund': 'Obtenir un remboursement intégral',
+  'Pick a new date': 'Choisir une nouvelle date',
+  'Loading available dates…': 'Chargement des dates disponibles…',
+  "We couldn't load the available dates.": 'Nous n’avons pas pu charger les dates disponibles.',
+  'No dates with room for your whole party in the next few months.':
+    'Aucune date ne peut accueillir tout votre groupe dans les prochains mois.',
+  'Hi Belle Mare Tours! My trip {ref} was called off — can we find a new date?':
+    'Bonjour Belle Mare Tours ! Ma sortie {ref} a été annulée — pouvons-nous trouver une nouvelle date ?',
+  'Message us': 'Écrivez-nous',
+  'and we’ll sort something out, or take the refund below.':
+    'et nous trouverons une solution, ou prenez le remboursement ci-dessous.',
+  'Moving…': 'Report en cours…',
+  '{n} seats left': 'Plus que {n} places',
+  'Show more dates ({n})': 'Afficher plus de dates ({n})',
+  'I’d rather have a refund': 'Je préfère être remboursé',
+  'Refund booking {ref} in full? Your money goes back to the card you paid with, usually within a few days.':
+    'Rembourser intégralement la réservation {ref} ? Votre argent est renvoyé sur la carte utilisée, généralement sous quelques jours.',
+  'Refunding…': 'Remboursement en cours…',
+  'Yes, refund me in full': 'Oui, remboursez-moi intégralement',
+  'Show me dates instead': 'Voir plutôt les dates',
+  'Could not move your booking. Please try again.':
+    'Impossible de déplacer votre réservation. Veuillez réessayer.',
+  'Could not start your refund. Please try again.':
+    'Impossible de lancer votre remboursement. Veuillez réessayer.',
+
+  // Checkout price verification (src/components/checkout/Checkout.tsx)
+  'We could not verify the price of this booking. Please try again in a moment.':
+    'Nous n’avons pas pu vérifier le prix de cette réservation. Veuillez réessayer dans un instant.',
+  // Transfer widget (src/components/transfers/TransferBookingWidget.tsx)
+  "That date isn't open yet — please try another day, or contact us to arrange it.":
+    'Cette date n’est pas encore ouverte — essayez un autre jour ou contactez-nous pour l’organiser.',
+
+  // activity_category enum values, rendered directly as card + filter-chip labels.
+  'Catamaran cruises': 'Croisières en catamaran',
+  'Dolphin swims': 'Nage avec les dauphins',
+  'Sea walks & diving': 'Balades sous-marines et plongée',
+  Parasailing: 'Parachute ascensionnel',
+  'Sightseeing tours': 'Excursions touristiques',
 };

@@ -84,7 +84,7 @@ export function CategoryChips({ active }: { active?: string }) {
                   : 'border-ink/12 bg-white text-ink hover:border-teal'
               }`}
             >
-              {category.name}
+              {t(category.name)}
             </Link>
           );
         })}
