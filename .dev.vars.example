@@ -18,7 +18,11 @@ PEACH_CLIENT_SECRET="YOUR-PEACH-CLIENT-SECRET"
 PEACH_MERCHANT_ID="YOUR-PEACH-MERCHANT-ID"
 PEACH_ENTITY_ID="YOUR-PEACH-ENTITY-ID"
 PEACH_WEBHOOK_SECRET="YOUR-PEACH-WEBHOOK-SECRET"
-PEACH_AUTH_BASE_URL="https://sandbox-auth.peachpayments.com"
+# Peach splits auth and checkout across DIFFERENT hosts, and the sandbox/live pairs are:
+#   sandbox  auth https://sandbox-dashboard.peachpayments.com  checkout https://testsecure.peachpayments.com
+#   live     auth https://dashboard.peachpayments.com          checkout https://secure.peachpayments.com
+# (There is no `*-auth.peachpayments.com` host — it does not resolve.) Keep local dev on SANDBOX.
+PEACH_AUTH_BASE_URL="https://sandbox-dashboard.peachpayments.com"
 PEACH_CHECKOUT_BASE_URL="https://testsecure.peachpayments.com"
 # PEACH_WEBHOOK_URL="https://your-tunnel.trycloudflare.com/api/v1/webhooks/payments"
 PEACH_ENVIRONMENT="test"

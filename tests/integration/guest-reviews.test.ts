@@ -11,13 +11,13 @@ async function call<T = unknown>(db: TestDb, fn: string, params: unknown): Promi
   return rows[0]!.data;
 }
 
-// api_enqueue_review_invites() is niladic (no jsonb argument), unlike the other RPCs — `call` above
-// always sends one, which doesn't match this function's signature.
+// api_enqueue_review_invites takes the conventional single jsonb `p` (ignored by the body), like every
+// other api_* RPC, so it goes through the shared `call` helper — the SAME wrapped-in-`p` path the
+// production Supabase adapter uses. It was niladic until 20260828000000_review_invites_p_arg, which is
+// exactly why the maintenance cron (which calls it as fn(p := …)) could never reach it; calling it
+// raw as `select api_enqueue_review_invites()` here would re-hide that regression.
 async function callEnqueue(db: TestDb): Promise<number> {
-  const { rows } = await db.pg.query<{ data: number }>(
-    `select api_enqueue_review_invites() as data`,
-  );
-  return rows[0]!.data;
+  return call<number>(db, 'api_enqueue_review_invites', {});
 }
 
 describe('guest review requests: token submission + moderation', () => {
