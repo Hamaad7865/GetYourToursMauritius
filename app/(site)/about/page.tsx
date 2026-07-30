@@ -8,10 +8,11 @@ import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getLocale, getT } from '@/lib/i18n/server';
 import { RevealOnScroll } from '@/components/about/RevealOnScroll';
 import { HeroWaves } from '@/components/about/HeroWaves';
 import { BAND_PHOTO, STORY_PHOTOS, PHOTO_CREDITS } from '@/lib/content/about-photos';
+import { reviewStats } from '@/lib/content/reviews';
 
 export const runtime = 'edge';
 
@@ -40,11 +41,14 @@ const GOLD = '#E9B949';
 const CREAM = '#FBF7EF';
 const INK = '#11201F';
 
+/** The brand as the About copy writes it — the domain, lower-case, exactly as in the source deck. */
+const BRAND = 'bellemaretours.com';
+
 /** Heading helper: applies the Bricolage display face inline. */
 const displayFont = { fontFamily: 'var(--font-about-display), sans-serif' } as const;
 
-const metaTitle = `About Belle Mare Tours — your local Mauritius tour operator`;
-const metaDescription = `Belle Mare Tours Ltd is a licensed Mauritian tour & airport-transfer operator on the east coast, run by veteran driver-guide Noorani. Book direct for transparent fixed EUR prices, the same guide all day, and door-to-door pickup island-wide.`;
+const metaTitle = `About ${SITE.name} — the smart way to experience Mauritius`;
+const metaDescription = `${BRAND} is your trusted gateway to the beauty, culture and experiences of Mauritius. Curated excursions and private experiences, seamless airport and island transfers, car and scooter hire, and bespoke holiday planning — booked securely in one place.`;
 
 const DEFAULT_METADATA: Metadata = {
   // absolute: metaTitle already names the brand — stop the root template appending a second one.
@@ -97,6 +101,125 @@ function PinIcon({ color }: { color: string }) {
   );
 }
 
+/**
+ * Every other icon on the page, drawn from a shared 24×24 stroke grid. Each entry is just its
+ * path data, so a card only ever carries `icon: ICON.leaf` — that keeps ~20 icons from burying
+ * the copy they belong to, which is what this page is actually about.
+ */
+const ICON = {
+  // trust strip
+  verified: ['M12 3a9 9 0 100 18 9 9 0 000-18', 'M8.2 12.2l2.6 2.6 5-5.4'],
+  compass: ['M12 3a9 9 0 100 18 9 9 0 000-18', 'M15.4 8.6l-2 4.8-4.8 2 2-4.8 4.8-2z'],
+  shieldLock: [
+    'M12 2.6l7.4 3v6.1c0 4.5-3 8.2-7.4 10.7-4.4-2.5-7.4-6.2-7.4-10.7V5.6l7.4-3z',
+    'M9.6 11.7h4.8v4.1H9.6z',
+    'M10.7 11.7v-1.3a1.3 1.3 0 012.6 0v1.3',
+  ],
+  bolt: ['M13 3L4.6 13.6H10l-1 7.4 8.4-10.6H12l1-7.4z'],
+  // credentials bar
+  shieldCheck: [
+    'M12 2.6l7.4 3v6.1c0 4.5-3 8.2-7.4 10.7-4.4-2.5-7.4-6.2-7.4-10.7V5.6l7.4-3z',
+    'M8.6 11.9l2.3 2.3 4.6-4.9',
+  ],
+  // services
+  van: [
+    'M3 16.6V9.9a1.5 1.5 0 011.5-1.5h8.6v8.2',
+    'M13.1 10.9h3.4l3.5 3.6v2.1h-3.5',
+    'M6.4 16.6h3.4',
+    'M5.4 16.6a1.6 1.6 0 103.2 0 1.6 1.6 0 00-3.2 0',
+    'M15 16.6a1.6 1.6 0 103.2 0 1.6 1.6 0 00-3.2 0',
+  ],
+  car: [
+    'M3.4 14.9h17.2v3.4H3.4z',
+    'M5.4 14.9l1.9-4.6a1.8 1.8 0 011.7-1.1h6.2a1.8 1.8 0 011.7 1.1l1.9 4.6',
+    'M6.6 18.3v1.4M17.4 18.3v1.4',
+  ],
+  scooter: [
+    'M5.6 14.8a3 3 0 100 6 3 3 0 000-6',
+    'M18.4 14.8a3 3 0 100 6 3 3 0 000-6',
+    'M8.6 17.8h6.8l-2.6-6.6h-2.4',
+    'M12.8 11.2l1.6-3.6h2.6',
+  ],
+  camera: [
+    'M3.4 8.9h3.9l1.4-2.2h6.6l1.4 2.2h3.9v10.3H3.4z',
+    'M12 10.7a3.4 3.4 0 100 6.8 3.4 3.4 0 000-6.8',
+  ],
+  mountain: [
+    'M3 18.6l5.6-9.2 3.4 5.6 2.3-3.4 6.7 7z',
+    'M16.6 6.5a1.8 1.8 0 100 3.6 1.8 1.8 0 000-3.6',
+  ],
+  sail: [
+    'M12 3v9M12 5l6 2-6 3-6-3 6-2z',
+    'M3 16c1.5 1.5 3 1.5 4.5 0S10.5 14.5 12 16s3 1.5 4.5 0S19.5 14.5 21 16',
+    'M4 20c1.3 1.3 2.7 1.3 4 0s2.7-1.3 4 0 2.7 1.3 4 0',
+  ],
+  personHeart: [
+    'M11.4 11.4a3.3 3.3 0 100-6.6 3.3 3.3 0 000 6.6',
+    'M5 20.4c0-3.5 2.9-5.8 6.4-5.8',
+    'M17.2 20.8s-3.1-1.9-3.1-4a1.8 1.8 0 013.1-1.2 1.8 1.8 0 013.1 1.2c0 2.1-3.1 4-3.1 4z',
+  ],
+  // "why choose" — the dark band
+  tag: [
+    'M20.2 3.8v7.2a1.6 1.6 0 01-.5 1.2l-7.3 7.3a1.2 1.2 0 01-1.7 0l-6.2-6.2a1.2 1.2 0 010-1.7l7.3-7.3a1.6 1.6 0 011.2-.5h7.2z',
+    'M16.3 7.7a.9.9 0 100 1.8.9.9 0 000-1.8',
+  ],
+  receipt: ['M6 3.4h12v17.2l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4-2 1.4z', 'M9.2 8.6h5.6M9.2 12.4h5.6'],
+  calendarCheck: [
+    'M4.2 6.6h15.6v13.8H4.2z',
+    'M8.2 3.6v4M15.8 3.6v4M4.2 10.6h15.6',
+    'M9.4 15.4l2 2 3.4-3.6',
+  ],
+  pin: [
+    'M12 2.4c-4.1 0-7.4 3.3-7.4 7.4 0 5.4 7.4 12 7.4 12s7.4-6.6 7.4-12c0-4.1-3.3-7.4-7.4-7.4z',
+    'M12 12.4a2.6 2.6 0 100-5.2 2.6 2.6 0 000 5.2',
+  ],
+  headset: [
+    'M4.4 14.4v-2.2a7.6 7.6 0 0115.2 0v2.2',
+    'M4.4 13.4h2.4v5.2H5.6a1.2 1.2 0 01-1.2-1.2z',
+    'M19.6 13.4h-2.4v5.2h1.2a1.2 1.2 0 001.2-1.2z',
+    'M17.2 18.6a3 3 0 01-3 2.6H12',
+  ],
+  // values
+  heart: ['M12 20.6S4.2 15.9 4.2 10.4a4 4 0 017.8-1.6 4 4 0 017.8 1.6c0 5.5-7.8 10.2-7.8 10.2z'],
+  star: ['M12 3l2.6 5.6 6.2.7-4.6 4.2 1.3 6.1L12 16.5l-5.5 3.1 1.3-6.1L3.2 9.3l6.2-.7L12 3z'],
+  sliders: ['M4.4 7.4h15.2M4.4 12h15.2M4.4 16.6h15.2', 'M9.2 5.6v3.6M15.4 10.2v3.6M7.6 14.8v3.6'],
+  leaf: [
+    'M20 4.4c0 9.2-4.6 14.4-11.4 14.4a4.6 4.6 0 01-4.6-4.6C4 7.6 10 4.4 20 4.4z',
+    'M5.2 19.6C7.4 13.4 11.4 9.6 16.4 7.6',
+  ],
+  cup: [
+    'M4.6 8.6h11.2v6.2a4.4 4.4 0 01-4.4 4.4H9a4.4 4.4 0 01-4.4-4.4z',
+    'M15.8 10.2h1.6a2.4 2.4 0 010 4.8h-1.6',
+    'M8 3.4v2.2M12 3.4v2.2',
+  ],
+} as const;
+
+/** Renders any `ICON.*` entry at `color`. Stroke-only, decorative, never in the a11y tree. */
+function Icon({
+  paths,
+  color,
+  size = 24,
+}: {
+  paths: readonly string[];
+  color: string;
+  size?: number;
+}) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      {paths.map((d) => (
+        <path
+          key={d}
+          d={d}
+          stroke={color}
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      ))}
+    </svg>
+  );
+}
+
 /* ── reusable bits ────────────────────────────────────────────────────────────── */
 
 function Eyebrow({ children, color = TEAL }: { children: ReactNode; color?: string }) {
@@ -123,115 +246,151 @@ function ChevronDown() {
 
 export default async function AboutPage() {
   const t = await getT();
+  const locale = await getLocale();
+  /* Grouped in the reader's own locale — 1,076 in English, 1 076 in French. Both numbers come
+     from the scraped TripAdvisor/Google pool, so the claim can never drift from the data. */
+  const reviewCount = reviewStats.total.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-GB');
+  const reviewAverage = reviewStats.average.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-GB', {
+    minimumFractionDigits: 1,
+  });
 
+  /* The four headline reasons, lifted out of "Why choose {brand}" so they can sit in the strip
+     that overlaps the hero. The remaining five carry the section's own heading further down. */
   const trust = [
     {
       tintBg: 'rgba(14,140,146,0.12)',
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 2l7 3v6c0 4.5-3 8-7 11-4-3-7-6.5-7-11V5l7-3z"
-            stroke={TEAL}
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M8.5 12l2.2 2.2L15.5 9.5"
-            stroke={TEAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+      icon: <Icon paths={ICON.verified} color={TEAL} />,
+      title: t('Curated Experiences'),
+      blurb: t(
+        'Every experience is carefully selected to ensure exceptional quality, safety and outstanding customer satisfaction.',
       ),
-      title: t('Tourism Authority licensed'),
-      blurb: t('Approved & licensed by the Mauritius Tourism Authority.'),
       delay: 0,
     },
     {
       tintBg: 'rgba(233,185,73,0.18)',
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 2.5l2.7 6 6.6.6-5 4.3 1.5 6.4L12 16.9 6.2 19.8l1.5-6.4-5-4.3 6.6-.6L12 2.5z"
-            fill={GOLD}
-          />
-        </svg>
+      icon: <Icon paths={ICON.compass} color={GOLD} />,
+      title: t('Trusted Destination Experts'),
+      blurb: t(
+        'Benefit from extensive tourism expertise and insider knowledge to discover Mauritius with confidence.',
       ),
-      title: t('4.8★ from 1,000+ reviews'),
-      blurb: t('Rated across TripAdvisor & Google by real travellers.'),
       delay: 80,
     },
     {
       tintBg: 'rgba(14,140,146,0.12)',
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="8" r="3.4" stroke={TEAL} strokeWidth="1.8" />
-          <path
-            d="M5.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"
-            stroke={TEAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-        </svg>
+      icon: <Icon paths={ICON.shieldLock} color={TEAL} />,
+      title: t('Secure Online Payments'),
+      blurb: t(
+        'Book with complete peace of mind through our encrypted and secure payment gateway.',
       ),
-      title: t('The same guide all day'),
-      blurb: t('One driver-guide, door to door — never passed between taxis.'),
       delay: 160,
     },
     {
       tintBg: 'rgba(247,108,94,0.14)',
-      icon: (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M3 11l9-7 9 7"
-            stroke={CORAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M5 10v9h14v-9"
-            stroke={CORAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M10 19v-5h4v5"
-            stroke={CORAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+      icon: <Icon paths={ICON.bolt} color={CORAL} />,
+      title: t('Instant Booking Confirmation'),
+      blurb: t(
+        'Receive immediate confirmation and all the information you need before your experience begins.',
       ),
-      title: t('Book direct, no commission'),
-      blurb: t('No reseller mark-up — so your price stays lower.'),
       delay: 240,
     },
   ];
 
-  // The six "What we offer" cards. Five neutral, the sixth a teal gradient.
+  /* "Discover experiences" — the six collections. Deliberately NOT links: these are curated
+     groupings we describe here but do not yet filter on, so every one of them would land on the
+     same unfiltered catalogue. One honest CTA under the grid does that job instead. */
+  const collections = [
+    {
+      accent: CORAL,
+      title: t('Best Sellers'),
+      blurb: t('Explore our most popular experiences loved by visitors from around the world.'),
+      delay: 0,
+    },
+    {
+      accent: GOLD,
+      title: t('Luxury Collection'),
+      blurb: t(
+        'Exclusive experiences designed for travellers seeking comfort, privacy and exceptional service.',
+      ),
+      delay: 60,
+    },
+    {
+      accent: TEAL,
+      title: t('Family Adventures'),
+      blurb: t('Fun-filled activities and excursions suitable for families of every age.'),
+      delay: 120,
+    },
+    {
+      accent: CORAL,
+      title: t('Romantic Escapes'),
+      blurb: t(
+        'Create unforgettable moments with experiences designed for couples, honeymooners and special celebrations.',
+      ),
+      delay: 180,
+    },
+    {
+      accent: TEAL,
+      title: t('Nature & Adventure'),
+      blurb: t(
+        'From mountains and waterfalls to marine parks and nature reserves, discover the adventurous side of Mauritius.',
+      ),
+      delay: 240,
+    },
+    {
+      accent: TEAL,
+      title: t('Sea Experiences'),
+      blurb: t(
+        'Sail, snorkel, dive, fish or simply unwind on the spectacular turquoise waters surrounding the island.',
+      ),
+      delay: 300,
+    },
+  ];
+
+  // "Discover our services" — seven services, each pointed at the page that actually sells it.
   const offers = [
     {
-      href: '/activities',
-      tintBg: 'rgba(14,140,146,0.12)',
-      icon: (
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M5 19l3-6 5-2 6-9"
-            stroke={TEAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="5" cy="19" r="2" stroke={TEAL} strokeWidth="1.8" />
-          <circle cx="19" cy="4" r="2" stroke={TEAL} strokeWidth="1.8" />
-        </svg>
+      href: '/airport-transfers',
+      tintBg: 'rgba(247,108,94,0.14)',
+      icon: <Icon paths={ICON.van} color={CORAL} size={26} />,
+      title: t('Airport & Island Transfers'),
+      blurb: t(
+        'Reliable and comfortable transportation throughout Mauritius, ensuring every journey begins and ends with complete peace of mind.',
       ),
-      title: t('Private Sightseeing Tours of Mauritius'),
-      blurb: t('Your own driver-guide and vehicle, north to south, at your pace.'),
+      cta: t('Book a transfer'),
+      ctaColor: CORAL,
+      delay: 0,
+    },
+    {
+      href: '/rent',
+      tintBg: 'rgba(233,185,73,0.2)',
+      icon: <Icon paths={ICON.car} color={INK} size={26} />,
+      title: t('Car Hire'),
+      blurb: t(
+        'Choose from a wide range of well-maintained vehicles, from compact city cars to spacious family SUVs, giving you the freedom to explore Mauritius at your own pace.',
+      ),
+      cta: t('View vehicles'),
+      ctaColor: TEAL,
+      delay: 70,
+    },
+    {
+      href: '/rent',
+      tintBg: 'rgba(233,185,73,0.2)',
+      icon: <Icon paths={ICON.scooter} color={INK} size={26} />,
+      title: t('Scooter Rentals'),
+      blurb: t(
+        'Discover the island with flexibility and convenience through our modern scooter rental solutions — perfect for couples and independent travellers seeking a more adventurous way to explore.',
+      ),
+      cta: t('View scooters'),
+      ctaColor: TEAL,
+      delay: 140,
+    },
+    {
+      href: '/mauritius-tours',
+      tintBg: 'rgba(14,140,146,0.12)',
+      icon: <Icon paths={ICON.camera} color={TEAL} size={26} />,
+      title: t('Sightseeing Experiences'),
+      blurb: t(
+        'Discover Mauritius through carefully curated island tours that reveal breathtaking landscapes, cultural landmarks, botanical gardens, heritage sites, scenic viewpoints, and hidden gems.',
+      ),
       cta: t('Explore tours'),
       ctaColor: TEAL,
       delay: 0,
@@ -239,184 +398,202 @@ export default async function AboutPage() {
     {
       href: '/activities',
       tintBg: 'rgba(14,140,146,0.12)',
-      icon: (
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M12 3v9M12 5l6 2-6 3-6-3 6-2z"
-            stroke={TEAL}
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M3 16c1.5 1.5 3 1.5 4.5 0S10.5 14.5 12 16s3 1.5 4.5 0S19.5 14.5 21 16"
-            stroke={TEAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M4 20c1.3 1.3 2.7 1.3 4 0s2.7-1.3 4 0 2.7 1.3 4 0"
-            stroke={TEAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+      icon: <Icon paths={ICON.mountain} color={TEAL} size={26} />,
+      title: t('Land Adventures'),
+      blurb: t(
+        'Experience unforgettable activities including hiking, quad biking, ziplining, wildlife parks, rum distilleries, tea plantations, shopping tours, food discoveries, and eco-tourism experiences.',
       ),
-      title: t('Catamaran Cruises & Île aux Cerfs'),
-      blurb: t('Sail the east-coast lagoon to the island’s most loved beach.'),
-      cta: t('View cruises'),
+      cta: t('See what’s on'),
       ctaColor: TEAL,
       delay: 70,
     },
     {
       href: '/activities',
       tintBg: 'rgba(14,140,146,0.12)',
-      icon: (
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M4 14c4 0 5-3 8-3s4 3 8 3c-1 4-4 6-8 6s-7-2-8-6z"
-            stroke={TEAL}
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M12 11c0-3 1-5 4-6-1 2-1 3 0 4"
-            stroke={TEAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+      icon: <Icon paths={ICON.sail} color={TEAL} size={26} />,
+      title: t('Sea Experiences'),
+      blurb: t(
+        'Enjoy catamaran cruises, dolphin and whale watching, snorkelling, scuba diving, speedboat excursions, private island escapes, sunset cruises, deep-sea fishing, and unforgettable moments on the Indian Ocean.',
       ),
-      title: t('Dolphin Swims in Tamarin Bay'),
-      blurb: t('An early west-coast start to meet wild dolphins offshore.'),
-      cta: t('See the trip'),
+      cta: t('Head to the water'),
       ctaColor: TEAL,
       delay: 140,
     },
     {
-      href: '/airport-transfers',
+      href: '/contact',
       tintBg: 'rgba(247,108,94,0.14)',
-      icon: (
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M4 14l1.5-5A2 2 0 017.4 7.5h9.2A2 2 0 0118.5 9L20 14"
-            stroke={CORAL}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path d="M3 14h18v4H3z" stroke={CORAL} strokeWidth="1.8" strokeLinejoin="round" />
-          <circle cx="7" cy="18.5" r="1.4" fill={CORAL} />
-          <circle cx="17" cy="18.5" r="1.4" fill={CORAL} />
-        </svg>
+      icon: <Icon paths={ICON.personHeart} color={CORAL} size={26} />,
+      title: t('Personalised Experiences'),
+      blurb: t(
+        'Our travel specialists create bespoke itineraries designed around your interests, schedule, and budget — whether you’re celebrating a honeymoon, anniversary, family holiday, corporate retreat, or simply creating unforgettable memories.',
       ),
-      title: t('Airport Transfers & Door-to-Door Pickup'),
-      blurb: t('Clean, modern minivans meeting you at arrivals — fixed fares.'),
-      cta: t('Get a transfer'),
+      cta: t('Talk to a specialist'),
       ctaColor: CORAL,
       delay: 0,
     },
+  ];
+
+  // The five remaining reasons from "Why choose {brand}", carried in the dark band.
+  const reasons = [
     {
-      href: '/rent',
-      tintBg: 'rgba(233,185,73,0.2)',
-      icon: (
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="6" cy="17" r="3" stroke={INK} strokeWidth="1.8" />
-          <circle cx="18" cy="17" r="3" stroke={INK} strokeWidth="1.8" />
-          <path
-            d="M9 17h6M6 17l4-7h4l2 4"
-            stroke={INK}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M13 10l-1-3h-2"
-            stroke={INK}
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+      tintBg: 'rgba(233,185,73,0.22)',
+      icon: <Icon paths={ICON.tag} color={GOLD} size={22} />,
+      title: t('Best Value'),
+      blurb: t('Competitive pricing with transparent rates and no hidden costs.'),
+    },
+    {
+      tintBg: 'rgba(255,255,255,0.14)',
+      icon: <Icon paths={ICON.receipt} color="#fff" size={22} />,
+      title: t('Transparent Pricing'),
+      blurb: t('Clear pricing with no hidden surprises, allowing you to book with confidence.'),
+    },
+    {
+      tintBg: 'rgba(247,108,94,0.22)',
+      icon: <Icon paths={ICON.calendarCheck} color={CORAL} size={22} />,
+      title: t('Flexible Booking Options'),
+      blurb: t(
+        'Enjoy greater flexibility with selected experiences offering convenient cancellation and rescheduling policies.',
       ),
-      title: t('Car & Scooter Rental in Mauritius'),
-      blurb: t('Want to explore solo? Pick up wheels through the same local team.'),
-      cta: t('View rentals'),
-      ctaColor: TEAL,
-      delay: 70,
+    },
+    {
+      tintBg: 'rgba(233,185,73,0.22)',
+      icon: <Icon paths={ICON.pin} color={GOLD} size={22} />,
+      title: t('Island-Wide Service'),
+      blurb: t(
+        'Whether you’re staying in the north, south, east, west or central region, our services are available across Mauritius.',
+      ),
+    },
+    {
+      tintBg: 'rgba(255,255,255,0.14)',
+      icon: <Icon paths={ICON.headset} color="#fff" size={22} />,
+      title: t('Dedicated Customer Support'),
+      blurb: t(
+        'Our friendly travel specialists are available before, during and after your holiday to ensure everything runs perfectly.',
+      ),
     },
   ];
 
   const regions = [
     {
       tag: t('North'),
-      title: t('Grand Baie & Pamplemousses'),
-      blurb: t('Cap Malheureux, the botanical garden & northern islets.'),
+      title: t('Beaches, nightlife & coastal villages'),
+      blurb: t(
+        'Beautiful beaches, vibrant nightlife, shopping, restaurants and lively coastal villages.',
+      ),
       delay: 0,
     },
     {
-      tag: t('East · home'),
-      title: t('Belle Mare & Île aux Cerfs'),
-      blurb: t('Our home shore — Trou d’Eau Douce & the calm lagoons.'),
+      tag: t('South'),
+      title: t('Cliffs, waterfalls & wild scenery'),
+      blurb: t('Untouched nature, dramatic cliffs, waterfalls and breathtaking scenery.'),
       delay: 60,
+    },
+    {
+      tag: t('East'),
+      title: t('Lagoons & island excursions'),
+      blurb: t('Crystal-clear lagoons, white sandy beaches and world-renowned island excursions.'),
+      delay: 120,
       highlight: true,
     },
     {
-      tag: t('South'),
-      title: t('Le Morne & Chamarel'),
-      blurb: t('Seven Coloured Earths, Black River Gorges & Gris Gris.'),
-      delay: 120,
-    },
-    {
       tag: t('West'),
-      title: t('Tamarin & Flic en Flac'),
-      blurb: t('Dolphin bay, the sunset coast & Casela nature park.'),
+      title: t('Dolphins, mountains & sunsets'),
+      blurb: t(
+        'Dolphin encounters, mountain landscapes, spectacular sunsets and outdoor adventures.',
+      ),
       delay: 180,
     },
     {
-      tag: t('Central'),
-      title: t('Port Louis & the highlands'),
-      blurb: t('The capital’s markets, Trou aux Cerfs & Plaine Champagne.'),
+      tag: t('Central Plateau'),
+      title: t('Gardens, museums & markets'),
+      blurb: t(
+        'Discover the cultural heart of Mauritius with gardens, museums, markets and charming towns.',
+      ),
       delay: 240,
+    },
+  ];
+
+  const values = [
+    {
+      tintBg: 'rgba(247,108,94,0.14)',
+      icon: <Icon paths={ICON.heart} color={CORAL} />,
+      title: t('Passion'),
+      blurb: t('We love sharing the beauty and diversity of Mauritius.'),
+      delay: 0,
+    },
+    {
+      tintBg: 'rgba(233,185,73,0.2)',
+      icon: <Icon paths={ICON.star} color={GOLD} />,
+      title: t('Excellence'),
+      blurb: t('We continuously strive for exceptional quality in everything we do.'),
+      delay: 60,
+    },
+    {
+      tintBg: 'rgba(14,140,146,0.12)',
+      icon: <Icon paths={ICON.shieldLock} color={TEAL} />,
+      title: t('Integrity'),
+      blurb: t('Honesty, transparency and trust guide every relationship we build.'),
+      delay: 120,
+    },
+    {
+      tintBg: 'rgba(14,140,146,0.12)',
+      icon: <Icon paths={ICON.sliders} color={TEAL} />,
+      title: t('Personalisation'),
+      blurb: t('Every traveller deserves an experience tailored to their individual expectations.'),
+      delay: 180,
+    },
+    {
+      tintBg: 'rgba(14,140,146,0.12)',
+      icon: <Icon paths={ICON.leaf} color={TEAL} />,
+      title: t('Sustainability'),
+      blurb: t('We encourage responsible tourism that protects Mauritius for future generations.'),
+      delay: 240,
+    },
+    {
+      tintBg: 'rgba(233,185,73,0.2)',
+      icon: <Icon paths={ICON.cup} color={GOLD} />,
+      title: t('Hospitality'),
+      blurb: t(
+        'Welcoming guests with warmth, professionalism and genuine care is at the heart of everything we do.',
+      ),
+      delay: 300,
     },
   ];
 
   const faqs = [
     {
-      q: t('Is Belle Mare Tours licensed?'),
+      q: t('How do I book?'),
+      a: t('Booking is quick and secure through our online platform.'),
+    },
+    {
+      q: t('Can I customise my itinerary?'),
       a: t(
-        'Yes. Belle Mare Tours Ltd is approved and licensed by the Mauritius Tourism Authority, run by veteran local driver-guide Noorani, based in Belle Mare on the east coast.',
+        'Yes. Our travel specialists can create personalised itineraries tailored to your preferences.',
       ),
     },
     {
-      q: t('Which areas of Mauritius do you cover?'),
+      q: t('Is online payment secure?'),
+      a: t('Absolutely. All payments are processed through secure encrypted payment systems.'),
+    },
+    {
+      q: t('Do you provide airport transfers?'),
+      a: t('Yes. We provide island-wide airport arrival and departure services.'),
+    },
+    {
+      q: t('Can I book private experiences?'),
+      a: t('Yes. Many of our tours and activities are available as exclusive private experiences.'),
+    },
+    {
+      q: t('What happens in case of bad weather?'),
       a: t(
-        'We operate island-wide — North, East, South, West and Central — with door-to-door pickup from any hotel, Airbnb or cruise port.',
+        'Where required, experiences may be rescheduled or refunded in accordance with the applicable booking conditions.',
       ),
     },
     {
-      q: t('Do you pick up from my hotel and the airport?'),
+      q: t('Can you organise honeymoon or special occasions?'),
       a: t(
-        'Yes. We offer door-to-door pickup from any hotel, Airbnb or cruise port island-wide, as well as airport arrivals and transfers.',
+        'Yes. We create personalised experiences for honeymoons, anniversaries, birthdays, proposals and corporate events.',
       ),
-    },
-    {
-      q: t('Are your tours private?'),
-      a: t(
-        'Yes. The same English- and French-speaking driver-guide looks after you all day — you are never passed between taxis.',
-      ),
-    },
-    {
-      q: t('How do I pay?'),
-      a: t(
-        'Prices are transparent and fixed in EUR, shown up front. You pay securely by card and receive instant e-voucher confirmation.',
-      ),
-    },
-    {
-      q: t('What is your cancellation policy?'),
-      a: t('Free cancellation up to 24 hours before your booking.'),
     },
   ];
 
@@ -467,7 +644,7 @@ export default async function AboutPage() {
                     strokeLinejoin="round"
                   />
                 </svg>
-                {t('About Belle Mare Tours')}
+                {t('The Smart Way to Experience Mauritius')}
               </span>
               <h1
                 className="m-0 mt-[12px] font-extrabold text-white"
@@ -479,15 +656,19 @@ export default async function AboutPage() {
                   textWrap: 'balance',
                 }}
               >
-                {t('Mauritius, shown to you by the people who live here')}
+                {t('Your Journey Begins Here')}
               </h1>
               <p
                 className="mt-[16px] max-w-[620px] text-white/90"
                 style={{ fontSize: 'clamp(17px,2vw,21px)', lineHeight: 1.6, textWrap: 'pretty' }}
               >
                 {t(
-                  'We’re Belle Mare Tours — a licensed east-coast operator run by veteran driver-guide Noorani. Book direct with the team that actually drives the roads, for fixed prices and a guide who stays with you all day.',
+                  'Welcome to {brand}, your trusted gateway to discovering the extraordinary beauty, vibrant culture, and unforgettable experiences that make Mauritius one of the world’s most captivating island destinations.',
+                  { brand: BRAND },
                 )}
+              </p>
+              <p className="mt-3.5 max-w-[620px] font-semibold" style={{ color: GOLD }}>
+                {t('Discover more. Experience more. Create memories that last a lifetime.')}
               </p>
               <div className="mt-[24px] flex flex-wrap gap-3">
                 <Link
@@ -495,7 +676,7 @@ export default async function AboutPage() {
                   className="inline-flex items-center gap-[9px] rounded-full px-7 py-[15px] text-base font-bold text-white no-underline transition hover:-translate-y-0.5"
                   style={{ background: CORAL, boxShadow: '0 12px 30px rgba(247,108,94,0.4)' }}
                 >
-                  {t('Browse tours')}
+                  {t('Discover Experiences')}
                   <ArrowIcon />
                 </Link>
                 <Link
@@ -521,9 +702,10 @@ export default async function AboutPage() {
         >
           {/* The cards are h3s, so without an h2 here the outline jumped h1 → h3. The design has no
               visible heading for this strip, so it is carried for assistive tech only — and it
-              doubles as the section's accessible name. */}
+              doubles as the section's accessible name. The five remaining reasons live under the
+              visible "Why choose" heading further down, so this wording stays distinct. */}
           <h2 id="trust-heading" className="sr-only">
-            {t('Why travellers trust us')}
+            {t('Why choose {brand} — at a glance', { brand: BRAND })}
           </h2>
           <div
             className="grid gap-[clamp(12px,1.5vw,18px)]"
@@ -561,6 +743,54 @@ export default async function AboutPage() {
               </div>
             ))}
           </div>
+
+          {/* Credentials, kept apart from the four benefit cards above on purpose: a licence and an
+              aggregate rating are verifiable facts about the company, not selling points, and they
+              carry more weight when they read that way. Both are sourced — the registration number
+              next to the licence, the platforms and a link to the reviews next to the score. */}
+          <div
+            data-reveal
+            data-reveal-delay={320}
+            className="mt-[clamp(12px,1.5vw,18px)] flex flex-wrap items-center gap-x-[clamp(22px,4vw,56px)] gap-y-4 rounded-[20px] border px-[22px] py-[18px]"
+            style={{ background: 'rgba(14,140,146,0.07)', borderColor: 'rgba(14,140,146,0.2)' }}
+          >
+            <div className="flex items-center gap-3">
+              <Icon paths={ICON.shieldCheck} color={TEAL} size={26} />
+              <span>
+                <span className="block text-[14.5px] font-bold leading-tight">
+                  {t('Approved & licensed by the Mauritius Tourism Authority.')}
+                </span>
+                <span
+                  className="block text-[12.5px] leading-tight"
+                  style={{ color: 'rgba(17,32,31,0.62)' }}
+                >
+                  {SITE.legalName} · BRN {SITE.brn}
+                </span>
+              </span>
+            </div>
+
+            <Link
+              href="/reviews"
+              className="flex items-center gap-3 no-underline transition hover:opacity-80"
+              style={{ color: 'inherit' }}
+            >
+              <Icon paths={ICON.star} color={GOLD} size={26} />
+              <span>
+                <span className="block text-[14.5px] font-bold leading-tight">
+                  {t('{avg}/5 from {count} reviews', {
+                    avg: reviewAverage,
+                    count: reviewCount,
+                  })}
+                </span>
+                <span
+                  className="block text-[12.5px] leading-tight"
+                  style={{ color: 'rgba(17,32,31,0.62)' }}
+                >
+                  {t('Rated across TripAdvisor & Google by real travellers.')}
+                </span>
+              </span>
+            </Link>
+          </div>
         </section>
 
         {/* ============ OUR STORY ============ */}
@@ -585,7 +815,7 @@ export default async function AboutPage() {
                   textWrap: 'balance',
                 }}
               >
-                {t('Two driver-guides, one island they know by heart')}
+                {t('Mauritius is more than our destination — it is our passion')}
               </h2>
               <p
                 className="mt-[22px]"
@@ -597,7 +827,8 @@ export default async function AboutPage() {
                 }}
               >
                 {t(
-                  'Noorani has spent his life on Mauritian roads — one of the island’s most experienced driver-guides, based where the day begins, in Belle Mare on the east coast.',
+                  '{brand} was created to help travellers experience the island beyond the ordinary.',
+                  { brand: BRAND },
                 )}
               </p>
               <p
@@ -610,7 +841,7 @@ export default async function AboutPage() {
                 }}
               >
                 {t(
-                  'Over the years they grew a trusted local operation on one simple promise: the same driver-guide looks after you from morning pickup to evening drop-off. You’re never handed between taxis, never left waiting, never sold a detour you didn’t ask for.',
+                  'We believe every visitor deserves more than simply booking activities. They deserve carefully crafted experiences, genuine hospitality and personalised service that transform holidays into lifelong memories.',
                 )}
               </p>
               <p
@@ -623,7 +854,7 @@ export default async function AboutPage() {
                 }}
               >
                 {t(
-                  'The Mauritius they show you is the one they grew up with — the still lagoons off Belle Mare, a catamaran out to Île aux Cerfs, dolphins at first light in Tamarin Bay, and the colour of the Port Louis markets.',
+                  'Through our expertise, commitment to excellence and passion for showcasing Mauritius, we have created a platform where visitors can confidently discover, compare and book the island’s finest travel experiences.',
                 )}
               </p>
             </div>
@@ -717,10 +948,10 @@ export default async function AboutPage() {
                 }}
               >
                 <div className="text-[24px] font-extrabold leading-none" style={displayFont}>
-                  {t('East coast')}
+                  {t('Island-wide')}
                 </div>
                 <div className="mt-0.5 text-[12.5px] font-semibold opacity-80">
-                  {t('Based in Belle Mare')}
+                  {t('North · South · East · West · Central')}
                 </div>
               </div>
             </div>
@@ -748,14 +979,14 @@ export default async function AboutPage() {
           </svg>
         </div>
 
-        {/* ============ WHAT WE OFFER ============ */}
+        {/* ============ DISCOVER EXPERIENCES ============ */}
         <section
-          id="offer"
-          className="mx-auto max-w-shell"
-          style={{ padding: 'clamp(24px,4vw,48px) clamp(18px,5vw,72px) clamp(72px,10vw,120px)' }}
+          id="experiences"
+          className="mx-auto max-w-shell scroll-mt-24"
+          style={{ padding: 'clamp(24px,4vw,48px) clamp(18px,5vw,72px) clamp(56px,8vw,88px)' }}
         >
-          <div data-reveal className="max-w-[680px]">
-            <Eyebrow>{t('What we offer')}</Eyebrow>
+          <div data-reveal className="max-w-[760px]">
+            <Eyebrow>{t('Discover experiences')}</Eyebrow>
             <h2
               className="m-0 mt-3.5 font-bold"
               style={{
@@ -766,7 +997,7 @@ export default async function AboutPage() {
                 textWrap: 'balance',
               }}
             >
-              {t('Every way to see Mauritius — booked direct')}
+              {t('Every traveller is unique, and so is every journey')}
             </h2>
             <p
               className="mt-4"
@@ -774,102 +1005,204 @@ export default async function AboutPage() {
                 fontSize: 'clamp(16px,1.7vw,18.5px)',
                 lineHeight: 1.6,
                 color: 'rgba(17,32,31,0.7)',
+                textWrap: 'pretty',
               }}
             >
               {t(
-                'From a full day of private sightseeing to a quick airport run, it’s the same trusted team behind every trip.',
+                'Whether you dream of sailing across crystal-clear lagoons, exploring lush forests and waterfalls, discovering charming villages, enjoying authentic Mauritian cuisine, or simply relaxing in paradise, we make every journey effortless, memorable, and uniquely yours.',
+              )}
+            </p>
+            <p
+              className="mt-4"
+              style={{
+                fontSize: 'clamp(16px,1.7vw,18.5px)',
+                lineHeight: 1.6,
+                color: 'rgba(17,32,31,0.7)',
+                textWrap: 'pretty',
+              }}
+            >
+              {t(
+                'From carefully curated excursions and private experiences to seamless transfers and bespoke holiday planning, we bring together the very best of Mauritius in one trusted platform.',
               )}
             </p>
           </div>
 
           <div
-            id="tours"
-            className="grid scroll-mt-24 gap-[clamp(14px,1.8vw,22px)]"
+            className="grid gap-[clamp(12px,1.6vw,18px)]"
             style={{
-              gridTemplateColumns: `repeat(auto-fit, minmax(270px, 1fr))`,
+              gridTemplateColumns: `repeat(auto-fit, minmax(240px, 1fr))`,
               marginTop: 'clamp(34px,4vw,52px)',
             }}
           >
-            {offers.map((card) => (
-              <Link
-                key={card.title}
-                href={card.href}
+            {collections.map((item) => (
+              <div
+                key={item.title}
                 data-reveal
-                data-reveal-delay={card.delay}
+                data-reveal-delay={item.delay}
+                className="rounded-[20px] bg-white p-[24px_22px] transition duration-300 hover:-translate-y-[6px] motion-reduce:transform-none motion-reduce:transition-none"
+                style={{
+                  border: '1px solid rgba(17,32,31,0.08)',
+                  borderTop: `3px solid ${item.accent}`,
+                  boxShadow: '0 10px 26px rgba(17,32,31,0.05)',
+                }}
+              >
+                <h3
+                  className="m-0 mb-2 text-[19px] font-bold tracking-[-0.01em]"
+                  style={displayFont}
+                >
+                  {item.title}
+                </h3>
+                <p
+                  className="m-0 text-[14.5px] leading-[1.55]"
+                  style={{ color: 'rgba(17,32,31,0.66)' }}
+                >
+                  {item.blurb}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div data-reveal style={{ marginTop: 'clamp(26px,3vw,36px)' }}>
+            <Link
+              href="/activities"
+              className="inline-flex items-center gap-[9px] rounded-full px-7 py-[15px] text-base font-bold text-white no-underline transition hover:-translate-y-0.5"
+              style={{ background: TEAL, boxShadow: '0 12px 30px rgba(14,140,146,0.32)' }}
+            >
+              {t('Browse all experiences')}
+              <ArrowIcon />
+            </Link>
+          </div>
+        </section>
+
+        {/* ============ DISCOVER OUR SERVICES ============ */}
+        <section
+          id="services"
+          className="scroll-mt-24"
+          style={{ background: '#fff', borderTop: '1px solid rgba(17,32,31,0.06)' }}
+        >
+          <div
+            className="mx-auto max-w-shell"
+            style={{ padding: 'clamp(72px,10vw,128px) clamp(18px,5vw,72px)' }}
+          >
+            <div data-reveal className="max-w-[680px]">
+              <Eyebrow>{t('Discover our services')}</Eyebrow>
+              <h2
+                className="m-0 mt-3.5 font-bold"
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(30px,4.4vw,52px)',
+                  lineHeight: 1.06,
+                  letterSpacing: '-0.02em',
+                  textWrap: 'balance',
+                }}
+              >
+                {t('Everything your Mauritius holiday needs, in one place')}
+              </h2>
+              <p
+                className="mt-4"
+                style={{
+                  fontSize: 'clamp(16px,1.7vw,18.5px)',
+                  lineHeight: 1.6,
+                  color: 'rgba(17,32,31,0.7)',
+                }}
+              >
+                {t(
+                  'From the moment you land to the day you fly home — transfers, wheels, tours and the sea, all booked through one trusted platform.',
+                )}
+              </p>
+            </div>
+
+            <div
+              id="tours"
+              className="grid scroll-mt-24 gap-[clamp(14px,1.8vw,22px)]"
+              style={{
+                gridTemplateColumns: `repeat(auto-fit, minmax(270px, 1fr))`,
+                marginTop: 'clamp(34px,4vw,52px)',
+              }}
+            >
+              {offers.map((card) => (
+                <Link
+                  key={card.title}
+                  href={card.href}
+                  data-reveal
+                  data-reveal-delay={card.delay}
+                  className={cardBase}
+                  style={{
+                    color: 'inherit',
+                    background: CREAM,
+                    borderColor: 'rgba(17,32,31,0.08)',
+                  }}
+                >
+                  <span
+                    className="flex h-[50px] w-[50px] items-center justify-center rounded-[14px]"
+                    style={{ background: card.tintBg }}
+                  >
+                    {card.icon}
+                  </span>
+                  <h3 className="m-0 text-[20px] font-bold tracking-[-0.01em]" style={displayFont}>
+                    {card.title}
+                  </h3>
+                  <p
+                    className="m-0 flex-1 text-[14.5px] leading-[1.55]"
+                    style={{ color: 'rgba(17,32,31,0.66)' }}
+                  >
+                    {card.blurb}
+                  </p>
+                  <span
+                    className="inline-flex items-center gap-[7px] text-[14.5px] font-bold"
+                    style={{ color: card.ctaColor }}
+                  >
+                    {card.cta} <ArrowIcon size={14} />
+                  </span>
+                </Link>
+              ))}
+
+              {/* 8th card — the AI planner, our own take on "bespoke holiday planning" */}
+              <Link
+                href="/ai-road-trip-planner"
+                data-reveal
+                data-reveal-delay={70}
                 className={cardBase}
                 style={{
-                  color: 'inherit',
-                  background: '#fff',
-                  borderColor: 'rgba(17,32,31,0.08)',
+                  background: 'linear-gradient(150deg, #0E8C92, #0B5C63)',
+                  color: '#fff',
+                  borderColor: 'rgba(255,255,255,0.12)',
                 }}
               >
                 <span
                   className="flex h-[50px] w-[50px] items-center justify-center rounded-[14px]"
-                  style={{ background: card.tintBg }}
+                  style={{ background: 'rgba(255,255,255,0.16)' }}
                 >
-                  {card.icon}
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path
+                      d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"
+                      fill={GOLD}
+                    />
+                    <path
+                      d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z"
+                      fill="#fff"
+                    />
+                  </svg>
                 </span>
                 <h3 className="m-0 text-[20px] font-bold tracking-[-0.01em]" style={displayFont}>
-                  {card.title}
+                  {t('Plan Your Trip with AI')}
                 </h3>
                 <p
                   className="m-0 flex-1 text-[14.5px] leading-[1.55]"
-                  style={{ color: 'rgba(17,32,31,0.66)' }}
+                  style={{ color: 'rgba(255,255,255,0.82)' }}
                 >
-                  {card.blurb}
+                  {t(
+                    'Tell us your dates, interests and pace — and get a tailored island itinerary in seconds.',
+                  )}
                 </p>
                 <span
                   className="inline-flex items-center gap-[7px] text-[14.5px] font-bold"
-                  style={{ color: card.ctaColor }}
+                  style={{ color: GOLD }}
                 >
-                  {card.cta} <ArrowIcon size={14} />
+                  {t('Plan my trip')} <ArrowIcon size={14} />
                 </span>
               </Link>
-            ))}
-
-            {/* 6th card — AI gradient */}
-            <Link
-              href="/ai-road-trip-planner"
-              data-reveal
-              data-reveal-delay={140}
-              className={cardBase}
-              style={{
-                background: 'linear-gradient(150deg, #0E8C92, #0B5C63)',
-                color: '#fff',
-                borderColor: 'rgba(255,255,255,0.12)',
-              }}
-            >
-              <span
-                className="flex h-[50px] w-[50px] items-center justify-center rounded-[14px]"
-                style={{ background: 'rgba(255,255,255,0.16)' }}
-              >
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                  <path
-                    d="M12 3l1.8 4.2L18 9l-4.2 1.8L12 15l-1.8-4.2L6 9l4.2-1.8L12 3z"
-                    fill={GOLD}
-                  />
-                  <path
-                    d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9L18 14z"
-                    fill="#fff"
-                  />
-                </svg>
-              </span>
-              <h3 className="m-0 text-[20px] font-bold tracking-[-0.01em]" style={displayFont}>
-                {t('Build a Custom Day with AI')}
-              </h3>
-              <p
-                className="m-0 flex-1 text-[14.5px] leading-[1.55]"
-                style={{ color: 'rgba(255,255,255,0.82)' }}
-              >
-                {t('Tell us your dates and pace — get a tailored island day in seconds.')}
-              </p>
-              <span
-                className="inline-flex items-center gap-[7px] text-[14.5px] font-bold"
-                style={{ color: GOLD }}
-              >
-                {t('Plan my day')} <ArrowIcon size={14} />
-              </span>
-            </Link>
+            </div>
           </div>
         </section>
 
@@ -931,7 +1264,7 @@ export default async function AboutPage() {
           >
             <div className="max-w-[860px]">
               <span id="band-eyebrow">
-                <Eyebrow color={GOLD}>{t('Why we do it this way')}</Eyebrow>
+                <Eyebrow color={GOLD}>{t('Our purpose')}</Eyebrow>
               </span>
               <blockquote
                 className="m-0 mt-5 font-bold"
@@ -945,20 +1278,20 @@ export default async function AboutPage() {
                 }}
               >
                 {t(
-                  'We show you the island the way we’d want to see it ourselves — the quiet hours, the right tide, and the road that’s worth the detour.',
+                  'Our purpose is simple: to help every traveller experience the true spirit of Mauritius.',
                 )}
               </blockquote>
               <p
                 className="mt-6 text-[15px] font-semibold"
                 style={{ color: 'rgba(255,255,255,0.82)' }}
               >
-                {t('Belle Mare Tours — licensed local operator, based on the east coast')}
+                {t('Discover more. Experience more. Create memories that last a lifetime.')}
               </p>
             </div>
           </div>
         </section>
 
-        {/* ============ WHY WE BUILT THIS SITE ============ */}
+        {/* ============ WHY CHOOSE US ============ */}
         <section
           id="why"
           className="relative overflow-hidden text-white"
@@ -997,7 +1330,7 @@ export default async function AboutPage() {
               style={{ gridTemplateColumns: `repeat(auto-fit, minmax(300px, 1fr))` }}
             >
               <div data-reveal>
-                <Eyebrow color={GOLD}>{t('Why we built this site')}</Eyebrow>
+                <Eyebrow color={GOLD}>{t('Why choose us')}</Eyebrow>
                 <h2
                   className="m-0 mt-3.5 font-bold text-white"
                   style={{
@@ -1008,7 +1341,7 @@ export default async function AboutPage() {
                     textWrap: 'balance',
                   }}
                 >
-                  {t('Cut out the middleman, keep the price honest')}
+                  {t('Why Choose {brand}', { brand: BRAND })}
                 </h2>
                 <p
                   className="mt-[22px] text-white/85"
@@ -1019,92 +1352,13 @@ export default async function AboutPage() {
                   }}
                 >
                   {t(
-                    'Big booking platforms take a heavy commission on every trip. That money either inflates the price you pay — or quietly shrinks what reaches the local team who actually drive you around the island.',
-                  )}
-                </p>
-                <p
-                  className="mt-4 text-white/85"
-                  style={{
-                    fontSize: 'clamp(16px,1.7vw,18.5px)',
-                    lineHeight: 1.65,
-                    textWrap: 'pretty',
-                  }}
-                >
-                  {t(
-                    'So we built our own booking platform. Reserve direct with the operator and you get transparent fixed prices, instant confirmation, free cancellation — and more of what you pay stays with the people showing you Mauritius.',
+                    'Curated experiences, destination expertise and secure payments are only the start. Here is what else you get every time you book with us.',
                   )}
                 </p>
               </div>
 
               <div data-reveal className="flex flex-col gap-3.5">
-                {[
-                  {
-                    tintBg: 'rgba(233,185,73,0.22)',
-                    icon: (
-                      <svg
-                        width="22"
-                        height="22"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M12 4v16M8 8h6.5a2.5 2.5 0 010 5H8m0 0h7"
-                          stroke={GOLD}
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ),
-                    title: t('Transparent fixed EUR prices'),
-                    blurb: t('What you see up front is what you pay. No reseller mark-up.'),
-                  },
-                  {
-                    tintBg: 'rgba(255,255,255,0.14)',
-                    icon: (
-                      <svg
-                        width="22"
-                        height="22"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <path
-                          d="M13 3L4 14h6l-1 7 9-11h-6l1-7z"
-                          stroke="#fff"
-                          strokeWidth="1.8"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ),
-                    title: t('Instant e-voucher confirmation'),
-                    blurb: t('Pay securely by card and your booking is confirmed at once.'),
-                  },
-                  {
-                    tintBg: 'rgba(247,108,94,0.22)',
-                    icon: (
-                      <svg
-                        width="22"
-                        height="22"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        aria-hidden="true"
-                      >
-                        <circle cx="12" cy="12" r="9" stroke={CORAL} strokeWidth="1.8" />
-                        <path
-                          d="M12 7v5l3 2"
-                          stroke={CORAL}
-                          strokeWidth="1.8"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                    ),
-                    title: t('Free cancellation up to 24h'),
-                    blurb: t('Plans change. Cancel up to 24 hours before, free.'),
-                  },
-                ].map((row) => (
+                {reasons.map((row) => (
                   <div
                     key={row.title}
                     className="flex items-start gap-4 rounded-[18px] border p-[20px_22px]"
@@ -1135,14 +1389,14 @@ export default async function AboutPage() {
           </div>
         </section>
 
-        {/* ============ ACROSS THE WHOLE ISLAND ============ */}
+        {/* ============ EXPLORE MAURITIUS ============ */}
         <section
           id="island"
           className="mx-auto max-w-shell"
           style={{ padding: 'clamp(72px,10vw,128px) clamp(18px,5vw,72px)' }}
         >
           <div data-reveal className="max-w-[680px]">
-            <Eyebrow>{t('Across the whole island')}</Eyebrow>
+            <Eyebrow>{t('Explore Mauritius')}</Eyebrow>
             <h2
               className="m-0 mt-3.5 font-bold"
               style={{
@@ -1153,7 +1407,7 @@ export default async function AboutPage() {
                 textWrap: 'balance',
               }}
             >
-              {t('One operator, every corner of Mauritius')}
+              {t('Every region tells a different story')}
             </h2>
             <p
               className="mt-4"
@@ -1163,7 +1417,7 @@ export default async function AboutPage() {
                 color: 'rgba(17,32,31,0.7)',
               }}
             >
-              {t('Door-to-door pickup island-wide — wherever you’re staying, we reach you.')}
+              {t('Every journey reveals something unforgettable.')}
             </p>
           </div>
 
@@ -1244,11 +1498,125 @@ export default async function AboutPage() {
           </div>
         </section>
 
-        {/* ============ FAQ ============ */}
+        {/* ============ VISION · MISSION · VALUES ============ */}
         <section
-          id="faq"
+          id="vision"
+          className="scroll-mt-24"
           style={{ background: '#fff', borderTop: '1px solid rgba(17,32,31,0.06)' }}
         >
+          <div
+            className="mx-auto max-w-shell"
+            style={{ padding: 'clamp(72px,10vw,128px) clamp(18px,5vw,72px)' }}
+          >
+            <div
+              className="grid gap-[clamp(14px,1.8vw,22px)]"
+              style={{ gridTemplateColumns: `repeat(auto-fit, minmax(300px, 1fr))` }}
+            >
+              <div
+                data-reveal
+                className="rounded-[22px] p-[32px_30px] text-white"
+                style={{
+                  background: 'linear-gradient(150deg, #0E8C92, #0B5C63)',
+                  boxShadow: '0 22px 48px rgba(11,92,99,0.28)',
+                }}
+              >
+                <Eyebrow color={GOLD}>{t('Our vision')}</Eyebrow>
+                <p
+                  className="m-0 mt-4 font-bold text-white"
+                  style={{
+                    ...displayFont,
+                    fontSize: 'clamp(20px,2.4vw,27px)',
+                    lineHeight: 1.28,
+                    letterSpacing: '-0.01em',
+                    textWrap: 'pretty',
+                  }}
+                >
+                  {t(
+                    'To become the leading digital travel platform for Mauritius by inspiring travellers through exceptional experiences, innovative services and world-class hospitality.',
+                  )}
+                </p>
+              </div>
+              <div
+                data-reveal
+                data-reveal-delay={80}
+                className="rounded-[22px] border p-[32px_30px]"
+                style={{ background: CREAM, borderColor: 'rgba(17,32,31,0.08)' }}
+              >
+                <Eyebrow>{t('Our mission')}</Eyebrow>
+                <p
+                  className="m-0 mt-4 font-bold"
+                  style={{
+                    ...displayFont,
+                    fontSize: 'clamp(20px,2.4vw,27px)',
+                    lineHeight: 1.28,
+                    letterSpacing: '-0.01em',
+                    textWrap: 'pretty',
+                  }}
+                >
+                  {t(
+                    'To connect travellers with the finest experiences Mauritius has to offer while delivering outstanding customer service, secure bookings and personalised travel solutions that exceed expectations.',
+                  )}
+                </p>
+              </div>
+            </div>
+
+            <div data-reveal style={{ marginTop: 'clamp(48px,6vw,80px)' }}>
+              <Eyebrow>{t('Our values')}</Eyebrow>
+              <h2
+                className="m-0 mt-3.5 max-w-[680px] font-bold"
+                style={{
+                  ...displayFont,
+                  fontSize: 'clamp(30px,4.4vw,52px)',
+                  lineHeight: 1.06,
+                  letterSpacing: '-0.02em',
+                  textWrap: 'balance',
+                }}
+              >
+                {t('What we stand for')}
+              </h2>
+            </div>
+
+            <div
+              className="grid gap-[clamp(12px,1.6vw,18px)]"
+              style={{
+                gridTemplateColumns: `repeat(auto-fit, minmax(240px, 1fr))`,
+                marginTop: 'clamp(28px,3.4vw,44px)',
+              }}
+            >
+              {values.map((value) => (
+                <div
+                  key={value.title}
+                  data-reveal
+                  data-reveal-delay={value.delay}
+                  className="rounded-[20px] border p-[24px_22px] transition duration-300 hover:-translate-y-[6px] motion-reduce:transform-none motion-reduce:transition-none"
+                  style={{ background: CREAM, borderColor: 'rgba(17,32,31,0.08)' }}
+                >
+                  <div
+                    className="mb-3.5 flex h-11 w-11 items-center justify-center rounded-xl"
+                    style={{ background: value.tintBg }}
+                  >
+                    {value.icon}
+                  </div>
+                  <h3
+                    className="m-0 mb-[5px] text-[18px] font-bold tracking-[-0.01em]"
+                    style={displayFont}
+                  >
+                    {value.title}
+                  </h3>
+                  <p
+                    className="m-0 text-[14.5px] leading-[1.5]"
+                    style={{ color: 'rgba(17,32,31,0.66)' }}
+                  >
+                    {value.blurb}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ============ FAQ ============ */}
+        <section id="faq">
           <div
             className="mx-auto max-w-[880px]"
             style={{ padding: 'clamp(72px,10vw,128px) clamp(18px,5vw,72px)' }}
@@ -1269,7 +1637,7 @@ export default async function AboutPage() {
                   textWrap: 'balance',
                 }}
               >
-                {t('Frequently asked questions')}
+                {t('Frequently Asked Questions')}
               </h2>
             </div>
             <div className="flex flex-col gap-3">
@@ -1279,7 +1647,7 @@ export default async function AboutPage() {
                   data-reveal
                   open={i === 0}
                   className="group overflow-hidden rounded-[16px] border"
-                  style={{ background: CREAM, borderColor: 'rgba(17,32,31,0.08)' }}
+                  style={{ background: '#fff', borderColor: 'rgba(17,32,31,0.08)' }}
                 >
                   <summary
                     className="flex cursor-pointer list-none items-center justify-between gap-4 font-bold tracking-[-0.01em] marker:hidden [&::-webkit-details-marker]:hidden"
@@ -1334,7 +1702,7 @@ export default async function AboutPage() {
             className="relative mx-auto max-w-[980px] text-center"
             style={{ padding: 'clamp(64px,9vw,112px) clamp(18px,5vw,72px)' }}
           >
-            <Eyebrow color={GOLD}>{t('Ready when you are')}</Eyebrow>
+            <Eyebrow color={GOLD}>{t('Start planning your adventure today')}</Eyebrow>
             <h2
               className="mx-auto mt-4 font-extrabold text-white"
               style={{
@@ -1342,21 +1710,24 @@ export default async function AboutPage() {
                 fontSize: 'clamp(32px,5vw,58px)',
                 lineHeight: 1.04,
                 letterSpacing: '-0.02em',
-                maxWidth: '14ch',
+                maxWidth: '16ch',
                 textWrap: 'balance',
               }}
             >
-              {t('Let’s plan your Mauritius, together')}
+              {t('Let Your Mauritius Story Begin')}
             </h2>
             <p
-              className="mx-auto mt-[18px] max-w-[560px] text-white/85"
+              className="mx-auto mt-[18px] max-w-[600px] text-white/85"
               style={{ fontSize: 'clamp(16px,1.9vw,19px)', lineHeight: 1.6 }}
             >
-              {t('Message Noorani directly, or browse fixed-price tours and book in minutes.')}
+              {t(
+                'Whether you’re planning your first visit or returning to discover something new, {brand} is here to make every moment unforgettable.',
+                { brand: BRAND },
+              )}
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3.5">
               <a
-                href={whatsappUrl(t('Hi Belle Mare Tours! I’d like to plan my trip to Mauritius.'))}
+                href={whatsappUrl(t('Hi! I’d like to plan my trip to Mauritius.'))}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2.5 rounded-full px-[30px] py-4 text-[17px] font-bold no-underline transition hover:-translate-y-0.5"
@@ -1375,21 +1746,19 @@ export default async function AboutPage() {
                 >
                   <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.92C21.95 6.45 17.5 2 12.04 2zm5.8 14.04c-.24.68-1.4 1.3-1.94 1.38-.5.07-1.13.1-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.8-4.17-4.94-4.36-.15-.19-1.19-1.58-1.19-3.01 0-1.43.75-2.13 1.02-2.42.27-.29.59-.36.79-.36.2 0 .39.002.56.01.18.008.42-.07.66.5.24.59.82 2.04.89 2.18.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.16-.19.69-.81.88-1.09.18-.28.37-.23.61-.14.25.09 1.58.74 1.85.88.27.14.45.21.51.32.07.11.07.64-.17 1.32z" />
                 </svg>
-                {t('Message us on WhatsApp')}
+                {t('Talk to a travel specialist')}
               </a>
               <Link
                 href="/activities"
                 className="inline-flex items-center gap-[9px] rounded-full px-[30px] py-4 text-[17px] font-bold text-white no-underline transition hover:-translate-y-0.5"
                 style={{ background: CORAL, boxShadow: '0 14px 34px rgba(247,108,94,0.4)' }}
               >
-                {t('Browse tours')}
+                {t('Discover Experiences')}
                 <ArrowIcon />
               </Link>
             </div>
             <p className="mt-[26px] text-[13.5px] text-white/60">
-              {t(
-                'English & French spoken · Door-to-door island-wide · Free cancellation up to 24h',
-              )}
+              {t('Explore. Discover. Experience Mauritius Like Never Before.')}
             </p>
             {/* Pexels does not require attribution — we credit anyway, and keeping the line here
                 makes it obvious at a glance which photography is still licensed stock rather than
