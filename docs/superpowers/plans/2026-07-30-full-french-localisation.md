@@ -32,8 +32,27 @@ falls back to English, which is exactly the bug class this project exists to fix
 copy the string from the source file — do not retype it. Task 1's test catches this automatically.
 
 **Migrations deploy automatically.** Since 2026-07-22, `git push origin main` runs `supabase db push`.
-No manual owner step. But `supabase/catch-up.sql` must be updated in the same commit as any new
-migration — it backs drift recovery and the parity tests.
+No manual owner step.
+
+**Adding a migration touches FOUR files, not one.** Miss any and CI goes red:
+
+1. `supabase/migrations/<version>_<name>.sql` — the migration itself.
+2. `supabase/catch-up.sql` — append the same statements. Backs drift recovery and the parity tests.
+3. `supabase/backfill-migration-ledger.sql` — add a `('<version>', '<name>')` row.
+   `tests/unit/migration-ledger.test.ts` asserts this file mirrors the migrations directory **1:1**,
+   by version *and* name. This is the step people forget.
+4. `supabase/setup.sql` — regenerate with `npm run setup:sql`, never hand-edit.
+
+**Version numbers must sort AFTER every existing migration.** Check the current maximum first:
+
+```bash
+ls supabase/migrations/*.sql | sed 's#.*/##' | sort | tail -3
+```
+
+At the time of writing the maximum is `20260831000000_error_logs`, so this plan's migrations use
+`202609010000xx`. If more migrations have landed since, pick versions after those instead — a
+migration numbered below an already-applied one is at best skipped and at worst applied out of
+order. The ledger test also requires a unique, well-formed 14-digit prefix.
 
 **Git conventions:** work on `main` (standing owner override). **Never `git add -A`** — a parallel
 session may share the working tree. Always `git add` explicit paths, as every commit step below does.
@@ -46,9 +65,9 @@ session may share the working tree. Always `git add` explicit paths, as every co
 
 - `tests/unit/i18n-coverage.test.ts` — the guard rail; asserts every `t()` key exists in `fr`.
 - `scripts/i18n-scan.mjs` — shared scanner used by the test and runnable by hand for progress.
-- `supabase/migrations/20260815000000_activity_translation_source.sql` — `source` column.
-- `supabase/migrations/20260815000100_localised_catalogue_rpcs.sql` — locale-aware RPCs.
-- `supabase/migrations/20260815000200_booking_locale.sql` — `bookings.locale`.
+- `supabase/migrations/20260901000000_activity_translation_source.sql` — `source` column.
+- `supabase/migrations/20260901000100_localised_catalogue_rpcs.sql` — locale-aware RPCs.
+- `supabase/migrations/20260901000200_booking_locale.sql` — `bookings.locale`.
 - `supabase/seed-fr-catalogue.sql` — machine-drafted French for the catalogue.
 - `src/lib/content/_areas.fr.gen.ts`, `_additional-attractions.fr.gen.ts`, `_blog.fr.gen.ts`,
   `_transfers.fr.gen.ts` — French prose, translatable fields only.
@@ -361,7 +380,7 @@ reviewable and independently revertable, separate from the large content seed in
 
 **Files:**
 
-- Create: `supabase/migrations/20260815000000_activity_translation_source.sql`
+- Create: `supabase/migrations/20260901000000_activity_translation_source.sql`
 - Modify: `supabase/catch-up.sql`
 
 - [ ] **Step 1: Write the migration**
@@ -384,6 +403,18 @@ Open `supabase/catch-up.sql` and append the exact SQL above at the end. This fil
 drifted database and what the parity tests compare against; a migration missing from it fails those
 tests.
 
+- [ ] **Step 2b: Add the ledger row**
+
+In `supabase/backfill-migration-ledger.sql`, add a row matching the existing format:
+
+```sql
+  ('20260901000000', 'activity_translation_source'),
+```
+
+The name is the filename with the version prefix and `.sql` stripped — it must match **exactly**.
+`tests/unit/migration-ledger.test.ts` compares this file to the migrations directory 1:1 and fails
+on any mismatch. Tasks 5 and 15 add migrations too, and each needs its own row here.
+
 - [ ] **Step 3: Regenerate the consolidated setup file and types**
 
 ```bash
@@ -404,7 +435,7 @@ migration have drifted apart — re-check Step 2.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add supabase/migrations/20260815000000_activity_translation_source.sql supabase/catch-up.sql supabase/setup.sql
+git add supabase/migrations/20260901000000_activity_translation_source.sql supabase/catch-up.sql supabase/setup.sql
 git commit -m "feat(db): flag machine-drafted activity translations
 
 Adds activity_translations.source so the admin editor can surface French copy
@@ -604,7 +635,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 
 **Files:**
 
-- Create: `supabase/migrations/20260815000100_localised_catalogue_rpcs.sql`
+- Create: `supabase/migrations/20260901000100_localised_catalogue_rpcs.sql`
 - Modify: `supabase/catch-up.sql`
 - Test: `tests/integration/localised-catalogue.test.ts` (create)
 
@@ -721,7 +752,7 @@ Expected: FAIL — the `fr` cases return English because the RPC ignores the loc
 
 Copy the current `api_get_activity` body from `supabase/setup.sql` (search for
 `create or replace function api_get_activity`) into
-`supabase/migrations/20260815000100_localised_catalogue_rpcs.sql`, then apply these changes:
+`supabase/migrations/20260901000100_localised_catalogue_rpcs.sql`, then apply these changes:
 
 1. Add a locale CTE-style join by turning the trailing `from activities a` into:
 
@@ -775,7 +806,7 @@ npm run setup:sql
 - [ ] **Step 6: Commit**
 
 ```bash
-git add supabase/migrations/20260815000100_localised_catalogue_rpcs.sql supabase/catch-up.sql supabase/setup.sql tests/integration/localised-catalogue.test.ts
+git add supabase/migrations/20260901000100_localised_catalogue_rpcs.sql supabase/catch-up.sql supabase/setup.sql tests/integration/localised-catalogue.test.ts
 git commit -m "feat(catalogue): resolve activity detail text per locale in SQL
 
 api_get_activity now left-joins activity_translations and coalesces PER FIELD,
@@ -795,7 +826,7 @@ This is what finally puts French on cards, search results, home rails, related t
 
 **Files:**
 
-- Modify: `supabase/migrations/20260815000100_localised_catalogue_rpcs.sql`
+- Modify: `supabase/migrations/20260901000100_localised_catalogue_rpcs.sql`
 - Modify: `supabase/catch-up.sql`
 - Modify: `tests/integration/localised-catalogue.test.ts`
 
@@ -874,7 +905,7 @@ Append the statement to `supabase/catch-up.sql`, then:
 
 ```bash
 npm run setup:sql
-git add supabase/migrations/20260815000100_localised_catalogue_rpcs.sql supabase/catch-up.sql supabase/setup.sql tests/integration/localised-catalogue.test.ts
+git add supabase/migrations/20260901000100_localised_catalogue_rpcs.sql supabase/catch-up.sql supabase/setup.sql tests/integration/localised-catalogue.test.ts
 git commit -m "feat(catalogue): localise search results, cards and home rails
 
 api_search_activities now resolves title and summary per locale, which is what
@@ -1724,7 +1755,7 @@ npm run typecheck && npm run lint && npm test
 
 **Files:**
 
-- Create: `supabase/migrations/20260815000200_booking_locale.sql`
+- Create: `supabase/migrations/20260901000200_booking_locale.sql`
 - Modify: `supabase/catch-up.sql`, the checkout booking path
 
 - [ ] **Step 1: Write the migration**
@@ -1775,7 +1806,7 @@ npm run setup:sql && npx vitest run tests/integration
 - [ ] **Step 4: Commit**
 
 ```bash
-git add supabase/migrations/20260815000200_booking_locale.sql supabase/catch-up.sql supabase/setup.sql src/lib/services/bookings.ts
+git add supabase/migrations/20260901000200_booking_locale.sql supabase/catch-up.sql supabase/setup.sql src/lib/services/bookings.ts
 git commit -m "feat(bookings): record the language the guest booked in
 
 Email and PDFs render later from a cron worker with no request context, so the
