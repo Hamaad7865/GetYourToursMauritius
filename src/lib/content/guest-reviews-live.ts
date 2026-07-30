@@ -2,6 +2,7 @@ import { reviewStats as seedStats, featuredReviews as seedReviews } from './revi
 import type { ReviewStats, FeaturedReview } from './reviews';
 import { publicServiceContext } from '@/lib/http/context';
 import { callRpc } from '@/lib/services/rpc';
+import { getLocale } from '@/lib/i18n/server';
 
 /**
  * Live review stats: the scraped TripAdvisor/Google pool (`_reviews.gen.ts`) merged with APPROVED
@@ -56,7 +57,11 @@ export function mergeFeaturedReviews(
 }
 
 async function loadApprovedGuestReviews(): Promise<DbApprovedReview[]> {
-  const data = await callRpc(publicServiceContext(), 'api_list_approved_guest_reviews', {});
+  const data = await callRpc(
+    publicServiceContext(await getLocale()),
+    'api_list_approved_guest_reviews',
+    {},
+  );
   return Array.isArray(data) ? (data as DbApprovedReview[]) : [];
 }
 

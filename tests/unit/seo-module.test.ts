@@ -14,6 +14,9 @@ vi.mock('@/lib/services/seo', () => ({
 vi.mock('@/lib/http/context', () => ({
   publicServiceContext: () => ({ db: { rpc: vi.fn() } }),
 }));
+// overrideMetadata now resolves the visitor's locale via getLocale() (reads next/headers `cookies()`,
+// unavailable outside a real request) — stub it so this unit test doesn't need a Next.js request context.
+vi.mock('@/lib/i18n/server', () => ({ getLocale: async () => 'en' }));
 
 import { getSeoMeta, listDbPosts, getDbPost } from '@/lib/services/seo';
 import { overrideMetadata } from '@/lib/seo/override';

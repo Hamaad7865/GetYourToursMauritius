@@ -4,6 +4,10 @@ import { describe, expect, it, beforeEach, vi } from 'vitest';
 const { searchActivities } = vi.hoisted(() => ({ searchActivities: vi.fn() }));
 vi.mock('@/lib/services/activities', () => ({ searchActivities }));
 vi.mock('@/lib/http/context', () => ({ publicServiceContext: () => ({}) }));
+// featuredActivities/belleMareActivityGroups now resolve the visitor's locale via getLocale() (reads
+// next/headers `cookies()`, unavailable outside a real request) — stub it so these unit tests don't
+// need a Next.js request context.
+vi.mock('@/lib/i18n/server', () => ({ getLocale: async () => 'en' }));
 
 const { featuredActivities, belleMareActivityGroups } = await import('@/lib/seo/landing');
 

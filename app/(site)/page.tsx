@@ -10,6 +10,7 @@ import { FeaturedReviews } from '@/components/site/FeaturedReviews';
 import { PopularSearches } from '@/components/site/PopularSearches';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
+import { getLocale } from '@/lib/i18n/server';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import type { TourSummary } from '@/lib/validation/tours';
 
@@ -47,7 +48,10 @@ const DEFAULT_METADATA: Metadata = {
 
 async function getActivities(): Promise<TourSummary[]> {
   try {
-    const { items } = await searchActivities(publicServiceContext(), { page: 1, pageSize: 100 });
+    const { items } = await searchActivities(publicServiceContext(await getLocale()), {
+      page: 1,
+      pageSize: 100,
+    });
     return items;
   } catch (error) {
     console.error('[home] catalogue fetch failed', error);

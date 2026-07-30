@@ -34,7 +34,7 @@ import { loadContentDefaults } from '@/lib/services/content-defaults';
 import { Faq } from '@/components/catalogue/Faq';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getT } from '@/lib/i18n/server';
+import { getLocale, getT } from '@/lib/i18n/server';
 import { publicServiceContext } from '@/lib/http/context';
 import { getActivity, searchActivities, CATALOGUE_HIDDEN_SLUGS } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
@@ -53,7 +53,7 @@ export const runtime = 'edge';
 
 const loadActivity = cache(async (slug: string): Promise<TourDetail | null> => {
   try {
-    return await getActivity(publicServiceContext(), slug);
+    return await getActivity(publicServiceContext(await getLocale()), slug);
   } catch (error) {
     if (error instanceof NotFoundError) return null;
     // Anything else — a Supabase outage, an RPC failure, a zod mismatch on ONE drifted row — is not
@@ -69,7 +69,7 @@ const loadActivity = cache(async (slug: string): Promise<TourDetail | null> => {
 
 async function loadRelated(activity: TourDetail): Promise<TourSummary[]> {
   try {
-    const { items } = await searchActivities(publicServiceContext(), {
+    const { items } = await searchActivities(publicServiceContext(await getLocale()), {
       page: 1,
       pageSize: 10,
       category: activity.category,
@@ -147,7 +147,7 @@ export default async function ActivityDetailPage({
   // merge shared-first and dedupe. A category with no set — or an unreachable defaults RPC — renders
   // the activity's own lists, exactly as before this feature existed.
   // Spec: docs/superpowers/specs/2026-07-16-activity-content-defaults-design.md
-  const contentDefaults = await loadContentDefaults(publicServiceContext());
+  const contentDefaults = await loadContentDefaults(publicServiceContext(await getLocale()));
   const content = applyDefaults(
     activity.category,
     {

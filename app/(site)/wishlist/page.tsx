@@ -4,6 +4,7 @@ import { SiteFooter } from '@/components/site/SiteFooter';
 import { WishlistView } from '@/components/wishlist/WishlistView';
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
+import { getLocale } from '@/lib/i18n/server';
 import { SITE } from '@/lib/seo/site';
 import type { TourSummary } from '@/lib/validation/tours';
 
@@ -21,7 +22,10 @@ export const metadata: Metadata = {
 // saved activities as cards (the catalogue is small, so one pull is fine).
 async function getActivities(): Promise<TourSummary[]> {
   try {
-    const { items } = await searchActivities(publicServiceContext(), { page: 1, pageSize: 100 });
+    const { items } = await searchActivities(publicServiceContext(await getLocale()), {
+      page: 1,
+      pageSize: 100,
+    });
     return items;
   } catch (error) {
     console.error('[wishlist] catalogue fetch failed', error);

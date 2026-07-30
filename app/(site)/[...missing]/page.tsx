@@ -1,6 +1,7 @@
 import { notFound, permanentRedirect } from 'next/navigation';
 import { publicServiceContext } from '@/lib/http/context';
 import { lookupRedirect } from '@/lib/services/seo';
+import { getLocale } from '@/lib/i18n/server';
 import { isSafeRedirectTarget, normalizeRedirectPath } from '@/lib/validation/seo';
 
 export const runtime = 'edge';
@@ -16,7 +17,7 @@ export default async function MissingPage({ params }: { params: Promise<{ missin
   const path = `/${missing.map((s) => decodeURIComponent(s)).join('/')}`;
   let to: string | null = null;
   try {
-    to = await lookupRedirect(publicServiceContext(), path);
+    to = await lookupRedirect(publicServiceContext(await getLocale()), path);
   } catch {
     /* DB unavailable / not migrated — behave like a plain 404 */
   }

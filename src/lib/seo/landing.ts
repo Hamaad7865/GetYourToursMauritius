@@ -1,5 +1,6 @@
 import { publicServiceContext } from '@/lib/http/context';
 import { searchActivities } from '@/lib/services/activities';
+import { getLocale } from '@/lib/i18n/server';
 import type { SearchToursQuery, TourSummary } from '@/lib/validation/tours';
 
 /**
@@ -15,7 +16,7 @@ export async function featuredActivities(
   opts: { category?: string; q?: string; limit?: number } = {},
 ): Promise<TourSummary[]> {
   const limit = opts.limit ?? 6;
-  const ctx = publicServiceContext();
+  const ctx = publicServiceContext(await getLocale());
 
   const fetchPage = async (query: { category?: string; q?: string }): Promise<TourSummary[]> => {
     try {
@@ -59,7 +60,7 @@ const SIGHTSEEING_CATEGORY = 'Taxi Sightseeing tours';
  * featuredActivities above.
  */
 export async function belleMareActivityGroups(): Promise<ActivityGroup[]> {
-  const ctx = publicServiceContext();
+  const ctx = publicServiceContext(await getLocale());
 
   const fetchAll = async (
     query: Pick<SearchToursQuery, 'region' | 'category'>,

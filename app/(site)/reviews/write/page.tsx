@@ -2,6 +2,7 @@ import { InfoPage } from '@/components/site/InfoPage';
 import { ReviewWriteForm } from '@/components/site/ReviewWriteForm';
 import { publicServiceContext } from '@/lib/http/context';
 import { getReviewInviteContext } from '@/lib/services/reviews';
+import { getLocale } from '@/lib/i18n/server';
 import { SITE } from '@/lib/seo/site';
 
 export const runtime = 'edge';
@@ -12,7 +13,9 @@ export default async function ReviewWritePage({
   searchParams: Promise<{ token?: string }>;
 }) {
   const { token } = await searchParams;
-  const context = token ? await getReviewInviteContext(publicServiceContext(), token) : null;
+  const context = token
+    ? await getReviewInviteContext(publicServiceContext(await getLocale()), token)
+    : null;
 
   if (!token || !context) {
     return (

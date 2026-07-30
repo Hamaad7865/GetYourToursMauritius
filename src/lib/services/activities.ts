@@ -50,6 +50,7 @@ export async function searchActivities(
     minRating: query.minRating ?? null,
     page: query.page,
     pageSize: query.pageSize,
+    locale: ctx.locale,
   });
   const result = searchResultSchema.parse(data);
   // Drop the dedicated transfer products (see CATALOGUE_HIDDEN_SLUGS) from every catalogue surface, and
@@ -60,7 +61,7 @@ export async function searchActivities(
 }
 
 export async function getActivity(ctx: ServiceContext, slug: string): Promise<TourDetail> {
-  const data = await callRpc(ctx, 'api_get_activity', { slug });
+  const data = await callRpc(ctx, 'api_get_activity', { slug, locale: ctx.locale });
   if (data === null || data === undefined) {
     throw new NotFoundError(`Activity "${slug}" not found`);
   }

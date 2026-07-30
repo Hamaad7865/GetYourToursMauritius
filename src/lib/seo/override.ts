@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { publicServiceContext } from '@/lib/http/context';
 import { getSeoMeta } from '@/lib/services/seo';
+import { getLocale } from '@/lib/i18n/server';
 
 /**
  * Merge the admin-editable `seo_meta` override for `path` over a page's built-in metadata.
@@ -10,7 +11,7 @@ import { getSeoMeta } from '@/lib/services/seo';
  */
 export async function overrideMetadata(path: string, defaults: Metadata): Promise<Metadata> {
   try {
-    const o = await getSeoMeta(publicServiceContext(), path);
+    const o = await getSeoMeta(publicServiceContext(await getLocale()), path);
     if (!o || (!o.title && !o.description && !o.ogImageUrl)) return defaults;
 
     const merged: Metadata = { ...defaults };

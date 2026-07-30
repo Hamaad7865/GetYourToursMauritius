@@ -10,7 +10,7 @@ import {
 import { JsonLd } from '@/components/seo/JsonLd';
 import { breadcrumbListJsonLd, faqPageJsonLd, serviceJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getLocale, getT } from '@/lib/i18n/server';
 import { listRentalVehicles } from '@/lib/services/rental';
 import { publicServiceContext } from '@/lib/http/context';
 import { RentalWidget } from '@/components/rental/RentalWidget';
@@ -72,7 +72,7 @@ export default async function RentPage() {
   const t = await getT();
   let fleet: RentalVehicle[] = [];
   try {
-    fleet = await listRentalVehicles(publicServiceContext());
+    fleet = await listRentalVehicles(publicServiceContext(await getLocale()));
   } catch {
     // The fleet picker is an enhancement — if the read fails, the SEO content + WhatsApp CTA still render.
     fleet = [];

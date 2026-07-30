@@ -22,7 +22,7 @@ import { overrideMetadata } from '@/lib/seo/override';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { FaqAccordion } from '@/components/seo/LandingSections';
-import { getT } from '@/lib/i18n/server';
+import { getLocale, getT } from '@/lib/i18n/server';
 import type { TourSummary } from '@/lib/validation/tours';
 
 // Raw English so the visible accordion answers match the FAQPage JSON-LD exactly (rich-result eligible).
@@ -104,7 +104,7 @@ export async function generateMetadata({
 
 async function loadResults(params: BrowseParams): Promise<{ items: TourSummary[]; total: number }> {
   try {
-    const result = await searchActivities(publicServiceContext(), {
+    const result = await searchActivities(publicServiceContext(await getLocale()), {
       page: params.page,
       pageSize: BROWSE_PAGE_SIZE,
       q: params.q,
