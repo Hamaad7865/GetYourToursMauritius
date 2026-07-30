@@ -17,6 +17,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{ts,tsx,js,mjs,json,css,md}\"",
+    "hooks:install": "git config core.hooksPath .githooks",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,json,css,md}\"",
     "test": "vitest run",
     "test:watch": "vitest",

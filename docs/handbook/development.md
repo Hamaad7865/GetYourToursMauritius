@@ -61,6 +61,25 @@ npm run build
 
 If `format:check` fails: `npm run format`, then re-run.
 
+### The pre-commit hook (run this once per clone)
+
+```bash
+npm run hooks:install
+```
+
+It points `core.hooksPath` at `.githooks/`, whose `pre-commit` **refuses any commit containing an
+unformatted staged file**. On 2026-07-30 five consecutive pushes to `main` were rejected at
+`format:check`, each costing a deploy of _everyone's_ work — the hook exists so that class of failure
+stops at the commit instead of the pipeline.
+
+It **checks, it does not fix.** More than one session often shares this working tree and staging area,
+and a hook that ran `prettier --write` and re-staged would sweep a parallel session's half-finished
+edits into someone else's commit. (That exact race produced a bad commit the same day: prettier ran, a
+four-minute test run followed, and `git add` picked up a file the other session had rewritten in the
+meantime.) Run `npm run format` yourself when it complains.
+
+`git commit --no-verify` bypasses it — CI will not.
+
 ### ⚠️ You cannot build the deployable artifact on Windows
 
 `npm run pages:build` fails on Windows with `spawn npx ENOENT` (an upstream `@cloudflare/next-on-pages`

@@ -1,0 +1,42 @@
+#!/bin/sh
+# Refuse a commit that would fail CI's `format:check` step.
+#
+# Why this exists: on 2026-07-30 five consecutive pushes to main were rejected by CI at the
+# format:check step, each on a file committed straight from an editor without prettier. A red CI
+# blocks the Release workflow entirely, so every one of those cost a deploy — of everyone's work,
+# not just the author's.
+#
+# Why it CHECKS instead of fixing: this repo is often worked in by more than one session at once,
+# sharing one working tree and one staging area. A hook that ran `prettier --write` and re-staged
+# would sweep whichever half-finished edits a parallel session happened to have in the file at that
+# moment into someone else's commit. That exact race produced a bad commit the same day. Checking
+# mutates nothing.
+#
+# Bypass with `git commit --no-verify` if you genuinely need to (a WIP commit on a branch, say) —
+# but CI will still reject it on main.
+#
+# Enable (once per clone):  git config core.hooksPath .githooks
+# `npm run hooks:install` does the same thing.
+
+# Only the extensions package.json's format script covers.
+staged=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|js|mjs|json|css|md)$')
+[ -z "$staged" ] && exit 0
+
+# --no-error-on-unmatched-pattern: a staged path can be gitignored or already deleted from disk.
+# shellcheck disable=SC2086
+unformatted=$(printf '%s\n' $staged | xargs npx prettier --list-different --no-error-on-unmatched-pattern 2>/dev/null)
+
+if [ -n "$unformatted" ]; then
+  echo ""
+  echo "  ✗ Commit blocked: these staged files are not prettier-formatted, and CI will reject them:"
+  echo ""
+  printf '      %s\n' $unformatted
+  echo ""
+  echo "  Fix:  npm run format"
+  echo ""
+  echo "  (A red CI stops the Cloudflare deploy for everyone, which is why this is a hard stop.)"
+  echo ""
+  exit 1
+fi
+
+exit 0
