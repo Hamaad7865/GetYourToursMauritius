@@ -126,6 +126,8 @@ type ActivityTranslationsRow = {
   meeting_point: string | null;
   seo_title: string | null;
   seo_description: string | null;
+  /** 'human' = written or approved by staff; 'machine' = auto-drafted, awaiting review in /admin. */
+  source: string;
 };
 type ActivityTranslationsInsert = {
   id?: string;
@@ -140,6 +142,7 @@ type ActivityTranslationsInsert = {
   meeting_point?: string | null;
   seo_title?: string | null;
   seo_description?: string | null;
+  source?: string;
 };
 
 type ActivityImagesRow = {

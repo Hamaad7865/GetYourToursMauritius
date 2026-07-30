@@ -602,6 +602,109 @@ export async function deleteActivity(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/* --------------------------------------------------------------------------------------------
+ * French translations (activity_translations, locale = 'fr'). Task 3 added a `source`
+ * ('machine' | 'human') column so the owner can tell an auto-drafted row from one they've
+ * personally reviewed — this is the editing UI + write path for it.
+ * ------------------------------------------------------------------------------------------ */
+
+export interface ActivityTranslationForm {
+  title: string | null;
+  summary: string | null;
+  description: string | null;
+  meetingPoint: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  highlights: string[];
+  inclusions: string[];
+  exclusions: string[];
+}
+
+export const EMPTY_ACTIVITY_TRANSLATION: ActivityTranslationForm = {
+  title: null,
+  summary: null,
+  description: null,
+  meetingPoint: null,
+  seoTitle: null,
+  seoDescription: null,
+  highlights: [],
+  inclusions: [],
+  exclusions: [],
+};
+
+/** '' means the field was left blank, i.e. untranslated. It must be stored as NULL, because the
+ *  SQL fallback is `coalesce(t.field, a.field)` and an empty string would win that coalesce and
+ *  blank the field on the live page instead of showing the English text. */
+const blankToNull = (v: string | null): string | null => (v && v.trim() ? v : null);
+
+/** Row for an owner-entered French translation. Always 'human': the owner typing in admin IS the
+ *  review, so the draft badge must clear on save. */
+export function translationRowFromForm(activityId: string, form: ActivityTranslationForm) {
+  return {
+    activity_id: activityId,
+    locale: 'fr' as const,
+    title: blankToNull(form.title),
+    summary: blankToNull(form.summary),
+    description: blankToNull(form.description),
+    meeting_point: blankToNull(form.meetingPoint),
+    seo_title: blankToNull(form.seoTitle),
+    seo_description: blankToNull(form.seoDescription),
+    highlights: form.highlights,
+    inclusions: form.inclusions,
+    exclusions: form.exclusions,
+    source: 'human' as const,
+  };
+}
+
+/** True when this translation was drafted automatically and has not been reviewed yet. */
+export function isMachineDraft(row: { source?: string } | null | undefined): boolean {
+  return row?.source === 'machine';
+}
+
+/** Save (insert or update) the French translation for one activity. */
+export async function saveActivityTranslation(
+  activityId: string,
+  form: ActivityTranslationForm,
+): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { error } = await sb
+    .from('activity_translations')
+    .upsert(translationRowFromForm(activityId, form), { onConflict: 'activity_id,locale' });
+  if (error) throw error;
+}
+
+/** Load the existing French translation row (if any) for the editor. Returns the form shape plus
+ *  the raw `source`, so the caller can show the machine-draft badge with `isMachineDraft`. */
+export async function loadActivityTranslation(
+  activityId: string,
+): Promise<{ form: ActivityTranslationForm; source: string } | null> {
+  const sb = getBrowserSupabase();
+  const { data, error } = await sb
+    .from('activity_translations')
+    .select(
+      'title, summary, description, meeting_point, seo_title, seo_description, highlights, inclusions, exclusions, source',
+    )
+    .eq('activity_id', activityId)
+    .eq('locale', 'fr')
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    form: {
+      title: data.title,
+      summary: data.summary,
+      description: data.description,
+      meetingPoint: data.meeting_point,
+      seoTitle: data.seo_title,
+      seoDescription: data.seo_description,
+      highlights: data.highlights ?? [],
+      inclusions: data.inclusions ?? [],
+      exclusions: data.exclusions ?? [],
+    },
+    source: data.source,
+  };
+}
+
 /** Upload an image file to Supabase Storage and return its public URL. */
 export async function uploadActivityImage(file: File, slug: string): Promise<string> {
   const sb = getBrowserSupabase();

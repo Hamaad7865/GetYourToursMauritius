@@ -15,13 +15,18 @@ import type { BadgeInput } from '@/lib/catalogue/badges';
 import { moveItem } from '@/lib/admin/reorder';
 import {
   EMPTY_ACTIVITY,
+  EMPTY_ACTIVITY_TRANSLATION,
   createActivity,
+  isMachineDraft,
   loadActivityForEdit,
+  loadActivityTranslation,
+  saveActivityTranslation,
   slugify,
   updateActivity,
   uploadActivityImage,
   uploadActivityPdf,
   type ActivityFormValues,
+  type ActivityTranslationForm,
   type ImageInput,
   type ItineraryStopInput,
   type OptionInput,
@@ -45,6 +50,14 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   // category's standard highlights REPLACE whatever is typed here. Best-effort: a failure just means
   // no notice, never a broken form.
   const [contentDefaults, setContentDefaults] = useState<Record<string, ContentDefaults>>({});
+  // The activity's French translation (activity_translations, locale 'fr'). Loaded ALONGSIDE the
+  // activity itself (same loading gate below) rather than in its own best-effort effect: saving the
+  // form always upserts whatever is in `fr`, so if this failed to load independently and the admin
+  // saved anyway, a real translation could be silently overwritten with nulls. Blocking the whole
+  // form on this load, like the activity load, means that can't happen.
+  const [fr, setFr] = useState<ActivityTranslationForm>(EMPTY_ACTIVITY_TRANSLATION);
+  // 'machine' | 'human' | undefined (no translation row yet, e.g. a brand-new activity).
+  const [frSource, setFrSource] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,10 +75,12 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
 
   useEffect(() => {
     if (mode !== 'edit' || !id) return;
-    loadActivityForEdit(id)
-      .then((v) => {
+    Promise.all([loadActivityForEdit(id), loadActivityTranslation(id)])
+      .then(([v, t]) => {
         if (v) setValues(v);
         else setError('Activity not found.');
+        setFr(t ? t.form : EMPTY_ACTIVITY_TRANSLATION);
+        setFrSource(t?.source);
       })
       .catch((e: unknown) => setError(e instanceof Error ? e.message : 'Could not load.'))
       .finally(() => setLoading(false));
@@ -87,8 +102,12 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
     if (!v.slug.trim()) return setError('A URL slug is required.');
     setSaving(true);
     try {
-      if (mode === 'new') await createActivity(v, { contentOnly });
+      let activityId = id;
+      if (mode === 'new') activityId = await createActivity(v, { contentOnly });
       else if (id) await updateActivity(id, v, { contentOnly });
+      // Saving the activity always saves its French alongside it — the owner typing (or simply
+      // reviewing and clicking Save) IS the review, so this also clears the machine-draft badge.
+      if (activityId) await saveActivityTranslation(activityId, fr);
       router.push('/admin/activities');
       router.refresh();
     } catch (err) {
@@ -408,6 +427,76 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         </div>
       </Section>
 
+      <FrenchSection>
+        {isMachineDraft({ source: frSource }) && (
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Machine draft — not yet reviewed. Edit any field, or save, to mark it reviewed.
+          </p>
+        )}
+        <Field label="Title" full>
+          <input
+            className={inputClass}
+            value={fr.title ?? ''}
+            onChange={(e) => setFr({ ...fr, title: e.target.value })}
+          />
+        </Field>
+        <Field label="Short summary" full>
+          <textarea
+            className={inputClass}
+            rows={2}
+            value={fr.summary ?? ''}
+            onChange={(e) => setFr({ ...fr, summary: e.target.value })}
+          />
+        </Field>
+        <Field label="Full description" full>
+          <textarea
+            className={inputClass}
+            rows={6}
+            value={fr.description ?? ''}
+            onChange={(e) => setFr({ ...fr, description: e.target.value })}
+          />
+        </Field>
+        <Field label="Meeting point">
+          <input
+            className={inputClass}
+            value={fr.meetingPoint ?? ''}
+            onChange={(e) => setFr({ ...fr, meetingPoint: e.target.value })}
+          />
+        </Field>
+        <div className="grid gap-5 sm:grid-cols-2">
+          <StringList
+            label="Highlights"
+            items={fr.highlights}
+            onChange={(x) => setFr({ ...fr, highlights: x })}
+          />
+          <StringList
+            label="What's included"
+            items={fr.inclusions}
+            onChange={(x) => setFr({ ...fr, inclusions: x })}
+          />
+          <StringList
+            label="Not included"
+            items={fr.exclusions}
+            onChange={(x) => setFr({ ...fr, exclusions: x })}
+          />
+        </div>
+        <Field label="Search title" full>
+          <input
+            className={inputClass}
+            value={fr.seoTitle ?? ''}
+            onChange={(e) => setFr({ ...fr, seoTitle: e.target.value })}
+          />
+        </Field>
+        <Field label="Search description" full>
+          <textarea
+            className={inputClass}
+            rows={2}
+            value={fr.seoDescription ?? ''}
+            onChange={(e) => setFr({ ...fr, seoDescription: e.target.value })}
+          />
+        </Field>
+      </FrenchSection>
+
       <Section
         title="Search appearance"
         hint="How this tour looks in Google results. Both fields are optional — leave them empty and the page falls back to its own title and summary."
@@ -552,6 +641,39 @@ function Field({
       {children}
       {hint && <span className="text-[12px] text-ink-muted">{hint}</span>}
     </label>
+  );
+}
+
+/**
+ * Collapsible "Français" panel — mirrors Section's card look (this admin area is staff-only and
+ * stays English, so none of these labels/strings are wrapped in `t()`), but starts collapsed and
+ * closed by default since most activities won't be edited for French on every visit.
+ */
+function FrenchSection({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="rounded-2xl border border-[#EAEEF0] bg-white p-5 sm:p-6">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 text-left"
+      >
+        <span>
+          <h2 className="text-[15px] font-extrabold text-ink">Français</h2>
+          <p className="mt-0.5 text-[13px] text-ink-muted">
+            Optional French copy for this tour&rsquo;s public page. Leave a field blank to fall
+            back to the English above.
+          </p>
+        </span>
+        <IconChevron
+          width={16}
+          height={16}
+          className={`shrink-0 text-ink-muted ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && <div className="mt-4 flex flex-col gap-4">{children}</div>}
+    </section>
   );
 }
 
