@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { RentalVehicle } from '@/lib/validation/rental';
 import { rentalDays, rentalTotalEur } from '@/lib/services/pricing';
 import { whatsappUrl } from '@/lib/seo/site';
+import { useT } from '@/components/site/PreferencesProvider';
 import {
   IconCalendar,
   IconCheck,
@@ -13,7 +14,8 @@ import {
   IconInfo,
 } from '@/components/ui/icons';
 
-/** Friendly label for a vehicle's class (free-text category → display). */
+/** Friendly label for a vehicle's class (free-text category → display). Returned strings are English
+ *  source text — callers must pass them through t() at the display site. */
 function categoryLabel(v: RentalVehicle): string {
   const c = v.category.toLowerCase();
   if (c === 'scooter') return 'Scooter';
@@ -92,6 +94,7 @@ function VehicleCard({
   selected: boolean;
   onSelect: () => void;
 }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -116,7 +119,7 @@ function VehicleCard({
             a separator never lands orphaned at the start of a wrapped line, and the row can never spill
             past the card's right edge (the old single-line flex clipped "A/C"). */}
         <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[12.5px] text-ink-muted">
-          <span className="whitespace-nowrap">{categoryLabel(vehicle)}</span>
+          <span className="whitespace-nowrap">{t(categoryLabel(vehicle))}</span>
           <span className="inline-flex items-center gap-1 whitespace-nowrap">
             <span aria-hidden>·</span>
             <IconUsers width={13} height={13} className="text-ink-muted" />
@@ -131,14 +134,14 @@ function VehicleCard({
           {vehicle.airCon && !isScooter(vehicle) && (
             <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
               <span aria-hidden>·</span>
-              A/C
+              {t('A/C')}
             </span>
           )}
         </div>
       </div>
       <p className="mt-auto text-[15px] font-extrabold text-teal">
         {euro(vehicle.dailyRateEur)}
-        <span className="text-[12.5px] font-semibold text-ink-muted"> / day</span>
+        <span className="text-[12.5px] font-semibold text-ink-muted"> {t('/ day')}</span>
       </p>
     </button>
   );
@@ -147,6 +150,7 @@ function VehicleCard({
 /** /rent fleet picker: choose a vehicle + dates + delivery, see days × rate, then hand off to WhatsApp
  *  with a ready-to-send message. No online payment — booking is confirmed over WhatsApp. */
 export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
+  const t = useT();
   const [selected, setSelected] = useState(vehicles[0]?.slug ?? '');
   const [pickup, setPickup] = useState('');
   const [ret, setRet] = useState('');
@@ -194,15 +198,15 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
   return (
     <section
       id="book"
-      aria-label="Book a rental"
+      aria-label={t('Book a rental')}
       className="grid gap-6 rounded-3xl border border-ink/10 bg-white p-5 shadow-[0_10px_40px_-24px_rgba(11,92,99,0.5)] sm:p-6 lg:grid-cols-[1.55fr_1fr]"
     >
       {/* Fleet */}
-      <div role="radiogroup" aria-label="Choose a vehicle" className="flex flex-col gap-5">
+      <div role="radiogroup" aria-label={t('Choose a vehicle')} className="flex flex-col gap-5">
         {cars.length > 0 && (
           <div>
             <h3 className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.14em] text-ink-muted">
-              Cars
+              {t('Cars')}
             </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {cars.map((v) => (
@@ -219,7 +223,7 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
         {scooters.length > 0 && (
           <div>
             <h3 className="mb-2.5 text-[13px] font-bold uppercase tracking-[0.14em] text-ink-muted">
-              Scooters
+              {t('Scooters')}
             </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
               {scooters.map((v) => (
@@ -238,13 +242,16 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
       {/* Booking panel */}
       <div className="flex flex-col gap-3 rounded-2xl bg-cream/50 p-4">
         <p className="text-[15px] font-extrabold text-ink">
-          Your {categoryLabel(vehicle).toLowerCase()}: {vehicle.name}
+          {t('Your {category}: {name}', {
+            category: t(categoryLabel(vehicle)).toLowerCase(),
+            name: vehicle.name,
+          })}
         </p>
 
         <div className="grid grid-cols-2 gap-2.5">
           <label className="text-[12.5px] font-semibold text-ink">
             <span className="mb-1 flex items-center gap-1.5">
-              <IconCalendar width={14} height={14} className="text-teal" /> Pick-up
+              <IconCalendar width={14} height={14} className="text-teal" /> {t('Pick-up')}
             </span>
             <input
               type="date"
@@ -260,7 +267,7 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
           </label>
           <label className="text-[12.5px] font-semibold text-ink">
             <span className="mb-1 flex items-center gap-1.5">
-              <IconCalendar width={14} height={14} className="text-teal" /> Return
+              <IconCalendar width={14} height={14} className="text-teal" /> {t('Return')}
             </span>
             <input
               type="date"
@@ -274,17 +281,19 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
 
         <label className="text-[12.5px] font-semibold text-ink">
           <span className="mb-1 flex items-center gap-1.5">
-            <IconPin width={14} height={14} className="text-teal" /> Delivery location
+            <IconPin width={14} height={14} className="text-teal" /> {t('Delivery location')}
           </span>
           <input
             type="text"
             className={fieldClass}
-            placeholder="Your hotel in the Belle Mare area (e.g. Lux Belle Mare)"
+            placeholder={t('Your hotel in the Belle Mare area (e.g. Lux Belle Mare)')}
             value={delivery}
             onChange={(e) => setDelivery(e.target.value)}
           />
           <span className="mt-1 block text-[11.5px] font-normal text-ink-muted">
-            We rent to guests staying in the Belle Mare area — free delivery &amp; collection there.
+            {t(
+              'We rent to guests staying in the Belle Mare area — free delivery & collection there.',
+            )}
           </span>
         </label>
 
@@ -294,22 +303,22 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
             <>
               <div className="flex items-center justify-between text-ink">
                 <span>
-                  {euro(vehicle.dailyRateEur)} × {days} day{days > 1 ? 's' : ''}
+                  {euro(vehicle.dailyRateEur)} × {t(days > 1 ? '{n} days' : '{n} day', { n: days })}
                 </span>
                 <span className="text-[17px] font-extrabold text-ink">{euro(total)}</span>
               </div>
               <p className="mt-1.5 flex items-start gap-1.5 text-[12px] text-ink-muted">
                 <IconCheck width={13} height={13} className="mt-0.5 shrink-0 text-teal" />
-                Free delivery &amp; collection in the Belle Mare area.
+                {t('Free delivery & collection in the Belle Mare area.')}{' '}
                 {vehicle.depositEur > 0
-                  ? ` Refundable ${euro(vehicle.depositEur)} deposit at handover.`
-                  : ' Deposit (if any) confirmed on WhatsApp.'}
+                  ? t('Refundable {amt} deposit at handover.', { amt: euro(vehicle.depositEur) })
+                  : t('Deposit (if any) confirmed on WhatsApp.')}
               </p>
             </>
           ) : (
             <p className="flex items-start gap-1.5 text-[12.5px] text-ink-muted">
               <IconInfo width={14} height={14} className="mt-0.5 shrink-0 text-coral" />
-              Pick a return date on or after the pick-up date to see your total.
+              {t('Pick a return date on or after the pick-up date to see your total.')}
             </p>
           )}
         </div>
@@ -326,10 +335,10 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
             ready ? 'bg-teal hover:bg-teal-dark' : 'cursor-not-allowed bg-ink/25'
           }`}
         >
-          <IconChat width={17} height={17} /> Book on WhatsApp
+          <IconChat width={17} height={17} /> {t('Book on WhatsApp')}
         </a>
         <p className="text-center text-[11.5px] text-ink-muted">
-          No payment online — we confirm your dates and deposit over WhatsApp.
+          {t('No payment online — we confirm your dates and deposit over WhatsApp.')}
         </p>
       </div>
     </section>

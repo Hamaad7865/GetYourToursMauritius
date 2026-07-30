@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { IconStar } from '@/components/ui/icons';
-import { usePreferences } from '@/components/site/PreferencesProvider';
+import { usePreferences, useT } from '@/components/site/PreferencesProvider';
 import { formatLocaleDate } from '@/lib/i18n/format';
 
 function errMessage(err: unknown, fallback: string): string {
@@ -24,6 +24,7 @@ export function ReviewWriteForm({
   googleReviewUrl: string;
 }) {
   const { language } = usePreferences();
+  const t = useT();
   const [rating, setRating] = useState(0);
   const [name, setName] = useState('');
   const [body, setBody] = useState('');
@@ -34,11 +35,11 @@ export function ReviewWriteForm({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (rating < 1) {
-      setError('Pick a star rating.');
+      setError(t('Pick a star rating.'));
       return;
     }
     if (body.trim().length < 5) {
-      setError('A few words about your trip helps other travellers.');
+      setError(t('A few words about your trip helps other travellers.'));
       return;
     }
     setSubmitting(true);
@@ -53,11 +54,11 @@ export function ReviewWriteForm({
         const payload = (await res.json().catch(() => null)) as {
           error?: { message?: string };
         } | null;
-        throw new Error(payload?.error?.message ?? 'Could not submit your review.');
+        throw new Error(payload?.error?.message ?? t('Could not submit your review.'));
       }
       setDone(true);
     } catch (err) {
-      setError(errMessage(err, 'Could not submit your review — please try again.'));
+      setError(errMessage(err, t('Could not submit your review — please try again.')));
     } finally {
       setSubmitting(false);
     }
@@ -66,10 +67,11 @@ export function ReviewWriteForm({
   if (done) {
     return (
       <div className="rounded-2xl border border-ink/10 bg-white p-6 text-center">
-        <h2 className="text-xl font-extrabold text-ink">Thank you!</h2>
+        <h2 className="text-xl font-extrabold text-ink">{t('Thank you!')}</h2>
         <p className="mt-2 text-sm text-ink/70">
-          Your review has been sent to our team. Enjoyed the experience? We&apos;d love a Google
-          review too — it takes a minute and really helps.
+          {t(
+            "Your review has been sent to our team. Enjoyed the experience? We'd love a Google review too — it takes a minute and really helps.",
+          )}
         </p>
         <a
           href={googleReviewUrl}
@@ -77,7 +79,7 @@ export function ReviewWriteForm({
           rel="noopener noreferrer"
           className="mt-5 inline-flex items-center gap-2 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
         >
-          Review us on Google
+          {t('Review us on Google')}
         </a>
       </div>
     );
@@ -88,7 +90,7 @@ export function ReviewWriteForm({
   return (
     <form onSubmit={submit} className="rounded-2xl border border-ink/10 bg-white p-6">
       <h2 className="text-xl font-extrabold text-ink">
-        Reviewing: {activityTitle}
+        {t('Reviewing:')} {activityTitle}
         {when ? `, ${when}` : ''}
       </h2>
       <div className="mt-4 flex gap-1">
@@ -97,7 +99,7 @@ export function ReviewWriteForm({
             key={n}
             type="button"
             onClick={() => setRating(n)}
-            aria-label={`${n} out of 5 stars`}
+            aria-label={t('{n} out of 5 stars', { n })}
             className="p-0.5"
           >
             <IconStar
@@ -109,7 +111,7 @@ export function ReviewWriteForm({
         ))}
       </div>
       <label className="mt-4 block text-sm font-bold text-ink" htmlFor="review-name">
-        Your name
+        {t('Your name')}
       </label>
       <input
         id="review-name"
@@ -120,7 +122,7 @@ export function ReviewWriteForm({
         className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm outline-none focus:border-teal"
       />
       <label className="mt-4 block text-sm font-bold text-ink" htmlFor="review-body">
-        Your review
+        {t('Your review')}
       </label>
       <textarea
         id="review-body"
@@ -138,7 +140,7 @@ export function ReviewWriteForm({
         disabled={submitting}
         className="mt-5 rounded-full bg-teal px-6 py-2.5 text-sm font-bold text-white hover:bg-teal-dark disabled:opacity-50"
       >
-        {submitting ? 'Submitting…' : 'Submit review'}
+        {submitting ? t('Submitting…') : t('Submit review')}
       </button>
     </form>
   );

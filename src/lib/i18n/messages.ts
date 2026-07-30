@@ -1786,4 +1786,85 @@ export const fr: Record<string, string> = {
   'Sea walks & diving': 'Balades sous-marines et plongée',
   Parasailing: 'Parachute ascensionnel',
   'Sightseeing tours': 'Excursions touristiques',
+
+  // Task 10 batch A — HotelToHotelQuote.tsx (point-to-point transfer console)
+  To: 'Vers',
+  'Hotel, resort, beach or town…': 'Hôtel, complexe, plage ou ville…',
+  'Hotel, resort or town…': 'Hôtel, complexe ou ville…',
+  Hotel: 'Hôtel',
+  Area: 'Zone',
+  'Use “{label}”': 'Utiliser « {label} »',
+  '· we’ll confirm the exact spot': '· nous confirmerons l’endroit exact',
+  Trip: 'Trajet',
+  'Fixed price': 'Prix fixe',
+  return: 'aller-retour',
+  'one-way': 'aller simple',
+  'Same area': 'Même secteur',
+  'Nearby coast': 'Côte voisine',
+  'Across the island': 'À travers l’île',
+  'Pick both locations to see your fixed price.':
+    'Choisissez les deux lieux pour voir votre prix fixe.',
+  'Pick two different locations.': 'Choisissez deux lieux différents.',
+  'Choose your pickup and drop-off.': 'Choisissez votre lieu de prise en charge et de dépose.',
+  'Pickup and drop-off must be different.':
+    'Les lieux de prise en charge et de dépose doivent être différents.',
+  'Please choose your pickup date.': 'Veuillez choisir votre date de prise en charge.',
+  'That date isn’t open online just yet —': 'Cette date n’est pas encore disponible en ligne —',
+  'message us on WhatsApp': 'écrivez-nous sur WhatsApp',
+  'and we’ll set it up in minutes.': 'et nous nous en occuperons en quelques minutes.',
+  'Fixed, all-in EUR price · same trusted driver-guide · door to door · free cancellation up to 24h before.':
+    'Prix fixe tout compris en euros · même chauffeur-guide de confiance · porte à porte · annulation gratuite jusqu’à 24 h avant.',
+
+  // Task 10 batch A — RentalWidget.tsx (/rent fleet picker)
+  Scooter: 'Scooter',
+  'Economy car': 'Voiture économique',
+  Van: 'Fourgon',
+  Cars: 'Voitures',
+  Scooters: 'Scooters',
+  'A/C': 'Clim.',
+  'Delivery location': 'Lieu de livraison',
+  'Your hotel in the Belle Mare area (e.g. Lux Belle Mare)':
+    'Votre hôtel dans la région de Belle Mare (p. ex. Lux Belle Mare)',
+  'We rent to guests staying in the Belle Mare area — free delivery & collection there.':
+    'Nous louons aux voyageurs séjournant dans la région de Belle Mare — livraison et récupération gratuites sur place.',
+  '{n} day': '{n} jour',
+  '{n} days': '{n} jours',
+  'Free delivery & collection in the Belle Mare area.':
+    'Livraison et récupération gratuites dans la région de Belle Mare.',
+  'Refundable {amt} deposit at handover.': 'Caution remboursable de {amt} à la remise du véhicule.',
+  'Deposit (if any) confirmed on WhatsApp.': 'Caution (le cas échéant) confirmée sur WhatsApp.',
+  'Pick a return date on or after the pick-up date to see your total.':
+    'Choisissez une date de retour à partir de la date de prise en charge pour voir votre total.',
+  'Book on WhatsApp': 'Réserver sur WhatsApp',
+  'No payment online — we confirm your dates and deposit over WhatsApp.':
+    'Aucun paiement en ligne — nous confirmons vos dates et votre caution sur WhatsApp.',
+  'Book a rental': 'Réserver une location',
+  'Choose a vehicle': 'Choisissez un véhicule',
+  'Your {category}: {name}': 'Votre {category} : {name}',
+  '/ day': '/ jour',
+
+  // Task 10 batch A — SiteHeader.tsx
+  'Search activities, locations…': 'Rechercher des activités, des lieux…',
+  'Log in': 'Se connecter',
+  'Sign up': 'S’inscrire',
+  'Browse activities': 'Parcourir les activités',
+
+  // Task 10 batch A — ReviewWriteForm.tsx
+  'Pick a star rating.': 'Choisissez une note en étoiles.',
+  'A few words about your trip helps other travellers.':
+    'Quelques mots sur votre voyage aident les autres voyageurs.',
+  'Could not submit your review.': 'Impossible d’envoyer votre avis.',
+  'Could not submit your review — please try again.':
+    'Impossible d’envoyer votre avis — veuillez réessayer.',
+  'Thank you!': 'Merci !',
+  "Your review has been sent to our team. Enjoyed the experience? We'd love a Google review too — it takes a minute and really helps.":
+    'Votre avis a été envoyé à notre équipe. Vous avez apprécié votre expérience ? Nous serions ravis d’avoir aussi un avis Google — cela prend une minute et nous aide beaucoup.',
+  'Review us on Google': 'Laissez-nous un avis sur Google',
+  'Reviewing:': 'Avis sur :',
+  'Your review': 'Votre avis',
+  'Submitting…': 'Envoi en cours…',
+  'Submit review': 'Envoyer l’avis',
+
+  // Task 10 batch A — TransferSearch.tsx
+  'To — your hotel': 'Vers — votre hôtel',
 };

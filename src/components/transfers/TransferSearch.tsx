@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { transfers, nearestTransfer, type Transfer } from '@/lib/content/transfers';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
+import { useT } from '@/components/site/PreferencesProvider';
 import { IconArrowRight, IconPin, IconSearch } from '@/components/ui/icons';
 
 /**
@@ -16,16 +17,19 @@ import { IconArrowRight, IconPin, IconSearch } from '@/components/ui/icons';
  * degrades to the curated typeahead over our covered resorts.
  */
 export function TransferSearch() {
+  const t = useT();
   const router = useRouter();
   const placesReady = useGoogleMaps() === 'ready';
-  const go = (t: Transfer) => router.push(t.path);
+  const go = (hotel: Transfer) => router.push(hotel.path);
 
   return (
     <div className="rounded-2xl border border-ink/10 bg-white p-4 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.45)] sm:p-5">
       <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1.4fr)] sm:items-end">
         {/* From — fixed to the airport */}
         <div>
-          <div className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">From</div>
+          <div className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
+            {t('From')}
+          </div>
           <div className="mt-1 flex items-center gap-2 rounded-xl border border-ink/10 bg-cream/40 px-3.5 py-2.5 text-sm font-semibold text-ink">
             <IconPin width={16} height={16} className="shrink-0 text-coral" />
             SSR International Airport
@@ -46,7 +50,8 @@ export function TransferSearch() {
 /** Live Google Places autocomplete (any place in Mauritius). A picked place is snapped to the nearest
  *  listed hotel by coordinates so its zone/price/page carry through. Uncontrolled input — Google manages
  *  its value + its own suggestion dropdown. */
-function PlacesToField({ onPick }: { onPick: (t: Transfer) => void }) {
+function PlacesToField({ onPick }: { onPick: (hotel: Transfer) => void }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const onPickRef = useRef(onPick);
   onPickRef.current = onPick;
@@ -82,7 +87,7 @@ function PlacesToField({ onPick }: { onPick: (t: Transfer) => void }) {
         className="text-[12px] font-bold uppercase tracking-wide text-ink-muted"
         htmlFor="transfer-hotel-search"
       >
-        To — your hotel
+        {t('To — your hotel')}
       </label>
       <div className="mt-1 flex items-center gap-2 rounded-xl border border-ink/15 bg-cream/40 px-3.5 py-2.5 focus-within:border-teal">
         <IconSearch width={16} height={16} className="shrink-0 text-ink-muted" />
@@ -90,7 +95,7 @@ function PlacesToField({ onPick }: { onPick: (t: Transfer) => void }) {
           id="transfer-hotel-search"
           ref={inputRef}
           autoComplete="off"
-          placeholder="Search your hotel or resort…"
+          placeholder={t('Search your hotel or resort…')}
           className="w-full bg-transparent text-sm font-medium text-ink outline-none placeholder:font-normal placeholder:text-ink-muted"
         />
       </div>
@@ -99,7 +104,8 @@ function PlacesToField({ onPick }: { onPick: (t: Transfer) => void }) {
 }
 
 /** Fallback: typeahead over the 45 covered resorts (used until Google Maps is ready / if it fails). */
-function TypeaheadToField({ onPick }: { onPick: (t: Transfer) => void }) {
+function TypeaheadToField({ onPick }: { onPick: (hotel: Transfer) => void }) {
+  const t = useT();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -109,7 +115,7 @@ function TypeaheadToField({ onPick }: { onPick: (t: Transfer) => void }) {
     const s = q.trim().toLowerCase();
     if (!s) return [];
     return transfers
-      .filter((t) => t.hotelName.toLowerCase().includes(s) || t.area.toLowerCase().includes(s))
+      .filter((h) => h.hotelName.toLowerCase().includes(s) || h.area.toLowerCase().includes(s))
       .slice(0, 8);
   }, [q]);
 
@@ -123,8 +129,8 @@ function TypeaheadToField({ onPick }: { onPick: (t: Transfer) => void }) {
       setActive((i) => Math.max(0, i - 1));
     } else if (e.key === 'Enter') {
       e.preventDefault();
-      const t = matches[active] ?? matches[0];
-      if (t) onPick(t);
+      const hotel = matches[active] ?? matches[0];
+      if (hotel) onPick(hotel);
     } else if (e.key === 'Escape') {
       setOpen(false);
     }
@@ -136,7 +142,7 @@ function TypeaheadToField({ onPick }: { onPick: (t: Transfer) => void }) {
         className="text-[12px] font-bold uppercase tracking-wide text-ink-muted"
         htmlFor="transfer-hotel-search"
       >
-        To — your hotel
+        {t('To — your hotel')}
       </label>
       <div className="mt-1 flex items-center gap-2 rounded-xl border border-ink/15 bg-cream/40 px-3.5 py-2.5 focus-within:border-teal">
         <IconSearch width={16} height={16} className="shrink-0 text-ink-muted" />
@@ -149,7 +155,7 @@ function TypeaheadToField({ onPick }: { onPick: (t: Transfer) => void }) {
           aria-autocomplete="list"
           autoComplete="off"
           value={q}
-          placeholder="Search your hotel or resort…"
+          placeholder={t('Search your hotel or resort…')}
           onChange={(e) => {
             setQ(e.target.value);
             setOpen(true);
@@ -172,26 +178,31 @@ function TypeaheadToField({ onPick }: { onPick: (t: Transfer) => void }) {
         >
           {matches.length === 0 ? (
             <li className="px-4 py-3 text-[13px] text-ink-muted">
-              No match in our list.{' '}
+              {t('No match in our list.')}{' '}
               <Link
                 href="/contact"
                 className="font-bold text-teal hover:text-teal-dark"
                 onMouseDown={(e) => e.preventDefault()}
               >
-                Message us for a quote
+                {t('Message us for a quote')}
               </Link>
               .
             </li>
           ) : (
-            matches.map((t, i) => (
-              <li key={t.slug} id={`transfer-opt-${i}`} role="option" aria-selected={i === active}>
+            matches.map((hotel, i) => (
+              <li
+                key={hotel.slug}
+                id={`transfer-opt-${i}`}
+                role="option"
+                aria-selected={i === active}
+              >
                 <button
                   type="button"
                   // onMouseDown (not onClick) so the navigation fires before the input's onBlur closes the list.
                   onMouseDown={(e) => {
                     e.preventDefault();
                     if (blurTimer.current) clearTimeout(blurTimer.current);
-                    onPick(t);
+                    onPick(hotel);
                   }}
                   onMouseEnter={() => setActive(i)}
                   className={`flex w-full items-center justify-between gap-3 px-4 py-2.5 text-left text-sm ${
@@ -199,13 +210,13 @@ function TypeaheadToField({ onPick }: { onPick: (t: Transfer) => void }) {
                   }`}
                 >
                   <span className="min-w-0">
-                    <span className="block truncate font-bold text-ink">{t.hotelName}</span>
+                    <span className="block truncate font-bold text-ink">{hotel.hotelName}</span>
                     <span className="block text-[12px] text-ink-muted">
-                      {t.area} · {t.region} coast
+                      {hotel.area} · {t('{region} coast', { region: t(hotel.region) })}
                     </span>
                   </span>
                   <span className="shrink-0 text-[12.5px] font-extrabold text-ink">
-                    from €{t.fromPriceEur}
+                    {t('from')} €{hotel.fromPriceEur}
                   </span>
                 </button>
               </li>

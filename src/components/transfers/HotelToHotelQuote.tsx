@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
 import { parseApiJson } from '@/lib/http/fetch-json';
 import { transfers } from '@/lib/content/transfers';
@@ -86,6 +87,7 @@ function PlacesField({
   value: LocPick | null;
   onSelect: (p: LocPick) => void;
 }) {
+  const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
@@ -136,7 +138,7 @@ function PlacesField({
         ref={inputRef}
         defaultValue={value?.label ?? ''}
         autoComplete="off"
-        placeholder="Hotel, resort, beach or town…"
+        placeholder={t('Hotel, resort, beach or town…')}
         className="mt-1 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal"
         style={{ borderColor: 'rgba(17,32,31,0.15)' }}
       />
@@ -186,6 +188,7 @@ function TypeaheadField({
   onSelect: (p: LocPick) => void;
   excludeKey?: string;
 }) {
+  const t = useT();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -228,7 +231,7 @@ function TypeaheadField({
         aria-autocomplete="list"
         autoComplete="off"
         value={open ? q : (value?.label ?? q)}
-        placeholder="Hotel, resort or town…"
+        placeholder={t('Hotel, resort or town…')}
         onChange={(e) => {
           setQ(e.target.value);
           setOpen(true);
@@ -266,8 +269,8 @@ function TypeaheadField({
                 <span className="min-w-0">
                   <span className="block truncate font-bold text-ink">{p.label}</span>
                   <span className="block text-[12px]" style={{ color: INK_SOFT }}>
-                    {p.kind === 'hotel' ? 'Hotel' : 'Area'} ·{' '}
-                    {p.region ? `${p.region} coast` : 'Mauritius'}
+                    {p.kind === 'hotel' ? t('Hotel') : t('Area')} ·{' '}
+                    {p.region ? t('{region} coast', { region: t(p.region) }) : 'Mauritius'}
                   </span>
                 </span>
               </button>
@@ -286,9 +289,11 @@ function TypeaheadField({
                 }}
                 className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm hover:bg-teal/10"
               >
-                <span className="font-bold text-ink">Use “{freeText.label}”</span>
+                <span className="font-bold text-ink">
+                  {t('Use “{label}”', { label: freeText.label })}
+                </span>
                 <span className="text-[12px]" style={{ color: INK_SOFT }}>
-                  · we’ll confirm the exact spot
+                  {t('· we’ll confirm the exact spot')}
                 </span>
               </button>
             </li>
@@ -308,6 +313,7 @@ function TypeaheadField({
  * yet, it falls back to a pre-filled WhatsApp enquiry.
  */
 export function HotelToHotelQuote() {
+  const t = useT();
   const router = useRouter();
   const today = useMemo(() => ymd(new Date()), []);
 
@@ -383,19 +389,19 @@ export function HotelToHotelQuote() {
     setError(null);
     setNotLive(false);
     if (!pickup || !dropoff) {
-      setError('Choose your pickup and drop-off.');
+      setError(t('Choose your pickup and drop-off.'));
       return;
     }
     if (samePlace) {
-      setError('Pickup and drop-off must be different.');
+      setError(t('Pickup and drop-off must be different.'));
       return;
     }
     if (!date) {
-      setError('Please choose your pickup date.');
+      setError(t('Please choose your pickup date.'));
       return;
     }
     if (tripType === 'return' && !returnDate) {
-      setError('Please choose your return date.');
+      setError(t('Please choose your return date.'));
       return;
     }
     setBusy(true);
@@ -490,7 +496,7 @@ export function HotelToHotelQuote() {
       if (tripType === 'return' && returnTime) q.set('retTime', returnTime);
       router.push(`/checkout?${q.toString()}`);
     } catch {
-      setError("We couldn't start your booking just now. Please try again.");
+      setError(t("We couldn't start your booking just now. Please try again."));
       setBusy(false);
     }
   }
@@ -503,14 +509,14 @@ export function HotelToHotelQuote() {
       <div className="grid gap-4 sm:grid-cols-2">
         <LocationField
           id="h2h-from"
-          label="From"
+          label={t('From')}
           value={pickup}
           onSelect={setPickup}
           excludeKey={dropoff ? keyOf(dropoff) : undefined}
         />
         <LocationField
           id="h2h-to"
-          label="To"
+          label={t('To')}
           value={dropoff}
           onSelect={setDropoff}
           excludeKey={pickup ? keyOf(pickup) : undefined}
@@ -524,7 +530,7 @@ export function HotelToHotelQuote() {
             className="text-[12px] font-bold uppercase tracking-wide"
             style={{ color: INK_SOFT }}
           >
-            Trip
+            {t('Trip')}
           </div>
           <div
             className="mt-1.5 inline-flex rounded-full border p-1"
@@ -539,10 +545,10 @@ export function HotelToHotelQuote() {
                 style={tripType === tt ? { background: TEAL, color: '#fff' } : { color: INK }}
               >
                 {tt === 'one_way'
-                  ? 'One-way'
+                  ? t('One-way')
                   : returnPct > 0
-                    ? `Return (save ${returnPct}%)`
-                    : 'Return'}
+                    ? t('Return (save {pct}%)', { pct: returnPct })
+                    : t('Return')}
               </button>
             ))}
           </div>
@@ -554,12 +560,12 @@ export function HotelToHotelQuote() {
             className="text-[12px] font-bold uppercase tracking-wide"
             style={{ color: INK_SOFT }}
           >
-            Passengers
+            {t('Passengers')}
           </div>
           <div className="mt-1.5 flex items-center gap-3">
             <button
               type="button"
-              aria-label="Fewer passengers"
+              aria-label={t('Fewer passengers')}
               onClick={() => setParty((p) => Math.max(1, p - 1))}
               disabled={party <= 1}
               className="grid h-9 w-9 place-items-center rounded-full border text-ink disabled:opacity-40"
@@ -572,7 +578,7 @@ export function HotelToHotelQuote() {
             </span>
             <button
               type="button"
-              aria-label="More passengers"
+              aria-label={t('More passengers')}
               onClick={() => setParty((p) => Math.min(MAX_PARTY, p + 1))}
               disabled={party >= MAX_PARTY}
               className="grid h-9 w-9 place-items-center rounded-full border text-ink disabled:opacity-40"
@@ -581,7 +587,7 @@ export function HotelToHotelQuote() {
               +
             </button>
             <span className="ml-1 text-[13px]" style={{ color: INK_SOFT }}>
-              {vehicle}
+              {t(vehicle)}
             </span>
           </div>
         </div>
@@ -598,7 +604,7 @@ export function HotelToHotelQuote() {
             onChange={(e) => setSuv(e.target.checked)}
             className="h-4 w-4 rounded text-teal focus:ring-teal"
           />
-          SUV upgrade (more luggage space)
+          {t('SUV upgrade (more luggage space)')}
         </label>
       )}
 
@@ -609,7 +615,7 @@ export function HotelToHotelQuote() {
             className="block text-[12px] font-bold uppercase tracking-wide"
             style={{ color: INK_SOFT }}
           >
-            Pickup date
+            {t('Pickup date')}
             <input
               type="date"
               value={date}
@@ -623,7 +629,7 @@ export function HotelToHotelQuote() {
             className="block text-[12px] font-bold uppercase tracking-wide"
             style={{ color: INK_SOFT }}
           >
-            Pickup time
+            {t('Pickup time')}
             <input
               type="time"
               value={time}
@@ -639,7 +645,7 @@ export function HotelToHotelQuote() {
               className="block text-[12px] font-bold uppercase tracking-wide"
               style={{ color: INK_SOFT }}
             >
-              Return date
+              {t('Return date')}
               <input
                 type="date"
                 value={returnDate}
@@ -653,7 +659,7 @@ export function HotelToHotelQuote() {
               className="block text-[12px] font-bold uppercase tracking-wide"
               style={{ color: INK_SOFT }}
             >
-              Return time
+              {t('Return time')}
               <input
                 type="time"
                 value={returnTime}
@@ -674,7 +680,7 @@ export function HotelToHotelQuote() {
         <div>
           {samePlace ? (
             <div className="text-[14px] font-semibold text-coral">
-              Pick two different locations.
+              {t('Pick two different locations.')}
             </div>
           ) : ready ? (
             <>
@@ -685,13 +691,14 @@ export function HotelToHotelQuote() {
                 <Price eur={priceEur} />
               </div>
               <div className="mt-1 text-[12.5px]" style={{ color: INK_SOFT }}>
-                Fixed price · {vehicle} · {tripType === 'return' ? 'return' : 'one-way'}
-                {band ? ` · ${BAND_LABEL[band]}` : ''}
+                {t('Fixed price')} · {t(vehicle)} ·{' '}
+                {tripType === 'return' ? t('return') : t('one-way')}
+                {band ? ` · ${t(BAND_LABEL[band] ?? '')}` : ''}
               </div>
             </>
           ) : (
             <div className="text-[14px] font-semibold" style={{ color: INK_SOFT }}>
-              Pick both locations to see your fixed price.
+              {t('Pick both locations to see your fixed price.')}
             </div>
           )}
         </div>
@@ -709,11 +716,11 @@ export function HotelToHotelQuote() {
           {busy ? (
             <span
               className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white"
-              aria-label="Loading"
+              aria-label={t('Loading')}
               role="img"
             />
           ) : (
-            'Book this transfer'
+            t('Book this transfer')
           )}
         </button>
       </div>
@@ -725,7 +732,7 @@ export function HotelToHotelQuote() {
       )}
       {notLive && (
         <p className="mt-3 text-[13px] font-medium" style={{ color: INK_SOFT }}>
-          That date isn’t open online just yet —{' '}
+          {t('That date isn’t open online just yet —')}{' '}
           <a
             href={whatsappUrl(waMessage)}
             target="_blank"
@@ -733,15 +740,16 @@ export function HotelToHotelQuote() {
             className="font-bold underline"
             style={{ color: TEAL_DARK }}
           >
-            message us on WhatsApp
+            {t('message us on WhatsApp')}
           </a>{' '}
-          and we’ll set it up in minutes.
+          {t('and we’ll set it up in minutes.')}
         </p>
       )}
 
       <p className="mt-3 text-[12.5px]" style={{ color: INK_SOFT }}>
-        Fixed, all-in EUR price · same trusted driver-guide · door to door · free cancellation up to
-        24h before.
+        {t(
+          'Fixed, all-in EUR price · same trusted driver-guide · door to door · free cancellation up to 24h before.',
+        )}
       </p>
     </div>
   );
