@@ -20,117 +20,31 @@ import { avatar } from '@/lib/admin/dashboard';
 import { csvCell } from '@/lib/admin/csv';
 import { IconCalendar, IconUsers, IconX, IconSearch } from '@/components/ui/icons';
 import { childSeatsCost } from '@/lib/services/pricing';
+import {
+  eur,
+  fmtDate,
+  fmtDateShort,
+  fmtDateTime,
+  fmtTime,
+  mauDay,
+  titleCase,
+} from '@/lib/admin/format';
+import {
+  PickupFacts,
+  Pill,
+  TransferFacts,
+  paymentClosed,
+  paymentPill,
+  statusPill,
+} from './BookingFacts';
 
-// Departures + timestamps are shown in Mauritius local time, so the calendar day is
-// deterministic regardless of the staff member's own browser timezone.
-const TZ = 'Indian/Mauritius';
-const dateFmt = new Intl.DateTimeFormat('en-GB', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  timeZone: TZ,
-});
-const dateShortFmt = new Intl.DateTimeFormat('en-GB', {
-  day: '2-digit',
-  month: 'short',
-  timeZone: TZ,
-});
-const timeFmt = new Intl.DateTimeFormat('en-GB', {
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: TZ,
-});
-const dateTimeFmt = new Intl.DateTimeFormat('en-GB', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: TZ,
-});
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : dateFmt.format(d);
-}
-function fmtDateTime(iso: string): string {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : dateTimeFmt.format(d);
-}
-function eur(n: number): string {
-  return `€${n.toFixed(2)}`;
-}
 function euroInt(n: number): string {
   return `€${Math.round(n).toLocaleString('en-US')}`;
-}
-function titleCase(s: string): string {
-  return s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-/** YYYY-MM-DD in Mauritius local time. */
-function mauDay(iso: string | Date): string {
-  return new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
 }
 function addDays(day: string, n: number): string {
   const d = new Date(`${day}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
-}
-
-/** Pastel pill (matches the back-office mockup): dot + label. */
-function statusPill(status: BookingStatus): { label: string; cls: string; dot: string } {
-  switch (status) {
-    case 'confirmed':
-      return { label: 'Confirmed', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
-    case 'completed':
-      return { label: 'Completed', cls: 'bg-ink/[0.06] text-ink', dot: 'bg-ink/40' };
-    case 'cancelled':
-    case 'expired':
-    case 'failed':
-      return { label: titleCase(status), cls: 'bg-red-50 text-red-700', dot: 'bg-red-500' };
-    case 'refunded':
-    case 'refund_pending':
-      return { label: titleCase(status), cls: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
-    default:
-      return { label: titleCase(status), cls: 'bg-teal/10 text-teal-dark', dot: 'bg-teal' };
-  }
-}
-/** A booking that can no longer be paid. `payment_state` stays 'pending' in the LEDGER sense (no
- *  payment ever happened — it's a cached projection of payment_events), but rendering that as
- *  "Pending" on an expired/cancelled booking reads as money-still-expected. Show "Not paid". */
-function paymentClosed(state: PaymentState, status: BookingStatus): boolean {
-  return state === 'pending' && (status === 'expired' || status === 'cancelled');
-}
-
-function paymentPill(
-  state: PaymentState,
-  status: BookingStatus,
-): { label: string; cls: string; dot: string } {
-  if (paymentClosed(state, status)) {
-    return { label: 'Not paid', cls: 'bg-slate-100 text-slate-500', dot: 'bg-slate-400' };
-  }
-  switch (state) {
-    case 'paid':
-      return { label: 'Paid', cls: 'bg-emerald-50 text-emerald-700', dot: 'bg-emerald-500' };
-    case 'partially_refunded':
-    case 'refunded':
-      return { label: titleCase(state), cls: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400' };
-    case 'failed':
-      return { label: 'Failed', cls: 'bg-red-50 text-red-700', dot: 'bg-red-500' };
-    default:
-      return { label: 'Pending', cls: 'bg-amber-50 text-amber-700', dot: 'bg-amber-500' };
-  }
-}
-
-function Pill({ p }: { p: { label: string; cls: string; dot: string } }) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg px-2.5 py-1 text-xs font-bold ${p.cls}`}
-    >
-      <span className={`h-1.5 w-1.5 rounded-full ${p.dot}`} />
-      {p.label}
-    </span>
-  );
 }
 
 function Avatar({ name }: { name: string }) {
@@ -534,12 +448,10 @@ export function AdminBookings() {
                       <span className="block truncate">{b.activityTitle}</span>
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
-                      {b.startsAt
-                        ? `${dateShortFmt.format(new Date(b.startsAt))} · ${timeFmt.format(new Date(b.startsAt))}`
-                        : '—'}
+                      {b.startsAt ? `${fmtDateShort(b.startsAt)} · ${fmtTime(b.startsAt)}` : '—'}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
-                      {`${dateShortFmt.format(new Date(b.createdAt))} · ${timeFmt.format(new Date(b.createdAt))}`}
+                      {`${fmtDateShort(b.createdAt)} · ${fmtTime(b.createdAt)}`}
                     </td>
                     <td className="whitespace-nowrap px-3 py-3 text-[13px] text-ink/70">
                       {b.guests}
@@ -841,40 +753,13 @@ function BookingDrawer({
               <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
                 Pickup &amp; drop-off
               </h3>
-              <dl className="mt-2 flex flex-col gap-2.5">
-                <div>
-                  <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
-                    Pickup
-                  </dt>
-                  <dd className="mt-0.5 text-[13px] text-ink/80">
-                    {booking.pickupLocation ? (
-                      booking.pickupLocation
-                    ) : booking.pickupPending ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[12px] font-bold text-amber-700">
-                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                        Pickup to be arranged
-                      </span>
-                    ) : (
-                      <span className="text-ink-muted">No pickup · customer makes own way</span>
-                    )}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-[11.5px] font-bold uppercase tracking-wide text-ink-muted">
-                    Drop-off
-                  </dt>
-                  <dd className="mt-0.5 text-[13px] text-ink/80">
-                    {booking.dropoffLocation ? (
-                      booking.dropoffLocation
-                    ) : booking.pickupLocation || booking.pickupPending ? (
-                      // A null drop-off WITH a pickup means "same as pickup", not "no drop-off".
-                      <span className="text-ink-muted">Same as pickup</span>
-                    ) : (
-                      '—'
-                    )}
-                  </dd>
-                </div>
-              </dl>
+              <div className="mt-2">
+                <PickupFacts
+                  pickupLocation={booking.pickupLocation}
+                  dropoffLocation={booking.dropoffLocation}
+                  pickupPending={booking.pickupPending}
+                />
+              </div>
             </section>
 
             {booking.transfer && (
@@ -882,90 +767,9 @@ function BookingDrawer({
                 <h3 className="text-[12px] font-bold uppercase tracking-wide text-ink-muted">
                   Transfer details
                 </h3>
-                <dl className="mt-2 grid grid-cols-[110px_1fr] gap-x-3 gap-y-1.5 text-[13px]">
-                  <dt className="font-semibold text-ink-muted">Trip</dt>
-                  <dd className="text-ink/80">
-                    {booking.transfer.direction === 'departure'
-                      ? 'Departure (hotel → airport)'
-                      : booking.transfer.direction === 'return'
-                        ? 'Return (both ways)'
-                        : 'Arrival (airport → hotel)'}
-                  </dd>
-                  {booking.transfer.roomOrCabin && (
-                    <>
-                      <dt className="font-semibold text-ink-muted">Room/cabin</dt>
-                      <dd className="text-ink/80">{booking.transfer.roomOrCabin}</dd>
-                    </>
-                  )}
-                  {(booking.transfer.flightNumber || booking.transfer.arrivalTime) && (
-                    <>
-                      <dt className="font-semibold text-ink-muted">Arrival</dt>
-                      <dd className="text-ink/80">
-                        {[booking.transfer.flightNumber, booking.transfer.arrivalTime]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </dd>
-                    </>
-                  )}
-                  {(booking.transfer.departureFlightNumber ||
-                    booking.transfer.returnDate ||
-                    booking.transfer.returnTime) && (
-                    <>
-                      <dt className="font-semibold text-ink-muted">Departure</dt>
-                      <dd className="text-ink/80">
-                        {[
-                          booking.transfer.departureFlightNumber,
-                          [
-                            booking.transfer.returnDate
-                              ? fmtDate(booking.transfer.returnDate)
-                              : null,
-                            booking.transfer.returnTime,
-                          ]
-                            .filter(Boolean)
-                            .join(' '),
-                        ]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </dd>
-                    </>
-                  )}
-                  {booking.transfer.luggageDetails && (
-                    <>
-                      <dt className="font-semibold text-ink-muted">Luggage</dt>
-                      <dd className="text-ink/80">{booking.transfer.luggageDetails}</dd>
-                    </>
-                  )}
-                  {booking.transfer.childSeatAge != null && (
-                    <>
-                      <dt className="font-semibold text-ink-muted">Child seat</dt>
-                      <dd className="text-ink/80">age {booking.transfer.childSeatAge}</dd>
-                    </>
-                  )}
-                  {booking.transfer.travellerCountry && (
-                    <>
-                      <dt className="font-semibold text-ink-muted">Country</dt>
-                      <dd className="text-ink/80">{booking.transfer.travellerCountry}</dd>
-                    </>
-                  )}
-                  {booking.transfer.travellerCompany && (
-                    <>
-                      <dt className="font-semibold text-ink-muted">Company</dt>
-                      <dd className="text-ink/80">{booking.transfer.travellerCompany}</dd>
-                    </>
-                  )}
-                  {booking.transfer.travellerGender && (
-                    <>
-                      <dt className="font-semibold text-ink-muted">Gender</dt>
-                      <dd className="text-ink/80 capitalize">{booking.transfer.travellerGender}</dd>
-                    </>
-                  )}
-                  {booking.transfer.specialNotes && (
-                    <>
-                      <dt className="font-semibold text-ink-muted">Notes</dt>
-                      <dd className="text-ink/80">{booking.transfer.specialNotes}</dd>
-                    </>
-                  )}
-                </dl>
+                <div className="mt-2">
+                  <TransferFacts transfer={booking.transfer} />
+                </div>
               </section>
             )}
 

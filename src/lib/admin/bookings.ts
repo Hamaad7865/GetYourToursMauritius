@@ -91,6 +91,51 @@ export interface AdminTransferDetails {
   specialNotes: string | null;
 }
 
+/** The raw transfer columns of a `bookings` row, and the PostgREST column list that fetches them.
+ *  Shared with the calendar's day sheet: both screens brief the same driver about the same pickup,
+ *  so they must never drift into two different ideas of what a transfer looks like. */
+export const TRANSFER_SELECT =
+  'trip_direction, room_or_cabin, flight_number, arrival_time, return_date, return_time, ' +
+  'departure_flight_number, luggage_details, child_seat_age, traveller_country, ' +
+  'traveller_company, traveller_gender, special_notes';
+
+export interface RawTransferFields {
+  trip_direction: string | null;
+  room_or_cabin: string | null;
+  flight_number: string | null;
+  arrival_time: string | null;
+  return_date: string | null;
+  return_time: string | null;
+  departure_flight_number: string | null;
+  luggage_details: string | null;
+  child_seat_age: number | null;
+  traveller_country: string | null;
+  traveller_company: string | null;
+  traveller_gender: string | null;
+  special_notes: string | null;
+}
+
+/** Only build a transfer block when there's a direction (i.e. it really is an airport transfer);
+ *  a tour booking carries nulls in these columns and must not render an empty "Transfer" panel. */
+export function mapTransfer(raw: RawTransferFields): AdminTransferDetails | null {
+  if (!raw.trip_direction) return null;
+  return {
+    direction: raw.trip_direction,
+    roomOrCabin: raw.room_or_cabin ?? null,
+    flightNumber: raw.flight_number ?? null,
+    arrivalTime: raw.arrival_time ?? null,
+    returnDate: raw.return_date ?? null,
+    returnTime: raw.return_time ?? null,
+    departureFlightNumber: raw.departure_flight_number ?? null,
+    luggageDetails: raw.luggage_details ?? null,
+    childSeatAge: raw.child_seat_age ?? null,
+    travellerCountry: raw.traveller_country ?? null,
+    travellerCompany: raw.traveller_company ?? null,
+    travellerGender: raw.traveller_gender ?? null,
+    specialNotes: raw.special_notes ?? null,
+  };
+}
+
 export interface PaymentEventRow {
   type: string;
   amountEur: number;
@@ -137,7 +182,7 @@ interface RawPaymentLite {
   refunded_minor: number;
 }
 
-interface RawBooking {
+interface RawBooking extends RawTransferFields {
   id: string;
   ref: string;
   status: BookingStatus;
@@ -155,19 +200,6 @@ interface RawBooking {
   pickup_pending: boolean | null;
   child_seats: number | null;
   transport_minor: number | null;
-  trip_direction: string | null;
-  room_or_cabin: string | null;
-  flight_number: string | null;
-  arrival_time: string | null;
-  return_date: string | null;
-  return_time: string | null;
-  departure_flight_number: string | null;
-  luggage_details: string | null;
-  child_seat_age: number | null;
-  traveller_country: string | null;
-  traveller_company: string | null;
-  traveller_gender: string | null;
-  special_notes: string | null;
   created_at: string;
   booking_items: RawItem[] | null;
   payments: RawPaymentLite[] | null;
@@ -176,9 +208,7 @@ interface RawBooking {
 const BOOKING_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
   source, currency, total_minor, notes, custom_itinerary, pickup_location, dropoff_location, pickup_pending, child_seats,
-  transport_minor,
-  trip_direction, room_or_cabin, flight_number, arrival_time, return_date, return_time, departure_flight_number,
-  luggage_details, child_seat_age, traveller_country, traveller_company, traveller_gender, special_notes, created_at,
+  transport_minor, ${TRANSFER_SELECT}, created_at,
   booking_items (
     price_label, quantity, pax, unit_amount_minor, subtotal_minor,
     session_occurrences ( starts_at ),
@@ -235,24 +265,7 @@ function mapBooking(raw: RawBooking): BookingRow {
     pickupPending: raw.pickup_pending ?? false,
     childSeats: raw.child_seats ?? 0,
     transportEur: (raw.transport_minor ?? 0) / 100,
-    // Only build a transfer block when there's a direction (i.e. it's an airport transfer).
-    transfer: raw.trip_direction
-      ? {
-          direction: raw.trip_direction,
-          roomOrCabin: raw.room_or_cabin ?? null,
-          flightNumber: raw.flight_number ?? null,
-          arrivalTime: raw.arrival_time ?? null,
-          returnDate: raw.return_date ?? null,
-          returnTime: raw.return_time ?? null,
-          departureFlightNumber: raw.departure_flight_number ?? null,
-          luggageDetails: raw.luggage_details ?? null,
-          childSeatAge: raw.child_seat_age ?? null,
-          travellerCountry: raw.traveller_country ?? null,
-          travellerCompany: raw.traveller_company ?? null,
-          travellerGender: raw.traveller_gender ?? null,
-          specialNotes: raw.special_notes ?? null,
-        }
-      : null,
+    transfer: mapTransfer(raw),
   };
 }
 

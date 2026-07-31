@@ -1,4 +1,12 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import {
+  mapTransfer,
+  TRANSFER_SELECT,
+  type AdminTransferDetails,
+  type BookingStatus,
+  type PaymentState,
+  type RawTransferFields,
+} from '@/lib/admin/bookings';
 
 /* Admin operations calendar. Staff RLS (occurrences_staff / bookings_staff / booking_items_staff)
  * grants full read on the departure sheet, so the month aggregate is the only thing that needs an
@@ -24,12 +32,55 @@ export interface CalendarDay {
   seatsLeft: number;
 }
 
-export interface DayBooking {
-  ref: string;
-  status: string;
-  customerName: string;
-  customerPhone: string | null;
+/** One priced line of a booking on this departure — the age band or seat type actually sold, so the
+ *  guide knows they are meeting 2 adults and a child rather than "3 pax". */
+export interface DayBookingLine {
+  label: string;
+  quantity: number;
   pax: number;
+}
+
+/**
+ * Everything staff need about one party on a departure, without leaving the calendar.
+ *
+ * The calendar is the operations screen: the person reading it is deciding who to collect, from
+ * where, in what vehicle, with which seats fitted. Sending them to /admin/bookings for the child
+ * seat and back again for the pickup is how a seat gets forgotten, so the day sheet carries the
+ * whole picture.
+ */
+export interface DayBooking {
+  id: string;
+  ref: string;
+  status: BookingStatus;
+  paymentState: PaymentState;
+  /** Confirmed/completed — this party holds seats and counts in the departure's headcount. */
+  counted: boolean;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
+  source: string;
+  bookedAt: string;
+  totalEur: number;
+  /** Headcount for this party on THIS departure (`pax ?? quantity`, summed over its lines). */
+  pax: number;
+  lines: DayBookingLine[];
+  pickupLocation: string | null;
+  dropoffLocation: string | null;
+  pickupPending: boolean;
+  childSeats: number;
+  customItinerary: Array<{ title: string; area?: string | null }> | null;
+  transfer: AdminTransferDetails | null;
+  /** The private staff note from the Bookings screen — read-only here. */
+  staffNote: string | null;
+  /** We called a departure off on this guest and they have not yet chosen a new date or a refund. */
+  awaitingChoice: boolean;
+  /** Whether calling this departure off would actually email this guest — mirrors the fan-out
+   *  filter inside api_weather_cancel_occurrence exactly. See `notifiableCount`. */
+  notifiable: boolean;
+  /** api_reschedule_booking's status gate: only a confirmed, paid booking owns a seat to move. It
+   *  also enforces a 24h window, which this cannot know, so the RPC stays the authority — this only
+   *  stops the UI offering a move that is guaranteed to come back as `not_reschedulable`. */
+  reschedulable: boolean;
 }
 
 export interface DayDeparture {
@@ -40,7 +91,11 @@ export interface DayDeparture {
   capacity: number;
   activityTitle: string;
   optionName: string;
+  /** Seats held by confirmed/completed parties — the number `capacity` is denominated against. */
   pax: number;
+  /** Heads on unpaid, still-live bookings. Deliberately outside `pax`: they hold no seat yet, and
+   *  folding them in would make this card disagree with the month grid and with used_capacity. */
+  pendingPax: number;
   bookings: DayBooking[];
 }
 
@@ -77,7 +132,27 @@ export async function loadCalendarMonth(from: string, to: string): Promise<Calen
   return (data ?? []) as unknown as CalendarDay[];
 }
 
-interface RawDayRow {
+interface RawDayBooking extends RawTransferFields {
+  id: string;
+  ref: string;
+  status: BookingStatus;
+  payment_state: PaymentState;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string | null;
+  source: string;
+  total_minor: number;
+  notes: string | null;
+  created_at: string;
+  custom_itinerary: Array<{ title: string; area?: string | null }> | null;
+  pickup_location: string | null;
+  dropoff_location: string | null;
+  pickup_pending: boolean | null;
+  child_seats: number | null;
+  disruption: { resolvedAt?: string | null } | null;
+}
+
+export interface RawDayRow {
   id: string;
   activity_option_id: string;
   starts_at: string;
@@ -90,62 +165,104 @@ interface RawDayRow {
   booking_items: Array<{
     quantity: number;
     pax: number | null;
-    bookings:
-      | { ref: string; status: string; customer_name: string; customer_phone: string | null }
-      | Array<{ ref: string; status: string; customer_name: string; customer_phone: string | null }>
-      | null;
+    price_label: string | null;
+    bookings: RawDayBooking | RawDayBooking[] | null;
   }> | null;
 }
 
+/** Holds seats: the same set `used_capacity` and `api_admin_calendar_month` count. */
+const COUNTED_STATUSES: ReadonlySet<string> = new Set(['confirmed', 'completed']);
+/** Live but unpaid — the customer is mid-checkout and may still turn up. Shown and flagged, never
+ *  counted. Anything staler than this (draft carts, expired holds, cancellations) stays hidden:
+ *  `held` and `payment_pending` are precisely the states the system still considers in flight. */
+const PENDING_STATUSES: ReadonlySet<string> = new Set(['held', 'payment_pending']);
+
+/** "We called this off and the guest still owes us an answer" — the TS twin of the SQL
+ *  `booking_awaiting_choice(jsonb)`. Kept identical on purpose. */
+function awaitingChoice(disruption: { resolvedAt?: string | null } | null): boolean {
+  return disruption != null && disruption.resolvedAt == null;
+}
+
+const BOOKING_FIELDS = `
+  id, ref, status, payment_state, customer_name, customer_email, customer_phone,
+  source, total_minor, notes, created_at, custom_itinerary,
+  pickup_location, dropoff_location, pickup_pending, child_seats, disruption,
+  ${TRANSFER_SELECT}
+`;
+
 /**
- * The BOOKED departures on one Mauritius day, with the guests on each.
+ * Shape the raw occurrence rows into the day sheet. Pure, so the merging and counting rules below
+ * are testable without a database.
  *
  * Availability is materialised for every activity every day, so a day has ~45 occurrences but only a
  * handful carry guests. The operator cares about the booked ones — the people to plan for and the
- * departures worth calling off — so a departure with no confirmed/completed booking is dropped here
- * rather than cluttering the drawer.
+ * departures worth calling off — so a departure with nobody on it is dropped here rather than
+ * cluttering the drawer.
  *
- * Only `confirmed` / `completed` bookings count — the same set `used_capacity` counts. Headcount is
- * `pax ?? quantity`: for a vehicle line `quantity` is the number of VEHICLES, so summing it would
- * undercount the people.
+ * Headcount is `pax ?? quantity`: for a vehicle line `quantity` is the number of VEHICLES, so
+ * summing it would undercount the people.
  */
-export async function loadDaySchedule(day: string): Promise<DayDeparture[]> {
-  const { startUtc, endUtc } = mauritiusDayBounds(day);
-  const { data, error } = await getBrowserSupabase()
-    .from('session_occurrences')
-    .select(
-      `id, activity_option_id, starts_at, status, capacity,
-       activity_options ( name, activities ( title ) ),
-       booking_items ( quantity, pax, bookings ( ref, status, customer_name, customer_phone ) )`,
-    )
-    .gte('starts_at', startUtc)
-    .lt('starts_at', endUtc)
-    .order('starts_at', { ascending: true })
-    .returns<RawDayRow[]>();
-  if (error) throw error;
-
+export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
   const out: DayDeparture[] = [];
-  for (const raw of data ?? []) {
+  for (const raw of rows) {
     const opt = one(raw.activity_options);
     const bookings: DayBooking[] = [];
+
     for (const item of raw.booking_items ?? []) {
       const b = one(item.bookings);
-      if (!b || (b.status !== 'confirmed' && b.status !== 'completed')) continue;
+      if (!b) continue;
+      const counted = COUNTED_STATUSES.has(b.status);
+      if (!counted && !PENDING_STATUSES.has(b.status)) continue;
+
       const pax = item.pax ?? item.quantity;
-      const existing = bookings.find((x) => x.ref === b.ref);
-      // A booking with several lines on one departure is one party, not several.
-      if (existing) existing.pax += pax;
-      else
-        bookings.push({
-          ref: b.ref,
-          status: b.status,
-          customerName: b.customer_name,
-          customerPhone: b.customer_phone,
-          pax,
-        });
+      const label = item.price_label ?? opt?.name ?? 'Traveller';
+      // A booking with several lines on one departure is one party, not several — but each line is a
+      // different band (2 × Adult, 1 × Child), which is exactly what the guide needs to see.
+      const existing = bookings.find((x) => x.id === b.id);
+      if (existing) {
+        existing.pax += pax;
+        const line = existing.lines.find((l) => l.label === label);
+        if (line) {
+          line.quantity += item.quantity;
+          line.pax += pax;
+        } else existing.lines.push({ label, quantity: item.quantity, pax });
+        continue;
+      }
+
+      bookings.push({
+        id: b.id,
+        ref: b.ref,
+        status: b.status,
+        paymentState: b.payment_state,
+        counted,
+        customerName: b.customer_name,
+        customerEmail: b.customer_email,
+        customerPhone: b.customer_phone,
+        source: b.source,
+        bookedAt: b.created_at,
+        totalEur: b.total_minor / 100,
+        pax,
+        lines: [{ label, quantity: item.quantity, pax }],
+        pickupLocation: b.pickup_location,
+        dropoffLocation: b.dropoff_location ?? null,
+        pickupPending: b.pickup_pending ?? false,
+        childSeats: b.child_seats ?? 0,
+        customItinerary: b.custom_itinerary,
+        transfer: mapTransfer(b),
+        staffNote: b.notes,
+        awaitingChoice: awaitingChoice(b.disruption),
+        // Mirrors api_weather_cancel_occurrence's fan-out: confirmed + paid + not already mid-choice.
+        notifiable:
+          b.status === 'confirmed' && b.payment_state === 'paid' && !awaitingChoice(b.disruption),
+        reschedulable: b.status === 'confirmed' && b.payment_state === 'paid',
+      });
     }
-    // Only surface departures that actually have guests on them.
+
+    // Only surface departures that actually have someone on them.
     if (bookings.length === 0) continue;
+    // Paying guests first; the "might still turn up" tail sits underneath.
+    bookings.sort((a, b) => Number(b.counted) - Number(a.counted));
+
     out.push({
       occurrenceId: raw.id,
       activityOptionId: raw.activity_option_id,
@@ -154,11 +271,37 @@ export async function loadDaySchedule(day: string): Promise<DayDeparture[]> {
       capacity: raw.capacity,
       activityTitle: one(opt?.activities)?.title ?? 'Untitled',
       optionName: opt?.name ?? '',
-      pax: bookings.reduce((s, b) => s + b.pax, 0),
+      pax: bookings.reduce((s, b) => s + (b.counted ? b.pax : 0), 0),
+      pendingPax: bookings.reduce((s, b) => s + (b.counted ? 0 : b.pax), 0),
       bookings,
     });
   }
   return out;
+}
+
+/** How many guests calling this departure off would actually email — the fan-out inside
+ *  api_weather_cancel_occurrence skips completed, unpaid and already-disrupted bookings, so the
+ *  confirmation must not promise mail to a party that will never receive one. */
+export function notifiableCount(departure: DayDeparture): number {
+  return departure.bookings.filter((b) => b.notifiable).length;
+}
+
+/** The booked departures on one Mauritius day, with the full detail of every party on each. */
+export async function loadDaySchedule(day: string): Promise<DayDeparture[]> {
+  const { startUtc, endUtc } = mauritiusDayBounds(day);
+  const { data, error } = await getBrowserSupabase()
+    .from('session_occurrences')
+    .select(
+      `id, activity_option_id, starts_at, status, capacity,
+       activity_options ( name, activities ( title ) ),
+       booking_items ( quantity, pax, price_label, bookings ( ${BOOKING_FIELDS} ) )`,
+    )
+    .gte('starts_at', startUtc)
+    .lt('starts_at', endUtc)
+    .order('starts_at', { ascending: true })
+    .returns<RawDayRow[]>();
+  if (error) throw error;
+  return mapDaySchedule(data ?? []);
 }
 
 interface RawTargetRow {

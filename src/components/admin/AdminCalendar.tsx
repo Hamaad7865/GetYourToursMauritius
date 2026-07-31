@@ -1,19 +1,25 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
 import { monthCells } from '@/lib/calendar/month';
 import { nominalDayKey } from '@/lib/services/day-key';
 import { useDialog } from '@/lib/a11y/useDialog';
+import { eur, fmtDateTime, fmtTime } from '@/lib/admin/format';
+import { IconChevron } from '@/components/ui/icons';
 import { AdminHeading, AdminError, BTN_GHOST, SELECT_CLS } from './ui';
+import { PickupFacts, Pill, TransferFacts, paymentPill, statusPill } from './BookingFacts';
 import {
   CALL_OFF_REASONS,
   callOffDeparture,
   loadCalendarMonth,
   loadDaySchedule,
   loadMoveTargets,
+  notifiableCount,
   rescheduleBookingAsStaff,
   type CalendarDay,
   type CallOffReason,
+  type DayBooking,
   type DayDeparture,
   type MoveTarget,
 } from '@/lib/admin/calendar';
@@ -33,12 +39,9 @@ function dayLabel(key: string): string {
   });
 }
 
-function timeLabel(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Indian/Mauritius',
-  });
+/** "2 × Adult · 1 × Child" — the bands actually sold, so the guide knows who they are meeting. */
+function bandSummary(booking: DayBooking): string {
+  return booking.lines.map((l) => `${l.quantity} × ${l.label}`).join(' · ');
 }
 
 /**
@@ -189,7 +192,7 @@ export function AdminCalendar() {
     <div className="pb-16">
       <AdminHeading
         title="Calendar"
-        subtitle="Every departure, day by day. Open a day to see who is booked — and to call a departure off."
+        subtitle="Every departure, day by day. Open a day for the full picture on each guest — pickup, child seats, flights, notes — then move them or call the departure off."
         action={
           <div className="flex items-center gap-2">
             <button
@@ -290,6 +293,12 @@ function DayDrawer({
               <p className="mt-0.5 text-[12.5px] text-ink-muted">
                 {departures.length} booked departure{departures.length === 1 ? '' : 's'} ·{' '}
                 {departures.reduce((s, d) => s + d.pax, 0)} guests
+                {departures.reduce((s, d) => s + d.pendingPax, 0) > 0 && (
+                  <span className="text-amber-700">
+                    {' '}
+                    · {departures.reduce((s, d) => s + d.pendingPax, 0)} awaiting payment
+                  </span>
+                )}
               </p>
             )}
           </div>
@@ -324,8 +333,11 @@ function DepartureCard({
   const [reason, setReason] = useState<CallOffReason>('weather');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [movingRef, setMovingRef] = useState<string | null>(null);
   const calledOff = departure.status === 'cancelled';
+  // Not departure.bookings.length: the fan-out inside api_weather_cancel_occurrence skips completed,
+  // unpaid and already-disrupted parties, and this card now lists unpaid ones too. Promising mail to
+  // a guest who will never receive it is exactly the sort of thing staff act on and later regret.
+  const willEmail = notifiableCount(departure);
 
   const callOff = useCallback(async () => {
     setBusy(true);
@@ -349,8 +361,11 @@ function DepartureCard({
         <div>
           <p className="text-sm font-bold text-ink">{departure.activityTitle}</p>
           <p className="text-[12.5px] text-ink-muted">
-            {departure.optionName} · {timeLabel(departure.startsAt)} · {departure.pax} of{' '}
+            {departure.optionName} · {fmtTime(departure.startsAt)} · {departure.pax} of{' '}
             {departure.capacity}
+            {departure.pendingPax > 0 && (
+              <span className="text-amber-700"> · +{departure.pendingPax} unpaid</span>
+            )}
           </p>
         </div>
         {calledOff && (
@@ -363,45 +378,16 @@ function DepartureCard({
       {departure.bookings.length > 0 && (
         <ul className="mt-3 flex flex-col gap-1.5 border-t border-[#F2F4F6] pt-3">
           {departure.bookings.map((b) => (
-            <li key={b.ref} className="flex items-start justify-between gap-2 text-[12.5px]">
-              <span className="min-w-0 text-ink">
-                <span className="block truncate">
-                  <span className="font-bold">{b.ref}</span> · {b.customerName || 'Guest'} · {b.pax}{' '}
-                  pax
-                </span>
-                {b.customerPhone && (
-                  <a
-                    href={`tel:${b.customerPhone.replace(/\s+/g, '')}`}
-                    className="mt-0.5 inline-block font-medium text-teal underline underline-offset-2"
-                  >
-                    {b.customerPhone}
-                  </a>
-                )}
-              </span>
-              {!calledOff && (
-                <button
-                  type="button"
-                  onClick={() => setMovingRef(movingRef === b.ref ? null : b.ref)}
-                  className="shrink-0 font-bold text-teal underline underline-offset-2"
-                >
-                  {movingRef === b.ref ? 'Cancel' : 'Move'}
-                </button>
-              )}
+            <li key={b.id}>
+              <GuestRow
+                booking={b}
+                departure={departure}
+                calledOff={calledOff}
+                onChanged={onChanged}
+              />
             </li>
           ))}
         </ul>
-      )}
-
-      {movingRef && (
-        <MovePicker
-          bookingRef={movingRef}
-          activityOptionId={departure.activityOptionId}
-          excludeOccurrenceId={departure.occurrenceId}
-          onDone={() => {
-            setMovingRef(null);
-            onChanged();
-          }}
-        />
       )}
 
       {error && <AdminError>{error}</AdminError>}
@@ -436,12 +422,22 @@ function DepartureCard({
           {/* State the blast radius plainly: this mails guests immediately and cannot be undone
               from here, because some will have taken a refund before an undo could land. */}
           <p className="mt-2.5 text-[12.5px] leading-relaxed text-ink/80">
-            This emails{' '}
-            <strong>
-              {departure.bookings.length} guest{departure.bookings.length === 1 ? '' : 's'}
-            </strong>{' '}
-            straight away asking them to pick a new date or take a refund, and closes the date to
-            new bookings. <strong>It cannot be undone from here.</strong>
+            {willEmail > 0 ? (
+              <>
+                This emails{' '}
+                <strong>
+                  {willEmail} paid guest{willEmail === 1 ? '' : 's'}
+                </strong>{' '}
+                straight away asking them to pick a new date or take a refund, and closes the date
+                to new bookings.
+              </>
+            ) : (
+              <>
+                This closes the date to new bookings. <strong>Nobody is emailed</strong> — no paid
+                guest on this departure is waiting on an answer.
+              </>
+            )}{' '}
+            <strong>It cannot be undone from here.</strong>
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <button
@@ -465,6 +461,220 @@ function DepartureCard({
         </div>
       )}
     </div>
+  );
+}
+
+/** A small labelled block inside the expanded guest panel. */
+function Fact({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="border-t border-[#F2F4F6] pt-2.5">
+      <p className="text-[11px] font-bold uppercase tracking-wide text-ink-muted">{title}</p>
+      <div className="mt-1">{children}</div>
+    </div>
+  );
+}
+
+/**
+ * One party on a departure: a scannable line that expands to everything staff need to run the trip.
+ *
+ * Collapsed it answers "who, how many, anything unusual?"; expanded it answers the rest — contact
+ * details, the bands sold, where to collect them, the child seats to fit, flight numbers, the route
+ * they chose and the note somebody left. The chips exist so the unusual cases (unpaid, child seats,
+ * pickup still to arrange, owed a new date) are visible WITHOUT expanding every row in turn.
+ */
+function GuestRow({
+  booking,
+  departure,
+  calledOff,
+  onChanged,
+}: {
+  booking: DayBooking;
+  departure: DayDeparture;
+  calledOff: boolean;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [moving, setMoving] = useState(false);
+  const panelId = `guest-${booking.id}`;
+
+  return (
+    <div
+      className={`rounded-xl border ${
+        booking.counted ? 'border-[#F2F4F6]' : 'border-amber-200 bg-amber-50/40'
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className="flex w-full items-start gap-2 p-2.5 text-left"
+      >
+        <IconChevron
+          width={14}
+          height={14}
+          aria-hidden="true"
+          className={`mt-1 shrink-0 text-ink-muted transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[12.5px] text-ink">
+            <span className="font-bold">{booking.ref}</span> · {booking.customerName || 'Guest'} ·{' '}
+            {booking.pax} pax
+          </span>
+          <span className="mt-0.5 block truncate text-[11.5px] text-ink-muted">
+            {bandSummary(booking)}
+          </span>
+          <span className="mt-1 flex flex-wrap gap-1">
+            {!booking.counted && (
+              <Chip tone="amber">
+                {booking.status === 'held' ? 'Seat held' : 'Awaiting payment'}
+              </Chip>
+            )}
+            {booking.childSeats > 0 && (
+              <Chip tone="teal">
+                {booking.childSeats} child seat{booking.childSeats === 1 ? '' : 's'}
+              </Chip>
+            )}
+            {booking.pickupPending && !booking.pickupLocation && (
+              <Chip tone="amber">Pickup TBD</Chip>
+            )}
+            {booking.transfer && <Chip tone="ink">Airport transfer</Chip>}
+            {booking.awaitingChoice && <Chip tone="coral">Owes us an answer</Chip>}
+            {booking.staffNote && <Chip tone="ink">Note</Chip>}
+          </span>
+        </span>
+      </button>
+
+      {open && (
+        <div id={panelId} className="flex flex-col gap-2.5 px-2.5 pb-3 text-[12.5px]">
+          <Fact title="Contact">
+            <a
+              href={`mailto:${booking.customerEmail}`}
+              className="block truncate text-teal underline underline-offset-2"
+            >
+              {booking.customerEmail}
+            </a>
+            {booking.customerPhone && (
+              <a
+                href={`tel:${booking.customerPhone.replace(/\s+/g, '')}`}
+                className="block font-medium text-teal underline underline-offset-2"
+              >
+                {booking.customerPhone}
+              </a>
+            )}
+          </Fact>
+
+          <Fact title="Party">
+            <ul className="flex flex-col gap-0.5 text-ink/80">
+              {booking.lines.map((l) => (
+                <li key={l.label}>
+                  {l.quantity} × {l.label}
+                  {l.pax !== l.quantity && ` · ${l.pax} pax`}
+                </li>
+              ))}
+            </ul>
+          </Fact>
+
+          <Fact title="Pickup &amp; drop-off">
+            <PickupFacts
+              pickupLocation={booking.pickupLocation}
+              dropoffLocation={booking.dropoffLocation}
+              pickupPending={booking.pickupPending}
+            />
+          </Fact>
+
+          {booking.childSeats > 0 && (
+            <Fact title="Baby &amp; child seats">
+              <p className="text-ink/80">
+                {booking.childSeats} seat{booking.childSeats === 1 ? '' : 's'} to fit
+                {booking.transfer?.childSeatAge != null &&
+                  ` · child aged ${booking.transfer.childSeatAge}`}
+              </p>
+            </Fact>
+          )}
+
+          {booking.transfer && (
+            <Fact title="Transfer details">
+              <TransferFacts transfer={booking.transfer} />
+            </Fact>
+          )}
+
+          {booking.customItinerary && booking.customItinerary.length > 0 && (
+            <Fact title="Customer route">
+              <ol className="list-decimal pl-5 text-ink/80">
+                {booking.customItinerary.map((s, i) => (
+                  <li key={i}>{s.area ? `${s.title} — ${s.area}` : s.title}</li>
+                ))}
+              </ol>
+            </Fact>
+          )}
+
+          {booking.staffNote && (
+            <Fact title="Internal note">
+              <p className="whitespace-pre-wrap text-ink/80">{booking.staffNote}</p>
+            </Fact>
+          )}
+
+          <Fact title="Booking">
+            <div className="flex flex-wrap items-center gap-1.5">
+              <Pill p={statusPill(booking.status)} />
+              <Pill p={paymentPill(booking.paymentState, booking.status)} />
+            </div>
+            <p className="mt-1.5 text-ink/80">
+              {eur(booking.totalEur)} · booked {fmtDateTime(booking.bookedAt)} · via{' '}
+              {booking.source}
+            </p>
+          </Fact>
+
+          <div className="flex flex-wrap items-center gap-3 border-t border-[#F2F4F6] pt-2.5">
+            {/* Rescheduling needs a confirmed, paid booking — api_reschedule_booking rejects anything
+                else, so offering the button on an unpaid party would only ever produce an error. */}
+            {!calledOff && booking.reschedulable && (
+              <button
+                type="button"
+                onClick={() => setMoving((v) => !v)}
+                className="font-bold text-teal underline underline-offset-2"
+              >
+                {moving ? 'Cancel move' : 'Move to another date'}
+              </button>
+            )}
+            <Link
+              href={`/admin/bookings?open=${booking.id}`}
+              className="font-bold text-teal underline underline-offset-2"
+            >
+              Open full booking →
+            </Link>
+          </div>
+
+          {moving && (
+            <MovePicker
+              bookingRef={booking.ref}
+              activityOptionId={departure.activityOptionId}
+              excludeOccurrenceId={departure.occurrenceId}
+              onDone={() => {
+                setMoving(false);
+                onChanged();
+              }}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const CHIP_TONES = {
+  amber: 'bg-amber-100 text-amber-800',
+  teal: 'bg-teal/10 text-teal-dark',
+  coral: 'bg-coral/15 text-coral',
+  ink: 'bg-ink/[0.06] text-ink/70',
+} as const;
+
+function Chip({ tone, children }: { tone: keyof typeof CHIP_TONES; children: React.ReactNode }) {
+  return (
+    <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-bold ${CHIP_TONES[tone]}`}>
+      {children}
+    </span>
   );
 }
 
