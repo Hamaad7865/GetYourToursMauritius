@@ -9,7 +9,13 @@ const catalogue = catalogueSchema.parse(
   JSON.parse(readFileSync(join(process.cwd(), 'seed', 'catalogue.json'), 'utf8')),
 );
 
-const seedSql = readFileSync(join(process.cwd(), 'supabase', 'seed-fr-catalogue.sql'), 'utf8');
+// Lives in migrations/, not as a standalone seed: the release pipeline runs `supabase db push`,
+// which applies migrations ONLY. As a seed file this content had no route to production at all —
+// it shipped in the repo and never reached the database.
+const seedSql = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260901000400_seed_fr_catalogue.sql'),
+  'utf8',
+);
 
 // The slugs this seed targets, discovered from its own `where a.slug = '...'` lines rather than
 // hardcoded here — so this test keeps working unmodified as batches B and C append more blocks.

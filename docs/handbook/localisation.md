@@ -123,8 +123,18 @@ Tour titles, summaries, descriptions, highlights, inclusions/exclusions and SEO 
 in `activity_translations` (locale = `'fr'`), left-joined and coalesced by `api_get_activity` /
 `api_search_activities` above.
 
-**Seeding:** `supabase/seed-fr-catalogue.sql` — idempotent, machine-translated, every row lands with
-`source = 'machine'`. The upsert is guarded:
+**Seeding:** `supabase/migrations/20260901000400_seed_fr_catalogue.sql` — idempotent,
+machine-translated, every row lands with `source = 'machine'`.
+
+It lives in `migrations/`, not as a standalone seed file, and that placement is deliberate. The
+release pipeline (`.github/workflows/release.yml`) runs `supabase db push`, which applies
+**migrations only** — nothing runs a loose `supabase/*.sql` seed. This content originally shipped as
+`supabase/seed-fr-catalogue.sql` and therefore never reached production at all: the code was
+deployed, the RPCs resolved French correctly, and the catalogue still rendered in English because
+the rows did not exist. If you add catalogue data that must reach production, it goes in a
+migration.
+
+The upsert is guarded:
 
 ```sql
 on conflict (activity_id, locale) do update set … where activity_translations.source = 'machine';
