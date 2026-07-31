@@ -3,6 +3,11 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
   plugins: [tsconfigPaths()],
+  // Component .tsx files in this repo rely on Next.js's SWC to inject the automatic JSX runtime, so
+  // they never `import React` themselves. esbuild's default (classic) transform then throws
+  // "React is not defined" the first time a test imports one — tell esbuild to use the same
+  // automatic runtime so a .tsx module (or anything it transitively imports) loads cleanly under Vite.
+  esbuild: { jsx: 'automatic' },
   test: {
     environment: 'node',
     globals: false,

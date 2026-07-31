@@ -25,7 +25,7 @@ import {
   centsToEur,
   type AirportFare,
 } from '@/lib/services/pricing';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -142,9 +142,11 @@ const eur = (cents: number) => `€${centsToEur(cents)}`;
 
 export default async function AirportTransfersPage() {
   const t = await getT();
-  // FAQ text feeds faqPageJsonLd() below verbatim — kept in English so the visible copy never
-  // diverges from the structured data crawlers read.
-  const faqs = [
+  const locale = await getLocale();
+  // FAQ text feeds faqPageJsonLd() below verbatim. Not routed through the flat t() catalogue —
+  // instead we pick between a local English and French copy by locale, so whichever array is
+  // picked is the SAME array the visible accordion renders, and the two can never diverge.
+  const faqsEn = [
     {
       q: 'How do I find my driver at the airport?',
       a: 'Your driver-guide waits in the arrivals hall holding a name board with your name on it. You’ll also have his direct WhatsApp number before you fly, so you can reach each other the moment you land.',
@@ -178,6 +180,41 @@ export default async function AirportTransfersPage() {
       a: 'Your price is fixed and agreed before you travel — no meter, no night surcharge, no negotiation and no language barrier. It’s the same licensed, English- and French-speaking driver-guide door to door, booked direct so there’s no reseller markup.',
     },
   ];
+  const faqsFr = [
+    {
+      q: 'Comment trouver mon chauffeur à l’aéroport ?',
+      a: 'Votre chauffeur-guide vous attend dans le hall des arrivées avec un panneau portant votre nom. Vous aurez aussi son numéro WhatsApp direct avant de prendre l’avion, afin de pouvoir vous joindre dès l’atterrissage.',
+    },
+    {
+      q: 'Et si mon vol est retardé ?',
+      a: 'Nous suivons votre vol en temps réel et ajustons automatiquement votre prise en charge. Le temps d’attente est gratuit — il n’y a jamais de frais supplémentaires si votre vol a du retard.',
+    },
+    {
+      q: 'Puis-je annuler ?',
+      a: 'Oui. L’annulation est gratuite jusqu’à 24 heures avant votre transfert, avec remboursement intégral — sans question, sans frais.',
+    },
+    {
+      q: 'Comment puis-je payer ?',
+      a: 'Payez en toute sécurité par carte au moment de la réservation. Vous recevrez un e-bon instantané par e-mail à présenter à votre chauffeur — aucun besoin d’espèces à l’arrivée.',
+    },
+    {
+      q: 'Les prix sont-ils vraiment fixes — y a-t-il des frais cachés ?',
+      a: 'Totalement fixes et affichés en euros à l’avance. Pas de compteur, pas de supplément de nuit, pas de frais de bagages. Le prix que vous voyez au moment de la réservation est celui que vous payez.',
+    },
+    {
+      q: 'Desservez-vous mon hôtel ?',
+      a: 'Presque certainement — nous assurons la prise en charge porte à porte depuis chaque hôtel, Airbnb et quai de croisière, partout à Maurice. Recherchez votre hôtel ci-dessus, ou saisissez simplement votre adresse au moment de la réservation.',
+    },
+    {
+      q: 'Est-ce un service de taxi ? Puis-je réserver un taxi entre deux hôtels ?',
+      a: 'Oui. En plus des transferts aéroport, nous proposons un service de taxi privé à prix fixe entre deux points quelconques de Maurice — hôtel à hôtel, hôtel à un restaurant ou une marina, port à un complexe hôtelier. Passez sur « Lieu ↔ Lieu » dans l’outil de tarification ci-dessus pour obtenir un tarif instantané pour n’importe quel trajet.',
+    },
+    {
+      q: 'En quoi est-ce mieux qu’un taxi de rue au compteur ?',
+      a: 'Votre prix est fixe et convenu avant le trajet — pas de compteur, pas de supplément de nuit, pas de négociation et pas de barrière de la langue. C’est le même chauffeur-guide agréé, francophone et anglophone, porte à porte, réservé en direct, donc sans marge de revendeur.',
+    },
+  ];
+  const faqs = locale === 'fr' ? faqsFr : faqsEn;
 
   // ── REAL fare table: Zone × vehicle, one-way / return, sourced from the same fares object the
   // calculator + server use. Return cells already include the configured round-trip discount. ──

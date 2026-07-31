@@ -14,7 +14,7 @@ import {
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { featuredActivities } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -45,7 +45,7 @@ const DEFAULT_METADATA: Metadata = {
   },
 };
 
-const FAQS = [
+const FAQS_EN = [
   {
     q: 'What tours are most popular in Mauritius?',
     a: 'The classics are a catamaran cruise to Île aux Cerfs, an early-morning dolphin swim off Tamarin, a full-day 4x4 tour of the wild south (Chamarel, Grand Bassin, Black River Gorges) and an underwater sea walk. Families also love Casela and La Vanille nature parks.',
@@ -72,8 +72,39 @@ const FAQS = [
   },
 ];
 
+// French copy of FAQS_EN, same order/length — feeds both the visible accordion and faqPageJsonLd()
+// so the two can never drift apart (see the file header comment in LandingSections.tsx).
+const FAQS_FR = [
+  {
+    q: 'Quelles sont les excursions les plus populaires à Maurice ?',
+    a: 'Les grands classiques sont une croisière en catamaran vers l’Île aux Cerfs, une baignade matinale avec les dauphins au large de Tamarin, une journée complète en 4x4 dans le sud sauvage (Chamarel, Grand Bassin, Black River Gorges) et une randonnée sous-marine. Les familles adorent aussi les parcs naturels de Casela et de La Vanille.',
+  },
+  {
+    q: 'Vos excursions sont-elles privées ou partagées ?',
+    a: 'Nous proposons les deux. Les excursions à la journée en voiture ou en minibus sont privées, avec votre propre chauffeur-guide ; les sorties en bateau comme les croisières en catamaran peuvent être partagées (plus conviviales, prix plus bas) ou entièrement privées sur demande. Chaque page d’excursion précise laquelle avant que vous ne réserviez.',
+  },
+  {
+    q: 'Assurez-vous la prise en charge à mon hôtel ?',
+    a: 'Oui — la prise en charge porte à porte est incluse sur toute l’île, depuis chaque hôtel, villa, Airbnb et quai de croisière. Nous sommes basés à Belle Mare, sur la côte est, donc les prises en charge à l’est sont les plus rapides, mais nous couvrons le nord, l’ouest, le sud et le plateau central chaque jour.',
+  },
+  {
+    q: 'Combien de temps à l’avance dois-je réserver une excursion ?',
+    a: 'Un jour ou deux à l’avance suffit généralement, mais les sorties les plus demandées, comme l’Île aux Cerfs et la nage avec les dauphins, affichent complet en haute saison — réservez donc plus tôt si vos dates sont fixées. Vous pouvez consulter les disponibilités en temps réel et réserver en ligne en quelques minutes.',
+  },
+  {
+    q: 'Est-il moins cher de réserver en direct plutôt qu’à la réception de mon hôtel ?',
+    a: 'Presque toujours. Les réceptions d’hôtel et les revendeurs en ligne ajoutent une commission au prix de l’opérateur. Réserver en direct avec Belle Mare Tours supprime cette marge, si bien que vous obtenez la même excursion — souvent le même bateau ou le même véhicule — pour moins cher.',
+  },
+  {
+    q: 'Pouvez-vous organiser une journée sur mesure avec plusieurs étapes ?',
+    a: 'Oui. Dites-nous les lieux que vous souhaitez voir et nous organiserons une journée privée autour d’eux, ou utilisez notre planificateur de road trip IA gratuit pour en concevoir une vous-même et obtenir un devis instantané que vous pourrez réserver en ligne.',
+  },
+];
+
 export default async function MauritiusToursPage() {
   const t = await getT();
+  const locale = await getLocale();
+  const FAQS = locale === 'fr' ? FAQS_FR : FAQS_EN;
   const featured = await featuredActivities({ limit: 8 });
   const homeLabel = t('Home');
   const pageLabel = t('Mauritius tours');
@@ -112,20 +143,44 @@ export default async function MauritiusToursPage() {
           id="intro"
           title={t('Every kind of Mauritius tour, from one local operator')}
         >
-          <p>
-            Mauritius is small but wonderfully varied: a turquoise lagoon ringed by white-sand
-            beaches, a wild volcanic south, waterfalls and rainforest inland, and busy markets in
-            Port Louis. The best way to see it is a mix of boat trips and private day tours, and{' '}
-            {SITE.operator} runs the lot — so you can plan your whole trip with one trusted operator
-            instead of juggling several middlemen.
-          </p>
-          <p>
-            Everything below is bookable online with instant confirmation, transparent EUR pricing
-            and free door-to-door pickup. Browse the full live catalogue on our{' '}
-            <InlineLink href="/activities">tours &amp; activities</InlineLink> page, or read the
-            bigger picture in our{' '}
-            <InlineLink href="/mauritius-travel-guide">Mauritius travel guide</InlineLink>.
-          </p>
+          {locale === 'fr' ? (
+            <>
+              <p>
+                Maurice est une petite île incroyablement variée : un lagon turquoise bordé de
+                plages de sable blanc, un sud sauvage et volcanique, des cascades et une forêt
+                tropicale à l’intérieur des terres, et des marchés animés à Port-Louis. La meilleure
+                façon de la découvrir est de combiner sorties en bateau et excursions privées à la
+                journée, et {SITE.operator} s’occupe de tout — vous pouvez ainsi organiser tout
+                votre séjour avec un seul opérateur de confiance, au lieu de jongler avec plusieurs
+                intermédiaires.
+              </p>
+              <p>
+                Tout ce qui suit est réservable en ligne avec confirmation instantanée, des prix
+                transparents en euros et une prise en charge porte à porte gratuite. Parcourez notre
+                catalogue complet en temps réel sur la page{' '}
+                <InlineLink href="/activities">excursions et activités</InlineLink>, ou consultez la
+                vue d’ensemble dans notre{' '}
+                <InlineLink href="/mauritius-travel-guide">guide de voyage à Maurice</InlineLink>.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Mauritius is small but wonderfully varied: a turquoise lagoon ringed by white-sand
+                beaches, a wild volcanic south, waterfalls and rainforest inland, and busy markets
+                in Port Louis. The best way to see it is a mix of boat trips and private day tours,
+                and {SITE.operator} runs the lot — so you can plan your whole trip with one trusted
+                operator instead of juggling several middlemen.
+              </p>
+              <p>
+                Everything below is bookable online with instant confirmation, transparent EUR
+                pricing and free door-to-door pickup. Browse the full live catalogue on our{' '}
+                <InlineLink href="/activities">tours &amp; activities</InlineLink> page, or read the
+                bigger picture in our{' '}
+                <InlineLink href="/mauritius-travel-guide">Mauritius travel guide</InlineLink>.
+              </p>
+            </>
+          )}
         </ContentSection>
 
         <FeaturedTours
@@ -137,77 +192,178 @@ export default async function MauritiusToursPage() {
         />
 
         <ContentSection id="types" title={t('The tours we run')}>
-          <p>
-            <strong>Catamaran cruises.</strong> A full day on the water with snorkelling stops and a
-            grilled lunch on board — the signature Mauritius day out. See{' '}
-            <InlineLink href="/mauritius-catamaran-cruise">Mauritius catamaran cruises</InlineLink>.
-          </p>
-          <p>
-            <strong>Île aux Cerfs day trips.</strong> The famous offshore islet with its lagoon,
-            sandbars and beach barbecue, reached by catamaran or speedboat. See{' '}
-            <InlineLink href="/ile-aux-cerfs-tours">Île aux Cerfs tours</InlineLink>.
-          </p>
-          <p>
-            <strong>Dolphin swims.</strong> An early start to meet wild spinner dolphins in the calm
-            west-coast bays. See{' '}
-            <InlineLink href="/dolphin-swim-mauritius">dolphin swim in Mauritius</InlineLink>.
-          </p>
-          <p>
-            <strong>Private sightseeing day tours.</strong> Your own driver-guide and vehicle for a
-            tailor-made day — the south coast, the north, tea country or the highlands. Browse them
-            under{' '}
-            <InlineLink href="/activities?category=Sightseeing tours">sightseeing tours</InlineLink>
-            .
-          </p>
-          <p>
-            <strong>Sea walks, diving &amp; water sports.</strong> Underwater helmet walks,
-            parasailing and snorkelling for all ages, mostly off the calm east and north coasts.
-            Browse{' '}
-            <InlineLink href="/activities?category=Sea walks & diving">
-              sea walks &amp; diving
-            </InlineLink>
-            .
-          </p>
+          {locale === 'fr' ? (
+            <>
+              <p>
+                <strong>Croisières en catamaran.</strong> Une journée complète en mer avec des
+                arrêts snorkeling et un déjeuner grillé à bord — la sortie emblématique de Maurice.
+                Voir{' '}
+                <InlineLink href="/mauritius-catamaran-cruise">
+                  croisières en catamaran à Maurice
+                </InlineLink>
+                .
+              </p>
+              <p>
+                <strong>Journées à l’Île aux Cerfs.</strong> Le célèbre îlot avec son lagon, ses
+                bancs de sable et son barbecue sur la plage, accessible en catamaran ou en vedette
+                rapide. Voir{' '}
+                <InlineLink href="/ile-aux-cerfs-tours">excursions à l’Île aux Cerfs</InlineLink>.
+              </p>
+              <p>
+                <strong>Nage avec les dauphins.</strong> Un départ matinal pour rencontrer les
+                dauphins sauvages dans les baies calmes de la côte ouest. Voir{' '}
+                <InlineLink href="/dolphin-swim-mauritius">
+                  nage avec les dauphins à Maurice
+                </InlineLink>
+                .
+              </p>
+              <p>
+                <strong>Excursions privées à la journée.</strong> Votre propre chauffeur-guide et
+                véhicule pour une journée sur mesure — la côte sud, le nord, la région du thé ou les
+                hauts plateaux. Retrouvez-les sous{' '}
+                <InlineLink href="/activities?category=Sightseeing tours">
+                  excursions touristiques
+                </InlineLink>
+                .
+              </p>
+              <p>
+                <strong>Randonnées sous-marines, plongée et sports nautiques.</strong> Randonnées
+                avec casque sous-marin, parachute ascensionnel et snorkeling pour tous les âges,
+                principalement au large des côtes est et nord, plus calmes. Retrouvez-les sous{' '}
+                <InlineLink href="/activities?category=Sea walks & diving">
+                  randonnées sous-marines et plongée
+                </InlineLink>
+                .
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                <strong>Catamaran cruises.</strong> A full day on the water with snorkelling stops
+                and a grilled lunch on board — the signature Mauritius day out. See{' '}
+                <InlineLink href="/mauritius-catamaran-cruise">
+                  Mauritius catamaran cruises
+                </InlineLink>
+                .
+              </p>
+              <p>
+                <strong>Île aux Cerfs day trips.</strong> The famous offshore islet with its lagoon,
+                sandbars and beach barbecue, reached by catamaran or speedboat. See{' '}
+                <InlineLink href="/ile-aux-cerfs-tours">Île aux Cerfs tours</InlineLink>.
+              </p>
+              <p>
+                <strong>Dolphin swims.</strong> An early start to meet wild spinner dolphins in the
+                calm west-coast bays. See{' '}
+                <InlineLink href="/dolphin-swim-mauritius">dolphin swim in Mauritius</InlineLink>.
+              </p>
+              <p>
+                <strong>Private sightseeing day tours.</strong> Your own driver-guide and vehicle
+                for a tailor-made day — the south coast, the north, tea country or the highlands.
+                Browse them under{' '}
+                <InlineLink href="/activities?category=Sightseeing tours">
+                  sightseeing tours
+                </InlineLink>
+                .
+              </p>
+              <p>
+                <strong>Sea walks, diving &amp; water sports.</strong> Underwater helmet walks,
+                parasailing and snorkelling for all ages, mostly off the calm east and north coasts.
+                Browse{' '}
+                <InlineLink href="/activities?category=Sea walks & diving">
+                  sea walks &amp; diving
+                </InlineLink>
+                .
+              </p>
+            </>
+          )}
         </ContentSection>
 
         <ContentSection id="private" title={t('Private, tailor-made & group tours')}>
-          <p>
-            Most of our land tours are fully private: just your party, your own English- and
-            French-speaking driver-guide, and a route you can shape on the day. That suits couples,
-            families and small groups who want to stop where they like rather than follow a fixed
-            coach itinerary.
-          </p>
-          <p>
-            Travelling as a bigger group, a wedding party or a company outing? We run minibuses and
-            a 25-seat coaster, so we can keep everyone together in one vehicle. Message us with your
-            numbers and dates and we’ll put together a plan and a fixed price. You can also design
-            your own multi-stop day with our free{' '}
-            <InlineLink href="/ai-road-trip-planner">AI road-trip planner</InlineLink>.
-          </p>
+          {locale === 'fr' ? (
+            <>
+              <p>
+                La plupart de nos excursions terrestres sont entièrement privées : uniquement votre
+                groupe, votre propre chauffeur-guide francophone et anglophone, et un itinéraire que
+                vous pouvez ajuster le jour même. Cela convient parfaitement aux couples, aux
+                familles et aux petits groupes qui préfèrent s’arrêter où bon leur semble plutôt que
+                de suivre un circuit en autocar fixe.
+              </p>
+              <p>
+                Vous voyagez en grand groupe, pour un mariage ou une sortie d’entreprise ? Nous
+                disposons de minibus et d’un autocar de 25 places, afin de garder tout le monde
+                ensemble dans un seul véhicule. Envoyez-nous vos dates et le nombre de participants,
+                et nous vous proposerons un programme et un prix fixe. Vous pouvez aussi concevoir
+                votre propre journée avec plusieurs étapes grâce à notre{' '}
+                <InlineLink href="/ai-road-trip-planner">planificateur de road trip IA</InlineLink>{' '}
+                gratuit.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Most of our land tours are fully private: just your party, your own English- and
+                French-speaking driver-guide, and a route you can shape on the day. That suits
+                couples, families and small groups who want to stop where they like rather than
+                follow a fixed coach itinerary.
+              </p>
+              <p>
+                Travelling as a bigger group, a wedding party or a company outing? We run minibuses
+                and a 25-seat coaster, so we can keep everyone together in one vehicle. Message us
+                with your numbers and dates and we’ll put together a plan and a fixed price. You can
+                also design your own multi-stop day with our free{' '}
+                <InlineLink href="/ai-road-trip-planner">AI road-trip planner</InlineLink>.
+              </p>
+            </>
+          )}
         </ContentSection>
 
         <ContentSection id="pickup" title={t('Where we pick up')}>
-          <p>
-            We’re based in Belle Mare on the east coast and cover the whole island, door to door:
-            the north (Grand Baie, Pereybère, Trou aux Biches), the west (Flic-en-Flac, Tamarin, Le
-            Morne), the wild south, the central plateau and, of course, the east. Arriving or
-            leaving by air or sea? Add a fixed-price{' '}
-            <InlineLink href="/airport-transfers">airport transfer</InlineLink> to complete the
-            trip. New to the island? Start with our guide to{' '}
-            <InlineLink href="/attractions">things to do in Mauritius</InlineLink> and the{' '}
-            <InlineLink href="/destinations">regions of Mauritius</InlineLink>.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              Nous sommes basés à Belle Mare, sur la côte est, et couvrons toute l’île, porte à
+              porte : le nord (Grand Baie, Pereybère, Trou aux Biches), l’ouest (Flic-en-Flac,
+              Tamarin, Le Morne), le sud sauvage, le plateau central et, bien sûr, l’est. Vous
+              arrivez ou repartez par avion ou par bateau ? Ajoutez un{' '}
+              <InlineLink href="/airport-transfers">transfert aéroport</InlineLink> à prix fixe pour
+              compléter votre voyage. Nouveau sur l’île ? Commencez par notre guide des{' '}
+              <InlineLink href="/attractions">choses à faire à Maurice</InlineLink> et des{' '}
+              <InlineLink href="/destinations">régions de Maurice</InlineLink>.
+            </p>
+          ) : (
+            <p>
+              We’re based in Belle Mare on the east coast and cover the whole island, door to door:
+              the north (Grand Baie, Pereybère, Trou aux Biches), the west (Flic-en-Flac, Tamarin,
+              Le Morne), the wild south, the central plateau and, of course, the east. Arriving or
+              leaving by air or sea? Add a fixed-price{' '}
+              <InlineLink href="/airport-transfers">airport transfer</InlineLink> to complete the
+              trip. New to the island? Start with our guide to{' '}
+              <InlineLink href="/attractions">things to do in Mauritius</InlineLink> and the{' '}
+              <InlineLink href="/destinations">regions of Mauritius</InlineLink>.
+            </p>
+          )}
         </ContentSection>
 
         <ContentSection id="book-direct" title={t('Why book direct with Belle Mare Tours')}>
-          <p>
-            {SITE.operator} is a licensed Mauritian tour operator (BRN {SITE.brn}) that has run
-            tours and transfers on the island for years, rated 4.8/5 across more than a thousand
-            reviews. Book direct and you deal with the operator — not a reseller adding a markup —
-            so the price stays lower and the same driver-guide looks after you all day. We never
-            make commission stops at souvenir shops, and every price is fixed and shown up front in
-            EUR with free cancellation up to 24 hours before.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              {SITE.operator} est un opérateur de tours mauricien agréé (BRN {SITE.brn}) qui
+              organise des excursions et des transferts sur l’île depuis des années, noté 4,8/5 sur
+              plus d’un millier d’avis. En réservant en direct, vous traitez avec l’opérateur — pas
+              avec un revendeur qui ajoute une marge — le prix reste donc plus bas et le même
+              chauffeur-guide s’occupe de vous toute la journée. Nous ne faisons jamais d’arrêts
+              commissionnés dans des boutiques de souvenirs, et chaque prix est fixe et affiché à
+              l’avance en euros, avec annulation gratuite jusqu’à 24 heures avant.
+            </p>
+          ) : (
+            <p>
+              {SITE.operator} is a licensed Mauritian tour operator (BRN {SITE.brn}) that has run
+              tours and transfers on the island for years, rated 4.8/5 across more than a thousand
+              reviews. Book direct and you deal with the operator — not a reseller adding a markup —
+              so the price stays lower and the same driver-guide looks after you all day. We never
+              make commission stops at souvenir shops, and every price is fixed and shown up front
+              in EUR with free cancellation up to 24 hours before.
+            </p>
+          )}
           <RelatedLinks
             links={[
               { label: t('Catamaran cruises'), href: '/mauritius-catamaran-cruise' },
@@ -225,10 +381,18 @@ export default async function MauritiusToursPage() {
         </ContentSection>
 
         <ContentSection id="book" title={t('Ready to plan your Mauritius tours?')}>
-          <p>
-            Book online in minutes, or message us and we’ll tailor a day around you. Either way
-            you’re dealing direct with {SITE.operator} in Belle Mare.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              Réservez en ligne en quelques minutes, ou écrivez-nous et nous vous préparerons une
+              journée sur mesure. Dans les deux cas, vous traitez en direct avec {SITE.operator} à
+              Belle Mare.
+            </p>
+          ) : (
+            <p>
+              Book online in minutes, or message us and we’ll tailor a day around you. Either way
+              you’re dealing direct with {SITE.operator} in Belle Mare.
+            </p>
+          )}
           <BookDirectCta />
         </ContentSection>
 

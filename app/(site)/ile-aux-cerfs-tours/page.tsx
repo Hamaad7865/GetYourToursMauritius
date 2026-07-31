@@ -14,7 +14,7 @@ import {
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { featuredActivities } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -44,7 +44,7 @@ const DEFAULT_METADATA: Metadata = {
   },
 };
 
-const FAQS = [
+const FAQS_EN = [
   {
     q: 'How do you get to Île aux Cerfs?',
     a: 'By boat from the east coast — most trips leave from Trou d’Eau Douce, a few minutes from Belle Mare. You can go by catamaran for a relaxed full day with lunch on board, or by speedboat for a quicker crossing that often adds the GRSE (Grande Rivière Sud-Est) waterfall.',
@@ -71,8 +71,39 @@ const FAQS = [
   },
 ];
 
+// French copy of FAQS_EN, same order/length — feeds both the visible accordion and faqPageJsonLd() so
+// the two can never drift apart (see the file header comment in LandingSections.tsx).
+const FAQS_FR = [
+  {
+    q: 'Comment se rendre à l’Île aux Cerfs ?',
+    a: 'En bateau depuis la côte est — la plupart des excursions partent de Trou d’Eau Douce, à quelques minutes de Belle Mare. Vous pouvez y aller en catamaran pour une journée complète et tranquille avec déjeuner à bord, ou en vedette rapide pour une traversée plus rapide qui ajoute souvent la cascade GRSE (Grande Rivière Sud-Est).',
+  },
+  {
+    q: 'Que faire sur l’Île aux Cerfs ?',
+    a: 'Nagez et faites du snorkeling dans le lagon, marchez sur les bancs de sable, détendez-vous sur la plage, et essayez des sports nautiques comme le parachute ascensionnel, la bouée tractée ou le bateau à fond de verre. La plupart des excursions à la journée incluent un déjeuner barbecue sur la plage. L’île compte aussi un parcours de golf 18 trous.',
+  },
+  {
+    q: 'Catamaran ou vedette rapide — lequel choisir ?',
+    a: 'Le catamaran est le choix classique : une journée complète et tranquille sur l’eau, avec des arrêts snorkeling, de la musique et un déjeuner grillé à bord. La vedette rapide est plus rapide et plus flexible, idéale si vous voulez ajouter la cascade GRSE et passer plus de temps sur l’île elle-même. Nous proposons les deux.',
+  },
+  {
+    q: 'La cascade GRSE est-elle incluse ?',
+    a: 'Sur la plupart des excursions en vedette rapide, oui — le bateau fait un détour au pied de la cascade de la Grande Rivière Sud-Est en chemin. Les croisières en catamaran se concentrent sur le lagon et le snorkeling. Chaque page d’excursion précise exactement ce qui est inclus avant que vous ne réserviez.',
+  },
+  {
+    q: 'Quelle est la meilleure période pour visiter l’Île aux Cerfs ?',
+    a: 'Toute l’année, mais les matinées sont les plus calmes et les moins fréquentées, et les couleurs du lagon sont à leur meilleur avec le soleil au zénith vers midi. Nous privilégions un départ plus tôt afin que vous soyez sur l’eau avant l’arrivée des bateaux de la journée.',
+  },
+  {
+    q: 'Assurez-vous la prise en charge à mon hôtel ?',
+    a: 'Oui — la prise en charge porte à porte est incluse sur toute l’île. Les complexes de l’est proches de Belle Mare et de Trou d’Eau Douce sont les plus rapides, mais nous assurons aussi la prise en charge dans le nord, l’ouest et le sud, avec un prix fixe convenu à l’avance.',
+  },
+];
+
 export default async function IleAuxCerfsToursPage() {
   const t = await getT();
+  const locale = await getLocale();
+  const FAQS = locale === 'fr' ? FAQS_FR : FAQS_EN;
   const featured = await featuredActivities({ category: 'Île aux Cerfs', q: 'cerfs', limit: 6 });
   const homeLabel = t('Home');
   const activitiesLabel = t('Activities');
@@ -118,19 +149,40 @@ export default async function IleAuxCerfsToursPage() {
         />
 
         <ContentSection id="intro" title={t('The island day trip every Mauritius visitor wants')}>
-          <p>
-            Île aux Cerfs is a small island off the east coast, famous for a lagoon so clear and
-            shallow you can wade out to its sandbars. It’s the picture most people have in mind when
-            they imagine Mauritius — and because we’re based in Belle Mare, just minutes from the
-            Trou d’Eau Douce departure jetty, an Île aux Cerfs day is our home turf.
-          </p>
-          <p>
-            You can reach it two ways: a relaxed{' '}
-            <InlineLink href="/mauritius-catamaran-cruise">catamaran cruise</InlineLink> with lunch
-            and snorkelling on board, or a faster speedboat that usually adds the dramatic GRSE
-            waterfall. Both are bookable below with instant confirmation and free door-to-door
-            pickup.
-          </p>
+          {locale === 'fr' ? (
+            <>
+              <p>
+                L’Île aux Cerfs est une petite île au large de la côte est, réputée pour un lagon si
+                clair et peu profond que l’on peut marcher jusqu’à ses bancs de sable. C’est l’image
+                que la plupart des gens ont en tête quand ils imaginent Maurice — et comme nous
+                sommes basés à Belle Mare, à quelques minutes seulement de l’embarcadère de Trou
+                d’Eau Douce, une journée à l’Île aux Cerfs est notre terrain de prédilection.
+              </p>
+              <p>
+                Vous pouvez y accéder de deux façons : une{' '}
+                <InlineLink href="/mauritius-catamaran-cruise">croisière en catamaran</InlineLink>{' '}
+                tranquille, avec déjeuner et snorkeling à bord, ou une vedette rapide qui ajoute
+                généralement le passage spectaculaire par la cascade GRSE. Les deux se réservent
+                ci-dessous, avec confirmation instantanée et prise en charge porte à porte gratuite.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                Île aux Cerfs is a small island off the east coast, famous for a lagoon so clear and
+                shallow you can wade out to its sandbars. It’s the picture most people have in mind
+                when they imagine Mauritius — and because we’re based in Belle Mare, just minutes
+                from the Trou d’Eau Douce departure jetty, an Île aux Cerfs day is our home turf.
+              </p>
+              <p>
+                You can reach it two ways: a relaxed{' '}
+                <InlineLink href="/mauritius-catamaran-cruise">catamaran cruise</InlineLink> with
+                lunch and snorkelling on board, or a faster speedboat that usually adds the dramatic
+                GRSE waterfall. Both are bookable below with instant confirmation and free
+                door-to-door pickup.
+              </p>
+            </>
+          )}
         </ContentSection>
 
         <FeaturedTours
@@ -142,32 +194,65 @@ export default async function IleAuxCerfsToursPage() {
         />
 
         <ContentSection id="do" title={t('What to do on the island')}>
-          <p>
-            The lagoon is the star: warm, calm and ideal for swimming and snorkelling. Beyond that,
-            you can walk the sandbars, settle on the beach, or get active with parasailing, tubing,
-            a glass-bottom boat or a banana boat. Most of our day trips include a barbecue lunch —
-            grilled fish, chicken and salads — either on the beach or aboard the catamaran. Golfers
-            can play the island’s 18-hole championship course.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              Le lagon est la star : chaud, calme et idéal pour la baignade et le snorkeling. Vous
+              pouvez aussi marcher sur les bancs de sable, vous installer sur la plage, ou vous
+              dépenser avec du parachute ascensionnel, de la bouée tractée, un bateau à fond de
+              verre ou un bateau banane. La plupart de nos excursions à la journée incluent un
+              déjeuner barbecue — poisson et poulet grillés, salades — sur la plage ou à bord du
+              catamaran. Les golfeurs peuvent jouer sur le parcours de championnat 18 trous de
+              l’île.
+            </p>
+          ) : (
+            <p>
+              The lagoon is the star: warm, calm and ideal for swimming and snorkelling. Beyond
+              that, you can walk the sandbars, settle on the beach, or get active with parasailing,
+              tubing, a glass-bottom boat or a banana boat. Most of our day trips include a barbecue
+              lunch — grilled fish, chicken and salads — either on the beach or aboard the
+              catamaran. Golfers can play the island’s 18-hole championship course.
+            </p>
+          )}
         </ContentSection>
 
         <ContentSection id="waterfall" title={t('The GRSE waterfall & speedboat option')}>
-          <p>
-            On the way to or from the island, speedboat trips detour to the foot of the Grande
-            Rivière Sud-Est waterfall, where freshwater tumbles into the sea among the mangroves — a
-            great photo stop you don’t get on the bigger catamarans. If the waterfall is on your
-            list, choose a speedboat tour; if it’s all about a slow, sociable day on the water,
-            choose a catamaran.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              À l’aller ou au retour, les excursions en vedette rapide font un détour au pied de la
+              cascade de la Grande Rivière Sud-Est, où l’eau douce se jette dans la mer au milieu
+              des mangroves — un arrêt photo idéal que l’on ne trouve pas sur les catamarans, plus
+              grands. Si la cascade fait partie de vos priorités, optez pour une excursion en
+              vedette rapide ; si vous préférez une journée tranquille et conviviale sur l’eau,
+              optez pour un catamaran.
+            </p>
+          ) : (
+            <p>
+              On the way to or from the island, speedboat trips detour to the foot of the Grande
+              Rivière Sud-Est waterfall, where freshwater tumbles into the sea among the mangroves —
+              a great photo stop you don’t get on the bigger catamarans. If the waterfall is on your
+              list, choose a speedboat tour; if it’s all about a slow, sociable day on the water,
+              choose a catamaran.
+            </p>
+          )}
         </ContentSection>
 
         <ContentSection id="book-direct" title={t('Book your Île aux Cerfs day direct')}>
-          <p>
-            Booking direct with {SITE.operator} (BRN {SITE.brn}) means no hotel-desk or reseller
-            markup, a fixed EUR price agreed before you go, and the same local team looking after
-            you from pickup to drop-off. We never add commission stops, and cancellation is free up
-            to 24 hours before.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              Réserver en direct avec {SITE.operator} (BRN {SITE.brn}) signifie aucune commission de
+              revendeur ni de réception d’hôtel, un prix fixe en euros convenu avant le départ, et
+              la même équipe locale qui s’occupe de vous de la prise en charge jusqu’au retour. Nous
+              n’ajoutons jamais d’arrêts commissionnés, et l’annulation est gratuite jusqu’à 24
+              heures avant.
+            </p>
+          ) : (
+            <p>
+              Booking direct with {SITE.operator} (BRN {SITE.brn}) means no hotel-desk or reseller
+              markup, a fixed EUR price agreed before you go, and the same local team looking after
+              you from pickup to drop-off. We never add commission stops, and cancellation is free
+              up to 24 hours before.
+            </p>
+          )}
           <RelatedLinks
             links={[
               { label: t('Catamaran cruises'), href: '/mauritius-catamaran-cruise' },
@@ -184,9 +269,17 @@ export default async function IleAuxCerfsToursPage() {
         </ContentSection>
 
         <ContentSection id="book" title={t('Ready for your island day?')}>
-          <p>
-            Pick a catamaran or speedboat trip and book online, or message us for a private charter.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              Choisissez une excursion en catamaran ou en vedette rapide et réservez en ligne, ou
+              écrivez-nous pour un affrètement privé.
+            </p>
+          ) : (
+            <p>
+              Pick a catamaran or speedboat trip and book online, or message us for a private
+              charter.
+            </p>
+          )}
           <BookDirectCta
             primary={{ href: '/mauritius-catamaran-cruise', label: t('See catamaran cruises') }}
           />

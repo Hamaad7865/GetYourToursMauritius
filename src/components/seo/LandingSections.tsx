@@ -4,8 +4,11 @@ import type { TourSummary } from '@/lib/validation/tours';
 import { ActivityGrid } from '@/components/catalogue/ActivityGrid';
 
 /* Shared building blocks for the SEO landing pages (/mauritius-tours, /belle-mare-tours, …). Server
-   components, raw English copy (no t() — these pages are content, not the translated booking flow), so
-   the visible text matches the FAQPage / ItemList JSON-LD exactly. House style mirrors the Mauritius
+   components whose prose is content, not UI chrome, so it is NOT routed through the flat t()
+   message catalogue — instead each page picks between a local English and French copy of its FAQ
+   array/prose blocks by locale (same pattern as the AREAS_FR content overlay). Whichever array is
+   picked is the SAME array fed to both the visible render and the FAQPage / ItemList JSON-LD, so the
+   two can never drift apart — translate once, use twice. House style mirrors the Mauritius
    travel-guide page. */
 
 /** A titled prose block. The first one on a page drops its top border/spacing. */

@@ -14,7 +14,7 @@ import {
 import { breadcrumbListJsonLd, faqPageJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { featuredActivities } from '@/lib/seo/landing';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -44,7 +44,7 @@ const DEFAULT_METADATA: Metadata = {
   },
 };
 
-const FAQS = [
+const FAQS_EN = [
   {
     q: 'Where do you swim with dolphins in Mauritius?',
     a: 'In the calm bays off the west coast, around Tamarin and Black River (Rivière Noire). Pods of wild spinner dolphins — and sometimes bottlenose — rest and feed close to shore there in the early morning, which is why west-coast departures are the classic spot.',
@@ -71,8 +71,39 @@ const FAQS = [
   },
 ];
 
+// French copy of FAQS_EN, same order/length — feeds both the visible accordion and faqPageJsonLd() so
+// the two can never drift apart (see the file header comment in LandingSections.tsx).
+const FAQS_FR = [
+  {
+    q: 'Où nage-t-on avec les dauphins à Maurice ?',
+    a: 'Dans les baies calmes de la côte ouest, autour de Tamarin et de Black River (Rivière Noire). Des groupes de dauphins à long bec sauvages — et parfois des grands dauphins — s’y reposent et s’y nourrissent près du rivage tôt le matin, ce qui explique pourquoi les départs depuis la côte ouest sont le lieu classique.',
+  },
+  {
+    q: 'Les dauphins sont-ils sauvages, et l’observation est-elle garantie ?',
+    a: 'Ce sont des dauphins sauvages, en liberté, et non des animaux captifs. Les observations sont très fréquentes le matin mais, comme pour toute faune sauvage, jamais garanties à 100 %. Les sorties partent tôt pour maximiser les chances, et respectent les règles locales sur la façon dont les bateaux approchent les groupes.',
+  },
+  {
+    q: 'À quelle heure commence la sortie ?',
+    a: 'Tôt — les dauphins sont les plus actifs et la mer la plus calme peu après le lever du soleil, vous serez donc généralement pris en charge avant l’aube selon votre hôtel. Le réveil est matinal, mais une mer plate et des baies tranquilles en valent la peine.',
+  },
+  {
+    q: 'Est-il responsable de nager avec des dauphins sauvages ?',
+    a: 'Cela peut l’être, si c’est fait avec soin. Les opérateurs sérieux gardent une distance respectueuse, limitent le temps passé dans l’eau, ne poursuivent ni n’encerclent jamais les groupes, et respectent la réglementation maritime mauricienne. Nous briefons chaque client sur la façon d’entrer dans l’eau calmement afin que les animaux restent détendus.',
+  },
+  {
+    q: 'Qu’est-ce qui est inclus et que dois-je apporter ?',
+    a: 'Les sorties incluent généralement la prise en charge à l’hôtel, l’équipement de snorkeling, un guide et des rafraîchissements, et beaucoup ajoutent un arrêt snorkeling au Crystal Rock ou à Benitiers Island avec un barbecue. Apportez une serviette, de la crème solaire, une couche légère pour le départ matinal et un appareil photo étanche. Le contenu exact figure sur chaque page d’excursion.',
+  },
+  {
+    q: 'Les non-nageurs peuvent-ils participer ?',
+    a: 'Oui. Vous pouvez observer les dauphins depuis le bateau sans entrer dans l’eau, et des gilets de flottaison sont fournis pour ceux qui font du snorkeling. Les baies de la côte ouest sont calmes, ce qui les rend confortables pour les nageurs peu assurés et les familles.',
+  },
+];
+
 export default async function DolphinSwimMauritiusPage() {
   const t = await getT();
+  const locale = await getLocale();
+  const FAQS = locale === 'fr' ? FAQS_FR : FAQS_EN;
   const featured = await featuredActivities({ category: 'Dolphin swims', q: 'dolphin', limit: 6 });
   const homeLabel = t('Home');
   const activitiesLabel = t('Activities');
@@ -116,18 +147,41 @@ export default async function DolphinSwimMauritiusPage() {
         />
 
         <ContentSection id="intro" title={t('Meet wild dolphins off the west coast')}>
-          <p>
-            One of the most memorable mornings in Mauritius is spent on the water off Tamarin and
-            Black River, where pods of wild spinner dolphins gather in the calm bays at first light.
-            On a good day you’ll watch them roll and leap around the boat, then slip quietly into
-            the water to snorkel near them — on their terms, never chasing or crowding them.
-          </p>
-          <p>
-            Because the dolphins are there at dawn, it’s an early start, especially from the east.
-            We pick you up from your hotel anywhere on the island and have you on a small boat in
-            the west-coast bays before the sea wakes up. Many trips then add a snorkelling stop and
-            a barbecue, making a full half-day out of it.
-          </p>
+          {locale === 'fr' ? (
+            <>
+              <p>
+                L’une des matinées les plus mémorables à Maurice se passe sur l’eau au large de
+                Tamarin et de Black River, où des groupes de dauphins à long bec sauvages se
+                rassemblent dans les baies calmes dès les premières lueurs du jour. Les bons jours,
+                vous les regarderez rouler et bondir autour du bateau, avant de glisser doucement
+                dans l’eau pour faire du snorkeling près d’eux — à leur rythme, sans jamais les
+                poursuivre ni les encercler.
+              </p>
+              <p>
+                Comme les dauphins sont présents à l’aube, le départ est matinal, surtout depuis
+                l’est. Nous venons vous chercher à votre hôtel n’importe où sur l’île pour vous
+                installer sur un petit bateau dans les baies de la côte ouest avant que la mer ne
+                s’agite. De nombreuses sorties ajoutent ensuite un arrêt snorkeling et un barbecue,
+                pour en faire une demi-journée complète.
+              </p>
+            </>
+          ) : (
+            <>
+              <p>
+                One of the most memorable mornings in Mauritius is spent on the water off Tamarin
+                and Black River, where pods of wild spinner dolphins gather in the calm bays at
+                first light. On a good day you’ll watch them roll and leap around the boat, then
+                slip quietly into the water to snorkel near them — on their terms, never chasing or
+                crowding them.
+              </p>
+              <p>
+                Because the dolphins are there at dawn, it’s an early start, especially from the
+                east. We pick you up from your hotel anywhere on the island and have you on a small
+                boat in the west-coast bays before the sea wakes up. Many trips then add a
+                snorkelling stop and a barbecue, making a full half-day out of it.
+              </p>
+            </>
+          )}
         </ContentSection>
 
         <FeaturedTours
@@ -139,24 +193,48 @@ export default async function DolphinSwimMauritiusPage() {
         />
 
         <ContentSection id="responsible" title={t('Doing it responsibly')}>
-          <p>
-            Wild dolphins deserve respect. We work with skippers who keep a sensible distance, never
-            surround or pursue the pods, limit how long guests spend in the water, and follow
-            Mauritian marine rules on approaching marine mammals. You’ll get a short briefing before
-            you enter the water — move calmly, keep your fins under the surface, and let the
-            dolphins come to you. It makes for a better encounter and a healthier sea.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              Les dauphins sauvages méritent le respect. Nous travaillons avec des skippers qui
+              gardent une distance raisonnable, n’encerclent ni ne poursuivent jamais les groupes,
+              limitent le temps que les clients passent dans l’eau, et respectent la réglementation
+              mauricienne sur l’approche des mammifères marins. Vous recevrez un court briefing
+              avant d’entrer dans l’eau — bougez calmement, gardez vos palmes sous la surface, et
+              laissez les dauphins venir à vous. Cela permet une meilleure rencontre et une mer en
+              meilleure santé.
+            </p>
+          ) : (
+            <p>
+              Wild dolphins deserve respect. We work with skippers who keep a sensible distance,
+              never surround or pursue the pods, limit how long guests spend in the water, and
+              follow Mauritian marine rules on approaching marine mammals. You’ll get a short
+              briefing before you enter the water — move calmly, keep your fins under the surface,
+              and let the dolphins come to you. It makes for a better encounter and a healthier sea.
+            </p>
+          )}
         </ContentSection>
 
         <ContentSection id="combine" title={t('Make a morning of it')}>
-          <p>
-            Most dolphin trips pair naturally with a west-coast snorkel at the Crystal Rock or Île
-            aux Bénitiers and a beach barbecue. Prefer a full day afloat? Look at our{' '}
-            <InlineLink href="/mauritius-catamaran-cruise">catamaran cruises</InlineLink>, which
-            sail the same coast in the afternoon. Planning several outings? Our{' '}
-            <InlineLink href="/mauritius-tours">Mauritius tours</InlineLink> hub ties the whole trip
-            together.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              La plupart des sorties dauphins se combinent naturellement avec une séance de
+              snorkeling sur la côte ouest, au Crystal Rock ou à l’Île aux Bénitiers, suivie d’un
+              barbecue sur la plage. Vous préférez une journée complète en mer ? Découvrez nos{' '}
+              <InlineLink href="/mauritius-catamaran-cruise">croisières en catamaran</InlineLink>,
+              qui longent la même côte l’après-midi. Vous prévoyez plusieurs sorties ? Notre page{' '}
+              <InlineLink href="/mauritius-tours">excursions à Maurice</InlineLink> rassemble tout
+              votre séjour.
+            </p>
+          ) : (
+            <p>
+              Most dolphin trips pair naturally with a west-coast snorkel at the Crystal Rock or Île
+              aux Bénitiers and a beach barbecue. Prefer a full day afloat? Look at our{' '}
+              <InlineLink href="/mauritius-catamaran-cruise">catamaran cruises</InlineLink>, which
+              sail the same coast in the afternoon. Planning several outings? Our{' '}
+              <InlineLink href="/mauritius-tours">Mauritius tours</InlineLink> hub ties the whole
+              trip together.
+            </p>
+          )}
           <RelatedLinks
             links={[
               { label: t('Catamaran cruises'), href: '/mauritius-catamaran-cruise' },
@@ -173,10 +251,18 @@ export default async function DolphinSwimMauritiusPage() {
         </ContentSection>
 
         <ContentSection id="book" title={t('Book your dolphin morning direct')}>
-          <p>
-            Reserve online and we’ll confirm your early pickup — direct with {SITE.operator}, fixed
-            price, no reseller markup, free cancellation up to 24 hours before.
-          </p>
+          {locale === 'fr' ? (
+            <p>
+              Réservez en ligne et nous confirmerons votre prise en charge matinale — en direct avec{' '}
+              {SITE.operator}, prix fixe, sans marge de revendeur, annulation gratuite jusqu’à 24
+              heures avant.
+            </p>
+          ) : (
+            <p>
+              Reserve online and we’ll confirm your early pickup — direct with {SITE.operator},
+              fixed price, no reseller markup, free cancellation up to 24 hours before.
+            </p>
+          )}
           <BookDirectCta
             primary={{
               href: '/activities?category=Dolphin swims',
