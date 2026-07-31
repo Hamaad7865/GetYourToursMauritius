@@ -386,13 +386,15 @@ export function Checkout() {
   // which also covers the step 1 -> 2 transition; only the pay flow gets the progress ring.
   const [payStage, setPayStage] = useState<PayStage | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [secs, setSecs] = useState(() => {
-    if (expiresAt) {
-      const s = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000);
-      return s > 0 ? s : 0;
-    }
-    return 30 * 60;
-  });
+  // Seeded with the 30-minute fallback, NOT the hold's real remaining time — deliberately.
+  // readHold() reads sessionStorage, which doesn't exist during SSR, so `expiresAt` is always '' on
+  // the server and this line renders "30:00" into the HTML. Computing the true figure here would make
+  // the browser's first (hydration) render print a DIFFERENT time into the same text node, which is a
+  // React #418 text mismatch: React discards the server HTML and re-renders the whole checkout tree,
+  // mid-booking. (Production hit exactly this on 2026-07-31 — server "30:00" vs client "28:23".)
+  // The effect below swaps in the real figure straight after hydration, so nothing the customer sees
+  // changes: the server already sent "30:00" in both the old code and the new.
+  const [secs, setSecs] = useState(30 * 60);
   // Stable idempotency key + booking ref so a retry — including a browser Back or a /checkout reload
   // that REMOUNTS this component — reuses the same booking/payment instead of creating an orphaned,
   // seat-holding, separately-payable duplicate (a double charge). Precedence for the key: a key
@@ -435,6 +437,14 @@ export function Checkout() {
   const expectedTotal = total ? Number(total) + liveTransport : null;
   // Numeric EUR amount for <Price>/money() — null when we have nothing to show yet.
   const displayTotalNum = serverTotal != null ? serverTotal : expectedTotal;
+
+  // Runs only in the browser, only after hydration — the one safe place to read a clock-and-storage
+  // derived value. Replaces the SSR-safe 30:00 seed above with what's actually left on the hold.
+  useEffect(() => {
+    if (!expiresAt) return;
+    const s = Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000);
+    setSecs(s > 0 ? s : 0);
+  }, [expiresAt]);
 
   useEffect(() => {
     const t = window.setInterval(() => setSecs((s) => Math.max(0, s - 1)), 1000);
