@@ -13,6 +13,7 @@ import { decodeParty } from '@/lib/services/party';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
+import { clearDraft, loadDraft, saveDraft } from '@/lib/checkout/draft';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { PayProgress } from '@/components/checkout/PayProgress';
 import {
@@ -306,6 +307,10 @@ export function Checkout() {
   });
 
   const [step, setStep] = useState(1);
+  // Draft restore/save handshake — see the two effects below. The ref makes the restore run exactly
+  // once even under StrictMode's double-invoke; the state flag is what gates saving.
+  const hydratedRef = useRef(false);
+  const [hydrated, setHydrated] = useState(false);
   // "Do you want pickup?" — ALWAYS defaults to Yes (this operator picks customers up by default). The
   // customer can still switch to "No, I'll make my own way". A pickup default needs an address (or
   // "I don't know yet") to advance — see canAdvanceStep1.
@@ -484,6 +489,125 @@ export function Checkout() {
       /* sessionStorage unavailable — the customer can enter the pickup here */
     }
   }, [occ]);
+
+  // ── Survive a sign-in that takes the customer off the page ───────────────────────────────────
+  // Email + password never had a problem here: that dialog closes in place and this component stays
+  // mounted. But "Continue with Google" and a sign-up needing email confirmation both REDIRECT the
+  // browser away, and AuthDialog's `next` carries only pathname + search. Nothing the customer typed
+  // is in the URL — deliberately, a pickup address has no business in a query string — so the return
+  // trip mounted this component FRESH: back at step 1 with an empty form, having already picked their
+  // address once. Restore it instead.
+  //
+  // Runs once, before the customer can type, so assigning directly (rather than "only if empty") is
+  // safe. The profile prefill above only fills blank fields, so a restored name still wins.
+  useEffect(() => {
+    if (!occ || hydratedRef.current) return;
+    hydratedRef.current = true;
+    const d = loadDraft(occ);
+    setHydrated(true);
+    if (!d) return;
+    if (d.step != null) setStep(d.step);
+    if (d.wantsPickup != null) setWantsPickup(d.wantsPickup);
+    if (d.tbd != null) setTbd(d.tbd);
+    if (d.pickupLoc != null) setPickupLoc(d.pickupLoc);
+    if (d.pickupCoords !== undefined) setPickupCoords(d.pickupCoords);
+    if (d.dropoffSame != null) setDropoffSame(d.dropoffSame);
+    if (d.dropoffText != null) setDropoffText(d.dropoffText);
+    if (d.dropoffCoords !== undefined) setDropoffCoords(d.dropoffCoords);
+    if (d.tripDirection != null) setTripDirection(d.tripDirection);
+    if (d.dropoffSlug != null) setDropoffSlug(d.dropoffSlug);
+    if (d.dropoffName != null) setDropoffName(d.dropoffName);
+    if (d.dropoffArea != null) setDropoffArea(d.dropoffArea);
+    if (d.hotelNotListed != null) setHotelNotListed(d.hotelNotListed);
+    if (d.hotelQuery != null) setHotelQuery(d.hotelQuery);
+    if (d.flightNumber != null) setFlightNumber(d.flightNumber);
+    if (d.arrivalTime != null) setArrivalTime(d.arrivalTime);
+    if (d.arrivalDate != null) setArrivalDate(d.arrivalDate);
+    if (d.departureFlight != null) setDepartureFlight(d.departureFlight);
+    if (d.departureDate != null) setDepartureDate(d.departureDate);
+    if (d.returnTime != null) setReturnTime(d.returnTime);
+    if (d.roomOrCabin != null) setRoomOrCabin(d.roomOrCabin);
+    if (d.luggageDetails != null) setLuggageDetails(d.luggageDetails);
+    if (d.childSeatWanted != null) setChildSeatWanted(d.childSeatWanted);
+    if (d.childSeatAge != null) setChildSeatAge(d.childSeatAge);
+    if (d.name != null) setName(d.name);
+    if (d.phone != null) setPhone(d.phone);
+    if (d.country != null) setCountry(d.country);
+    if (d.gender != null) setGender(d.gender);
+    if (d.company != null) setCompany(d.company);
+    if (d.specialNotes != null) setSpecialNotes(d.specialNotes);
+  }, [occ]);
+
+  // Mirror the answers so the restore above has something to find. Gated on `hydrated` so the first
+  // pass — which still holds the pre-restore values — cannot overwrite the draft it is about to read.
+  useEffect(() => {
+    if (!occ || !hydrated) return;
+    saveDraft(occ, {
+      step,
+      wantsPickup,
+      tbd,
+      pickupLoc,
+      pickupCoords,
+      dropoffSame,
+      dropoffText,
+      dropoffCoords: _dropoffCoords,
+      tripDirection,
+      dropoffSlug,
+      dropoffName,
+      dropoffArea,
+      hotelNotListed,
+      hotelQuery,
+      flightNumber,
+      arrivalTime,
+      arrivalDate,
+      departureFlight,
+      departureDate,
+      returnTime,
+      roomOrCabin,
+      luggageDetails,
+      childSeatWanted,
+      childSeatAge,
+      name,
+      phone,
+      country,
+      gender,
+      company,
+      specialNotes,
+    });
+  }, [
+    occ,
+    hydrated,
+    step,
+    wantsPickup,
+    tbd,
+    pickupLoc,
+    pickupCoords,
+    dropoffSame,
+    dropoffText,
+    _dropoffCoords,
+    tripDirection,
+    dropoffSlug,
+    dropoffName,
+    dropoffArea,
+    hotelNotListed,
+    hotelQuery,
+    flightNumber,
+    arrivalTime,
+    arrivalDate,
+    departureFlight,
+    departureDate,
+    returnTime,
+    roomOrCabin,
+    luggageDetails,
+    childSeatWanted,
+    childSeatAge,
+    name,
+    phone,
+    country,
+    gender,
+    company,
+    specialNotes,
+  ]);
 
   // Fetch this activity's transport fare tables once. api_get_activity returns them ONLY for eligible
   // (per_person/per_group with pickup) activities, so a null result just means "no transport here".
@@ -952,6 +1076,9 @@ export function Checkout() {
             window.sessionStorage.removeItem(`gytm:itinerary:occ:${occ}`);
             window.sessionStorage.removeItem(`gytm:hold:${occ}`);
             window.sessionStorage.removeItem(`gytm:pickup:${occ}`);
+            // The booking now holds these answers — stop keeping the customer's address, phone and
+            // flight details in the tab's storage.
+            clearDraft(occ);
             // The activity is now BOOKED — drop its on-hold cart line. Use remove (NOT removeHeld) so the
             // server hold, now consumed by the booking, is not released (that would free the paid seat).
             const cl = window.sessionStorage.getItem(`gytm:cartline:${occ}`);
