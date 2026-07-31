@@ -6,11 +6,16 @@ import { TransferBookingWidget } from '@/components/transfers/TransferBookingWid
 import { TransferRouteMap } from '@/components/transfers/TransferRouteMap';
 import { TransferReviews } from '@/components/transfers/TransferReviews';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getTransfer, transferMetaTitle, transferMetaDescription } from '@/lib/content/transfers';
+import {
+  getTransfer,
+  transferMetaTitle,
+  transferMetaDescription,
+  localisedTransfer,
+} from '@/lib/content/transfers';
 import { transferServiceJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -55,9 +60,11 @@ export default async function TransferDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const hotel = getTransfer(slug);
-  if (!hotel) notFound();
+  const rawHotel = getTransfer(slug);
+  if (!rawHotel) notFound();
   const t = await getT();
+  const locale = await getLocale();
+  const hotel = localisedTransfer(rawHotel, locale);
 
   const path = hotel.path;
   const homeLabel = t('Home');

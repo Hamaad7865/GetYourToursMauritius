@@ -1,4 +1,7 @@
 import { TRANSFERS_RAW } from './_transfers.gen';
+import { TRANSFERS_FR } from './_transfers.fr.gen';
+import { localiseContent } from './localise';
+import type { Locale } from '@/lib/i18n/config';
 
 /**
  * Per-hotel airport-transfer landing pages. Raw content (intro/FAQ/etc.) is generated
@@ -28,6 +31,23 @@ export interface TransferContent {
 export interface Transfer extends TransferContent {
   path: string;
   fromPriceEur: number;
+}
+
+/**
+ * The fields of a transfer guide that may be translated. An ALLOWLIST, deliberately: everything
+ * omitted here — `slug`, `hotelName`, `area`, `region`, `distanceKmFromAirport`,
+ * `durationMinFromAirport`, `lat`, `lng`, `nearbyAttractions` — is either a real hotel/place name or
+ * a fact a customer relies on (a fare-relevant distance or drive time), never our own prose. `intro`
+ * and `included` are our own marketing copy (they do name the hotel inline, e.g. "drop-off at LUX*
+ * Belle Mare" — that's fine, the hotel name travels untouched inside the translated sentence). `faq`
+ * is our own written Q&A, so it translates too — but the numbers inside it (km, minutes) must survive
+ * unchanged, exactly like `intro`/`included`.
+ */
+export type TransferTranslation = Partial<Pick<TransferContent, 'intro' | 'included' | 'faq'>>;
+
+/** A transfer guide in the visitor's language, falling back to English per field. */
+export function localisedTransfer(t: Transfer, locale: Locale): Transfer {
+  return localiseContent(t, TRANSFERS_FR[t.slug], locale);
 }
 
 /** Representative private-car "from" price by region. The exact quote comes at booking. */
