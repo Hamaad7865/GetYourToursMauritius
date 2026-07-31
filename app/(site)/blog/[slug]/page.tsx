@@ -8,7 +8,7 @@ import { formatPostDate } from '@/lib/content/blog';
 import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -66,9 +66,10 @@ export async function generateMetadata({
 
 export default async function BlogPostPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const p = await loadPost(slug);
+  const locale = await getLocale();
+  const p = await loadPost(slug, locale);
   if (!p) notFound();
-  const related = await loadRelatedPosts(p.slug, 3);
+  const related = await loadRelatedPosts(p.slug, 3, locale);
   const t = await getT();
 
   return (

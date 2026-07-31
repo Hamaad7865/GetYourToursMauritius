@@ -7,7 +7,7 @@ import { formatPostDate, type Post } from '@/lib/content/blog';
 import { loadPosts } from '@/lib/content/blog-live';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -65,7 +65,8 @@ async function PostCard({ p }: { p: Post }) {
 }
 
 export default async function BlogIndexPage() {
-  const posts = await loadPosts();
+  const locale = await getLocale();
+  const posts = await loadPosts(locale);
   const t = await getT();
   const breadcrumb = breadcrumbListJsonLd([
     { name: t('Home'), path: '/' },

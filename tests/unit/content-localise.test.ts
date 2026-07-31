@@ -8,6 +8,7 @@ import {
   ATTRACTION_EXTRA,
 } from '@/lib/content/attractions';
 import { transfers, localisedTransfer, type Transfer } from '@/lib/content/transfers';
+import { posts, localisedPost, type Post } from '@/lib/content/blog';
 
 /**
  * Same per-field rule as the SQL path: French where it exists, English everywhere else. A row-level
@@ -190,6 +191,73 @@ describe('transfers content localisation', () => {
     const merged = localiseContent(enTransfer, frPartial, 'fr');
     expect(merged.intro).toBe('Intro français.');
     expect(merged.included).toEqual(['English included item.']);
+    expect(merged.faq).toEqual([{ q: 'English question?', a: 'English answer.' }]);
+  });
+});
+
+describe('blog post content localisation', () => {
+  const bestTime = posts.find((p) => p.slug === 'best-time-to-visit-mauritius')!;
+
+  it('translates title/excerpt/sections/faq for fr, keeps English for en', () => {
+    const fr = localisedPost(bestTime, 'fr');
+    const en = localisedPost(bestTime, 'en');
+    expect(fr.title).not.toBe(bestTime.title);
+    expect(fr.excerpt).not.toBe(bestTime.excerpt);
+    expect(fr.sections).not.toEqual(bestTime.sections);
+    expect(fr.faq).not.toEqual(bestTime.faq);
+    expect(en.title).toBe(bestTime.title);
+    expect(en.excerpt).toBe(bestTime.excerpt);
+    expect(en.sections).toEqual(bestTime.sections);
+    expect(en.faq).toEqual(bestTime.faq);
+  });
+
+  it('keeps the same number of sections, in the same order, once translated', () => {
+    // Pages render sections positionally, so a translated post must never add, drop or reorder blocks.
+    const fr = localisedPost(bestTime, 'fr');
+    expect(fr.sections).toHaveLength(bestTime.sections.length);
+    fr.sections.forEach((section, i) => {
+      expect(section.paragraphs).toHaveLength(bestTime.sections[i]!.paragraphs.length);
+    });
+  });
+
+  it('never touches slug/readMins/heroImageUrl/path/datePublished or metaTitle/metaDescription', () => {
+    // PostTranslation cannot express these — slugs and dates are identifiers, and SEO meta fields are
+    // deliberately left for the metadata pass, not this content module.
+    const fr = localisedPost(bestTime, 'fr');
+    expect(fr.slug).toBe(bestTime.slug);
+    expect(fr.readMins).toBe(bestTime.readMins);
+    expect(fr.heroImageUrl).toBe(bestTime.heroImageUrl);
+    expect(fr.path).toBe(bestTime.path);
+    expect(fr.datePublished).toBe(bestTime.datePublished);
+    expect(fr.metaTitle).toBe(bestTime.metaTitle);
+    expect(fr.metaDescription).toBe(bestTime.metaDescription);
+  });
+
+  it('falls back to English for a post with no French entry at all', () => {
+    const noOverlay: Post = { ...bestTime, slug: 'not-a-real-post-slug' };
+    const out = localisedPost(noOverlay, 'fr');
+    expect(out.title).toBe(noOverlay.title);
+    expect(out.excerpt).toBe(noOverlay.excerpt);
+    expect(out.sections).toEqual(noOverlay.sections);
+    expect(out.faq).toEqual(noOverlay.faq);
+  });
+
+  it('per-field fallback: a translated title with no translated body never renders blank', () => {
+    // Same property Task 13/14 established for areas/attractions/transfers — a post that only has a
+    // French title drafted so far must still render its full English body, never a blank article.
+    const enPost = {
+      title: 'English title.',
+      excerpt: 'English excerpt.',
+      sections: [{ heading: 'English heading', paragraphs: ['English paragraph.'] }],
+      faq: [{ q: 'English question?', a: 'English answer.' }],
+    };
+    const frPartial = { title: 'Titre français.' }; // excerpt/sections/faq deliberately untranslated
+    const merged = localiseContent(enPost, frPartial, 'fr');
+    expect(merged.title).toBe('Titre français.');
+    expect(merged.excerpt).toBe('English excerpt.');
+    expect(merged.sections).toEqual([
+      { heading: 'English heading', paragraphs: ['English paragraph.'] },
+    ]);
     expect(merged.faq).toEqual([{ q: 'English question?', a: 'English answer.' }]);
   });
 });

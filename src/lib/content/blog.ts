@@ -1,5 +1,8 @@
 import { POSTS_RAW } from './_blog.gen';
+import { POSTS_FR } from './_blog.fr.gen';
 import { BLOG_HERO } from './blog-images';
+import { localiseContent } from './localise';
+import type { Locale } from '@/lib/i18n/config';
 
 /**
  * Blog / travel-guide articles. Raw content is generated into `_blog.gen.ts`; this module
@@ -23,6 +26,25 @@ export interface PostContent {
 export interface Post extends PostContent {
   path: string;
   datePublished: string; // YYYY-MM-DD
+}
+
+/**
+ * The fields of a blog post that may be translated. An ALLOWLIST, deliberately — but note the
+ * deliberate DIFFERENCE from the area/attraction/transfer guides: an area's `name` is a real place
+ * name and stays out of its translation type, whereas a blog post's `title` is our own editorial
+ * copy and belongs here. `sections` and `faq` are our own written article body and Q&A, so they
+ * translate too — a translated `sections` entry must keep the same number and order of blocks as the
+ * English source (pages render them positionally) and only ever set `heading`/`paragraphs` (never
+ * `imageUrl`, which is a path, not prose). `slug`, `readMins`, `heroImageUrl` and each section's
+ * `imageUrl` are identifiers or paths, never present here. `metaTitle`/`metaDescription` are also
+ * left out for now — like `areaMetaTitle`/`attractionMetaTitle`/`transferMetaTitle`, SEO title/meta
+ * tags are handled together in the metadata pass, not per content module.
+ */
+export type PostTranslation = Partial<Pick<PostContent, 'title' | 'excerpt' | 'sections' | 'faq'>>;
+
+/** A post in the visitor's language, falling back to English per field. */
+export function localisedPost(post: Post, locale: Locale): Post {
+  return localiseContent(post, POSTS_FR[post.slug], locale);
 }
 
 export function blogPath(slug: string): string {
