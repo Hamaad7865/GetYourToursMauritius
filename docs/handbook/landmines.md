@@ -313,6 +313,8 @@ Including curly apostrophes (`’`) and em-dashes (`—`). A near-miss silently 
 shipped as a P1: French customers saw English on the checkout flow.
 
 Change a string passed to `t(...)` → change the key in `src/lib/i18n/messages.ts` in the same commit.
+Full system (guard rail, per-field coalesce, what's deliberately left English, the SEO caveat):
+[localisation.md](localisation.md).
 
 ### The app boots fine with no configuration — that proves nothing
 

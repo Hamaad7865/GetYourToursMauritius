@@ -102,6 +102,11 @@ first. See [Operations → the error log](handbook/operations.md#what-broke-the-
    Non-obvious invariants that a competent developer _will_ violate on day one. Several of these have
    already caused real incidents.
 
+7. **[French localisation](handbook/localisation.md)**
+   How the gettext-style `t()` system works, the per-field coalesce rule, the machine-draft catalogue
+   review workflow, what's deliberately left English, and why cookie-switched French earns **zero**
+   French search traffic.
+
 ### Also in `docs/`
 
 - [`domain-cutover-runbook.md`](domain-cutover-runbook.md) — moving DNS to Cloudflare without breaking email.

@@ -170,7 +170,9 @@ French only. The lookup is an **exact match on the English source string** — i
 once: French customers saw English on the checkout flow.
 
 When you change a string passed to `t(...)`, update the key in `src/lib/i18n/messages.ts` in the same
-commit.
+commit, and run `node scripts/i18n-scan.mjs` (or `npm test`, which includes the coverage guard) to check
+nothing's missing. Full system — `useT()`/`getT()`/`translate()`, the per-field coalesce rule, content
+allowlists, what's deliberately left English: [localisation.md](localisation.md).
 
 ---
 
