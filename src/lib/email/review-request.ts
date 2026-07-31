@@ -47,8 +47,6 @@ export function renderReviewRequestEmail(input: ReviewRequestInput): RenderedEma
   const locale: Locale = isLocale(input.locale) ? input.locale : DEFAULT_LOCALE;
   const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
   const operator = 'Belle Mare Tours';
-  const activity = escapeHtml(input.activityTitle);
-  const name = escapeHtml(input.customerName);
 
   const subject = t('How was your {activity}?', { activity: input.activityTitle });
 
