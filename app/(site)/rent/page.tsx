@@ -39,7 +39,6 @@ const DEFAULT_METADATA: Metadata = {
     title: 'Car & Scooter Rental in Belle Mare, Mauritius | Belle Mare Tours',
     description:
       'Self-drive car & scooter rental for guests in the Belle Mare area — free local delivery, full insurance, unlimited mileage and 24/7 local support.',
-    locale: 'en_GB',
     images: [OG_IMAGE],
   },
 };

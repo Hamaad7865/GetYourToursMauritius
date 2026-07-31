@@ -33,7 +33,6 @@ const DEFAULT_METADATA: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     url: `${SITE.url}${PATH}`,
-    locale: 'en_GB',
     publishedTime: PUBLISHED,
     images: [OG_IMAGE],
   },

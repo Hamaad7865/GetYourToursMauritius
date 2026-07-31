@@ -87,6 +87,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
+  // loadActivity() already resolves seoTitle/seoDescription per locale in SQL (api_get_activity
+  // coalesces French over English per field) — nothing to localise here beyond the OG locale tag.
   const activity = await loadActivity(slug);
   if (!activity) return { title: 'Activity not found' };
   const title = activity.seoTitle ?? `${activity.title} | ${SITE.operator}`;
@@ -94,6 +96,7 @@ export async function generateMetadata({
     activity.seoDescription ?? activity.summary ?? activity.description ?? SITE.description;
   const canonical = `/activities/${activity.slug}`;
   const image = activity.heroImage?.url;
+  const locale = await getLocale();
   return {
     // `absolute` so the root template doesn't append a SECOND brand (the title already ends in the
     // operator) — that double-brand was pushing tour keywords past SERP truncation.
@@ -105,7 +108,7 @@ export async function generateMetadata({
       title,
       description,
       url: `${SITE.url}${canonical}`,
-      locale: 'en_GB',
+      locale: locale === 'fr' ? 'fr_FR' : 'en_GB',
       ...(image ? { images: [{ url: image }] } : {}),
     },
   };

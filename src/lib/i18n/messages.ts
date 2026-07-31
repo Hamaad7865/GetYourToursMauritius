@@ -2218,6 +2218,9 @@ export const fr: Record<string, string> = {
   'Nearby attractions': 'Attractions à proximité',
   Destinations: 'Destinations',
   'Destination guide · {region} coast': 'Guide de destination · côte {region}',
+  'Where to go in Mauritius': 'Où aller à Maurice',
+  'Where to go in Mauritius: local guides to the island’s top areas — Grand Baie, Flic-en-Flac, Belle Mare, Le Morne, Tamarin and more. Things to do, beaches, what each area is good for, and how to get there with Belle Mare Tours.':
+    'Où aller à Maurice : guides locaux des meilleures régions de l’île — Grand Baie, Flic-en-Flac, Belle Mare, Le Morne, Tamarin et plus encore. Activités, plages, les points forts de chaque région et comment s’y rendre avec Belle Mare Tours.',
   '{name}, Mauritius': '{name}, Maurice',
   'Things to do in {name}': 'Activités à {name}',
   'Read the full things-to-do guide for {name} →': 'Lire le guide complet des activités à {name} →',
@@ -2350,8 +2353,25 @@ export const fr: Record<string, string> = {
   'Mauritius travel guides': 'guides de voyage à Maurice',
   'Destination not found': 'Destination introuvable',
   "We couldn't find that area guide.": 'Nous n’avons pas trouvé ce guide de région.',
+  'Attraction not found': 'Attraction introuvable',
+  "We couldn't find that place. It may have been renamed or removed.":
+    'Nous n’avons pas trouvé ce lieu. Il a peut-être été renommé ou supprimé.',
+  'things to do in Mauritius': 'activités à faire à Maurice',
+  'our tours and activities': 'nos excursions et activités',
   'Explore all': 'Découvrez toutes les',
   'Mauritius destinations': 'destinations à Maurice',
+
+  // Task 17 — reviews index page chrome (the reviews themselves — author names, review text — stay
+  // English on purpose: they're real people's words quoted from TripAdvisor/Google, not our copy).
+  Reviews: 'Avis',
+  'Belle Mare Tours reviews': 'Avis sur Belle Mare Tours',
+  'Read real reviews of Belle Mare Tours from TripAdvisor and Google — rated 4.8 out of 5 from more than 1,000 guests for catamaran cruises, dolphin swims, island day tours, sightseeing and airport transfers in Mauritius.':
+    'Lisez les avis authentiques sur Belle Mare Tours, sur TripAdvisor et Google — notés 4,8 sur 5 par plus de 1 000 voyageurs, pour les croisières en catamaran, la nage avec les dauphins, les excursions à la journée, le tourisme et les transferts aéroport à Maurice.',
+  '{count} on TripAdvisor': '{count} sur TripAdvisor',
+  '{count} on Google': '{count} sur Google',
+  'These are real, unedited reviews from TripAdvisor, Google, and guests who booked directly with us. Where available, click through to read the review on its original platform.':
+    'Voici des avis authentiques et non modifiés, provenant de TripAdvisor, de Google et de voyageurs ayant réservé directement avec nous. Lorsque c’est possible, cliquez pour lire l’avis sur sa plateforme d’origine.',
+
   'Something went wrong': 'Une erreur s’est produite',
   'We hit an unexpected error loading this page. Please try again — any booking or payment in progress is safe.':
     'Une erreur inattendue s’est produite lors du chargement de cette page. Veuillez réessayer — toute réservation ou paiement en cours reste protégé.',

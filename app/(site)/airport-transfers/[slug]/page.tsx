@@ -27,6 +27,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const t = getTransfer(slug);
   if (!t) return { title: 'Transfer not found' };
+  // Unlike the area/attraction meta helpers, `transferMetaTitle`/`transferMetaDescription` don't
+  // read any of `TransferContent`'s translatable fields (`intro`/`included`/`faq`) at all — they're
+  // hardcoded English sentences built from the hotel name and fare facts. Localising `t` first
+  // would change nothing, so it's skipped; these stay English until someone writes French sentence
+  // templates for them (a content task, not a wiring one).
   const title = transferMetaTitle(t);
   const description = transferMetaDescription(t);
   const canonical = t.path;
@@ -39,7 +44,6 @@ export async function generateMetadata({
       title,
       description,
       url: `${SITE.url}${canonical}`,
-      locale: 'en_GB',
       images: [OG_IMAGE],
     },
   });

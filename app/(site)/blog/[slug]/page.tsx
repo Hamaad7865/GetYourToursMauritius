@@ -43,10 +43,17 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const p = await loadPost(slug);
+  const locale = await getLocale();
+  const p = await loadPost(slug, locale);
   if (!p) return { title: 'Article not found' };
-  const title = p.metaTitle || p.title;
-  const description = p.metaDescription;
+  // metaTitle/metaDescription are hand-tuned SEO copy that only exists in English — PostTranslation
+  // deliberately excludes them (see blog.ts: they're editorial polish, not the article itself, and
+  // nobody has written French SEO variants for ~30 posts yet). For French, fall back to the post's
+  // own translated title/excerpt (already resolved above, since loadPost got the locale) rather than
+  // serving an English SEO variant on an otherwise-French page. Not a structured-data violation
+  // either way — this is <title>/<meta description>, not visible page content.
+  const title = locale === 'fr' ? p.title : p.metaTitle || p.title;
+  const description = locale === 'fr' ? p.excerpt : p.metaDescription;
   return {
     title,
     description,
@@ -56,7 +63,7 @@ export async function generateMetadata({
       title,
       description,
       url: `${SITE.url}${p.path}`,
-      locale: 'en_GB',
+      locale: locale === 'fr' ? 'fr_FR' : 'en_GB',
       publishedTime: p.datePublished,
       // The post's own cover photo beats the site-wide default on social shares.
       images: p.heroImageUrl ? [{ url: p.heroImageUrl }] : [OG_IMAGE],

@@ -86,7 +86,6 @@ const DEFAULT_METADATA: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     url: `${SITE.url}/airport-transfers`,
-    locale: 'en_GB',
     images: [{ url: `${SITE.url}/hero/islands/aerial-lagoon.jpg` }],
   },
 };

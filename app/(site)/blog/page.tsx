@@ -31,7 +31,6 @@ const DEFAULT_METADATA: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     url: `${SITE.url}/blog`,
-    locale: 'en_GB',
     images: [OG_IMAGE],
   },
 };

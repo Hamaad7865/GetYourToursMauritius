@@ -82,6 +82,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const params = parseBrowseParams(await searchParams);
   const t = await getT();
+  const locale = await getLocale();
   // The unfiltered catalogue is the page that should rank for "Mauritius activities" — give it a
   // purpose-built title/description. Filtered views keep their dynamic heading. `absolute` in both
   // cases so the root "%s | Belle Mare Tours" template doesn't double-brand an already-branded title.
@@ -96,9 +97,16 @@ export async function generateMetadata({
     title: { absolute: title },
     description,
     alternates: { canonical: '/activities' },
-    openGraph: { type: 'website', title, description, locale: 'en_GB', images: [OG_IMAGE] },
+    openGraph: {
+      type: 'website',
+      title,
+      description,
+      locale: locale === 'fr' ? 'fr_FR' : 'en_GB',
+      images: [OG_IMAGE],
+    },
   };
   // Only the base catalogue takes the /admin/seo override — filtered views keep their dynamic heading.
+  // (overrideMetadata would re-derive the same locale tag; computed once above either way.)
   return isBase ? overrideMetadata('/activities', defaults) : defaults;
 }
 

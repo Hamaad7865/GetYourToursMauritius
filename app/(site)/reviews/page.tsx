@@ -8,6 +8,7 @@ import { loadGuestReviewsPageData } from '@/lib/content/guest-reviews-live';
 import { breadcrumbListJsonLd, reviewsPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { IconStar } from '@/components/ui/icons';
+import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -35,7 +36,6 @@ const DEFAULT_METADATA: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     url: `${SITE.url}/reviews`,
-    locale: 'en_GB',
     images: [OG_IMAGE],
   },
 };
@@ -54,6 +54,7 @@ function Bar({ stars, count, total }: { stars: number; count: number; total: num
 }
 
 export default async function ReviewsPage() {
+  const t = await getT();
   const { stats: reviewStats, featured: featuredReviews } = await loadGuestReviewsPageData();
   const histTotal = Object.values(reviewStats.histogram).reduce((a, b) => a + b, 0) || 1;
   const jsonld = reviewsPageJsonLd(
@@ -67,13 +68,20 @@ export default async function ReviewsPage() {
     <>
       <JsonLd
         data={breadcrumbListJsonLd([
-          { name: 'Home', path: '/' },
-          { name: 'Reviews', path: '/reviews' },
+          { name: t('Home'), path: '/' },
+          { name: t('Reviews'), path: '/reviews' },
         ])}
       />
       <JsonLd data={jsonld} />
 
-      <InfoPage eyebrow="Guest reviews" title="Belle Mare Tours reviews" intro={DESCRIPTION}>
+      {/* Review CONTENT (author names, review text) is left English deliberately — it's real
+          people's words, quoted from TripAdvisor/Google, not our own copy to translate. Only the
+          page's own chrome below is routed through t(), same treatment as the destinations index. */}
+      <InfoPage
+        eyebrow={t('Guest reviews')}
+        title={t('Belle Mare Tours reviews')}
+        intro={t(DESCRIPTION)}
+      >
         {/* Summary */}
         <div className="grid gap-6 rounded-2xl border border-ink/10 bg-cream/50 p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:gap-10">
           <div className="text-center">
@@ -86,7 +94,7 @@ export default async function ReviewsPage() {
               ))}
             </div>
             <div className="mt-1.5 text-[13px] text-ink-muted">
-              {reviewStats.total.toLocaleString()} reviews
+              {t('{n} reviews', { n: reviewStats.total.toLocaleString() })}
             </div>
           </div>
           <div className="min-w-0">
@@ -108,7 +116,7 @@ export default async function ReviewsPage() {
                 className="hover:text-teal"
               >
                 <b className="text-ink">{reviewStats.tripadvisor.rating}</b> ·{' '}
-                {reviewStats.tripadvisor.count} on TripAdvisor
+                {t('{count} on TripAdvisor', { count: reviewStats.tripadvisor.count })}
               </a>
               <a
                 href={GOOGLE_URL}
@@ -116,16 +124,17 @@ export default async function ReviewsPage() {
                 rel="noopener noreferrer"
                 className="hover:text-teal"
               >
-                <b className="text-ink">{reviewStats.google.rating}</b> · {reviewStats.google.count}{' '}
-                on Google
+                <b className="text-ink">{reviewStats.google.rating}</b> ·{' '}
+                {t('{count} on Google', { count: reviewStats.google.count })}
               </a>
             </div>
           </div>
         </div>
 
         <p className="mt-5 text-[13.5px] text-ink-muted">
-          These are real, unedited reviews from TripAdvisor, Google, and guests who booked directly
-          with us. Where available, click through to read the review on its original platform.
+          {t(
+            'These are real, unedited reviews from TripAdvisor, Google, and guests who booked directly with us. Where available, click through to read the review on its original platform.',
+          )}
         </p>
 
         {/* Reviews grid */}

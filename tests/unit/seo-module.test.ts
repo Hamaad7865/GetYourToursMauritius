@@ -16,9 +16,11 @@ vi.mock('@/lib/http/context', () => ({
 }));
 // overrideMetadata now resolves the visitor's locale via getLocale() (reads next/headers `cookies()`,
 // unavailable outside a real request) — stub it so this unit test doesn't need a Next.js request context.
-vi.mock('@/lib/i18n/server', () => ({ getLocale: async () => 'en' }));
+// A vi.fn() (not a plain async function) so individual tests can override it to check locale tagging.
+vi.mock('@/lib/i18n/server', () => ({ getLocale: vi.fn(async () => 'en') }));
 
 import { getSeoMeta, listDbPosts, getDbPost } from '@/lib/services/seo';
+import { getLocale } from '@/lib/i18n/server';
 import { overrideMetadata } from '@/lib/seo/override';
 import {
   isSafeRedirectTarget,
@@ -48,8 +50,18 @@ beforeEach(() => {
 
 describe('overrideMetadata', () => {
   it('returns the defaults untouched when there is no override', async () => {
+    // Not `.toBe` (reference equality): overrideMetadata always rebuilds `openGraph` to stamp the
+    // visitor's locale (see the `openGraph.locale` test below), even on this no-override path — so a
+    // new object comes back with the same values, not the same reference.
     vi.mocked(getSeoMeta).mockResolvedValue(null);
-    expect(await overrideMetadata('/rent', DEFAULTS)).toBe(DEFAULTS);
+    expect(await overrideMetadata('/rent', DEFAULTS)).toEqual(DEFAULTS);
+  });
+
+  it("stamps openGraph.locale from the visitor's locale (fr_FR for a French visitor)", async () => {
+    vi.mocked(getLocale).mockResolvedValueOnce('fr');
+    vi.mocked(getSeoMeta).mockResolvedValue(null);
+    const m = await overrideMetadata('/rent', DEFAULTS);
+    expect((m.openGraph as { locale?: string }).locale).toBe('fr_FR');
   });
 
   it('merges title + description over the defaults (absolute title, OG kept in sync)', async () => {
@@ -84,8 +96,9 @@ describe('overrideMetadata', () => {
   });
 
   it('falls back to the defaults on any error (an override can never break a page)', async () => {
+    // Not `.toBe` — see the no-override case above for why.
     vi.mocked(getSeoMeta).mockRejectedValue(new Error('db down'));
-    expect(await overrideMetadata('/rent', DEFAULTS)).toBe(DEFAULTS);
+    expect(await overrideMetadata('/rent', DEFAULTS)).toEqual(DEFAULTS);
   });
 });
 

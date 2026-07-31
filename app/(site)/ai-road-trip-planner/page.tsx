@@ -18,7 +18,6 @@ const DEFAULT_METADATA: Metadata = {
     title: 'AI Road Trip Planner — Mauritius',
     description:
       'Build your own day across Mauritius with ZilAi, a grounded AI trip planner. Real route, instant price, one tap to book.',
-    locale: 'en_GB',
     images: [OG_IMAGE],
   },
 };

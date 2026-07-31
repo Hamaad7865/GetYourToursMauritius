@@ -38,7 +38,6 @@ const DEFAULT_METADATA: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     url: `${SITE.url}/attractions`,
-    locale: 'en_GB',
     images: [OG_IMAGE],
   },
 };

@@ -40,7 +40,9 @@ const DEFAULT_METADATA: Metadata = {
     title: 'Belle Mare Tours — Mauritius Tours, Activities & Airport Taxi',
     description:
       'Book Mauritius tours, activities, sightseeing and airport taxi transfers direct with Belle Mare Tours — transparent pricing, instant confirmation, no reseller markup.',
-    locale: 'en_GB',
+    // `locale` itself is set below in generateMetadata (via overrideMetadata) once the visitor's
+    // language is known; `alternateLocale` is fixed here at the OTHER language, i.e. 'fr_FR' unless
+    // the visitor is already French.
     alternateLocale: 'fr_FR',
     images: [OG_IMAGE],
   },
@@ -79,5 +81,13 @@ export default async function HomePage() {
 
 /** Built-in metadata merged with the /admin/seo override for this path (see src/lib/seo/override.ts). */
 export async function generateMetadata(): Promise<Metadata> {
-  return overrideMetadata('/', DEFAULT_METADATA);
+  const locale = await getLocale();
+  const metadata: Metadata = {
+    ...DEFAULT_METADATA,
+    openGraph: {
+      ...DEFAULT_METADATA.openGraph,
+      alternateLocale: locale === 'fr' ? 'en_GB' : 'fr_FR',
+    },
+  };
+  return overrideMetadata('/', metadata);
 }

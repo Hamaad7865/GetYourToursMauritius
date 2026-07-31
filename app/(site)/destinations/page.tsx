@@ -6,7 +6,9 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { areas, AREA_REGION_ORDER, localisedArea, type Area } from '@/lib/content/areas';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getLocale } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
+
+type Translate = (key: string, vars?: Record<string, string | number>) => string;
 
 export const runtime = 'edge';
 
@@ -31,19 +33,18 @@ const DEFAULT_METADATA: Metadata = {
     title: TITLE,
     description: DESCRIPTION,
     url: `${SITE.url}/destinations`,
-    locale: 'en_GB',
     images: [OG_IMAGE],
   },
 };
 
-function AreaCard({ a }: { a: Area }) {
+function AreaCard({ a, t }: { a: Area; t: Translate }) {
   return (
     <Link
       href={a.path}
       className="group flex flex-col rounded-2xl border border-ink/10 bg-white p-5 transition hover:-translate-y-0.5 hover:shadow-lg"
     >
       <div className="text-[11px] font-bold uppercase tracking-wide text-teal">
-        {a.region} coast
+        {t('{region} coast', { region: a.region })}
       </div>
       <h3 className="mt-1 text-[17px] font-extrabold leading-snug text-ink group-hover:text-teal">
         {a.name}
@@ -67,14 +68,15 @@ function AreaCard({ a }: { a: Area }) {
 
 export default async function DestinationsIndexPage() {
   const locale = await getLocale();
+  const t = await getT();
   const localisedAreas = areas.map((a) => localisedArea(a, locale));
   const groups = AREA_REGION_ORDER.map((region) => ({
     region,
     items: localisedAreas.filter((a) => a.region === region),
   })).filter((g) => g.items.length > 0);
   const breadcrumb = breadcrumbListJsonLd([
-    { name: 'Home', path: '/' },
-    { name: 'Destinations', path: '/destinations' },
+    { name: t('Home'), path: '/' },
+    { name: t('Destinations'), path: '/destinations' },
   ]);
   const itemList = itemListJsonLd(
     areas.map((a) => ({ name: `${a.name}, Mauritius`, path: a.path })),
@@ -85,19 +87,21 @@ export default async function DestinationsIndexPage() {
       <JsonLd data={breadcrumb} />
       <JsonLd data={itemList} />
       <InfoPage
-        eyebrow="Mauritius destinations"
-        title="Where to go in Mauritius"
-        intro={DESCRIPTION}
+        eyebrow={t('Mauritius destinations')}
+        title={t('Where to go in Mauritius')}
+        intro={t(DESCRIPTION)}
       >
         {groups.map((g) => (
           <section
             key={g.region}
             className="border-t border-ink/10 py-9 first:border-t-0 first:pt-0"
           >
-            <h2 className="text-[22px] font-extrabold tracking-tight text-ink">{g.region} coast</h2>
+            <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+              {t('{region} coast', { region: g.region })}
+            </h2>
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {g.items.map((a) => (
-                <AreaCard key={a.slug} a={a} />
+                <AreaCard key={a.slug} a={a} t={t} />
               ))}
             </div>
           </section>
