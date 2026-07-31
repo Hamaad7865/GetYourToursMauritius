@@ -26,9 +26,12 @@
 next-env.d.ts
 
 # env files (never commit secrets)
-.env
-.env.local
-.env.*.local
+# Catch-all with an explicit allow for the committed template: the previous list of exact names
+# (.env, .env.local, .env.*.local) missed anything a file manager or editor renames on the way past,
+# and ".env - Copy.local" — holding the live SERVICE ROLE key and JWT secret — sat untracked and
+# UNIGNORED in the repo root, one `git add -A` from being published.
+.env*
+!.env.example
 .dev.vars
 .dev.vars.local
 # backups of env / any file — never commit (may contain secrets)
