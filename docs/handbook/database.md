@@ -111,6 +111,34 @@ to `api_book` that stops a replayed idempotency key from disclosing another cust
 _without_ the guard, sorted later, and won. The guard vanished from production. It took a dedicated
 migration to put it back.
 
+## ⚠️ Its twin: appending to a migration that has already run
+
+A migration is **immutable the moment it may have been applied**. `supabase db push` keys off the
+version prefix, not the file contents: once `supabase_migrations.schema_migrations` has the row, the
+file is never read again. Editing or appending to it changes nothing in production, forever.
+
+**This has happened.** `20260901000100_localised_catalogue_rpcs.sql` was created containing only
+`api_get_activity`. A parallel session pushed while the work was still in progress, which deployed and
+recorded that version. `api_search_activities` was then appended to the same file. The push that
+followed skipped it — the version was already recorded — so activity **detail** pages resolved French
+while every card, search result, home rail and "you might also like" row kept rendering English.
+
+What makes this one nasty is that **everything on disk is correct**: the migration file is right,
+`catch-up.sql` is right, `setup.sql` is right, the ledger is right, and every test passes — because
+tests replay all migrations onto a fresh database, where the appended text does run. Only the live
+database disagrees, and nothing compares the two.
+
+**The rule:** to change a function, add a **new** migration. Never append to an existing one, even one
+you created minutes ago — in a shared tree you cannot know whether someone else has already pushed.
+
+To check whether production actually has what you think it has:
+
+```sql
+select position('activity_translations' in pg_get_functiondef(p.oid)) > 0
+from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public' and p.proname = 'api_search_activities';
+```
+
 ### Mandatory before any `create or replace function`
 
 ```bash
