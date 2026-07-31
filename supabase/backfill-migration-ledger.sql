@@ -129,6 +129,7 @@ insert into supabase_migrations.schema_migrations (version, name) values
   ('20260901000600', 'search_activities_locale'),
   ('20260901000700', 'translate_content_defaults_and_extra'),
   ('20260901000800', 'payment_event_dedup_by_type'),
+  ('20260902000000', 'money_path_recovery_fixes'),
   ('20260901000900', 'lock_operators_and_payment_delete')
 on conflict (version) do nothing;
 -- ^ version is the ledger's PK, so `on conflict (version)` is pure idempotency here — every version

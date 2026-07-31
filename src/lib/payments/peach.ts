@@ -38,10 +38,34 @@ export interface PeachConfig {
   environment: 'test' | 'live';
 }
 
-/** Peach result-code prefix for a successful authorisation/capture. */
-const SUCCESS_CODE = /^(000\.000\.|000\.100\.1)/;
-/** Peach result-code prefix for a still-pending transaction. */
-const PENDING_CODE = /^(000\.200)/;
+/**
+ * Peach result-code prefixes for a successful authorisation/capture, per Peach's own published
+ * classification (developer.peachpayments.com/docs/dashboard-response-codes):
+ *   /^(000\.000\.|000\.100\.1|000\.[36]|000\.400\.[1][12]0)/
+ *
+ * This shipped as only `000.000.` + `000.100.1`, which meant the `000.3*` (two-step succeeded),
+ * `000.6*` and `000.400.110`/`000.400.120` families fell through the chain in `outcomeFor` and were
+ * recorded as FAILURES — a captured payment written to the ledger as a failed one, which left the
+ * booking unconfirmed with the customer's money taken.
+ */
+const SUCCESS_CODE = /^(000\.000\.|000\.100\.1|000\.[36]|000\.400\.1[12]0)/;
+/**
+ * "Successfully processed, but flagged for manual review" (fraud suspicion, AVS mismatch, …):
+ *   /^(000\.400\.0[^3]|000\.400\.100)/
+ *
+ * The money IS captured — Peach's own note is that these are charged but need verification before
+ * fulfilment. So they settle like any other capture and are additionally flagged for a human via
+ * `payments.settlement_review_at`; recording them as failures charged the customer for nothing.
+ * `000.400.03*` is excluded by the `[^3]` — that family is REJECTED for risk, not captured.
+ */
+const REVIEW_CODE = /^(000\.400\.0[^3]|000\.400\.100)/;
+/**
+ * Still open / awaiting confirmation. `000.200` is the short-lived widget session (~30 min);
+ * `800.400.5*` and `100.400.500` are the long-life-cycle families, which Peach documents as pending
+ * confirmation from external systems and can stay unresolved for days — treating those as failed
+ * both lost the payment and (before this sweep) latched the booking out of every recovery path.
+ */
+const PENDING_CODE = /^(000\.200|800\.400\.5|100\.400\.500)/;
 /**
  * "Cancelled by user" — the customer closed or abandoned the widget. Peach CLOSES the session on this
  * code: it can never be paid, and re-mounting the widget with it fires `onCancelled` immediately.
@@ -201,6 +225,8 @@ export class PeachPaymentProvider implements PaymentProvider {
       outcome,
       bookingRef: fields.merchantTransactionId,
       providerReference: fields.transactionId ?? fields.checkoutId,
+      providerCheckoutId: fields.checkoutId,
+      needsReview: needsManualReview(fields.resultCode),
       amountMinor: fields.amountMinor,
       currency: fields.currency,
       raw: fields.raw,
@@ -230,6 +256,10 @@ export class PeachPaymentProvider implements PaymentProvider {
       outcome: outcomeFor(str('result.code'), str('paymentType')),
       bookingRef: str('merchantTransactionId'),
       providerReference: str('id') ?? checkoutId,
+      // The session we asked about — which is the one the money was taken on, whatever else the
+      // booking has since minted. reconcilePaymentEvent uses it to credit the right payment row.
+      providerCheckoutId: checkoutId,
+      needsReview: needsManualReview(str('result.code')),
       amountMinor: Number.isFinite(amount) ? Math.round(amount * 100) : null,
       currency: str('currency'),
       checkoutTerminal: str('result.code') === CANCELLED_BY_USER_CODE,
@@ -311,9 +341,18 @@ export class PeachPaymentProvider implements PaymentProvider {
 /** Map a Peach result code (+ payment type) to our normalised outcome. */
 export function outcomeFor(resultCode: string | null, paymentType: string | null): PaymentOutcome {
   if (!resultCode) return 'unknown';
-  if (SUCCESS_CODE.test(resultCode)) return paymentType === 'RF' ? 'refunded' : 'paid';
+  // A review-flagged code is a CAPTURE that a human must vet — settle it, then flag it (see
+  // needsManualReview). Filing it as 'failed' took the money and gave the customer nothing.
+  if (SUCCESS_CODE.test(resultCode) || REVIEW_CODE.test(resultCode)) {
+    return paymentType === 'RF' ? 'refunded' : 'paid';
+  }
   if (PENDING_CODE.test(resultCode)) return 'pending';
   return 'failed';
+}
+
+/** True when Peach captured the money but wants a human to vet the transaction before fulfilment. */
+export function needsManualReview(resultCode: string | null): boolean {
+  return resultCode != null && REVIEW_CODE.test(resultCode);
 }
 
 interface WebhookFields {

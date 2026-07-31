@@ -67,16 +67,30 @@ export async function reconcilePaymentEvent(
   if (bookingErr) throw new Error(bookingErr.message); // transient → caller returns 5xx → provider retries
   if (!booking) return { found: false, confirmed: false, outcome: event.outcome };
 
-  const { data: payment, error: paymentErr } = await admin
+  // Bind the event to the payment row that OWNS it, not merely the booking's newest row.
+  //
+  // A booking can carry several payment rows, and each pins its own MUR charge at the fx rate in
+  // force when it was created. Crediting an event against the wrong row corrupts a live payment's
+  // state and measures the settlement against the wrong pin. Match on the checkout the provider says
+  // the money moved on — `prev_provider_checkout_id` too, because a session minted before a re-pay
+  // stays completable at Peach for ~30 minutes (the same reason api_pending_payment_checkouts sweeps
+  // both ids). Matching in JS rather than a PostgREST `.or()` keeps a provider-supplied string out of
+  // a filter-expression parser. Newest-first is the fallback for a provider that reports no checkout.
+  const { data: rows, error: paymentErr } = await admin
     .from('payments')
     .select(
-      'id, amount_minor, currency, paid_minor, refunded_minor, charged_amount_minor, charged_currency',
+      'id, amount_minor, currency, paid_minor, refunded_minor, charged_amount_minor, charged_currency, provider_checkout_id, prev_provider_checkout_id',
     )
     .eq('booking_id', booking.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .order('created_at', { ascending: false });
   if (paymentErr) throw new Error(paymentErr.message);
+  const candidates = rows ?? [];
+  const checkoutId = event.providerCheckoutId ?? null;
+  const payment =
+    (checkoutId
+      ? (candidates.find((r) => r.provider_checkout_id === checkoutId) ??
+        candidates.find((r) => r.prev_provider_checkout_id === checkoutId))
+      : undefined) ?? candidates[0];
   if (!payment) return { found: false, confirmed: false, outcome: event.outcome };
 
   // What the card was ASKED to pay. Legacy/EUR-era rows carry no charge record; for those the ledger
@@ -194,6 +208,24 @@ export async function reconcilePaymentEvent(
     p_payload: payload,
   });
   if (rpcErr) throw new Error(rpcErr.message);
+
+  // Captured, but Peach wants a human to vet it (fraud suspicion / AVS mismatch). The money moved,
+  // so the booking confirms like any other capture — but the owner must see it before the guest
+  // travels, and `settlement_review_at` is exactly the flag run_booking_maintenance already honours.
+  // Never allowed to throw: the ledger write above has already succeeded, and a throw here would
+  // 5xx the webhook and make Peach redeliver an event we have fully absorbed.
+  if (event.needsReview) {
+    try {
+      await admin.rpc('api_flag_settlement_review', {
+        p: { paymentId: payment.id, reason: 'provider_manual_review' },
+      });
+    } catch {
+      log.error('reconcile_review_flag_failed', {
+        bookingRef: event.bookingRef,
+        reason: 'provider_manual_review',
+      });
+    }
+  }
 
   return { found: true, confirmed: fullyPaid, outcome: event.outcome };
 }

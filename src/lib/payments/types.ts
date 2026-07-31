@@ -77,6 +77,21 @@ export interface PaymentEvent {
    * retry, and a second session could double-charge), and never when the state is uncertain.
    */
   checkoutTerminal?: boolean;
+  /**
+   * The provider checkout/session this event belongs to, when the provider reports it.
+   *
+   * A booking can own more than one payments row, and the money was taken on ONE of them. Without
+   * this, reconcilePaymentEvent could only guess — it took the booking's NEWEST row — so a late,
+   * retried or out-of-order event was credited against the wrong row, corrupting a live payment's
+   * state and measuring the settlement against the wrong pinned MUR charge.
+   */
+  providerCheckoutId?: string | null;
+  /**
+   * The provider captured the money but flagged the transaction for human review (fraud suspicion,
+   * AVS mismatch). Settles normally — the funds moved — and additionally stamps
+   * `payments.settlement_review_at` so the owner vets it before the guest travels.
+   */
+  needsReview?: boolean;
   raw: unknown;
 }
 

@@ -186,6 +186,27 @@ export function TransferBookingWidget({
         tripType === 'return'
           ? `Return airport transfer · ${hotelName}`
           : `Airport transfer to ${hotelName}`;
+
+      // The params that DEFINE this transfer, built once and used by both the direct /checkout push
+      // and the mirrored cart line. They have to travel with the line: api_book decides a booking is
+      // an airport transfer from the ACTIVITY, not the payload, so it overrides the total either way
+      // — and with no dropoffSlug and no tripType it falls back to zone 1, one leg. Checking out the
+      // same held transfer from the cart therefore used to re-price a return trip to a far hotel as a
+      // one-way zone-1 fare. (The server still re-derives the price from dropoffSlug; these are the
+      // inputs to that derivation, never a price we are trusted on.)
+      const transferParams: Record<string, string> = {
+        transfer: '1',
+        dropoffSlug: slug,
+        dropoff: hotelName,
+        region,
+        tripType,
+      };
+      // Chosen legs, so checkout's flight fields prefill (the customer confirms the exact hotel and
+      // flight numbers there). tripDirection is derived from tripType by checkout.
+      if (date) transferParams.arrDate = date;
+      if (time) transferParams.arr = time;
+      if (tripType === 'return' && returnDate) transferParams.retDate = returnDate;
+      if (tripType === 'return' && returnTime) transferParams.retTime = returnTime;
       // Mirror the held transfer into the cart (same shape as Add-to-cart / the tour Book-now path), keyed
       // by occurrence, so leaving checkout keeps the held spot visible with its countdown. Checkout reads
       // gytm:cartline:{occ} on mount and upserts it as a held line; the cart's timer + reconcile + expiry
@@ -211,6 +232,7 @@ export function TransferBookingWidget({
             seatsLeft: slot.seatsLeft ?? party,
             unit: 'per transfer',
             idemKey: idem,
+            checkoutParams: transferParams,
           }),
         );
       } catch {
@@ -230,18 +252,8 @@ export function TransferBookingWidget({
         suv: effectiveSuv ? '1' : '0',
         from: 'widget',
         // Airport-transfer specifics — the server re-derives the region from dropoffSlug (zero-trust).
-        transfer: '1',
-        dropoffSlug: slug,
-        dropoff: hotelName,
-        region,
-        tripType,
+        ...transferParams,
       });
-      // Carry the chosen arrival date/time so the checkout's leg fields prefill (the customer confirms
-      // the exact hotel + flight numbers there). The server re-derives the price regardless.
-      if (date) q.set('arrDate', date);
-      if (time) q.set('arr', time);
-      if (tripType === 'return' && returnDate) q.set('retDate', returnDate);
-      if (tripType === 'return' && returnTime) q.set('retTime', returnTime);
       router.push(`/checkout?${q.toString()}`);
     } catch {
       setError(t("We couldn't start your booking just now. Please try again."));

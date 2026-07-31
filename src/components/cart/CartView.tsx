@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCart, itemTotal, lineCap, type CartItem } from '@/lib/cart/useCart';
-import { encodeParty } from '@/lib/services/party';
+import { checkoutHref } from '@/lib/cart/checkout-href';
 import { createHoldsForLines, type PendingBooking } from '@/lib/cart/holdClient';
 import { ResumePaymentButton } from '@/components/checkout/ResumePaymentButton';
 import { pushNotification } from '@/lib/notifications/inbox';
@@ -25,33 +25,6 @@ function Spinner() {
   return (
     <span className="inline-block h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
   );
-}
-
-function checkoutHref(i: CartItem): string {
-  const q = new URLSearchParams({
-    occ: i.occurrenceId,
-    label: i.priceLabel,
-    qty: String(i.guests),
-    slug: i.slug,
-    title: i.title,
-    lang: i.lang,
-    total: String(itemTotal(i)),
-    when: i.dateLabel,
-    guests: String(i.guests),
-    unit: i.unit,
-    // Carry the SUV upgrade so a cart line added as an SUV isn't silently downgraded to the Sedan
-    // price at checkout. (holdId/idem are intentionally absent from the URL — the hold reserved in
-    // proceed() is handed to checkout via sessionStorage so its tokens don't leak via Referer/history.)
-    ...(i.suv ? { suv: '1' } : {}),
-    ...(i.childSeats ? { childSeats: String(i.childSeats) } : {}),
-    // Age-banded line: carry the per-band map so the server prices each band (Adult/Child/Infant).
-    ...(i.party ? { party: encodeParty(i.party) } : {}),
-    // Signal checkout this is a CART line: read this line's captured route AND reuse the hold proceed()
-    // reserved for this occurrence (both staged to sessionStorage by occurrence). Always present — NOT
-    // `from=widget` (a distinct stash + price hints) — so the cart hold is reused instead of re-minted.
-    from: 'cart',
-  });
-  return `/checkout?${q.toString()}`;
 }
 
 function EmptyCart() {

@@ -98,6 +98,17 @@ export interface CartItem {
   expiresAt?: string;
   /** Stable idempotency anchor so re-running Checkout reuses the same hold. */
   idemKey: string;
+  /**
+   * Extra checkout query params that DEFINE this line beyond occurrence + party — currently the
+   * airport-transfer set (transfer, dropoffSlug, region, tripType, the chosen legs).
+   *
+   * They must survive the round-trip through the cart. api_book decides a booking is a transfer from
+   * the ACTIVITY rather than the payload and overrides the total either way, so a line that reaches
+   * checkout without them is re-priced from the fallbacks — zone 1, one leg — and a return trip to a
+   * far hotel is charged as a one-way short hop. Inputs to the server's own derivation, never a
+   * price we are trusted on.
+   */
+  checkoutParams?: Record<string, string>;
 }
 
 /** Price for one cart line: a flat price for vehicle pricing, per group (ceil people / size) for
