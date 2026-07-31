@@ -772,6 +772,7 @@ export const fr: Record<string, string> = {
   'Pay now': 'Payer maintenant',
   'Try again': 'Réessayer',
   'Door-to-door transport': 'Transport de porte à porte',
+  'Child seats ({n})': 'Sièges enfant ({n})',
   'Includes VAT ({pct}%)': 'TVA incluse ({pct} %)',
   'Download invoice (PDF)': 'Télécharger la facture (PDF)',
   'Could not download the invoice. Please try again.':
@@ -2342,4 +2343,88 @@ export const fr: Record<string, string> = {
   // visitors why)
   'This page is available in English only. The English text is the legally binding version.':
     'Cette page est disponible en anglais uniquement. Le texte anglais est la version juridiquement contraignante.',
+
+  // Task 16 — outbound documents (booking confirmation email, review-request email, invoice PDF,
+  // airport-transfer voucher PDF). Rendered outside React via translate(), never t() — these ride on
+  // the booking's stored locale, not the visitor's cookie.
+  'Charged to your card': 'Facturé sur votre carte',
+  'Your {operator} booking {ref} — invoice & receipt':
+    'Votre réservation {operator} {ref} — facture et reçu',
+  'Departure (hotel → airport)': 'Départ (hôtel → aéroport)',
+  'Return (both ways)': 'Aller-retour (les deux trajets)',
+  'Arrival (airport → hotel)': 'Arrivée (aéroport → hôtel)',
+  'Booking ref': 'Réf. réservation',
+  Activity: 'Activité',
+  'Room/cabin': 'Chambre/cabine',
+  'Child seat (age)': 'Siège enfant (âge)',
+  Notes: 'Remarques',
+  'Your booking is confirmed': 'Votre réservation est confirmée',
+  'Thanks for booking with {operator}. Here are your details.':
+    'Merci d’avoir réservé avec {operator}. Voici vos informations.',
+  '(incl. {vatPct}% VAT)': '(TVA de {vatPct} % incluse)',
+  'View & download your e-voucher': 'Voir et télécharger votre e-bon',
+  "Your airport-transfer e-voucher — the one to show your driver — is saved in your booking. Open it on your phone any time; there's no attachment to download from this email.":
+    'Votre e-bon de transfert aéroport — celui à montrer à votre chauffeur — est enregistré dans votre réservation. Ouvrez-le sur votre téléphone à tout moment ; aucune pièce jointe à télécharger depuis cet e-mail.',
+  'Your invoice & receipt are attached as a PDF.':
+    'Votre facture et votre reçu sont joints au format PDF.',
+  'Questions? Contact us at {emailLink} or {phone}.':
+    'Des questions ? Contactez-nous à {emailLink} ou au {phone}.',
+  'Hi {name},': 'Bonjour {name},',
+  'Good news — your booking {ref} is confirmed (total {total}).':
+    'Bonne nouvelle — votre réservation {ref} est confirmée (total {total}).',
+  'Your airport-transfer e-voucher (show this to your driver) is in your booking:':
+    'Votre e-bon de transfert aéroport (à montrer à votre chauffeur) se trouve dans votre réservation :',
+  'How was your {activity}?': 'Comment s’est passé votre {activity} ?',
+  "Hi {name}, thanks for touring with us. If you have a minute, we'd love to hear how it went — it helps other travellers find us too.":
+    'Bonjour {name}, merci d’avoir voyagé avec nous. Si vous avez une minute, nous aimerions savoir comment cela s’est passé — cela aide aussi d’autres voyageurs à nous trouver.',
+  'Review us on our site': 'Laissez un avis sur notre site',
+  'Thanks again for choosing {operator}.': 'Merci encore d’avoir choisi {operator}.',
+  "How was your {activity}? If you have a minute, we'd love to hear how it went.":
+    'Comment s’est passé votre {activity} ? Si vous avez une minute, nous aimerions savoir comment cela s’est passé.',
+  VAT: 'TVA',
+  'TAX INVOICE / RECEIPT': 'FACTURE FISCALE / REÇU',
+  'Invoice No': 'Facture n°',
+  'BILL TO': 'FACTURÉ À',
+  BOOKING: 'RÉSERVATION',
+  Booking: 'Réservation',
+  'Child seat — age': 'Siège enfant — âge',
+  'TRANSFER DETAILS': 'DÉTAILS DU TRANSFERT',
+  Description: 'Description',
+  Qty: 'Qté',
+  Amount: 'Montant',
+  'Subtotal (excl. VAT)': 'Sous-total (hors TVA)',
+  'Charged to card': 'Facturé sur la carte',
+  PAID: 'PAYÉ',
+  Ref: 'Réf.',
+  'Thank you for booking with {name}.': 'Merci d’avoir réservé avec {name}.',
+  'Licensed - Mauritius Tourism Authority': 'Agréé - Mauritius Tourism Authority',
+  'AIRPORT TRANSFER - E-VOUCHER': 'TRANSFERT AÉROPORT - E-BON',
+  'CONFIRMED - PAID': 'CONFIRMÉ - PAYÉ',
+  'Scan to view booking': 'Scannez pour voir la réservation',
+  'Show this voucher to your driver': 'Montrez ce bon à votre chauffeur',
+  'Your driver-guide meets you in the Arrivals hall holding a name board with your name. We track your flight in real time and waiting time is free, so a late landing never leaves you stranded.':
+    'Votre chauffeur-guide vous accueille dans le hall des arrivées avec une pancarte à votre nom. Nous suivons votre vol en temps réel et l’attente est gratuite, donc un atterrissage retardé ne vous laisse jamais sans solution.',
+  'YOUR TRIP': 'VOTRE TRAJET',
+  Passenger: 'Passager',
+  '{n} passenger': '{n} passager',
+  'Room / cabin': 'Chambre / cabine',
+  'at {time}': 'à {time}',
+  'flight {flight}': 'vol {flight}',
+  'at ~{time}': 'à ~{time}',
+  'Departure flight': 'Vol de départ',
+  'Child seat': 'Siège enfant',
+  '1 seat - age {age}': '1 siège - âge {age}',
+  'YOUR DRIVER & 24/7 HELP': 'VOTRE CHAUFFEUR ET ASSISTANCE 24/7',
+  "Your driver's name and direct number are sent to you by WhatsApp 24 hours before pick-up. Can't find your driver at the airport? Call or WhatsApp our 24/7 dispatch.":
+    'Le nom et le numéro direct de votre chauffeur vous sont envoyés par WhatsApp 24 heures avant la prise en charge. Vous ne trouvez pas votre chauffeur à l’aéroport ? Appelez ou envoyez un message WhatsApp à notre standard 24/7.',
+  'Dispatch & WhatsApp: {phone}': 'Standard et WhatsApp : {phone}',
+  'Order total': 'Total de la commande',
+  'Includes VAT ({pct}%) {amount}. A full tax receipt is attached to your confirmation email.':
+    'TVA incluse ({pct} %) {amount}. Un reçu fiscal complet est joint à votre e-mail de confirmation.',
+  'Free cancellation up to 24 hours before pick-up.':
+    'Annulation gratuite jusqu’à 24 heures avant la prise en charge.',
+  'Issued {date}': 'Émis le {date}',
+  'Departure — hotel to airport': 'Départ — hôtel vers aéroport',
+  'Return — both directions': 'Aller-retour — les deux trajets',
+  'Arrival — airport to hotel': 'Arrivée — aéroport vers hôtel',
 };

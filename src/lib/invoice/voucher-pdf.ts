@@ -4,6 +4,9 @@ import type { InvoiceModel } from './model';
 import { formatMauritiusDate, formatMauritiusDateTime } from './mauritius-time';
 import { toWinAnsi, fitText } from './pdf';
 import { transferLegs } from '@/lib/transfers/leg-times';
+import { translate } from '@/lib/i18n/translate';
+import { formatLocaleDate } from '@/lib/i18n/format';
+import type { Locale } from '@/lib/i18n/config';
 
 /**
  * Edge-safe airport-transfer E-VOUCHER renderer (pdf-lib, pure JS — no headless browser, no Node fs),
@@ -14,7 +17,10 @@ import { transferLegs } from '@/lib/transfers/leg-times';
  *
  * Currency renders as the CODE (EUR/USD): Helvetica's WinAnsi encoding can't draw the € glyph and
  * `drawText` throws on un-encodable chars, so `toWinAnsi` (shared with pdf.ts) guards every string.
- * English-only, like the receipt/email layer — the lingua franca for an airport meeting point.
+ *
+ * Localised (Task 16) via `model.locale`. WinAnsi covers the accented Latin-1 range French needs
+ * (é, à, ç, …), so `toWinAnsi` still guards every string without dropping French copy — it only
+ * strips characters genuinely outside that range (œ, emoji, …), which French labels here avoid.
  */
 
 const PAGE_WIDTH = 595.28;
@@ -35,15 +41,20 @@ const WHITE = rgb(1, 1, 1);
 const BRAND_NAME = 'Belle Mare Tours';
 const FIELD_X = MARGIN + 104; // where run-sheet values start (labels sit at MARGIN)
 
-function directionLabel(d?: string | null): string {
-  if (d === 'departure') return 'Departure — hotel to airport';
-  if (d === 'return') return 'Return — both directions';
-  return 'Arrival — airport to hotel';
+function directionLabel(locale: Locale, d?: string | null): string {
+  if (d === 'departure') return translate(locale, 'Departure — hotel to airport');
+  if (d === 'return') return translate(locale, 'Return — both directions');
+  return translate(locale, 'Arrival — airport to hotel');
 }
 
-/** "2026-06-28" → "28 Jun 2026". UTC-pinned so the rendered PDF stays deterministic across servers. */
-function fmtLegDate(ymd: string): string {
-  return new Date(`${ymd}T00:00:00Z`).toLocaleDateString('en-GB', {
+/**
+ * "2026-06-28" → "28 Jun 2026" (or "28 juin 2026" in French). UTC-pinned so the rendered PDF stays
+ * deterministic across servers. Was hardcoded to `toLocaleDateString('en-GB', …)` — every voucher
+ * showed English month names regardless of the guest's language; now routed through the shared
+ * {@link formatLocaleDate} helper so the locale actually reaches the Intl call.
+ */
+function fmtLegDate(ymd: string, locale: Locale): string {
+  return formatLocaleDate(`${ymd}T00:00:00Z`, locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -105,6 +116,8 @@ export async function renderVoucherPdf(
   const currency = toWinAnsi(model.currency || 'EUR');
   const tr = model.booking.transfer ?? null;
   const b = model.business;
+  const locale = model.locale;
+  const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
 
   const draw = (
     value: string,
@@ -148,15 +161,15 @@ export async function renderVoucherPdf(
   const bandTop = PAGE_HEIGHT - 44;
   draw(BRAND_NAME, bandTop, { size: 17, font: bold, color: WHITE });
   draw(b.legalName, bandTop - 17, { size: 9.5, color: LIGHT_TEAL });
-  draw('Licensed - Mauritius Tourism Authority', bandTop - 33, { size: 9.5, color: GOLD });
+  draw(t('Licensed - Mauritius Tourism Authority'), bandTop - 33, { size: 9.5, color: GOLD });
 
-  drawRight('AIRPORT TRANSFER - E-VOUCHER', CONTENT_RIGHT, bandTop, {
+  drawRight(t('AIRPORT TRANSFER - E-VOUCHER'), CONTENT_RIGHT, bandTop, {
     size: 9.5,
     font: bold,
     color: LIGHT_TEAL,
   });
   drawRight(model.booking.ref, CONTENT_RIGHT, bandTop - 22, { size: 19, font: bold, color: WHITE });
-  drawRight('CONFIRMED - PAID', CONTENT_RIGHT, bandTop - 38, {
+  drawRight(t('CONFIRMED - PAID'), CONTENT_RIGHT, bandTop - 38, {
     size: 9.5,
     font: bold,
     color: GOLD,
@@ -167,17 +180,17 @@ export async function renderVoucherPdf(
   const qrSize = 96;
   const qrX = CONTENT_RIGHT - qrSize;
   drawQr(page, bookingUrl, qrX, y + 6, qrSize);
-  drawRight('Scan to view booking', CONTENT_RIGHT, y + 6 - qrSize - 11, {
+  drawRight(t('Scan to view booking'), CONTENT_RIGHT, y + 6 - qrSize - 11, {
     size: 7.5,
     color: MUTED,
   });
 
   const textRightEdge = qrX - 18;
-  draw('Show this voucher to your driver', y, { size: 13, font: bold });
+  draw(t('Show this voucher to your driver'), y, { size: 13, font: bold });
   y -= 17;
-  const intro =
-    'Your driver-guide meets you in the Arrivals hall holding a name board with your name. We track your ' +
-    'flight in real time and waiting time is free, so a late landing never leaves you stranded.';
+  const intro = t(
+    'Your driver-guide meets you in the Arrivals hall holding a name board with your name. We track your flight in real time and waiting time is free, so a late landing never leaves you stranded.',
+  );
   for (const line of wrapText(intro, font, 9.5, textRightEdge - MARGIN)) {
     draw(line, y, { size: 9.5, color: MUTED });
     y -= 13;
@@ -193,7 +206,7 @@ export async function renderVoucherPdf(
   y -= 24;
 
   // ── 3. Run-sheet ───────────────────────────────────────────────────────────
-  draw('YOUR TRIP', y, { size: 8.5, font: bold, color: TEAL_DARK });
+  draw(t('YOUR TRIP'), y, { size: 8.5, font: bold, color: TEAL_DARK });
   page.drawRectangle({ x: MARGIN, y: y - 6, width: 30, height: 2, color: GOLD });
   y -= 20;
 
@@ -217,14 +230,17 @@ export async function renderVoucherPdf(
   };
 
   const pax = model.lines[0]?.quantity ?? null;
-  const passenger = [model.customer.name, pax ? `${pax} passenger${pax === 1 ? '' : 's'}` : '']
+  const passenger = [
+    model.customer.name,
+    pax ? t(pax === 1 ? '{n} passenger' : '{n} passengers', { n: pax }) : '',
+  ]
     .filter(Boolean)
     .join(' - ');
-  if (passenger) field('Passenger', passenger);
-  field('Direction', directionLabel(tr?.direction));
-  if (model.booking.pickup) field('Pick-up', model.booking.pickup);
-  if (model.booking.dropoff) field('Drop-off', model.booking.dropoff);
-  if (tr?.roomOrCabin) field('Room / cabin', tr.roomOrCabin);
+  if (passenger) field(t('Passenger'), passenger);
+  field(t('Direction'), directionLabel(locale, tr?.direction));
+  if (model.booking.pickup) field(t('Pick-up'), model.booking.pickup);
+  if (model.booking.dropoff) field(t('Drop-off'), model.booking.dropoff);
+  if (tr?.roomOrCabin) field(t('Room / cabin'), tr.roomOrCabin);
 
   // Each leg as pickup date·time (+ flight) and an APPROX drop-off (pickup + the ~60-min drive). The hotel
   // drop-off time isn't booked, hence the "~" / "approx". The arrival/inbound date comes from booking.when.
@@ -239,31 +255,38 @@ export async function renderVoucherPdf(
     for (const leg of legs) {
       const flight = leg.kind === 'arrival' ? tr?.flightNumber : tr?.departureFlightNumber;
       field(
-        leg.kind === 'arrival' ? 'Arrival' : 'Departure',
-        [`${fmtLegDate(leg.pickupYmd)} at ${leg.pickupTime}`, flight ? `flight ${flight}` : '']
+        leg.kind === 'arrival' ? t('Arrival') : t('Departure'),
+        [
+          `${fmtLegDate(leg.pickupYmd, locale)} ${t('at {time}', { time: leg.pickupTime })}`,
+          flight ? t('flight {flight}', { flight }) : '',
+        ]
           .filter(Boolean)
           .join('  -  '),
       );
       if (leg.dropoffYmd && leg.dropoffTime) {
-        field('Drop-off (approx.)', `${fmtLegDate(leg.dropoffYmd)} at ~${leg.dropoffTime}`);
+        field(
+          t('Drop-off (approx.)'),
+          `${fmtLegDate(leg.dropoffYmd, locale)} ${t('at ~{time}', { time: leg.dropoffTime })}`,
+        );
       }
     }
   } else {
     const arrival = [tr?.flightNumber, tr?.arrivalTime].filter(Boolean).join(' at ');
-    if (arrival) field('Arrival flight', arrival);
+    if (arrival) field(t('Arrival flight'), arrival);
     const departure = [
       tr?.departureFlightNumber,
       [tr?.returnDate, tr?.returnTime].filter(Boolean).join(' '),
     ]
       .filter(Boolean)
       .join(' - ');
-    if (departure) field('Departure flight', departure);
+    if (departure) field(t('Departure flight'), departure);
   }
 
-  if (tr?.luggageDetails) field('Luggage', tr.luggageDetails, 2);
-  if (typeof tr?.childSeatAge === 'number') field('Child seat', `1 seat - age ${tr.childSeatAge}`);
-  if (tr?.travellerCountry) field('Country', tr.travellerCountry);
-  if (tr?.specialNotes) field('Notes', tr.specialNotes, 4);
+  if (tr?.luggageDetails) field(t('Luggage'), tr.luggageDetails, 2);
+  if (typeof tr?.childSeatAge === 'number')
+    field(t('Child seat'), t('1 seat - age {age}', { age: tr.childSeatAge }));
+  if (tr?.travellerCountry) field(t('Country'), tr.travellerCountry);
+  if (tr?.specialNotes) field(t('Notes'), tr.specialNotes, 4);
 
   y -= 4;
   page.drawLine({
@@ -275,11 +298,12 @@ export async function renderVoucherPdf(
   y -= 22;
 
   // ── 4. Driver contact ──────────────────────────────────────────────────────
-  draw('YOUR DRIVER & 24/7 HELP', y, { size: 8.5, font: bold, color: TEAL_DARK });
+  draw(t('YOUR DRIVER & 24/7 HELP'), y, { size: 8.5, font: bold, color: TEAL_DARK });
   y -= 18;
   for (const line of wrapText(
-    `Your driver's name and direct number are sent to you by WhatsApp 24 hours before pick-up. ` +
-      `Can't find your driver at the airport? Call or WhatsApp our 24/7 dispatch.`,
+    t(
+      "Your driver's name and direct number are sent to you by WhatsApp 24 hours before pick-up. Can't find your driver at the airport? Call or WhatsApp our 24/7 dispatch.",
+    ),
     font,
     10,
     CONTENT_RIGHT - MARGIN,
@@ -287,7 +311,11 @@ export async function renderVoucherPdf(
     draw(line, y, { size: 10, color: MUTED });
     y -= 14;
   }
-  draw(`Dispatch & WhatsApp: ${b.phone}`, y, { size: 11, font: bold, color: INK });
+  draw(t('Dispatch & WhatsApp: {phone}', { phone: b.phone }), y, {
+    size: 11,
+    font: bold,
+    color: INK,
+  });
   y -= 24;
 
   // ── 5. Price (secondary) + cancellation ────────────────────────────────────
@@ -303,7 +331,7 @@ export async function renderVoucherPdf(
   // "Order total", not "Total paid": the EUR figure is the ORDER's value — the card was actually
   // charged in MUR (see the tax receipt) — and this voucher is handed to a driver, so it must not
   // assert a payment in a currency that never touched the card.
-  draw('Order total', y, { size: 9.5, color: MUTED });
+  draw(t('Order total'), y, { size: 9.5, color: MUTED });
   drawRight(`${currency} ${model.totalGrossEur.toFixed(2)}`, CONTENT_RIGHT, y, {
     size: 13,
     font: bold,
@@ -311,12 +339,18 @@ export async function renderVoucherPdf(
   });
   y -= 15;
   draw(
-    `Includes VAT (${model.vatRatePct}%) ${currency} ${model.vatAmountEur.toFixed(2)}. A full tax receipt is attached to your confirmation email.`,
+    t(
+      'Includes VAT ({pct}%) {amount}. A full tax receipt is attached to your confirmation email.',
+      {
+        pct: model.vatRatePct,
+        amount: `${currency} ${model.vatAmountEur.toFixed(2)}`,
+      },
+    ),
     y,
     { size: 9, color: MUTED },
   );
   y -= 16;
-  draw('Free cancellation up to 24 hours before pick-up.', y, {
+  draw(t('Free cancellation up to 24 hours before pick-up.'), y, {
     size: 9.5,
     font: bold,
     color: CORAL,
@@ -326,8 +360,8 @@ export async function renderVoucherPdf(
   const footY = MARGIN;
   const issued = model.issuedAt ? formatMauritiusDate(model.issuedAt) : '';
   const footer = [
-    `${b.legalName}  -  BRN ${b.brn}  -  VAT ${b.vat}  -  ${b.email}`,
-    issued ? `Issued ${issued}` : '',
+    `${b.legalName}  -  BRN ${b.brn}  -  ${t('VAT')} ${b.vat}  -  ${b.email}`,
+    issued ? t('Issued {date}', { date: issued }) : '',
   ]
     .filter(Boolean)
     .join('     ');

@@ -1,6 +1,7 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont } from 'pdf-lib';
 import type { InvoiceModel } from './model';
 import { formatMauritiusDate, formatMauritiusDateTime } from './mauritius-time';
+import { translate } from '@/lib/i18n/translate';
 
 /**
  * Edge-safe combined Tax Invoice / Receipt PDF renderer.
@@ -11,6 +12,9 @@ import { formatMauritiusDate, formatMauritiusDateTime } from './mauritius-time';
  *
  * Currency is always shown as the CODE (EUR/USD) — Helvetica's WinAnsi encoding can't render the €
  * glyph cleanly, and `drawText` throws on un-encodable characters, so we never emit it.
+ *
+ * Localised (Task 16) via `model.locale` — a French VAT invoice must say "TVA", so every label here
+ * is translated; the figures (amounts, the invoice number, the booking reference) never are.
  */
 
 // A4 portrait, in PostScript points.
@@ -75,6 +79,8 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
 
   const currency = toWinAnsi(model.currency || 'EUR');
+  const locale = model.locale;
+  const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
 
   // Small left-aligned draw helper that advances the shared `y` cursor.
   let y = PAGE_HEIGHT - MARGIN;
@@ -120,7 +126,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     text(addressLine, { size: 9, color: MUTED });
     y -= 12;
   }
-  const ids = [b.brn ? `BRN: ${b.brn}` : '', b.vat ? `VAT: ${b.vat}` : '']
+  const ids = [b.brn ? `BRN: ${b.brn}` : '', b.vat ? `${t('VAT')}: ${b.vat}` : '']
     .filter(Boolean)
     .join('  .  ');
   if (ids) {
@@ -136,11 +142,11 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   // Document title block, right-aligned, anchored to the header's top band.
   const savedY = y;
   y = headerTopY;
-  textRight('TAX INVOICE / RECEIPT', CONTENT_RIGHT, { size: 13, font: bold });
+  textRight(t('TAX INVOICE / RECEIPT'), CONTENT_RIGHT, { size: 13, font: bold });
   y -= 16;
-  textRight(`Invoice No: ${model.invoiceNumber}`, CONTENT_RIGHT, { size: 9, color: MUTED });
+  textRight(`${t('Invoice No')}: ${model.invoiceNumber}`, CONTENT_RIGHT, { size: 9, color: MUTED });
   y -= 12;
-  textRight(`Date: ${formatMauritiusDate(model.issuedAt)}`, CONTENT_RIGHT, {
+  textRight(`${t('Date')}: ${formatMauritiusDate(model.issuedAt)}`, CONTENT_RIGHT, {
     size: 9,
     color: MUTED,
   });
@@ -157,7 +163,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   y -= 22;
 
   // 3. Bill to.
-  text('BILL TO', { size: 8, font: bold, color: MUTED });
+  text(t('BILL TO'), { size: 8, font: bold, color: MUTED });
   y -= 14;
   text(model.customer.name || '', { size: 11, font: bold });
   y -= 13;
@@ -169,25 +175,25 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
 
   // 4. Trip block.
   const trip = model.booking;
-  text('BOOKING', { size: 8, font: bold, color: MUTED });
+  text(t('BOOKING'), { size: 8, font: bold, color: MUTED });
   y -= 14;
-  text(`Booking: ${trip.ref}`, { size: 10 });
+  text(`${t('Booking')}: ${trip.ref}`, { size: 10 });
   y -= 13;
   text(fitText(trip.activityTitle || '', font, 10, CONTENT_RIGHT - MARGIN), { size: 10 });
   y -= 13;
   if (trip.when) {
-    text(`Date: ${formatMauritiusDateTime(trip.when)}`, { size: 10, color: MUTED });
+    text(`${t('Date')}: ${formatMauritiusDateTime(trip.when)}`, { size: 10, color: MUTED });
     y -= 13;
   }
   if (trip.pickup) {
-    text(fitText(`Pickup: ${trip.pickup}`, font, 10, CONTENT_RIGHT - MARGIN), {
+    text(fitText(`${t('Pick-up')}: ${trip.pickup}`, font, 10, CONTENT_RIGHT - MARGIN), {
       size: 10,
       color: MUTED,
     });
     y -= 13;
   }
   if (trip.dropoff) {
-    text(fitText(`Drop-off: ${trip.dropoff}`, font, 10, CONTENT_RIGHT - MARGIN), {
+    text(fitText(`${t('Drop-off')}: ${trip.dropoff}`, font, 10, CONTENT_RIGHT - MARGIN), {
       size: 10,
       color: MUTED,
     });
@@ -200,14 +206,16 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   if (tr) {
     const directionLabel =
       tr.direction === 'departure'
-        ? 'Departure (hotel to airport)'
+        ? t('Departure (hotel to airport)')
         : tr.direction === 'return'
-          ? 'Return (both ways)'
-          : 'Arrival (airport to hotel)';
-    const rows: string[] = [`Trip: ${directionLabel}`];
-    if (tr.roomOrCabin) rows.push(`Room/cabin: ${tr.roomOrCabin}`);
+          ? t('Return (both ways)')
+          : t('Arrival (airport to hotel)');
+    const rows: string[] = [`${t('Trip')}: ${directionLabel}`];
+    if (tr.roomOrCabin) rows.push(`${t('Room/cabin')}: ${tr.roomOrCabin}`);
     if (tr.flightNumber || tr.arrivalTime) {
-      rows.push(`Arrival: ${[tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' at ')}`);
+      rows.push(
+        `${t('Arrival')}: ${[tr.flightNumber, tr.arrivalTime].filter(Boolean).join(' at ')}`,
+      );
     }
     if (tr.departureFlightNumber || tr.returnDate || tr.returnTime) {
       const dep = [
@@ -216,16 +224,17 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
       ]
         .filter(Boolean)
         .join(' · ');
-      rows.push(`Departure: ${dep}`);
+      rows.push(`${t('Departure')}: ${dep}`);
     }
-    if (tr.luggageDetails) rows.push(`Luggage: ${tr.luggageDetails}`);
-    if (typeof tr.childSeatAge === 'number') rows.push(`Child seat — age: ${tr.childSeatAge}`);
-    if (tr.travellerCountry) rows.push(`Country: ${tr.travellerCountry}`);
-    if (tr.travellerCompany) rows.push(`Company: ${tr.travellerCompany}`);
-    if (tr.travellerGender) rows.push(`Gender: ${tr.travellerGender}`);
-    if (tr.specialNotes) rows.push(`Notes: ${tr.specialNotes}`);
+    if (tr.luggageDetails) rows.push(`${t('Luggage')}: ${tr.luggageDetails}`);
+    if (typeof tr.childSeatAge === 'number')
+      rows.push(`${t('Child seat — age')}: ${tr.childSeatAge}`);
+    if (tr.travellerCountry) rows.push(`${t('Country')}: ${tr.travellerCountry}`);
+    if (tr.travellerCompany) rows.push(`${t('Company')}: ${tr.travellerCompany}`);
+    if (tr.travellerGender) rows.push(`${t('Gender')}: ${tr.travellerGender}`);
+    if (tr.specialNotes) rows.push(`${t('Notes')}: ${tr.specialNotes}`);
 
-    text('TRANSFER DETAILS', { size: 8, font: bold, color: MUTED });
+    text(t('TRANSFER DETAILS'), { size: 8, font: bold, color: MUTED });
     y -= 14;
     for (const row of rows) {
       text(fitText(row, font, 10, CONTENT_RIGHT - MARGIN), { size: 10, color: MUTED });
@@ -235,9 +244,9 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   }
 
   // 5. Line-item table header.
-  text('Description', { size: 9, font: bold });
-  textRight('Qty', COL_QTY_RIGHT, { size: 9, font: bold });
-  textRight('Amount', COL_AMOUNT_RIGHT, { size: 9, font: bold });
+  text(t('Description'), { size: 9, font: bold });
+  textRight(t('Qty'), COL_QTY_RIGHT, { size: 9, font: bold });
+  textRight(t('Amount'), COL_AMOUNT_RIGHT, { size: 9, font: bold });
   y -= 6;
   page.drawLine({
     start: { x: MARGIN, y },
@@ -265,13 +274,17 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   y -= 16;
 
   // 6. Totals (right-aligned).
-  textRight(`Subtotal (excl. VAT): ${currency} ${model.subtotalNetEur.toFixed(2)}`, CONTENT_RIGHT, {
-    size: 10,
-    color: MUTED,
-  });
+  textRight(
+    `${t('Subtotal (excl. VAT)')}: ${currency} ${model.subtotalNetEur.toFixed(2)}`,
+    CONTENT_RIGHT,
+    {
+      size: 10,
+      color: MUTED,
+    },
+  );
   y -= 14;
   textRight(
-    `VAT ${model.vatRatePct}%: ${currency} ${model.vatAmountEur.toFixed(2)}`,
+    `${t('VAT')} ${model.vatRatePct}%: ${currency} ${model.vatAmountEur.toFixed(2)}`,
     CONTENT_RIGHT,
     {
       size: 10,
@@ -279,7 +292,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     },
   );
   y -= 16;
-  textRight(`Total: ${currency} ${model.totalGrossEur.toFixed(2)}`, CONTENT_RIGHT, {
+  textRight(`${t('Total')}: ${currency} ${model.totalGrossEur.toFixed(2)}`, CONTENT_RIGHT, {
     size: 12,
     font: bold,
   });
@@ -291,7 +304,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   if (model.payment?.isConverted) {
     const rate = model.payment.fxRate;
     textRight(
-      `Charged to card: ${toWinAnsi(model.payment.chargedCurrency)} ${formatGrouped(
+      `${t('Charged to card')}: ${toWinAnsi(model.payment.chargedCurrency)} ${formatGrouped(
         model.payment.chargedAmount,
       )}${rate != null ? ` (1 ${currency} = ${rate.toFixed(4)} ${toWinAnsi(model.payment.chargedCurrency)})` : ''}`,
       CONTENT_RIGHT,
@@ -317,14 +330,14 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   });
   // Draw the box's contents with a local cursor so the outer `y` math stays simple.
   let by = boxTop - 18;
-  page.drawText('PAID', { x: boxX + 12, y: by, size: 16, font: bold, color: ACCENT });
+  page.drawText(toWinAnsi(t('PAID')), { x: boxX + 12, y: by, size: 16, font: bold, color: ACCENT });
   const chargeParts: string[] = [];
   if (pay && typeof pay.chargedAmount === 'number') {
     chargeParts.push(
       `${toWinAnsi(pay.chargedCurrency || currency)} ${formatGrouped(pay.chargedAmount)}`,
     );
   }
-  if (pay?.paidAt) chargeParts.push(`on ${formatMauritiusDate(pay.paidAt)}`);
+  if (pay?.paidAt) chargeParts.push(t('on {date}', { date: formatMauritiusDate(pay.paidAt) }));
   by -= 20;
   if (chargeParts.length) {
     page.drawText(fitText(chargeParts.join('  '), font, 10, boxWidth - 24), {
@@ -337,7 +350,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     by -= 14;
   }
   if (pay?.providerRef) {
-    page.drawText(fitText(`Ref: ${pay.providerRef}`, font, 8, boxWidth - 24), {
+    page.drawText(fitText(`${t('Ref')}: ${pay.providerRef}`, font, 8, boxWidth - 24), {
       x: boxX + 12,
       y: by,
       size: 8,
@@ -349,7 +362,7 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
 
   // 8. Footer.
   if (y < MARGIN + 14) y = MARGIN + 14; // never let the footer fall off the page
-  page.drawText(toWinAnsi(`Thank you for booking with ${b.legalName}.`), {
+  page.drawText(toWinAnsi(t('Thank you for booking with {name}.', { name: b.legalName })), {
     x: MARGIN,
     y: MARGIN,
     size: 9,

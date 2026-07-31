@@ -58,6 +58,9 @@ const receiptSchema = z.object({
   specialNotes: z.string().nullable().optional(),
   items: z.array(itemSchema),
   payment: paymentSchema,
+  /** The guest's stored booking locale (Task 15). Left as a bare string here — `buildInvoice` is where
+   *  it gets validated against the real Locale union and falls back to English. */
+  locale: z.string().nullable().optional(),
 });
 
 export interface ReceiptData {
@@ -93,6 +96,7 @@ export async function loadBookingForReceipt(
     dropoffLocation: r.dropoffLocation ?? null,
     childSeats: r.childSeats ?? null,
     transportEur: r.transportEur ?? null,
+    locale: r.locale ?? null,
     // A transfer block only when there's transfer data (a direction means it's an airport transfer).
     transfer: r.tripDirection
       ? {

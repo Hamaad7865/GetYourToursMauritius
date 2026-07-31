@@ -259,11 +259,15 @@ function enrichReviewRequest(message: NotificationMessage): void {
   const activityTitle = typeof p.activityTitle === 'string' ? p.activityTitle : 'your trip';
   const customerName =
     typeof p.customerName === 'string' && p.customerName ? p.customerName : 'there';
+  // The guest's stored booking locale (Task 15), carried on the payload by api_enqueue_review_invites
+  // — this is sent days later by a cron sweep, off-request, so it's the only correct language source.
+  const locale = typeof p.locale === 'string' ? p.locale : null;
   const email = renderReviewRequestEmail({
     customerName,
     activityTitle,
     siteReviewUrl: `${SITE.url}/reviews/write?token=${encodeURIComponent(token)}`,
     googleReviewUrl: SITE.googleReview,
+    locale,
   });
   message.subject = email.subject;
   message.html = email.html;

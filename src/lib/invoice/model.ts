@@ -1,4 +1,6 @@
 import { childSeatsCost } from '@/lib/services/pricing';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/lib/i18n/config';
+import { translate } from '@/lib/i18n/translate';
 
 /**
  * Pure invoice/receipt model. No I/O, no Date.now()/new Date() — the timestamp is supplied by the
@@ -58,6 +60,10 @@ export interface InvoiceBookingInput {
    *  block on the voucher/receipt so the driver has everything. All optional/nullable. */
   transfer?: TransferDetails | null;
   items: InvoiceBookingItem[];
+  /** The language the guest booked in (bookings.locale, Task 15). Normalized to a valid {@link Locale}
+   *  in `buildInvoice` — an absent/unrecognised value falls back to English rather than throwing, since
+   *  this rides through an untyped JSON round-trip (the receipt RPC) before it gets here. */
+  locale?: Locale | string | null;
 }
 
 /** The airport-transfer fields the voucher shows (the driver's run-sheet data). All optional. */
@@ -114,6 +120,9 @@ export interface InvoiceLine {
 export interface InvoiceModel {
   invoiceNumber: string;
   issuedAt: string;
+  /** Always a valid {@link Locale} — normalized once here so every renderer can call `translate(locale, …)`
+   *  without re-guarding. See {@link InvoiceBookingInput.locale}. */
+  locale: Locale;
   business: InvoiceBusiness;
   customer: { name: string; email: string };
   booking: {
@@ -169,6 +178,11 @@ export function buildInvoice(
   payment: InvoicePaymentInput,
   business: InvoiceBusiness,
 ): InvoiceModel {
+  // Normalized ONCE here: every renderer trusts `model.locale` to be a real Locale and calls
+  // translate(locale, …) without re-guarding. isLocale() rejects anything but 'en'/'fr' (an absent
+  // value, or a stray one from the untyped receipt-RPC round-trip) and falls back to English.
+  const locale: Locale = isLocale(booking.locale) ? booking.locale : DEFAULT_LOCALE;
+
   const lines: InvoiceLine[] = booking.items.map((item) => {
     const quantity = item.pax ?? item.quantity;
     const safeQty = quantity || 1;
@@ -185,7 +199,7 @@ export function buildInvoice(
   if (transportEur > 0) {
     const amount = round2(transportEur);
     lines.push({
-      description: 'Door-to-door transport',
+      description: translate(locale, 'Door-to-door transport'),
       quantity: 1,
       unitGrossEur: amount,
       lineGrossEur: amount,
@@ -197,7 +211,7 @@ export function buildInvoice(
   if (childSeatEur > 0) {
     const amount = round2(childSeatEur);
     lines.push({
-      description: `Child seats (${childSeats})`,
+      description: translate(locale, 'Child seats ({n})', { n: childSeats }),
       quantity: 1,
       unitGrossEur: amount,
       lineGrossEur: amount,
@@ -215,6 +229,7 @@ export function buildInvoice(
   return {
     invoiceNumber: booking.ref,
     issuedAt: payment.issuedAt ?? payment.paidAt ?? '',
+    locale,
     business,
     customer: { name: booking.customerName, email: booking.customerEmail },
     booking: {

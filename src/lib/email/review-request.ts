@@ -1,10 +1,16 @@
 import { escapeHtml } from './booking-confirmation';
+import { translate } from '@/lib/i18n/translate';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/lib/i18n/config';
 
 /**
  * Post-trip review-request email. Mirrors booking-confirmation.ts's email-safe construction
  * (inline styles only, table layout, ~600px width). The two buttons are ALWAYS both present and
  * identically worded — this feature must never branch on a rating to decide whether the Google
  * button appears (Google's anti-gating policy; see the design spec §2e). No I/O, no Date.now().
+ *
+ * Localised (Task 16) via `input.locale` — the guest's booking locale, carried on the review_invites
+ * outbox payload (this is sent days later by a cron sweep, off-request). An unrecognised/absent value
+ * falls back to English rather than throwing.
  */
 
 const ACCENT = '#0E8C92';
@@ -17,6 +23,7 @@ export interface ReviewRequestInput {
   activityTitle: string;
   siteReviewUrl: string;
   googleReviewUrl: string;
+  locale?: Locale | string | null;
 }
 
 export interface RenderedEmail {
@@ -37,11 +44,13 @@ function button(href: string, label: string): string {
 }
 
 export function renderReviewRequestEmail(input: ReviewRequestInput): RenderedEmail {
+  const locale: Locale = isLocale(input.locale) ? input.locale : DEFAULT_LOCALE;
+  const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
   const operator = 'Belle Mare Tours';
   const activity = escapeHtml(input.activityTitle);
   const name = escapeHtml(input.customerName);
 
-  const subject = `How was your ${input.activityTitle}?`;
+  const subject = t('How was your {activity}?', { activity: input.activityTitle });
 
   const html = `<!-- ${operator} review request -->
 <div style="margin:0;padding:0;background:#f3f4f6;">
@@ -56,14 +65,19 @@ export function renderReviewRequestEmail(input: ReviewRequestInput): RenderedEma
           </tr>
           <tr>
             <td style="padding:28px;">
-              <h1 style="margin:0 0 8px 0;color:${INK};font-size:22px;">How was your ${activity}?</h1>
+              <h1 style="margin:0 0 8px 0;color:${INK};font-size:22px;">${escapeHtml(t('How was your {activity}?', { activity: input.activityTitle }))}</h1>
               <p style="margin:0 0 20px 0;color:${MUTED};font-size:14px;line-height:1.5;">
-                Hi ${name}, thanks for touring with us. If you have a minute, we'd love to hear how it went — it helps other travellers find us too.
+                ${escapeHtml(
+                  t(
+                    "Hi {name}, thanks for touring with us. If you have a minute, we'd love to hear how it went — it helps other travellers find us too.",
+                    { name: input.customerName },
+                  ),
+                )}
               </p>
-              ${button(input.siteReviewUrl, 'Review us on our site')}
-              ${button(input.googleReviewUrl, 'Review us on Google')}
+              ${button(input.siteReviewUrl, t('Review us on our site'))}
+              ${button(input.googleReviewUrl, t('Review us on Google'))}
               <p style="margin:20px 0 0 0;color:${MUTED};font-size:13px;line-height:1.6;">
-                Thanks again for choosing ${operator}.
+                ${escapeHtml(t('Thanks again for choosing {operator}.', { operator }))}
               </p>
             </td>
           </tr>
@@ -79,14 +93,16 @@ export function renderReviewRequestEmail(input: ReviewRequestInput): RenderedEma
 </div>`;
 
   const text = [
-    `Hi ${input.customerName},`,
+    t('Hi {name},', { name: input.customerName }),
     '',
-    `How was your ${input.activityTitle}? If you have a minute, we'd love to hear how it went.`,
+    t("How was your {activity}? If you have a minute, we'd love to hear how it went.", {
+      activity: input.activityTitle,
+    }),
     '',
-    `Review us on our site: ${input.siteReviewUrl}`,
-    `Review us on Google: ${input.googleReviewUrl}`,
+    `${t('Review us on our site')}: ${input.siteReviewUrl}`,
+    `${t('Review us on Google')}: ${input.googleReviewUrl}`,
     '',
-    `Thanks again for choosing ${operator}.`,
+    t('Thanks again for choosing {operator}.', { operator }),
   ].join('\n');
 
   return { subject, html, text };
