@@ -213,4 +213,138 @@ describe('owner booking alerts', () => {
     )!;
     expect(tg.text).toContain('📞 +230 5771 2345');
   });
+
+  it('spells out the age-band mix and the child seats — "4 guests" hides who needs a seat', async () => {
+    await db.asOwner();
+    const seed = await seedOccurrence(db, 10); // one 'Adult' tier; add the two child bands below
+    await db.pg.query(
+      `insert into activity_option_prices (activity_option_id, label, amount_minor, min_age, max_age, position)
+       values ($1, 'Child', 2800, 3, 10, 1), ($1, 'Infant', 0, 0, 3, 2)`,
+      [seed.optionId],
+    );
+    const slug = (
+      await db.pg.query<{ slug: string }>(`select slug from activities where id = $1`, [
+        seed.activityId,
+      ])
+    ).rows[0]!.slug;
+    const booked = await apiBook<{ ref: string }>(db, {
+      occurrenceId: seed.occurrenceId,
+      expectedSlug: slug,
+      party: { Adult: 2, Child: 1, Infant: 1 },
+      childSeats: 2,
+      customerName: 'Klara Novak',
+      customerEmail: 'klara@example.com',
+      source: 'web',
+      idempotencyKey: 'owner-alerts-bands-1',
+    });
+    const bandBookingId = (
+      await db.pg.query<{ id: string }>(`select id from bookings where ref = $1`, [booked.ref])
+    ).rows[0]!.id;
+    await db.pg.query(`update bookings set status = 'confirmed' where id = $1`, [bandBookingId]);
+
+    const ctx: ServiceContext = {
+      db: pgliteRpc(db.pg),
+      payments: new StubPaymentProvider(),
+      ai: createStubAiProvider(),
+      now: () => new Date('2026-07-10T08:00:00Z'),
+      locale: 'en',
+    };
+    const provider = new CapturingProvider();
+    await drainNotifications(ctx, provider, 20);
+
+    const ownerEmail = provider.messages.find(
+      (m) => m.template === 'owner_new_booking' && m.channel === 'email',
+    )!;
+    // The headcount alone ("4 guests") can't tell the owner a car seat and a free infant are coming.
+    expect(ownerEmail.text).toContain('Party: ');
+    for (const band of ['2 × Adult', '1 × Child', '1 × Infant']) {
+      expect(ownerEmail.text).toContain(band);
+      expect(ownerEmail.html).toContain(band);
+    }
+    expect(ownerEmail.text).toContain('Child seats: 2');
+
+    const tg = provider.messages.find(
+      (m) => m.template === 'owner_new_booking' && m.channel === 'telegram',
+    )!;
+    expect(tg.text).toContain('👥 2 × Adult');
+    expect(tg.text).toContain('🧒 2 child seats');
+  });
+
+  it('carries an airport transfer’s baby-seat request, which never has a seat COUNT', async () => {
+    await db.asOwner();
+    // The airport form asks for a child seat as a toggle + the child's age and leaves child_seats at 0,
+    // so a count-only alert would drop the request entirely.
+    const operatorId = (
+      await db.pg.query<{ id: string }>(
+        `insert into operators (name, slug) values ('Transfer Op', 'transfer-op-alerts') returning id`,
+      )
+    ).rows[0]!.id;
+    const actId = (
+      await db.pg.query<{ id: string }>(
+        `insert into activities (operator_id, slug, type, title, category, status, pricing_mode, is_airport_transfer)
+         values ($1, 'airport-transfer-alerts', 'transport', 'Airport Transfer', 'Airport transfers', 'published', 'vehicle', true)
+         returning id`,
+        [operatorId],
+      )
+    ).rows[0]!.id;
+    const optId = (
+      await db.pg.query<{ id: string }>(
+        `insert into activity_options (activity_id, name) values ($1, 'Per transfer') returning id`,
+        [actId],
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into activity_option_prices (activity_option_id, label, amount_minor, max_guests)
+       values ($1, 'Transfer', 3600, null)`,
+      [optId],
+    );
+    const occurrenceId = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() + interval '2 days', now() + interval '2 days 1 hour', 40) returning id`,
+        [optId, operatorId],
+      )
+    ).rows[0]!.id;
+
+    const booked = await apiBook<{ ref: string }>(db, {
+      occurrenceId,
+      expectedSlug: 'airport-transfer-alerts',
+      party: { Transfer: 2 },
+      dropoffLocation: 'Shandrani Beachcomber Resort & Spa, Blue Bay',
+      tripDirection: 'arrival',
+      flightNumber: 'MK015',
+      arrivalTime: '14:30',
+      luggageDetails: '3 large suitcases',
+      childSeatAge: 3,
+      customerName: 'Yann Perrin',
+      customerEmail: 'yann@example.com',
+      source: 'web',
+      idempotencyKey: 'owner-alerts-babyseat-1',
+    });
+    const seatBookingId = (
+      await db.pg.query<{ id: string }>(`select id from bookings where ref = $1`, [booked.ref])
+    ).rows[0]!.id;
+    await db.pg.query(`update bookings set status = 'confirmed' where id = $1`, [seatBookingId]);
+
+    const ctx: ServiceContext = {
+      db: pgliteRpc(db.pg),
+      payments: new StubPaymentProvider(),
+      ai: createStubAiProvider(),
+      now: () => new Date('2026-07-10T08:00:00Z'),
+      locale: 'en',
+    };
+    const provider = new CapturingProvider();
+    await drainNotifications(ctx, provider, 20);
+
+    const ownerEmail = provider.messages.find(
+      (m) => m.template === 'owner_new_booking' && m.channel === 'email',
+    )!;
+    expect(ownerEmail.text).toContain('Child seat: requested · child aged 3');
+    expect(ownerEmail.text).toContain('Luggage: 3 large suitcases');
+
+    const wa = provider.messages.find(
+      (m) => m.template === 'owner_new_booking' && m.channel === 'whatsapp',
+    )!;
+    expect(wa.text).toContain('🧒 child seat requested · child aged 3');
+  });
 });

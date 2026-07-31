@@ -116,7 +116,8 @@ function resolveOwnerRecipient(message: NotificationMessage): void {
 
 /**
  * Enrich an `owner_new_booking` / `owner_refund_pending` alert in place: one glance tells the owner who booked what, when,
- * for how many, and for how much — plus the admin deep-link. The email gets subject/text/html; the
+ * for how many (down to the age-band mix and any child seat, which decide what has to be in the vehicle),
+ * and for how much — plus the admin deep-link. The email gets subject/text/html; the
  * WhatsApp row gets the same summary as `text` (the WhatsApp provider sends text/template only).
  * A booking-load failure propagates so the alert retries rather than sending a blank one.
  */
@@ -149,24 +150,62 @@ async function enrichOwnerNewBooking(
     : `${booking.customerName || 'A guest'} booked ${what} on ${when} — ${guests}${total} (ref ${booking.ref}).`;
   const adminUrl = `${SITE.url}/admin/bookings?q=${encodeURIComponent(booking.ref)}`;
 
-  // Chat channels (WhatsApp / Telegram) take the same one-glance text — no HTML, no PDF — plus the
-  // phone number when there is one, since that's the fastest way to reach a guest from a phone in hand.
+  // The age-band MIX, which the bare headcount hides: "4 guests" and "2 × Adult · 1 × Child · 1 × Infant"
+  // are very different run sheets (car seats, life jackets, child portions, who may not swim). Per-person
+  // lines carry the band in `priceLabel` — one row per band, `quantity` = that band's headcount. A
+  // vehicle/bracket booking is instead ONE row with `pax` set, so it's skipped: "1 × Standard car" is a
+  // fare line, not a party mix.
+  const bands = booking.items
+    .filter((i) => i.pax == null && i.quantity > 0)
+    .map((i) => `${i.quantity} × ${i.priceLabel}`)
+    .join(' · ');
+
+  // Child seats reach us from TWO places, and either one alone can be the whole request: tour/planner
+  // bookings carry a seat COUNT (`childSeats`), while the airport-transfer form asks for a seat as a
+  // toggle + the child's AGE and leaves the count at 0 — so an age with no count still means "fit a seat".
+  const seatCount = booking.childSeats ?? 0;
+  const seatAge = booking.transfer?.childSeatAge ?? null;
+  const agedNote = seatAge != null ? ` · child aged ${seatAge}` : '';
+  // Chat wording (self-describing, no label alongside it) vs the email's label/value row.
+  const seatChatNote =
+    seatCount > 0
+      ? `${seatCount} child seat${seatCount === 1 ? '' : 's'}${agedNote}`
+      : seatAge != null
+        ? `child seat requested${agedNote}`
+        : '';
+  const seatRow =
+    seatCount > 0
+      ? { label: seatCount === 1 ? 'Child seat' : 'Child seats', value: `${seatCount}${agedNote}` }
+      : seatAge != null
+        ? { label: 'Child seat', value: `requested${agedNote}` }
+        : null;
+
+  // Chat channels (WhatsApp / Telegram) take the same one-glance text — no HTML, no PDF — plus the party
+  // mix and any child seat (what the owner has to PREPARE), then the phone number when there is one,
+  // since that's the fastest way to reach a guest from a phone in hand.
   if (message.channel === 'whatsapp' || message.channel === 'telegram') {
+    const bandLine = bands ? `\n👥 ${bands}` : '';
+    const seatLine = seatChatNote ? `\n🧒 ${seatChatNote}` : '';
     const phoneLine = booking.customerPhone ? `\n📞 ${booking.customerPhone}` : '';
-    message.text = `${refund ? '⚠️ Refund needed' : '🔔 New paid booking'}\n${line}${phoneLine}\n${adminUrl}`;
+    message.text = `${refund ? '⚠️ Refund needed' : '🔔 New paid booking'}\n${line}${bandLine}${seatLine}${phoneLine}\n${adminUrl}`;
     return;
   }
 
-  // Everything beyond name/email that helps the owner actually reach or serve the guest: phone first
-  // (the headline ask), then pickup/dropoff, then — for airport/hotel transfers — the driver's run-sheet
-  // fields (already loaded onto `booking.transfer` for the customer's own voucher, just never shown to
-  // the owner before). Built as label/value pairs so the plain-text and HTML branches can't drift apart.
+  // Everything beyond name/email that helps the owner actually prepare for, reach, or serve the guest:
+  // what to PREPARE first (the party mix, any child seat), then the phone, then pickup/dropoff, then —
+  // for airport/hotel transfers — the driver's run-sheet fields (already loaded onto `booking.transfer`
+  // for the customer's own voucher, just never shown to the owner before). Built as label/value pairs so
+  // the plain-text and HTML branches can't drift apart.
   const tr = booking.transfer;
   const details: Array<{ label: string; value: string }> = [];
+  if (bands) details.push({ label: 'Party', value: bands });
+  if (seatRow) details.push(seatRow);
   if (booking.customerPhone) details.push({ label: 'Phone', value: booking.customerPhone });
   if (booking.pickupLocation) details.push({ label: 'Pick-up', value: booking.pickupLocation });
   if (booking.dropoffLocation) details.push({ label: 'Drop-off', value: booking.dropoffLocation });
   if (tr?.roomOrCabin) details.push({ label: 'Room/cabin', value: tr.roomOrCabin });
+  // Luggage decides which vehicle goes out, so it belongs next to the seat count, not just on the voucher.
+  if (tr?.luggageDetails) details.push({ label: 'Luggage', value: tr.luggageDetails });
   if (tr && (tr.flightNumber || tr.arrivalTime)) {
     details.push({
       label: 'Arrival flight',
