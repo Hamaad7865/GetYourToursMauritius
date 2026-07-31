@@ -7,15 +7,27 @@ import { translationRowFromForm, isMachineDraft } from '@/lib/admin/activity-wri
  * become noise and get ignored, which defeats the point of flagging drafts at all.
  */
 describe('activity translation save', () => {
-  const base = { title: 'Titre', summary: null, description: null, meetingPoint: null,
-    seoTitle: null, seoDescription: null, highlights: [], inclusions: [], exclusions: [] };
+  const base = {
+    title: 'Titre',
+    summary: null,
+    description: null,
+    meetingPoint: null,
+    seoTitle: null,
+    seoDescription: null,
+    highlights: [],
+    inclusions: [],
+    exclusions: [],
+  };
 
   it('marks an owner-edited translation as human-reviewed', () => {
     expect(translationRowFromForm('act-1', base).source).toBe('human');
   });
 
   it('maps camelCase form fields onto snake_case columns', () => {
-    const row = translationRowFromForm('act-1', { ...base, meetingPoint: 'Quai de Trou d’Eau Douce' });
+    const row = translationRowFromForm('act-1', {
+      ...base,
+      meetingPoint: 'Quai de Trou d’Eau Douce',
+    });
     expect(row.meeting_point).toBe('Quai de Trou d’Eau Douce');
     expect(row.activity_id).toBe('act-1');
     expect(row.locale).toBe('fr');

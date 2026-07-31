@@ -662,8 +662,8 @@ function FrenchSection({ children }: { children: React.ReactNode }) {
         <span>
           <h2 className="text-[15px] font-extrabold text-ink">Français</h2>
           <p className="mt-0.5 text-[13px] text-ink-muted">
-            Optional French copy for this tour&rsquo;s public page. Leave a field blank to fall
-            back to the English above.
+            Optional French copy for this tour&rsquo;s public page. Leave a field blank to fall back
+            to the English above.
           </p>
         </span>
         <IconChevron
