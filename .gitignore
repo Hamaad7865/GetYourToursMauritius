@@ -61,3 +61,6 @@ Activity Pictures/
 
 # graphify knowledge-graph output (generated tooling artifacts, not project code)
 graphify-out/
+
+# superpowers brainstorming scratch (throwaway HTML + a server PID, not project code)
+.superpowers/
