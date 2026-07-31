@@ -17,7 +17,7 @@
 // Cloudflare ever renames these fields again, this check FAILS CLOSED (an unrecognized shape is
 // treated as "not confirmed disabled", never as a pass) — see the ambiguous-shape branch below — so
 // a Cloudflare API change blocks releases loudly instead of silently letting both deploy paths race.
-import { requireEnv } from './lib.mjs';
+import { redactSecrets, requireEnv, retry } from './lib.mjs';
 
 const API_BASE = 'https://api.cloudflare.com/client/v4';
 
@@ -58,16 +58,52 @@ async function main() {
   const accountId = requireEnv('CLOUDFLARE_ACCOUNT_ID');
   const project = requireEnv('CLOUDFLARE_PAGES_PROJECT');
 
-  const res = await fetch(`${API_BASE}/accounts/${accountId}/pages/projects/${project}`, {
-    headers: { Authorization: `Bearer ${apiToken}` },
-  });
-  const body = await res.json();
-  if (!res.ok || !body.success) {
-    const errs = (body.errors ?? []).map((e) => `${e.code}: ${e.message}`).join('; ');
-    throw new Error(
-      `Cloudflare API error fetching Pages project "${project}": ${res.status} ${errs}`,
-    );
-  }
+  // Read the body as TEXT and inspect the status BEFORE parsing. Calling res.json() first turns any
+  // non-JSON response into "Unexpected token '<', "<!DOCTYPE "... is not valid JSON", which hides the
+  // status code, the content type and the body — on 2026-07-31 that masked three consecutive release
+  // failures where Cloudflare's edge served the runner an HTML page instead of the API's JSON.
+  // (The API itself answers in JSON even for a bad token, a bogus account id or a missing project —
+  // all verified directly — so an HTML body means the request never reached the API at all.)
+  //
+  // Retried because that is a transport-level failure, not an answer: getting HTML back tells us
+  // nothing about whether auto-deploy is disabled. The fail-closed contract is untouched — a
+  // definitive JSON response is never retried, and if no attempt yields JSON the error propagates
+  // and the release still stops.
+  const body = await retry(
+    async () => {
+      const res = await fetch(`${API_BASE}/accounts/${accountId}/pages/projects/${project}`, {
+        headers: { Authorization: `Bearer ${apiToken}` },
+      });
+      const text = await res.text();
+      let parsed;
+      try {
+        parsed = JSON.parse(text);
+      } catch {
+        // redactSecrets: the body is echoed for diagnosis and must never leak the token.
+        throw new Error(
+          `Cloudflare returned a non-JSON response (${res.status} ${
+            res.headers.get('content-type') ?? 'no content-type'
+          }) for Pages project "${project}". First 300 chars: ${redactSecrets(text.slice(0, 300))}`,
+        );
+      }
+      if (!res.ok || !parsed.success) {
+        const errs = (parsed.errors ?? []).map((e) => `${e.code}: ${e.message}`).join('; ');
+        // A definitive JSON answer — wrong project, revoked token — is a real verdict, not a blip.
+        // Throwing here still retries, which is harmless (the answer is stable) and keeps one code
+        // path; the operator sees the same message either way.
+        throw new Error(
+          `Cloudflare API error fetching Pages project "${project}": ${res.status} ${errs}`,
+        );
+      }
+      return parsed;
+    },
+    {
+      attempts: 3,
+      delayMs: 5000,
+      onAttempt: (i, err) =>
+        console.log(`  cloudflare-preflight attempt ${i} failed: ${err.message}`),
+    },
+  );
 
   const evaluation = evaluateGitIntegration(body.result);
   if (!evaluation.disabled) {
