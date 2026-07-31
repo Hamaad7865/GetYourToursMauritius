@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { localiseContent } from '@/lib/content/localise';
 import type { Area, AreaContent } from '@/lib/content/areas';
+import { ADDITIONAL_ATTRACTIONS_RAW } from '@/lib/content/_additional-attractions.gen';
+import {
+  localisedPlace,
+  localisedAttractionExtra,
+  ATTRACTION_EXTRA,
+} from '@/lib/content/attractions';
 
 /**
  * Same per-field rule as the SQL path: French where it exists, English everywhere else. A row-level
@@ -77,5 +83,60 @@ describe('localiseContent', () => {
     // Real Mauritian place names are untouched — the translation type cannot even express them.
     expect(out.beaches).toEqual(['La Cuvette Beach']);
     expect(out.name).toBe('Grand Baie');
+  });
+});
+
+describe('attractions content localisation', () => {
+  const montChoisy = ADDITIONAL_ATTRACTIONS_RAW.find((p) => p.id === 'mont-choisy-beach')!;
+
+  it('translates the blurb for fr, keeps English for en, never touches real-world fields', () => {
+    const fr = localisedPlace(montChoisy, 'fr');
+    const en = localisedPlace(montChoisy, 'en');
+    expect(fr.blurb).not.toBe(montChoisy.blurb);
+    expect(en.blurb).toBe(montChoisy.blurb);
+    // id/name/region/category are real-world data — AttractionTranslation cannot express them, so
+    // they must be byte-identical to the English source regardless of locale.
+    expect(fr.id).toBe(montChoisy.id);
+    expect(fr.name).toBe(montChoisy.name);
+    expect(fr.region).toBe(montChoisy.region);
+    expect(fr.category).toBe(montChoisy.category);
+  });
+
+  it('falls back to the English blurb when a place has no French entry at all', () => {
+    const noOverlay = {
+      ...montChoisy,
+      id: 'not-a-real-attraction-slug',
+      blurb: 'Some English text.',
+    };
+    expect(localisedPlace(noOverlay, 'fr').blurb).toBe('Some English text.');
+  });
+
+  it('translates the marquee editorial (body/bestTime/tips) for fr', () => {
+    const extraEn = ATTRACTION_EXTRA['chamarel-seven-coloured-earth']!;
+    const extraFr = localisedAttractionExtra('chamarel-seven-coloured-earth', 'fr');
+    expect(extraFr).toBeDefined();
+    expect(extraFr!.body).not.toEqual(extraEn.body);
+    expect(extraFr!.bestTime).not.toBe(extraEn.bestTime);
+    expect(extraFr!.tips).not.toEqual(extraEn.tips);
+  });
+
+  it('returns undefined editorial for a slug with no ATTRACTION_EXTRA entry, in either locale', () => {
+    expect(localisedAttractionExtra('mont-choisy-beach', 'fr')).toBeUndefined();
+    expect(localisedAttractionExtra('mont-choisy-beach', 'en')).toBeUndefined();
+  });
+
+  it('per-field fallback: a translated body with no translated bestTime/tips never renders blank', () => {
+    // Same property Task 13 established for AreaTranslation, exercised here through the merge
+    // localisedAttractionExtra uses — a partially translated entry must degrade per field, not blank.
+    const enExtra = {
+      body: ['English body.'],
+      bestTime: 'English best time.',
+      tips: ['English tip.'],
+    };
+    const frPartial = { body: ['French body.'] }; // bestTime/tips deliberately left untranslated
+    const merged = localiseContent(enExtra, frPartial, 'fr');
+    expect(merged.body).toEqual(['French body.']);
+    expect(merged.bestTime).toBe('English best time.');
+    expect(merged.tips).toEqual(['English tip.']);
   });
 });

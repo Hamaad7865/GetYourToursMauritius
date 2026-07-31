@@ -2264,6 +2264,36 @@ export const fr: Record<string, string> = {
   "From turquoise lagoons and waterfalls to volcanic craters and colonial heritage, here are {count} of the island's best attractions — and how to visit each one with a local driver-guide from {operator}.":
     'Des lagons turquoise et des cascades aux cratères volcaniques et au patrimoine colonial, voici {count} des plus belles attractions de l’île — et comment visiter chacune d’elles avec un chauffeur-guide local de {operator}.',
 
+  // Task 14 — buildAttractionFaq(): templated per-attraction FAQ (name/region/hours stay real data,
+  // interpolated into whichever language's template).
+  '{name} is on the {region} side of Mauritius. {operator} can collect you from your hotel anywhere on the island and drive you there with a local guide.':
+    '{name} se trouve dans la région {region} de Maurice. {operator} peut venir vous chercher à votre hôtel n’importe où sur l’île et vous y conduire avec un guide local.',
+  'How long should I spend at {name}?': 'Combien de temps faut-il prévoir pour visiter {name} ?',
+  'Most visitors spend {duration} at {name}.':
+    'La plupart des visiteurs passent {duration} à {name}.',
+  'It usually closes around {time}, so plan to arrive earlier in the day.':
+    'Le site ferme généralement vers {time}, prévoyez donc d’arriver plus tôt dans la journée.',
+  'What are the opening hours of {name}?': 'Quels sont les horaires d’ouverture de {name} ?',
+  '{name} typically closes around {time}. Hours can change on public holidays — message us on WhatsApp to confirm before you travel.':
+    '{name} ferme généralement vers {time}. Les horaires peuvent changer les jours fériés — contactez-nous sur WhatsApp pour confirmer avant votre visite.',
+  'Can I visit {name} on a tour?': 'Puis-je visiter {name} dans le cadre d’une excursion ?',
+  'Yes. {name} can be included on a private {region} sightseeing tour, or you can build a custom day around it with our free AI road-trip planner and book online in minutes.':
+    'Oui. {name} peut être inclus dans une excursion privée dans la région {region}, ou vous pouvez composer une journée sur mesure autour de cette étape avec notre planificateur de voyage IA gratuit, puis réserver en ligne en quelques minutes.',
+  'How do I get to {name} from my hotel?': 'Comment se rendre à {name} depuis mon hôtel ?',
+  'The easiest way is a private transfer with a local driver-guide. {operator} offers door-to-door pickup with transparent, fixed pricing — no metered surprises and no commission stops.':
+    'Le plus simple est un transfert privé avec un chauffeur-guide local. {operator} propose une prise en charge porte à porte à un tarif fixe et transparent — sans surprise au compteur et sans arrêt commission.',
+  '{name} is a favourite stop on a day out with {operator} in the {region} of Mauritius. Plan to spend {duration} here.':
+    '{name} est une étape appréciée lors d’une journée avec {operator} dans la région {region} de Maurice. Prévoyez d’y consacrer {duration}.',
+  'The easiest way to visit is a private transfer with a local driver-guide — we pick you up at your hotel anywhere on the island, with transparent fixed pricing and no commission stops.':
+    'Le plus simple pour la visiter est un transfert privé avec un chauffeur-guide local — nous venons vous chercher à votre hôtel n’importe où sur l’île, à un tarif fixe et transparent, sans arrêt commission.',
+  'Visit {name} in the {region} of Mauritius with {operator}.':
+    'Découvrez {name}, dans la région {region} de Maurice, avec {operator}.',
+  '{name} is on the {region} side of Mauritius. We collect you from your hotel anywhere on the island.':
+    '{name} se trouve dans la région {region} de Maurice. Nous venons vous chercher à votre hôtel n’importe où sur l’île.',
+  'Nature & wildlife': 'Nature et faune',
+  'Culture & heritage': 'Culture et patrimoine',
+  Food: 'Gastronomie',
+
   // Task 10 batch D — error screens, empty states and the long tail
   'We could not complete sign-in. Please try again.':
     'Nous n’avons pas pu terminer la connexion. Veuillez réessayer.',

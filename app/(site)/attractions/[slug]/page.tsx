@@ -16,12 +16,13 @@ import {
   categoryMeta,
   formatVisitDuration,
   nearbyPlaces,
-  ATTRACTION_EXTRA,
+  localisedPlace,
+  localisedAttractionExtra,
 } from '@/lib/content/attractions';
 import { attractionJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -69,23 +70,38 @@ export default async function AttractionDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const place = await getPlace(slug);
-  if (!place) notFound();
+  const rawPlace = await getPlace(slug);
+  if (!rawPlace) notFound();
 
   const t = await getT();
+  const locale = await getLocale();
+  const place = localisedPlace(rawPlace, locale);
   const all = await loadPlaces();
-  const nearby = nearbyPlaces(all, place, 4);
-  const faqs = buildAttractionFaq(place);
-  const extra = ATTRACTION_EXTRA[place.id];
+  const nearby = nearbyPlaces(all, rawPlace, 4).map((p) => localisedPlace(p, locale));
+  const faqs = buildAttractionFaq(rawPlace, locale);
+  const extra = localisedAttractionExtra(place.id, locale);
   const meta = categoryMeta(place.category);
   const path = attractionPath(place.id);
   const img = attractionImage(place.id);
 
   const aboutParas = extra?.body ?? [
-    `${place.name} sits in the ${place.region.toLowerCase()} of Mauritius and is a favourite stop on a day out with ${SITE.operator}. Plan to spend ${formatVisitDuration(
-      place.durationMin,
-    )} here.`,
-    `The easiest way to visit is a private transfer with a local driver-guide — we pick you up at your hotel anywhere on the island, with transparent fixed pricing and no commission stops.`,
+    locale === 'fr'
+      ? t(
+          '{name} is a favourite stop on a day out with {operator} in the {region} of Mauritius. Plan to spend {duration} here.',
+          {
+            name: place.name,
+            operator: SITE.operator,
+            region: t(place.region),
+            duration: formatVisitDuration(place.durationMin, locale),
+          },
+        )
+      : `${place.name} sits in the ${place.region.toLowerCase()} of Mauritius and is a favourite stop on a day out with ${SITE.operator}. Plan to spend ${formatVisitDuration(
+          place.durationMin,
+          locale,
+        )} here.`,
+    t(
+      'The easiest way to visit is a private transfer with a local driver-guide — we pick you up at your hotel anywhere on the island, with transparent fixed pricing and no commission stops.',
+    ),
   ];
 
   return (
@@ -106,11 +122,15 @@ export default async function AttractionDetailPage({
       <JsonLd data={faqPageJsonLd(faqs)} />
 
       <InfoPage
-        eyebrow={`${meta.label} · ${place.region} Mauritius`}
+        eyebrow={`${t(meta.label)} · ${place.region} Mauritius`}
         title={place.name}
         intro={
           place.blurb ??
-          `Visit ${place.name} in the ${place.region} of Mauritius with ${SITE.operator}.`
+          t('Visit {name} in the {region} of Mauritius with {operator}.', {
+            name: place.name,
+            region: locale === 'fr' ? t(place.region) : place.region,
+            operator: SITE.operator,
+          })
         }
       >
         {/* Breadcrumb */}
@@ -135,7 +155,7 @@ export default async function AttractionDetailPage({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={attractionImageSrc(img.url)}
-              alt={`${place.name} — ${place.category} in ${place.region} Mauritius`}
+              alt={`${place.name} — ${t(place.category)} in ${place.region} Mauritius`}
               className="aspect-[16/9] w-full object-cover"
             />
             {/(wikimedia|wikipedia)\.org/.test(img.source) && (
@@ -157,8 +177,8 @@ export default async function AttractionDetailPage({
         {/* Quick facts */}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Fact label={t('Region')} value={t('{region} coast', { region: place.region })} />
-          <Fact label={t('Type')} value={meta.label} />
-          <Fact label={t('Time to spend')} value={formatVisitDuration(place.durationMin)} />
+          <Fact label={t('Type')} value={t(meta.label)} />
+          <Fact label={t('Time to spend')} value={formatVisitDuration(place.durationMin, locale)} />
           <Fact
             label={t('Opening hours')}
             value={place.closesAt ? t('Until ~{time}', { time: place.closesAt }) : t('Open access')}
@@ -203,8 +223,13 @@ export default async function AttractionDetailPage({
             {t('Where is {name}?', { name: place.name })}
           </h2>
           <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/70">
-            {place.name} is on the {place.region.toLowerCase()} side of Mauritius. We collect you
-            from your hotel anywhere on the island.
+            {t(
+              '{name} is on the {region} side of Mauritius. We collect you from your hotel anywhere on the island.',
+              {
+                name: place.name,
+                region: locale === 'fr' ? t(place.region) : place.region.toLowerCase(),
+              },
+            )}
           </p>
           <div className="mt-4">
             <LocationMap query={`${place.name}, ${place.region}, Mauritius`} label={place.name} />

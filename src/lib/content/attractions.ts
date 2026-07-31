@@ -1,6 +1,10 @@
 import type { PlannerPlace } from '@/lib/validation/planner';
 import { SITE } from '@/lib/seo/site';
 import { ATTRACTION_IMAGES } from './_attraction-images.gen';
+import { ATTRACTIONS_FR, REGION_INTRO_FR } from './_additional-attractions.fr.gen';
+import { localiseContent } from './localise';
+import { translate } from '@/lib/i18n/translate';
+import type { Locale } from '@/lib/i18n/config';
 
 /** Real Wikimedia photo for an attraction, or null (then the card/detail uses the gradient hero). */
 export function attractionImage(slug: string): { url: string; source: string } | null {
@@ -44,6 +48,19 @@ export const REGION_INTRO: Record<string, string> = {
     "The cooler central plateau is green and scenic — the Trou aux Cerfs volcanic crater, colonial Eureka House, botanical gardens and the island's best mountain hikes.",
 };
 
+/** French overlay for `REGION_INTRO`, keyed by the same region name. An allowlist of one: the only
+ *  field is the prose paragraph itself, so there is nothing to accidentally widen. */
+export type RegionIntroTranslation = Partial<Record<string, string>>;
+
+/** A region's intro paragraph in the visitor's language, falling back to English per region. */
+export function localisedRegionIntro(region: string, locale: Locale): string {
+  return localiseContent(
+    { intro: REGION_INTRO[region] ?? '' },
+    REGION_INTRO_FR[region] ? { intro: REGION_INTRO_FR[region] } : undefined,
+    locale,
+  ).intro;
+}
+
 export interface CategoryMeta {
   label: string;
   emoji: string;
@@ -79,7 +96,13 @@ export function attractionPath(slug: string): string {
 }
 
 /** Human-friendly "time to spend here" from a minutes value. */
-export function formatVisitDuration(min: number): string {
+export function formatVisitDuration(min: number, locale: Locale = 'en'): string {
+  if (locale === 'fr') {
+    if (min < 60) return `environ ${min} minute${min > 1 ? 's' : ''}`;
+    const hoursFr = min / 60;
+    if (Number.isInteger(hoursFr)) return `environ ${hoursFr} heure${hoursFr > 1 ? 's' : ''}`;
+    return `${Math.floor(hoursFr)}–${Math.ceil(hoursFr)} heures`;
+  }
   if (min < 60) return `about ${min} minutes`;
   const hours = min / 60;
   if (Number.isInteger(hours)) return `about ${hours} hour${hours > 1 ? 's' : ''}`;
@@ -179,6 +202,40 @@ export const ATTRACTION_EXTRA: Record<string, AttractionExtra> = {
   },
 };
 
+/**
+ * The fields of an attraction that may be translated. An ALLOWLIST, deliberately: `blurb` is our own
+ * descriptive copy (from `_additional-attractions.gen.ts`, or from the `planner_places` DB rows —
+ * either way it degrades to English when no French entry exists), and `body`/`bestTime`/`tips` are
+ * our own hand-written editorial for marquee spots. Everything else on `PlannerPlace` — `id`, `name`,
+ * `category`, `region`, `lat`, `lng`, `closesAt` — is a real place name or a structural/numeric fact,
+ * not prose, and is not present here.
+ */
+export type AttractionTranslation = Partial<Pick<PlannerPlace, 'blurb'>> &
+  Partial<Pick<AttractionExtra, 'body' | 'bestTime' | 'tips'>>;
+
+/** A place's blurb in the visitor's language, falling back to English when untranslated. Only
+ *  `blurb` is ever overlaid — every other field (name, category, coords…) is real-world data. */
+export function localisedPlace(place: PlannerPlace, locale: Locale): PlannerPlace {
+  const entry = ATTRACTIONS_FR[place.id];
+  return localiseContent(place, entry?.blurb ? { blurb: entry.blurb } : undefined, locale);
+}
+
+/** The hand-written editorial for a marquee attraction, in the visitor's language. Undefined when
+ *  the slug has no editorial at all (most attractions), matching `ATTRACTION_EXTRA`'s own shape. */
+export function localisedAttractionExtra(
+  slug: string,
+  locale: Locale,
+): AttractionExtra | undefined {
+  const extra = ATTRACTION_EXTRA[slug];
+  if (!extra) return undefined;
+  const entry = ATTRACTIONS_FR[slug];
+  const fr =
+    entry && (entry.body || entry.bestTime || entry.tips)
+      ? { body: entry.body, bestTime: entry.bestTime, tips: entry.tips }
+      : undefined;
+  return localiseContent(extra, fr, locale);
+}
+
 /** Same-region neighbours first, then fill from elsewhere — for the "Nearby attractions" rail. */
 export function nearbyPlaces(all: PlannerPlace[], place: PlannerPlace, n = 4): PlannerPlace[] {
   const sameRegion = all.filter((p) => p.id !== place.id && p.region === place.region);
@@ -186,37 +243,63 @@ export function nearbyPlaces(all: PlannerPlace[], place: PlannerPlace, n = 4): P
   return [...sameRegion, ...others].slice(0, n);
 }
 
-/** Unique, useful FAQ per place — also emitted as FAQPage structured data. */
-export function buildAttractionFaq(p: PlannerPlace): { q: string; a: string }[] {
-  const region = p.region.toLowerCase();
+/**
+ * Unique, useful FAQ per place — also emitted as FAQPage structured data. The question/answer prose
+ * is templated (not stored per-slug), so it is localised by routing through the same `t()` key/value
+ * catalogue as UI chrome rather than a per-slug overlay — `name`/`region`/`durationMin`/`closesAt`
+ * stay real data, interpolated into whichever language's template.
+ */
+export function buildAttractionFaq(
+  p: PlannerPlace,
+  locale: Locale = 'en',
+): { q: string; a: string }[] {
+  const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
+  // English keeps the original wording exactly: lowercase compass word in "the north side", but the
+  // capitalised region name ("North") in "a private North sightseeing tour". French uses the same
+  // properly cased region label ("Nord") in both places — it doesn't have an idiomatic lowercase form.
+  const regionSide = locale === 'fr' ? t(p.region) : p.region.toLowerCase();
+  const regionLabel = locale === 'fr' ? t(p.region) : p.region;
+  const duration = formatVisitDuration(p.durationMin, locale);
   const faqs: { q: string; a: string }[] = [
     {
-      q: `Where is ${p.name}?`,
-      a: `${p.name} is on the ${region} side of Mauritius. ${SITE.operator} can collect you from your hotel anywhere on the island and drive you there with a local guide.`,
+      q: t('Where is {name}?', { name: p.name }),
+      a: t(
+        '{name} is on the {region} side of Mauritius. {operator} can collect you from your hotel anywhere on the island and drive you there with a local guide.',
+        { name: p.name, region: regionSide, operator: SITE.operator },
+      ),
     },
     {
-      q: `How long should I spend at ${p.name}?`,
-      a: `Most visitors spend ${formatVisitDuration(p.durationMin)} at ${p.name}.${
-        p.closesAt
-          ? ` It usually closes around ${p.closesAt}, so plan to arrive earlier in the day.`
-          : ''
-      }`,
+      q: t('How long should I spend at {name}?', { name: p.name }),
+      a:
+        t('Most visitors spend {duration} at {name}.', { duration, name: p.name }) +
+        (p.closesAt
+          ? ` ${t('It usually closes around {time}, so plan to arrive earlier in the day.', { time: p.closesAt })}`
+          : ''),
     },
   ];
   if (p.closesAt) {
     faqs.push({
-      q: `What are the opening hours of ${p.name}?`,
-      a: `${p.name} typically closes around ${p.closesAt}. Hours can change on public holidays — message us on WhatsApp to confirm before you travel.`,
+      q: t('What are the opening hours of {name}?', { name: p.name }),
+      a: t(
+        '{name} typically closes around {time}. Hours can change on public holidays — message us on WhatsApp to confirm before you travel.',
+        { name: p.name, time: p.closesAt },
+      ),
     });
   }
   faqs.push(
     {
-      q: `Can I visit ${p.name} on a tour?`,
-      a: `Yes. ${p.name} can be included on a private ${p.region} sightseeing tour, or you can build a custom day around it with our free AI road-trip planner and book online in minutes.`,
+      q: t('Can I visit {name} on a tour?', { name: p.name }),
+      a: t(
+        'Yes. {name} can be included on a private {region} sightseeing tour, or you can build a custom day around it with our free AI road-trip planner and book online in minutes.',
+        { name: p.name, region: regionLabel },
+      ),
     },
     {
-      q: `How do I get to ${p.name} from my hotel?`,
-      a: `The easiest way is a private transfer with a local driver-guide. ${SITE.operator} offers door-to-door pickup with transparent, fixed pricing — no metered surprises and no commission stops.`,
+      q: t('How do I get to {name} from my hotel?', { name: p.name }),
+      a: t(
+        'The easiest way is a private transfer with a local driver-guide. {operator} offers door-to-door pickup with transparent, fixed pricing — no metered surprises and no commission stops.',
+        { operator: SITE.operator },
+      ),
     },
   );
   return faqs;

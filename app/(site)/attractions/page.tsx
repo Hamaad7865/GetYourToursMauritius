@@ -5,10 +5,15 @@ import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { AttractionCard } from '@/components/attractions/AttractionCard';
 import { loadPlaces } from '@/lib/catalogue/places';
-import { REGION_ORDER, REGION_INTRO, attractionPath } from '@/lib/content/attractions';
+import {
+  REGION_ORDER,
+  attractionPath,
+  localisedPlace,
+  localisedRegionIntro,
+} from '@/lib/content/attractions';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -39,11 +44,13 @@ const DEFAULT_METADATA: Metadata = {
 };
 
 export default async function AttractionsIndexPage() {
-  const places = await loadPlaces();
+  const rawPlaces = await loadPlaces();
   const t = await getT();
+  const locale = await getLocale();
+  const places = rawPlaces.map((p) => localisedPlace(p, locale));
   const groups = REGION_ORDER.map((region) => ({
     region,
-    intro: REGION_INTRO[region],
+    intro: localisedRegionIntro(region, locale),
     items: places.filter((p) => p.region === region),
   })).filter((g) => g.items.length > 0);
 
