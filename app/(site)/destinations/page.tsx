@@ -3,9 +3,10 @@ import { overrideMetadata } from '@/lib/seo/override';
 import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { areas, AREA_REGION_ORDER, type Area } from '@/lib/content/areas';
+import { areas, AREA_REGION_ORDER, localisedArea, type Area } from '@/lib/content/areas';
 import { breadcrumbListJsonLd, itemListJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
+import { getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -64,10 +65,12 @@ function AreaCard({ a }: { a: Area }) {
   );
 }
 
-export default function DestinationsIndexPage() {
+export default async function DestinationsIndexPage() {
+  const locale = await getLocale();
+  const localisedAreas = areas.map((a) => localisedArea(a, locale));
   const groups = AREA_REGION_ORDER.map((region) => ({
     region,
-    items: areas.filter((a) => a.region === region),
+    items: localisedAreas.filter((a) => a.region === region),
   })).filter((g) => g.items.length > 0);
   const breadcrumb = breadcrumbListJsonLd([
     { name: 'Home', path: '/' },

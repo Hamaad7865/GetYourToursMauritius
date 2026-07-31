@@ -1,4 +1,7 @@
 import { AREAS_RAW } from './_areas.gen';
+import { AREAS_FR } from './_areas.fr.gen';
+import { localiseContent } from './localise';
+import type { Locale } from '@/lib/i18n/config';
 
 /** Mauritius area / destination guides. Raw content is generated into `_areas.gen.ts`. */
 
@@ -19,6 +22,17 @@ export interface AreaContent {
   nearbyAttractions: string[];
   faq: { q: string; a: string }[];
 }
+
+/**
+ * The fields of an area guide that may be translated. An ALLOWLIST, deliberately: everything
+ * omitted here — `slug`, `region`, `name`, `beaches`, `stayOptions`, `nearbyAttractions` — is a
+ * real Mauritian place, beach or hotel name, and a translation file that tried to set one would
+ * invent French names for real places. Omitting them makes that a compile error rather than a
+ * production defect nobody notices.
+ */
+export type AreaTranslation = Partial<
+  Pick<AreaContent, 'intro' | 'highlights' | 'gettingThere' | 'goodFor' | 'faq'>
+>;
 
 export interface Area extends AreaContent {
   path: string;
@@ -54,4 +68,9 @@ export function areaMetaDescription(a: Area): string {
   const cut = text.slice(0, 155);
   const lastSpace = cut.lastIndexOf(' ');
   return `${(lastSpace > 120 ? cut.slice(0, lastSpace) : cut).replace(/[\s.,;:–—-]+$/, '')}…`;
+}
+
+/** An area guide in the visitor's language, falling back to English per field. */
+export function localisedArea(area: Area, locale: Locale): Area {
+  return localiseContent(area, AREAS_FR[area.slug], locale);
 }

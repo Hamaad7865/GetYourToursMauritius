@@ -3,11 +3,11 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
-import { getArea, areaMetaTitle, areaMetaDescription } from '@/lib/content/areas';
+import { getArea, areaMetaTitle, areaMetaDescription, localisedArea } from '@/lib/content/areas';
 import { destinationJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
@@ -60,10 +60,12 @@ export default async function DestinationDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const a = getArea(slug);
-  if (!a) notFound();
+  const rawArea = getArea(slug);
+  if (!rawArea) notFound();
 
   const t = await getT();
+  const locale = await getLocale();
+  const a = localisedArea(rawArea, locale);
 
   return (
     <>
