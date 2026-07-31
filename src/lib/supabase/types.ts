@@ -295,6 +295,9 @@ type BookingsRow = {
   traveller_company: string | null;
   traveller_country: string | null;
   special_notes: string | null;
+  /** The language the guest booked in (20260901000300) — the confirmation email + PDFs render later,
+   *  off-request, so this is the only source they can trust for which language to use. */
+  locale: Database['public']['Enums']['content_locale'];
   created_at: string;
   updated_at: string;
 };
@@ -330,6 +333,7 @@ type BookingsInsert = {
   traveller_company?: string | null;
   traveller_country?: string | null;
   special_notes?: string | null;
+  locale?: Database['public']['Enums']['content_locale'];
   created_at?: string;
   updated_at?: string;
 };

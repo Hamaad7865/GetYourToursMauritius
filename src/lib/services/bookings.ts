@@ -112,6 +112,10 @@ export async function createBooking(
     customerPhone: input.customer.phone ?? null,
     source: input.source ?? 'web',
     idempotencyKey,
+    // The guest's language, stored on the booking so the confirmation email + PDFs — rendered later by
+    // the notification drain, off-request, with no cookie to read — can render in it. buildServiceContext
+    // already parsed this from the checkout request's language cookie.
+    locale: ctx.locale,
   });
   return bookingSchema.parse(data);
 }
