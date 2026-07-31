@@ -29,8 +29,10 @@ describe('activity_content_defaults', () => {
     await db.close();
   });
 
-  it('seeds the two sets that replace the deleted hardcoded files', async () => {
+  it('seeds the two English sets that replace the deleted hardcoded files', async () => {
     await db.asOwner();
+    // locale = 'en': 20260901000700 added a `locale` column (PK is now (category, locale)) and seeds
+    // French rows for these same categories — filter to English to keep this test's original intent.
     const { rows } = await db.pg.query<{
       category: string;
       highlights: number;
@@ -40,7 +42,7 @@ describe('activity_content_defaults', () => {
                cardinality(highlights) as highlights,
                cardinality(what_to_bring) as bring,
                cardinality(important_info) as important
-          from activity_content_defaults order by category`);
+          from activity_content_defaults where locale = 'en' order by category`);
     expect(rows).toEqual([
       // was CATAMARAN_WHAT_TO_BRING (9) + CATAMARAN_KNOW_BEFORE (8); catamaran never had highlights
       { category: 'Catamaran cruises', highlights: 0, bring: 9, important: 8 },
@@ -52,7 +54,7 @@ describe('activity_content_defaults', () => {
   it('keeps the exact text, including a curly apostrophe that would break naive SQL escaping', async () => {
     await db.asOwner();
     const { rows } = await db.pg.query<{ line: string }>(
-      `select important_info[6] as line from activity_content_defaults where category = 'Catamaran cruises'`,
+      `select important_info[6] as line from activity_content_defaults where category = 'Catamaran cruises' and locale = 'en'`,
     );
     expect(rows[0]!.line).toBe(
       'The captain’s decisions regarding navigation, timing, and itinerary adjustments are final and made in the interest of guest safety.',
@@ -62,15 +64,16 @@ describe('activity_content_defaults', () => {
   it('re-seeding never overwrites content the owner has edited', async () => {
     await db.asOwner();
     await db.pg.query(
-      `update activity_content_defaults set highlights = ARRAY['Owner edit']::text[] where category = 'Catamaran cruises'`,
+      `update activity_content_defaults set highlights = ARRAY['Owner edit']::text[] where category = 'Catamaran cruises' and locale = 'en'`,
     );
-    // The migration's seed runs again on every catch-up.sql re-run — it must not stomp this.
+    // The migration's seed runs again on every catch-up.sql re-run — it must not stomp this. The
+    // conflict target is (category, locale) since 20260901000700 re-keyed the primary key.
     await db.pg.exec(`
       insert into activity_content_defaults (category, what_to_bring) values
         ('Catamaran cruises', ARRAY['Seed value']::text[])
-      on conflict (category) do nothing;`);
+      on conflict (category, locale) do nothing;`);
     const { rows } = await db.pg.query<{ h: string[] }>(
-      `select highlights as h from activity_content_defaults where category = 'Catamaran cruises'`,
+      `select highlights as h from activity_content_defaults where category = 'Catamaran cruises' and locale = 'en'`,
     );
     expect(rows[0]!.h).toEqual(['Owner edit']);
   });

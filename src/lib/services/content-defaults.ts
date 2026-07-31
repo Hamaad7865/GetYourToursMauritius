@@ -12,7 +12,7 @@ import type { ContentDefaultsMap } from '@/lib/catalogue/content-defaults';
  */
 export async function loadContentDefaults(ctx: ServiceContext): Promise<ContentDefaultsMap> {
   try {
-    const data = await callRpc(ctx, 'api_content_defaults', {});
+    const data = await callRpc(ctx, 'api_content_defaults', { locale: ctx.locale });
     return contentDefaultsMapSchema.parse(data ?? {});
   } catch {
     return {};

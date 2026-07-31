@@ -128,6 +128,10 @@ type ActivityTranslationsRow = {
   seo_description: string | null;
   /** 'human' = written or approved by staff; 'machine' = auto-drafted, awaiting review in /admin. */
   source: string;
+  /** 20260901000700 — ONLY the FR-translatable subset of activities.extra (itinerary / whatToBring /
+   *  importantInfo). Never operational flags (availability, badges, priceList, adultsOnly, ...) —
+   *  those always come from the English activities.extra column. */
+  extra: Json | null;
 };
 type ActivityTranslationsInsert = {
   id?: string;
@@ -143,6 +147,7 @@ type ActivityTranslationsInsert = {
   seo_title?: string | null;
   seo_description?: string | null;
   source?: string;
+  extra?: Json | null;
 };
 
 type ActivityImagesRow = {
@@ -814,6 +819,8 @@ type RentalVehiclesInsert = {
 
 type ActivityContentDefaultsRow = {
   category: string;
+  /** 20260901000700 — primary key is now (category, locale); was (category) alone. */
+  locale: Database['public']['Enums']['content_locale'];
   highlights: string[];
   inclusions: string[];
   exclusions: string[];
@@ -823,6 +830,7 @@ type ActivityContentDefaultsRow = {
 };
 type ActivityContentDefaultsInsert = {
   category: string;
+  locale?: Database['public']['Enums']['content_locale'];
   highlights?: string[];
   inclusions?: string[];
   exclusions?: string[];
