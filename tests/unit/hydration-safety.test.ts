@@ -27,6 +27,18 @@ import { join } from 'node:path';
 const CHECKOUT = join(process.cwd(), 'src', 'components', 'checkout', 'Checkout.tsx');
 const source = readFileSync(CHECKOUT, 'utf8');
 
+/**
+ * Every SSR-ed client component on the money path. Checkout was fixed first; `/bookings/[ref]/pay`
+ * then produced the SAME defect from a different file — `useState(() => typeof window === 'undefined'
+ * ? null : readPayHandoff(Date.now()))` rendered "0%" on the server and the resumed position in the
+ * browser — and real customers hit it on mobile before the guard covered this file. Add any new
+ * SSR-ed checkout component here.
+ */
+const MONEY_PATH = ['Checkout.tsx', 'EmbeddedCheckout.tsx', 'PayProgress.tsx'].map((f) => ({
+  file: f,
+  src: readFileSync(join(process.cwd(), 'src', 'components', 'checkout', f), 'utf8'),
+}));
+
 /** Body of every `useState(() => { … })` / `useState(() => …)` lazy initialiser in the file. */
 function lazyInitialisers(src: string): string[] {
   const found: string[] = [];
@@ -76,6 +88,21 @@ describe('checkout hydration safety', () => {
     expect(
       offenders,
       `useState initialiser reads the stored hold expiry, which is empty during SSR:\n${offenders.join('\n---\n')}`,
+    ).toEqual([]);
+  });
+
+  it.each(MONEY_PATH)('$file seeds no render state from storage or the clock', ({ file, src }) => {
+    // The server has no sessionStorage/localStorage, so a `typeof window === 'undefined'` branch
+    // inside a lazy initialiser renders one thing on the server and another in the browser's
+    // hydration pass. Read it in an effect instead — effects run only after hydration.
+    const offenders = lazyInitialisers(src).filter((block) =>
+      /Date\.now\(\)|new Date\(\)|sessionStorage|localStorage|typeof window/.test(block),
+    );
+
+    expect(
+      offenders,
+      `${file}: useState initialiser depends on the clock or client-only storage, so SSR and ` +
+        `hydration disagree (React #418):\n${offenders.join('\n---\n')}`,
     ).toEqual([]);
   });
 

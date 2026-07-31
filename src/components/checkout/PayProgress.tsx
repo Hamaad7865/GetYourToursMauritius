@@ -49,6 +49,15 @@ export function PayProgress({
   const floor = useRef(startPercent);
   const lastStage = useRef<PayStage | null>(null);
 
+  // `startPercent` is now read by the caller AFTER hydration (it comes from sessionStorage, which the
+  // server cannot see — see EmbeddedCheckout), so it arrives as a PROP CHANGE rather than being
+  // present at mount. Without this it would be captured once as 0 and the resumed position silently
+  // lost. Monotonic by construction: the ring may only ever be pulled forward, never back.
+  useEffect(() => {
+    setPercent((p) => Math.max(p, startPercent));
+    floor.current = Math.max(floor.current, startPercent);
+  }, [startPercent]);
+
   useEffect(() => {
     if (!stage) return;
     if (lastStage.current !== stage) {

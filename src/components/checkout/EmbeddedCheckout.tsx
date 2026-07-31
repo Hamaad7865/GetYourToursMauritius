@@ -79,9 +79,16 @@ export function EmbeddedCheckout({
   // Continue the progress ring the checkout page started, rather than restarting at zero after the
   // full-document navigation. Read (not consumed) on mount; absent for a customer arriving straight
   // here from the confirmation email, who then gets the whole bar for this stage alone.
-  const [handoff] = useState(() =>
-    typeof window === 'undefined' ? null : readPayHandoff(Date.now()),
-  );
+  // Read AFTER hydration, never during render. readPayHandoff touches sessionStorage, so a
+  // `typeof window === 'undefined'` branch here makes the server render null (→ startPercent 0, "0%")
+  // while the browser's first render resumes at the carried position (→ "62%"): different text in the
+  // same node, which is React #418. That shipped, and real customers hit it on /bookings/[ref]/pay —
+  // three on mobile browsers on 2026-07-31 — because arriving from checkout is exactly when a hand-off
+  // exists. Same defect and same remedy as the checkout countdown (see Checkout.tsx `secs`).
+  const [handoff, setHandoff] = useState<ReturnType<typeof readPayHandoff>>(null);
+  useEffect(() => {
+    setHandoff(readPayHandoff(Date.now()));
+  }, []);
   // The card form is only really "there" once the widget has laid it out inside #payment-form —
   // `render()` returning just means the request is under way. This is what takes the ring to 100%.
   const [formReady, setFormReady] = useState(false);
