@@ -24,7 +24,7 @@ const business = {
   locality: 'Belle Mare',
   region: 'Flacq',
   country: 'MU',
-  email: 'bookings@bellemaretours.com',
+  email: 'info@bellemaretours.com', // the MONITORED inbox — never the send-only bookings@ sender
   phone: '+230 5772 9919',
 };
 

@@ -1,6 +1,7 @@
 import type { InvoiceModel } from '@/lib/invoice/model';
 import { formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
 import { translate } from '@/lib/i18n/translate';
+import { SITE } from '@/lib/seo/site';
 
 /**
  * Branded HTML confirmation email rendered from the pure {@link InvoiceModel}. The invoice/receipt PDF
@@ -154,6 +155,24 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
               </p>`
       : '';
 
+  /* The header carries the brand mark rather than the operator's name as text.
+   *
+   * On WHITE, with the teal reduced to a rule above it: the artwork's "Belle Mare" script is dark
+   * blue and its palm is full-colour, so it needs a light ground — the same reason the site only
+   * serves logo-dark.svg on dark surfaces, and the reason not to reach for a filter to force it
+   * white (that turns eleven colours into one blob).
+   *
+   * An absolute URL, because a mail client has no page to resolve a relative path against — and PNG,
+   * because Gmail drops an <img> pointing at an SVG outright. SITE.url is safe to depend on: a
+   * production-like deploy that leaves NEXT_PUBLIC_SITE_URL unset already fails the health gate
+   * (isSiteUrlConfiguredForLive), so this cannot quietly ship pointing at localhost.
+   *
+   * alt is the operator NAME, not "logo": most clients block remote images until the reader allows
+   * them, so for a good share of opens the alt text IS the header, and it has to say who sent this.
+   *
+   * Deliberately a code comment and not an HTML one — everything inside the template literal below is
+   * shipped to the customer and readable in "view source".
+   */
   const html = `<!-- ${escapeHtml(operator)} booking confirmation -->
 <div style="margin:0;padding:0;background:#f3f4f6;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
@@ -162,8 +181,14 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
           <!-- header -->
           <tr>
-            <td style="background:${ACCENT};padding:20px 28px;color:#ffffff;font-size:18px;font-weight:bold;">
-              ${escapeHtml(operator)}
+            <td style="background:${ACCENT};font-size:0;line-height:0;height:4px;">&nbsp;</td>
+          </tr>
+          <tr>
+            <td style="background:#ffffff;padding:22px 28px 18px;border-bottom:1px solid ${BORDER};">
+              <a href="${SITE.url}" style="text-decoration:none;color:${INK};font-size:18px;font-weight:bold;">
+                <img src="${SITE.url}/logo.png" width="170" alt="${escapeHtml(operator)}"
+                     style="display:block;border:0;width:170px;max-width:170px;height:auto;" />
+              </a>
             </td>
           </tr>
           <!-- body -->

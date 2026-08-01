@@ -18,7 +18,7 @@ const business = {
   locality: 'Belle Mare',
   region: 'Flacq',
   country: 'MU',
-  email: 'bookings@bellemaretours.com',
+  email: 'info@bellemaretours.com', // the MONITORED inbox — never the send-only bookings@ sender
   phone: '+230 5772 9919',
 };
 
@@ -140,5 +140,49 @@ describe('renderConfirmationEmail', () => {
       'https://example.com/bookings/BMT-1042',
     );
     expect(html).not.toContain('e-voucher');
+  });
+
+  /* The header carries the brand mark. Each of these is a way it silently stops working in a mail
+   * client, so each is pinned rather than left to a visual check nobody repeats. */
+  describe('brand header', () => {
+    const { html } = renderConfirmationEmail(
+      representativeModel(),
+      'https://example.com/bookings/BMT-1042',
+    );
+
+    it('loads the logo over an ABSOLUTE URL', () => {
+      // A mail client has no page to resolve "/logo.png" against — a relative src renders broken.
+      // Scheme-agnostic here because SITE.url is localhost under test; a production-like deploy that
+      // left NEXT_PUBLIC_SITE_URL unset is caught by the health gate, not by this test.
+      expect(html).toMatch(/<img src="https?:\/\/[^"]+\/logo\.png"/);
+    });
+
+    it('uses PNG, not the SVG the site serves', () => {
+      // Gmail drops an <img> pointing at an SVG entirely, leaving a headerless email.
+      expect(html).not.toMatch(/<img[^>]+\.svg/);
+    });
+
+    // Everything in the template literal ships to the customer. An explanation of WHY the header is
+    // built this way belongs in the source, not in the message — this caught a ten-line implementation
+    // note that was riding along inside every confirmation email.
+    it('ships no implementation notes to the reader', () => {
+      const comments = html.match(/<!--[\s\S]*?-->/g) ?? [];
+      for (const c of comments) expect(c.length).toBeLessThan(80);
+    });
+
+    it('names the operator in alt text, so a blocked image still says who sent this', () => {
+      // Most clients block remote images until the reader allows them; alt IS the header until then.
+      expect(html).toMatch(/<img[^>]+alt="Belle Mare Tours Ltd"/);
+    });
+
+    it('gives the logo a light ground — the artwork is dark-blue script and cannot sit on teal', () => {
+      const header = html.slice(html.indexOf('<!-- header'), html.indexOf('<!-- body'));
+      expect(header).toContain('background:#ffffff');
+      expect(header).not.toMatch(/background:#0E8C92;padding/); // the old solid teal band
+    });
+
+    it('keeps a teal rule so the brand colour still opens the card', () => {
+      expect(html).toContain('background:#0E8C92');
+    });
   });
 });
