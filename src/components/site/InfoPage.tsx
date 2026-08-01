@@ -24,8 +24,12 @@ export function InfoPage({
   meta?: ReactNode;
   /** Optional photo behind the hero band; a teal overlay keeps the white title legible. */
   heroImage?: string;
-  /** Optional decorative animation layered behind the hero text (e.g. the /rent car scene). Gets extra
-   *  bottom room in the hero so it never collides with the title/intro. */
+  /** Optional decorative animation layered behind the hero text (e.g. the /rent car scene). Below xl
+   *  the text column is effectively full-width, so the art gets its own bottom band: the padding
+   *  reserves the car scene's height, sized in vw because the car is vw-sized (w-[62%] × the
+   *  922×525 image aspect ≈ 35vw, sm:w-[52%] ≈ 30vw, + a gutter). From xl the band returns to the
+   *  shipped side-by-side overlay. Keep in sync with CarHero's bottom pinning
+   *  (tests/unit/rent-hero-clearance.test.ts). */
   heroArt?: ReactNode;
   children: ReactNode;
 }) {
@@ -49,7 +53,7 @@ export function InfoPage({
           {heroArt}
           <div
             className={`relative mx-auto max-w-shell px-6 pt-14 sm:pt-20 ${
-              heroArt ? 'pb-16 sm:pb-28' : 'pb-14 sm:pb-20'
+              heroArt ? 'pb-[calc(36vw+2rem)] sm:pb-[calc(30vw+2rem)] xl:pb-28' : 'pb-14 sm:pb-20'
             }`}
           >
             {eyebrow && (

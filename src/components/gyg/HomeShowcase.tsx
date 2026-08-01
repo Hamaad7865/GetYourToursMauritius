@@ -91,8 +91,10 @@ export function HomeShowcase({ activities }: { activities: TourSummary[] }) {
             </Link>
           </div>
           {/* Mobile: an edge-to-edge horizontal snap rail (cards peek the next), GetYourGuide style.
-              sm+: the original responsive grid. */}
-          <RevealGroup className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
+              sm+: the original responsive grid. scroll-px-6 must mirror px-6: snapping aligns cards
+              to the snapport (the padding box, NOT the content box), so without it the browser
+              re-snaps the first card flush with the screen edge on load, 24px left of the heading. */}
+          <RevealGroup className="-mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-1 scroll-px-6 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-4 [&::-webkit-scrollbar]:hidden">
             {/* w-[80%] + shrink-0 sizes the mobile rail cell; h-full only from sm: (grid mode), where
                 the row has a definite track height for it to resolve against. Below sm: the cell is a
                 plain auto-height flex child of the snap rail — the rail's own height is content-driven,
