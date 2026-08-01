@@ -68,20 +68,43 @@ export const POST = apiHandler(async (req) => {
   let payments: Awaited<ReturnType<typeof reconcilePaymentsPending>> | { errored: true } = {
     errored: true,
   };
+  // Whether step 1 failed WHOLESALE — the enumeration RPC erroring, or a transport failure taking the
+  // batch. A per-candidate failure never lands here: reconcilePaymentsPending catches those inside and
+  // only increments its numeric `errored` count.
+  let reconcileFailed = false;
   try {
     payments = await reconcilePaymentsPending(ctx);
   } catch (err) {
+    reconcileFailed = true;
     await log('payment reconcile sweep', err);
   }
 
   // 2) Sweep stale holds + expire genuinely-abandoned bookings (now that any real payment is confirmed).
+  //
+  // The ordering above is load-bearing, so ENFORCE it rather than only documenting it. A booking that
+  // paid at ~minute 29 whose webhook never arrived has no ledger event yet, and run_booking_maintenance
+  // reads its money guard off the PAYMENTS rows (a settled status, paid_minor > 0, or
+  // settlement_review_at) — an unreconciled payment shows none of those. So the sweep would expire it,
+  // release the seat and leave the money taken. That is the exact case step 1 exists to catch: if step
+  // 1 could not run, step 2 must not run either. The next tick (5 minutes) retries both, in order.
   let result: Awaited<ReturnType<typeof runBookingMaintenance>> | { errored: true } = {
     errored: true,
   };
-  try {
-    result = await runBookingMaintenance(ctx);
-  } catch (err) {
-    await log('booking maintenance sweep', err);
+  if (reconcileFailed) {
+    // Left as `{ errored: true }` on purpose: the run is genuinely not healthy, so it must still 503
+    // and show up as a failed cron invocation rather than a quiet skip.
+    await log(
+      'booking maintenance sweep',
+      new Error(
+        'skipped: the payment reconcile step failed this run, so expiring now could release a booking that has paid',
+      ),
+    );
+  } else {
+    try {
+      result = await runBookingMaintenance(ctx);
+    } catch (err) {
+      await log('booking maintenance sweep', err);
+    }
   }
 
   // 3) Roll the open-ended availability window forward (now that the read path no longer fills it).

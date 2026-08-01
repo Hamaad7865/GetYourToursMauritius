@@ -338,13 +338,33 @@ export class PeachPaymentProvider implements PaymentProvider {
   }
 }
 
+/**
+ * OPPWA payment types that move money BACK to the cardholder. All three have to reduce what the
+ * ledger says we hold:
+ *   RF — refund against a settled capture;
+ *   RV — reversal/void of a same-day transaction (what Peach's own guidance tells a merchant to use
+ *        when undoing a payment on the day, so it is the LIKELIER of the two in practice);
+ *   CD — a standalone credit to the card.
+ *
+ * Only 'RF' was recognised, so a reversal or a credit carrying a success result code fell through to
+ * 'paid' and was booked as a SECOND payment: paid_minor doubled, refunded_minor stayed 0, the booking
+ * kept reading cleanly settled, and the owner's net-paid figure said the customer paid twice and was
+ * never refunded — for money that had in fact gone back.
+ *
+ * We request `paymentType: 'DB'` on every checkout, so a pre-auth (PA) never reaches us and there is
+ * no uncaptured-funds case to model here.
+ */
+const MONEY_OUT_TYPES: ReadonlySet<string> = new Set(['RF', 'RV', 'CD']);
+
 /** Map a Peach result code (+ payment type) to our normalised outcome. */
 export function outcomeFor(resultCode: string | null, paymentType: string | null): PaymentOutcome {
   if (!resultCode) return 'unknown';
   // A review-flagged code is a CAPTURE that a human must vet — settle it, then flag it (see
   // needsManualReview). Filing it as 'failed' took the money and gave the customer nothing.
   if (SUCCESS_CODE.test(resultCode) || REVIEW_CODE.test(resultCode)) {
-    return paymentType === 'RF' ? 'refunded' : 'paid';
+    return paymentType && MONEY_OUT_TYPES.has(paymentType.trim().toUpperCase())
+      ? 'refunded'
+      : 'paid';
   }
   if (PENDING_CODE.test(resultCode)) return 'pending';
   return 'failed';

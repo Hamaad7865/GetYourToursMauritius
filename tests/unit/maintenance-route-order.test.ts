@@ -76,17 +76,35 @@ describe('maintenance route ordering (money-safety)', () => {
     expect(calls.indexOf('reconcile')).toBeLessThan(calls.indexOf('expire'));
   });
 
-  it('isolates each step — a failing reconcile does not block the expiry sweep — but the response is 503', async () => {
+  // ASSERTION DELIBERATELY REVERSED (2026-08-01). This used to assert the opposite — that a failing
+  // reconcile "does not block the expiry sweep" — on a general principle of step isolation. Isolation
+  // is the right default and still holds for every other step, but it cannot hold for THIS pair:
+  //
+  // run_booking_maintenance reads its money guard off the PAYMENTS rows (a settled status,
+  // paid_minor > 0, settlement_review_at). A booking that paid at ~minute 29 whose webhook never
+  // arrived has NONE of those yet — the reconcile step is what would have given it one. So running
+  // expiry after a wholesale reconcile failure expires a booking that has paid, releasing the seat
+  // with the money taken.
+  //
+  // The trade is lopsided: skipping expiry costs one 5-minute tick of stale holds hanging around;
+  // running it costs a customer their money and their seat. The route's own step-1 comment already
+  // claimed this ordering ("FIRST, so the next step can't expire them") — it just wasn't enforced.
+  it('does NOT run the expiry sweep when the reconcile step failed wholesale', async () => {
     reconcile.mockImplementationOnce(async () => {
       throw new Error('provider unreachable');
     });
     const res = await POST(req());
-    // Isolation is unchanged: every job still runs despite the reconcile throwing…
-    expect(calls).toContain('expire');
+
+    // The money-unsafe step is skipped…
+    expect(calls).not.toContain('expire');
+    // …while isolation is preserved for everything that cannot lose money by running.
     expect(calls).toContain('materialize');
-    // …but the failure is no longer buried inside a 200 (review item 7): the cron Worker treats any
-    // 2xx as success, so a persistently broken sweep looked healthy on the dashboard forever. A 503
-    // makes the Worker retry → throw → the invocation shows as failed where someone can see it.
+    expect(calls).toContain('fx');
+
+    // The failure is not buried inside a 200 (review item 7): the cron Worker treats any 2xx as
+    // success, so a persistently broken sweep looked healthy on the dashboard forever. A 503 makes
+    // the Worker retry → throw → the invocation shows as failed where someone can see it. The skipped
+    // sweep is reported too, rather than passing silently as if it had nothing to do.
     expect(res.status).toBe(503);
     const body = (await res.json()) as {
       ok: boolean;
@@ -94,6 +112,26 @@ describe('maintenance route ordering (money-safety)', () => {
     };
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe('maintenance_partial_failure');
+    expect(body.error.details?.erroredJobs).toEqual(['payments', 'bookingMaintenance']);
+  });
+
+  it('still runs the expiry sweep on the normal path', async () => {
+    const res = await POST(req());
+    expect(res.status).toBe(200);
+    expect(calls).toContain('expire');
+  });
+
+  // A per-candidate failure is caught INSIDE reconcilePaymentsPending and only bumps its numeric
+  // count — the batch itself succeeded, so expiry is still safe to run and must not be starved.
+  it('still runs the expiry sweep when reconcile merely reports a per-candidate error count', async () => {
+    reconcile.mockImplementationOnce(async () => {
+      calls.push('reconcile');
+      return { queried: 3, confirmed: 2, pending: 0, failed: 0, errored: 1 };
+    });
+    const res = await POST(req());
+    expect(calls).toContain('expire');
+    expect(res.status).toBe(503); // still unhealthy — but for the payments count, not the sweep
+    const body = (await res.json()) as { error: { details?: { erroredJobs?: string[] } } };
     expect(body.error.details?.erroredJobs).toEqual(['payments']);
   });
 

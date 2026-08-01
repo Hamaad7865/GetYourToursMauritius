@@ -32,6 +32,40 @@ describe('outcomeFor: successful captures', () => {
   });
 });
 
+/**
+ * Every OPPWA type that returns money to the cardholder has to reduce what the ledger says we hold.
+ * Only 'RF' was recognised, so a reversal (RV) or a credit (CD) carrying a success code fell through
+ * to 'paid' and was booked as a SECOND payment: paid_minor doubled, refunded_minor stayed 0, and the
+ * owner's net-paid figure said the customer paid twice and was never refunded — for money that had
+ * gone back. RV matters most in practice: it is what Peach tells a merchant to use to undo a payment
+ * on the same day.
+ */
+describe('outcomeFor: money going back out', () => {
+  it.each([
+    ['RF', 'refund against a settled capture'],
+    ['RV', 'same-day reversal / void'],
+    ['CD', 'standalone credit to the card'],
+  ])('treats %s (%s) as refunded', (type) => {
+    expect(outcomeFor('000.000.000', type)).toBe('refunded');
+  });
+
+  it('normalises the casing and stray whitespace providers send', () => {
+    expect(outcomeFor('000.000.000', 'rv')).toBe('refunded');
+    expect(outcomeFor('000.000.000', ' RF ')).toBe('refunded');
+  });
+
+  it('still treats an inbound capture as money in', () => {
+    // DB (debit) is what we request on every checkout; CP is a capture against a pre-auth.
+    expect(outcomeFor('000.000.000', 'DB')).toBe('paid');
+    expect(outcomeFor('000.000.000', 'CP')).toBe('paid');
+    expect(outcomeFor('000.000.000', null)).toBe('paid');
+  });
+
+  it('does not resurrect a declined reversal as a refund', () => {
+    expect(outcomeFor('800.100.152', 'RV')).toBe('failed');
+  });
+});
+
 describe('outcomeFor: captured but flagged for manual review', () => {
   // Peach's note on this family is that the transaction WAS charged and needs verification before
   // fulfilment. Recording it as a failure took the money and gave the customer nothing.
