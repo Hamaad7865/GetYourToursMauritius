@@ -11,6 +11,20 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: false,
+    // Vitest's default is 5s, which is too tight for THIS suite's setup costs — not for its
+    // assertions. Several tests re-import a module graph under a fresh mock (`vi.resetModules()` then
+    // a dynamic `import()` of a route or client — auth-email-hook, release-queue, payment-provider,
+    // health-release-metadata), and the first such test in a file pays that graph's cold transform.
+    // Under the full suite's parallelism that alone can exceed 5s: a failing run reported 434s of
+    // transform and 837s of collect summed across workers. The symptom was a different test timing
+    // out on maybe one run in three — release-queue one time, auth-email-hook the next — which reads
+    // as "flaky suite" and is really "budget too small for the work being done".
+    //
+    // Raising it costs nothing on a passing test (a timeout only fires when something is stuck) and
+    // buys back a deterministic suite. That matters more than usual here: a red CI silently stops the
+    // Cloudflare deploy, so an intermittent test blocks shipping rather than just being noise.
+    testTimeout: 20_000,
+    hookTimeout: 20_000,
     setupFiles: ['./tests/setup/test-env.ts'],
     include: ['tests/**/*.{test,spec}.ts'],
     exclude: ['tests/e2e/**', 'node_modules/**', '.next/**', '.vercel/**'],
