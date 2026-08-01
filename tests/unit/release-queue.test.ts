@@ -63,6 +63,15 @@ describe('release queue entries', () => {
 
 // The queue only drops an entry when the server confirms the release OR permanently refuses it, so
 // releaseHoldRequest has to distinguish the two.
+//
+// Every test here re-imports the module under a fresh mock (see load()), and the FIRST one pays the
+// cold transform of that module graph. Under the full suite's parallel load that overran the default
+// 5s timeout intermittently — "reports success" failed roughly one run in three while passing 12/12
+// whenever this file ran alone. It is a cost-of-setup problem, not a slow assertion, and an
+// intermittently red suite here is expensive: a red CI stops the Cloudflare deploy. Hence the
+// explicit headroom.
+const IMPORT_TIMEOUT_MS = 20_000;
+
 describe('releaseHoldRequest outcome', () => {
   afterEach(() => vi.unstubAllGlobals());
 
@@ -76,58 +85,78 @@ describe('releaseHoldRequest outcome', () => {
     return (await import('@/lib/cart/holdClient')).releaseHoldRequest;
   }
 
-  it('reports success', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => new Response('{}', { status: 200 })),
-    );
-    expect(await (await load())('hold-1')).toEqual({ ok: true });
-  });
-
-  it('marks a 4xx PERMANENT so the queue drops it (401 guest, 403 not-owner, 409 attached)', async () => {
-    for (const status of [401, 403, 404, 409]) {
+  it(
+    'reports success',
+    async () => {
       vi.stubGlobal(
         'fetch',
-        vi.fn(async () => new Response('{}', { status })),
+        vi.fn(async () => new Response('{}', { status: 200 })),
       );
+      expect(await (await load())('hold-1')).toEqual({ ok: true });
+    },
+    IMPORT_TIMEOUT_MS,
+  );
+
+  it(
+    'marks a 4xx PERMANENT so the queue drops it (401 guest, 403 not-owner, 409 attached)',
+    async () => {
+      for (const status of [401, 403, 404, 409]) {
+        vi.stubGlobal(
+          'fetch',
+          vi.fn(async () => new Response('{}', { status })),
+        );
+        const outcome = await (await load())('hold-1');
+        expect(outcome).toEqual({ ok: false, permanent: true, status });
+      }
+    },
+    IMPORT_TIMEOUT_MS,
+  );
+
+  it(
+    'marks a 5xx TRANSIENT (retryable) after its in-line retry',
+    async () => {
+      const fetchMock = vi.fn(async () => new Response('{}', { status: 503 }));
+      vi.stubGlobal('fetch', fetchMock);
       const outcome = await (await load())('hold-1');
-      expect(outcome).toEqual({ ok: false, permanent: true, status });
-    }
-  });
+      expect(outcome).toEqual({ ok: false, permanent: false, status: 503 });
+      expect(fetchMock).toHaveBeenCalledTimes(2); // tried twice before giving the caller the queue
+    },
+    IMPORT_TIMEOUT_MS,
+  );
 
-  it('marks a 5xx TRANSIENT (retryable) after its in-line retry', async () => {
-    const fetchMock = vi.fn(async () => new Response('{}', { status: 503 }));
-    vi.stubGlobal('fetch', fetchMock);
-    const outcome = await (await load())('hold-1');
-    expect(outcome).toEqual({ ok: false, permanent: false, status: 503 });
-    expect(fetchMock).toHaveBeenCalledTimes(2); // tried twice before giving the caller the queue
-  });
+  it(
+    'marks a network rejection TRANSIENT and never throws',
+    async () => {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          throw new Error('offline');
+        }),
+      );
+      expect(await (await load())('hold-1')).toEqual({
+        ok: false,
+        permanent: false,
+        status: undefined,
+      });
+    },
+    IMPORT_TIMEOUT_MS,
+  );
 
-  it('marks a network rejection TRANSIENT and never throws', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        throw new Error('offline');
-      }),
-    );
-    expect(await (await load())('hold-1')).toEqual({
-      ok: false,
-      permanent: false,
-      status: undefined,
-    });
-  });
-
-  it('succeeds on the second try after one transient failure', async () => {
-    let call = 0;
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () => {
-        call += 1;
-        return call === 1
-          ? new Response('{}', { status: 500 })
-          : new Response('{}', { status: 200 });
-      }),
-    );
-    expect(await (await load())('hold-1')).toEqual({ ok: true });
-  });
+  it(
+    'succeeds on the second try after one transient failure',
+    async () => {
+      let call = 0;
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          call += 1;
+          return call === 1
+            ? new Response('{}', { status: 500 })
+            : new Response('{}', { status: 200 });
+        }),
+      );
+      expect(await (await load())('hold-1')).toEqual({ ok: true });
+    },
+    IMPORT_TIMEOUT_MS,
+  );
 });
