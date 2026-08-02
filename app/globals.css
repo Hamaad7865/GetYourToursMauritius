@@ -755,3 +755,30 @@
     display: none !important;
   }
 }
+
+/* ── Print ────────────────────────────────────────────────────────────────────
+   Site chrome never belongs on paper. The layout's sticky header, marketing footer, the floating
+   WhatsApp button and the fixed toast layer all sit OUTSIDE <main>, so a page that hides its own
+   content for print (the planner renders a dedicated trip document instead — see
+   PlannerPrintSheet.tsx) would still emit them: a nav bar, a search box and a chat bubble stamped
+   across every sheet. Fixed-position elements are the worst of it, since they can repeat on EVERY
+   printed page.
+
+   Scoped to `body >` so it only catches the layout-level chrome, never a header/footer a page
+   renders as part of its own printable content. */
+@media print {
+  body > header,
+  body > footer,
+  .gyt-wa-float {
+    display: none !important;
+  }
+  /* The toast/announcement layer — fixed overlays that would otherwise repeat per page. */
+  body > div[class*='fixed'] {
+    display: none !important;
+  }
+  /* Backgrounds are the browser's call (most default to off); make sure text stays readable if the
+     reader turns them on, and drop the page's own tinted panels. */
+  body {
+    background: #fff !important;
+  }
+}

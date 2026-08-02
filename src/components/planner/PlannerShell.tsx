@@ -10,6 +10,7 @@ import { PlacesDrawer } from './PlacesDrawer';
 import { QuoteModal } from './QuoteModal';
 import { AIInsights } from './AIInsights';
 import { DayTabs } from './DayTabs';
+import { PlannerPrintSheet } from './PlannerPrintSheet';
 import { RouteMap, type ActivityMarker, type StopKind } from '@/components/maps/RouteMap';
 import { PresetsSection, type PresetCard } from './PresetsSection';
 import { FeaturesSection } from './FeaturesSection';
@@ -1198,190 +1199,206 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
 
   return (
     <main className="min-h-screen bg-white">
-      <HeroSection
-        value={heroValue}
-        onChange={setHeroValue}
-        onSubmit={submitHero}
-        onChip={(c) => {
-          setHeroValue(c);
-          scrollToPlanner();
-          setMobileTab('chat');
-          void sendChat(c);
-          setHeroValue('');
-        }}
-        from={rangeFrom}
-        to={rangeTo}
-        onRange={applyRange}
-        minDate={minDate}
-        isTrip={isTrip}
+      {/* "PDF" prints THIS, not the page. The live UI is `print:hidden` below, so a print run yields
+          the trip document rather than a screenshot of the app (hero, chat, nav and all). */}
+      <PlannerPrintSheet
+        days={days}
+        stops={stops}
+        pickup={pickup}
+        dropoff={dropoff}
+        quote={quote}
+        party={party}
+        date={date || minDate}
+        time={time}
+        catalog={catalog}
+        bmtBySlug={bmtCatalog}
       />
+      <div className="print:hidden">
+        <HeroSection
+          value={heroValue}
+          onChange={setHeroValue}
+          onSubmit={submitHero}
+          onChip={(c) => {
+            setHeroValue(c);
+            scrollToPlanner();
+            setMobileTab('chat');
+            void sendChat(c);
+            setHeroValue('');
+          }}
+          from={rangeFrom}
+          to={rangeTo}
+          onRange={applyRange}
+          minDate={minDate}
+          isTrip={isTrip}
+        />
 
-      <div id="planner" style={{ background: 'linear-gradient(180deg,#FFFFFF, #F6FBFA)' }}>
-        {bannerTour && (
-          <div className="mx-auto max-w-shell px-[22px] pt-3.5">
-            <div
-              className="flex items-center gap-3 rounded-[14px] border border-[#D8ECEA] px-[15px] py-[11px]"
-              style={{ background: 'linear-gradient(120deg,#EAF7F5,#fff)' }}
-            >
-              <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] bg-coral">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path
-                    d="M12 3l2.3 4.7L19.5 8l-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z"
-                    fill="#fff"
-                  />
-                </svg>
-              </span>
-              <div className="flex-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-coral">
-                  {t('Customizing')}
-                </span>
-                <div className="text-[14.5px] font-bold text-ink">
-                  {t('{tour} — make it yours', { tour: bannerTour })}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setBannerTour(null)}
-                aria-label={t('Dismiss')}
-                className="cursor-pointer p-1.5 text-ink-muted"
+        <div id="planner" style={{ background: 'linear-gradient(180deg,#FFFFFF, #F6FBFA)' }}>
+          {bannerTour && (
+            <div className="mx-auto max-w-shell px-[22px] pt-3.5">
+              <div
+                className="flex items-center gap-3 rounded-[14px] border border-[#D8ECEA] px-[15px] py-[11px]"
+                style={{ background: 'linear-gradient(120deg,#EAF7F5,#fff)' }}
               >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <path
-                    d="M6 6l12 12M18 6L6 18"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {isMobile ? (
-          <div className="px-3 pt-2.5">
-            {isTrip && days && (
-              <div className="mb-2.5">
-                <DayTabs
-                  days={days}
-                  activeIdx={activeDayIdx}
-                  onSelect={setActiveDayIdx}
-                  onExit={exitTrip}
-                />
-              </div>
-            )}
-            <div className="relative h-[calc(100vh-220px)] min-h-[460px] overflow-hidden rounded-[18px] border border-[#EAF2F1] bg-white shadow-[0_14px_34px_rgba(10,46,54,.08)]">
-              <div className="h-full">
-                {mobileTab === 'chat' ? copilot : mobileTab === 'map' ? map : itinerary}
-              </div>
-              {drawer}
-            </div>
-            <div className="sticky bottom-0 mt-2.5 flex gap-1.5 rounded-[16px] border border-[#EAF2F1] bg-white p-1.5 shadow-[0_10px_24px_rgba(10,46,54,.1)]">
-              {(
-                [
-                  ['chat', 'ZilAi'],
-                  ['day', 'Your day'],
-                  ['map', 'Map'],
-                ] as const
-              ).map(([k, lab]) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setMobileTab(k)}
-                  className={`flex-1 cursor-pointer rounded-[11px] py-2.5 text-[13px] font-bold ${mobileTab === k ? 'bg-teal-tint text-teal-dark' : 'bg-transparent text-ink-muted'}`}
-                >
-                  {t(lab)}
-                </button>
-              ))}
-            </div>
-            {stops.length > 0 && (
-              <div className="sticky bottom-0 mt-2.5 flex items-center gap-3 rounded-[16px] bg-ink px-3.5 py-[11px] shadow-[0_12px_28px_rgba(10,46,54,.28)]">
-                <div className="flex-1 text-white">
-                  <div className="text-[12.5px] font-bold">
-                    {t('{n} stops · {dur} driving', {
-                      n: stops.length,
-                      dur: fmtDur(route.totalMinutes),
-                    })}
-                  </div>
-                  <div className="text-xs text-[#9FD2CD]">
-                    ~{quote ? <Price eur={quote.totalEur} /> : '—'} {t('estimate')}
+                <span className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] bg-coral">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M12 3l2.3 4.7L19.5 8l-3.7 3.6.9 5.1L12 14.5 7.3 16.7l.9-5.1L4.5 8l5.2-.3L12 3Z"
+                      fill="#fff"
+                    />
+                  </svg>
+                </span>
+                <div className="flex-1">
+                  <span className="text-[11px] font-extrabold uppercase tracking-[0.05em] text-coral">
+                    {t('Customizing')}
+                  </span>
+                  <div className="text-[14.5px] font-bold text-ink">
+                    {t('{tour} — make it yours', { tour: bannerTour })}
                   </div>
                 </div>
                 <button
                   type="button"
-                  onClick={() => setQuoteOpen(true)}
-                  className="cursor-pointer rounded-xl bg-coral px-[18px] py-[11px] text-sm font-extrabold text-white"
+                  onClick={() => setBannerTour(null)}
+                  aria-label={t('Dismiss')}
+                  className="cursor-pointer p-1.5 text-ink-muted"
                 >
-                  {t('Get quote')}
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <path
+                      d="M6 6l12 12M18 6L6 18"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 </button>
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="mx-auto max-w-shell px-[22px] pb-2 pt-[18px]">
-            {isTrip && days && (
-              <div className="mb-3">
-                <DayTabs
-                  days={days}
-                  activeIdx={activeDayIdx}
-                  onSelect={setActiveDayIdx}
-                  onExit={exitTrip}
-                />
-              </div>
-            )}
-            <div
-              className="grid h-[min(720px,80vh)] gap-4"
-              style={{ gridTemplateColumns: '330px 1fr 0.86fr' }}
-            >
-              <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">
-                {itinerary}
-              </div>
-              <div className="relative overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.08)]">
-                {copilot}
+            </div>
+          )}
+
+          {isMobile ? (
+            <div className="px-3 pt-2.5">
+              {isTrip && days && (
+                <div className="mb-2.5">
+                  <DayTabs
+                    days={days}
+                    activeIdx={activeDayIdx}
+                    onSelect={setActiveDayIdx}
+                    onExit={exitTrip}
+                  />
+                </div>
+              )}
+              <div className="relative h-[calc(100vh-220px)] min-h-[460px] overflow-hidden rounded-[18px] border border-[#EAF2F1] bg-white shadow-[0_14px_34px_rgba(10,46,54,.08)]">
+                <div className="h-full">
+                  {mobileTab === 'chat' ? copilot : mobileTab === 'map' ? map : itinerary}
+                </div>
                 {drawer}
               </div>
-              <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">
-                {map}
+              <div className="sticky bottom-0 mt-2.5 flex gap-1.5 rounded-[16px] border border-[#EAF2F1] bg-white p-1.5 shadow-[0_10px_24px_rgba(10,46,54,.1)]">
+                {(
+                  [
+                    ['chat', 'ZilAi'],
+                    ['day', 'Your day'],
+                    ['map', 'Map'],
+                  ] as const
+                ).map(([k, lab]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setMobileTab(k)}
+                    className={`flex-1 cursor-pointer rounded-[11px] py-2.5 text-[13px] font-bold ${mobileTab === k ? 'bg-teal-tint text-teal-dark' : 'bg-transparent text-ink-muted'}`}
+                  >
+                    {t(lab)}
+                  </button>
+                ))}
+              </div>
+              {stops.length > 0 && (
+                <div className="sticky bottom-0 mt-2.5 flex items-center gap-3 rounded-[16px] bg-ink px-3.5 py-[11px] shadow-[0_12px_28px_rgba(10,46,54,.28)]">
+                  <div className="flex-1 text-white">
+                    <div className="text-[12.5px] font-bold">
+                      {t('{n} stops · {dur} driving', {
+                        n: stops.length,
+                        dur: fmtDur(route.totalMinutes),
+                      })}
+                    </div>
+                    <div className="text-xs text-[#9FD2CD]">
+                      ~{quote ? <Price eur={quote.totalEur} /> : '—'} {t('estimate')}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setQuoteOpen(true)}
+                    className="cursor-pointer rounded-xl bg-coral px-[18px] py-[11px] text-sm font-extrabold text-white"
+                  >
+                    {t('Get quote')}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="mx-auto max-w-shell px-[22px] pb-2 pt-[18px]">
+              {isTrip && days && (
+                <div className="mb-3">
+                  <DayTabs
+                    days={days}
+                    activeIdx={activeDayIdx}
+                    onSelect={setActiveDayIdx}
+                    onExit={exitTrip}
+                  />
+                </div>
+              )}
+              <div
+                className="grid h-[min(720px,80vh)] gap-4"
+                style={{ gridTemplateColumns: '330px 1fr 0.86fr' }}
+              >
+                <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">
+                  {itinerary}
+                </div>
+                <div className="relative overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.08)]">
+                  {copilot}
+                  {drawer}
+                </div>
+                <div className="overflow-hidden rounded-[18px] border border-[#EAF2F1] shadow-[0_18px_44px_rgba(10,46,54,.07)]">
+                  {map}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <AIInsights stops={stops} />
+          <AIInsights stops={stops} />
+        </div>
+
+        <PresetsSection items={presetCards} onOpen={openPreset} />
+        <FeaturesSection />
+        <TrustSection />
+        <FaqSection />
+
+        <QuoteModal
+          open={quoteOpen}
+          onClose={() => setQuoteOpen(false)}
+          stops={stops}
+          route={route}
+          quote={quote}
+          quoteError={quoteError}
+          maxParty={pricing.maxParty}
+          date={isTrip ? (activeDay?.date ?? date) : date}
+          setDate={(d) => {
+            setDate(d);
+            setDateChosen(true);
+          }}
+          minDate={minDate}
+          lockedDate={isTrip ? (activeDay?.date ?? null) : null}
+          time={time}
+          setTime={setTime}
+          party={party}
+          setParty={setParty}
+          suv={suv}
+          setSuv={setSuv}
+          childSeats={childSeats}
+          setChildSeats={setChildSeats}
+          booking={booking}
+          bookError={bookError}
+          onBook={bookDay}
+        />
       </div>
-
-      <PresetsSection items={presetCards} onOpen={openPreset} />
-      <FeaturesSection />
-      <TrustSection />
-      <FaqSection />
-
-      <QuoteModal
-        open={quoteOpen}
-        onClose={() => setQuoteOpen(false)}
-        stops={stops}
-        route={route}
-        quote={quote}
-        quoteError={quoteError}
-        maxParty={pricing.maxParty}
-        date={isTrip ? (activeDay?.date ?? date) : date}
-        setDate={(d) => {
-          setDate(d);
-          setDateChosen(true);
-        }}
-        minDate={minDate}
-        lockedDate={isTrip ? (activeDay?.date ?? null) : null}
-        time={time}
-        setTime={setTime}
-        party={party}
-        setParty={setParty}
-        suv={suv}
-        setSuv={setSuv}
-        childSeats={childSeats}
-        setChildSeats={setChildSeats}
-        booking={booking}
-        bookError={bookError}
-        onBook={bookDay}
-      />
     </main>
   );
 }

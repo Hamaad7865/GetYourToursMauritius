@@ -493,6 +493,21 @@ export const fr: Record<string, string> = {
     'Parlez-moi de {title} — qu’est-ce qui est inclus, quel est le prix et à quelles dates est-ce possible ?',
   'Belle Mare Tours activity': 'Activité Belle Mare Tours',
   'View & pick your date →': 'Voir et choisir votre date →',
+  // The printable trip document (PlannerPrintSheet).
+  'Your {n}-day Mauritius trip': 'Votre voyage de {n} jours à Maurice',
+  'Your day in Mauritius': 'Votre journée à Maurice',
+  'Pick-up {time} · {name}': 'Prise en charge {time} · {name}',
+  'Drop-off {name}': 'Dépose {name}',
+  'closes {time}': 'ferme à {time}',
+  'to drop-off': 'vers la dépose',
+  'back to pick-up': 'retour au point de prise en charge',
+  'Booked activity': 'Activité réservée',
+  'Dinner suggestion': 'Suggestion pour le dîner',
+  '{stops} stops · {driving} driving · {km} km · {visiting} at stops':
+    '{stops} arrêts · {driving} de route · {km} km · {visiting} sur place',
+  'Estimated transport': 'Transport estimé',
+  'Covers the vehicle and driver for the day. Activity tickets are booked and paid separately. Subject to availability until confirmed.':
+    'Comprend le véhicule et le chauffeur pour la journée. Les billets d’activités se réservent et se paient séparément. Sous réserve de disponibilité jusqu’à confirmation.',
   'Something went wrong — please try again in a moment.':
     'Une erreur s’est produite — veuillez réessayer dans un instant.',
   'Loaded {name} — {n} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.':
