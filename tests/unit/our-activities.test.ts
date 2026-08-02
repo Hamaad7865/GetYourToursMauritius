@@ -140,6 +140,13 @@ describe('rankBmtForDay', () => {
     expect(rankBmtForDay(all, { category: 'catamaran' }).map((a) => a.slug)).toEqual(['cat']);
   });
 
+  it('ranks without a date too — the dateless lookup reuses this same filter', () => {
+    // searchBmtActivitiesForDay(date: null) returns rankBmtForDay's output verbatim, so a title
+    // question resolves to the one activity whether or not a date is known.
+    const all = [act({ slug: 'morne', title: 'Hiking Le Morne', region: 'South' })];
+    expect(rankBmtForDay(all, { q: 'hiking le morne' }).map((a) => a.slug)).toEqual(['morne']);
+  });
+
   it('matches a free-text title (q) case-insensitively, for "tell me about X" questions', () => {
     const all = [act({ slug: 'sunset', title: 'Catamaran Sunset Cruise' }), act({ slug: 'hike' })];
     expect(rankBmtForDay(all, { q: 'sunset cruise' }).map((a) => a.slug)).toEqual(['sunset']);

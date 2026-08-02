@@ -29,10 +29,14 @@ export function ActivityCard({
   compact = false,
 }: {
   activity: BmtActivity;
-  /** The trip date this recommendation is for (drives the CTA + the ?date= deep-link). */
-  date: string;
+  /**
+   * The trip date this recommendation is for (drives the CTA + the ?date= deep-link), or null when
+   * the visitor hasn't chosen a day — then the CTA invites them to pick one on the activity page
+   * instead of naming a date they never selected.
+   */
+  date: string | null;
   /** Real seats left on that date, when known (from the availability check). */
-  seatsLeft?: number;
+  seatsLeft?: number | null;
   /** Un-anchor the activity from the day (shown only in the day panel). */
   onRemove?: () => void;
   /** Tighter paddings for the map pop-over. */
@@ -49,7 +53,9 @@ export function ActivityCard({
         {/* eslint-disable-next-line @next/next/no-img-element -- tiny static brand icon */}
         <img src="/icon.svg" alt="" width={14} height={14} className="rounded-[4px]" />
         <span className="text-[10.5px] font-extrabold uppercase tracking-[0.05em] text-coral">
-          {t('Belle Mare Tours activity · {date}', { date: shortDate(date) })}
+          {date
+            ? t('Belle Mare Tours activity · {date}', { date: shortDate(date) })
+            : t('Belle Mare Tours activity')}
         </span>
         {onRemove && (
           <button
@@ -118,10 +124,14 @@ export function ActivityCard({
               ) : null}
             </span>
             <Link
-              href={`/activities/${activity.slug}?date=${date}`}
+              href={
+                date ? `/activities/${activity.slug}?date=${date}` : `/activities/${activity.slug}`
+              }
               className="shrink-0 rounded-[9px] bg-coral px-3 py-[7px] text-[12px] font-extrabold text-white shadow-[0_4px_12px_rgba(247,108,94,.3)] hover:brightness-105"
             >
-              {t('View & book for {date} →', { date: shortDate(date) })}
+              {date
+                ? t('View & book for {date} →', { date: shortDate(date) })
+                : t('View & pick your date →')}
             </Link>
           </div>
         </div>

@@ -489,6 +489,10 @@ export const fr: Record<string, string> = {
   'Loading activities…': 'Chargement des activités…',
   "Tell me about {title} — what's included and what's the price? Can I book it for {date}?":
     'Parlez-moi de {title} — qu’est-ce qui est inclus et quel est le prix ? Puis-je la réserver pour le {date} ?',
+  "Tell me about {title} — what's included, what's the price, and which dates can I do it?":
+    'Parlez-moi de {title} — qu’est-ce qui est inclus, quel est le prix et à quelles dates est-ce possible ?',
+  'Belle Mare Tours activity': 'Activité Belle Mare Tours',
+  'View & pick your date →': 'Voir et choisir votre date →',
   'Something went wrong — please try again in a moment.':
     'Une erreur s’est produite — veuillez réessayer dans un instant.',
   'Loaded {name} — {n} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.':

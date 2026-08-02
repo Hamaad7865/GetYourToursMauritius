@@ -75,7 +75,7 @@ export function ChatCopilot({
   /** Why a suggested place can't be added right now (day full / too far), or null when it can. */
   addReasonById: (id: string) => AddBlockReason;
   /** Trip mode: known Belle Mare Tours activities by slug, for the recommendation cards. */
-  bmtBySlug?: Map<string, BmtActivity & { seatsLeft?: number }>;
+  bmtBySlug?: Map<string, BmtActivity & { seatsLeft?: number | null }>;
 }) {
   const { t, language } = usePreferences();
   const [draft, setDraft] = useState('');

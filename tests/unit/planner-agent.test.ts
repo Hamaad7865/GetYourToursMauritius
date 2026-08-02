@@ -47,9 +47,12 @@ const CANDIDATE: BmtCandidate = {
 };
 
 vi.mock('@/lib/planner/our-activities', () => ({
-  searchBmtActivitiesForDay: vi.fn(async (_ctx: unknown, args: { date: string }) =>
-    args.date === '2026-09-01' ? [{ ...CANDIDATE, date: args.date }] : [],
-  ),
+  // Mirrors the real contract: a null date returns catalogue facts with date/seatsLeft null (the
+  // visitor hasn't chosen a day), never a probe of some default date.
+  searchBmtActivitiesForDay: vi.fn(async (_ctx: unknown, args: { date: string | null }) => {
+    if (args.date === null) return [{ ...CANDIDATE, date: null, seatsLeft: null }];
+    return args.date === '2026-09-01' ? [{ ...CANDIDATE, date: args.date }] : [];
+  }),
 }));
 
 vi.mock('@/lib/maps/google-places', () => ({
@@ -274,6 +277,24 @@ describe('runPlannerTurn — single-day mode unchanged', () => {
     // Asking about an activity must never quietly rewrite the day the visitor already has.
     expect(result.places).toEqual([]);
     expect(result.route).toBeNull();
+  });
+
+  it('answers about an activity WITHOUT inventing a date when the visitor has not chosen one', async () => {
+    // The bug this guards: the planner seeds tomorrow's date so the quote widget works, and the pin
+    // card announced "book for 4 Aug" — a day the visitor never picked. With no date the lookup must
+    // stay unchecked, so nothing downstream can present a date or a seat count as settled.
+    const model = scriptedModel([
+      { toolName: 'search_our_activities', args: { q: 'Hiking Le Morne' } }, // no `dates`
+      { text: 'It runs 3h30 from €50. Which date would you like to go?' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: 'Tell me about Hiking Le Morne' }] },
+      model,
+    );
+    expect(result.recommendations).toHaveLength(1);
+    expect(result.recommendations[0]!.date).toBeNull();
+    expect(result.recommendations[0]!.seatsLeft).toBeNull();
   });
 
   it('returns the graceful fallback (all fields present) when no model is configured', async () => {

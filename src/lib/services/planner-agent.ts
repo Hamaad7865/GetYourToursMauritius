@@ -36,7 +36,7 @@ Rules:
 - When you've chosen the day, call set_itinerary with the ordered place ids. It returns the real drive time, plus any ids it rejected (too far) or dropped (over the 6-stop cap) — use those exact facts and NEVER claim a rejected or dropped stop was added.
 - If the visitor already has a day (listed below), that is your starting point. To ADD a place, call set_itinerary with the existing stop ids PLUS the new one — never replace the day with only the new place. To remove or reorder, send the full resulting list of ids. Only drop a stop the visitor explicitly asked to remove.
 - If set_itinerary reports unknownIds, drop only those ids and try again — keep every stop that resolved.
-- Belle Mare Tours' OWN bookable activities: when the visitor asks about one by name (tapping a branded map pin asks exactly that), call search_our_activities with q = that name and the date they mention (YYYY-MM-DD). Answer ONLY from its returned facts — price, rating, duration, real seats — never invent availability. The visitor can book it straight from the activity card in this chat.
+- Belle Mare Tours' OWN bookable activities: when the visitor asks about one by name (tapping a branded map pin asks exactly that), call search_our_activities with q = that name. Pass dates ONLY if the visitor actually named a day; if they haven't, omit dates and ASK them which date they want — never pick one for them, never say "for <date>", and never quote seats you didn't get back. Answer only from the returned facts — price, rating, duration, and availability when you have a date. The visitor can book from the activity card in this chat.
 - Be warm and concise. Mention the total driving time.`;
 
 const RANGE_SYSTEM_PROMPT = `You are ZilAi, a friendly local trip-planning assistant for a Mauritius road-trip planner. The visitor is planning a MULTI-DAY trip; plan each date of their range.
@@ -45,7 +45,7 @@ Rules:
 - ONLY suggest real places returned by the search_places tool, and only Belle Mare Tours activities returned by the search_our_activities tool. Never invent places, drive times, opening hours, prices or availability.
 - Plan each day around ONE region (adjacent regions are fine). NEVER mix far-apart regions in one day: North with South, or East with West. Across the trip, vary the regions so the visitor sees different parts of the island.
 - A driving day has at most 6 stops INCLUDING one lunch restaurant on the route (use search_places with category Food in the day's region). Also choose one dinner restaurant for the evening (dinnerPlaceId) — it is a suggestion near where they're staying, not a route stop.
-- Belle Mare Tours activities: call search_our_activities with the trip dates (and a region when you have one; when the visitor asks about ONE specific activity by name — e.g. from a branded map pin — pass q with that exact name). Each result is availability-checked for its exact date. Recommend at most ONE per day, never the same activity on two days, and attach it to the day via activitySlug — only slugs returned by search_our_activities are valid. Mention its real price. On a day with a recommended activity, keep the driving plan light (or empty for a full-day activity). If nothing is available, say so honestly and plan a great driving day instead.
+- Belle Mare Tours activities: call search_our_activities with the trip dates (and a region when you have one; when the visitor asks about ONE specific activity by name — e.g. from a branded map pin — pass q with that exact name). Each result is availability-checked for its exact date. If a result comes back with no date, it was NOT availability-checked: don't imply a day or quote seats, ask which date they mean. Recommend at most ONE per day, never the same activity on two days, and attach it to the day via activitySlug — only slugs returned by search_our_activities are valid. Mention its real price. On a day with a recommended activity, keep the driving plan light (or empty for a full-day activity). If nothing is available, say so honestly and plan a great driving day instead.
 - Commit your plan with set_trip_plan, sending ONLY the days you are creating or changing (each with its date and the ordered place ids). It returns each day's real drive time plus any ids it rejected (too far from that day), dropped (over the 6-stop cap) or didn't recognise — use those exact facts and NEVER claim a rejected or dropped stop was added.
 - The visitor's current day plans (listed below) are your starting point. To modify a day, send its existing stop ids PLUS/MINUS the change — never wipe a day the visitor didn't ask you to change. Vague asks ("add a beach") apply to the day they are viewing.
 - If set_trip_plan reports unknownIds, drop only those ids and try again — keep every stop that resolved.
@@ -214,9 +214,15 @@ export async function runPlannerTurn(
   // conversation is checked (validDates is empty ⇒ the filter below keeps everything).
   const searchOurActivitiesTool = tool({
     description:
-      "Search Belle Mare Tours' own bookable activities for specific dates. Every result is availability-checked for its date (real seats). Optionally filter by region, category keyword, and/or q — a free-text title match for questions about one specific activity.",
+      "Search Belle Mare Tours' own bookable activities. With dates, every result is availability-checked for its date (real seats). OMIT dates when the visitor has not said when they want to go — you then get catalogue facts (price, duration, rating) with no availability, and you must ask them which date. Optionally filter by region, category keyword, and/or q — a free-text title match for questions about one specific activity.",
     parameters: z.object({
-      dates: z.array(z.string()).min(1).max(7).describe('Dates to check, YYYY-MM-DD'),
+      dates: z
+        .array(z.string())
+        .max(7)
+        .optional()
+        .describe(
+          'Dates to check, YYYY-MM-DD. Omit entirely if the visitor has not chosen a date.',
+        ),
       region: z.string().optional().describe('North|South|East|West|Central'),
       category: z.string().optional().describe('e.g. Catamaran|Hiking|Snorkeling'),
       q: z
@@ -225,6 +231,36 @@ export async function runPlannerTurn(
         .describe('Free-text activity title match, e.g. "Catamaran Sunset Cruise"'),
     }),
     execute: async ({ dates, region, category, q }) => {
+      // No dates ⇒ one unchecked lookup that reports catalogue facts only. Never substitute a
+      // default day: quoting seats for a date the visitor never picked presents a choice as already
+      // made, which is the bug this branch exists to prevent.
+      if (!dates?.length) {
+        const candidates = await searchBmtActivitiesForDay(
+          ctx,
+          { date: null, region: region ?? null, category: category ?? null, q: q ?? null },
+          apiKey,
+        );
+        for (const c of candidates) surfacedBmt.set(c.slug, c);
+        return {
+          results: [
+            {
+              date: null,
+              activities: candidates.map((c) => ({
+                slug: c.slug,
+                title: c.title,
+                category: c.category,
+                region: c.region,
+                fromPriceEur: c.fromPriceEur,
+                ratingAvg: c.ratingAvg,
+                ratingCount: c.ratingCount,
+                durationMinutes: c.durationMinutes,
+                minAdvanceDays: c.minAdvanceDays,
+              })),
+            },
+          ],
+          note: 'No date given, so these are NOT availability-checked. Do not state or imply a date, and do not quote seats — ask the visitor which date they want, then call this tool again with it.',
+        };
+      }
       const wanted = [...new Set(dates)].filter((d) => validDates.size === 0 || validDates.has(d));
       const results: Array<{
         date: string;
@@ -236,7 +272,7 @@ export async function runPlannerTurn(
           fromPriceEur: number | null;
           ratingAvg: number | null;
           ratingCount: number;
-          seatsLeft: number;
+          seatsLeft: number | null;
           durationMinutes: number | null;
         }>;
       }> = [];

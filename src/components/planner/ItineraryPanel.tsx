@@ -81,7 +81,7 @@ export function ItineraryPanel({
   /** Trip mode: "Day 2 — Tue 2 Sep" heading (null/undefined = the classic "Your day"). */
   dayLabel?: string | null;
   /** Trip mode: the Belle Mare Tours activity anchored to this day, when the AI recommended one. */
-  activity?: { activity: BmtActivity; date: string; seatsLeft?: number } | null;
+  activity?: { activity: BmtActivity; date: string; seatsLeft?: number | null } | null;
   onRemoveActivity?: () => void;
   /** Trip mode: the evening's dinner suggestion (not part of the drive). */
   dinner?: PlannerPlace | null;

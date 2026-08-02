@@ -179,10 +179,17 @@ export async function listBmtActivities(
   return out;
 }
 
-/** A recommendation candidate: the activity plus its real bookability on the requested date. */
+/**
+ * A recommendation candidate: the activity plus its real bookability on the requested date.
+ *
+ * `date`/`seatsLeft` are BOTH null when the lookup ran without a date — the visitor asked about an
+ * activity before choosing when to go (tapping a map pin does exactly that). Availability is a fact
+ * about a date, so with no date there is none to report: the caller must ask which day rather than
+ * assume one. Nulls together, never one without the other.
+ */
 export interface BmtCandidate extends BmtActivity {
-  date: string;
-  seatsLeft: number;
+  date: string | null;
+  seatsLeft: number | null;
 }
 
 /** How many availability lookups one search may fan out to (each is a DB RPC). */
@@ -219,27 +226,35 @@ export function rankBmtForDay(
  * Availability-checked candidates for one trip day: {@link rankBmtForDay}'s top candidates, then REAL
  * availability confirmed for the date. Only activities with open seats on that exact day come back —
  * a recommendation can never dead-end.
+ *
+ * A null `date` means the visitor has not chosen one yet: the catalogue facts (price, duration,
+ * rating) come back unchecked, with `date`/`seatsLeft` null. That is deliberately NOT the same as
+ * probing some default day — quoting seats for a date nobody picked reads as a decision already
+ * taken, and the honest answer is to describe the activity and ask when they want to go.
  */
 export async function searchBmtActivitiesForDay(
   ctx: ServiceContext,
-  args: { date: string; region?: string | null; category?: string | null; q?: string | null },
+  args: {
+    date: string | null;
+    region?: string | null;
+    category?: string | null;
+    q?: string | null;
+  },
   mapsApiKey: string | null,
 ): Promise<BmtCandidate[]> {
   const all = await listBmtActivities(ctx, mapsApiKey);
   const filtered = rankBmtForDay(all, args);
+  const date = args.date;
+  if (!date) return filtered.map((a) => ({ ...a, date: null, seatsLeft: null }));
 
   const checked = await Promise.all(
-    filtered.map(async (a) => {
+    filtered.map(async (a): Promise<BmtCandidate | null> => {
       try {
-        const slots = await checkAvailability(ctx, {
-          slug: a.slug,
-          from: args.date,
-          to: args.date,
-        });
-        const open = slots.filter((s) => utcDayKey(s.startsAt) === args.date && s.seatsLeft > 0);
+        const slots = await checkAvailability(ctx, { slug: a.slug, from: date, to: date });
+        const open = slots.filter((s) => utcDayKey(s.startsAt) === date && s.seatsLeft > 0);
         if (!open.length) return null;
         const seatsLeft = Math.max(...open.map((s) => s.seatsLeft));
-        return { ...a, date: args.date, seatsLeft };
+        return { ...a, date, seatsLeft };
       } catch {
         return null; // availability unknown → don't recommend (never a dead end)
       }

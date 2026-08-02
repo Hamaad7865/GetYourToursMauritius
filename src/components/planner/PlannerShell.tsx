@@ -39,7 +39,7 @@ const CUSTOM_TITLE = 'Custom Road Trip';
 
 /** Belle Mare Tours activity info the shell keeps per slug — the catalogue data plus, when it came
  *  from an availability-checked recommendation, the real seats left on its date. */
-type BmtInfo = BmtActivity & { seatsLeft?: number };
+type BmtInfo = BmtActivity & { seatsLeft?: number | null };
 
 /** "Tue 2 Sep" style label for a trip day. */
 function dayDateLabel(dayKey: string): string {
@@ -93,6 +93,11 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
   const [suv, setSuv] = useState(false);
   const [childSeats, setChildSeats] = useState(0);
   const [date, setDate] = useState('');
+  // Whether `date` is the visitor's OWN pick rather than the tomorrow default seeded on mount. The
+  // quote widget needs a date pre-filled to work, but nothing else may treat that seed as a decision:
+  // a map-pin card that says "book for 4 Aug" presents a day the visitor never chose as already
+  // settled. Set only where a human actually picks a day.
+  const [dateChosen, setDateChosen] = useState(false);
   const [minDate, setMinDate] = useState('');
   const [time, setTime] = useState('09:00');
   const [booking, setBooking] = useState(false);
@@ -469,8 +474,11 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
         if (days !== null) setStopIds(activeDay?.stopIds ?? []);
         setDays(null);
         setActiveDayIdx(0);
-        // A single picked day still primes the booking date.
-        if (dates.length === 1) setDate(dates[0]!);
+        // A single picked day still primes the booking date — and that IS the visitor's own pick.
+        if (dates.length === 1) {
+          setDate(dates[0]!);
+          setDateChosen(true);
+        }
       }
     },
     [stopIds, days, activeDay],
@@ -1048,27 +1056,39 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
       dinnerPlace ? { title: dinnerPlace.name, lat: dinnerPlace.lat, lng: dinnerPlace.lng } : null,
     [dinnerPlace],
   );
-  // The date a clicked marker asks about (and its card books for): the active trip day, else the
-  // quote date.
-  const markerDate = activeDay?.date ?? (date || minDate);
+  /**
+   * The date a clicked marker asks about — the visitor's OWN choice only: the active trip day, or a
+   * date they picked in the quote widget. Null when they haven't chosen, which is the common case on
+   * a fresh visit: `date` is seeded with tomorrow so the quote widget works, and treating that seed
+   * as a decision made the pin card announce "book for 4 Aug" for a day nobody had picked.
+   */
+  const markerDate = activeDay?.date ?? (dateChosen ? date : null);
 
   /**
    * Tapping a branded activity pin hands the activity to ZilAi rather than opening a static
    * pop-over: it asks the co-pilot about that exact activity (which answers from the catalogue via
-   * search_our_activities — real price, rating, duration and seats for the date), and drops the
-   * bookable card into the chat immediately, so the visitor can book straight away without waiting
-   * for the reply. On mobile the chat tab is brought forward, or the conversation would happen on a
-   * pane the visitor can't see.
+   * search_our_activities — real price, rating, duration, and seats once a date is known), and drops
+   * the bookable card into the chat immediately, so the visitor can act without waiting for the
+   * reply. On mobile the chat tab is brought forward, or the conversation would happen on a pane the
+   * visitor can't see.
+   *
+   * With no date chosen we ask WITHOUT one: ZilAi describes the activity and asks which day, and the
+   * card sends them to the activity page to pick a date there — never a date we invented for them.
    */
   function askAboutActivity(slug: string) {
     const info = bmtCatalog.get(slug);
     if (!info) return;
     setMobileTab('chat');
     void sendChat(
-      t("Tell me about {title} — what's included and what's the price? Can I book it for {date}?", {
-        title: info.title,
-        date: markerDate,
-      }),
+      markerDate
+        ? t(
+            "Tell me about {title} — what's included and what's the price? Can I book it for {date}?",
+            { title: info.title, date: markerDate },
+          )
+        : t(
+            "Tell me about {title} — what's included, what's the price, and which dates can I do it?",
+            { title: info.title },
+          ),
     );
     // Queued AFTER sendChat's own user-message update, so the card lands under the question.
     setChat((c) => [...c, { role: 'assistant', kind: 'activity', slug, date: markerDate }]);
@@ -1344,7 +1364,10 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
         quoteError={quoteError}
         maxParty={pricing.maxParty}
         date={isTrip ? (activeDay?.date ?? date) : date}
-        setDate={setDate}
+        setDate={(d) => {
+          setDate(d);
+          setDateChosen(true);
+        }}
         minDate={minDate}
         lockedDate={isTrip ? (activeDay?.date ?? null) : null}
         time={time}
