@@ -67,3 +67,7 @@ graphify-out/
 
 # superpowers brainstorming scratch (throwaway HTML + a server PID, not project code)
 .superpowers/
+
+# Private browser source maps, extracted out of the deployable output by
+# scripts/release/extract-source-maps.mjs so they are never served publicly.
+sourcemaps-out/
