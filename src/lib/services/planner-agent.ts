@@ -209,8 +209,24 @@ export async function runPlannerTurn(
     set_itinerary: tool({
       description:
         'Commit the chosen day as an ordered list of place ids. Returns the real total drive time, any unknown ids, ids rejected as too far from the day, and ids dropped over the 6-stop cap.',
-      parameters: z.object({ placeIds: z.array(z.string()).min(1).max(MAX_STOPS) }),
+      // No `.min(1)`: an empty array used to fail the SDK's argument validation BEFORE execute ran,
+      // and AI_InvalidToolArgumentsError escaped as an unhandled 500 — the visitor saw the planner
+      // break because the MODEL made a mistake. (Logged in error_logs on 2026-08-01.) A model slip is
+      // a conversational problem, not a server fault: accept the call, refuse to act on it, and hand
+      // back a fact the model can recover from on its next turn.
+      parameters: z.object({ placeIds: z.array(z.string()).max(MAX_STOPS) }),
       execute: async ({ placeIds }) => {
+        if (placeIds.length === 0) {
+          // Deliberately does NOT commit: an empty list would otherwise wipe a day the visitor has
+          // already built. `committed` is left untouched, so the existing itinerary survives.
+          return {
+            error: 'no_place_ids',
+            message:
+              'set_itinerary was called with no place ids, so the day is unchanged. Call ' +
+              'search_places first, then call set_itinerary again with the ordered ids you want — ' +
+              'including the stops already in the day if you are adding to it.',
+          };
+        }
         const resolved = await resolveItinerary(
           placeIds,
           discovered,
