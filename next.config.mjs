@@ -4,6 +4,22 @@ import { setupDevPlatform } from '@cloudflare/next-on-pages/next-dev';
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Ship browser source maps so a production error is readable. Without them, every client error in
+  // `error_logs` arrives minified — 2026-08-01 logged `Error: fa`, `Error: Aa` and
+  // `undefined is not an object (evaluating 'a.J')` from one homepage session, which name nothing and
+  // cannot be traced to a file. The table is now the primary window into customer-visible failures,
+  // so unreadable entries defeat the point of having it.
+  //
+  // TRADE-OFF, accepted deliberately: the `.map` files are served publicly, so anyone can reconstruct
+  // the client bundle's original source. That is a real disclosure — but this is a Next.js app whose
+  // client code ships to the browser regardless (minification is not a security control), and NOTHING
+  // secret lives there: secrets are server-only env vars, the money path is SQL definer functions, and
+  // the only client-side key is the publishable Supabase anon key, which is designed to be public and
+  // is gated by RLS. Server source maps are NOT enabled, so nothing about the edge handlers is exposed.
+  //
+  // If that trade ever stops being acceptable, the alternative is uploading maps to an error tracker
+  // (Sentry et al) instead of serving them — at which point turn this back off.
+  productionBrowserSourceMaps: true,
   eslint: {
     // Lint is run as a dedicated CI/gate step (`npm run lint`), not during `next build`.
     ignoreDuringBuilds: true,
