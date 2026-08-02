@@ -1,6 +1,20 @@
 import type { TourDetail, TourSummary } from '@/lib/validation/tours';
 import type { PlannerPlace } from '@/lib/validation/planner';
+import { activityFromPriceEur } from '@/lib/catalogue/options';
 import { SITE, SAME_AS } from './site';
+
+/** The operator's postal address. Shared so every LocalBusiness node we emit carries the SAME one —
+ *  `address` is REQUIRED on LocalBusiness (and TravelAgency is a subtype), and a node that declares
+ *  the type without it is reported as invalid markup. */
+function postalAddress(): Record<string, unknown> {
+  return {
+    '@type': 'PostalAddress',
+    streetAddress: SITE.street,
+    addressLocality: SITE.locality,
+    addressRegion: SITE.region,
+    addressCountry: SITE.country,
+  };
+}
 
 /**
  * Serialises JSON-LD for safe embedding in a <script> tag. Escapes `<` so a value
@@ -39,13 +53,7 @@ export function organizationJsonLd(): Record<string, unknown> {
     // Corroborating profiles for the same entity. Our brand name is also a place name, so this is the
     // signal that tells Google "Belle Mare Tours" is a BUSINESS at this URL and not just the village.
     sameAs: [...SAME_AS],
-    address: {
-      '@type': 'PostalAddress',
-      streetAddress: SITE.street,
-      addressLocality: SITE.locality,
-      addressRegion: SITE.region,
-      addressCountry: SITE.country,
-    },
+    address: postalAddress(),
     geo: { '@type': 'GeoCoordinates', latitude: SITE.geo.lat, longitude: SITE.geo.lng },
     // NOTE: no site-wide aggregateRating here. A self-serving Organization rating injected on every page
     // (with no review on the page) is a Google review-snippet policy violation. The real 4.8/1,076 lives
@@ -99,10 +107,19 @@ export function productJsonLd(activity: TourDetail | TourSummary): Record<string
   if (img) json.image = absoluteUrl(img);
   const desc = description ?? summary;
   if (desc) json.description = desc;
-  if (activity.fromPriceEur != null) {
+  // Use the SAME from-price the page renders, not the raw column. A PRIVATE-ONLY activity has no
+  // per-person tier rows, so the server-derived `fromPriceEur` is null and `offers` was dropped —
+  // leaving a Product with no offers/rating/review at all, which Google reports as invalid markup
+  // (it flagged 10 private tours). `activityFromPriceEur` falls back to the cheapest private base,
+  // exactly as the card and detail page do, so the schema and the visible price cannot disagree.
+  const fromPrice = activityFromPriceEur({
+    fromPriceEur: activity.fromPriceEur,
+    options: 'options' in activity ? activity.options : [],
+  });
+  if (fromPrice != null) {
     json.offers = {
       '@type': 'Offer',
-      price: String(activity.fromPriceEur),
+      price: String(fromPrice),
       priceCurrency: 'EUR',
       availability: 'https://schema.org/InStock',
       priceValidUntil: priceValidUntil(),
@@ -201,7 +218,11 @@ export function transferServiceJsonLd(opts: {
     name: opts.name,
     description: opts.description,
     url: `${SITE.url}${opts.path}`,
-    provider: { '@type': 'TravelAgency', name: SITE.operator, '@id': `${SITE.url}/#operator` },
+    // A pure @id node REFERENCE, not a re-declaration. Repeating `'@type': 'TravelAgency'` here
+    // minted a second LocalBusiness node carrying only a name — no address — which validators
+    // report as invalid (it was the cause of the /airport-transfers and /rent errors). The bare
+    // @id points at the full entity from organizationJsonLd, address and all.
+    provider: { '@id': `${SITE.url}/#operator` },
     areaServed: { '@type': 'Place', name: `${opts.area}, Mauritius` },
     offers: {
       '@type': 'Offer',
@@ -230,7 +251,11 @@ export function serviceJsonLd(opts: {
     name: opts.name,
     description: opts.description,
     url: `${SITE.url}${opts.path}`,
-    provider: { '@type': 'TravelAgency', name: SITE.operator, '@id': `${SITE.url}/#operator` },
+    // A pure @id node REFERENCE, not a re-declaration. Repeating `'@type': 'TravelAgency'` here
+    // minted a second LocalBusiness node carrying only a name — no address — which validators
+    // report as invalid (it was the cause of the /airport-transfers and /rent errors). The bare
+    // @id points at the full entity from organizationJsonLd, address and all.
+    provider: { '@id': `${SITE.url}/#operator` },
     areaServed: { '@type': 'Place', name: opts.areaServed ?? 'Mauritius' },
   };
 }
@@ -279,6 +304,10 @@ export function reviewsPageJsonLd(
     // Same @id as organizationJsonLd, so Google merges the two into one entity — the profiles must
     // match or the merged entity carries whichever it saw last.
     sameAs: [...SAME_AS],
+    // Required on LocalBusiness (TravelAgency is one). Validators check each block on its own and do
+    // NOT credit the merged entity's address, so omitting it here reported /reviews as invalid.
+    address: postalAddress(),
+    telephone: SITE.phone,
     // From the generated stats, not a literal — a re-scrape must not silently desync the schema
     // from the numbers the page displays.
     aggregateRating: {

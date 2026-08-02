@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  transferServiceJsonLd,
   organizationJsonLd,
   productJsonLd,
   reviewsPageJsonLd,
   serializeJsonLd,
+  serviceJsonLd,
   websiteJsonLd,
 } from '@/lib/seo/jsonld';
 import { SITE } from '@/lib/seo/site';
@@ -73,6 +75,106 @@ describe('JSON-LD', () => {
     const p = productJsonLd({ ...base, fromPriceEur: null, ratingAvg: null, ratingCount: 0 });
     expect(p.offers).toBeUndefined();
     expect(p.aggregateRating).toBeUndefined();
+  });
+
+  // Google reported 10 private tours as invalid markup: a PRIVATE-ONLY activity has no per-person
+  // tier rows, so the server-derived fromPriceEur is null, and the Offer was dropped — leaving a
+  // Product with no offers, rating OR review, which is not a valid Product. The page meanwhile
+  // rendered "from €700" via activityFromPriceEur, so the schema contradicted the visible price.
+  it('prices a PRIVATE-ONLY activity from its private base, as the page does', () => {
+    const privateOnly = {
+      ...base,
+      fromPriceEur: null,
+      ratingAvg: null,
+      ratingCount: 0,
+      options: [
+        {
+          id: 'o1',
+          name: 'Private charter',
+          description: null,
+          durationMinutes: 420,
+          startWindow: null,
+          privateBaseEur: 700,
+          privateIncluded: 4,
+          privateExtraEur: 50,
+          privateMaxGuests: 8,
+          prices: [],
+        },
+      ],
+    } as unknown as Parameters<typeof productJsonLd>[0];
+    const p = productJsonLd(privateOnly);
+    expect(p.offers).toMatchObject({ price: '700', priceCurrency: 'EUR' });
+  });
+
+  it('takes the CHEAPEST private base when an activity has several private options', () => {
+    const mk = (id: string, baseEur: number) => ({
+      id,
+      name: id,
+      description: null,
+      durationMinutes: null,
+      startWindow: null,
+      privateBaseEur: baseEur,
+      privateIncluded: 4,
+      privateExtraEur: 50,
+      privateMaxGuests: 8,
+      prices: [],
+    });
+    const p = productJsonLd({
+      ...base,
+      fromPriceEur: null,
+      options: [mk('a', 900), mk('b', 650), mk('c', 750)],
+    } as unknown as Parameters<typeof productJsonLd>[0]);
+    expect(p.offers).toMatchObject({ price: '650' });
+  });
+});
+
+/**
+ * `address` is REQUIRED on schema.org LocalBusiness, and TravelAgency is a subtype. Google's audit
+ * flagged /airport-transfers (×2), /rent and /reviews because nodes declared the type without one:
+ * the Service builders minted a name-only `provider` TravelAgency, and the reviews entity leaned on
+ * being merged by @id with the organisation. Validators check each node standalone, so they cannot.
+ */
+describe('LocalBusiness nodes always carry an address', () => {
+  const hasLocalBusinessType = (node: Record<string, unknown>) =>
+    typeof node['@type'] === 'string' &&
+    ['TravelAgency', 'LocalBusiness'].includes(node['@type'] as string);
+
+  it('the organisation entity has one', () => {
+    expect(organizationJsonLd().address).toMatchObject({ '@type': 'PostalAddress' });
+  });
+
+  it('the reviews entity has one, rather than relying on the @id merge', () => {
+    const reviews = reviewsPageJsonLd({ average: 4.8, total: 100 }, []);
+    expect(hasLocalBusinessType(reviews)).toBe(true);
+    expect(reviews.address).toMatchObject({
+      '@type': 'PostalAddress',
+      addressLocality: SITE.locality,
+    });
+  });
+
+  it('a Service references the operator by @id instead of re-declaring a partial business', () => {
+    for (const node of [
+      serviceJsonLd({
+        serviceType: 'Car rental',
+        name: 'Rental',
+        description: 'd',
+        path: '/rent',
+      }),
+      transferServiceJsonLd({
+        name: 'Transfer',
+        description: 'd',
+        path: '/airport-transfers',
+        area: 'Belle Mare',
+        fromPriceEur: 35,
+      }),
+    ]) {
+      const provider = node.provider as Record<string, unknown>;
+      // A bare @id is a node REFERENCE — it inherits the full entity, address included. Re-adding
+      // '@type' here would mint a second, address-less LocalBusiness and reintroduce the error.
+      expect(provider['@id']).toBe(`${SITE.url}/#operator`);
+      expect(provider['@type']).toBeUndefined();
+      expect(Object.keys(provider)).toEqual(['@id']);
+    }
   });
 
   it('escapes </script> so JSON-LD cannot break out of the tag (XSS)', () => {
