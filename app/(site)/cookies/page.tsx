@@ -2,17 +2,18 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { InfoPage } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
+import { CookieSettingsButton } from '@/components/site/CookieSettingsButton';
 import { SITE } from '@/lib/seo/site';
 import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
 
-const UPDATED = '20 June 2026';
+const UPDATED = '27 July 2026';
 
 export const metadata: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
   title: { absolute: `Cookie policy · ${SITE.operator}` },
-  description: `Which cookies and similar browser storage ${SITE.name} uses, why, and how to manage them. We use no analytics or advertising cookies.`,
+  description: `Which cookies and similar browser storage ${SITE.name} uses, why, and how to manage them — including analytics cookies, which run only with your consent.`,
   alternates: { canonical: '/cookies' },
 };
 
@@ -22,6 +23,7 @@ export default async function CookiesPage() {
   const TOC = [
     { id: 'summary', label: t('In short') },
     { id: 'necessary', label: t('Strictly necessary') },
+    { id: 'analytics', label: t('Analytics') },
     { id: 'third-party', label: t('Third-party cookies') },
     { id: 'retention', label: t('How long they last') },
     { id: 'manage', label: t('How to manage or clear cookies') },
@@ -39,9 +41,9 @@ export default async function CookiesPage() {
     >
       <LegalArticle toc={TOC}>
         <LegalSection id="summary" title={t('In short')}>
-          <Callout tone="success" title={t('We use no analytics or advertising cookies.')}>
+          <Callout tone="success" title={t('Analytics cookies run only if you allow them.')}>
             {t(
-              'We do not track you across the web, build advertising profiles, or share your browsing with ad networks. The only cookies and storage we use either keep the site working or are set by the maps and payment services we rely on.',
+              'Necessary cookies keep the site working and are always on. Analytics cookies help us see which pages are useful, and they stay switched off until you accept them. We do not run advertising cookies at all unless you opt in, and we never sell your browsing to anyone.',
             )}
           </Callout>
         </LegalSection>
@@ -91,14 +93,64 @@ export default async function CookiesPage() {
           </P>
         </LegalSection>
 
-        <LegalSection id="third-party" title={t('Third-party cookies')}>
+        <LegalSection id="analytics" title={t('Analytics')}>
           <P>
             {t(
-              'Two services we embed may set their own cookies when their content loads. We don’t control these cookies; they are governed by each provider’s own policy.',
+              'With your consent, we use Google Analytics (loaded through Google Tag Manager) to understand how the site is used — which pages people read, which tours they look at, and where visitors arrive from. It helps us decide what to improve.',
             )}
           </P>
           <LegalList
             items={[
+              <>
+                <strong>{t('Off by default')}</strong>
+                {t(
+                  ' — analytics storage is denied until you accept. If you reject, or simply ignore the banner, no analytics cookies are set.',
+                )}
+              </>,
+              <>
+                <strong>{t('What we see')}</strong>
+                {t(
+                  ' — aggregated visit statistics: pages viewed, approximate location, device and browser, and the site or search that referred you.',
+                )}
+              </>,
+              <>
+                <strong>{t('What we don’t')}</strong>
+                {t(
+                  ' — we do not use it to identify you personally, and we do not combine it with your booking details.',
+                )}
+              </>,
+              <>
+                <strong>{t('Marketing')}</strong>
+                {t(
+                  ' — a separate, independent choice, off unless you switch it on. It covers advertising and remarketing cookies.',
+                )}
+              </>,
+            ]}
+          />
+          <P>
+            {t(
+              'You can change or withdraw your choice at any time, and it takes effect immediately:',
+            )}
+          </P>
+          <div className="mt-3">
+            <CookieSettingsButton />
+          </div>
+        </LegalSection>
+
+        <LegalSection id="third-party" title={t('Third-party cookies')}>
+          <P>
+            {t(
+              'Some services we embed may set their own cookies when their content loads. We don’t control these cookies; they are governed by each provider’s own policy.',
+            )}
+          </P>
+          <LegalList
+            items={[
+              <>
+                <strong>Google Analytics / Google Tag Manager</strong>
+                {t(
+                  ' — only once you accept analytics cookies (see above). Until then the tag loads in a consent-denied mode that sets no cookies.',
+                )}
+              </>,
               <>
                 <strong>Google Maps</strong>
                 {t(
@@ -136,6 +188,18 @@ export default async function CookiesPage() {
                   ' — cleared when you sign out or finish your booking, and your sign-in session expires on its own after a period of inactivity.',
                 )}
               </>,
+              <>
+                <strong>{t('Analytics')}</strong>
+                {t(
+                  ' — if you accept them, Google Analytics cookies last up to two years. Rejecting or changing your choice stops them immediately.',
+                )}
+              </>,
+              <>
+                <strong>{t('Your cookie choice')}</strong>
+                {t(
+                  ' — remembered in your browser so we don’t ask on every visit. Clearing your browser storage resets it and the banner returns.',
+                )}
+              </>,
             ]}
           />
         </LegalSection>
@@ -143,7 +207,12 @@ export default async function CookiesPage() {
         <LegalSection id="manage" title={t('How to manage or clear cookies')}>
           <P>
             {t(
-              'You can clear or block cookies and site storage at any time through your browser settings — usually under “Privacy” or “Cookies and site data”. Blocking strictly necessary cookies will stop parts of the site, such as signing in and checkout, from working.',
+              'The quickest route is the button in the Analytics section above — it reopens the consent panel, and any change applies straight away.',
+            )}
+          </P>
+          <P>
+            {t(
+              'You can also clear or block cookies and site storage at any time through your browser settings — usually under “Privacy” or “Cookies and site data”. Blocking strictly necessary cookies will stop parts of the site, such as signing in and checkout, from working.',
             )}
           </P>
         </LegalSection>

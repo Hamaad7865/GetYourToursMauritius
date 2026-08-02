@@ -1186,11 +1186,57 @@ export const fr: Record<string, string> = {
     'Bonjour Belle Mare Tours ! J’aimerais réserver un taxi / chauffeur privé. Voici ce dont j’ai besoin :',
   Notifications: 'Notifications',
   'No notifications yet': 'Aucune notification pour l’instant',
-  'We use cookies to run this site and show maps. No tracking or ads.':
-    'Nous utilisons des cookies pour faire fonctionner ce site et afficher les cartes. Aucun pistage ni publicité.',
   Accept: 'Accepter',
   'Cookie policy': 'Politique relative aux cookies',
   'Cookie notice': 'Avis relatif aux cookies',
+  // Consent bar (replaced the notice-only bar when Google Tag Manager was installed).
+  'Cookie settings': 'Paramètres des cookies',
+  'We use necessary cookies to run this site, and analytics cookies to understand how it is used.':
+    'Nous utilisons des cookies nécessaires au fonctionnement du site, et des cookies de mesure d’audience pour comprendre son utilisation.',
+  Customise: 'Personnaliser',
+  'Reject all': 'Tout refuser',
+  'Accept all': 'Tout accepter',
+  'Save my choices': 'Enregistrer mes choix',
+  'Sign-in, cart, language and currency. Always on.':
+    'Connexion, panier, langue et devise. Toujours actifs.',
+  Analytics: 'Mesure d’audience',
+  'Google Analytics, so we can see which pages are useful.':
+    'Google Analytics, pour voir quelles pages sont utiles.',
+  Marketing: 'Marketing',
+  'Advertising and remarketing. Off unless you turn it on.':
+    'Publicité et reciblage. Désactivés sauf si vous les activez.',
+  'Change your cookie settings': 'Modifier vos paramètres de cookies',
+  // /cookies policy page — analytics section.
+  'Analytics cookies run only if you allow them.':
+    'Les cookies de mesure d’audience ne fonctionnent que si vous les autorisez.',
+  'Necessary cookies keep the site working and are always on. Analytics cookies help us see which pages are useful, and they stay switched off until you accept them. We do not run advertising cookies at all unless you opt in, and we never sell your browsing to anyone.':
+    'Les cookies nécessaires font fonctionner le site et sont toujours actifs. Les cookies de mesure d’audience nous aident à voir quelles pages sont utiles ; ils restent désactivés tant que vous ne les acceptez pas. Nous n’utilisons aucun cookie publicitaire sans votre accord, et nous ne vendons jamais votre navigation.',
+  'With your consent, we use Google Analytics (loaded through Google Tag Manager) to understand how the site is used — which pages people read, which tours they look at, and where visitors arrive from. It helps us decide what to improve.':
+    'Avec votre consentement, nous utilisons Google Analytics (chargé via Google Tag Manager) pour comprendre l’utilisation du site : les pages consultées, les excursions regardées et la provenance des visiteurs. Cela nous aide à décider quoi améliorer.',
+  'Off by default': 'Désactivés par défaut',
+  ' — analytics storage is denied until you accept. If you reject, or simply ignore the banner, no analytics cookies are set.':
+    ' — le stockage de mesure d’audience est refusé tant que vous n’avez pas accepté. Si vous refusez, ou ignorez simplement la bannière, aucun cookie de mesure n’est déposé.',
+  'What we see': 'Ce que nous voyons',
+  ' — aggregated visit statistics: pages viewed, approximate location, device and browser, and the site or search that referred you.':
+    ' — des statistiques de visite agrégées : pages vues, localisation approximative, appareil et navigateur, et le site ou la recherche qui vous a amené.',
+  'What we don’t': 'Ce que nous ne faisons pas',
+  ' — we do not use it to identify you personally, and we do not combine it with your booking details.':
+    ' — nous ne l’utilisons pas pour vous identifier personnellement et ne le combinons pas avec vos données de réservation.',
+  ' — a separate, independent choice, off unless you switch it on. It covers advertising and remarketing cookies.':
+    ' — un choix distinct et indépendant, désactivé sauf si vous l’activez. Il couvre les cookies publicitaires et de reciblage.',
+  'You can change or withdraw your choice at any time, and it takes effect immediately:':
+    'Vous pouvez modifier ou retirer votre choix à tout moment, avec effet immédiat :',
+  ' — only once you accept analytics cookies (see above). Until then the tag loads in a consent-denied mode that sets no cookies.':
+    ' — uniquement après votre acceptation des cookies de mesure d’audience (voir ci-dessus). Jusque-là, la balise se charge en mode « consentement refusé » et ne dépose aucun cookie.',
+  ' — if you accept them, Google Analytics cookies last up to two years. Rejecting or changing your choice stops them immediately.':
+    ' — si vous les acceptez, les cookies Google Analytics durent jusqu’à deux ans. Les refuser ou modifier votre choix les arrête immédiatement.',
+  'Your cookie choice': 'Votre choix de cookies',
+  ' — remembered in your browser so we don’t ask on every visit. Clearing your browser storage resets it and the banner returns.':
+    ' — mémorisé dans votre navigateur pour ne pas vous solliciter à chaque visite. Effacer le stockage de votre navigateur le réinitialise et la bannière réapparaît.',
+  'The quickest route is the button in the Analytics section above — it reopens the consent panel, and any change applies straight away.':
+    'Le plus simple est le bouton de la section Mesure d’audience ci-dessus : il rouvre le panneau de consentement, et toute modification s’applique immédiatement.',
+  'Some services we embed may set their own cookies when their content loads. We don’t control these cookies; they are governed by each provider’s own policy.':
+    'Certains services que nous intégrons peuvent déposer leurs propres cookies au chargement de leur contenu. Nous ne contrôlons pas ces cookies ; ils sont régis par la politique de chaque fournisseur.',
   'Last updated': 'Dernière mise à jour',
   'In short': 'En bref',
   'Strictly necessary': 'Strictement nécessaires',
@@ -1240,8 +1286,8 @@ export const fr: Record<string, string> = {
   'Session & booking storage': 'Stockage de session et de réservation',
   ' — cleared when you sign out or finish your booking, and your sign-in session expires on its own after a period of inactivity.':
     ' — supprimé lorsque vous vous déconnectez ou terminez votre réservation, et votre session de connexion expire d’elle-même après une période d’inactivité.',
-  'You can clear or block cookies and site storage at any time through your browser settings — usually under “Privacy” or “Cookies and site data”. Blocking strictly necessary cookies will stop parts of the site, such as signing in and checkout, from working.':
-    'Vous pouvez supprimer ou bloquer les cookies et le stockage du site à tout moment dans les paramètres de votre navigateur — généralement sous « Confidentialité » ou « Cookies et données de site ». Bloquer les cookies strictement nécessaires empêchera certaines parties du site, comme la connexion et le paiement, de fonctionner.',
+  'You can also clear or block cookies and site storage at any time through your browser settings — usually under “Privacy” or “Cookies and site data”. Blocking strictly necessary cookies will stop parts of the site, such as signing in and checkout, from working.':
+    'Vous pouvez aussi supprimer ou bloquer les cookies et le stockage du site à tout moment dans les paramètres de votre navigateur — généralement sous « Confidentialité » ou « Cookies et données de site ». Bloquer les cookies strictement nécessaires empêchera certaines parties du site, comme la connexion et le paiement, de fonctionner.',
   'For how we handle your personal data more broadly, see our ':
     'Pour savoir comment nous traitons vos données personnelles plus largement, consultez notre ',
   '. For any question, contact ': '. Pour toute question, contactez ',

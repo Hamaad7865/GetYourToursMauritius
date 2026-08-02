@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google';
 import { JsonLd } from '@/components/seo/JsonLd';
+import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/site/GoogleTagManager';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 import './globals.css';
 
@@ -57,11 +58,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className={`${display.variable} ${body.variable}`}>
       <body>
+        <GoogleTagManagerNoScript />
         <JsonLd data={organizationJsonLd()} />
         {/* The site entity, paired with the business entity above — see websiteJsonLd for why the
             brand query needs both. */}
         <JsonLd data={websiteJsonLd()} />
         {children}
+        {/* Loads the container with Consent Mode v2 defaults DENIED; the cookie banner flips them. */}
+        <GoogleTagManager />
       </body>
     </html>
   );

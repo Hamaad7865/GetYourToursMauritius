@@ -1,19 +1,37 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { NOTICE_KEY, serializeAck, shouldShowNotice } from '@/lib/consent/notice';
+import {
+  CONSENT_DENIED,
+  CONSENT_GRANTED,
+  NOTICE_KEY,
+  type ConsentChoice,
+  readConsent,
+  serializeConsent,
+  shouldShowNotice,
+} from '@/lib/consent/notice';
+import { OPEN_CONSENT_EVENT, applyConsent } from '@/lib/consent/gtag';
 import { useT } from '@/components/site/PreferencesProvider';
 
 /**
- * Informational cookie-notice bottom bar. No gating, no toggles — the site sets no trackers; this
- * simply tells visitors cookies run the site + maps and links to the policy. Starts hidden so SSR and
- * the first client render agree (no hydration flash); a `useEffect` reads localStorage and shows the
- * bar only when it hasn't been acknowledged at the current NOTICE_VERSION.
+ * Cookie CONSENT bar. This replaced a notice-only bar (single "Accept", no gating) when the Google
+ * Tag Manager container went in — analytics cookies require opt-in, so the bar now actually decides
+ * whether they run, via Consent Mode (see src/lib/consent/gtag.ts).
+ *
+ * Rendering rules that matter:
+ * - Starts hidden so SSR and the first client render agree (no hydration flash); a useEffect reads
+ *   localStorage and shows the bar only when there is no choice at the current NOTICE_VERSION.
+ * - "Reject all" is given equal visual weight to "Accept all". A reject that is harder to find than
+ *   accept is not free consent, and the whole gate is worthless if it is not freely given.
+ * - Dismissing without choosing is deliberately impossible (no ✕): silence is not consent, and a
+ *   bar that can be waved away would leave analytics denied while implying the visitor decided.
  */
 export function CookieNotice() {
   const t = useT();
   const [show, setShow] = useState(false);
+  const [customising, setCustomising] = useState(false);
+  const [choice, setChoice] = useState<ConsentChoice>(CONSENT_DENIED);
 
   useEffect(() => {
     let stored: string | null = null;
@@ -23,43 +41,146 @@ export function CookieNotice() {
       stored = null;
     }
     setShow(shouldShowNotice(stored));
+    const existing = readConsent(stored);
+    if (existing) setChoice(existing);
+  }, []);
+
+  // Lets /cookies reopen the bar — withdrawing consent must be as easy as giving it.
+  useEffect(() => {
+    const reopen = () => {
+      setCustomising(true);
+      setShow(true);
+    };
+    window.addEventListener(OPEN_CONSENT_EVENT, reopen);
+    return () => window.removeEventListener(OPEN_CONSENT_EVENT, reopen);
+  }, []);
+
+  const decide = useCallback((next: ConsentChoice) => {
+    try {
+      localStorage.setItem(NOTICE_KEY, serializeConsent(next, Date.now()));
+    } catch {
+      // Storage blocked (private mode): honour the choice for this page view anyway. The bar
+      // returns on the next load because nothing was persisted — the safe direction to fail.
+    }
+    applyConsent(next);
+    setChoice(next);
+    setShow(false);
+    setCustomising(false);
   }, []);
 
   if (!show) return null;
 
-  const accept = () => {
-    try {
-      localStorage.setItem(NOTICE_KEY, serializeAck(Date.now()));
-    } catch {
-      // localStorage may be unavailable (private mode / blocked) — dismiss for this session anyway.
-    }
-    setShow(false);
-  };
-
   return (
     <div
-      role="region"
-      aria-label={t('Cookie notice')}
+      role="dialog"
+      aria-modal="false"
+      aria-label={t('Cookie settings')}
       className="fixed inset-x-0 bottom-0 z-30 border-t border-ink/10 bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-12px_30px_-24px_rgba(10,46,54,0.45)]"
     >
-      <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[13px] leading-snug text-ink-muted">
-          {t('We use cookies to run this site and show maps. No tracking or ads.')}{' '}
-          <Link
-            href="/cookies"
-            className="font-semibold text-teal-dark underline-offset-2 hover:underline"
-          >
-            {t('Cookie policy')}
-          </Link>
-        </p>
-        <button
-          type="button"
-          onClick={accept}
-          className="shrink-0 self-start rounded-full bg-teal-dark px-5 py-2 text-[13px] font-bold text-white outline-none transition hover:bg-teal-dark/90 focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 sm:self-auto"
-        >
-          {t('Accept')}
-        </button>
+      <div className="mx-auto max-w-5xl px-4 py-3.5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[13px] leading-snug text-ink-muted">
+            {t(
+              'We use necessary cookies to run this site, and analytics cookies to understand how it is used.',
+            )}{' '}
+            <Link
+              href="/cookies"
+              className="font-semibold text-teal-dark underline-offset-2 hover:underline"
+            >
+              {t('Cookie policy')}
+            </Link>
+          </p>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCustomising((v) => !v)}
+              aria-expanded={customising}
+              className="rounded-full px-3.5 py-2 text-[13px] font-bold text-ink-muted outline-none transition hover:text-ink focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+            >
+              {t('Customise')}
+            </button>
+            <button
+              type="button"
+              onClick={() => decide(CONSENT_DENIED)}
+              className="rounded-full border border-ink/20 px-5 py-2 text-[13px] font-bold text-ink outline-none transition hover:border-ink/40 focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+            >
+              {t('Reject all')}
+            </button>
+            <button
+              type="button"
+              onClick={() => decide(CONSENT_GRANTED)}
+              className="rounded-full bg-teal-dark px-5 py-2 text-[13px] font-bold text-white outline-none transition hover:bg-teal-dark/90 focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+            >
+              {t('Accept all')}
+            </button>
+          </div>
+        </div>
+
+        {customising && (
+          <div className="mt-3 border-t border-ink/10 pt-3">
+            <ul className="m-0 flex list-none flex-col gap-2.5 p-0">
+              <ConsentRow
+                label={t('Strictly necessary')}
+                hint={t('Sign-in, cart, language and currency. Always on.')}
+                checked
+                locked
+              />
+              <ConsentRow
+                label={t('Analytics')}
+                hint={t('Google Analytics, so we can see which pages are useful.')}
+                checked={choice.analytics}
+                onChange={(v) => setChoice((c) => ({ ...c, analytics: v }))}
+              />
+              <ConsentRow
+                label={t('Marketing')}
+                hint={t('Advertising and remarketing. Off unless you turn it on.')}
+                checked={choice.marketing}
+                onChange={(v) => setChoice((c) => ({ ...c, marketing: v }))}
+              />
+            </ul>
+            <button
+              type="button"
+              onClick={() => decide(choice)}
+              className="mt-3 rounded-full bg-teal-dark px-5 py-2 text-[13px] font-bold text-white outline-none transition hover:bg-teal-dark/90 focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2"
+            >
+              {t('Save my choices')}
+            </button>
+          </div>
+        )}
       </div>
     </div>
+  );
+}
+
+function ConsentRow({
+  label,
+  hint,
+  checked,
+  locked,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  locked?: boolean;
+  onChange?: (v: boolean) => void;
+}) {
+  return (
+    <li>
+      {/* Wrapping label: the whole row is the hit target, and the hint is read out with the name. */}
+      <label className="flex cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={locked}
+          onChange={(e) => onChange?.(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-teal-dark disabled:cursor-not-allowed disabled:opacity-60"
+        />
+        <span className="flex flex-col">
+          <span className="text-[13px] font-bold text-ink">{label}</span>
+          <span className="text-[12.5px] leading-snug text-ink-muted">{hint}</span>
+        </span>
+      </label>
+    </li>
   );
 }
