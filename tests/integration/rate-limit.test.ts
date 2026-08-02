@@ -70,13 +70,21 @@ describe('P0: generic per-IP rate limit (api_rate_limit)', () => {
   });
 
   it('resets in a later window (fixed-window counter)', async () => {
-    for (let i = 0; i < 3; i += 1) await hit('w:test', '192.0.2.50', 3, 60);
-    await expect(hit('w:test', '192.0.2.50', 3, 60)).rejects.toThrow(/rate_limited/);
-    // 61s later the floored window boundary advances → a fresh counter.
+    // An HOUR-long window, not 60s, purely to make the SEEDING deterministic. The counter is keyed on
+    // a FLOORED window, so with a 60s window the three calls below could straddle a real boundary
+    // under load: the counter resets mid-way, the fourth call becomes only the second of a fresh
+    // window, and it resolves instead of rejecting. That is a ~2% flake at 60s (three DB round trips
+    // against a 60s boundary) and it failed CI run 30743510649 for a change that touched neither this
+    // test nor rate limiting. At 3600s the same straddle needs the calls to span an hour boundary.
+    const WINDOW = 3600;
+    for (let i = 0; i < 3; i += 1) await hit('w:test', '192.0.2.50', 3, WINDOW);
+    await expect(hit('w:test', '192.0.2.50', 3, WINDOW)).rejects.toThrow(/rate_limited/);
+    // Past the window boundary → a fresh counter. Fake timers move the embedded database's clock too,
+    // which is what makes the reset observable without actually waiting.
     vi.useFakeTimers();
-    vi.setSystemTime(Date.now() + 61_000);
+    vi.setSystemTime(Date.now() + (WINDOW + 1) * 1000);
     try {
-      await expect(hit('w:test', '192.0.2.50', 3, 60)).resolves.toBeDefined();
+      await expect(hit('w:test', '192.0.2.50', 3, WINDOW)).resolves.toBeDefined();
     } finally {
       vi.useRealTimers();
     }
