@@ -83,6 +83,13 @@ export const tourSummarySchema = z.object({
   ratingCount: z.number().int(),
   heroImage: tourImageSchema.nullable(),
   images: z.array(tourImageSchema).default([]),
+  // Representative map point (admin-set "Map location") + home region, so the planner's branded
+  // markers build straight from the summaries — no per-activity detail round trips.
+  // `.nullable().default(null).catch(null)` so a summary from a DB whose RPC predates these fields
+  // still parses, reading as an explicit null rather than undefined.
+  region: z.string().nullable().default(null).catch(null),
+  lat: z.number().nullable().default(null).catch(null),
+  lng: z.number().nullable().default(null).catch(null),
 });
 export type TourSummary = z.infer<typeof tourSummarySchema>;
 

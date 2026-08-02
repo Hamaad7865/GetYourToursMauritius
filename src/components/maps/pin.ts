@@ -44,12 +44,19 @@ export function carContent(color = '#0E8C92'): HTMLElement {
 
 /**
  * A branded Belle Mare Tours activity marker (AdvancedMarkerElement `content`): a rounded pill with
- * the brand mark (the tropical favicon) + the from-price. `selected` (an AI-recommended activity for
- * the active day) fills the pill coral with a gentle pop, so recommendations read louder than the
- * browse layer around them. Pure DOM (no PinElement) so the shape stays ours.
+ * the ACTIVITY'S OWN photo (its hero image as a small circle — so a traveller scanning the map sees
+ * what each pin actually is, not forty copies of our logo) + the from-price. The brand mark (the
+ * tropical favicon) remains the fallback for an activity without a photo, or whose photo fails to
+ * load. `selected` (an AI-recommended activity for the active day) fills the pill coral with a
+ * gentle pop, so recommendations read louder than the browse layer around them. Pure DOM (no
+ * PinElement) so the shape stays ours.
  */
-export function bmtMarkerContent(opts: { priceLabel: string; selected?: boolean }): HTMLElement {
-  const { priceLabel, selected = false } = opts;
+export function bmtMarkerContent(opts: {
+  priceLabel: string;
+  selected?: boolean;
+  imageUrl?: string | null;
+}): HTMLElement {
+  const { priceLabel, selected = false, imageUrl } = opts;
   const coral = '#F76C5E';
   const pill = document.createElement('div');
   pill.style.cssText =
@@ -59,13 +66,22 @@ export function bmtMarkerContent(opts: { priceLabel: string; selected?: boolean 
     (selected
       ? `background:${coral};color:#fff;transform:scale(1.08);`
       : `background:#fff;color:#0A2E36;`);
-  // The brand mark — the same tropical icon as the site favicon (served by app/icon.svg).
   const badge = document.createElement('img');
-  badge.src = '/icon.svg';
+  badge.src = imageUrl || '/icon.svg';
+  if (imageUrl) {
+    // A dead hero URL degrades to the brand mark (once — the handler clears itself so a broken
+    // /icon.svg can't loop), never the browser's broken-image glyph.
+    badge.onerror = () => {
+      badge.onerror = null;
+      badge.src = '/icon.svg';
+    };
+  }
   badge.alt = '';
-  badge.width = 18;
-  badge.height = 18;
-  badge.style.cssText = 'display:block;border-radius:6px;';
+  badge.width = 22;
+  badge.height = 22;
+  // `object-fit:cover` crops the (landscape) hero into the circle instead of squashing it.
+  badge.style.cssText =
+    'display:block;width:22px;height:22px;border-radius:999px;object-fit:cover;flex:0 0 auto;';
   const price = document.createElement('span');
   price.textContent = priceLabel;
   pill.append(badge, price);

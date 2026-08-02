@@ -486,6 +486,9 @@ export const fr: Record<string, string> = {
   'Only {n} left': 'Plus que {n} places',
   'View & book for {date} →': 'Voir et réserver pour le {date} →',
   'Our activities': 'Nos activités',
+  'Loading activities…': 'Chargement des activités…',
+  "Tell me about {title} — what's included and what's the price? Can I book it for {date}?":
+    'Parlez-moi de {title} — qu’est-ce qui est inclus et quel est le prix ? Puis-je la réserver pour le {date} ?',
   'Something went wrong — please try again in a moment.':
     'Une erreur s’est produite — veuillez réessayer dans un instant.',
   'Loaded {name} — {n} stops on the map. Make it yours: add a beach, drop a stop, or ask me to reshuffle.':

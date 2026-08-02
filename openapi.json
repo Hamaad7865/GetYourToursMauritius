@@ -330,6 +330,27 @@
                               ]
                             },
                             "default": []
+                          },
+                          "region": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "default": null
+                          },
+                          "lat": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "default": null
+                          },
+                          "lng": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "default": null
                           }
                         },
                         "required": [
@@ -347,7 +368,10 @@
                           "ratingAvg",
                           "ratingCount",
                           "heroImage",
-                          "images"
+                          "images",
+                          "region",
+                          "lat",
+                          "lng"
                         ]
                       }
                     },
@@ -595,21 +619,6 @@
                             ]
                           }
                         },
-                        "description": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "meetingPoint": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "pickupAvailable": {
-                          "type": "boolean"
-                        },
                         "region": {
                           "type": [
                             "string",
@@ -627,6 +636,21 @@
                             "number",
                             "null"
                           ]
+                        },
+                        "description": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "meetingPoint": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "pickupAvailable": {
+                          "type": "boolean"
                         },
                         "transportBands": {
                           "type": [
@@ -7543,6 +7567,27 @@
                               ]
                             },
                             "default": []
+                          },
+                          "region": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "default": null
+                          },
+                          "lat": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "default": null
+                          },
+                          "lng": {
+                            "type": [
+                              "number",
+                              "null"
+                            ],
+                            "default": null
                           }
                         },
                         "required": [
@@ -7560,7 +7605,10 @@
                           "ratingAvg",
                           "ratingCount",
                           "heroImage",
-                          "images"
+                          "images",
+                          "region",
+                          "lat",
+                          "lng"
                         ]
                       }
                     },

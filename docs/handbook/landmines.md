@@ -297,6 +297,25 @@ and `ActivityForm.tsx`.
 
 Deleting a tour with bookings fails on a foreign key (error `23503`). Draft is what you want.
 
+### A new activity with no map location gets pinned by guesswork
+
+`activities.lat` / `.lng` (the admin's **Map location**) is what the planner's "Our activities" layer
+pins. Leave them null and `resolveActivityCoords` falls back — first to the activity's first itinerary
+stop with coords, then to a **Google Places text search of the marketing title**. That fallback always
+returns _something_, so the pin looks confident while sitting in the wrong place, or in the sea. It is a
+silent failure: nothing errors, nothing logs, and the map simply lies.
+
+This bit the whole catalogue once — 42 of 43 published activities had no coordinates, and the layer was
+entirely fallback-placed ("Private North Tour Mauritius" landed inland in the **west**). Migration
+`20260904000000_activity_map_coords` set real departure points for every activity then published, guarded
+by `lat is null` so an admin's later fine-tune is never overwritten.
+
+So: **when you publish a new activity, set its map location in `/admin`.** To find one that was missed:
+
+```sql
+select slug, title from activities where status = 'published' and lat is null;
+```
+
 ---
 
 ## Everything else

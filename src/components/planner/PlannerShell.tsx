@@ -10,7 +10,6 @@ import { PlacesDrawer } from './PlacesDrawer';
 import { QuoteModal } from './QuoteModal';
 import { AIInsights } from './AIInsights';
 import { DayTabs } from './DayTabs';
-import { ActivityCard } from './ActivityCard';
 import { RouteMap, type ActivityMarker, type StopKind } from '@/components/maps/RouteMap';
 import { PresetsSection, type PresetCard } from './PresetsSection';
 import { FeaturesSection } from './FeaturesSection';
@@ -82,8 +81,9 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
   const [bmtCatalog, setBmtCatalog] = useState<Map<string, BmtInfo>>(new Map());
   const [bmtAll, setBmtAll] = useState<BmtActivity[] | null>(null);
   const [showBmtLayer, setShowBmtLayer] = useState(false);
-  // A branded marker was clicked — the activity pop-over on the map pane.
-  const [openBmt, setOpenBmt] = useState<{ slug: string; date: string } | null>(null);
+  // The one-time fetch behind the "Our activities" toggle is in flight — the button says so rather
+  // than looking inert while the layer loads.
+  const [bmtLoading, setBmtLoading] = useState(false);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [typing, setTyping] = useState(false);
   const [hasBuilt, setHasBuilt] = useState(false);
@@ -500,6 +500,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     setShowBmtLayer((on) => !on);
     if (bmtAll === null) {
       (async () => {
+        setBmtLoading(true);
         try {
           const res = await fetch('/api/planner/our-activities').then((r) => r.json());
           const list: BmtActivity[] = res.ok ? res.data : [];
@@ -507,6 +508,8 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
           mergeBmtList(list);
         } catch {
           setBmtAll([]); // failed fetch: the toggle just shows nothing extra
+        } finally {
+          setBmtLoading(false);
         }
       })();
     }
@@ -587,7 +590,6 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     setActiveDayIdx(0);
     setRangeFrom('');
     setRangeTo('');
-    setOpenBmt(null);
   }, []);
   /** Un-anchor the recommended activity / dinner from one day (the small × on their cards). */
   const removeDayActivity = useCallback((date: string) => {
@@ -1016,6 +1018,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
         lng: selectedBmt.lng,
         priceLabel: priceLabel(selectedBmt),
         selected: true,
+        imageUrl: selectedBmt.heroImageUrl,
       });
     }
     if (showBmtLayer && bmtAll) {
@@ -1033,6 +1036,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
           lng: a.lng,
           priceLabel: priceLabel(a),
           selected: false,
+          imageUrl: a.heroImageUrl,
         });
       }
     }
@@ -1044,9 +1048,31 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
       dinnerPlace ? { title: dinnerPlace.name, lat: dinnerPlace.lat, lng: dinnerPlace.lng } : null,
     [dinnerPlace],
   );
-  // The date a clicked marker's card books for: the active trip day, else the quote date.
+  // The date a clicked marker asks about (and its card books for): the active trip day, else the
+  // quote date.
   const markerDate = activeDay?.date ?? (date || minDate);
-  const openBmtInfo = openBmt ? (bmtCatalog.get(openBmt.slug) ?? null) : null;
+
+  /**
+   * Tapping a branded activity pin hands the activity to ZilAi rather than opening a static
+   * pop-over: it asks the co-pilot about that exact activity (which answers from the catalogue via
+   * search_our_activities — real price, rating, duration and seats for the date), and drops the
+   * bookable card into the chat immediately, so the visitor can book straight away without waiting
+   * for the reply. On mobile the chat tab is brought forward, or the conversation would happen on a
+   * pane the visitor can't see.
+   */
+  function askAboutActivity(slug: string) {
+    const info = bmtCatalog.get(slug);
+    if (!info) return;
+    setMobileTab('chat');
+    void sendChat(
+      t("Tell me about {title} — what's included and what's the price? Can I book it for {date}?", {
+        title: info.title,
+        date: markerDate,
+      }),
+    );
+    // Queued AFTER sendChat's own user-message update, so the card lands under the question.
+    setChat((c) => [...c, { role: 'assistant', kind: 'activity', slug, date: markerDate }]);
+  }
 
   const itinerary = (
     <ItineraryPanel
@@ -1116,7 +1142,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
         carColor="#DC2626"
         className="h-full w-full"
         activities={mapActivities}
-        onActivityClick={(slug) => setOpenBmt({ slug, date: markerDate })}
+        onActivityClick={askAboutActivity}
         dinner={mapDinner}
       />
       {/* "Belle Mare Tours activities" browse layer toggle. */}
@@ -1136,36 +1162,8 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
             fill={showBmtLayer ? '#fff' : '#F76C5E'}
           />
         </svg>
-        {t('Our activities')}
+        {bmtLoading ? t('Loading activities…') : t('Our activities')}
       </button>
-      {/* Clicked-marker pop-over: the branded card with the date-aware booking deep-link. */}
-      {openBmt && openBmtInfo && (
-        <div className="absolute bottom-3 left-3 right-3 z-10 mx-auto max-w-[400px]">
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setOpenBmt(null)}
-              aria-label={t('Close')}
-              className="absolute -right-2 -top-2 z-10 grid h-7 w-7 cursor-pointer place-items-center rounded-full border border-[#EAF2F1] bg-white text-ink-muted shadow-[0_4px_12px_rgba(10,46,54,.2)]"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M6 6l12 12M18 6L6 18"
-                  stroke="currentColor"
-                  strokeWidth={2.2}
-                  strokeLinecap="round"
-                />
-              </svg>
-            </button>
-            <ActivityCard
-              compact
-              activity={openBmtInfo}
-              date={openBmt.date}
-              seatsLeft={openBmtInfo.seatsLeft}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
   const drawer = (
@@ -1247,10 +1245,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
                 <DayTabs
                   days={days}
                   activeIdx={activeDayIdx}
-                  onSelect={(i) => {
-                    setActiveDayIdx(i);
-                    setOpenBmt(null);
-                  }}
+                  onSelect={setActiveDayIdx}
                   onExit={exitTrip}
                 />
               </div>
@@ -1309,10 +1304,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
                 <DayTabs
                   days={days}
                   activeIdx={activeDayIdx}
-                  onSelect={(i) => {
-                    setActiveDayIdx(i);
-                    setOpenBmt(null);
-                  }}
+                  onSelect={setActiveDayIdx}
                   onExit={exitTrip}
                 />
               </div>

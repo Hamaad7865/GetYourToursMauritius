@@ -253,6 +253,29 @@ describe('runPlannerTurn — single-day mode unchanged', () => {
     expect(result.recommendations).toEqual([]);
   });
 
+  it('can ground a question about one of OUR activities — the map-pin tap path', async () => {
+    // Tapping a branded pin asks ZilAi about that activity. Single-day mode has no trip dates, so
+    // the tool must accept the date from the question itself and surface the real candidate — which
+    // is what lets the client render a bookable card instead of the model inventing a price.
+    const model = scriptedModel([
+      {
+        toolName: 'search_our_activities',
+        args: { dates: ['2026-09-01'], q: 'Catamaran Cruise with BBQ' },
+      },
+      { text: 'It runs 8 hours from €75, and there are 12 seats left on 1 Sep.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: 'Tell me about Catamaran Cruise with BBQ' }] },
+      model,
+    );
+    expect(result.recommendations.map((r) => r.slug)).toEqual(['catamaran-bbq']);
+    expect(result.recommendations[0]!.seatsLeft).toBe(12);
+    // Asking about an activity must never quietly rewrite the day the visitor already has.
+    expect(result.places).toEqual([]);
+    expect(result.route).toBeNull();
+  });
+
   it('returns the graceful fallback (all fields present) when no model is configured', async () => {
     const result = await runPlannerTurn(
       { ai: { name: 'stub', model: '' } } as unknown as ServiceContext,

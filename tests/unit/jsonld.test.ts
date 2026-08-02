@@ -25,6 +25,9 @@ const base: TourSummary = {
   ratingCount: 1158,
   heroImage: null,
   images: [],
+  region: null,
+  lat: null,
+  lng: null,
 };
 
 describe('JSON-LD', () => {

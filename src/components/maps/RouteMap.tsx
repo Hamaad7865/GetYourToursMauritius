@@ -23,6 +23,9 @@ export interface ActivityMarker {
   lng: number;
   priceLabel: string;
   selected: boolean;
+  /** The activity's hero image — shown as the pill's badge so the pin depicts the activity itself
+   *  (falls back to the brand mark when null). */
+  imageUrl: string | null;
 }
 
 async function resolveStop(s: ItineraryStop): Promise<google.maps.LatLngLiteral | null> {
@@ -200,7 +203,11 @@ export function RouteMap({
           new google.maps.marker.AdvancedMarkerElement({
             map,
             position: { lat: a.lat, lng: a.lng },
-            content: bmtMarkerContent({ priceLabel: a.priceLabel, selected: a.selected }),
+            content: bmtMarkerContent({
+              priceLabel: a.priceLabel,
+              selected: a.selected,
+              imageUrl: a.imageUrl,
+            }),
             title: a.title,
             gmpClickable: true,
             zIndex: a.selected ? 900 : 500,

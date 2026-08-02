@@ -140,6 +140,18 @@ describe('rankBmtForDay', () => {
     expect(rankBmtForDay(all, { category: 'catamaran' }).map((a) => a.slug)).toEqual(['cat']);
   });
 
+  it('matches a free-text title (q) case-insensitively, for "tell me about X" questions', () => {
+    const all = [act({ slug: 'sunset', title: 'Catamaran Sunset Cruise' }), act({ slug: 'hike' })];
+    expect(rankBmtForDay(all, { q: 'sunset cruise' }).map((a) => a.slug)).toEqual(['sunset']);
+  });
+
+  it('lets a q match cross regions — the visitor asked about THAT activity, wherever their day is', () => {
+    // A West activity would normally be dropped from an East day; naming it must still answer.
+    const all = [act({ slug: 'west-dolphins', title: 'Swimming with Dolphins', region: 'West' })];
+    expect(rankBmtForDay(all, { region: 'East' })).toHaveLength(0);
+    expect(rankBmtForDay(all, { region: 'East', q: 'Swimming with Dolphins' })).toHaveLength(1);
+  });
+
   it('ranks best-rated first and caps the fan-out', () => {
     const all = Array.from({ length: 10 }, (_, i) => act({ slug: `a${i}`, ratingAvg: 4 + i / 10 }));
     const ranked = rankBmtForDay(all, {});

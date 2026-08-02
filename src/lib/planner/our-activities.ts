@@ -37,7 +37,10 @@ export interface BmtActivity {
 /** The planner's own bookable day product — never recommended as "an activity to add". */
 const EXCLUDED_SLUGS = new Set(['custom-road-trip']);
 
-const LIST_CACHE_KEY = 'bmt-activities:v1';
+// v2: summaries carry lat/lng/region themselves now — the bump orphans v1 lists assembled from the
+// old per-activity fallback resolution (itinerary stops / Places title searches), whose points were
+// wrong for every activity without admin-set coords.
+const LIST_CACHE_KEY = 'bmt-activities:v2';
 const LIST_TTL_MS = 60 * 60 * 1000; // the assembled list: 1h (prices/ratings drift slowly)
 const COORDS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // resolved coords: 30d (places don't move)
 const COORDS_MISS_TTL_MS = 6 * 60 * 60 * 1000; // unresolved: 6h, so a flaky lookup retries soon
@@ -147,9 +150,15 @@ export async function listBmtActivities(
   const sources = realSources(ctx, mapsApiKey);
   const out: BmtActivity[] = [];
   for (const s of recommendable) {
-    // Sequential on purpose: a cold rebuild is rare (cached 1h) and this avoids a burst of parallel
-    // detail RPCs + Places calls against shared pool limits.
-    const coords = await cachedCoords(s, sources);
+    // The summary itself carries the admin-set map point + region now, so the common case costs
+    // nothing beyond the one summaries RPC above. Only an activity WITHOUT a stored point (e.g. a
+    // freshly created one the admin hasn't placed yet) falls back to the per-activity resolution —
+    // sequential on purpose: that path is rare and this avoids a burst of parallel detail RPCs +
+    // Places calls against shared pool limits.
+    const coords: ResolvedCoords =
+      typeof s.lat === 'number' && typeof s.lng === 'number'
+        ? { lat: s.lat, lng: s.lng, region: s.region ?? regionFromCoords(s.lat, s.lng) }
+        : await cachedCoords(s, sources);
     out.push({
       slug: s.slug,
       title: s.title,
@@ -181,21 +190,27 @@ export const MAX_AVAILABILITY_CHECKS = 6;
 
 /**
  * Rank the catalogue for one trip day (pure): keep activities whose region is not `far` from the
- * day's region (matching the day-planner's own coherence rule) and that match an optional category,
- * best-rated first, capped at {@link MAX_AVAILABILITY_CHECKS} so the availability fan-out is bounded.
+ * day's region (matching the day-planner's own coherence rule) and that match an optional category
+ * and/or free-text title (`q` — how the agent grounds "tell me about <this exact activity>", e.g.
+ * after a map-pin click), best-rated first, capped at {@link MAX_AVAILABILITY_CHECKS} so the
+ * availability fan-out is bounded. A `q` match deliberately ignores the region rule: the visitor
+ * asked about THAT activity, so answering about it is never wrong, wherever their day is.
  */
 export function rankBmtForDay(
   all: BmtActivity[],
-  args: { region?: string | null; category?: string | null },
+  args: { region?: string | null; category?: string | null; q?: string | null },
 ): BmtActivity[] {
   const wantCat = args.category?.trim().toLowerCase() || null;
+  const wantQ = args.q?.trim().toLowerCase() || null;
   return all
     .filter(
       (a) =>
+        wantQ ||
         !args.region ||
         regionDistanceBand(a.region, args.region, REGION_DISTANCE_DEFAULT) !== 'far',
     )
     .filter((a) => !wantCat || a.category.toLowerCase().includes(wantCat))
+    .filter((a) => !wantQ || a.title.toLowerCase().includes(wantQ))
     .sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0) || b.ratingCount - a.ratingCount)
     .slice(0, MAX_AVAILABILITY_CHECKS);
 }
@@ -207,7 +222,7 @@ export function rankBmtForDay(
  */
 export async function searchBmtActivitiesForDay(
   ctx: ServiceContext,
-  args: { date: string; region?: string | null; category?: string | null },
+  args: { date: string; region?: string | null; category?: string | null; q?: string | null },
   mapsApiKey: string | null,
 ): Promise<BmtCandidate[]> {
   const all = await listBmtActivities(ctx, mapsApiKey);

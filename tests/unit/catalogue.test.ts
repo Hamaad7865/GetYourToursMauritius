@@ -12,8 +12,36 @@ import {
 } from '@/lib/catalogue/detail';
 import { browseQueryString, parseBrowseParams } from '@/lib/catalogue/browse';
 import type { Review, TourDetail, TourSummary } from '@/lib/validation/tours';
-import { activityExtraSchema } from '@/lib/validation/tours';
+import { activityExtraSchema, tourSummarySchema } from '@/lib/validation/tours';
 import { SITE } from '@/lib/seo/site';
+
+describe('tourSummarySchema — map point', () => {
+  const base = {
+    id: 'a1',
+    slug: 'catamaran',
+    type: 'activity',
+    title: 'Catamaran Cruise',
+    summary: null,
+    category: 'Catamaran cruises',
+    location: 'Grand Baie',
+    durationMinutes: 480,
+    fromPriceEur: 75,
+    pricingMode: 'per_person',
+    ratingAvg: 4.6,
+    ratingCount: 12,
+    heroImage: null,
+  };
+
+  it('carries the activity’s own coordinates + region, so the planner needs no detail lookup', () => {
+    const s = tourSummarySchema.parse({ ...base, region: 'North', lat: -20.01, lng: 57.58 });
+    expect([s.lat, s.lng, s.region]).toEqual([-20.01, 57.58, 'North']);
+  });
+
+  it('still parses a summary from an RPC that predates the fields (coords read as null)', () => {
+    const s = tourSummarySchema.parse(base);
+    expect([s.lat, s.lng, s.region]).toEqual([null, null, null]);
+  });
+});
 
 describe('activityExtraSchema — per-stop options', () => {
   it('parses a stop with alternatives and tolerates stops without them', () => {
@@ -61,6 +89,9 @@ function summary(overrides: Partial<TourSummary> = {}): TourSummary {
     ratingCount: 1158,
     heroImage: null,
     images: [],
+    region: null,
+    lat: null,
+    lng: null,
     ...overrides,
   };
 }
