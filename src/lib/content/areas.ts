@@ -56,8 +56,11 @@ export function getArea(slug: string): Area | null {
 }
 
 export function areaMetaTitle(a: Area): string {
-  // Root template appends the site name.
-  return `${a.name}, Mauritius — Area Guide (Things to Do, Beaches & Transfers)`;
+  // The root template appends " | Belle Mare Tours" (19 chars), so the page-specific part has to
+  // stay around 40 to keep the whole title inside Google's ~60-char display window. The longer
+  // "(Things to Do, Beaches & Transfers)" suffix this replaced pushed every destination page to 95
+  // and was simply truncated in results — the keywords it added were never actually shown.
+  return `${a.name}, Mauritius — Area Guide`;
 }
 
 export function areaMetaDescription(a: Area): string {
