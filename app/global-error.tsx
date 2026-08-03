@@ -6,6 +6,7 @@
 
 import { useEffect } from 'react';
 import { reportClientError } from '@/lib/client-error-report';
+import { reloadOnceForStaleChunks } from '@/lib/stale-chunk-reload';
 
 /**
  * Ultimate fallback: catches errors thrown in the ROOT layout itself, where the normal error boundary
@@ -28,6 +29,9 @@ export default function GlobalError({
       stack: error.stack,
       digest: error.digest,
     });
+    // A stale chunk after a deploy lands HERE, not on window.error — that is how the logged
+    // instance arrived. Report first, then recover: the reload discards this page.
+    reloadOnceForStaleChunks(error.message, error);
   }, [error]);
 
   return (

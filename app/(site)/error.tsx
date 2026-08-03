@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { reportClientError } from '@/lib/client-error-report';
+import { reloadOnceForStaleChunks } from '@/lib/stale-chunk-reload';
 import { useT } from '@/components/site/PreferencesProvider';
 
 /**
@@ -27,6 +28,9 @@ export default function SiteError({
       stack: error.stack,
       digest: error.digest,
     });
+    // A stale chunk after a deploy lands HERE, not on window.error — that is how the logged
+    // instance arrived. Report first, then recover: the reload discards this page.
+    reloadOnceForStaleChunks(error.message, error);
   }, [error]);
 
   return (
