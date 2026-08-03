@@ -266,6 +266,8 @@ export default async function ActivityDetailPage({
               lng: activity.lng ?? null,
               transportBands: activity.transportBands ?? null,
               regionDistances: activity.regionDistances ?? null,
+              supplementName: activity.supplementName ?? null,
+              supplementEur: activity.supplementEur ?? null,
             }}
           >
             <div className="flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_374px] lg:items-start lg:gap-x-8">

@@ -87,6 +87,11 @@ export function BookingOptionCard() {
       seatsLeft: b.seatsLeft,
       unit: b.unitLabel,
       childSeats: b.childSeats,
+      // itemTotal() is pure and never sees the activity, so the line carries the supplement's unit
+      // price with it. The server still re-reads the real price at api_book — this is display only.
+      supplementQty: b.hasSupplement ? Math.min(b.supplementQty, b.totalGuests) : 0,
+      supplementName: b.activity.supplementName ?? undefined,
+      supplementUnitEur: b.activity.supplementEur ?? undefined,
       itinerary,
     });
     showToast({ title: t('Added to cart'), description: `${b.activity.title} — ${whenText}.` });
@@ -238,6 +243,62 @@ export function BookingOptionCard() {
               </div>
             );
           })()}
+
+        {/* Owner-configured supplement (e.g. the lobster lunch upgrade), priced per person and capped
+            at the party size — api_book clamps it the same way. The NAME is the owner's own text, so
+            it is deliberately NOT passed through t(): the translation table keys on English source
+            strings, and this label's French twin already arrived resolved from the DB. */}
+        {b.hasSupplement && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-ink/10 px-3 py-2.5">
+            <div className="min-w-0">
+              <div className="text-[13px] font-bold text-ink">{b.activity.supplementName}</div>
+              <div className="text-[12px] text-ink-muted">
+                {b.activity.supplementEur
+                  ? t('{price} per person', { price: money(b.activity.supplementEur) })
+                  : t('Included — tell us how many')}
+                {b.supplementExtra > 0 && (
+                  <span className="font-semibold text-teal-dark">
+                    {' '}
+                    · +{money(b.supplementExtra)}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                aria-label={t('One fewer supplement')}
+                onClick={() => b.setSupplementQty(Math.max(0, b.supplementQty - 1))}
+                disabled={b.supplementQty <= 0}
+                className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+              >
+                <IconMinus width={14} height={14} />
+              </button>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={b.totalGuests}
+                value={b.supplementQty}
+                aria-label={t('How many guests want this supplement')}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value, 10);
+                  if (!Number.isNaN(n)) b.setSupplementQty(Math.max(0, Math.min(b.totalGuests, n)));
+                }}
+                className="h-8 w-12 rounded-lg border border-ink/15 text-center text-[14px] font-bold tabular-nums text-ink outline-none focus:border-teal [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+              />
+              <button
+                type="button"
+                aria-label={t('One more supplement')}
+                onClick={() => b.setSupplementQty(Math.min(b.totalGuests, b.supplementQty + 1))}
+                disabled={b.supplementQty >= b.totalGuests}
+                className="grid h-8 w-8 place-items-center rounded-full border border-ink/20 text-teal hover:border-teal disabled:opacity-40"
+              >
+                <IconPlus width={14} height={14} />
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 flex items-end justify-between gap-3 border-t border-ink/10 pt-4">
           <div>

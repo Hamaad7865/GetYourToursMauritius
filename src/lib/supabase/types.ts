@@ -73,6 +73,11 @@ type ActivitiesRow = {
   rating_avg: number | null;
   rating_count: number;
   extra: Json;
+  /** 20260905000000 — optional per-person supplement (e.g. "Lobster lunch"). A blank/NULL name is the
+   *  feature's off switch; supplement_minor is the PER-PERSON price api_book charges from. Real
+   *  columns rather than an `extra` key precisely because this one is money. */
+  supplement_name: string | null;
+  supplement_minor: number | null;
   region: string | null;
   lat: number | null;
   lng: number | null;
@@ -106,6 +111,8 @@ type ActivitiesInsert = {
   rating_avg?: number | null;
   rating_count?: number;
   extra?: Json;
+  supplement_name?: string | null;
+  supplement_minor?: number | null;
   region?: string | null;
   lat?: number | null;
   lng?: number | null;
@@ -132,6 +139,9 @@ type ActivityTranslationsRow = {
    *  importantInfo). Never operational flags (availability, badges, priceList, adultsOnly, ...) —
    *  those always come from the English activities.extra column. */
   extra: Json | null;
+  /** 20260905000000 — French label for the supplement. Per-field coalesce like title/summary; the
+   *  English column alone decides whether the supplement exists, and the price is never translated. */
+  supplement_name: string | null;
 };
 type ActivityTranslationsInsert = {
   id?: string;
@@ -148,6 +158,7 @@ type ActivityTranslationsInsert = {
   seo_description?: string | null;
   source?: string;
   extra?: Json | null;
+  supplement_name?: string | null;
 };
 
 type ActivityImagesRow = {

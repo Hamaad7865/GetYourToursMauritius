@@ -177,6 +177,17 @@ export function childSeatsCost(seats: number): number {
   return Math.max(0, Math.floor(seats) - 1) * CHILD_SEAT_EUR;
 }
 
+/**
+ * Cost of `qty` units of an activity's optional supplement (e.g. the lobster lunch upgrade), priced
+ * per person. Unlike the child seat above, the unit price is NOT a constant here — the owner sets it
+ * per activity, `api_book` reads it from `activities.supplement_minor`, and this only mirrors that
+ * arithmetic for the widget. An unpriced or unconfigured supplement costs nothing.
+ */
+export function supplementCost(qty: number, unitEur: number | null | undefined): number {
+  if (!unitEur || unitEur <= 0) return 0;
+  return Math.round(Math.max(0, Math.floor(qty)) * unitEur * 100) / 100;
+}
+
 // ── Region-based transport add-on ────────────────────────────────────────────
 // An OPTIONAL fee for per_person / per_group activities that scales with how far the customer's pickup
 // is from the activity's boarding region: same region = short drive = cheap; Near / Far = more. The SQL

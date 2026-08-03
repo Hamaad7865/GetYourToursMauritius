@@ -14,6 +14,7 @@ describe('activity translation save', () => {
     meetingPoint: null,
     seoTitle: null,
     seoDescription: null,
+    supplementName: null,
     highlights: [],
     inclusions: [],
     exclusions: [],

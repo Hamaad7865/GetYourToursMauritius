@@ -115,24 +115,34 @@ deliberately not used.
 
 ### The total is NOT the sum of the line items
 
-`bookings.total_minor` ≠ `Σ booking_items.subtotal_minor`. Two priced components are folded into the
+`bookings.total_minor` ≠ `Σ booking_items.subtotal_minor`. Three priced components are folded into the
 total by `api_book` **without** a `booking_items` row of their own:
 
-| Charge                  | Where it lives                                                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Region transport add-on | `bookings.transport_minor` (its own column)                                                                                    |
-| Child-seat extra        | nowhere — only the **count** (`bookings.child_seats`) is stored; the €6-per-extra-seat cost is added straight to `total_minor` |
+| Charge                  | Where it lives                                                                                                                    |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Region transport add-on | `bookings.transport_minor` (its own column)                                                                                       |
+| Child-seat extra        | nowhere — only the **count** (`bookings.child_seats`) is stored; the €6-per-extra-seat cost is added straight to `total_minor`    |
+| Optional supplement     | `bookings.supplement_minor` + `supplement_qty` + `supplement_name` — the label and the whole charge, **snapshot at booking time** |
+
+None of them may become a `booking_items` row: `booking_json` derives `partySize` from `Σ pax` and
+`unitsNeeded` from `Σ quantity`, and `unitsNeeded` is what the reschedule date-picker checks capacity
+against — an extra row would quietly inflate both.
+
+The supplement is the only one whose price the owner controls (`activities.supplement_minor`, set in
+`/admin`), which is why the booking keeps its own copy of the name and the amount. Re-pricing the
+lobster next season must not silently re-price a receipt already issued.
 
 So anything that shows why a booking was charged what it was must add these lines back explicitly.
 Three surfaces do it, and they should agree:
 
-- `bookingExtraCharges()` (`src/lib/admin/bookings.ts`) — the `/admin` drawer's Items card. Both
+- `bookingExtraCharges()` (`src/lib/admin/bookings.ts`) — the `/admin` drawer's Items card. All three
   charges, plus the residue guard below.
-- `buildInvoice()` (`src/lib/invoice/model.ts`) — the VAT invoice / receipt PDF. Both charges; its
-  lines reconcile to `totalEur` by construction.
-- `BookingConfirmation.tsx` — the customer's confirmation screen. **Transport only.** Its totals list
-  does not carry a child-seat money line (the seats appear as a separate detail block further down),
-  so a booking with 2+ child seats shows a Total larger than its own visible lines.
+- `buildInvoice()` (`src/lib/invoice/model.ts`) — the VAT invoice / receipt PDF. All three; its
+  lines reconcile to `totalEur` by construction. The supplement line is pushed **last**, because
+  `voucher-pdf.ts` reads `model.lines[0].quantity` positionally for its pax count.
+- `BookingConfirmation.tsx` — the customer's confirmation screen. **Transport and the supplement.**
+  Its totals list does not carry a child-seat money line (the seats appear as a separate detail block
+  further down), so a booking with 2+ child seats shows a Total larger than its own visible lines.
 
 `bookingExtraCharges()` also emits an **"Unaccounted"** line for any residue it cannot attribute. If
 that line ever appears in the admin drawer, a priced component has been added to `api_book` and not

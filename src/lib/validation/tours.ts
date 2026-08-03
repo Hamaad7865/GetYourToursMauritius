@@ -206,6 +206,13 @@ export const tourDetailSchema = tourSummarySchema.extend({
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
   extra: activityExtraSchema.default({}),
+  /** Optional per-activity supplement the guest can add per person (e.g. "Lobster lunch"). Both are
+   *  null when the owner hasn't configured one — a blank name is the feature's off switch. The NAME
+   *  falls back to the French overlay like any other content field; the PRICE is deliberately NOT in
+   *  `extra` (which the translation layer merges over) because api_book re-reads it as the charge.
+   *  `.catch` so the page still renders against a DB where this migration hasn't run yet. */
+  supplementName: z.string().nullish().catch(null),
+  supplementEur: z.number().nonnegative().nullish().catch(null),
   images: z.array(tourImageSchema),
   options: z.array(tourOptionSchema),
   translations: z.record(z.string(), tourTranslationSchema),

@@ -535,6 +535,11 @@ function GuestRow({
                 {booking.childSeats} child seat{booking.childSeats === 1 ? '' : 's'}
               </Chip>
             )}
+            {booking.supplementQty > 0 && booking.supplementName && (
+              <Chip tone="teal">
+                {booking.supplementQty} × {booking.supplementName}
+              </Chip>
+            )}
             {booking.pickupPending && !booking.pickupLocation && (
               <Chip tone="amber">Pickup TBD</Chip>
             )}

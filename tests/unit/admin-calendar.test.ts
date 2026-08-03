@@ -43,6 +43,8 @@ function booking(over: Partial<RawBooking> = {}): RawBooking {
     dropoff_location: null,
     pickup_pending: false,
     child_seats: 0,
+    supplement_name: null,
+    supplement_qty: 0,
     disruption: null,
     ...NO_TRANSFER,
     ...over,

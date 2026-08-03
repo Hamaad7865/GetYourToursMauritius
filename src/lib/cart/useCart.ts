@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import type { AltStop, PricingMode } from '@/lib/validation/tours';
-import { childSeatsCost } from '@/lib/services/pricing';
+import { childSeatsCost, supplementCost } from '@/lib/services/pricing';
 import {
   dropExpiredHolds,
   markHeld as markHeldItems,
@@ -81,6 +81,13 @@ export interface CartItem {
   suv?: boolean;
   /** Child seats chosen (first free, €6 each extra; the charge is already in unitEur). */
   childSeats?: number;
+  /** How many guests want the activity's optional supplement, and what one costs. The unit price is
+   *  stored ON THE LINE because itemTotal() is pure and has no way to look the activity up — unlike
+   *  the child seat, whose price is a module constant. Display only: api_book re-reads the real
+   *  price from the DB, so a tampered localStorage cart cannot change what is charged. */
+  supplementQty?: number;
+  supplementName?: string;
+  supplementUnitEur?: number;
   maxGuests: number | null;
   /** Seats left on the occurrence when added — the ceiling the guests stepper clamps to. */
   seatsLeft: number;
@@ -116,18 +123,17 @@ export interface CartItem {
  *  on top (it is not multiplied by the party). `unitEur` is the PER-UNIT price (per vehicle / per
  *  group / per head), never the already-multiplied total. */
 export function itemTotal(i: CartItem): number {
+  // Both add-ons are per traveller, so neither can ever exceed the party size — this matters when
+  // guests are lowered on a cart line without re-touching the add-on counts.
+  const childExtra = childSeatsCost(Math.min(i.childSeats ?? 0, i.guests));
+  const suppExtra = supplementCost(Math.min(i.supplementQty ?? 0, i.guests), i.supplementUnitEur);
   // Age-banded (and vehicle) lines carry the whole price in `unitEur` — a flat line, never ×guests.
   if (i.pricingMode === 'vehicle' || i.party) {
-    return (
-      Math.round((i.unitEur + childSeatsCost(Math.min(i.childSeats ?? 0, i.guests))) * 100) / 100
-    );
+    return Math.round((i.unitEur + childExtra + suppExtra) * 100) / 100;
   }
-  // A child seat only makes sense per traveller, so the add-on can never exceed the party size —
-  // important when guests are lowered on a cart line without re-touching the seat count.
-  const childExtra = childSeatsCost(Math.min(i.childSeats ?? 0, i.guests));
   const groups =
     i.pricingMode === 'per_group' && i.maxGuests ? Math.ceil(i.guests / i.maxGuests) : i.guests;
-  return Math.round((i.unitEur * groups + childExtra) * 100) / 100;
+  return Math.round((i.unitEur * groups + childExtra + suppExtra) * 100) / 100;
 }
 
 /** Largest party a line can hold: bounded by seats, and by the tier cap for per-person pricing (a
@@ -343,8 +349,13 @@ export function useCart(opts?: { withPending?: boolean }) {
       read().map((i) => {
         if (i.id !== id) return i;
         const next = Math.max(1, Math.min(lineCap(i), guests));
-        // Pull child seats down with the party — a seat per traveller can't exceed the new count.
-        const resized = { ...i, guests: next, childSeats: Math.min(i.childSeats ?? 0, next) };
+        // Pull the per-traveller add-ons down with the party — neither can exceed the new count.
+        const resized = {
+          ...i,
+          guests: next,
+          childSeats: Math.min(i.childSeats ?? 0, next),
+          supplementQty: Math.min(i.supplementQty ?? 0, next),
+        };
         return releasing
           ? {
               ...resized,

@@ -43,6 +43,9 @@ function booking(over: Partial<BookingRow> = {}): BookingRow {
     pickupPending: false,
     childSeats: 0,
     transportEur: 0,
+    supplementName: null,
+    supplementQty: 0,
+    supplementEur: 0,
     transfer: null,
     ...over,
   };
@@ -76,6 +79,50 @@ describe('bookingExtraCharges', () => {
     expect(charges).toEqual([
       { label: 'Door-to-door transport', amountEur: 30 },
       { label: 'Child seats (3)', amountEur: 12 },
+    ]);
+  });
+
+  // The supplement is folded into total_minor with no booking_items row, so without its own line
+  // here the whole charge would land in "Unaccounted" and staff couldn't explain the total.
+  it('explains the optional supplement, using the label snapshot on the booking', () => {
+    const charges = bookingExtraCharges(
+      booking({
+        totalEur: 750,
+        supplementName: 'Lobster for lunch',
+        supplementQty: 2,
+        supplementEur: 50,
+      }),
+    );
+    expect(charges).toEqual([{ label: 'Lobster for lunch (2)', amountEur: 50 }]);
+  });
+
+  it('drops the count from the supplement label when only one guest took it', () => {
+    const charges = bookingExtraCharges(
+      booking({
+        totalEur: 725,
+        supplementName: 'Lobster for lunch',
+        supplementQty: 1,
+        supplementEur: 25,
+      }),
+    );
+    expect(charges).toEqual([{ label: 'Lobster for lunch', amountEur: 25 }]);
+  });
+
+  it('lists every add-on together, transport first and the supplement last', () => {
+    const charges = bookingExtraCharges(
+      booking({
+        totalEur: 792,
+        transportEur: 30,
+        childSeats: 3,
+        supplementName: 'Lobster for lunch',
+        supplementQty: 2,
+        supplementEur: 50,
+      }),
+    );
+    expect(charges).toEqual([
+      { label: 'Door-to-door transport', amountEur: 30 },
+      { label: 'Child seats (3)', amountEur: 12 },
+      { label: 'Lobster for lunch (2)', amountEur: 50 },
     ]);
   });
 

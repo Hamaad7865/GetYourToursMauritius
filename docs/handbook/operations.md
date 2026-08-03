@@ -27,20 +27,29 @@ which check failed**. Always look here first.
 
 All of this is in `/admin`:
 
-| You want to change…                          | Where                                                                                                  |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| Tours: photos, descriptions, options, prices | **Tours** → pick a tour                                                                                |
-| Which dates a tour is bookable               | **Tours** → tour → **Availability**                                                                    |
-| Any transfer or vehicle fare                 | **Pricing** (5 sections: sightseeing, road trips, transport add-on, airport transfers, hotel-to-hotel) |
-| Rental cars & scooters                       | **Rental**                                                                                             |
-| The order tour cards appear in               | **Tours** → filter to one category → drag them                                                         |
-| A page's Google title & description          | **SEO** (18 pages)                                                                                     |
-| Blog posts                                   | **Blog**                                                                                               |
-| Redirect an old URL to a new one             | **Redirects**                                                                                          |
-| Approve or reject a customer review          | **Reviews**                                                                                            |
+| You want to change…                           | Where                                                                                                  |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Tours: photos, descriptions, options, prices  | **Tours** → pick a tour                                                                                |
+| An optional per-person upgrade (e.g. lobster) | **Tours** → tour → **Optional supplement** (name + price)                                              |
+| Which dates a tour is bookable                | **Tours** → tour → **Availability**                                                                    |
+| Any transfer or vehicle fare                  | **Pricing** (5 sections: sightseeing, road trips, transport add-on, airport transfers, hotel-to-hotel) |
+| Rental cars & scooters                        | **Rental**                                                                                             |
+| The order tour cards appear in                | **Tours** → filter to one category → drag them                                                         |
+| A page's Google title & description           | **SEO** (18 pages)                                                                                     |
+| Blog posts                                    | **Blog**                                                                                               |
+| Redirect an old URL to a new one              | **Redirects**                                                                                          |
+| Approve or reject a customer review           | **Reviews**                                                                                            |
 
 Prices are typed in euros and take effect immediately — the server prices every new quote from those
 rows.
+
+**The optional supplement** is the one extra a guest can add to a tour while booking, and you own both
+halves of it: type the name ("Lobster for lunch") and the price per person. Leave the name empty and
+it disappears from the tour page. Guests pick how many of their party want it, so a party of four
+where two say yes pays for two. Bookings that include it are flagged on the day sheet in **Calendar**
+and in the alert email, so you know what to buy in. Renaming or re-pricing it later never touches a
+booking already taken — old receipts keep showing what that guest actually paid for. To show a French
+name, fill the same field inside the tour's **Français** panel; the price is the same in both.
 
 > **A note for developers reading this:** because all of the above is in the database, **do not hardcode
 > it in the code.** If you do, the owner's edit is silently ignored.

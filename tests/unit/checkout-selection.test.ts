@@ -19,6 +19,7 @@ const base: SelectionInput = {
   qty: 2,
   suv: false,
   childSeats: 1,
+  supplementQty: 0,
   pickupText: 'Hotel Le Morne',
   pickupLat: -20.45,
   pickupLng: 57.31,
@@ -43,6 +44,7 @@ describe('selectionHash', () => {
       pickupLng: 57.31,
       pickupLat: -20.45,
       pickupText: 'Hotel Le Morne',
+      supplementQty: 0,
       childSeats: 1,
       suv: false,
       qty: 2,
@@ -78,6 +80,15 @@ describe('selectionHash', () => {
 
   it('differs when childSeats changes', () => {
     expect(selectionHash({ ...base, childSeats: 0 })).not.toBe(selectionHash(base));
+  });
+
+  // Without this, adding the lobster to a slot already abandoned mid-checkout would rehydrate the
+  // earlier ref, skip creation AND the price gate, and charge the pre-supplement total.
+  it('differs when the supplement count changes', () => {
+    expect(selectionHash({ ...base, supplementQty: 2 })).not.toBe(selectionHash(base));
+    expect(selectionHash({ ...base, supplementQty: 1 })).not.toBe(
+      selectionHash({ ...base, supplementQty: 2 }),
+    );
   });
 
   it('differs when the SUV upgrade flag changes', () => {
@@ -199,6 +210,7 @@ describe('detailsHash', () => {
       qty: 2,
       suv: false,
       childSeats: 0,
+      supplementQty: 0,
       pickupText: '',
       pickupLat: null,
       pickupLng: null,

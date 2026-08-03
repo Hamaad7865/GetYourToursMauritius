@@ -327,6 +327,14 @@ export const fr: Record<string, string> = {
   'Remove child seat': 'Retirer un siège enfant',
   'Number of child seats': 'Nombre de sièges enfant',
   'Add child seat': 'Ajouter un siège enfant',
+  // Optional per-activity supplement (e.g. the lobster lunch upgrade). The supplement's NAME is the
+  // owner's own text and is translated in /admin (activity_translations), never here.
+  '{price} per person': '{price} par personne',
+  'Included — tell us how many': 'Inclus — dites-nous combien',
+  'One fewer supplement': 'Un supplément de moins',
+  'One more supplement': 'Un supplément de plus',
+  'How many guests want this supplement': 'Combien de personnes souhaitent ce supplément',
+  'for {n} of {total}': 'pour {n} sur {total}',
   'All taxes and fees included': 'Toutes taxes et frais inclus',
   'Hotel pickup & drop-off': 'Prise en charge et dépose à l’hôtel',
   'Add your hotel and we’ll add door-to-door transport based on the distance. Skip it to meet at the boarding point.':

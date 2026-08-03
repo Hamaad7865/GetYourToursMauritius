@@ -180,14 +180,22 @@ async function enrichOwnerNewBooking(
         ? { label: 'Child seat', value: `requested${agedNote}` }
         : null;
 
+  // The optional supplement is the one add-on the owner has to BUY IN ahead of the trip — nobody
+  // finds two lobsters on the morning of the departure — so it belongs in the alert, not only in the
+  // admin drawer. Label comes from the booking's own snapshot.
+  const suppQty = booking.supplementQty ?? 0;
+  const suppNote =
+    suppQty > 0 && booking.supplementName ? `${suppQty} × ${booking.supplementName}` : '';
+
   // Chat channels (WhatsApp / Telegram) take the same one-glance text — no HTML, no PDF — plus the party
   // mix and any child seat (what the owner has to PREPARE), then the phone number when there is one,
   // since that's the fastest way to reach a guest from a phone in hand.
   if (message.channel === 'whatsapp' || message.channel === 'telegram') {
     const bandLine = bands ? `\n👥 ${bands}` : '';
     const seatLine = seatChatNote ? `\n🧒 ${seatChatNote}` : '';
+    const suppLine = suppNote ? `\n🍽️ ${suppNote}` : '';
     const phoneLine = booking.customerPhone ? `\n📞 ${booking.customerPhone}` : '';
-    message.text = `${refund ? '⚠️ Refund needed' : '🔔 New paid booking'}\n${line}${bandLine}${seatLine}${phoneLine}\n${adminUrl}`;
+    message.text = `${refund ? '⚠️ Refund needed' : '🔔 New paid booking'}\n${line}${bandLine}${seatLine}${suppLine}${phoneLine}\n${adminUrl}`;
     return;
   }
 
@@ -200,6 +208,7 @@ async function enrichOwnerNewBooking(
   const details: Array<{ label: string; value: string }> = [];
   if (bands) details.push({ label: 'Party', value: bands });
   if (seatRow) details.push(seatRow);
+  if (suppNote) details.push({ label: 'Supplement', value: suppNote });
   if (booking.customerPhone) details.push({ label: 'Phone', value: booking.customerPhone });
   if (booking.pickupLocation) details.push({ label: 'Pick-up', value: booking.pickupLocation });
   if (booking.dropoffLocation) details.push({ label: 'Drop-off', value: booking.dropoffLocation });

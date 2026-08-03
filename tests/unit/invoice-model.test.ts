@@ -169,3 +169,73 @@ describe('buildInvoice', () => {
     expect(inv.lines.some((l) => /child seat/i.test(l.description))).toBe(false);
   });
 });
+
+/* The per-activity supplement (e.g. a lobster lunch upgrade) is folded into total_minor by api_book
+ * and has NO booking_items row, exactly like the transport add-on. If buildInvoice didn't push a line
+ * for it, the receipt's lines would silently under-sum the total the guest was charged — and the VAT
+ * split, which nets each line individually, would be wrong too. */
+describe('buildInvoice — the optional supplement', () => {
+  const payment = {
+    chargedAmountMinor: 15000,
+    chargedCurrency: 'EUR',
+    paidAt: '2026-08-02T10:00:00Z',
+    providerRef: 'pe_supp',
+  };
+  const base = {
+    ref: 'BMT-SUPP',
+    customerName: 'Jean',
+    customerEmail: 'j@x.com',
+    currency: 'EUR',
+    activityTitle: 'Ile aux Cerfs Catamaran',
+    when: '2026-08-09T06:00:00Z',
+    pickupLocation: null,
+    dropoffLocation: null,
+    childSeats: 0,
+    transportEur: 0,
+    items: [{ priceLabel: 'Adult', quantity: 2, pax: null, subtotalEur: 100 }],
+  };
+
+  it('adds a line naming the supplement, so the lines reconcile to the total', () => {
+    const inv = buildInvoice(
+      {
+        ...base,
+        totalEur: 150,
+        supplementName: 'Lobster for lunch',
+        supplementQty: 2,
+        supplementEur: 50,
+      },
+      payment,
+      business,
+    );
+    const supp = inv.lines.at(-1);
+    expect(supp?.description).toBe('Lobster for lunch (2)');
+    expect(supp?.lineGrossEur).toBe(50);
+    // The item lines stay FIRST — the e-voucher reads lines[0].quantity for its pax count.
+    expect(inv.lines[0]?.description).toContain('Adult');
+    expect(inv.lines.reduce((sum, l) => sum + l.lineGrossEur, 0)).toBeCloseTo(inv.totalGrossEur, 2);
+  });
+
+  it('drops the count from the label when only one guest took it', () => {
+    const inv = buildInvoice(
+      {
+        ...base,
+        totalEur: 125,
+        supplementName: 'Lobster for lunch',
+        supplementQty: 1,
+        supplementEur: 25,
+      },
+      payment,
+      business,
+    );
+    expect(inv.lines.at(-1)?.description).toBe('Lobster for lunch');
+  });
+
+  it('adds no line when the booking bought no supplement', () => {
+    const inv = buildInvoice(
+      { ...base, totalEur: 100, supplementName: null, supplementQty: 0, supplementEur: 0 },
+      payment,
+      business,
+    );
+    expect(inv.lines).toHaveLength(1);
+  });
+});

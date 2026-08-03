@@ -45,6 +45,11 @@ interface Booking {
   childSeats?: number | null;
   /** Region-based transport add-on (EUR), already inside totalEur — shown as its own breakdown line. */
   transportEur?: number | null;
+  /** The optional supplement bought (label + count + charge, snapshot at booking time), already
+   *  inside totalEur — like transport it has no line item, so it needs its own breakdown row. */
+  supplementName?: string | null;
+  supplementQty?: number | null;
+  supplementEur?: number | null;
   // Airport-transfer run-sheet — present only for transfer bookings (a truthy tripDirection marks one).
   // These already arrive on the wire DTO; the block below renders them and unlocks the e-voucher download.
   tripDirection?: string | null;
@@ -486,6 +491,18 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
               <dt className="text-ink-muted">{t('Door-to-door transport')}</dt>
               <dd className="font-medium text-ink">
                 <Price eur={booking.transportEur} />
+              </dd>
+            </div>
+          )}
+          {booking.supplementName && (booking.supplementEur ?? 0) > 0 && (
+            <div className="flex justify-between">
+              {/* The owner's own label — already stored in the guest's language, so not run through t(). */}
+              <dt className="text-ink-muted">
+                {booking.supplementName}
+                {(booking.supplementQty ?? 0) > 1 && ` × ${booking.supplementQty}`}
+              </dt>
+              <dd className="font-medium text-ink">
+                <Price eur={booking.supplementEur ?? 0} />
               </dd>
             </div>
           )}

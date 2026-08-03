@@ -68,6 +68,10 @@ export interface DayBooking {
   dropoffLocation: string | null;
   pickupPending: boolean;
   childSeats: number;
+  /** The optional supplement this party bought (label + how many) — the kitchen/skipper needs the
+   *  head count on the day sheet, so it rides alongside the child seats. */
+  supplementName: string | null;
+  supplementQty: number;
   customItinerary: Array<{ title: string; area?: string | null }> | null;
   transfer: AdminTransferDetails | null;
   /** The private staff note from the Bookings screen — read-only here. */
@@ -149,6 +153,8 @@ interface RawDayBooking extends RawTransferFields {
   dropoff_location: string | null;
   pickup_pending: boolean | null;
   child_seats: number | null;
+  supplement_name: string | null;
+  supplement_qty: number | null;
   disruption: { resolvedAt?: string | null } | null;
 }
 
@@ -186,7 +192,7 @@ function awaitingChoice(disruption: { resolvedAt?: string | null } | null): bool
 const BOOKING_FIELDS = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
   source, total_minor, notes, created_at, custom_itinerary,
-  pickup_location, dropoff_location, pickup_pending, child_seats, disruption,
+  pickup_location, dropoff_location, pickup_pending, child_seats, supplement_name, supplement_qty, disruption,
   ${TRANSFER_SELECT}
 `;
 
@@ -247,6 +253,8 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
         dropoffLocation: b.dropoff_location ?? null,
         pickupPending: b.pickup_pending ?? false,
         childSeats: b.child_seats ?? 0,
+        supplementName: b.supplement_name ?? null,
+        supplementQty: b.supplement_qty ?? 0,
         customItinerary: b.custom_itinerary,
         transfer: mapTransfer(b),
         staffNote: b.notes,

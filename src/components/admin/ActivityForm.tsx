@@ -371,6 +371,37 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             </p>
           </Field>
           {!contentOnly && (
+            <Field label="Optional supplement">
+              <div className="grid gap-3 sm:grid-cols-[1fr_150px]">
+                <input
+                  className={inputClass}
+                  placeholder="e.g. Lobster for lunch"
+                  value={v.supplementName}
+                  onChange={(e) => set('supplementName', e.target.value)}
+                />
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-ink/60">€</span>
+                  <input
+                    className={inputClass}
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="0.00"
+                    value={v.supplementEur ?? ''}
+                    onChange={(e) =>
+                      set('supplementEur', e.target.value === '' ? null : Number(e.target.value))
+                    }
+                  />
+                </div>
+              </div>
+              <p className="mt-1.5 text-[12px] text-ink-muted">
+                An upgrade guests can add to this activity while booking — you name it and you price
+                it. The price is <strong>per person</strong>: in a party of four where two want it,
+                the booking pays twice. Leave the name empty to hide it.
+              </p>
+            </Field>
+          )}
+          {!contentOnly && (
             <Field label="Pricing">
               <select
                 className={inputClass}
@@ -461,6 +492,17 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             className={inputClass}
             value={fr.meetingPoint ?? ''}
             onChange={(e) => setFr({ ...fr, meetingPoint: e.target.value })}
+          />
+        </Field>
+        <Field
+          label="Optional supplement"
+          hint="Only the name — the price is the same in both languages."
+        >
+          <input
+            className={inputClass}
+            placeholder={v.supplementName || 'e.g. Homard au déjeuner'}
+            value={fr.supplementName ?? ''}
+            onChange={(e) => setFr({ ...fr, supplementName: e.target.value })}
           />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">

@@ -20,6 +20,7 @@ import {
   ageBandLabel,
   privateQuote,
   privateQuoteMinor,
+  supplementCost,
 } from '@/lib/services/pricing';
 import { ServiceError } from '@/lib/services/errors';
 
@@ -388,5 +389,29 @@ describe('privateQuote (private option: base covers N, per-extra-head above)', (
     // €99.99 base + €12.50/extra — integer-cent arithmetic, no floating drift.
     expect(privateQuoteMinor(9999, 4, 1250, 6, 10)).toBe(9999 + 2 * 1250);
     expect(privateQuote(99.99, 4, 12.5, 6, 10)).toBe(124.99);
+  });
+});
+
+/* The per-activity supplement (e.g. the lobster lunch upgrade). Unlike the child seat, its unit
+ * price is NOT a module constant — the owner sets it per activity and api_book reads it from
+ * activities.supplement_minor. This mirror only has to agree with that arithmetic. */
+describe('supplementCost', () => {
+  it('charges the unit price once per guest who wanted it', () => {
+    expect(supplementCost(0, 25)).toBe(0);
+    expect(supplementCost(1, 25)).toBe(25);
+    expect(supplementCost(4, 25)).toBe(100);
+  });
+  it('costs nothing when the activity prices no supplement', () => {
+    expect(supplementCost(3, null)).toBe(0);
+    expect(supplementCost(3, undefined)).toBe(0);
+    expect(supplementCost(3, 0)).toBe(0);
+  });
+  it('never goes negative and ignores a fractional count', () => {
+    expect(supplementCost(-2, 25)).toBe(0);
+    expect(supplementCost(2.7, 25)).toBe(50);
+  });
+  it('stays exact in cents for a fractional euro rate', () => {
+    expect(supplementCost(3, 12.5)).toBe(37.5);
+    expect(supplementCost(3, 19.99)).toBe(59.97);
   });
 });

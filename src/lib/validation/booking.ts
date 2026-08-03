@@ -73,6 +73,11 @@ export const createBookingInputSchema = z.object({
   /** Number of child seats requested. First free, each additional €6 — the charge is computed
    *  server-side; the client value is only the count. Bounded so a tampered payload is a clean 400. */
   childSeats: z.number().int().min(0).max(25).optional(),
+  /** How many guests want the activity's optional supplement (e.g. the lobster lunch upgrade). Only
+   *  the COUNT travels: api_book reads the unit price from activities.supplement_minor and multiplies,
+   *  and charges nothing at all if that activity has no supplement configured. Bounded to the same 500
+   *  heads as `party` so a tampered payload is a clean 400 rather than an int overflow. */
+  supplementQty: z.number().int().min(0).max(500).optional(),
   /** Airport transfer: the hotel page slug. The SERVER looks up the destination zone from it and
    *  recomputes the fare — it never trusts a client-sent zone or price. */
   dropoffSlug: z.string().trim().max(120).nullish(),
@@ -167,6 +172,12 @@ export const bookingSchema = z.object({
   transportEur: z.number().nonnegative().nullish(),
   /** Pickup region the transport fare was based on, or null/absent if no transport was added. */
   pickupRegion: z.string().nullish(),
+  /** The optional supplement bought on this booking. Label and charge are SNAPSHOTS taken at booking
+   *  time, so a receipt reprinted after the owner renames or re-prices it still shows what the guest
+   *  actually paid for. `supplementEur` is the whole charge (unit × qty), already inside totalEur. */
+  supplementName: z.string().nullish(),
+  supplementQty: z.number().int().nonnegative().nullish(),
+  supplementEur: z.number().nonnegative().nullish(),
   /** Airport transfer: trip type/direction + flight details (null/absent for non-transfer bookings). */
   tripType: z.string().nullish(),
   tripDirection: z.string().nullish(),

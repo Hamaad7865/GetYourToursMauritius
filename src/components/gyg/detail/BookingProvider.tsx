@@ -21,6 +21,7 @@ import type {
 import {
   sightseeingQuote,
   childSeatsCost,
+  supplementCost,
   quoteTotal,
   privateQuote,
   SIGHTSEEING_DEFAULT,
@@ -65,6 +66,10 @@ export interface BookingActivity {
   /** Global transport fare tables (per_person / per_group with pickup only; null otherwise). */
   transportBands: TransportBands | null;
   regionDistances: RegionDistances | null;
+  /** Owner-configured optional supplement (e.g. "Lobster lunch"), priced PER PERSON. Null name = this
+   *  activity has none and the picker is hidden. The server re-reads the price from the DB. */
+  supplementName: string | null;
+  supplementEur: number | null;
 }
 
 /** Pickup/drop-off point captured in the widget (coords drive the transport fare; text is for records). */
@@ -116,6 +121,13 @@ interface BookingState {
   childSeatCap: number;
   /** The child-seat add-on cost in EUR (already included in `total`). */
   childSeatsExtra: number;
+  /** True when this activity has a supplement configured (name set) — gates the whole picker. */
+  hasSupplement: boolean;
+  /** How many guests want the supplement. Bounded to the party size. */
+  supplementQty: number;
+  setSupplementQty: (n: number) => void;
+  /** The supplement's cost in EUR for the current selection (already included in `total`). */
+  supplementExtra: number;
   days: Map<string, DayInfo> | null;
   /** True when the availability fetch FAILED (network / server), as opposed to genuinely having no
    *  dates. Lets the calendar show a retry affordance instead of a misleading "No dates available". */
@@ -195,6 +207,7 @@ export function BookingProvider({
   const [lang, setLang] = useState(activity.languages[0] ?? 'English');
   const [suv, setSuv] = useState(false);
   const [childSeats, setChildSeats] = useState(0);
+  const [supplementQty, setSupplementQty] = useState(0);
   const [checked, setChecked] = useState(false);
   const [scrollTick, setScrollTick] = useState(0);
   // Reveal the card and (re)request a scroll-into-view. Bumping the tick on every press means a
@@ -490,6 +503,13 @@ export function BookingProvider({
   useEffect(() => {
     if (childSeats > childSeatCap) setChildSeats(childSeatCap);
   }, [childSeats, childSeatCap]);
+  // The supplement is per person, so it can never be bought for more heads than are travelling —
+  // api_book clamps it the same way, and a client that outran the clamp would show a total the
+  // server then refuses to match.
+  const hasSupplement = Boolean(activity.supplementName);
+  useEffect(() => {
+    if (supplementQty > totalGuests) setSupplementQty(totalGuests);
+  }, [supplementQty, totalGuests]);
   const vehicleQuote = isVehicle
     ? sightseeingQuote(
         Math.min(Math.max(participants, 1), vehicleCfg.maxParty),
@@ -543,11 +563,14 @@ export function BookingProvider({
               : selectedTier.amountEur * participants
             : selectedTier.amountEur * participants;
   const childSeatsExtra = childSeatsCost(childSeats);
+  const supplementExtra = hasSupplement
+    ? supplementCost(Math.min(supplementQty, totalGuests), activity.supplementEur)
+    : 0;
 
   // Region-based transport is no longer chosen here — pickup + the distance-based transport fee are
   // confirmed in the CHECKOUT flow (one global place, for every pricing mode). The activity page shows
   // the base price only; `pickupcap` (below) seeds checkout's "want pickup?" default.
-  const total = baseTotal == null ? null : baseTotal + childSeatsExtra;
+  const total = baseTotal == null ? null : baseTotal + childSeatsExtra + supplementExtra;
   // Per-unit price for the cart: a vehicle is one flat unit (its whole price); per-group / per-person
   // is the tier's unit price (the cart multiplies it by the party). Never includes the child add-on.
   // Age-banded lines carry the WHOLE party price as a flat unit (like vehicle mode) since there's no single
@@ -640,6 +663,10 @@ export function BookingProvider({
           party: isAgeBanded || privateCfg ? party : undefined,
           suv: suvActive,
           childSeats,
+          // The unit price rides along because itemTotal() is pure and has no activity to consult.
+          supplementQty: hasSupplement ? Math.min(supplementQty, totalGuests) : 0,
+          supplementName: activity.supplementName ?? undefined,
+          supplementUnitEur: activity.supplementEur ?? undefined,
           maxGuests: groupSize,
           seatsLeft,
           unit: unitLabel,
@@ -665,6 +692,9 @@ export function BookingProvider({
       unit: unitLabel,
       suv: suvActive ? '1' : '0',
       childSeats: String(activity.adultsOnly ? 0 : childSeats),
+      supplementQty: String(hasSupplement ? Math.min(supplementQty, totalGuests) : 0),
+      // Display only, so checkout's order summary can name the upgrade. The charge comes from the DB.
+      supplementName: hasSupplement && supplementQty > 0 ? (activity.supplementName ?? '') : '',
       // Pickup CAPABILITY: seeds checkout step ①'s "want pickup?" default to Yes for a pickup-capable
       // (per_person/per_group with pickup) activity. The pickup itself + the transport fee are chosen
       // and priced AT CHECKOUT now, not here.
@@ -699,6 +729,10 @@ export function BookingProvider({
     setChildSeats,
     childSeatCap,
     childSeatsExtra,
+    hasSupplement,
+    supplementQty,
+    setSupplementQty,
+    supplementExtra,
     days,
     availabilityError,
     reloadAvailability,

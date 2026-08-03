@@ -942,6 +942,19 @@
                           },
                           "default": {}
                         },
+                        "supplementName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "supplementEur": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
                         "options": {
                           "type": "array",
                           "items": {
@@ -4965,6 +4978,11 @@
                     "minimum": 0,
                     "maximum": 25
                   },
+                  "supplementQty": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 500
+                  },
                   "dropoffSlug": {
                     "type": [
                       "string",
@@ -5325,6 +5343,26 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "supplementName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "supplementQty": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "supplementEur": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
                         },
                         "tripType": {
                           "type": [
@@ -5979,6 +6017,26 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "supplementName": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "supplementQty": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "supplementEur": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
                         },
                         "tripType": {
                           "type": [

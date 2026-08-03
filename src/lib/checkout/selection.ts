@@ -28,6 +28,10 @@ export type SelectionInput = {
   suv: boolean;
   /** Number of child seats chosen (first free, the rest charged). */
   childSeats: number;
+  /** How many guests want the activity's optional supplement — a priced choice, so a change to it
+   *  must break the stash exactly like a party change does, or re-booking the same slot with the
+   *  lobster added would rehydrate the ref WITHOUT it and charge the old, cheaper total. */
+  supplementQty: number;
   /** Pickup address text (empty when no pickup / TBD). */
   pickupText: string;
   /** Resolved pickup latitude — drives the region transport fare (null when none/TBD). */
@@ -80,6 +84,7 @@ export function selectionHash(input: SelectionInput): string {
       : null,
     suv: Boolean(input.suv),
     childSeats: Number.isFinite(input.childSeats) ? input.childSeats : 0,
+    supplementQty: Number.isFinite(input.supplementQty) ? input.supplementQty : 0,
     pickupText: input.pickupText ?? '',
     pickupLat: input.pickupLat ?? null,
     pickupLng: input.pickupLng ?? null,

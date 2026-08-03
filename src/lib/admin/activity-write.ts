@@ -111,6 +111,13 @@ export interface ActivityFormValues {
   priceListUrl: string;
   /** Optional label shown above the price-list PDF (e.g. "Casela park entry prices"). */
   priceListLabel: string;
+  /** Optional supplement the guest can add per person at booking (e.g. "Lobster lunch"). '' switches
+   *  the whole thing off for this activity. Deliberately a real column, not an `extra` key: the
+   *  matching price is money, and `extra` is merged with the French overlay. */
+  supplementName: string;
+  /** Per-PERSON price of `supplementName`, in EUR. api_book re-reads it from the DB as the charge —
+   *  the browser only ever sends how many guests want it. */
+  supplementEur: number | null;
   /** The activity's `extra` as loaded — buildExtra() preserves any key the form doesn't manage
    *  (e.g. availability/returnWindow set via SQL patches), so a save can't silently destroy them. */
   sourceExtra: Record<string, unknown>;
@@ -152,6 +159,8 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   badges: [],
   priceListUrl: '',
   priceListLabel: '',
+  supplementName: '',
+  supplementEur: null,
   sourceExtra: {},
 };
 
@@ -263,6 +272,13 @@ export function activityRow(v: ActivityFormValues, opId: string) {
     seo_title: v.seoTitle.trim() || null,
     seo_description: v.seoDescription.trim() || null,
     status: v.status,
+    // Blank name = no supplement on this activity, which is what api_book gates on. The price is
+    // kept as typed either way, so blanking the name to hide the option doesn't lose the figure.
+    supplement_name: v.supplementName.trim() || null,
+    supplement_minor:
+      v.supplementEur == null || !Number.isFinite(v.supplementEur)
+        ? null
+        : Math.max(0, Math.round(v.supplementEur * 100)),
     extra: buildExtra(v) as never,
   };
 }
@@ -615,6 +631,9 @@ export interface ActivityTranslationForm {
   meetingPoint: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
+  /** French label for the activity's optional supplement. Its PRICE is never translated — only the
+   *  English name column decides whether the supplement exists at all. */
+  supplementName: string | null;
   highlights: string[];
   inclusions: string[];
   exclusions: string[];
@@ -627,6 +646,7 @@ export const EMPTY_ACTIVITY_TRANSLATION: ActivityTranslationForm = {
   meetingPoint: null,
   seoTitle: null,
   seoDescription: null,
+  supplementName: null,
   highlights: [],
   inclusions: [],
   exclusions: [],
@@ -649,6 +669,7 @@ export function translationRowFromForm(activityId: string, form: ActivityTransla
     meeting_point: blankToNull(form.meetingPoint),
     seo_title: blankToNull(form.seoTitle),
     seo_description: blankToNull(form.seoDescription),
+    supplement_name: blankToNull(form.supplementName),
     highlights: form.highlights,
     inclusions: form.inclusions,
     exclusions: form.exclusions,
@@ -682,7 +703,7 @@ export async function loadActivityTranslation(
   const { data, error } = await sb
     .from('activity_translations')
     .select(
-      'title, summary, description, meeting_point, seo_title, seo_description, highlights, inclusions, exclusions, source',
+      'title, summary, description, meeting_point, seo_title, seo_description, supplement_name, highlights, inclusions, exclusions, source',
     )
     .eq('activity_id', activityId)
     .eq('locale', 'fr')
@@ -697,6 +718,7 @@ export async function loadActivityTranslation(
       meetingPoint: data.meeting_point,
       seoTitle: data.seo_title,
       seoDescription: data.seo_description,
+      supplementName: data.supplement_name,
       highlights: data.highlights ?? [],
       inclusions: data.inclusions ?? [],
       exclusions: data.exclusions ?? [],
@@ -858,6 +880,8 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     })),
     priceListUrl: extra.priceList?.url ?? '',
     priceListLabel: extra.priceList?.label ?? '',
+    supplementName: act.supplement_name ?? '',
+    supplementEur: act.supplement_minor != null ? act.supplement_minor / 100 : null,
     sourceExtra: (act.extra ?? {}) as Record<string, unknown>,
   };
 }

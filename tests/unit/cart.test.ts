@@ -47,6 +47,33 @@ describe('itemTotal — child-seat add-on never exceeds the party', () => {
   });
 });
 
+describe('itemTotal — the per-activity supplement', () => {
+  const supp = { supplementName: 'Lobster lunch', supplementUnitEur: 25 };
+  it('charges the unit price once per guest who wanted it', () => {
+    expect(itemTotal({ ...base, guests: 3, childSeats: 0, ...supp, supplementQty: 2 })).toBe(200); // 3×€50 + 2×€25
+  });
+  it('caps the supplement to a lowered party size (no stale inflation)', () => {
+    expect(itemTotal({ ...base, guests: 1, childSeats: 0, ...supp, supplementQty: 3 })).toBe(75); // 1×€50 + 1×€25
+  });
+  it('is flat on a party-map line, alongside the child-seat add-on', () => {
+    expect(
+      itemTotal({
+        ...base,
+        pricingMode: 'per_person',
+        party: { Adult: 2, Child: 1 },
+        unitEur: 140, // the whole banded party price
+        guests: 3,
+        childSeats: 2,
+        ...supp,
+        supplementQty: 2,
+      }),
+    ).toBe(196); // 140 flat + childSeatsCost(2)=6 + 2×€25
+  });
+  it('costs nothing when the activity has no supplement priced', () => {
+    expect(itemTotal({ ...base, guests: 3, childSeats: 0, supplementQty: 3 })).toBe(150);
+  });
+});
+
 describe('lineCap — a full slot caps the stepper (no falsy-zero → Infinity)', () => {
   it('caps at seatsLeft when the slot has room', () => {
     expect(
@@ -75,6 +102,16 @@ describe("setGuests clamp logic (pure mirror — the localStorage-backed hook is
   });
   it('raising guests leaves the smaller childSeats untouched', () => {
     expect(clamp({ ...base, guests: 1, childSeats: 1 }, 4)).toEqual({ guests: 4, childSeats: 1 });
+  });
+  it('lowering guests pulls the supplement count down too', () => {
+    const clampBoth = (i: CartItem, guests: number) => {
+      const next = Math.max(1, Math.min(lineCap(i), guests));
+      return { guests: next, supplementQty: Math.min(i.supplementQty ?? 0, next) };
+    };
+    expect(clampBoth({ ...base, guests: 3, supplementQty: 3 }, 1)).toEqual({
+      guests: 1,
+      supplementQty: 1,
+    });
   });
 });
 
