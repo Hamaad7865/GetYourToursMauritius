@@ -316,6 +316,22 @@ So: **when you publish a new activity, set its map location in `/admin`.** To fi
 select slug, title from activities where status = 'published' and lat is null;
 ```
 
+### Portrait photos used to break the activity gallery — keep the grid's explicit rows
+
+The detail-page gallery (`src/components/gyg/detail/Gallery.tsx`) is a grid with a **pinned height**
+(`h-[240px] sm:h-[360px]`). Without an explicit `grid-rows-*`, its implicit row is content-sized: a
+tile image's `h-full` resolves as `auto`, so the row grows to the photo's intrinsic aspect-ratio
+height while the container stays pinned and `overflow: visible` — the tiles paint straight over the
+description and trust strip below. Latent for as long as every catalog photo was landscape; the first
+portrait 9:16 phone uploads (2026-08-03) inflated the row to ~500px inside the 360px box, live on
+production minutes after upload.
+
+`grid-rows-1` on that grid is the fix (Tailwind rows are `minmax(0, 1fr)`, so the track clamps to the
+container and `object-cover` crops the photo). `tests/unit/fixed-height-grid-rows.test.ts` scans every
+fixed-height column grid under `src/components` for it — don't delete the row class to "simplify the
+classNames", and don't work around the guard by giving a new gallery its height some other way.
+Owners can upload photos in any orientation; the layout, not the upload, must absorb it.
+
 ---
 
 ## Everything else

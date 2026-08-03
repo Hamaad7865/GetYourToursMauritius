@@ -88,7 +88,9 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
 
   return (
     <div className="mb-6">
-      <div className="relative grid h-[240px] gap-2 sm:h-[360px] sm:grid-cols-[1.6fr_1fr]">
+      {/* grid-rows-1 clamps the row to the pinned height — without it a portrait photo's
+          intrinsic ratio inflates the implicit row and the tiles paint over the content below. */}
+      <div className="relative grid h-[240px] grid-rows-1 gap-2 sm:h-[360px] sm:grid-cols-[1.6fr_1fr]">
         <Tile
           image={grid[0]!}
           title={title}
