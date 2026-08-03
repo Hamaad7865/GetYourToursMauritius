@@ -53,6 +53,33 @@ const CHARGE_TOLERANCE_MINOR = 100;
  * stays payment_pending, and the /payments/sync poll + the maintenance sweep re-query Peach's status
  * endpoint (whose payload is complete) on their normal cadence.
  */
+/**
+ * What the ledger holds for one payment row after an append: how much has been credited, and the
+ * total it is measured against.
+ *
+ * Prefers the row `append_payment_event` itself returned (it is the post-update state, no extra
+ * round trip). Composite return values are decoded differently by different clients — PostgREST
+ * hands back a JSON object, a raw pg driver can hand back the tuple as text — so an undecoded answer
+ * falls through to a direct read rather than being guessed at. On a money path an unreadable answer
+ * must never pass for a good one, which is why the caller treats `null` as "not credited".
+ */
+async function ledgerTotals(
+  admin: SupabaseClient<Database>,
+  returned: unknown,
+  paymentId: string,
+): Promise<{ paidMinor: number; totalMinor: number } | null> {
+  const row = returned as { paid_minor?: unknown; amount_minor?: unknown } | null;
+  if (row && typeof row === 'object' && typeof row.amount_minor === 'number') {
+    return { paidMinor: Number(row.paid_minor ?? 0), totalMinor: row.amount_minor };
+  }
+  const { data } = await admin
+    .from('payments')
+    .select('paid_minor, amount_minor')
+    .eq('id', paymentId)
+    .maybeSingle();
+  return data ? { paidMinor: data.paid_minor ?? 0, totalMinor: data.amount_minor } : null;
+}
+
 export async function reconcilePaymentEvent(
   admin: SupabaseClient<Database>,
   event: PaymentEvent,
@@ -177,10 +204,10 @@ export async function reconcilePaymentEvent(
   // maps to 'captured', so this function can never write one. If a future outcome ever maps there,
   // it MUST go through the identical charge-vs-ledger conversion above — never at face value.
 
-  // Whether THIS event fully satisfies the total (drives the caller's response flag; the DB confirm
-  // is decided independently by append_payment_event summing credited amounts). The short_settlement
-  // gate is what makes this correct: any 'paid' event that gets here credited the FULL EUR total, so
-  // append_payment_event's `v_paid >= amount_minor` cannot disagree. Do NOT reintroduce a comparison
+  // Whether THIS event fully satisfies the total. The short_settlement gate is what makes the
+  // intent correct: any 'paid' event that gets here credited the FULL EUR total. But intent is not
+  // outcome — this is only returned once the post-append check below has confirmed the ledger really
+  // reached the total, and that check returns early if it did not. Do NOT reintroduce a comparison
   // against the provider's raw amount — MUR minor units are ~54× EUR minor units.
   const fullyPaid = event.outcome === 'paid';
 
@@ -199,7 +226,7 @@ export async function reconcilePaymentEvent(
     },
   } as unknown as Json;
 
-  const { error: rpcErr } = await admin.rpc('append_payment_event', {
+  const { data: ledgerRow, error: rpcErr } = await admin.rpc('append_payment_event', {
     p_payment_id: payment.id,
     p_type: event.outcome,
     p_provider_event_id: event.providerReference,
@@ -208,6 +235,51 @@ export async function reconcilePaymentEvent(
     p_payload: payload,
   });
   if (rpcErr) throw new Error(rpcErr.message);
+
+  // ---- DID THE CREDIT ACTUALLY LAND? A clean error channel is NOT proof of a write.
+  //
+  // The ledger insert is `on conflict (payment_id, provider_event_id, type) do nothing`, so an event
+  // that collides with one already on file writes nothing, credits nothing, and still returns
+  // success. That is exactly how a discarded Peach 'Successful' (it reuses the Pending's transaction
+  // id) once reported a confirmed booking over an empty ledger: the booking stayed payment_pending,
+  // the expiry sweep released it, and the seat was resold with the money taken. The dedup key now
+  // carries the event type — but the REPORTING side must stop trusting the provider's outcome string
+  // regardless of what caused a shortfall, because `confirmed` is not an internal detail: the
+  // /payments/sync poll hands it to the guest's browser, where it drives EmbeddedCheckout's redirect
+  // to the confirmation page. It must describe the LEDGER, never the provider's word.
+  //
+  // Only the 'paid' path is asserted. A refund credit is legitimately 0 (a duplicate refund clamps to
+  // `outstanding`), so there is no floor to check without re-deriving the refund arithmetic here.
+  if (event.outcome === 'paid') {
+    const totals = await ledgerTotals(admin, ledgerRow, payment.id);
+    if (!totals || totals.paidMinor < totals.totalMinor) {
+      log.error('reconcile_credit_not_applied', {
+        bookingRef: event.bookingRef,
+        providerReference: event.providerReference,
+        creditedMinor: amountMinor,
+        ledgerPaidMinor: totals?.paidMinor ?? null,
+        ledgerTotalMinor: totals?.totalMinor ?? payment.amount_minor,
+        ledgerCurrency,
+      });
+      // Same remedy as a quarantine, and for the same reason: the money is real, we could not prove
+      // it was credited, so the expiry sweep must not release the seat. Never throws — a 5xx would
+      // make Peach redeliver an event that will collide identically every time.
+      try {
+        await admin.rpc('api_flag_settlement_review', {
+          p: { paymentId: payment.id, reason: 'credit_not_applied' },
+        });
+      } catch {
+        log.error('reconcile_review_flag_failed', {
+          bookingRef: event.bookingRef,
+          reason: 'credit_not_applied',
+        });
+      }
+      // The `quarantined:` prefix is the established "settled but not credited" signal: the sweep
+      // counts it as errored rather than as a failed payment, the webhook logs it and still ACKs,
+      // and the booking stays payment_pending so the re-query paths can self-heal it.
+      return { found: true, confirmed: false, outcome: 'quarantined:credit_not_applied' };
+    }
+  }
 
   // Captured, but Peach wants a human to vet it (fraud suspicion / AVS mismatch). The money moved,
   // so the booking confirms like any other capture — but the owner must see it before the guest
