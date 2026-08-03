@@ -268,6 +268,7 @@ export const fr: Record<string, string> = {
   'See more': 'Voir plus',
   'Link copied': 'Lien copié',
   Share: 'Partager',
+  'View photo': 'Voir la photo',
   'View all {n} photos': 'Voir les {n} photos',
   'Photo gallery': 'Galerie de photos',
   'Close gallery': 'Fermer la galerie',

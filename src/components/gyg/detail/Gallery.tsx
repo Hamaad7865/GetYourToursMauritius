@@ -118,7 +118,7 @@ export function Gallery({ images, title }: { images: TourImage[]; title: string 
           onClick={() => openAt(0)}
           className="absolute bottom-3.5 right-3.5 rounded-xl border border-ink/10 bg-white/95 px-4 py-2 text-[13px] font-bold text-ink shadow-[0_6px_18px_-6px_rgba(10,46,54,0.4)] hover:bg-white"
         >
-          {t('View all {n} photos', { n: images.length })}
+          {images.length === 1 ? t('View photo') : t('View all {n} photos', { n: images.length })}
         </button>
       </div>
 
