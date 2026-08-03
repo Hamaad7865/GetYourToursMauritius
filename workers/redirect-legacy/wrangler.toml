@@ -1,0 +1,30 @@
+# Legacy-domain redirector — serves visitemaurice.com after the WordPress site is retired.
+#
+# Deploy (run from the REPO ROOT):
+#   npx wrangler deploy --config workers/redirect-legacy/wrangler.toml
+#
+# This Worker has NO origin behind it. Once the routes below are live, the visitemaurice.com web
+# hosting can be cancelled — but read the README first: the MAILBOX is on the same provider and
+# dies with the hosting plan unless it is moved or kept on a mail-only plan.
+
+name = "visitemaurice-redirect"
+main = "src/index.js"
+compatibility_date = "2025-02-01"
+
+# Routes bind the Worker to the legacy zone. They only resolve once visitemaurice.com is a zone in
+# THIS Cloudflare account and its apex + www records are proxied (orange cloud). See README step 4.
+routes = [
+  { pattern = "visitemaurice.com/*", zone_name = "visitemaurice.com" },
+  { pattern = "www.visitemaurice.com/*", zone_name = "visitemaurice.com" },
+]
+
+# Every request is a redirect, so invocation volume is whatever residual traffic the old domain still
+# gets — small, and worth sampling at 100% while the migration is being watched in Search Console.
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[vars]
+# Where everything is sent. Kept as a var (not hard-coded) so the same Worker keeps working if the
+# canonical domain ever changes again — matches the CANONICAL_HOST repository variable.
+CANONICAL_ORIGIN = "https://bellemaretours.com"
