@@ -102,9 +102,9 @@ export default async function CookiesPage() {
           <LegalList
             items={[
               <>
-                <strong>{t('Off by default')}</strong>
+                <strong>{t('Off until you accept')}</strong>
                 {t(
-                  ' — analytics storage is denied until you accept. If you reject, or simply ignore the banner, no analytics cookies are set.',
+                  ' — analytics storage is denied when you arrive. It stays denied if you choose “Reject all”. Accepting — either by pressing “Accept all” or by continuing to scroll the page, as the banner states — turns it on.',
                 )}
               </>,
               <>

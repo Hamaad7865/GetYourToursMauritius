@@ -7,7 +7,9 @@ import {
   CONSENT_GRANTED,
   NOTICE_KEY,
   type ConsentChoice,
+  type ConsentSource,
   readConsent,
+  scrollGrantsConsent,
   serializeConsent,
   shouldShowNotice,
 } from '@/lib/consent/notice';
@@ -26,6 +28,16 @@ import { useT } from '@/components/site/PreferencesProvider';
  *   accept is not free consent, and the whole gate is worthless if it is not freely given.
  * - Dismissing without choosing is deliberately impossible (no ✕): silence is not consent, and a
  *   bar that can be waved away would leave analytics denied while implying the visitor decided.
+ *
+ * SCROLL-TO-ACCEPT (owner decision, 2026-08-03 — see SCROLL_CONSENT_PX in lib/consent/notice.ts for
+ * the full rationale and how to revert): scrolling past the threshold grants full consent. This is
+ * NOT valid consent under the GDPR, and was implemented on the owner's explicit instruction after
+ * the objection was raised and overruled. The two mitigations below are load-bearing — do not
+ * "tidy" them away:
+ *   - the visible copy states that continuing to browse accepts, so it is at least disclosed;
+ *   - the listener is disabled while the Customise panel is open, because a visitor mid-way through
+ *     setting per-category toggles is actively choosing, and scrolling that panel into view must
+ *     never overwrite the choice they are in the middle of making.
  */
 export function CookieNotice() {
   const t = useT();
@@ -55,9 +67,9 @@ export function CookieNotice() {
     return () => window.removeEventListener(OPEN_CONSENT_EVENT, reopen);
   }, []);
 
-  const decide = useCallback((next: ConsentChoice) => {
+  const decide = useCallback((next: ConsentChoice, via: ConsentSource = 'button') => {
     try {
-      localStorage.setItem(NOTICE_KEY, serializeConsent(next, Date.now()));
+      localStorage.setItem(NOTICE_KEY, serializeConsent(next, Date.now(), via));
     } catch {
       // Storage blocked (private mode): honour the choice for this page view anyway. The bar
       // returns on the next load because nothing was persisted — the safe direction to fail.
@@ -67,6 +79,19 @@ export function CookieNotice() {
     setShow(false);
     setCustomising(false);
   }, []);
+
+  // Scroll-to-accept. Only armed while the bar is up and the visitor is NOT mid-way through the
+  // Customise panel. The baseline is where they were when the bar appeared, so a page restored
+  // mid-article does not consent on their behalf before they have moved (see scrollGrantsConsent).
+  useEffect(() => {
+    if (!show || customising) return;
+    const startY = window.scrollY;
+    const onScroll = () => {
+      if (scrollGrantsConsent(startY, window.scrollY)) decide(CONSENT_GRANTED, 'scroll');
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [show, customising, decide]);
 
   if (!show) return null;
 
@@ -83,6 +108,8 @@ export function CookieNotice() {
             {t(
               'We use necessary cookies to run this site, and analytics cookies to understand how it is used.',
             )}{' '}
+            {/* Disclosure is mandatory here — see the scroll-to-accept note in this file's header. */}
+            {t('If you continue scrolling, we’ll take that as acceptance.')}{' '}
             <Link
               href="/cookies"
               className="font-semibold text-teal-dark underline-offset-2 hover:underline"

@@ -1215,6 +1215,8 @@ export const fr: Record<string, string> = {
   'Cookie settings': 'Paramètres des cookies',
   'We use necessary cookies to run this site, and analytics cookies to understand how it is used.':
     'Nous utilisons des cookies nécessaires au fonctionnement du site, et des cookies de mesure d’audience pour comprendre son utilisation.',
+  'If you continue scrolling, we’ll take that as acceptance.':
+    'Si vous continuez à faire défiler la page, nous considérerons que vous les acceptez.',
   Customise: 'Personnaliser',
   'Reject all': 'Tout refuser',
   'Accept all': 'Tout accepter',
@@ -1235,9 +1237,9 @@ export const fr: Record<string, string> = {
     'Les cookies nécessaires font fonctionner le site et sont toujours actifs. Les cookies de mesure d’audience nous aident à voir quelles pages sont utiles ; ils restent désactivés tant que vous ne les acceptez pas. Nous n’utilisons aucun cookie publicitaire sans votre accord, et nous ne vendons jamais votre navigation.',
   'With your consent, we use Google Analytics (loaded through Google Tag Manager) to understand how the site is used — which pages people read, which tours they look at, and where visitors arrive from. It helps us decide what to improve.':
     'Avec votre consentement, nous utilisons Google Analytics (chargé via Google Tag Manager) pour comprendre l’utilisation du site : les pages consultées, les excursions regardées et la provenance des visiteurs. Cela nous aide à décider quoi améliorer.',
-  'Off by default': 'Désactivés par défaut',
-  ' — analytics storage is denied until you accept. If you reject, or simply ignore the banner, no analytics cookies are set.':
-    ' — le stockage de mesure d’audience est refusé tant que vous n’avez pas accepté. Si vous refusez, ou ignorez simplement la bannière, aucun cookie de mesure n’est déposé.',
+  'Off until you accept': 'Désactivés jusqu’à votre acceptation',
+  ' — analytics storage is denied when you arrive. It stays denied if you choose “Reject all”. Accepting — either by pressing “Accept all” or by continuing to scroll the page, as the banner states — turns it on.':
+    ' — le stockage de mesure d’audience est refusé à votre arrivée. Il le reste si vous choisissez « Tout refuser ». L’acceptation — en appuyant sur « Tout accepter » ou en continuant à faire défiler la page, comme l’indique la bannière — l’active.',
   'What we see': 'Ce que nous voyons',
   ' — aggregated visit statistics: pages viewed, approximate location, device and browser, and the site or search that referred you.':
     ' — des statistiques de visite agrégées : pages vues, localisation approximative, appareil et navigateur, et le site ou la recherche qui vous a amené.',

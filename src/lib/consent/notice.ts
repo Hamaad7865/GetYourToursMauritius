@@ -20,6 +20,43 @@ export interface ConsentChoice {
   marketing: boolean;
 }
 
+/**
+ * How a stored consent was obtained. Recorded for an audit trail: 'scroll' entries are consents the
+ * visitor never actively clicked, so they can be identified and re-prompted in bulk (bump
+ * NOTICE_VERSION) if the scroll-to-accept behaviour is ever withdrawn.
+ */
+export type ConsentSource = 'button' | 'scroll';
+
+/**
+ * Downward pixels of deliberate scrolling that grant consent — see `scrollGrantsConsent`.
+ *
+ * OWNER DECISION, 2026-08-03: treating scroll as acceptance was requested by the owner (via the SEO
+ * consultant) after being told, three times, that it is NOT valid consent under the GDPR. EDPB
+ * Guidelines 05/2020 §86 states scrolling "will not under any circumstances satisfy the requirement
+ * of a clear and affirmative action". It is implemented here because the risk is the owner's to
+ * carry, but two mitigations are deliberately non-negotiable and must not be removed:
+ *   1. the banner SAYS scrolling accepts (undisclosed auto-accept is materially worse), and
+ *   2. `Reject all` stays one click away with equal visual weight.
+ * To revert: delete the scroll listener in CookieNotice.tsx and bump NOTICE_VERSION, which re-asks
+ * everyone — including everyone whose stored consent has `via: 'scroll'`.
+ */
+export const SCROLL_CONSENT_PX = 400;
+
+/**
+ * Whether scrolling has passed the threshold that counts as acceptance.
+ *
+ * Measured as movement DOWN from where the visitor was when the banner appeared, not absolute
+ * scrollY: a page restored mid-article (back-navigation, an #anchor link) would otherwise "consent"
+ * before the visitor moved at all. Scrolling back up never grants.
+ */
+export function scrollGrantsConsent(
+  startY: number,
+  currentY: number,
+  threshold: number = SCROLL_CONSENT_PX,
+): boolean {
+  return currentY - startY >= threshold;
+}
+
 /** Nothing opted in. The pre-consent default, and what "Reject all" stores. */
 export const CONSENT_DENIED: ConsentChoice = { analytics: false, marketing: false };
 /** What "Accept all" stores. */
@@ -30,6 +67,7 @@ interface StoredConsent {
   ts?: number;
   analytics?: boolean;
   marketing?: boolean;
+  via?: ConsentSource;
 }
 
 function parse(stored: string | null): StoredConsent | null {
@@ -62,13 +100,28 @@ export function readConsent(stored: string | null): ConsentChoice | null {
   return { analytics: v.analytics === true, marketing: v.marketing === true };
 }
 
-export function serializeConsent(choice: ConsentChoice, now: number): string {
+export function serializeConsent(
+  choice: ConsentChoice,
+  now: number,
+  via: ConsentSource = 'button',
+): string {
   return JSON.stringify({
     version: NOTICE_VERSION,
     ts: now,
     analytics: choice.analytics,
     marketing: choice.marketing,
+    via,
   });
+}
+
+/**
+ * How a stored consent was given, or null if unknown. Only 'scroll' and 'button' count; anything
+ * else (a hand-edited or older record) reads as null rather than being coerced to a click.
+ */
+export function readConsentSource(stored: string | null): ConsentSource | null {
+  const v = parse(stored);
+  if (!v || v.version !== NOTICE_VERSION) return null;
+  return v.via === 'scroll' || v.via === 'button' ? v.via : null;
 }
 
 /** Google Consent Mode v2 signal names. */
