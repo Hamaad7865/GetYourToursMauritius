@@ -477,7 +477,7 @@ async function materializeActivity(activityId: string): Promise<void> {
  * group rate — so EVERY priced tier must carry a cap, not just one (an uncapped cheapest tier silently
  * diverges the displayed total from the per-head charge). Reject at save time with a clear message.
  */
-function assertPricingValid(v: ActivityFormValues): void {
+export function assertPricingValid(v: ActivityFormValues): void {
   // Private options (own trips-per-day pool, base + per-extra-head pricing) ride per_person/per_group
   // activities only — the vehicle flows and transfer/planner widgets aren't option-aware.
   for (const o of v.options) {

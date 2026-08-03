@@ -158,10 +158,36 @@ silently doesn't persist:
 
 1. `activityExtraSchema` in `src/lib/validation/tours.ts`
 2. `buildExtra()` **and** `loadActivity()` in `src/lib/admin/activity-write.ts`
-3. `ActivityForm.tsx`
+3. the pane that owns the field, under `src/components/admin/activity/`
 
 And add the key to `MANAGED_EXTRA_KEYS`. `buildExtra()` deliberately **merges** rather than rebuilds,
 because rebuilding once silently wiped keys that a SQL patch had set.
+
+#### Where the editor's fields live
+
+The editor shows **one pane at a time**, chosen by the rail. `ActivityForm.tsx` owns only the state,
+the single load and the single save; every field lives in a pane beside it:
+
+| Pane              | File                     | Holds                                                                 |
+| ----------------- | ------------------------ | --------------------------------------------------------------------- |
+| Basics            | `BasicsSection.tsx`      | Title, slug, category, type, status, location, duration, lead time    |
+| Description       | `DescriptionSection.tsx` | Summary, full description                                             |
+| Photos & files    | `MediaSection.tsx`       | Gallery, price-list PDF                                               |
+| Pricing & options | `PricingSection.tsx`     | Pricing mode, options + tiers, supplement — **staff only**            |
+| Itinerary         | `ItinerarySection.tsx`   | Stops, alternatives, map coordinates                                  |
+| Logistics         | `LogisticsSection.tsx`   | Meeting point, start time, region, cancellation, the toggles          |
+| Inclusions        | `InclusionsSection.tsx`  | Highlights, languages, in/excluded, what to bring, know before you go |
+| Badges            | `BadgesSection.tsx`      | The custom highlights strip                                           |
+| Search appearance | `SearchSection.tsx`      | `seo_title` / `seo_description` + the SERP preview                    |
+| Français          | `FrenchSection.tsx`      | The `fr` translation row                                              |
+
+Add a pane by adding it to `SECTIONS` in `activity/sections.ts` and rendering it in the container's
+switch — `staffOnly: true` hides it from the restricted `seo` role. `?s=<pane-id>` deep-links to one.
+
+A rule that would fail the save belongs in `sectionIssues()` in the same file, so the rail can dot the
+offending pane and the save can jump to it — with only one pane on screen, an error about a hidden
+field is invisible otherwise. It calls `assertPricingValid` rather than restating it, so the pre-save
+check and the save cannot drift apart.
 
 ### Add a translation
 

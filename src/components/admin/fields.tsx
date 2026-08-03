@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { IconPlus, IconX } from '@/components/ui/icons';
 
 /**
@@ -29,6 +29,33 @@ export function Section({
       {hint && <p className="mt-0.5 text-[13px] text-ink-muted">{hint}</p>}
       <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+/** A labelled form row. Moved here from ActivityForm when that file was split into panes — every
+ *  pane needs it, so it belongs with the other shared primitives rather than in one of them. */
+export function Field({
+  label,
+  hint,
+  required,
+  full,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  required?: boolean;
+  full?: boolean;
+  children: React.ReactNode;
+}) {
+  const id = useId();
+  return (
+    <label htmlFor={id} className={`flex flex-col gap-1.5 ${full ? 'sm:col-span-2' : ''}`}>
+      <span className="text-[12.5px] font-bold text-ink/60">
+        {label} {required && <span className="text-coral">*</span>}
+      </span>
+      {children}
+      {hint && <span className="text-[12px] text-ink-muted">{hint}</span>}
+    </label>
   );
 }
 

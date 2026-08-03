@@ -291,7 +291,7 @@ The real boundary is RLS: `is_staff()` for money and PII, `is_content_editor()` 
 instead and you silently wipe keys set by SQL patches — a bug class that has already bitten once.
 
 Adding an `extra` field means touching **three** places: the Zod schema, `buildExtra()` + `loadActivity()`,
-and `ActivityForm.tsx`.
+and the editor pane that owns the field under `src/components/admin/activity/`.
 
 ### Set a tour to Draft; don't delete it
 
