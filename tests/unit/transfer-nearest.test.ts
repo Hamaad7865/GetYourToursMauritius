@@ -7,10 +7,14 @@ import { nearestTransfer, transfers } from '@/lib/content/transfers';
  * hotel. That snap is invisible maths behind a booking decision, so it is pinned here.
  *
  * The reported case: a guest picked Veranda Palmar Beach and the field changed to "The Residence
- * Mauritius". That looked like the site substituting a different hotel. It is not — The Residence is
- * genuinely the closest listed resort, ~500 m away, and both sit in the same airport zone, so the
- * fare is identical. What was missing was any explanation on screen; AirportQuote now keeps the
- * guest's own hotel in the field and names the zone instead.
+ * Mauritius". That looked like the site substituting a different hotel; the fare was right (same
+ * zone), and AirportQuote now keeps the guest's own hotel in the field and names the zone instead.
+ *
+ * The Residence was also only "nearest" because of coordinate drift: the original hand-curated
+ * table had LUX* Belle Mare 1.3 km from where it stands. With the 2026-08-04 geocoded table the
+ * true neighbour is LUX* Belle Mare, 0.22 km up the same beach (The Residence is 0.50 km, Ambre
+ * 0.68 km). Same zone either way — the fare never changed — but the hotel we NAME to the guest in
+ * the zone-fare note is now the one actually next door.
  */
 
 /**
@@ -21,9 +25,7 @@ const VERANDA_PALMAR = { lat: -20.20074, lng: 57.78339 };
 
 describe('nearestTransfer', () => {
   it('snaps an unlisted Belle Mare hotel to the closest listed one', () => {
-    expect(nearestTransfer(VERANDA_PALMAR.lat, VERANDA_PALMAR.lng).slug).toBe(
-      'the-residence-mauritius',
-    );
+    expect(nearestTransfer(VERANDA_PALMAR.lat, VERANDA_PALMAR.lng).slug).toBe('lux-belle-mare');
   });
 
   // The whole justification for snapping is that the fare cannot change. If a future map edit moves

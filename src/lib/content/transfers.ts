@@ -83,9 +83,14 @@ export function getTransfer(slug: string): Transfer | null {
 export function nearestTransfer(lat: number, lng: number): Transfer {
   let best: Transfer = transfers[0]!;
   let bestDist = Infinity;
+  // A degree of longitude at Mauritius's latitude (~20°S) is ~6% shorter than a degree of latitude,
+  // so raw squared degrees overweight east–west separation. cos(lat) makes the comparison true
+  // ground distance — it matters here because the Belle Mare resorts sit within a kilometre of each
+  // other, close enough for a 6% skew to change which one is "nearest".
+  const lngScale = Math.cos((lat * Math.PI) / 180);
   for (const t of transfers) {
     if (t.lat == null || t.lng == null) continue;
-    const dist = (t.lat - lat) ** 2 + (t.lng - lng) ** 2;
+    const dist = (t.lat - lat) ** 2 + ((t.lng - lng) * lngScale) ** 2;
     if (dist < bestDist) {
       bestDist = dist;
       best = t;

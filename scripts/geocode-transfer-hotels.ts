@@ -15,67 +15,67 @@ import { readFileSync, writeFileSync } from 'node:fs';
 
 const FILE = 'src/lib/content/_transfers.gen.ts';
 
-/** Curated approximate coordinates per hotel slug (good to a few hundred metres — enough for a pin + a
- *  road route from the airport). Refresh with --geocode for exact rooftop coordinates. */
+/**
+ * Curated coordinates per hotel slug — refreshed 2026-08-04 from the Google Geocoding API (via the
+ * Maps JS SDK on the live site, where the browser key is referrer-valid). The previous table was
+ * hand-placed and off by >1.5 km for 25 of the 45 hotels — enough that `nearestTransfer` could snap
+ * a Places pick to the wrong neighbour; the fare survives (zones are coarse) but the hotel NAMED to
+ * the guest was wrong. The 13 worst movers were verified against the geocoder's formatted_address
+ * (e.g. Ambre really is on "Coastal Road Palmar", not 3 km south of it).
+ */
 const CURATED: Record<string, { lat: number; lng: number }> = {
   // East coast
-  'lux-belle-mare': { lat: -20.1916, lng: 57.7725 },
-  'constance-belle-mare-plage': { lat: -20.1989, lng: 57.7745 },
-  'long-beach-mauritius': { lat: -20.2069, lng: 57.7785 },
-  'shangri-la-le-touessrok': { lat: -20.27, lng: 57.7905 },
-  'ambre-mauritius': { lat: -20.2331, lng: 57.7806 },
-  'radisson-blu-azuri': { lat: -20.1083, lng: 57.7203 },
-  'anahita-golf-spa': { lat: -20.282, lng: 57.7785 },
-  'four-seasons-anahita': { lat: -20.2862, lng: 57.7793 },
-  'one-only-le-saint-geran': { lat: -20.1646, lng: 57.78 },
-  'the-residence-mauritius': { lat: -20.205, lng: 57.7773 },
-  'emeraude-beach-attitude': { lat: -20.2122, lng: 57.776 },
-  'tropical-attitude': { lat: -20.2456, lng: 57.7875 },
-  'solana-beach': { lat: -20.215, lng: 57.777 },
+  'lux-belle-mare': { lat: -20.19902, lng: 57.78235 },
+  'constance-belle-mare-plage': { lat: -20.16728, lng: 57.76617 },
+  'long-beach-mauritius': { lat: -20.17272, lng: 57.76983 },
+  'shangri-la-le-touessrok': { lat: -20.25154, lng: 57.79723 },
+  'ambre-mauritius': { lat: -20.2061, lng: 57.78643 },
+  'radisson-blu-azuri': { lat: -20.09392, lng: 57.7088 },
+  'anahita-golf-spa': { lat: -20.27864, lng: 57.78889 },
+  'four-seasons-anahita': { lat: -20.28435, lng: 57.79041 },
+  'one-only-le-saint-geran': { lat: -20.16051, lng: 57.75628 },
+  'the-residence-mauritius': { lat: -20.19788, lng: 57.77973 },
+  'emeraude-beach-attitude': { lat: -20.19007, lng: 57.77342 },
+  'tropical-attitude': { lat: -20.23723, lng: 57.8005 },
+  'solana-beach': { lat: -20.17665, lng: 57.77043 },
   // North coast
-  'trou-aux-biches-beachcomber': { lat: -20.0331, lng: 57.5455 },
-  'canonnier-beachcomber': { lat: -20.0067, lng: 57.5681 },
-  'lux-grand-gaube': { lat: -19.9876, lng: 57.6566 },
-  'ravenala-attitude': { lat: -20.0874, lng: 57.5167 },
-  'westin-turtle-bay': { lat: -20.0884, lng: 57.5152 },
-  'le-meridien-ile-maurice': { lat: -20.0606, lng: 57.5226 },
-  'victoria-beachcomber': { lat: -20.0641, lng: 57.5212 },
-  'royal-palm-beachcomber': { lat: -20.0033, lng: 57.5806 },
-  'mauricia-beachcomber': { lat: -20.012, lng: 57.5841 },
-  'veranda-grand-baie': { lat: -20.0061, lng: 57.5876 },
-  'lagoon-attitude': { lat: -19.9836, lng: 57.6427 },
-  'zilwa-attitude': { lat: -19.9758, lng: 57.6431 },
-  'recif-attitude': { lat: -20.0556, lng: 57.5226 },
-  'coin-de-mire-attitude': { lat: -19.9869, lng: 57.6135 },
-  'veranda-pointe-aux-biches': { lat: -20.0492, lng: 57.523 },
+  'trou-aux-biches-beachcomber': { lat: -20.03016, lng: 57.54756 },
+  'canonnier-beachcomber': { lat: -20.00251, lng: 57.55366 },
+  'lux-grand-gaube': { lat: -20.00234, lng: 57.65979 },
+  'ravenala-attitude': { lat: -20.08351, lng: 57.51703 },
+  'westin-turtle-bay': { lat: -20.09068, lng: 57.51044 },
+  'le-meridien-ile-maurice': { lat: -20.07066, lng: 57.51622 },
+  'victoria-beachcomber': { lat: -20.0752, lng: 57.51283 },
+  'royal-palm-beachcomber': { lat: -20.00654, lng: 57.57891 },
+  'mauricia-beachcomber': { lat: -20.0093, lng: 57.57995 },
+  'veranda-grand-baie': { lat: -20.00842, lng: 57.5788 },
+  'lagoon-attitude': { lat: -19.99448, lng: 57.63648 },
+  'zilwa-attitude': { lat: -20.00314, lng: 57.64767 },
+  'recif-attitude': { lat: -20.0556, lng: 57.52202 },
+  'coin-de-mire-attitude': { lat: -19.98616, lng: 57.60677 },
+  'veranda-pointe-aux-biches': { lat: -20.04688, lng: 57.52913 },
   // West coast
-  'paradis-beachcomber': { lat: -20.453, lng: 57.3206 },
-  'dinarobin-beachcomber': { lat: -20.456, lng: 57.3186 },
-  'lux-le-morne': { lat: -20.4491, lng: 57.3219 },
-  'st-regis-mauritius': { lat: -20.4575, lng: 57.316 },
-  'sugar-beach-mauritius': { lat: -20.2872, lng: 57.3641 },
-  'la-pirogue': { lat: -20.2884, lng: 57.3645 },
-  'sands-suites': { lat: -20.296, lng: 57.366 },
-  'maradiva-villas': { lat: -20.2905, lng: 57.3651 },
-  'pearle-beach': { lat: -20.274, lng: 57.3651 },
-  'hilton-mauritius': { lat: -20.292, lng: 57.3648 },
-  'riu-le-morne': { lat: -20.448, lng: 57.3222 },
+  'paradis-beachcomber': { lat: -20.4369, lng: 57.3206 },
+  'dinarobin-beachcomber': { lat: -20.44911, lng: 57.31508 },
+  'lux-le-morne': { lat: -20.44505, lng: 57.32846 },
+  'st-regis-mauritius': { lat: -20.46117, lng: 57.31023 },
+  'sugar-beach-mauritius': { lat: -20.30367, lng: 57.36564 },
+  'la-pirogue': { lat: -20.29861, lng: 57.36488 },
+  'sands-suites': { lat: -20.31641, lng: 57.37181 },
+  'maradiva-villas': { lat: -20.31434, lng: 57.36977 },
+  'pearle-beach': { lat: -20.29371, lng: 57.36349 },
+  'hilton-mauritius': { lat: -20.30842, lng: 57.36727 },
+  // Geocoder matched only a generic "Mauritius" address for the Riu, but the point it returned sits
+  // on the Le Morne peninsula where the hotel is — usable, just not rooftop-verified.
+  'riu-le-morne': { lat: -20.46678, lng: 57.3109 },
   // South coast
-  'sofitel-so-mauritius': { lat: -20.5012, lng: 57.406 },
-  'heritage-le-telfair': { lat: -20.504, lng: 57.3902 },
-  'tamassa-bel-ombre': { lat: -20.5031, lng: 57.398 },
-  'shandrani-beachcomber': { lat: -20.4432, lng: 57.6975 },
-  'preskil-island-resort': { lat: -20.4181, lng: 57.7019 },
-  'outrigger-mauritius': { lat: -20.5052, lng: 57.3852 },
+  'sofitel-so-mauritius': { lat: -20.50935, lng: 57.43576 },
+  'heritage-le-telfair': { lat: -20.50644, lng: 57.40974 },
+  'tamassa-bel-ombre': { lat: -20.50878, lng: 57.41603 },
+  'shandrani-beachcomber': { lat: -20.4456, lng: 57.70452 },
+  'preskil-island-resort': { lat: -20.42181, lng: 57.72197 },
+  'outrigger-mauritius': { lat: -20.51089, lng: 57.41706 },
 };
-
-interface Hotel {
-  slug: string;
-  hotelName: string;
-  lat?: number;
-  lng?: number;
-  [k: string]: unknown;
-}
 
 async function geocode(name: string, key: string): Promise<{ lat: number; lng: number } | null> {
   const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(
@@ -89,35 +89,54 @@ async function geocode(name: string, key: string): Promise<{ lat: number; lng: n
   return loc ? { lat: loc.lat, lng: loc.lng } : null;
 }
 
+/**
+ * Apply coordinates by targeted text replacement inside each hotel's own block, never by parsing the
+ * whole array. The original JSON.parse round-trip broke the day prettier reformatted the generated
+ * file to single quotes — silently, since nobody re-runs this script often — and a round-trip also
+ * rewrites every line of a 2,000-line file when only two numbers changed.
+ */
 async function main(): Promise<void> {
   const useApi = process.argv.includes('--geocode');
   const key = process.env.GOOGLE_MAPS_API_KEY ?? '';
-  const src = readFileSync(FILE, 'utf8');
-  const start = src.indexOf('= [') + 2;
-  const end = src.lastIndexOf(']');
-  const arr = JSON.parse(src.slice(start, end + 1)) as Hotel[];
+  let src = readFileSync(FILE, 'utf8');
 
+  // Block boundaries: each hotel starts at its `slug:` line and runs to the next one (or EOF).
+  const slugRe = /slug:\s*'([^']+)'/g;
+  const marks = [...src.matchAll(slugRe)].map((m) => ({ slug: m[1]!, at: m.index! }));
+
+  // REVERSE order: replacements change block lengths, and `marks` holds offsets into the string as
+  // it was scanned — editing back-to-front is what keeps every yet-unprocessed offset valid.
   let filled = 0;
-  for (const h of arr) {
-    let c: { lat: number; lng: number } | null = CURATED[h.slug] ?? null;
+  for (let i = marks.length - 1; i >= 0; i -= 1) {
+    const { slug, at } = marks[i]!;
+    const end = i + 1 < marks.length ? marks[i + 1]!.at : src.length;
+    let c: { lat: number; lng: number } | null = CURATED[slug] ?? null;
     if (useApi && key) {
-      const g = await geocode(h.hotelName, key);
+      const name = /hotelName:\s*'([^']+)'/.exec(src.slice(at, end))?.[1] ?? slug;
+      const g = await geocode(name, key);
       if (g) c = g;
-      else if (!c) console.warn(`No geocode + no curated coord for ${h.slug} (${h.hotelName})`);
     }
-    if (c) {
-      h.lat = Number(c.lat.toFixed(5));
-      h.lng = Number(c.lng.toFixed(5));
-      filled += 1;
-    } else {
-      console.warn(`Missing coords for ${h.slug}`);
+    if (!c) {
+      console.warn(`Missing coords for ${slug}`);
+      continue;
     }
+    const block = src.slice(at, end);
+    // Number() drops toFixed's trailing zeros (57.78640 → 57.7864) — prettier rejects them.
+    const num = (v: number): string => String(Number(v.toFixed(5)));
+    const next = block
+      .replace(/lat:\s*-?[\d.]+/, `lat: ${num(c.lat)}`)
+      .replace(/lng:\s*-?[\d.]+/, `lng: ${num(c.lng)}`);
+    if (!/lat:\s*-?[\d.]+/.test(block)) {
+      console.warn(`No lat/lng fields to update for ${slug} — regenerate the file first`);
+      continue;
+    }
+    src = src.slice(0, at) + next + src.slice(end);
+    filled += 1;
   }
 
-  const out = src.slice(0, start) + JSON.stringify(arr, null, 2) + src.slice(end + 1);
-  writeFileSync(FILE, out, 'utf8');
+  writeFileSync(FILE, src, 'utf8');
   console.log(
-    `Wrote coords for ${filled}/${arr.length} hotels${useApi && key ? ' (geocoded)' : ' (curated)'}.`,
+    `Wrote coords for ${filled}/${marks.length} hotels${useApi && key ? ' (geocoded)' : ' (curated)'}.`,
   );
 }
 
