@@ -19,7 +19,7 @@ const base: SelectionInput = {
   qty: 2,
   suv: false,
   childSeats: 1,
-  supplementQty: 0,
+  supplements: null,
   pickupText: 'Hotel Le Morne',
   pickupLat: -20.45,
   pickupLng: 57.31,
@@ -44,7 +44,7 @@ describe('selectionHash', () => {
       pickupLng: 57.31,
       pickupLat: -20.45,
       pickupText: 'Hotel Le Morne',
-      supplementQty: 0,
+      supplements: null,
       childSeats: 1,
       suv: false,
       qty: 2,
@@ -84,10 +84,36 @@ describe('selectionHash', () => {
 
   // Without this, adding the lobster to a slot already abandoned mid-checkout would rehydrate the
   // earlier ref, skip creation AND the price gate, and charge the pre-supplement total.
-  it('differs when the supplement count changes', () => {
-    expect(selectionHash({ ...base, supplementQty: 2 })).not.toBe(selectionHash(base));
-    expect(selectionHash({ ...base, supplementQty: 1 })).not.toBe(
-      selectionHash({ ...base, supplementQty: 2 }),
+  it('differs when the chosen supplements change', () => {
+    const lobster2 = { ...base, supplements: [{ id: 's1', qty: 2 }] };
+    expect(selectionHash(lobster2)).not.toBe(selectionHash(base));
+    expect(selectionHash({ ...base, supplements: [{ id: 's1', qty: 1 }] })).not.toBe(
+      selectionHash(lobster2),
+    );
+    // A different supplement at the same count is a different selection too.
+    expect(selectionHash({ ...base, supplements: [{ id: 's2', qty: 2 }] })).not.toBe(
+      selectionHash(lobster2),
+    );
+    // Order-independent, and zero counts drop out (an all-zero pick = none at all).
+    expect(
+      selectionHash({
+        ...base,
+        supplements: [
+          { id: 's2', qty: 1 },
+          { id: 's1', qty: 2 },
+        ],
+      }),
+    ).toBe(
+      selectionHash({
+        ...base,
+        supplements: [
+          { id: 's1', qty: 2 },
+          { id: 's2', qty: 1 },
+        ],
+      }),
+    );
+    expect(selectionHash({ ...base, supplements: [{ id: 's1', qty: 0 }] })).toBe(
+      selectionHash(base),
     );
   });
 
@@ -210,7 +236,7 @@ describe('detailsHash', () => {
       qty: 2,
       suv: false,
       childSeats: 0,
-      supplementQty: 0,
+      supplements: null,
       pickupText: '',
       pickupLat: null,
       pickupLng: null,

@@ -535,11 +535,11 @@ function GuestRow({
                 {booking.childSeats} child seat{booking.childSeats === 1 ? '' : 's'}
               </Chip>
             )}
-            {booking.supplementQty > 0 && booking.supplementName && (
-              <Chip tone="teal">
-                {booking.supplementQty} × {booking.supplementName}
+            {booking.supplements.map((s) => (
+              <Chip key={s.name} tone="teal">
+                {s.qty} × {s.name}
               </Chip>
-            )}
+            ))}
             {booking.pickupPending && !booking.pickupLocation && (
               <Chip tone="amber">Pickup TBD</Chip>
             )}

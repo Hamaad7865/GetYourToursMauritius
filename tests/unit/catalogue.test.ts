@@ -111,6 +111,7 @@ function detail(overrides: Partial<TourDetail> = {}): TourDetail {
     seoTitle: null,
     seoDescription: null,
     extra: {},
+    supplements: [],
     images: [],
     options: [
       {

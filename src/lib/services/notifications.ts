@@ -181,12 +181,13 @@ async function enrichOwnerNewBooking(
         ? { label: 'Child seat', value: `requested${agedNote}` }
         : null;
 
-  // The optional supplement is the one add-on the owner has to BUY IN ahead of the trip — nobody
-  // finds two lobsters on the morning of the departure — so it belongs in the alert, not only in the
-  // admin drawer. Label comes from the booking's own snapshot.
-  const suppQty = booking.supplementQty ?? 0;
-  const suppNote =
-    suppQty > 0 && booking.supplementName ? `${suppQty} × ${booking.supplementName}` : '';
+  // The optional supplements are the add-ons the owner has to BUY IN ahead of the trip — nobody
+  // finds two lobsters on the morning of the departure — so they belong in the alert, not only in
+  // the admin drawer. Labels come from the booking's own snapshot rows.
+  const suppNote = (booking.supplements ?? [])
+    .filter((s) => s.qty > 0 && s.name)
+    .map((s) => `${s.qty} × ${s.name}`)
+    .join(' · ');
 
   // Chat channels (WhatsApp / Telegram) take the same one-glance text — no HTML, no PDF — plus the party
   // mix and any child seat (what the owner has to PREPARE), then the phone number when there is one,

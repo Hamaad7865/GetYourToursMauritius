@@ -140,17 +140,33 @@ export function Checkout() {
     0,
     Math.min(25, qty, parseInt(params.get('childSeats') ?? '0', 10) || 0),
   );
-  // How many guests chose the activity's optional supplement on the tour page. Clamped to the party
-  // for the same reason as child seats: api_book caps it at the booked head count, so a stale or
-  // hand-edited URL must not be able to display more than the server will charge. Its cost already
-  // rides inside the URL `total` — this value only re-states the count for the server and the summary.
-  const supplementQty = Math.max(
-    0,
-    Math.min(qty, parseInt(params.get('supplementQty') ?? '0', 10) || 0),
-  );
-  // Display only — the owner's own label, already resolved to the reader's language upstream. Never
-  // sent to the server, which reads the authoritative name from the activity row.
-  const supplementName = (params.get('supplementName') ?? '').slice(0, 80);
+  // The supplements chosen on the tour page: compact JSON [{id, qty, name, unitEur}]. Counts are
+  // clamped to the party for the same reason as child seats: api_book caps each at the booked head
+  // count, so a stale or hand-edited URL must not display more than the server will charge. Their
+  // cost already rides inside the URL `total`; the ids + counts re-state the choice for the server,
+  // and name/unitEur are display-only (api_book re-prices every id from the DB). Bounded to 20
+  // entries like the request schema so a hand-edited URL is a clean parse, never a blowup.
+  const supplements: Array<{ id: string; qty: number; name: string; unitEur: number }> = (() => {
+    try {
+      const raw = JSON.parse(params.get('supps') ?? '[]');
+      if (!Array.isArray(raw)) return [];
+      return raw
+        .filter(
+          (s): s is { id: string; qty: number; name?: unknown; unitEur?: unknown } =>
+            !!s && typeof s.id === 'string' && Number.isFinite(Number(s.qty)),
+        )
+        .slice(0, 20)
+        .map((s) => ({
+          id: s.id.slice(0, 60),
+          qty: Math.max(0, Math.min(qty, Math.floor(Number(s.qty)))),
+          name: String(s.name ?? '').slice(0, 80),
+          unitEur: Number.isFinite(Number(s.unitEur)) ? Math.max(0, Number(s.unitEur)) : 0,
+        }))
+        .filter((s) => s.qty > 0);
+    } catch {
+      return [];
+    }
+  })();
   // Continue ("Book now", from=widget) carries a custom route stashed by slug; a cart line carries its
   // OWN route, staged by occurrence (from=cart). Either may be present; neither inherits the other's.
   const fromWidget = params.get('from') === 'widget';
@@ -299,7 +315,7 @@ export function Checkout() {
       party: partyMap,
       suv,
       childSeats,
-      supplementQty,
+      supplements: supplements.map((s) => ({ id: s.id, qty: s.qty })),
       pickupText: pickupParam,
       pickupLat: null,
       pickupLng: null,
@@ -1019,9 +1035,11 @@ export function Checkout() {
             party: partyMap ?? { [label]: qty },
             suv,
             childSeats,
-            // Count only — api_book multiplies it by activities.supplement_minor. A booking for an
-            // activity with no supplement configured is charged nothing whatever this says.
-            supplementQty,
+            // Ids + counts only — api_book resolves each id against the activity behind the
+            // occurrence and multiplies by the row's own price. Unknown/foreign ids charge nothing.
+            supplements: supplements.length
+              ? supplements.map((s) => ({ id: s.id, qty: s.qty }))
+              : undefined,
             holdId: holdId || undefined,
             itinerary: itin,
             // Pickup + drop-off + every other run-sheet field (flight, room, luggage, trip legs) come
@@ -2042,12 +2060,12 @@ export function Checkout() {
                   : ` · ${t('free')}`}
               </div>
             )}
-            {supplementQty > 0 && supplementName && (
-              <div className="flex items-center gap-2">
+            {supplements.map((s) => (
+              <div key={s.id} className="flex items-center gap-2">
                 <IconCheck width={15} height={15} className="text-teal" />
-                {supplementName} · {t('for {n} of {total}', { n: supplementQty, total: qty })}
+                {s.name || t('Supplement')} · {t('for {n} of {total}', { n: s.qty, total: qty })}
               </div>
-            )}
+            ))}
             {liveTransport > 0 && (
               <div className="flex items-center gap-2">
                 <IconCheck width={15} height={15} className="text-teal" />

@@ -56,12 +56,10 @@ export interface InvoiceBookingInput {
   childSeats?: number | null;
   /** Region-based transport add-on in EUR (booking_json's `transportEur`), already inside totalEur. */
   transportEur?: number | null;
-  /** The optional supplement, as SNAPSHOT on the booking: the label the guest saw, how many they
-   *  bought, and the whole charge in EUR (already inside totalEur). Read from the booking rather than
-   *  the activity so a reprint survives the owner renaming or re-pricing it. */
-  supplementName?: string | null;
-  supplementQty?: number | null;
-  supplementEur?: number | null;
+  /** The optional supplements, as SNAPSHOT on the booking (booking_supplements): the label the
+   *  guest saw, how many they bought, and each charge in EUR (already inside totalEur). Read from
+   *  the booking rather than the activity so a reprint survives the owner renaming or re-pricing. */
+  supplements?: Array<{ name: string; qty: number; unitEur?: number; totalEur: number }> | null;
   /** Airport-transfer details — present only for transfer bookings; surfaced as a "Transfer details"
    *  block on the voucher/receipt so the driver has everything. All optional/nullable. */
   transfer?: TransferDetails | null;
@@ -170,10 +168,10 @@ export interface InvoiceModel {
  * Lines: each booking item -> `{ description: '<activityTitle> — <priceLabel>', quantity: pax ?? quantity,
  * unitGrossEur: subtotalEur / qty, lineGrossEur: subtotalEur }`. A "Door-to-door transport" line is
  * appended when `transportEur > 0`, a "Child seats (N)" line when the child-seat extra (via
- * `childSeatsCost`) > 0, and the activity's optional supplement when one was bought — named from the
+ * `childSeatsCost`) > 0, and one line per optional supplement bought — each named from the
  * booking's own snapshot, so a reprint survives the owner renaming or re-pricing it. Because every
  * priced component becomes its own line, the lines reconcile to `totalEur` by construction. The
- * supplement is pushed LAST: `voucher-pdf.ts` reads `lines[0].quantity` positionally for its pax count.
+ * supplements are pushed LAST: `voucher-pdf.ts` reads `lines[0].quantity` positionally for its pax count.
  *
  * VAT-inclusive split: net is computed per line (round(lineGross / 1.15) to cents) and summed, so the
  * displayed net never drifts from the per-line figures; vat = totalGross − net; vatRatePct = 15.
@@ -226,16 +224,14 @@ export function buildInvoice(
     });
   }
 
-  // The optional supplement, from the booking's own SNAPSHOT of the name and the charge — never from
+  // The optional supplements, from the booking's own SNAPSHOT of each name and charge — never from
   // the activity, which the owner may have renamed or re-priced since. Pushed AFTER the item lines
   // because the voucher reads model.lines[0] positionally for its pax count.
-  const supplementEur = booking.supplementEur ?? 0;
-  const supplementQty = booking.supplementQty ?? 0;
-  if (supplementEur > 0 && booking.supplementName) {
-    const amount = round2(supplementEur);
+  for (const s of booking.supplements ?? []) {
+    if (!s || !(s.totalEur > 0) || !s.name) continue;
+    const amount = round2(s.totalEur);
     lines.push({
-      description:
-        supplementQty > 1 ? `${booking.supplementName} (${supplementQty})` : booking.supplementName,
+      description: s.qty > 1 ? `${s.name} (${s.qty})` : s.name,
       quantity: 1,
       unitGrossEur: amount,
       lineGrossEur: amount,

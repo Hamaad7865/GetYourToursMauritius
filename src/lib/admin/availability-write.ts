@@ -10,8 +10,14 @@ export interface OptionRow {
   name: string;
   /** Per-option daily capacity override (null = uses the activity's number). */
   dailyCapacity: number | null;
+  /** Per-option "guests per trip" override for SHARED options (null = uses the activity's). */
+  guestsPerTrip: number | null;
   /** True for a private option — its pool counts TRIPS per day, not guests. */
   isPrivate: boolean;
+  /** A private option's own guests-per-trip figure (private_max_guests) + the floor it may not go
+   *  under (the guests its base price covers). Null for shared options. */
+  privateMaxGuests: number | null;
+  privateIncluded: number | null;
 }
 
 export async function loadActivityOptions(activityId: string): Promise<{
@@ -31,7 +37,9 @@ export async function loadActivityOptions(activityId: string): Promise<{
   if (!act) throw new Error('Activity not found.');
   const { data: opts } = await sb
     .from('activity_options')
-    .select('id, name, daily_capacity, private_base_minor')
+    .select(
+      'id, name, daily_capacity, guests_per_trip, private_base_minor, private_included, private_max_guests',
+    )
     .eq('activity_id', activityId)
     .order('position');
   return {
@@ -43,49 +51,67 @@ export async function loadActivityOptions(activityId: string): Promise<{
       id: o.id,
       name: o.name,
       dailyCapacity: o.daily_capacity,
+      guestsPerTrip: o.guests_per_trip,
       isPrivate: o.private_base_minor != null,
+      privateMaxGuests: o.private_max_guests,
+      privateIncluded: o.private_included,
     })),
   };
 }
 
-/** Open-ended availability state: the activity's daily capacity (null = not bookable). */
+/** Open-ended availability state: the activity's daily capacity — the whole day's POOL, null = not
+ *  bookable — plus its "guests per trip" default (how many guests one booking may hold on a shared
+ *  option; null = uncapped). */
 export async function loadAvailabilityState(
   activityId: string,
-): Promise<{ capacity: number | null }> {
+): Promise<{ capacity: number | null; guestsPerTrip: number | null }> {
   const { data, error } = await getBrowserSupabase()
     .from('activities')
-    .select('daily_capacity')
+    .select('daily_capacity, guests_per_trip')
     .eq('id', activityId)
     .maybeSingle();
   if (error) throw error;
-  return { capacity: data?.daily_capacity ?? null };
+  return {
+    capacity: data?.daily_capacity ?? null,
+    guestsPerTrip: data?.guests_per_trip ?? null,
+  };
 }
 
 /**
- * Make an activity bookable every day with a daily `capacity` (e.g. "10 per day"), open-ended:
- * the customer calendar materialises the day slots it needs on demand, so there's no annual
- * re-enable. A day is full once its bookings reach the capacity. Re-running just changes the
- * number — and propagates it to any upcoming days already materialised.
+ * Make an activity bookable every day with a daily `capacity` (the whole day's POOL — e.g.
+ * "36 guests per day" for a shared option, "20 trips" for a private one), open-ended: the customer
+ * calendar materialises the day slots it needs on demand, so there's no annual re-enable. A day is
+ * full once its bookings reach the capacity. Re-running just changes the number — and propagates it
+ * to any upcoming days already materialised.
  *
- * With `optionId`, the capacity applies to THAT OPTION only (its own pool — e.g. a private
- * option's trips/day), leaving the other options on the activity's number. The activity-wide
- * form never overwrites an option that has its own pool.
+ * `guestsPerTrip` (when the key is passed) sets the "guests per trip" figure alongside: how many
+ * guests ONE booking may hold. On the activity path it writes activities.guests_per_trip; on the
+ * option path it writes the option's own override — or, for a PRIVATE option, private_max_guests
+ * (the server validates it against the guests the base price covers). Pass null to clear (shared
+ * only). The admin UI derives the pool as trips × guestsPerTrip before calling.
+ *
+ * With `optionId`, the numbers apply to THAT OPTION only (its own pool — e.g. a private option's
+ * trips/day), leaving the other options on the activity's numbers. `capacity: null` with a
+ * `guestsPerTrip` is a guests-only update (option path only).
  */
 export async function setDailyCapacity(
   activityId: string,
-  capacity: number,
-  optionId?: string,
+  capacity: number | null,
+  opts: { optionId?: string; guestsPerTrip?: number | null } = {},
 ): Promise<void> {
   // One atomic RPC: update the activity/option, propagate the capacity to upcoming slots, and
   // materialize the window. Doing this in a single transaction avoids the partial state the old
   // three-call sequence could leave (capacity set but slots un-propagated, or no days materialized).
-  const { error } = await getBrowserSupabase().rpc('set_daily_capacity_atomic', {
-    p: optionId ? { activityId, capacity, optionId } : { activityId, capacity },
-  });
+  const p: Record<string, string | number | null> = { activityId };
+  if (capacity != null) p.capacity = capacity;
+  if (opts.optionId) p.optionId = opts.optionId;
+  if ('guestsPerTrip' in opts) p.guestsPerTrip = opts.guestsPerTrip ?? null;
+  const { error } = await getBrowserSupabase().rpc('set_daily_capacity_atomic', { p });
   if (error) throw error;
 }
 
-/** Clear an option's capacity override — it falls back to the activity's daily number. */
+/** Clear an option's capacity AND guests-per-trip overrides — it falls back to the activity's
+ *  numbers. (A private option's private_max_guests is pricing config and is left alone.) */
 export async function clearOptionCapacity(activityId: string, optionId: string): Promise<void> {
   const { error } = await getBrowserSupabase().rpc('set_daily_capacity_atomic', {
     p: { activityId, optionId, inherit: true },

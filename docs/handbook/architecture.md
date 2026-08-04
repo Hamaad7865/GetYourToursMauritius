@@ -118,19 +118,24 @@ deliberately not used.
 `bookings.total_minor` ≠ `Σ booking_items.subtotal_minor`. Three priced components are folded into the
 total by `api_book` **without** a `booking_items` row of their own:
 
-| Charge                  | Where it lives                                                                                                                    |
-| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Region transport add-on | `bookings.transport_minor` (its own column)                                                                                       |
-| Child-seat extra        | nowhere — only the **count** (`bookings.child_seats`) is stored; the €6-per-extra-seat cost is added straight to `total_minor`    |
-| Optional supplement     | `bookings.supplement_minor` + `supplement_qty` + `supplement_name` — the label and the whole charge, **snapshot at booking time** |
+| Charge                  | Where it lives                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Region transport add-on | `bookings.transport_minor` (its own column)                                                                                    |
+| Child-seat extra        | nowhere — only the **count** (`bookings.child_seats`) is stored; the €6-per-extra-seat cost is added straight to `total_minor` |
+| Optional supplements    | `booking_supplements` rows (name + qty + unit + total per supplement), **snapshot at booking time**                            |
 
 None of them may become a `booking_items` row: `booking_json` derives `partySize` from `Σ pax` and
 `unitsNeeded` from `Σ quantity`, and `unitsNeeded` is what the reschedule date-picker checks capacity
-against — an extra row would quietly inflate both.
+against — an extra row would quietly inflate both. (`booking_supplements` is a separate table, so it
+inflates neither.)
 
-The supplement is the only one whose price the owner controls (`activities.supplement_minor`, set in
-`/admin`), which is why the booking keeps its own copy of the name and the amount. Re-pricing the
-lobster next season must not silently re-price a receipt already issued.
+The supplements are the only add-ons whose prices the owner controls (`activity_supplements`, one
+row per upgrade, set in `/admin` — many per activity since 20260908000000), which is why the booking
+keeps its own copy of every name and amount. Re-pricing the lobster next season must not silently
+re-price a receipt already issued. The pre-20260908 single-supplement columns
+(`activities.supplement_name`/`supplement_minor`, `activity_translations.supplement_name`,
+`bookings.supplement_*`) are **frozen legacy** — migrated into the new tables, still dumped for old
+seeds, written and read by nothing.
 
 So anything that shows why a booking was charged what it was must add these lines back explicitly.
 Three surfaces do it, and they should agree:
@@ -138,9 +143,9 @@ Three surfaces do it, and they should agree:
 - `bookingExtraCharges()` (`src/lib/admin/bookings.ts`) — the `/admin` drawer's Items card. All three
   charges, plus the residue guard below.
 - `buildInvoice()` (`src/lib/invoice/model.ts`) — the VAT invoice / receipt PDF. All three; its
-  lines reconcile to `totalEur` by construction. The supplement line is pushed **last**, because
+  lines reconcile to `totalEur` by construction. The supplement lines are pushed **last**, because
   `voucher-pdf.ts` reads `model.lines[0].quantity` positionally for its pax count.
-- `BookingConfirmation.tsx` — the customer's confirmation screen. **Transport and the supplement.**
+- `BookingConfirmation.tsx` — the customer's confirmation screen. **Transport and the supplements.**
   Its totals list does not carry a child-seat money line (the seats appear as a separate detail block
   further down), so a booking with 2+ child seats shows a Total larger than its own visible lines.
 

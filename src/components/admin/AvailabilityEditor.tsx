@@ -24,28 +24,94 @@ function errMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+const NUM_INPUT =
+  'w-28 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal focus:bg-white';
+
+/**
+ * Availability = TWO numbers everywhere, matching how the owner actually plans a day:
+ *   * Trips per day  — how many departures can run;
+ *   * Guests per trip — how many guests ONE trip (one booking) can take.
+ *
+ * Storage keeps `daily_capacity` as the POOL in its historic units, so the whole capacity machinery
+ * (holds, reschedule, sweeps) is untouched:
+ *   * shared options: pool = trips × guests (written on save), one booking capped at guests/trip
+ *     (activities/activity_options.guests_per_trip; create_booking enforces it);
+ *   * private options: pool = trips (unchanged), guests/trip IS private_max_guests;
+ *   * vehicle mode: pool = bookings (vehicles), guests fixed by the vehicle brackets (≤25) — the
+ *     one mode that keeps a single input.
+ *
+ * A legacy shared activity (no guests_per_trip yet) loads as 1 trip × pool guests — behaviourally
+ * identical to what it had (the pool already capped any one booking), just now stated in two
+ * numbers the owner can edit.
+ */
 export function AvailabilityEditor({ activityId }: { activityId: string }) {
   const [title, setTitle] = useState('');
   const [options, setOptions] = useState<OptionRow[]>([]);
   const [pricingMode, setPricingMode] = useState('per_person');
   const [open, setOpen] = useState(false);
-  const [capacity, setCapacity] = useState(10);
-  // Per-option override inputs, keyed by option id ('' = no override → uses the activity number).
-  const [optCaps, setOptCaps] = useState<Record<string, string>>({});
+  const [trips, setTrips] = useState(1);
+  const [guests, setGuests] = useState(10);
+  // Per-option override inputs, keyed by option id ('' = no override → uses the activity numbers).
+  const [optTrips, setOptTrips] = useState<Record<string, string>>({});
+  const [optGuests, setOptGuests] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const isVehicle = pricingMode === 'vehicle';
+  // The sole option of a single-option activity decides the MAIN form's shape (the common case —
+  // e.g. "Private Cataspeed 5 Islands" is one private option).
+  const soleOption = options.length === 1 ? options[0] : undefined;
+  const soleIsPrivate = Boolean(soleOption?.isPrivate);
+  // Shared two-number mode: pool = trips × guests. Vehicle and sole-private keep pool = trips.
+  const mainIsShared = !isVehicle && !soleIsPrivate;
+  const pool = mainIsShared ? trips * guests : trips;
+
   async function refresh() {
-    const { capacity: cap } = await loadAvailabilityState(activityId);
-    setOpen(cap != null);
-    if (cap != null) setCapacity(cap);
+    const { capacity: cap, guestsPerTrip: gpt } = await loadAvailabilityState(activityId);
     const meta = await loadActivityOptions(activityId);
+    setOpen(cap != null);
+    const sole = meta.options.length === 1 ? meta.options[0] : undefined;
+    const vehicle = (meta.pricingMode ?? 'per_person') === 'vehicle';
+    if (cap != null) {
+      if (vehicle || sole?.isPrivate) {
+        // Pool counts trips/vehicles directly — one number.
+        setTrips(cap);
+      } else if (gpt && gpt > 0) {
+        // Factor the stored pool back into trips × guests (the pool is written as the product, so
+        // this divides; round defensively for hand-patched rows).
+        setGuests(gpt);
+        setTrips(Math.max(1, Math.round(cap / gpt)));
+      } else {
+        // Legacy: no guests/trip yet → read the pool truthfully as ONE trip that takes it all.
+        setGuests(Math.max(1, cap));
+        setTrips(1);
+      }
+    }
+    // A sole private option's guests/trip is its max group size (pricing config, shown here too).
+    if (sole?.isPrivate && sole.privateMaxGuests != null) setGuests(sole.privateMaxGuests);
     setOptions(meta.options);
-    setOptCaps(
+    setOptTrips(
       Object.fromEntries(
-        meta.options.map((o) => [o.id, o.dailyCapacity != null ? String(o.dailyCapacity) : '']),
+        meta.options.map((o) => {
+          if (o.dailyCapacity == null) return [o.id, ''];
+          if (o.isPrivate) return [o.id, String(o.dailyCapacity)];
+          const g = o.guestsPerTrip ?? gpt;
+          return [
+            o.id,
+            String(g && g > 0 ? Math.max(1, Math.round(o.dailyCapacity / g)) : o.dailyCapacity),
+          ];
+        }),
+      ),
+    );
+    setOptGuests(
+      Object.fromEntries(
+        meta.options.map((o) => {
+          if (o.isPrivate)
+            return [o.id, o.privateMaxGuests != null ? String(o.privateMaxGuests) : ''];
+          return [o.id, o.guestsPerTrip != null ? String(o.guestsPerTrip) : ''];
+        }),
       ),
     );
   }
@@ -86,11 +152,36 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
     }
   }
 
-  /** Unit copy for a capacity number: trips for a private option, vehicles for vehicle mode, else
-   *  guests. With a SINGLE option there are no per-option rows, so the activity-level copy speaks
-   *  for that option — a sole private option counts trips, not guests. */
+  /** Persist the MAIN form: the pool (+ guests/trip where it applies) at the activity level; a sole
+   *  private option's guests number goes to its own row (private_max_guests) in the same run. */
+  async function saveMain() {
+    if (soleOption?.isPrivate) {
+      const floor = soleOption.privateIncluded ?? 1;
+      // Throw (not setError) so run() reports the failure instead of a false success notice.
+      if (guests < floor) {
+        throw new Error(
+          `Guests per trip can’t be below ${floor} — the base price covers ${floor}.`,
+        );
+      }
+      await setDailyCapacity(activityId, trips);
+      await setDailyCapacity(activityId, null, {
+        optionId: soleOption.id,
+        guestsPerTrip: guests,
+      });
+      return;
+    }
+    if (isVehicle) {
+      await setDailyCapacity(activityId, trips);
+      return;
+    }
+    await setDailyCapacity(activityId, trips * guests, { guestsPerTrip: guests });
+  }
+
+  /** Unit copy for the POOL: trips for a private option, vehicles for vehicle mode, else guests.
+   *  With a SINGLE option there are no per-option rows, so the activity-level copy speaks for that
+   *  option — a sole private option counts trips, not guests. */
   const unitNoun = (opt?: OptionRow) => {
-    const o = opt ?? (options.length === 1 ? options[0] : undefined);
+    const o = opt ?? soleOption;
     return o?.isPrivate ? 'trips' : pricingMode === 'vehicle' ? 'bookings (vehicles)' : 'guests';
   };
 
@@ -132,38 +223,60 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
           </div>
           <p className="mt-1.5 text-[13px] text-ink-muted">
             {open
-              ? `Customers can book any day, up to ${capacity} ${unitNoun()} per day.`
-              : `Set how many ${unitNoun()} can book per day, then turn it on. It stays open until you stop it.`}
+              ? `Customers can book any day, up to ${pool} ${unitNoun()} per day.`
+              : `Set the day's numbers, then turn it on. It stays open until you stop it.`}
           </p>
 
-          <label className="mt-5 block">
-            <span className="mb-1.5 block text-[12.5px] font-bold text-ink/60">
-              {pricingMode === 'vehicle'
-                ? 'Bookings (vehicles) per day'
-                : 'Bookable per day (capacity)'}
-            </span>
-            <input
-              type="number"
-              min={1}
-              value={capacity}
-              onChange={(e) => setCapacity(Math.max(1, Number(e.target.value) || 1))}
-              className="w-40 rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal focus:bg-white"
-            />
-          </label>
+          <div className="mt-5 flex flex-wrap gap-4">
+            <label className="block">
+              <span className="mb-1.5 block text-[12.5px] font-bold text-ink/60">
+                {isVehicle ? 'Bookings (vehicles) per day' : 'Trips per day'}
+              </span>
+              <input
+                type="number"
+                min={1}
+                value={trips}
+                onChange={(e) => setTrips(Math.max(1, Number(e.target.value) || 1))}
+                className={NUM_INPUT}
+              />
+            </label>
+            {!isVehicle && (
+              <label className="block">
+                <span className="mb-1.5 block text-[12.5px] font-bold text-ink/60">
+                  Guests per trip
+                </span>
+                <input
+                  type="number"
+                  min={soleIsPrivate ? (soleOption?.privateIncluded ?? 1) : 1}
+                  value={guests}
+                  onChange={(e) => setGuests(Math.max(1, Number(e.target.value) || 1))}
+                  className={NUM_INPUT}
+                />
+              </label>
+            )}
+          </div>
+          <p className="mt-2 text-[12px] text-ink-muted">
+            {isVehicle
+              ? 'Each booking is one vehicle; guests per vehicle follow the vehicle brackets (up to 25).'
+              : soleIsPrivate
+                ? `${trips} ${trips === 1 ? 'trip' : 'trips'} bookable per day; one charter takes up to ${guests} guests${
+                    soleOption?.privateIncluded != null
+                      ? ` (base price covers ${soleOption.privateIncluded})`
+                      : ''
+                  }.`
+                : `= ${trips * guests} guests bookable per day; one booking takes up to ${guests}.`}
+          </p>
 
           <div className="mt-5 flex flex-wrap gap-3">
             <button
               type="button"
               disabled={busy}
               onClick={() =>
-                run(
-                  () => setDailyCapacity(activityId, capacity),
-                  open ? 'Capacity updated.' : 'Now bookable every day.',
-                )
+                run(saveMain, open ? 'Availability updated.' : 'Now bookable every day.')
               }
               className={BTN_PRIMARY}
             >
-              {open ? 'Update capacity' : 'Make bookable'}
+              {open ? 'Update availability' : 'Make bookable'}
             </button>
             {open && (
               <button
@@ -179,24 +292,33 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
 
           {open && (
             <p className="mt-4 text-[12px] text-ink-muted">
-              Bookable on every future date — a day fills up once {capacity} {unitNoun()} have
-              booked it.
+              Bookable on every future date — a day fills up once {pool} {unitNoun()} have booked
+              it.
             </p>
           )}
 
-          {/* Per-option pools: each option can carry its OWN daily number (a private option counts
-              TRIPS per day — e.g. 1 = one charter bookable per day). Blank = uses the activity number. */}
+          {/* Per-option pools: each option can carry its OWN two numbers. A private option counts
+              TRIPS per day (e.g. 1 = one charter/day) and its guests number IS its max group size;
+              a shared option's pool is trips × guests. Blank trips = uses the activity numbers. */}
           {hasOptionRows && open && (
             <div className="mt-6 border-t border-ink/10 pt-5">
-              <h3 className="text-[13.5px] font-extrabold text-ink">Per-option capacity</h3>
+              <h3 className="text-[13.5px] font-extrabold text-ink">Per-option availability</h3>
               <p className="mt-1 text-[12px] text-ink-muted">
-                Each option can have its own daily number. Leave blank to use the activity capacity
-                ({capacity}).
+                Each option can have its own numbers. Leave trips blank to use the activity’s (
+                {pool} {unitNoun()} per day).
               </p>
               <div className="mt-3 flex flex-col gap-2.5">
                 {options.map((o) => {
-                  const val = optCaps[o.id] ?? '';
-                  const overridden = o.dailyCapacity != null;
+                  const tVal = optTrips[o.id] ?? '';
+                  const gVal = optGuests[o.id] ?? '';
+                  const overridden = o.dailyCapacity != null || o.guestsPerTrip != null;
+                  const tNum = Number(tVal);
+                  const gNum = Number(gVal);
+                  // A shared save needs both numbers (the pool is their product); a private save
+                  // accepts trips alone (guests always has its private_max_guests value).
+                  const savable = o.isPrivate
+                    ? tVal !== '' || gVal !== ''
+                    : tVal !== '' && gVal !== '';
                   return (
                     <div
                       key={o.id}
@@ -212,29 +334,79 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
                           )}
                         </div>
                         <div className="text-[11.5px] text-ink-muted">
-                          {overridden
-                            ? `${o.dailyCapacity} ${unitNoun(o)} per day`
-                            : `Uses activity capacity · ${unitNoun(o)}`}
+                          {o.isPrivate
+                            ? `${o.dailyCapacity != null ? `${o.dailyCapacity} trips/day` : 'Trips: activity number'} · up to ${o.privateMaxGuests ?? '—'} guests per trip`
+                            : overridden && o.dailyCapacity != null
+                              ? `${o.dailyCapacity} guests per day · up to ${o.guestsPerTrip ?? 'any'} per booking`
+                              : `Uses activity numbers · ${unitNoun(o)}`}
                         </div>
                       </div>
-                      <input
-                        type="number"
-                        min={0}
-                        value={val}
-                        placeholder={String(capacity)}
-                        aria-label={`${o.name} — ${unitNoun(o)} per day`}
-                        onChange={(e) => setOptCaps((cur) => ({ ...cur, [o.id]: e.target.value }))}
-                        className="w-24 rounded-lg border border-[#E2E7EA] bg-[#F7F8FA] px-2.5 py-2 text-sm text-ink outline-none focus:border-teal focus:bg-white"
-                      />
+                      <label className="flex items-center gap-1.5 text-[11.5px] font-bold text-ink/60">
+                        Trips
+                        <input
+                          type="number"
+                          min={0}
+                          value={tVal}
+                          placeholder={String(mainIsShared ? trips : pool)}
+                          aria-label={`${o.name} — trips per day`}
+                          onChange={(e) =>
+                            setOptTrips((cur) => ({ ...cur, [o.id]: e.target.value }))
+                          }
+                          className="w-20 rounded-lg border border-[#E2E7EA] bg-[#F7F8FA] px-2.5 py-2 text-sm text-ink outline-none focus:border-teal focus:bg-white"
+                        />
+                      </label>
+                      <label className="flex items-center gap-1.5 text-[11.5px] font-bold text-ink/60">
+                        Guests
+                        <input
+                          type="number"
+                          min={o.isPrivate ? (o.privateIncluded ?? 1) : 1}
+                          value={gVal}
+                          placeholder={o.isPrivate ? '' : String(guests)}
+                          aria-label={`${o.name} — guests per trip`}
+                          onChange={(e) =>
+                            setOptGuests((cur) => ({ ...cur, [o.id]: e.target.value }))
+                          }
+                          className="w-20 rounded-lg border border-[#E2E7EA] bg-[#F7F8FA] px-2.5 py-2 text-sm text-ink outline-none focus:border-teal focus:bg-white"
+                        />
+                      </label>
                       <button
                         type="button"
-                        disabled={busy || val === ''}
-                        onClick={() =>
-                          run(
-                            () => setDailyCapacity(activityId, Math.max(0, Number(val) || 0), o.id),
-                            `${o.name}: capacity updated.`,
-                          )
-                        }
+                        disabled={busy || !savable}
+                        onClick={() => {
+                          if (o.isPrivate) {
+                            const floor = o.privateIncluded ?? 1;
+                            if (gVal !== '' && gNum < floor) {
+                              setError(
+                                `${o.name}: guests per trip can’t be below ${floor} — the base price covers ${floor}.`,
+                              );
+                              return;
+                            }
+                            void run(
+                              () =>
+                                setDailyCapacity(
+                                  activityId,
+                                  tVal !== '' ? Math.max(0, tNum || 0) : null,
+                                  {
+                                    optionId: o.id,
+                                    ...(gVal !== ''
+                                      ? { guestsPerTrip: Math.max(1, gNum || 1) }
+                                      : {}),
+                                  },
+                                ),
+                              `${o.name}: availability updated.`,
+                            );
+                            return;
+                          }
+                          void run(
+                            () =>
+                              setDailyCapacity(
+                                activityId,
+                                Math.max(0, tNum || 0) * Math.max(1, gNum || 1),
+                                { optionId: o.id, guestsPerTrip: Math.max(1, gNum || 1) },
+                              ),
+                            `${o.name}: availability updated.`,
+                          );
+                        }}
                         className="rounded-lg bg-teal-dark px-3 py-2 text-[12.5px] font-bold text-white hover:bg-teal-dark/90 disabled:opacity-50"
                       >
                         Save
@@ -246,7 +418,7 @@ export function AvailabilityEditor({ activityId }: { activityId: string }) {
                           onClick={() =>
                             run(
                               () => clearOptionCapacity(activityId, o.id),
-                              `${o.name}: uses the activity capacity again.`,
+                              `${o.name}: uses the activity numbers again.`,
                             )
                           }
                           className="rounded-lg border border-ink/15 px-3 py-2 text-[12.5px] font-bold text-ink hover:border-teal hover:text-teal disabled:opacity-50"

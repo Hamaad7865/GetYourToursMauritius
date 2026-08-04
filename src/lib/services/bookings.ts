@@ -89,7 +89,7 @@ export async function createBooking(
     dropoffLat: input.dropoffLat ?? null,
     dropoffLng: input.dropoffLng ?? null,
     childSeats: input.childSeats ?? 0,
-    supplementQty: input.supplementQty ?? 0,
+    supplements: input.supplements ?? [],
     dropoffSlug: input.dropoffSlug ?? null,
     dropoffArea: input.dropoffArea ?? null,
     pickupSlug: input.pickupSlug ?? null,

@@ -34,8 +34,9 @@ export function checkoutHref(i: CartItem): string {
     // proceed() is handed to checkout via sessionStorage so its tokens don't leak via Referer/history.)
     ...(i.suv ? { suv: '1' } : {}),
     ...(i.childSeats ? { childSeats: String(i.childSeats) } : {}),
-    ...(i.supplementQty ? { supplementQty: String(i.supplementQty) } : {}),
-    ...(i.supplementQty && i.supplementName ? { supplementName: i.supplementName } : {}),
+    // The chosen supplements as compact JSON [{id, qty, name, unitEur}] — the ids + counts are what
+    // the server prices (by id, from the DB); name/unitEur ride for checkout's order summary only.
+    ...(i.supplements?.length ? { supps: JSON.stringify(i.supplements) } : {}),
     // Age-banded line: carry the per-band map so the server prices each band (Adult/Child/Infant).
     ...(i.party ? { party: encodeParty(i.party) } : {}),
     // Signal checkout this is a CART line: read this line's captured route AND reuse the hold proceed()

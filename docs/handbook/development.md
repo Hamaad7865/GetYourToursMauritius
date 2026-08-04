@@ -173,7 +173,7 @@ the single load and the single save; every field lives in a pane beside it:
 | Basics            | `BasicsSection.tsx`      | Title, slug, category, type, status, location, duration, lead time    |
 | Description       | `DescriptionSection.tsx` | Summary, full description                                             |
 | Photos & files    | `MediaSection.tsx`       | Gallery, price-list PDF                                               |
-| Pricing & options | `PricingSection.tsx`     | Pricing mode, options + tiers, supplement — **staff only**            |
+| Pricing & options | `PricingSection.tsx`     | Pricing mode, options + tiers, supplements — **staff only**           |
 | Itinerary         | `ItinerarySection.tsx`   | Stops, alternatives, map coordinates                                  |
 | Logistics         | `LogisticsSection.tsx`   | Meeting point, start time, region, cancellation, the toggles          |
 | Inclusions        | `InclusionsSection.tsx`  | Highlights, languages, in/excluded, what to bring, know before you go |

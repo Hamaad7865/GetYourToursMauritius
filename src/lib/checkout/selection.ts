@@ -28,10 +28,11 @@ export type SelectionInput = {
   suv: boolean;
   /** Number of child seats chosen (first free, the rest charged). */
   childSeats: number;
-  /** How many guests want the activity's optional supplement — a priced choice, so a change to it
-   *  must break the stash exactly like a party change does, or re-booking the same slot with the
-   *  lobster added would rehydrate the ref WITHOUT it and charge the old, cheaper total. */
-  supplementQty: number;
+  /** The chosen supplements (id → head count) — priced choices, so a change to ANY of them must
+   *  break the stash exactly like a party change does, or re-booking the same slot with the lobster
+   *  added would rehydrate the ref WITHOUT it and charge the old, cheaper total. Order-independent
+   *  (normalized below); empty/absent = none chosen. */
+  supplements: Array<{ id: string; qty: number }> | null;
   /** Pickup address text (empty when no pickup / TBD). */
   pickupText: string;
   /** Resolved pickup latitude — drives the region transport fare (null when none/TBD). */
@@ -84,7 +85,15 @@ export function selectionHash(input: SelectionInput): string {
       : null,
     suv: Boolean(input.suv),
     childSeats: Number.isFinite(input.childSeats) ? input.childSeats : 0,
-    supplementQty: Number.isFinite(input.supplementQty) ? input.supplementQty : 0,
+    // Sorted positive-count entries → a stable, order-independent fingerprint of the chosen
+    // supplements. Empty and absent both normalize to null (no supplements).
+    supplements: (() => {
+      const rows = (input.supplements ?? [])
+        .filter((s) => s && typeof s.id === 'string' && Number.isFinite(s.qty) && s.qty > 0)
+        .map((s) => ({ id: s.id, qty: s.qty }))
+        .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+      return rows.length ? rows : null;
+    })(),
     pickupText: input.pickupText ?? '',
     pickupLat: input.pickupLat ?? null,
     pickupLng: input.pickupLng ?? null,

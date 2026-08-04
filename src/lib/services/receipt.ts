@@ -42,9 +42,17 @@ const receiptSchema = z.object({
   dropoffLocation: z.string().nullable().optional(),
   childSeats: z.number().nullable().optional(),
   transportEur: z.number().nullable().optional(),
-  supplementName: z.string().nullable().optional(),
-  supplementQty: z.number().nullable().optional(),
-  supplementEur: z.number().nullable().optional(),
+  supplements: z
+    .array(
+      z.object({
+        name: z.string(),
+        qty: z.number(),
+        unitEur: z.number().optional(),
+        totalEur: z.number(),
+      }),
+    )
+    .nullable()
+    .optional(),
   // Airport-transfer fields (null for non-transfer bookings) — surfaced on the voucher.
   tripDirection: z.string().nullable().optional(),
   roomOrCabin: z.string().nullable().optional(),
@@ -99,9 +107,7 @@ export async function loadBookingForReceipt(
     dropoffLocation: r.dropoffLocation ?? null,
     childSeats: r.childSeats ?? null,
     transportEur: r.transportEur ?? null,
-    supplementName: r.supplementName ?? null,
-    supplementQty: r.supplementQty ?? null,
-    supplementEur: r.supplementEur ?? null,
+    supplements: r.supplements ?? null,
     locale: r.locale ?? null,
     // A transfer block only when there's transfer data (a direction means it's an airport transfer).
     transfer: r.tripDirection

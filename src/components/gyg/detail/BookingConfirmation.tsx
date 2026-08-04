@@ -45,11 +45,10 @@ interface Booking {
   childSeats?: number | null;
   /** Region-based transport add-on (EUR), already inside totalEur — shown as its own breakdown line. */
   transportEur?: number | null;
-  /** The optional supplement bought (label + count + charge, snapshot at booking time), already
-   *  inside totalEur — like transport it has no line item, so it needs its own breakdown row. */
-  supplementName?: string | null;
-  supplementQty?: number | null;
-  supplementEur?: number | null;
+  /** The optional supplements bought (label + count + charge per supplement, snapshot at booking
+   *  time), already inside totalEur — like transport they have no line items, so each needs its own
+   *  breakdown row. */
+  supplements?: Array<{ name: string; qty: number; unitEur: number; totalEur: number }> | null;
   // Airport-transfer run-sheet — present only for transfer bookings (a truthy tripDirection marks one).
   // These already arrive on the wire DTO; the block below renders them and unlocks the e-voucher download.
   tripDirection?: string | null;
@@ -494,18 +493,20 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
               </dd>
             </div>
           )}
-          {booking.supplementName && (booking.supplementEur ?? 0) > 0 && (
-            <div className="flex justify-between">
-              {/* The owner's own label — already stored in the guest's language, so not run through t(). */}
-              <dt className="text-ink-muted">
-                {booking.supplementName}
-                {(booking.supplementQty ?? 0) > 1 && ` × ${booking.supplementQty}`}
-              </dt>
-              <dd className="font-medium text-ink">
-                <Price eur={booking.supplementEur ?? 0} />
-              </dd>
-            </div>
-          )}
+          {(booking.supplements ?? [])
+            .filter((s) => s.totalEur > 0)
+            .map((s, idx) => (
+              <div key={`${s.name}-${idx}`} className="flex justify-between">
+                {/* The owner's own labels — already stored in the guest's language, so not run through t(). */}
+                <dt className="text-ink-muted">
+                  {s.name}
+                  {s.qty > 1 && ` × ${s.qty}`}
+                </dt>
+                <dd className="font-medium text-ink">
+                  <Price eur={s.totalEur} />
+                </dd>
+              </div>
+            ))}
           <div className="mt-1 flex justify-between border-t border-ink/10 pt-2">
             <dt className="font-bold text-ink">{t('Total')}</dt>
             <dd className="text-lg font-extrabold text-ink">

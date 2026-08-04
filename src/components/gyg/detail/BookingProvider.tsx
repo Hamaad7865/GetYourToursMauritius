@@ -14,6 +14,7 @@ import type { TourType } from '@/lib/validation/common';
 import type {
   PricingMode,
   TourOption,
+  TourSupplement,
   VehiclePricing,
   TransportBands,
   RegionDistances,
@@ -66,10 +67,10 @@ export interface BookingActivity {
   /** Global transport fare tables (per_person / per_group with pickup only; null otherwise). */
   transportBands: TransportBands | null;
   regionDistances: RegionDistances | null;
-  /** Owner-configured optional supplement (e.g. "Lobster lunch"), priced PER PERSON. Null name = this
-   *  activity has none and the picker is hidden. The server re-reads the price from the DB. */
-  supplementName: string | null;
-  supplementEur: number | null;
+  /** Owner-configured optional supplements (e.g. "Lobster lunch"), each priced PER PERSON. Empty =
+   *  this activity has none and the picker is hidden. The server re-reads each price from the DB by
+   *  id — the client only ever sends id + count. */
+  supplements: TourSupplement[];
 }
 
 /** Pickup/drop-off point captured in the widget (coords drive the transport fare; text is for records). */
@@ -121,12 +122,13 @@ interface BookingState {
   childSeatCap: number;
   /** The child-seat add-on cost in EUR (already included in `total`). */
   childSeatsExtra: number;
-  /** True when this activity has a supplement configured (name set) — gates the whole picker. */
+  /** True when this activity has at least one supplement configured — gates the whole picker. */
   hasSupplement: boolean;
-  /** How many guests want the supplement. Bounded to the party size. */
-  supplementQty: number;
-  setSupplementQty: (n: number) => void;
-  /** The supplement's cost in EUR for the current selection (already included in `total`). */
+  /** Per-supplement head counts (supplement id → how many guests want it), each bounded to the
+   *  party size. Missing key = 0. */
+  supplementSel: Record<string, number>;
+  setSupplementQty: (id: string, n: number) => void;
+  /** The supplements' combined cost in EUR for the current selection (already inside `total`). */
   supplementExtra: number;
   days: Map<string, DayInfo> | null;
   /** True when the availability fetch FAILED (network / server), as opposed to genuinely having no
@@ -207,7 +209,7 @@ export function BookingProvider({
   const [lang, setLang] = useState(activity.languages[0] ?? 'English');
   const [suv, setSuv] = useState(false);
   const [childSeats, setChildSeats] = useState(0);
-  const [supplementQty, setSupplementQty] = useState(0);
+  const [supplementSel, setSupplementSel] = useState<Record<string, number>>({});
   const [checked, setChecked] = useState(false);
   const [scrollTick, setScrollTick] = useState(0);
   // Reveal the card and (re)request a scroll-into-view. Bumping the tick on every press means a
@@ -404,13 +406,20 @@ export function BookingProvider({
     activity.pricingMode === 'per_person' && selectedTier?.maxGuests
       ? selectedTier.maxGuests
       : Infinity;
+  // "Guests per trip": how many guests ONE booking may hold on a shared option (the availability
+  // screen's second number, coalesce(option, activity) server-side). create_booking enforces the
+  // same cap, so exceeding it here would only book a refusal. Null/absent = uncapped, as before.
+  const tripCap =
+    !privateCfg && !isVehicle && selectedOption?.guestsPerTrip
+      ? selectedOption.guestsPerTrip
+      : Infinity;
   // A private party is capped by its own max group size ONLY — seatsLeft counts trips, not people,
   // so a 1-trip day must still accept a party of 6.
   const maxParticipants = privateCfg
     ? Math.max(1, privateCfg.maxGuests)
     : isVehicle
       ? Math.max(1, vehicleCfg.maxParty)
-      : Math.max(1, Math.min(16, tierCap, date ? seatsLeft : 16));
+      : Math.max(1, Math.min(16, tierCap, tripCap, date ? seatsLeft : 16));
   const unitLabel = privateCfg
     ? 'per private trip'
     : isVehicle
@@ -503,13 +512,31 @@ export function BookingProvider({
   useEffect(() => {
     if (childSeats > childSeatCap) setChildSeats(childSeatCap);
   }, [childSeats, childSeatCap]);
-  // The supplement is per person, so it can never be bought for more heads than are travelling —
-  // api_book clamps it the same way, and a client that outran the clamp would show a total the
-  // server then refuses to match.
-  const hasSupplement = Boolean(activity.supplementName);
+  // Each supplement is per person, so none can be bought for more heads than are travelling —
+  // api_book clamps every count the same way, and a client that outran the clamp would show a total
+  // the server then refuses to match.
+  const hasSupplement = activity.supplements.length > 0;
+  const setSupplementQty = useCallback(
+    (id: string, n: number) => {
+      setSupplementSel((cur) => ({
+        ...cur,
+        [id]: Math.max(0, Math.min(totalGuests, Math.round(n))),
+      }));
+    },
+    [totalGuests],
+  );
   useEffect(() => {
-    if (supplementQty > totalGuests) setSupplementQty(totalGuests);
-  }, [supplementQty, totalGuests]);
+    setSupplementSel((cur) => {
+      let changed = false;
+      const next: Record<string, number> = {};
+      for (const [id, n] of Object.entries(cur)) {
+        const clamped = Math.min(n, totalGuests);
+        next[id] = clamped;
+        if (clamped !== n) changed = true;
+      }
+      return changed ? next : cur;
+    });
+  }, [totalGuests]);
   const vehicleQuote = isVehicle
     ? sightseeingQuote(
         Math.min(Math.max(participants, 1), vehicleCfg.maxParty),
@@ -563,9 +590,28 @@ export function BookingProvider({
               : selectedTier.amountEur * participants
             : selectedTier.amountEur * participants;
   const childSeatsExtra = childSeatsCost(childSeats);
-  const supplementExtra = hasSupplement
-    ? supplementCost(Math.min(supplementQty, totalGuests), activity.supplementEur)
-    : 0;
+  // Sum across the chosen supplements — each count clamped to the party, each priced from its own
+  // row, mirroring api_book's loop cent-for-cent. Accumulated in integer cents (each supplementCost
+  // is already cent-rounded) so a basket of several can't pick up float dust.
+  const supplementExtra =
+    activity.supplements.reduce(
+      (sum, s) =>
+        sum +
+        Math.round(
+          supplementCost(Math.min(supplementSel[s.id] ?? 0, totalGuests), s.priceEur) * 100,
+        ),
+      0,
+    ) / 100;
+  /** The chosen supplements as posted/carried downstream: only positive counts, clamped. `name` and
+   *  `unitEur` ride for display — api_book re-prices by id. */
+  const chosenSupplements = activity.supplements
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      unitEur: s.priceEur,
+      qty: Math.min(supplementSel[s.id] ?? 0, totalGuests),
+    }))
+    .filter((s) => s.qty > 0);
 
   // Region-based transport is no longer chosen here — pickup + the distance-based transport fee are
   // confirmed in the CHECKOUT flow (one global place, for every pricing mode). The activity page shows
@@ -663,11 +709,10 @@ export function BookingProvider({
           party: isAgeBanded || privateCfg ? party : undefined,
           suv: suvActive,
           childSeats,
-          // The unit price rides along because itemTotal() is pure and has no activity to consult.
-          supplementQty: hasSupplement ? Math.min(supplementQty, totalGuests) : 0,
-          supplementName: activity.supplementName ?? undefined,
-          supplementUnitEur: activity.supplementEur ?? undefined,
+          // Unit prices ride along because itemTotal() is pure and has no activity to consult.
+          supplements: chosenSupplements.length ? chosenSupplements : undefined,
           maxGuests: groupSize,
+          tripCap: !privateCfg && !isVehicle ? (selectedOption?.guestsPerTrip ?? null) : null,
           seatsLeft,
           unit: unitLabel,
           idemKey: idem,
@@ -692,9 +737,10 @@ export function BookingProvider({
       unit: unitLabel,
       suv: suvActive ? '1' : '0',
       childSeats: String(activity.adultsOnly ? 0 : childSeats),
-      supplementQty: String(hasSupplement ? Math.min(supplementQty, totalGuests) : 0),
-      // Display only, so checkout's order summary can name the upgrade. The charge comes from the DB.
-      supplementName: hasSupplement && supplementQty > 0 ? (activity.supplementName ?? '') : '',
+      // The chosen supplements as compact JSON [{id, qty, name, unitEur}]. The ids + counts are what
+      // the server prices (by id, from the DB); name/unitEur ride only so checkout's order summary
+      // can render the lines without another fetch.
+      supps: chosenSupplements.length ? JSON.stringify(chosenSupplements) : '',
       // Pickup CAPABILITY: seeds checkout step ①'s "want pickup?" default to Yes for a pickup-capable
       // (per_person/per_group with pickup) activity. The pickup itself + the transport fee are chosen
       // and priced AT CHECKOUT now, not here.
@@ -730,7 +776,7 @@ export function BookingProvider({
     childSeatCap,
     childSeatsExtra,
     hasSupplement,
-    supplementQty,
+    supplementSel,
     setSupplementQty,
     supplementExtra,
     days,

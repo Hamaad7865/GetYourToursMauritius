@@ -327,9 +327,10 @@ export const fr: Record<string, string> = {
   'Remove child seat': 'Retirer un siège enfant',
   'Number of child seats': 'Nombre de sièges enfant',
   'Add child seat': 'Ajouter un siège enfant',
-  // Optional per-activity supplement (e.g. the lobster lunch upgrade). The supplement's NAME is the
-  // owner's own text and is translated in /admin (activity_translations), never here.
+  // Optional per-activity supplements (e.g. the lobster lunch upgrade). Each supplement's NAME is
+  // the owner's own text and is translated in /admin (activity_supplements.name_fr), never here.
   '{price} per person': '{price} par personne',
+  Supplement: 'Supplément',
   'Included — tell us how many': 'Inclus — dites-nous combien',
   'One fewer supplement': 'Un supplément de moins',
   'One more supplement': 'Un supplément de plus',

@@ -942,18 +942,29 @@
                           },
                           "default": {}
                         },
-                        "supplementName": {
-                          "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "supplementEur": {
-                          "type": [
-                            "number",
-                            "null"
-                          ],
-                          "minimum": 0
+                        "supplements": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "priceEur": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "id",
+                              "name",
+                              "priceEur"
+                            ]
+                          },
+                          "default": []
                         },
                         "options": {
                           "type": "array",
@@ -1006,6 +1017,13 @@
                                 "minimum": 0
                               },
                               "privateMaxGuests": {
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ],
+                                "exclusiveMinimum": 0
+                              },
+                              "guestsPerTrip": {
                                 "type": [
                                   "integer",
                                   "null"
@@ -1199,6 +1217,7 @@
                         "seoTitle",
                         "seoDescription",
                         "extra",
+                        "supplements",
                         "options",
                         "translations",
                         "reviews"
@@ -4978,10 +4997,27 @@
                     "minimum": 0,
                     "maximum": 25
                   },
-                  "supplementQty": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 500
+                  "supplements": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "qty": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 500
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "qty"
+                      ]
+                    },
+                    "maxItems": 20
                   },
                   "dropoffSlug": {
                     "type": [
@@ -5344,25 +5380,37 @@
                             "null"
                           ]
                         },
-                        "supplementName": {
+                        "supplements": {
                           "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "supplementQty": {
-                          "type": [
-                            "integer",
+                            "array",
                             "null"
                           ],
-                          "minimum": 0
-                        },
-                        "supplementEur": {
-                          "type": [
-                            "number",
-                            "null"
-                          ],
-                          "minimum": 0
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "qty": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0
+                              },
+                              "unitEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "totalEur": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "qty",
+                              "unitEur",
+                              "totalEur"
+                            ]
+                          }
                         },
                         "tripType": {
                           "type": [
@@ -6018,25 +6066,37 @@
                             "null"
                           ]
                         },
-                        "supplementName": {
+                        "supplements": {
                           "type": [
-                            "string",
-                            "null"
-                          ]
-                        },
-                        "supplementQty": {
-                          "type": [
-                            "integer",
+                            "array",
                             "null"
                           ],
-                          "minimum": 0
-                        },
-                        "supplementEur": {
-                          "type": [
-                            "number",
-                            "null"
-                          ],
-                          "minimum": 0
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "name": {
+                                "type": "string"
+                              },
+                              "qty": {
+                                "type": "integer",
+                                "exclusiveMinimum": 0
+                              },
+                              "unitEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "totalEur": {
+                                "type": "number",
+                                "minimum": 0
+                              }
+                            },
+                            "required": [
+                              "name",
+                              "qty",
+                              "unitEur",
+                              "totalEur"
+                            ]
+                          }
                         },
                         "tripType": {
                           "type": [

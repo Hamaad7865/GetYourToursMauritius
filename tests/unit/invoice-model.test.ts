@@ -170,11 +170,11 @@ describe('buildInvoice', () => {
   });
 });
 
-/* The per-activity supplement (e.g. a lobster lunch upgrade) is folded into total_minor by api_book
- * and has NO booking_items row, exactly like the transport add-on. If buildInvoice didn't push a line
- * for it, the receipt's lines would silently under-sum the total the guest was charged — and the VAT
- * split, which nets each line individually, would be wrong too. */
-describe('buildInvoice — the optional supplement', () => {
+/* The per-activity supplements (e.g. a lobster lunch upgrade) are folded into total_minor by api_book
+ * and have NO booking_items rows, exactly like the transport add-on. If buildInvoice didn't push a
+ * line for each, the receipt's lines would silently under-sum the total the guest was charged — and
+ * the VAT split, which nets each line individually, would be wrong too. */
+describe('buildInvoice — the optional supplements', () => {
   const payment = {
     chargedAmountMinor: 15000,
     chargedCurrency: 'EUR',
@@ -195,21 +195,23 @@ describe('buildInvoice — the optional supplement', () => {
     items: [{ priceLabel: 'Adult', quantity: 2, pax: null, subtotalEur: 100 }],
   };
 
-  it('adds a line naming the supplement, so the lines reconcile to the total', () => {
+  it('adds one line per supplement, so the lines reconcile to the total', () => {
     const inv = buildInvoice(
       {
         ...base,
-        totalEur: 150,
-        supplementName: 'Lobster for lunch',
-        supplementQty: 2,
-        supplementEur: 50,
+        totalEur: 166,
+        supplements: [
+          { name: 'Lobster for lunch', qty: 2, totalEur: 50 },
+          { name: 'Snorkel gear', qty: 2, totalEur: 16 },
+        ],
       },
       payment,
       business,
     );
-    const supp = inv.lines.at(-1);
-    expect(supp?.description).toBe('Lobster for lunch (2)');
-    expect(supp?.lineGrossEur).toBe(50);
+    expect(inv.lines.at(-2)?.description).toBe('Lobster for lunch (2)');
+    expect(inv.lines.at(-2)?.lineGrossEur).toBe(50);
+    expect(inv.lines.at(-1)?.description).toBe('Snorkel gear (2)');
+    expect(inv.lines.at(-1)?.lineGrossEur).toBe(16);
     // The item lines stay FIRST — the e-voucher reads lines[0].quantity for its pax count.
     expect(inv.lines[0]?.description).toContain('Adult');
     expect(inv.lines.reduce((sum, l) => sum + l.lineGrossEur, 0)).toBeCloseTo(inv.totalGrossEur, 2);
@@ -220,9 +222,7 @@ describe('buildInvoice — the optional supplement', () => {
       {
         ...base,
         totalEur: 125,
-        supplementName: 'Lobster for lunch',
-        supplementQty: 1,
-        supplementEur: 25,
+        supplements: [{ name: 'Lobster for lunch', qty: 1, totalEur: 25 }],
       },
       payment,
       business,
@@ -230,12 +230,8 @@ describe('buildInvoice — the optional supplement', () => {
     expect(inv.lines.at(-1)?.description).toBe('Lobster for lunch');
   });
 
-  it('adds no line when the booking bought no supplement', () => {
-    const inv = buildInvoice(
-      { ...base, totalEur: 100, supplementName: null, supplementQty: 0, supplementEur: 0 },
-      payment,
-      business,
-    );
+  it('adds no line when the booking bought no supplements', () => {
+    const inv = buildInvoice({ ...base, totalEur: 100, supplements: [] }, payment, business);
     expect(inv.lines).toHaveLength(1);
   });
 });

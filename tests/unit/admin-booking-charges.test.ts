@@ -43,9 +43,7 @@ function booking(over: Partial<BookingRow> = {}): BookingRow {
     pickupPending: false,
     childSeats: 0,
     transportEur: 0,
-    supplementName: null,
-    supplementQty: 0,
-    supplementEur: 0,
+    supplements: [],
     transfer: null,
     ...over,
   };
@@ -88,9 +86,7 @@ describe('bookingExtraCharges', () => {
     const charges = bookingExtraCharges(
       booking({
         totalEur: 750,
-        supplementName: 'Lobster for lunch',
-        supplementQty: 2,
-        supplementEur: 50,
+        supplements: [{ name: 'Lobster for lunch', qty: 2, totalEur: 50 }],
       }),
     );
     expect(charges).toEqual([{ label: 'Lobster for lunch (2)', amountEur: 50 }]);
@@ -100,9 +96,7 @@ describe('bookingExtraCharges', () => {
     const charges = bookingExtraCharges(
       booking({
         totalEur: 725,
-        supplementName: 'Lobster for lunch',
-        supplementQty: 1,
-        supplementEur: 25,
+        supplements: [{ name: 'Lobster for lunch', qty: 1, totalEur: 25 }],
       }),
     );
     expect(charges).toEqual([{ label: 'Lobster for lunch', amountEur: 25 }]);
@@ -114,9 +108,7 @@ describe('bookingExtraCharges', () => {
         totalEur: 792,
         transportEur: 30,
         childSeats: 3,
-        supplementName: 'Lobster for lunch',
-        supplementQty: 2,
-        supplementEur: 50,
+        supplements: [{ name: 'Lobster for lunch', qty: 2, totalEur: 50 }],
       }),
     );
     expect(charges).toEqual([

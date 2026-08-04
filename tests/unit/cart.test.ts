@@ -47,13 +47,31 @@ describe('itemTotal — child-seat add-on never exceeds the party', () => {
   });
 });
 
-describe('itemTotal — the per-activity supplement', () => {
-  const supp = { supplementName: 'Lobster lunch', supplementUnitEur: 25 };
-  it('charges the unit price once per guest who wanted it', () => {
-    expect(itemTotal({ ...base, guests: 3, childSeats: 0, ...supp, supplementQty: 2 })).toBe(200); // 3×€50 + 2×€25
+describe('itemTotal — the per-activity supplements', () => {
+  const lobster = { id: 's1', name: 'Lobster lunch', unitEur: 25 };
+  const snorkel = { id: 's2', name: 'Snorkel gear', unitEur: 8 };
+  it('charges each unit price once per guest who wanted it', () => {
+    expect(
+      itemTotal({ ...base, guests: 3, childSeats: 0, supplements: [{ ...lobster, qty: 2 }] }),
+    ).toBe(200); // 3×€50 + 2×€25
   });
-  it('caps the supplement to a lowered party size (no stale inflation)', () => {
-    expect(itemTotal({ ...base, guests: 1, childSeats: 0, ...supp, supplementQty: 3 })).toBe(75); // 1×€50 + 1×€25
+  it('sums several supplements, each clamped independently', () => {
+    expect(
+      itemTotal({
+        ...base,
+        guests: 3,
+        childSeats: 0,
+        supplements: [
+          { ...lobster, qty: 2 },
+          { ...snorkel, qty: 3 },
+        ],
+      }),
+    ).toBe(224); // 3×€50 + 2×€25 + 3×€8
+  });
+  it('caps every supplement to a lowered party size (no stale inflation)', () => {
+    expect(
+      itemTotal({ ...base, guests: 1, childSeats: 0, supplements: [{ ...lobster, qty: 3 }] }),
+    ).toBe(75); // 1×€50 + 1×€25
   });
   it('is flat on a party-map line, alongside the child-seat add-on', () => {
     expect(
@@ -64,13 +82,12 @@ describe('itemTotal — the per-activity supplement', () => {
         unitEur: 140, // the whole banded party price
         guests: 3,
         childSeats: 2,
-        ...supp,
-        supplementQty: 2,
+        supplements: [{ ...lobster, qty: 2 }],
       }),
     ).toBe(196); // 140 flat + childSeatsCost(2)=6 + 2×€25
   });
-  it('costs nothing when the activity has no supplement priced', () => {
-    expect(itemTotal({ ...base, guests: 3, childSeats: 0, supplementQty: 3 })).toBe(150);
+  it('costs nothing when the line carries no supplements', () => {
+    expect(itemTotal({ ...base, guests: 3, childSeats: 0 })).toBe(150);
   });
 });
 
@@ -103,15 +120,43 @@ describe("setGuests clamp logic (pure mirror — the localStorage-backed hook is
   it('raising guests leaves the smaller childSeats untouched', () => {
     expect(clamp({ ...base, guests: 1, childSeats: 1 }, 4)).toEqual({ guests: 4, childSeats: 1 });
   });
-  it('lowering guests pulls the supplement count down too', () => {
+  it('lowering guests pulls every supplement count down too', () => {
     const clampBoth = (i: CartItem, guests: number) => {
       const next = Math.max(1, Math.min(lineCap(i), guests));
-      return { guests: next, supplementQty: Math.min(i.supplementQty ?? 0, next) };
+      return {
+        guests: next,
+        supplements: i.supplements?.map((s) => ({ ...s, qty: Math.min(s.qty, next) })),
+      };
     };
-    expect(clampBoth({ ...base, guests: 3, supplementQty: 3 }, 1)).toEqual({
+    expect(
+      clampBoth(
+        { ...base, guests: 3, supplements: [{ id: 's1', name: 'Lobster', qty: 3, unitEur: 25 }] },
+        1,
+      ),
+    ).toEqual({
       guests: 1,
-      supplementQty: 1,
+      supplements: [{ id: 's1', name: 'Lobster', qty: 1, unitEur: 25 }],
     });
+  });
+});
+
+describe('lineCap — "guests per trip" caps the stepper', () => {
+  it('caps at tripCap below seats and tier', () => {
+    expect(
+      lineCap({
+        ...base,
+        pricingMode: 'per_person',
+        maxGuests: null,
+        guests: 2,
+        seatsLeft: 30,
+        tripCap: 12,
+      }),
+    ).toBe(12);
+  });
+  it('absent tripCap keeps the old behaviour (seats/tier only)', () => {
+    expect(
+      lineCap({ ...base, pricingMode: 'per_person', maxGuests: null, guests: 2, seatsLeft: 30 }),
+    ).toBe(30);
   });
 });
 

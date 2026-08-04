@@ -35,6 +35,16 @@ export interface OptionInput {
   privateMaxGuests?: number | null;
   prices: PriceInput[];
 }
+/** One optional supplement row (activity_supplements): the owner names and prices it; the price is
+ *  PER PERSON. `id` present = an existing row (reconciled in place so its identity — which
+ *  booking_supplements references — survives edits); absent = newly added. `nameFr` is the French
+ *  label, edited in the Français pane against the same rows. */
+export interface SupplementInput {
+  id?: string;
+  name: string;
+  priceEur: number | null;
+  nameFr: string;
+}
 export interface ItineraryStopInput {
   title: string;
   area: string;
@@ -111,13 +121,12 @@ export interface ActivityFormValues {
   priceListUrl: string;
   /** Optional label shown above the price-list PDF (e.g. "Casela park entry prices"). */
   priceListLabel: string;
-  /** Optional supplement the guest can add per person at booking (e.g. "Lobster lunch"). '' switches
-   *  the whole thing off for this activity. Deliberately a real column, not an `extra` key: the
-   *  matching price is money, and `extra` is merged with the French overlay. */
-  supplementName: string;
-  /** Per-PERSON price of `supplementName`, in EUR. api_book re-reads it from the DB as the charge —
-   *  the browser only ever sends how many guests want it. */
-  supplementEur: number | null;
+  /** Optional supplements the guest can add per person at booking (e.g. "Lobster lunch"), MANY per
+   *  activity since 20260908000000 (activity_supplements rows). Empty = the feature is off for this
+   *  activity. Deliberately real rows, not `extra` keys: the prices are money, and `extra` is merged
+   *  with the French overlay. api_book re-reads each price from the DB by id — the browser only ever
+   *  sends which supplement and how many guests want it. */
+  supplements: SupplementInput[];
   /** The activity's `extra` as loaded — buildExtra() preserves any key the form doesn't manage
    *  (e.g. availability/returnWindow set via SQL patches), so a save can't silently destroy them. */
   sourceExtra: Record<string, unknown>;
@@ -159,8 +168,7 @@ export const EMPTY_ACTIVITY: ActivityFormValues = {
   badges: [],
   priceListUrl: '',
   priceListLabel: '',
-  supplementName: '',
-  supplementEur: null,
+  supplements: [],
   sourceExtra: {},
 };
 
@@ -272,13 +280,8 @@ export function activityRow(v: ActivityFormValues, opId: string) {
     seo_title: v.seoTitle.trim() || null,
     seo_description: v.seoDescription.trim() || null,
     status: v.status,
-    // Blank name = no supplement on this activity, which is what api_book gates on. The price is
-    // kept as typed either way, so blanking the name to hide the option doesn't lose the figure.
-    supplement_name: v.supplementName.trim() || null,
-    supplement_minor:
-      v.supplementEur == null || !Number.isFinite(v.supplementEur)
-        ? null
-        : Math.max(0, Math.round(v.supplementEur * 100)),
+    // (The legacy supplement_name/supplement_minor columns are FROZEN since 20260908000000 — the
+    // supplements live in activity_supplements, reconciled by reconcileSupplements below.)
     extra: buildExtra(v) as never,
   };
 }
@@ -459,6 +462,54 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
 }
 
 /**
+ * Reconcile the activity's supplements (activity_supplements) IN PLACE, mirroring
+ * planOptionReconcile: a row whose id matches is updated (keeping the identity the French pane and
+ * booking_supplements reference), one without is inserted, and a row absent from the form is
+ * deleted — safe for booked supplements because booking_supplements snapshots the name/price and
+ * its FK is ON DELETE SET NULL. Blank-named rows are dropped (the "empty last row" of the editor).
+ */
+async function reconcileSupplements(
+  activityId: string,
+  supplements: SupplementInput[],
+): Promise<void> {
+  const sb = getBrowserSupabase();
+  const { data: existing, error: readErr } = await sb
+    .from('activity_supplements')
+    .select('id')
+    .eq('activity_id', activityId);
+  if (readErr) throw readErr;
+  const existingIds = new Set((existing ?? []).map((s) => s.id));
+  const kept = new Set<string>();
+  let position = 0;
+  for (const s of supplements) {
+    if (!s.name.trim()) continue;
+    const row = {
+      activity_id: activityId,
+      name: s.name.trim(),
+      name_fr: s.nameFr.trim() || null,
+      price_minor:
+        s.priceEur == null || !Number.isFinite(s.priceEur)
+          ? 0
+          : Math.max(0, Math.round(s.priceEur * 100)),
+      position: position++,
+    };
+    if (s.id && existingIds.has(s.id)) {
+      kept.add(s.id);
+      const { error } = await sb.from('activity_supplements').update(row).eq('id', s.id);
+      if (error) throw error;
+    } else {
+      const { error } = await sb.from('activity_supplements').insert(row);
+      if (error) throw error;
+    }
+  }
+  const removed = [...existingIds].filter((sid) => !kept.has(sid));
+  if (removed.length) {
+    const { error } = await sb.from('activity_supplements').delete().in('id', removed);
+    if (error) throw error;
+  }
+}
+
+/**
  * Roll the open-ended availability window forward for one activity. Idempotent and a no-op unless
  * the activity is published with a daily capacity and at least one price — so calling it after every
  * save means newly published / newly priced open-ended activities show bookable dates immediately,
@@ -577,6 +628,7 @@ export async function createActivity(v: ActivityFormValues, opts: SaveOpts = {})
   await replaceImages(data.id, v.images);
   if (!opts.contentOnly) {
     await reconcileOptions(data.id, v.options);
+    await reconcileSupplements(data.id, v.supplements);
     await materializeActivity(data.id);
   }
   return data.id;
@@ -608,6 +660,7 @@ export async function updateActivity(
   await replaceImages(id, v.images);
   if (!opts.contentOnly) {
     await reconcileOptions(id, v.options);
+    await reconcileSupplements(id, v.supplements);
     // Publishing or adding the first price makes the activity materializable — fill its window now.
     await materializeActivity(id);
   }
@@ -631,13 +684,13 @@ export interface ActivityTranslationForm {
   meetingPoint: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
-  /** French label for the activity's optional supplement. Its PRICE is never translated — only the
-   *  English name column decides whether the supplement exists at all. */
-  supplementName: string | null;
   highlights: string[];
   inclusions: string[];
   exclusions: string[];
 }
+/* (The supplements' French labels are NOT here: they live on the activity_supplements rows
+ * themselves (name_fr), edited through the form's `supplements` field and saved by
+ * reconcileSupplements — the legacy activity_translations.supplement_name column is frozen.) */
 
 export const EMPTY_ACTIVITY_TRANSLATION: ActivityTranslationForm = {
   title: null,
@@ -646,7 +699,6 @@ export const EMPTY_ACTIVITY_TRANSLATION: ActivityTranslationForm = {
   meetingPoint: null,
   seoTitle: null,
   seoDescription: null,
-  supplementName: null,
   highlights: [],
   inclusions: [],
   exclusions: [],
@@ -669,7 +721,6 @@ export function translationRowFromForm(activityId: string, form: ActivityTransla
     meeting_point: blankToNull(form.meetingPoint),
     seo_title: blankToNull(form.seoTitle),
     seo_description: blankToNull(form.seoDescription),
-    supplement_name: blankToNull(form.supplementName),
     highlights: form.highlights,
     inclusions: form.inclusions,
     exclusions: form.exclusions,
@@ -703,7 +754,7 @@ export async function loadActivityTranslation(
   const { data, error } = await sb
     .from('activity_translations')
     .select(
-      'title, summary, description, meeting_point, seo_title, seo_description, supplement_name, highlights, inclusions, exclusions, source',
+      'title, summary, description, meeting_point, seo_title, seo_description, highlights, inclusions, exclusions, source',
     )
     .eq('activity_id', activityId)
     .eq('locale', 'fr')
@@ -718,7 +769,6 @@ export async function loadActivityTranslation(
       meetingPoint: data.meeting_point,
       seoTitle: data.seo_title,
       seoDescription: data.seo_description,
-      supplementName: data.supplement_name,
       highlights: data.highlights ?? [],
       inclusions: data.inclusions ?? [],
       exclusions: data.exclusions ?? [],
@@ -781,6 +831,11 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
   if (error) throw error;
   if (!act) return null;
 
+  const { data: supplements } = await sb
+    .from('activity_supplements')
+    .select('id, name, name_fr, price_minor, position')
+    .eq('activity_id', id)
+    .order('position');
   const { data: images } = await sb
     .from('activity_images')
     .select('url, alt, position')
@@ -880,8 +935,12 @@ export async function loadActivityForEdit(id: string): Promise<ActivityFormValue
     })),
     priceListUrl: extra.priceList?.url ?? '',
     priceListLabel: extra.priceList?.label ?? '',
-    supplementName: act.supplement_name ?? '',
-    supplementEur: act.supplement_minor != null ? act.supplement_minor / 100 : null,
+    supplements: (supplements ?? []).map((s) => ({
+      id: s.id,
+      name: s.name,
+      priceEur: s.price_minor / 100,
+      nameFr: s.name_fr ?? '',
+    })),
     sourceExtra: (act.extra ?? {}) as Record<string, unknown>,
   };
 }

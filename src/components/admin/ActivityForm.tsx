@@ -208,7 +208,11 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             fr={fr}
             setFr={setFr}
             frSource={frSource}
-            supplementPlaceholder={v.supplementName}
+            // The supplements' FR labels live on the activity_supplements rows themselves, saved by
+            // the main save path — not the translation upsert. The restricted 'seo' role can't write
+            // that table (contentOnly saves skip the reconcile), so it doesn't get the inputs.
+            supplements={contentOnly ? undefined : v.supplements}
+            setSupplements={contentOnly ? undefined : (next) => set('supplements', next)}
           />
         )}
 

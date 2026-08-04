@@ -70,11 +70,10 @@ export interface BookingRow {
   /** Region-based transport add-on in EUR — already inside totalEur, but it has NO booking_items
    *  row, so the drawer must render it explicitly or the Total looks unexplained. */
   transportEur: number;
-  /** The optional supplement bought on this booking, as snapshot at booking time. Like transport it
-   *  has NO booking_items row, so the drawer must render it or the Total looks unexplained. */
-  supplementName: string | null;
-  supplementQty: number;
-  supplementEur: number;
+  /** The optional supplements bought on this booking, as snapshot at booking time
+   *  (booking_supplements rows). Like transport they have NO booking_items rows, so the drawer must
+   *  render each or the Total looks unexplained. */
+  supplements: Array<{ name: string; qty: number; totalEur: number }>;
   /** Airport-transfer details (null for non-transfer bookings) — shown in the admin drawer + voucher. */
   transfer: AdminTransferDetails | null;
 }
@@ -205,23 +204,27 @@ interface RawBooking extends RawTransferFields {
   pickup_pending: boolean | null;
   child_seats: number | null;
   transport_minor: number | null;
-  supplement_name: string | null;
-  supplement_qty: number | null;
-  supplement_minor: number | null;
   created_at: string;
   booking_items: RawItem[] | null;
+  booking_supplements: Array<{
+    name: string;
+    qty: number;
+    total_minor: number;
+    position: number;
+  }> | null;
   payments: RawPaymentLite[] | null;
 }
 
 const BOOKING_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
   source, currency, total_minor, notes, custom_itinerary, pickup_location, dropoff_location, pickup_pending, child_seats,
-  transport_minor, supplement_name, supplement_qty, supplement_minor, ${TRANSFER_SELECT}, created_at,
+  transport_minor, ${TRANSFER_SELECT}, created_at,
   booking_items (
     price_label, quantity, pax, unit_amount_minor, subtotal_minor,
     session_occurrences ( starts_at ),
     activity_options ( name, activities ( title ) )
-  )
+  ),
+  booking_supplements ( name, qty, total_minor, position )
 `;
 
 function mapItem(raw: RawItem): BookingItemRow {
@@ -273,9 +276,16 @@ function mapBooking(raw: RawBooking): BookingRow {
     pickupPending: raw.pickup_pending ?? false,
     childSeats: raw.child_seats ?? 0,
     transportEur: (raw.transport_minor ?? 0) / 100,
-    supplementName: raw.supplement_name ?? null,
-    supplementQty: raw.supplement_qty ?? 0,
-    supplementEur: (raw.supplement_minor ?? 0) / 100,
+    // Sorted by the snapshot's menu position — embedded PostgREST rows arrive unordered, and the
+    // drawer must agree with the invoice about the listing order.
+    supplements: (raw.booking_supplements ?? [])
+      .slice()
+      .sort((a, b) => a.position - b.position || (a.name < b.name ? -1 : 1))
+      .map((s) => ({
+        name: s.name,
+        qty: s.qty,
+        totalEur: s.total_minor / 100,
+      })),
     transfer: mapTransfer(raw),
   };
 }
@@ -314,15 +324,13 @@ export function bookingExtraCharges(booking: BookingRow): BookingChargeLine[] {
     lines.push({ label: `Child seats (${booking.childSeats})`, amountEur: childSeatEur });
   }
 
-  // The supplement's own snapshot — the name and the charge as they were when the guest booked, not
-  // as the activity reads today.
-  if (booking.supplementEur > 0 && booking.supplementName) {
+  // Each supplement's own snapshot — the name and the charge as they were when the guest booked,
+  // not as the activity's menu reads today.
+  for (const s of booking.supplements) {
+    if (!(s.totalEur > 0) || !s.name) continue;
     lines.push({
-      label:
-        booking.supplementQty > 1
-          ? `${booking.supplementName} (${booking.supplementQty})`
-          : booking.supplementName,
-      amountEur: round2(booking.supplementEur),
+      label: s.qty > 1 ? `${s.name} (${s.qty})` : s.name,
+      amountEur: round2(s.totalEur),
     });
   }
 

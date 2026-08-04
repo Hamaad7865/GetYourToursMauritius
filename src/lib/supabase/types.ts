@@ -73,11 +73,14 @@ type ActivitiesRow = {
   rating_avg: number | null;
   rating_count: number;
   extra: Json;
-  /** 20260905000000 — optional per-person supplement (e.g. "Lobster lunch"). A blank/NULL name is the
-   *  feature's off switch; supplement_minor is the PER-PERSON price api_book charges from. Real
-   *  columns rather than an `extra` key precisely because this one is money. */
+  /** FROZEN legacy (20260908000000): the single supplement moved to activity_supplements. Kept only
+   *  because the live catalogue dump/seed reference the columns; nothing writes or reads them. */
   supplement_name: string | null;
   supplement_minor: number | null;
+  /** 20260908000000 — max guests ONE booking may hold on a shared option ("guests per trip");
+   *  daily_capacity stays the whole day's pool (= trips × this). Null = no per-booking cap.
+   *  Options may override via activity_options.guests_per_trip. */
+  guests_per_trip: number | null;
   region: string | null;
   lat: number | null;
   lng: number | null;
@@ -113,6 +116,7 @@ type ActivitiesInsert = {
   extra?: Json;
   supplement_name?: string | null;
   supplement_minor?: number | null;
+  guests_per_trip?: number | null;
   region?: string | null;
   lat?: number | null;
   lng?: number | null;
@@ -139,8 +143,7 @@ type ActivityTranslationsRow = {
    *  importantInfo). Never operational flags (availability, badges, priceList, adultsOnly, ...) —
    *  those always come from the English activities.extra column. */
   extra: Json | null;
-  /** 20260905000000 — French label for the supplement. Per-field coalesce like title/summary; the
-   *  English column alone decides whether the supplement exists, and the price is never translated. */
+  /** FROZEN legacy (20260908000000): the FR label moved to activity_supplements.name_fr. */
   supplement_name: string | null;
 };
 type ActivityTranslationsInsert = {
@@ -192,6 +195,9 @@ type ActivityOptionsRow = {
   private_max_guests: number | null;
   /** Per-option daily capacity (null = inherit the activity's). Trips/day for a private option. */
   daily_capacity: number | null;
+  /** 20260908000000 — per-option "guests per trip" override for SHARED options (null = inherit
+   *  activities.guests_per_trip). A private option's cap is private_max_guests instead. */
+  guests_per_trip: number | null;
   position: number;
   created_at: string;
 };
@@ -208,6 +214,7 @@ type ActivityOptionsInsert = {
   private_extra_minor?: number | null;
   private_max_guests?: number | null;
   daily_capacity?: number | null;
+  guests_per_trip?: number | null;
   position?: number;
   created_at?: string;
 };
@@ -377,6 +384,53 @@ type BookingItemsInsert = {
   subtotal_minor: number;
   pax?: number | null;
   created_at?: string;
+};
+
+/** 20260908000000 — the owner's per-activity upgrade menu (e.g. "Lobster lunch"), MANY per
+ *  activity. price_minor is the PER-PERSON price api_book charges from; name_fr is the FR label
+ *  (per-field coalesce in api_get_activity — the English name alone decides the row exists). */
+type ActivitySupplementsRow = {
+  id: string;
+  activity_id: string;
+  name: string;
+  name_fr: string | null;
+  price_minor: number;
+  position: number;
+  created_at: string;
+};
+type ActivitySupplementsInsert = {
+  id?: string;
+  activity_id: string;
+  name: string;
+  name_fr?: string | null;
+  price_minor?: number;
+  position?: number;
+  created_at?: string;
+};
+
+/** 20260908000000 — what a booking actually bought, snapshot per supplement (name + unit + qty +
+ *  total at booking time, so a reprinted invoice survives renames/re-pricing). Written only by
+ *  api_book; supplement_id goes NULL if the owner later deletes the menu row. */
+type BookingSupplementsRow = {
+  id: string;
+  booking_id: string;
+  supplement_id: string | null;
+  name: string;
+  qty: number;
+  unit_minor: number;
+  total_minor: number;
+  /** The MENU position at booking time — the stable order every reader lists supplements in. */
+  position: number;
+};
+type BookingSupplementsInsert = {
+  id?: string;
+  booking_id: string;
+  supplement_id?: string | null;
+  name: string;
+  qty: number;
+  unit_minor: number;
+  total_minor: number;
+  position?: number;
 };
 
 type PaymentsRow = {
@@ -899,6 +953,8 @@ export interface Database {
       booking_holds: TableDef<BookingHoldsRow, BookingHoldsInsert>;
       bookings: TableDef<BookingsRow, BookingsInsert>;
       booking_items: TableDef<BookingItemsRow, BookingItemsInsert>;
+      activity_supplements: TableDef<ActivitySupplementsRow, ActivitySupplementsInsert>;
+      booking_supplements: TableDef<BookingSupplementsRow, BookingSupplementsInsert>;
       payments: TableDef<PaymentsRow, PaymentsInsert>;
       payment_events: TableDef<PaymentEventsRow, PaymentEventsInsert>;
       notification_outbox: TableDef<NotificationOutboxRow, NotificationOutboxInsert>;

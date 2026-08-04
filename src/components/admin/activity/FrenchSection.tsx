@@ -1,7 +1,11 @@
 'use client';
 
 import { Field, Section, StringList, inputClass } from '@/components/admin/fields';
-import { isMachineDraft, type ActivityTranslationForm } from '@/lib/admin/activity-write';
+import {
+  isMachineDraft,
+  type ActivityTranslationForm,
+  type SupplementInput,
+} from '@/lib/admin/activity-write';
 
 /**
  * The tour's French copy (activity_translations, locale 'fr').
@@ -16,14 +20,18 @@ export function FrenchSection({
   fr,
   setFr,
   frSource,
-  supplementPlaceholder,
+  supplements,
+  setSupplements,
 }: {
   fr: ActivityTranslationForm;
   setFr: (fr: ActivityTranslationForm) => void;
   /** 'machine' | 'human' | undefined (no translation row yet, e.g. a brand-new activity). */
   frSource: string | undefined;
-  /** The English supplement name, shown as the placeholder for its French counterpart. */
-  supplementPlaceholder: string;
+  /** The activity's supplements (same rows the Pricing pane edits) — this pane edits each row's
+   *  FRENCH label (activity_supplements.name_fr). Undefined for the restricted 'seo' content role,
+   *  whose RLS can't write that table — the block is hidden rather than silently losing edits. */
+  supplements?: SupplementInput[];
+  setSupplements?: (next: SupplementInput[]) => void;
 }) {
   return (
     <Section
@@ -66,17 +74,32 @@ export function FrenchSection({
             onChange={(e) => setFr({ ...fr, meetingPoint: e.target.value })}
           />
         </Field>
-        <Field
-          label="Optional supplement"
-          hint="Only the name — the price is the same in both languages."
-        >
-          <input
-            className={inputClass}
-            placeholder={supplementPlaceholder || 'e.g. Homard au déjeuner'}
-            value={fr.supplementName ?? ''}
-            onChange={(e) => setFr({ ...fr, supplementName: e.target.value })}
-          />
-        </Field>
+        {supplements && setSupplements && supplements.some((s) => s.name.trim()) && (
+          <Field
+            label="Optional supplements"
+            hint="Only the names — each price is the same in both languages."
+          >
+            <div className="flex flex-col gap-2.5">
+              {supplements.map((s, idx) =>
+                s.name.trim() ? (
+                  <input
+                    key={s.id ?? `new-${idx}`}
+                    className={inputClass}
+                    placeholder={s.name || 'e.g. Homard au déjeuner'}
+                    value={s.nameFr}
+                    onChange={(e) =>
+                      setSupplements(
+                        supplements.map((x, i) =>
+                          i === idx ? { ...x, nameFr: e.target.value } : x,
+                        ),
+                      )
+                    }
+                  />
+                ) : null,
+              )}
+            </div>
+          </Field>
+        )}
         <div className="grid gap-5 sm:grid-cols-2">
           <StringList
             label="Highlights"

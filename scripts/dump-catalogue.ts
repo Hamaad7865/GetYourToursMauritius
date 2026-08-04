@@ -146,6 +146,7 @@ const TABLES: TableSpec[] = [
       'sort',
       'supplement_name',
       'supplement_minor',
+      'guests_per_trip',
     ],
     order: 'slug',
   },
@@ -166,7 +167,15 @@ const TABLES: TableSpec[] = [
       'private_extra_minor',
       'private_max_guests',
       'daily_capacity',
+      'guests_per_trip',
     ],
+    order: 'activity_id, position, id',
+  },
+  {
+    // 20260908000000 — the owner's per-activity supplements menu (replaces the frozen
+    // activities.supplement_name/minor pair, which stays dumped for old-seed compatibility).
+    table: 'activity_supplements',
+    cols: ['id', 'activity_id', 'name', 'name_fr', 'price_minor', 'position'],
     order: 'activity_id, position, id',
   },
   {
@@ -204,6 +213,8 @@ const TABLES: TableSpec[] = [
       'meeting_point',
       'seo_title',
       'seo_description',
+      'source',
+      { name: 'extra', cast: 'jsonb' },
       'supplement_name',
     ],
     order: 'activity_id, locale',

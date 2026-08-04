@@ -68,33 +68,74 @@ export function PricingSection({ v, set }: PaneProps) {
           <OptionsEditor options={v.options} onChange={(x) => set('options', x)} />
         )}
 
-        <Field label="Optional supplement">
-          <div className="grid gap-3 sm:grid-cols-[1fr_150px]">
-            <input
-              className={inputClass}
-              placeholder="e.g. Lobster for lunch"
-              value={v.supplementName}
-              onChange={(e) => set('supplementName', e.target.value)}
-            />
-            <div className="flex items-center gap-2">
-              <span className="text-[13px] font-bold text-ink/60">€</span>
-              <input
-                className={inputClass}
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="0.00"
-                value={v.supplementEur ?? ''}
-                onChange={(e) =>
-                  set('supplementEur', e.target.value === '' ? null : Number(e.target.value))
-                }
-              />
-            </div>
+        <Field label="Optional supplements">
+          <div className="flex flex-col gap-2.5">
+            {v.supplements.map((s, idx) => (
+              <div key={s.id ?? `new-${idx}`} className="grid gap-3 sm:grid-cols-[1fr_150px_auto]">
+                <input
+                  className={inputClass}
+                  placeholder="e.g. Lobster for lunch"
+                  value={s.name}
+                  onChange={(e) =>
+                    set(
+                      'supplements',
+                      v.supplements.map((x, i) => (i === idx ? { ...x, name: e.target.value } : x)),
+                    )
+                  }
+                />
+                <div className="flex items-center gap-2">
+                  <span className="text-[13px] font-bold text-ink/60">€</span>
+                  <input
+                    className={inputClass}
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="0.00"
+                    value={s.priceEur ?? ''}
+                    onChange={(e) =>
+                      set(
+                        'supplements',
+                        v.supplements.map((x, i) =>
+                          i === idx
+                            ? {
+                                ...x,
+                                priceEur: e.target.value === '' ? null : Number(e.target.value),
+                              }
+                            : x,
+                        ),
+                      )
+                    }
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() =>
+                    set(
+                      'supplements',
+                      v.supplements.filter((_, i) => i !== idx),
+                    )
+                  }
+                  className="self-center rounded-lg border border-ink/15 px-2.5 py-2 text-[12px] font-bold text-ink hover:border-coral hover:text-coral"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                set('supplements', [...v.supplements, { name: '', priceEur: null, nameFr: '' }])
+              }
+              className="self-start text-[13px] font-bold text-teal hover:text-teal-dark"
+            >
+              + Add supplement
+            </button>
           </div>
           <p className="mt-1.5 text-[12px] text-ink-muted">
-            An upgrade guests can add to this activity while booking — you name it and you price it.
-            The price is <strong>per person</strong>: in a party of four where two want it, the
-            booking pays twice. Leave the name empty to hide it.
+            Upgrades guests can add to this activity while booking — you name each one and you price
+            it. Every price is <strong>per person</strong>: in a party of four where two want it,
+            the booking pays twice. Guests can pick any combination. A row with an empty name is
+            dropped on save; its French label lives in the Français pane.
           </p>
         </Field>
       </div>

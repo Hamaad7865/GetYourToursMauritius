@@ -107,9 +107,23 @@ export const tourOptionSchema = z.object({
   privateIncluded: z.number().int().positive().nullish().catch(null),
   privateExtraEur: z.number().nonnegative().nullish().catch(null),
   privateMaxGuests: z.number().int().positive().nullish().catch(null),
+  // Max guests ONE booking may hold on this option (coalesce(option, activity) server-side — the
+  // "guests per trip" half of the availability screen). Null = uncapped (per-tier caps still apply).
+  // `.nullish().catch` so a payload from a DB without 20260908000000 degrades to the old behaviour.
+  guestsPerTrip: z.number().int().positive().nullish().catch(null),
   prices: z.array(tourPriceSchema),
 });
 export type TourOption = z.infer<typeof tourOptionSchema>;
+
+/** One owner-configured optional supplement (e.g. "Lobster lunch"), priced PER PERSON. The name
+ *  arrives locale-resolved (FR label when the page is French); the id is what checkout posts —
+ *  api_book re-reads the price from the row, never from the client. */
+export const tourSupplementSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  priceEur: z.number().nonnegative(),
+});
+export type TourSupplement = z.infer<typeof tourSupplementSchema>;
 
 export const tourTranslationSchema = z.object({
   title: z.string().nullable(),
@@ -206,13 +220,13 @@ export const tourDetailSchema = tourSummarySchema.extend({
   seoTitle: z.string().nullable(),
   seoDescription: z.string().nullable(),
   extra: activityExtraSchema.default({}),
-  /** Optional per-activity supplement the guest can add per person (e.g. "Lobster lunch"). Both are
-   *  null when the owner hasn't configured one — a blank name is the feature's off switch. The NAME
-   *  falls back to the French overlay like any other content field; the PRICE is deliberately NOT in
-   *  `extra` (which the translation layer merges over) because api_book re-reads it as the charge.
-   *  `.catch` so the page still renders against a DB where this migration hasn't run yet. */
-  supplementName: z.string().nullish().catch(null),
-  supplementEur: z.number().nonnegative().nullish().catch(null),
+  /** Optional per-activity supplements the guest can add per person (e.g. "Lobster lunch"), MANY
+   *  per activity since 20260908000000. Empty = the feature is off for this activity. Each NAME
+   *  arrives locale-resolved (activity_supplements.name_fr coalesce); each PRICE is deliberately in
+   *  a real table, NOT `extra` (which the translation layer merges over), because api_book re-reads
+   *  it as the charge. `.catch` so the page still renders against a DB where the migration hasn't
+   *  run yet. */
+  supplements: z.array(tourSupplementSchema).default([]).catch([]),
   images: z.array(tourImageSchema),
   options: z.array(tourOptionSchema),
   translations: z.record(z.string(), tourTranslationSchema),

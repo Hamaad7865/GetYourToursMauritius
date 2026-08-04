@@ -73,11 +73,15 @@ export const createBookingInputSchema = z.object({
   /** Number of child seats requested. First free, each additional €6 — the charge is computed
    *  server-side; the client value is only the count. Bounded so a tampered payload is a clean 400. */
   childSeats: z.number().int().min(0).max(25).optional(),
-  /** How many guests want the activity's optional supplement (e.g. the lobster lunch upgrade). Only
-   *  the COUNT travels: api_book reads the unit price from activities.supplement_minor and multiplies,
-   *  and charges nothing at all if that activity has no supplement configured. Bounded to the same 500
-   *  heads as `party` so a tampered payload is a clean 400 rather than an int overflow. */
-  supplementQty: z.number().int().min(0).max(500).optional(),
+  /** The optional supplements chosen (e.g. the lobster lunch upgrade): WHICH supplement (by id) and
+   *  how many heads want it. Only ids + counts travel: api_book resolves each id against the
+   *  activity behind the occurrence and reads the unit price from activity_supplements — an unknown
+   *  or foreign id charges nothing. Bounded (≤20 entries, each count ≤500 like `party`) so a
+   *  tampered payload is a clean 400 rather than an int overflow. */
+  supplements: z
+    .array(z.object({ id: z.string().uuid(), qty: z.number().int().min(0).max(500) }))
+    .max(20)
+    .optional(),
   /** Airport transfer: the hotel page slug. The SERVER looks up the destination zone from it and
    *  recomputes the fare — it never trusts a client-sent zone or price. */
   dropoffSlug: z.string().trim().max(120).nullish(),
@@ -172,12 +176,22 @@ export const bookingSchema = z.object({
   transportEur: z.number().nonnegative().nullish(),
   /** Pickup region the transport fare was based on, or null/absent if no transport was added. */
   pickupRegion: z.string().nullish(),
-  /** The optional supplement bought on this booking. Label and charge are SNAPSHOTS taken at booking
-   *  time, so a receipt reprinted after the owner renames or re-prices it still shows what the guest
-   *  actually paid for. `supplementEur` is the whole charge (unit × qty), already inside totalEur. */
-  supplementName: z.string().nullish(),
-  supplementQty: z.number().int().nonnegative().nullish(),
-  supplementEur: z.number().nonnegative().nullish(),
+  /** The optional supplements bought on this booking, one entry per supplement. Labels and charges
+   *  are SNAPSHOTS taken at booking time (booking_supplements rows), so a receipt reprinted after
+   *  the owner renames or re-prices one still shows what the guest actually paid for. Each
+   *  `totalEur` (unit × qty) is already inside the booking's totalEur. `.catch` so a DTO from a DB
+   *  where 20260908000000 hasn't run yet still parses (as "no supplements"). */
+  supplements: z
+    .array(
+      z.object({
+        name: z.string(),
+        qty: z.number().int().positive(),
+        unitEur: z.number().nonnegative(),
+        totalEur: z.number().nonnegative(),
+      }),
+    )
+    .nullish()
+    .catch(null),
   /** Airport transfer: trip type/direction + flight details (null/absent for non-transfer bookings). */
   tripType: z.string().nullish(),
   tripDirection: z.string().nullish(),
