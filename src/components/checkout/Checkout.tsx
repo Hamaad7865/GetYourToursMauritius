@@ -11,6 +11,7 @@ import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
 import { decodeParty } from '@/lib/services/party';
 import { transfers, type Transfer } from '@/lib/content/transfers';
+import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
 import { clearDraft, loadDraft, saveDraft } from '@/lib/checkout/draft';
@@ -378,10 +379,16 @@ export function Checkout() {
     ? (transfers.find((tt) => tt.slug === dropoffSlugParam) ?? null)
     : null;
   const [dropoffSlug, setDropoffSlug] = useState(dropoffSlugParam);
-  const [dropoffName, setDropoffName] = useState(widgetHotel?.hotelName ?? dropoffParam);
+  // The NAME prefers the deep-link's `dropoff` over the slug-resolved hotel. For a listed hotel the
+  // two are identical, but when the guest searched an UNLISTED hotel the widget sends their hotel in
+  // `dropoff` while `dropoffSlug` stays the listed neighbour that anchors the priced zone — and the
+  // old slug-first precedence overwrote "Veranda Palmar Beach Hotel" with "LUX* Belle Mare" in the
+  // drop-off field, the order summary and the driver-facing booking. The slug keeps pricing; the
+  // guest's words keep the booking.
+  const [dropoffName, setDropoffName] = useState(dropoffParam || widgetHotel?.hotelName || '');
   const [dropoffArea, setDropoffArea] = useState(widgetHotel?.area ?? '');
   const [hotelNotListed, setHotelNotListed] = useState(false);
-  const [hotelQuery, setHotelQuery] = useState(widgetHotel?.hotelName ?? dropoffParam);
+  const [hotelQuery, setHotelQuery] = useState(dropoffParam || widgetHotel?.hotelName || '');
   // Trip extras (all optional). roomOrCabin = hotel room / cruise cabin; luggageDetails = free text;
   // childSeat toggle + age (the age is the child-seat detail the operator needs to fit the right seat).
   const [roomOrCabin, setRoomOrCabin] = useState('');
@@ -1403,6 +1410,18 @@ export function Checkout() {
                               setDropoffArea(tt.area);
                               setHotelQuery(tt.hotelName);
                             }}
+                            onPlace={(placeName, placeArea) => {
+                              // A Google pick that is not one of our listed hotels: keep the
+                              // guest's hotel VERBATIM and switch to the free-text path, area
+                              // prefilled — the server prices the zone from the area exactly as it
+                              // does for a hand-typed unlisted hotel. Google is the source of
+                              // truth for the hotel; our list only anchors zones and SEO pages.
+                              setHotelNotListed(true);
+                              setDropoffSlug('');
+                              setDropoffName(placeName);
+                              setDropoffArea(placeArea);
+                              setHotelQuery(placeName);
+                            }}
                             onChange={(q) => {
                               setHotelQuery(q);
                               // Typing after a selection clears it until the customer re-picks.
@@ -2168,6 +2187,7 @@ function HotelSearch({
   value,
   selectedSlug,
   onSelect,
+  onPlace,
   onChange,
   placeholder,
   t,
@@ -2175,6 +2195,8 @@ function HotelSearch({
   value: string;
   selectedSlug: string;
   onSelect: (t: Transfer) => void;
+  /** A Google Places pick that is NOT one of the listed hotels: (name, area). */
+  onPlace: (name: string, area: string) => void;
   onChange: (q: string) => void;
   placeholder: string;
   t: (s: string) => string;
@@ -2182,6 +2204,42 @@ function HotelSearch({
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Google Places on the same field once Maps is ready — the guest can name ANY hotel, villa or
+  // Airbnb, exactly like the landing-page pickers, instead of being boxed into the listed 45. A
+  // pick that IS a listed hotel selects it (slug → zone as before); anything else hands off
+  // verbatim via onPlace. Until Maps loads (or if it fails) the curated typeahead below stands.
+  const placesReady = useGoogleMaps() === 'ready';
+  const inputRef = useRef<HTMLInputElement>(null);
+  const onPickRef = useRef({ onSelect, onPlace });
+  onPickRef.current = { onSelect, onPlace };
+  useEffect(() => {
+    if (!placesReady) return;
+    const input = inputRef.current;
+    if (!input) return;
+    let ac: google.maps.places.Autocomplete | null = null;
+    try {
+      ac = new google.maps.places.Autocomplete(input, {
+        componentRestrictions: { country: 'mu' },
+        fields: ['name', 'vicinity'],
+      });
+      ac.addListener('place_changed', () => {
+        const place = ac!.getPlace();
+        const name = place.name?.trim();
+        if (!name) return;
+        const listed = transfers.find((tt) => tt.hotelName.toLowerCase() === name.toLowerCase());
+        if (listed) onPickRef.current.onSelect(listed);
+        else onPickRef.current.onPlace(name, place.vicinity?.trim() ?? '');
+      });
+    } catch {
+      /* Places unavailable — the typeahead branch covers it */
+    }
+    return () => {
+      if (ac) google.maps.event.clearInstanceListeners(ac);
+      // Google appends a .pac-container per Autocomplete and never removes it — sweep on unmount.
+      document.querySelectorAll('.pac-container').forEach((el) => el.remove());
+    };
+  }, [placesReady]);
 
   const matches = useMemo<Transfer[]>(() => {
     const s = value.trim().toLowerCase();
@@ -2219,29 +2277,45 @@ function HotelSearch({
         ) : (
           <IconSearch width={16} height={16} className="shrink-0 text-ink-muted" />
         )}
-        <input
-          id="checkout-hotel-search"
-          role="combobox"
-          aria-expanded={open && matches.length > 0}
-          aria-controls="checkout-hotel-list"
-          aria-autocomplete="list"
-          autoComplete="off"
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => {
-            onChange(e.target.value);
-            setOpen(true);
-            setActive(0);
-          }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => {
-            blurTimer.current = setTimeout(() => setOpen(false), 120);
-          }}
-          onKeyDown={onKeyDown}
-          className="w-full bg-transparent text-sm font-normal text-ink outline-none"
-        />
+        {placesReady ? (
+          // Google Places (any hotel in Mauritius). Uncontrolled — Google manages the text and its
+          // own dropdown; place_changed above routes the pick. Distinct keys on the two branches so
+          // React never reuses one DOM node across the controlled↔uncontrolled switch.
+          <input
+            key="checkout-hotel-places"
+            id="checkout-hotel-search"
+            ref={inputRef}
+            autoComplete="off"
+            defaultValue={value}
+            placeholder={placeholder}
+            className="w-full bg-transparent text-sm font-normal text-ink outline-none"
+          />
+        ) : (
+          <input
+            key="checkout-hotel-typeahead"
+            id="checkout-hotel-search"
+            role="combobox"
+            aria-expanded={open && matches.length > 0}
+            aria-controls="checkout-hotel-list"
+            aria-autocomplete="list"
+            autoComplete="off"
+            value={value}
+            placeholder={placeholder}
+            onChange={(e) => {
+              onChange(e.target.value);
+              setOpen(true);
+              setActive(0);
+            }}
+            onFocus={() => setOpen(true)}
+            onBlur={() => {
+              blurTimer.current = setTimeout(() => setOpen(false), 120);
+            }}
+            onKeyDown={onKeyDown}
+            className="w-full bg-transparent text-sm font-normal text-ink outline-none"
+          />
+        )}
       </div>
-      {open && value.trim() !== '' && matches.length > 0 && (
+      {!placesReady && open && value.trim() !== '' && matches.length > 0 && (
         <ul
           id="checkout-hotel-list"
           role="listbox"
@@ -2272,7 +2346,7 @@ function HotelSearch({
           ))}
         </ul>
       )}
-      {open && value.trim() !== '' && matches.length === 0 && (
+      {!placesReady && open && value.trim() !== '' && matches.length === 0 && (
         <p className="absolute z-20 mt-1.5 w-full rounded-xl border border-ink/10 bg-white px-3.5 py-2.5 text-[12.5px] text-ink-muted shadow-xl">
           {t('No match — choose “My hotel isn’t listed”.')}
         </p>

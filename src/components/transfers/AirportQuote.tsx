@@ -567,23 +567,9 @@ export function AirportQuote() {
             </div>
           )}
         </div>
-        {/* Says out loud why an unlisted hotel still gets a price. Fares are set per ZONE, not per
-            hotel, so the nearest listed resort produces the identical figure — but without this the
-            guest is left guessing whether we understood where they are going. role=status so it is
-            announced rather than silently appearing after a Places pick. */}
-        {picked && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="mt-2 rounded-[11px] px-3 py-2 text-[12.5px] font-semibold"
-            style={{ background: 'rgba(14,140,146,0.08)', color: TEAL_DARK }}
-          >
-            {t('Fixed {area} zone fare — the same price we charge for {hotel} nearby.', {
-              area: hotel.area,
-              hotel: hotel.hotelName,
-            })}
-          </div>
-        )}
+        {/* No zone-fare note by owner directive (2026-08-05): `picked` still keeps the guest's own
+            hotel in the field and rides to the booking page, but the neighbouring listed hotel that
+            anchors the zone is never named to the guest. */}
         <div
           className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-semibold"
           style={{ color: 'rgba(17,32,31,0.7)' }}

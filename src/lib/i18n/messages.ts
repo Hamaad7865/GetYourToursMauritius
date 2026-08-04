@@ -1531,10 +1531,6 @@ export const fr: Record<string, string> = {
   '{region} coast': 'côte {region}',
   '≈{min} min from the airport · {region} coast': '≈{min} min de l’aéroport · côte {region}',
   'No match in our list.': 'Aucune correspondance dans notre liste.',
-  // NB: the em dash here is U+2014, matching the source string exactly — a different dash is a
-  // different key and would silently fall back to English.
-  'Fixed {area} zone fare — the same price we charge for {hotel} nearby.':
-    'Tarif fixe pour la zone {area} — le même prix que nous appliquons pour {hotel}, à proximité.',
   'Message us for a quote': 'Demandez-nous un devis',
   'Route from SSR Airport to {hotel}': 'Itinéraire de l’aéroport SSR à {hotel}',
   '{n} hotels found': '{n} hôtels trouvés',

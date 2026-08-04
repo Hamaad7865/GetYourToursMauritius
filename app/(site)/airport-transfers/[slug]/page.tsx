@@ -136,19 +136,8 @@ export default async function TransferDetailPage({
           <span className="font-semibold text-ink">{displayName}</span>
         </nav>
 
-        {/* An unlisted hotel still gets a fixed price because fares are set per ZONE — say so, or
-            the guest is left wondering why a page for a neighbouring resort is quoting them. */}
-        {guest && (
-          <div
-            role="note"
-            className="mb-6 rounded-xl bg-teal/10 px-4 py-3 text-[13.5px] font-semibold text-teal-dark"
-          >
-            {t('Fixed {area} zone fare — the same price we charge for {hotel} nearby.', {
-              area: hotel.area,
-              hotel: hotel.hotelName,
-            })}
-          </div>
-        )}
+        {/* No zone-fare note here by owner directive (2026-08-05): the guest's hotel simply appears
+            everywhere, and the neighbouring listed hotel that anchors the zone is never surfaced. */}
 
         <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-10">
           <div className="min-w-0">
