@@ -57,15 +57,26 @@ To re-check the map after a re-crawl, paste the new paths into `legacy-urls.txt`
 npx vitest run tests/unit/legacy-redirects.test.ts
 ```
 
-### French is not URL-addressable yet
+### French routing — live since 2026-08-04
 
-Two thirds of the old site's indexed URLs were French (French at the root, English under `/en/`). The
-new site has French content, but `getLocale()` reads the `gytm_lang` **cookie** — French has no URL
-of its own and no `hreflang`, and a cross-domain redirect cannot set a cookie on another domain. So
-today every French URL lands on the English rendering of the right page.
+Two thirds of the old site's indexed URLs were French (French at the root, English under `/en/`).
+Until 2026-08-04 the new site resolved locale from the `gytm_lang` **cookie**, so French had no URL
+of its own, and a cross-domain redirect cannot set a cookie on another domain — every French URL
+landed on the English rendering of the right page and none of that ranking signal could transfer.
 
-When French becomes URL-addressable, set `FR_PREFIX` in `src/map.js` to `'/fr'`. That is the only
-edit needed here — every French row is already tagged by `isFrenchSource()`.
+French is now URL-addressable at `/fr` (`middleware.ts`, `src/lib/i18n/routing.ts`), and `FR_PREFIX`
+in `src/map.js` is `'/fr'`. Sources are tagged by `isFrenchSource()`: anything not under `/en/`.
+
+**If you change `FR_PREFIX`, regenerate Plan A** — it does not read it at runtime:
+
+```bash
+node scripts/build-legacy-htaccess.mjs
+```
+
+The generator applies the prefix through `buildTarget()`, the same function the Worker uses, so both
+plans agree. `tests/unit/legacy-redirects.test.ts` asserts the committed `.htaccess` carries the
+prefix on French sources and never on `/en/` ones, so a stale artifact fails CI rather than quietly
+sending French traffic to English pages.
 
 ## Plan A — upload to the existing hosting
 

@@ -142,20 +142,26 @@ describe('generated .htaccess stays in sync with the map', () => {
   const htaccess = readFileSync(`${ROOT}workers/redirect-legacy/apache/.htaccess`, 'utf8');
 
   it('emits a rule for every exact mapping', () => {
+    // Expected target via buildTarget, not ORIGIN + to: a French source carries FR_PREFIX. Building
+    // the expectation by concatenation is exactly the bug the generator itself had.
     const missing = Object.entries(EXACT as Record<string, string>)
       .filter(([from]) => from !== '')
       .filter(
         ([from, to]) =>
-          !htaccess.includes(`^${from.replace(/^\//, '')}/?$ https://bellemaretours.com${to} `),
+          !htaccess.includes(
+            `^${from.replace(/^\//, '')}/?$ ${buildTarget('https://bellemaretours.com', from, to)} `,
+          ),
       )
       .map(([from]) => from);
     expect(missing).toEqual([]);
   });
 
-  it('ends with a catch-all so nothing 404s', () => {
-    expect(htaccess.trimEnd().endsWith('RewriteRule ^ https://bellemaretours.com/ [R=301,L]')).toBe(
-      true,
-    );
+  it('ends with an unconditional catch-all so nothing 404s', () => {
+    // Must be the LAST line — Apache takes the first match, so any rule after an unconditional ^ is
+    // dead. The target is the French home because the old site's root was the French home.
+    expect(
+      htaccess.trimEnd().endsWith('RewriteRule ^ https://bellemaretours.com/fr [R=301,L]'),
+    ).toBe(true);
   });
 
   it('lets robots.txt and sitemap.xml through instead of redirecting them', () => {
@@ -248,6 +254,59 @@ describe('buildTarget', () => {
   // one moves without the other, every French redirect silently lands on English again.
   it('agrees with the app about where French lives', () => {
     expect(FR_PREFIX).toBe(LOCALE_PREFIX.fr);
+  });
+});
+
+/**
+ * PLAN A — the Apache drop-in — is what is ACTUALLY LIVE on the retired domain (it answers with
+ * `server: Apache`, not a Worker). The Worker in src/ is Plan B and is not routed.
+ *
+ * That matters because the generator used to build its targets by concatenating ORIGIN + target,
+ * bypassing buildTarget() and therefore FR_PREFIX — so flipping the Worker's constant changed
+ * nothing a real visitor could see. These assertions run against the COMMITTED artifact, so a stale
+ * or hand-edited .htaccess fails CI rather than quietly sending French traffic to English pages.
+ */
+describe('generated .htaccess (Plan A — the live redirector)', () => {
+  const htaccess = readFileSync(`${ROOT}workers/redirect-legacy/apache/.htaccess`, 'utf8');
+  const rules = htaccess
+    .split('\n')
+    .filter((l) => l.startsWith('RewriteRule ') && l.includes('[R=301'))
+    .map((l) => {
+      const parts = l.split(/\s+/);
+      return { pattern: parts[1] ?? '', target: parts[2] ?? '' };
+    });
+
+  const isEnglishSource = (p: string): boolean =>
+    p.startsWith('^en/') || p === '^en/?$' || p === '^en(/.*)?$';
+
+  it('has been regenerated since FR_PREFIX was set (otherwise no target carries the prefix)', () => {
+    const french = rules.filter((r) => r.target.includes('/fr'));
+    expect(french.length).toBeGreaterThan(100);
+  });
+
+  it('never sends an /en source to a French URL', () => {
+    const wrong = rules.filter((r) => isEnglishSource(r.pattern) && r.target.includes('/fr'));
+    expect(wrong).toEqual([]);
+  });
+
+  it('sends the French source of a tour to the French page', () => {
+    const rule = rules.find((r) => r.pattern.startsWith('^visites-guidees/la-vallee-des-couleurs'));
+    expect(rule?.target).toBe(
+      'https://bellemaretours.com/fr/activities/la-vallee-des-couleurs-nature-park-2',
+    );
+  });
+
+  // The old root was the FRENCH home page; English lived under /en/.
+  it('sends the old home page to the French home page', () => {
+    expect(rules.find((r) => r.pattern === '^$')?.target).toBe('https://bellemaretours.com/fr');
+  });
+
+  // One catch-all would dump every unmapped French URL onto the English home page.
+  it('splits the catch-all by language', () => {
+    expect(rules.find((r) => r.pattern === '^en(/.*)?$')?.target).toBe(
+      'https://bellemaretours.com/',
+    );
+    expect(rules.find((r) => r.pattern === '^')?.target).toBe('https://bellemaretours.com/fr');
   });
 });
 

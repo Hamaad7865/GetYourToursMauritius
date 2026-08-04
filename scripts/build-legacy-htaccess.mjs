@@ -17,6 +17,11 @@
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { EXACT, PREFIXES } from '../workers/redirect-legacy/src/map.js';
+// buildTarget, not string concatenation: it is what applies FR_PREFIX to a French source path. This
+// file is PLAN A and Plan A is what is actually live (the old host answers with `server: Apache`), so
+// a target built here without the locale logic sends every French visitor to the English page no
+// matter what the Worker does.
+import { buildTarget } from '../workers/redirect-legacy/src/index.js';
 
 const ORIGIN = 'https://bellemaretours.com';
 const HOST = 'www.visitemaurice.com';
@@ -66,7 +71,7 @@ const exact = Object.entries(EXACT)
   .filter(([from]) => from !== '')
   .sort((a, b) => b[0].length - a[0].length);
 for (const [from, to] of exact) {
-  lines.push(`RewriteRule ^${rx(strip(from))}/?$ ${ORIGIN}${to} [R=301,L,NC]\n`);
+  lines.push(`RewriteRule ^${rx(strip(from))}/?$ ${buildTarget(ORIGIN, from, to)} [R=301,L,NC]\n`);
 }
 
 // Prefix fallbacks — anything published after the crawl, paginated archives, feeds.
@@ -74,15 +79,23 @@ lines.push(
   '\n# ── Section fallbacks (unmapped children, pagination, feeds) ────────────────────────────\n',
 );
 for (const [prefix, to] of [...PREFIXES].sort((a, b) => b[0].length - a[0].length)) {
-  lines.push(`RewriteRule ^${rx(strip(prefix))}(/.*)?$ ${ORIGIN}${to} [R=301,L,NC]\n`);
+  lines.push(
+    `RewriteRule ^${rx(strip(prefix))}(/.*)?$ ${buildTarget(ORIGIN, prefix, to)} [R=301,L,NC]\n`,
+  );
 }
 
 // Home page, then everything else. A request that matches nothing is still a real page, never a 404.
 lines.push(
   '\n# ── Home, then the catch-all ────────────────────────────────────────────────────────────\n',
 );
-lines.push(`RewriteRule ^$ ${ORIGIN}/ [R=301,L]\n`);
-lines.push(`RewriteRule ^ ${ORIGIN}/ [R=301,L]\n`);
+// The old site's root WAS the French home page (English lived under /en/), so '' is a French source
+// and lands on /fr.
+lines.push(`RewriteRule ^$ ${buildTarget(ORIGIN, '', '/')} [R=301,L]\n`);
+// Two catch-alls rather than one, mirroring isFrenchSource(): an unmatched /en/… path was English
+// and goes to the English home, everything else was French. A single catch-all would dump every
+// unmapped French URL on the English home page.
+lines.push(`RewriteRule ^en(/.*)?$ ${buildTarget(ORIGIN, '/en', '/')} [R=301,L]\n`);
+lines.push(`RewriteRule ^ ${buildTarget(ORIGIN, '/', '/')} [R=301,L]\n`);
 
 mkdirSync(OUT, { recursive: true });
 writeFileSync(new URL('.htaccess', OUT), lines.join(''), 'utf8');
