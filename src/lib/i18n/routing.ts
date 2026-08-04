@@ -56,6 +56,24 @@ export function localePath(locale: Locale, path: string): string {
 }
 
 /**
+ * Pages whose SUBSTANTIVE content is English at every URL.
+ *
+ * The legal pages render French chrome around an English body plus a "this page is available in
+ * English only" notice — deliberate, because the English text is the legally binding version. So
+ * /fr/terms is not a translation of /terms, it is the same document at a second URL, and claiming
+ * hreflang="fr" for it advertises a translation that does not exist. Google then either discards the
+ * annotation or reads the two as duplicates.
+ *
+ * /cookies is NOT in this list: it is fully translated and keeps its pair.
+ */
+export const ENGLISH_ONLY_PATHS: readonly string[] = ['/terms', '/privacy', '/refunds'];
+
+/** Whether a path (prefixed or not) is one of the deliberately-untranslated pages. */
+export function isEnglishOnly(path: string): boolean {
+  return ENGLISH_ONLY_PATHS.includes(splitLocalePath(path).path);
+}
+
+/**
  * `metadata.alternates` for a public page: the canonical for the URL actually being rendered, plus
  * the full hreflang set.
  *
@@ -63,12 +81,18 @@ export function localePath(locale: Locale, path: string): string {
  * URL tells Google the French page is a duplicate, and it drops out of the index entirely — which is
  * worse than having no French URLs at all. Both sides emit the identical `languages` map because
  * Google discards an hreflang annotation that the other side does not reciprocate.
+ *
+ * The exception is ENGLISH_ONLY_PATHS, where that reasoning inverts: those two URLs really ARE the
+ * same document, so they get no hreflang and both canonicalise to the English URL — which keeps
+ * /fr/terms reachable and French-framed for a visitor while consolidating it in the index instead of
+ * competing with /terms.
  */
 export function localeAlternates(
   path: string,
   locale: Locale = DEFAULT_LOCALE,
-): { canonical: string; languages: Record<string, string> } {
+): { canonical: string; languages?: Record<string, string> } {
   const { path: bare } = splitLocalePath(path);
+  if (isEnglishOnly(bare)) return { canonical: localePath(DEFAULT_LOCALE, bare) };
   return {
     canonical: localePath(locale, bare),
     languages: {

@@ -26,9 +26,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
    * One sitemap entry per language for a route, each carrying the FULL set of alternates including
    * itself — that is the form Google asks for, and it is what tells it the two URLs are the same
    * page in different languages rather than duplicates competing with each other.
+   *
+   * A page with no real translation (ENGLISH_ONLY_PATHS — the legal pages, which show a French
+   * "English only" notice over English text) returns no `languages`, and gets ONE entry at its
+   * English URL. Listing /fr/terms here would invite Google to index a French URL serving English.
    */
   function bilingual(path: string, meta: Meta): MetadataRoute.Sitemap {
     const { languages } = localeAlternates(path);
+    if (!languages) return [{ ...meta, url: `${base}${localePath('en', path)}` }];
     const absolute = Object.fromEntries(
       Object.entries(languages).map(([code, p]) => [code, `${base}${p}`]),
     );

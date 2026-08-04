@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { LOCALE_PREFIX, localeAlternates, localePath, splitLocalePath } from '@/lib/i18n/routing';
+import {
+  LOCALE_PREFIX,
+  isEnglishOnly,
+  localeAlternates,
+  localePath,
+  splitLocalePath,
+} from '@/lib/i18n/routing';
 
 /**
  * French is URL-addressable under /fr. These helpers are the single place that knows that, and they
@@ -98,6 +104,50 @@ describe('localeAlternates', () => {
     expect(localeAlternates('/', 'fr')).toEqual({
       canonical: '/fr',
       languages: { en: '/', fr: '/fr', 'x-default': '/' },
+    });
+  });
+});
+
+/**
+ * The legal pages render French chrome around an ENGLISH body plus a "this page is available in
+ * English only" notice — deliberate, because the English text is the legally binding version. So
+ * /fr/terms is not a French translation of /terms, it is the same document at a second URL.
+ * Advertising it with hreflang="fr" claims a translation that does not exist: Google either drops
+ * the unreciprocated annotation or treats the pair as duplicates, and audit tools flag it.
+ */
+describe('English-only pages', () => {
+  it('knows which pages have no real translation', () => {
+    expect(isEnglishOnly('/terms')).toBe(true);
+    expect(isEnglishOnly('/privacy')).toBe(true);
+    expect(isEnglishOnly('/refunds')).toBe(true);
+  });
+
+  // /cookies IS fully translated, so it must keep its pair — this guards against someone lumping
+  // all four "legal-looking" pages together.
+  it('does not treat the translated cookie policy as English-only', () => {
+    expect(isEnglishOnly('/cookies')).toBe(false);
+  });
+
+  it('recognises the prefixed form too', () => {
+    expect(isEnglishOnly('/fr/terms')).toBe(true);
+  });
+
+  it('emits no hreflang for an English-only page', () => {
+    expect(localeAlternates('/terms', 'en').languages).toBeUndefined();
+    expect(localeAlternates('/terms', 'fr').languages).toBeUndefined();
+  });
+
+  // The French URL stays reachable (a French visitor clicking Terms in the footer keeps French
+  // chrome) but consolidates onto the English URL rather than competing with it.
+  it('points the French URL of an English-only page at the English canonical', () => {
+    expect(localeAlternates('/terms', 'fr').canonical).toBe('/terms');
+    expect(localeAlternates('/privacy', 'fr').canonical).toBe('/privacy');
+  });
+
+  it('still pairs genuinely translated pages', () => {
+    expect(localeAlternates('/cookies', 'fr')).toEqual({
+      canonical: '/fr/cookies',
+      languages: { en: '/cookies', fr: '/fr/cookies', 'x-default': '/cookies' },
     });
   });
 });
