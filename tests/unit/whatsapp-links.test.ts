@@ -74,3 +74,27 @@ describe('WhatsApp entry points', () => {
     }
   });
 });
+
+/**
+ * The email address is the other half of "how do I reach a human", and it was missing from the
+ * footer entirely — a booking site whose only visible contact route is a chat bubble reads as
+ * unreachable to anyone who wants a written trail, and info@ is the address on the invoices.
+ */
+describe('email contact', () => {
+  const footer = read('src/components/site/SiteFooter.tsx');
+
+  it('shows the address from SITE, never a hardcoded copy', () => {
+    expect(footer).toContain('SITE.email');
+    expect(footer).not.toMatch(/["'][\w.]+@bellemaretours\.com["']/);
+  });
+
+  it('links it as a mailto:', () => {
+    expect(footer).toMatch(/mailto:\$\{SITE\.email\}/);
+  });
+
+  // mailto: is not http, so the footer's link renderer has to special-case it — otherwise it falls
+  // through to next/link, which tries to client-navigate a protocol it cannot route.
+  it('renders mailto: as a plain anchor rather than next/link', () => {
+    expect(footer).toContain("href.startsWith('mailto:')");
+  });
+});

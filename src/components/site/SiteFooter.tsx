@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
-import { IconChat } from '@/components/ui/icons';
+import { IconChat, IconMail } from '@/components/ui/icons';
 import { getT } from '@/lib/i18n/server';
 
 /**
@@ -10,6 +10,9 @@ import { getT } from '@/lib/i18n/server';
  * the link is resolved at render. It is NOT a URL and must never reach the DOM.
  */
 const WHATSAPP_LINK = 'whatsapp:compose';
+
+/** Same idea for the mailto: — the address lives in SITE, not in this static link table. */
+const EMAIL_LINK = 'mailto:compose';
 
 const COLUMNS = [
   {
@@ -57,6 +60,7 @@ const COLUMNS = [
       { label: 'Help centre', href: '/help' },
       { label: 'FAQ', href: '/help' },
       { label: 'WhatsApp us', href: WHATSAPP_LINK },
+      { label: 'Email us', href: EMAIL_LINK },
     ],
   },
   {
@@ -90,14 +94,26 @@ export async function SiteFooter() {
               {t(', a licensed tour operator in Belle Mare, Mauritius.')}
             </p>
           </div>
-          <a
-            href={whatsapp}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 rounded-xl border border-teal-bright/40 bg-teal-bright/10 px-5 py-3 text-sm font-bold text-teal-bright hover:bg-teal-bright/20"
-          >
-            <IconChat width={18} height={18} /> {t('Chat on WhatsApp')}
-          </a>
+          {/* Two ways to reach a human, side by side. WhatsApp is how most guests actually get in
+              touch, but the email address has to be VISIBLE — a booking site that only offers a
+              chat bubble reads as unreachable to anyone who wants a written trail, and it is the
+              address on the invoices and confirmations. */}
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href={whatsapp}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2.5 rounded-xl border border-teal-bright/40 bg-teal-bright/10 px-5 py-3 text-sm font-bold text-teal-bright hover:bg-teal-bright/20"
+            >
+              <IconChat width={18} height={18} /> {t('Chat on WhatsApp')}
+            </a>
+            <a
+              href={`mailto:${SITE.email}`}
+              className="inline-flex items-center gap-2.5 rounded-xl border border-cream/20 px-5 py-3 text-sm font-bold text-cream/85 no-underline hover:border-cream/40 hover:text-cream"
+            >
+              <IconMail width={18} height={18} /> {SITE.email}
+            </a>
+          </div>
         </div>
 
         <div className="mt-10 grid grid-cols-2 gap-7 sm:grid-cols-3 lg:grid-cols-5">
@@ -107,11 +123,24 @@ export async function SiteFooter() {
                 {t(col.title)}
               </div>
               {col.links.map((link) => {
-                const href = link.href === WHATSAPP_LINK ? whatsapp : link.href;
+                const href =
+                  link.href === WHATSAPP_LINK
+                    ? whatsapp
+                    : link.href === EMAIL_LINK
+                      ? `mailto:${SITE.email}`
+                      : link.href;
                 const className =
                   'block py-1.5 text-sm text-cream/70 no-underline hover:text-coral';
-                // wa.me leaves the site, so it needs a plain anchor in a new tab — next/link would
-                // try to client-navigate it.
+                // Anything that leaves the site needs a plain anchor — next/link would try to
+                // client-navigate it. mailto: hands off to the mail client and must NOT get
+                // target="_blank", which leaves a dead blank tab behind.
+                if (href.startsWith('mailto:')) {
+                  return (
+                    <a key={link.label} href={href} className={className}>
+                      {t(link.label)}
+                    </a>
+                  );
+                }
                 return href.startsWith('http') ? (
                   <a
                     key={link.label}

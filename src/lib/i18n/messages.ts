@@ -1531,6 +1531,14 @@ export const fr: Record<string, string> = {
   '{region} coast': 'côte {region}',
   '≈{min} min from the airport · {region} coast': '≈{min} min de l’aéroport · côte {region}',
   'No match in our list.': 'Aucune correspondance dans notre liste.',
+  // Footer link label. Added by hand: the footer renders its labels via t(link.label) from a static
+  // array, which the i18n scanner cannot resolve statically — so tests/unit/i18n-coverage.test.ts
+  // never reports these missing and an untranslated one silently renders English to French visitors.
+  'Email us': 'Écrivez-nous',
+  // Same blind spot, found auditing the footer's labels against the fr table: this one has been
+  // rendering English to French visitors. ('Île aux Cerfs' is also absent and correctly so — a
+  // place name, identical in French.)
+  'Mauritius activities': 'Activités à Maurice',
   'Message us for a quote': 'Demandez-nous un devis',
   'Route from SSR Airport to {hotel}': 'Itinéraire de l’aéroport SSR à {hotel}',
   '{n} hotels found': '{n} hôtels trouvés',
