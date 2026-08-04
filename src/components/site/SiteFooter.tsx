@@ -1,8 +1,15 @@
 import Link from 'next/link';
 import { Logo } from './Logo';
-import { SITE } from '@/lib/seo/site';
+import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { IconChat } from '@/components/ui/icons';
 import { getT } from '@/lib/i18n/server';
+
+/**
+ * Stand-in for the WhatsApp deep link in the static COLUMNS below. The real href carries a
+ * pre-filled message that has to be translated, and `t()` only exists once the component runs — so
+ * the link is resolved at render. It is NOT a URL and must never reach the DOM.
+ */
+const WHATSAPP_LINK = 'whatsapp:compose';
 
 const COLUMNS = [
   {
@@ -49,7 +56,7 @@ const COLUMNS = [
       { label: 'Guest reviews', href: '/reviews' },
       { label: 'Help centre', href: '/help' },
       { label: 'FAQ', href: '/help' },
-      { label: 'WhatsApp us', href: '#whatsapp' },
+      { label: 'WhatsApp us', href: WHATSAPP_LINK },
     ],
   },
   {
@@ -65,8 +72,12 @@ const COLUMNS = [
 
 export async function SiteFooter() {
   const t = await getT();
+  // Both WhatsApp entry points used to be href="#whatsapp" — which was this footer's OWN id, so
+  // clicking "Chat on WhatsApp" scrolled to the footer and did nothing else. The id is gone with
+  // them: nothing else referenced it, and a self-referencing anchor is what disguised the bug.
+  const whatsapp = whatsappUrl(t('Hi Belle Mare Tours! I have a question.'));
   return (
-    <footer id="whatsapp" className="bg-ink text-cream/80">
+    <footer className="bg-ink text-cream/80">
       <div className="mx-auto max-w-shell px-6 pb-7 pt-14">
         <div className="flex flex-wrap items-start justify-between gap-8">
           <div className="max-w-md">
@@ -80,7 +91,9 @@ export async function SiteFooter() {
             </p>
           </div>
           <a
-            href="#whatsapp"
+            href={whatsapp}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2.5 rounded-xl border border-teal-bright/40 bg-teal-bright/10 px-5 py-3 text-sm font-bold text-teal-bright hover:bg-teal-bright/20"
           >
             <IconChat width={18} height={18} /> {t('Chat on WhatsApp')}
@@ -93,15 +106,28 @@ export async function SiteFooter() {
               <div className="mb-3 text-xs font-bold uppercase tracking-wider text-gold-light">
                 {t(col.title)}
               </div>
-              {col.links.map((link) => (
-                <Link
-                  key={link.label}
-                  href={link.href}
-                  className="block py-1.5 text-sm text-cream/70 no-underline hover:text-coral"
-                >
-                  {t(link.label)}
-                </Link>
-              ))}
+              {col.links.map((link) => {
+                const href = link.href === WHATSAPP_LINK ? whatsapp : link.href;
+                const className =
+                  'block py-1.5 text-sm text-cream/70 no-underline hover:text-coral';
+                // wa.me leaves the site, so it needs a plain anchor in a new tab — next/link would
+                // try to client-navigate it.
+                return href.startsWith('http') ? (
+                  <a
+                    key={link.label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={className}
+                  >
+                    {t(link.label)}
+                  </a>
+                ) : (
+                  <Link key={link.label} href={href} className={className}>
+                    {t(link.label)}
+                  </Link>
+                );
+              })}
             </div>
           ))}
         </div>
