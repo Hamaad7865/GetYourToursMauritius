@@ -11,6 +11,7 @@ import { buildInvoice } from '@/lib/invoice/model';
 import { renderInvoicePdf } from '@/lib/invoice/pdf';
 import { escapeHtml, renderConfirmationEmail } from '@/lib/email/booking-confirmation';
 import { renderReviewRequestEmail } from '@/lib/email/review-request';
+import { renderLeadEnquiryEmail } from '@/lib/email/lead-enquiry';
 import { INVOICE_BUSINESS } from '@/lib/invoice/business';
 import { SITE } from '@/lib/seo/site';
 import { getServerEnv } from '@/lib/config/env';
@@ -322,6 +323,30 @@ function enrichReviewRequest(message: NotificationMessage): void {
   message.text = email.text;
 }
 
+/**
+ * Website-enquiry alert (the ContactFloat form, the /contact form, the activity InquiryWidget — every
+ * `leads` insert). Payload-only and synchronous, like enrichReviewRequest: the insert trigger already
+ * embedded the name, contact, message, page and activity title, so there is no DB round-trip and no
+ * failure mode that could strand the row.
+ */
+function enrichOwnerNewLead(message: NotificationMessage): void {
+  const p = message.payload;
+  const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+  const email = renderLeadEnquiryEmail({
+    name: str(p.name) ?? '',
+    contact: str(p.contact) ?? '',
+    message: str(p.message),
+    pageUrl: str(p.pageUrl),
+    activityTitle: str(p.activityTitle),
+    preferredDate: str(p.preferredDate),
+    partySize: typeof p.partySize === 'number' ? p.partySize : null,
+    source: str(p.source),
+  });
+  message.subject = email.subject;
+  message.html = email.html;
+  message.text = email.text;
+}
+
 export interface DrainResult {
   processed: number;
   sent: number;
@@ -364,6 +389,8 @@ export async function drainNotifications(
         enrichOwnerDateChanged(message);
       } else if (message.template === 'review_request') {
         enrichReviewRequest(message);
+      } else if (message.template === 'owner_new_lead') {
+        enrichOwnerNewLead(message);
       }
       await provider.send(message);
       await callRpc(ctx, 'mark_notification', { id: message.id, result: 'sent' });

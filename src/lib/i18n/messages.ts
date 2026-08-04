@@ -1845,6 +1845,11 @@ export const fr: Record<string, string> = {
   'Hi Belle Mare Tours! My trip {ref} was called off — can we find a new date?':
     'Bonjour Belle Mare Tours ! Ma sortie {ref} a été annulée — pouvons-nous trouver une nouvelle date ?',
   'Message us': 'Écrivez-nous',
+  // ContactFloat — the floating enquiry form. ('Close' and 'People' are already keyed above.)
+  About: 'Au sujet de',
+  'or chat on WhatsApp': 'ou discutez sur WhatsApp',
+  'Ask us anything — dates, pick-up, group size…':
+    'Posez-nous vos questions — dates, prise en charge, taille du groupe…',
   'and we’ll sort something out, or take the refund below.':
     'et nous trouverons une solution, ou prenez le remboursement ci-dessous.',
   'Moving…': 'Report en cours…',

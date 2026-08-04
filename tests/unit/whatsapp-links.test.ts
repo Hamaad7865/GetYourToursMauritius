@@ -24,7 +24,9 @@ const read = (f: string): string =>
 
 const ENTRY_POINTS = [
   'src/components/site/SiteFooter.tsx',
-  'src/components/site/WhatsAppFloat.tsx',
+  // Was WhatsAppFloat.tsx, which WAS the deep link. The float is now an enquiry form and WhatsApp is
+  // the secondary route inside it — still a real deep link, so it still has to hold these properties.
+  'src/components/site/ContactFloat.tsx',
 ];
 
 describe('whatsappUrl', () => {

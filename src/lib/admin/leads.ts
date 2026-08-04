@@ -12,6 +12,12 @@ export interface LeadRow {
   status: LeadStatus;
   source: string;
   interestActivityTitle: string | null;
+  /** The visitor's free-text question (ContactFloat). Null on older rows and on the packed-only forms. */
+  message: string | null;
+  /** Page the enquiry came from, for anything that isn't an activity detail page. */
+  pageUrl: string | null;
+  preferredDate: string | null;
+  partySize: number | null;
   createdAt: string;
 }
 
@@ -27,6 +33,10 @@ interface RawLead {
   contact: string;
   status: LeadStatus;
   source: string;
+  message: string | null;
+  page_url: string | null;
+  preferred_date: string | null;
+  party_size: number | null;
   created_at: string;
   activities: { title: string } | { title: string }[] | null;
 }
@@ -35,7 +45,9 @@ interface RawLead {
 export async function loadLeads(limit = 300): Promise<LeadRow[]> {
   const { data, error } = await getBrowserSupabase()
     .from('leads')
-    .select('id, name, contact, status, source, created_at, activities ( title )')
+    .select(
+      'id, name, contact, status, source, message, page_url, preferred_date, party_size, created_at, activities ( title )',
+    )
     .order('created_at', { ascending: false })
     .limit(limit)
     .returns<RawLead[]>();
@@ -47,6 +59,10 @@ export async function loadLeads(limit = 300): Promise<LeadRow[]> {
     status: raw.status,
     source: raw.source,
     interestActivityTitle: one(raw.activities)?.title ?? null,
+    message: raw.message,
+    pageUrl: raw.page_url,
+    preferredDate: raw.preferred_date,
+    partySize: raw.party_size,
     createdAt: raw.created_at,
   }));
 }

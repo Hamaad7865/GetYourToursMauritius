@@ -7,6 +7,7 @@ import { Rail } from '@/components/gyg/Rail';
 import { PlaceCard } from '@/components/gyg/PlaceCard';
 import { WishHeart } from '@/components/gyg/WishHeart';
 import { RecordView } from '@/components/gyg/RecordView';
+import { SetEnquiryContext } from '@/components/site/EnquiryContext';
 import { Gallery } from '@/components/gyg/detail/Gallery';
 import { BookingWidget } from '@/components/gyg/detail/BookingWidget';
 import { InquiryWidget } from '@/components/gyg/detail/InquiryWidget';
@@ -184,6 +185,10 @@ export default async function ActivityDetailPage({
       <JsonLd data={breadcrumbJsonLd(activity)} />
       {faqs.length > 0 && <JsonLd data={faqPageJsonLd(faqs)} />}
       <RecordView slug={activity.slug} />
+      {/* Prefills the floating enquiry form with this activity (chip + linked lead + trip fields). */}
+      <SetEnquiryContext
+        activity={{ id: activity.id, title: activity.title, slug: activity.slug }}
+      />
       <GygHeader sticky={false} />
 
       <main className="bg-white">

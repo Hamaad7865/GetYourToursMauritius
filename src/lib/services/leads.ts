@@ -15,6 +15,10 @@ export async function captureLead(
     interestActivityId: input.interestActivityId ?? null,
     source: input.source ?? 'web',
     ip: ip ?? null,
+    message: input.message ?? null,
+    pageUrl: input.pageUrl ?? null,
+    preferredDate: input.preferredDate ?? null,
+    partySize: input.partySize ?? null,
   });
   return leadSchema.parse(data);
 }

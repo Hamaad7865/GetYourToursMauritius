@@ -166,9 +166,33 @@ export function AdminLeads() {
                         ) : (
                           <span>{lead.contact}</span>
                         )}
+                        {/* The enquiry itself. Clamped so one long message can't stretch every row;
+                            the full text is on the title attribute. */}
+                        {lead.message && (
+                          <p
+                            className="mt-1 line-clamp-2 max-w-[320px] text-[13px] text-ink-muted"
+                            title={lead.message}
+                          >
+                            {lead.message}
+                          </p>
+                        )}
                       </td>
                       <td className="hidden px-4 py-3 text-ink-muted sm:table-cell">
-                        {lead.interestActivityTitle ?? '—'}
+                        {/* Falls back to the page they asked from — the only context a non-activity
+                            page carries. */}
+                        {lead.interestActivityTitle ?? lead.pageUrl ?? '—'}
+                        {(lead.preferredDate || lead.partySize != null) && (
+                          <div className="mt-0.5 text-[12px] text-ink/50">
+                            {[
+                              lead.preferredDate,
+                              lead.partySize != null
+                                ? `${lead.partySize} ${lead.partySize === 1 ? 'person' : 'people'}`
+                                : null,
+                            ]
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </div>
+                        )}
                       </td>
                       <td className="hidden whitespace-nowrap px-4 py-3 text-ink-muted md:table-cell">
                         {formatWhen(lead.createdAt)}

@@ -3,7 +3,8 @@ import { AuthProvider } from '@/components/auth/AuthProvider';
 import { CookieNotice } from '@/components/site/CookieNotice';
 import { PreferencesProvider } from '@/components/site/PreferencesProvider';
 import { ToastProvider } from '@/components/site/ToastProvider';
-import { WhatsAppFloat } from '@/components/site/WhatsAppFloat';
+import { ContactFloat } from '@/components/site/ContactFloat';
+import { EnquiryContextProvider } from '@/components/site/EnquiryContext';
 import { getLocale, getServerCurrency } from '@/lib/i18n/server';
 import { getUsdRate } from '@/lib/money/fx';
 
@@ -28,10 +29,14 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       initialCurrency={currency}
       initialUsdRate={usdRate}
     >
-      <ToastProvider>
-        <AuthProvider>{children}</AuthProvider>
-      </ToastProvider>
-      <WhatsAppFloat />
+      {/* Wraps BOTH the page and the float: an activity page publishes itself into this context so
+          ContactFloat, which sits above every page in the tree, can prefill its enquiry form. */}
+      <EnquiryContextProvider>
+        <ToastProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </ToastProvider>
+        <ContactFloat />
+      </EnquiryContextProvider>
       <CookieNotice />
     </PreferencesProvider>
   );

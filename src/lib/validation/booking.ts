@@ -338,6 +338,17 @@ export const captureLeadInputSchema = z.object({
   contact: z.string().min(3).max(200),
   interestActivityId: z.string().uuid().optional(),
   source: z.string().max(40).optional(),
+  /** The visitor's actual question. `contact` is a 200-char packed blob that already carries email +
+   *  phone, so free text needs its own field rather than being truncated mid-sentence. */
+  message: z.string().max(2000).optional(),
+  /** Path the enquiry was sent from — the context for every page that isn't an activity detail page. */
+  pageUrl: z.string().max(300).optional(),
+  /** 'YYYY-MM-DD' (native date input value). Offered only alongside an activity. */
+  preferredDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  partySize: z.number().int().min(1).max(99).optional(),
   /** Honeypot: a hidden field real users never fill. If present and non-empty, the lead is dropped. */
   company: z.string().max(200).optional(),
 });
