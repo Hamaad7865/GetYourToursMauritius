@@ -12,6 +12,7 @@ import {
   transferMetaDescription,
   localisedTransfer,
 } from '@/lib/content/transfers';
+import { parseGuestHotel } from '@/lib/content/guest-hotel';
 import { transferServiceJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
@@ -60,8 +61,10 @@ function Fact({ label, value }: { label: string; value: string }) {
 
 export default async function TransferDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ hotel?: string | string[]; hlat?: string; hlng?: string }>;
 }) {
   const { slug } = await params;
   const rawHotel = getTransfer(slug);
@@ -69,6 +72,17 @@ export default async function TransferDetailPage({
   const t = await getT();
   const locale = await getLocale();
   const hotel = localisedTransfer(rawHotel, locale);
+
+  /**
+   * The hotel the guest actually searched for, when it is not the listed one this page belongs to.
+   * The search snaps an unlisted pick to the nearest listed hotel — that hotel's zone sets the fare
+   * — but the guest must keep seeing the hotel THEY chose: it owns the H1, the route map and the
+   * booking's driver-facing dropoff, while everything the server prices from (the slug) stays this
+   * page's. Metadata and JSON-LD deliberately stay canonical: the ?hotel= variant canonicalises to
+   * this page and is never indexed as its own document.
+   */
+  const guest = parseGuestHotel(await searchParams);
+  const displayName = guest?.name ?? hotel.hotelName;
 
   const path = hotel.path;
   const homeLabel = t('Home');
@@ -96,11 +110,11 @@ export default async function TransferDetailPage({
 
       <InfoPage
         eyebrow={`${t('Airport transfer')} · ${hotel.area}`}
-        title={t('Airport transfer to {hotel}', { hotel: hotel.hotelName })}
+        title={t('Airport transfer to {hotel}', { hotel: displayName })}
         intro={t(
           'Private, fixed-price transfer from SSR International Airport to {hotel} — from €{price} per car, about {min} minutes.',
           {
-            hotel: hotel.hotelName,
+            hotel: displayName,
             price: hotel.fromPriceEur,
             min: hotel.durationMinFromAirport,
           },
@@ -119,8 +133,22 @@ export default async function TransferDetailPage({
             {airportTransfersLabel}
           </Link>
           <span className="text-ink/25">/</span>
-          <span className="font-semibold text-ink">{hotel.hotelName}</span>
+          <span className="font-semibold text-ink">{displayName}</span>
         </nav>
+
+        {/* An unlisted hotel still gets a fixed price because fares are set per ZONE — say so, or
+            the guest is left wondering why a page for a neighbouring resort is quoting them. */}
+        {guest && (
+          <div
+            role="note"
+            className="mb-6 rounded-xl bg-teal/10 px-4 py-3 text-[13.5px] font-semibold text-teal-dark"
+          >
+            {t('Fixed {area} zone fare — the same price we charge for {hotel} nearby.', {
+              area: hotel.area,
+              hotel: hotel.hotelName,
+            })}
+          </div>
+        )}
 
         <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-10">
           <div className="min-w-0">
@@ -132,15 +160,19 @@ export default async function TransferDetailPage({
               <Fact label={t('Coast')} value={`${hotel.region} (${hotel.area})`} />
             </div>
 
-            {/* Route map: SSR airport → this hotel */}
+            {/* Route map: SSR airport → the guest's hotel when we have it, else this hotel. */}
             <div className="mt-6">
-              <TransferRouteMap hotelName={hotel.hotelName} lat={hotel.lat} lng={hotel.lng} />
+              <TransferRouteMap
+                hotelName={displayName}
+                lat={guest?.lat ?? hotel.lat}
+                lng={guest?.lng ?? hotel.lng}
+              />
             </div>
 
             {/* Intro */}
             <section className="mt-9 border-t border-ink/10 pt-8">
               <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
-                {t('Your transfer to {hotel}', { hotel: hotel.hotelName })}
+                {t('Your transfer to {hotel}', { hotel: displayName })}
               </h2>
               <p className="mt-4 text-[15px] leading-relaxed text-ink/80">{hotel.intro}</p>
             </section>
@@ -215,6 +247,7 @@ export default async function TransferDetailPage({
               <TransferBookingWidget
                 slug={hotel.slug}
                 hotelName={hotel.hotelName}
+                guestHotel={guest?.name}
                 region={hotel.region}
                 durationMin={hotel.durationMinFromAirport}
               />

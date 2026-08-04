@@ -45,17 +45,27 @@ function ymd(d: Date): string {
 export function TransferBookingWidget({
   slug,
   hotelName,
+  guestHotel,
   region,
   durationMin,
 }: {
   slug: string;
   hotelName: string;
+  /**
+   * The hotel the guest actually searched for, when it is not the listed one (the ?hotel= handoff —
+   * see src/lib/content/guest-hotel.ts). It owns everything the GUEST reads — the destination line,
+   * the booking title and the driver-facing `dropoff` — while `slug` keeps owning the zone the
+   * server prices from. Before this, a Veranda Palmar guest's booking literally told the driver
+   * "The Residence Mauritius".
+   */
+  guestHotel?: string;
   region: string;
   durationMin: number;
 }) {
   const t = useT();
   const router = useRouter();
   const params = useSearchParams();
+  const destination = guestHotel ?? hotelName;
 
   // Prefill from the landing-page quote calculator (?party=&suv=&trip=). The guest still confirms
   // the exact hotel + date here; these only set the opening party/vehicle/trip so the quote they saw
@@ -184,8 +194,8 @@ export function TransferBookingWidget({
       });
       const transferTitle =
         tripType === 'return'
-          ? `Return airport transfer · ${hotelName}`
-          : `Airport transfer to ${hotelName}`;
+          ? `Return airport transfer · ${destination}`
+          : `Airport transfer to ${destination}`;
 
       // The params that DEFINE this transfer, built once and used by both the direct /checkout push
       // and the mirrored cart line. They have to travel with the line: api_book decides a booking is
@@ -196,8 +206,10 @@ export function TransferBookingWidget({
       // inputs to that derivation, never a price we are trusted on.)
       const transferParams: Record<string, string> = {
         transfer: '1',
+        // dropoffSlug is what the server DERIVES THE PRICE from and must stay the listed hotel;
+        // dropoff is what the DRIVER reads and must be the hotel the guest is actually going to.
         dropoffSlug: slug,
-        dropoff: hotelName,
+        dropoff: destination,
         region,
         tripType,
       };
@@ -272,7 +284,7 @@ export function TransferBookingWidget({
         <IconPin width={14} height={14} className="shrink-0 text-coral" />
         <span className="font-semibold text-ink">{t('SSR Airport')}</span>
         <IconArrowRight width={13} height={13} className="text-ink/40" />
-        <span className="min-w-0 truncate font-semibold text-ink">{hotelName}</span>
+        <span className="min-w-0 truncate font-semibold text-ink">{destination}</span>
       </div>
 
       {/* Trip type */}

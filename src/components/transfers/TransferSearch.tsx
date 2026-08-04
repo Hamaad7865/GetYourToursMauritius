@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { transfers, nearestTransfer, type Transfer } from '@/lib/content/transfers';
+import { guestHotelQuery } from '@/lib/content/guest-hotel';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import { useT } from '@/components/site/PreferencesProvider';
 import { IconArrowRight, IconPin, IconSearch } from '@/components/ui/icons';
@@ -20,7 +21,19 @@ export function TransferSearch() {
   const t = useT();
   const router = useRouter();
   const placesReady = useGoogleMaps() === 'ready';
-  const go = (hotel: Transfer) => router.push(hotel.path);
+  /**
+   * `guest` is the hotel the traveller actually picked, when it is not one we list. It rides along
+   * in the URL so the destination page keeps saying THEIR hotel — H1, map, booking dropoff — while
+   * the listed hotel's slug keeps owning the zone fare. Without it, searching "Veranda Palmar
+   * Beach" landed on a page titled "Airport transfer to The Residence Mauritius" with no trace of
+   * the hotel the guest asked for.
+   */
+  const go = (hotel: Transfer, guest?: { name: string; lat: number; lng: number }) =>
+    router.push(
+      guest && guest.name !== hotel.hotelName
+        ? `${hotel.path}?${guestHotelQuery(guest.name, guest.lat, guest.lng)}`
+        : hotel.path,
+    );
 
   return (
     <div className="rounded-2xl border border-ink/10 bg-white p-4 shadow-[0_18px_40px_-30px_rgba(10,46,54,0.45)] sm:p-5">
@@ -50,7 +63,11 @@ export function TransferSearch() {
 /** Live Google Places autocomplete (any place in Mauritius). A picked place is snapped to the nearest
  *  listed hotel by coordinates so its zone/price/page carry through. Uncontrolled input — Google manages
  *  its value + its own suggestion dropdown. */
-function PlacesToField({ onPick }: { onPick: (hotel: Transfer) => void }) {
+function PlacesToField({
+  onPick,
+}: {
+  onPick: (hotel: Transfer, guest?: { name: string; lat: number; lng: number }) => void;
+}) {
   const t = useT();
   const inputRef = useRef<HTMLInputElement>(null);
   const onPickRef = useRef(onPick);
@@ -66,9 +83,14 @@ function PlacesToField({ onPick }: { onPick: (hotel: Transfer) => void }) {
         fields: ['name', 'geometry'],
       });
       ac.addListener('place_changed', () => {
-        const loc = ac!.getPlace().geometry?.location;
+        const place = ac!.getPlace();
+        const loc = place.geometry?.location;
         if (!loc) return;
-        onPickRef.current(nearestTransfer(loc.lat(), loc.lng()));
+        const name = place.name?.trim();
+        onPickRef.current(
+          nearestTransfer(loc.lat(), loc.lng()),
+          name ? { name, lat: loc.lat(), lng: loc.lng() } : undefined,
+        );
       });
     } catch {
       /* Places unavailable — the typeahead branch covers it */

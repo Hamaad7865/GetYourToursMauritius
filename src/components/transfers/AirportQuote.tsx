@@ -8,6 +8,7 @@ import { useT } from '@/components/site/PreferencesProvider';
 import { parseApiJson } from '@/lib/http/fetch-json';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import { transfers, nearestTransfer, type Transfer } from '@/lib/content/transfers';
+import { guestHotelQuery } from '@/lib/content/guest-hotel';
 import {
   AIRPORT_FARE_DEFAULT,
   AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
@@ -180,10 +181,11 @@ export function AirportQuote() {
   const atInputRef = useRef<HTMLInputElement>(null);
   /**
    * The hotel the guest actually chose, when it is not one we list by name — kept so the field can
-   * show THEIR hotel while the fare is derived from the nearest listed one. Null whenever the two
-   * are the same thing, which is the case for every pick off our own typeahead.
+   * show THEIR hotel while the fare is derived from the nearest listed one, and passed through to
+   * the booking page URL so the H1/map/dropoff there keep saying it too. Null whenever the two are
+   * the same thing, which is the case for every pick off our own typeahead.
    */
-  const [pickedName, setPickedName] = useState<string | null>(null);
+  const [picked, setPicked] = useState<{ name: string; lat: number; lng: number } | null>(null);
 
   const [fares, setFares] = useState<AirportFareByZone>(AIRPORT_FARE_DEFAULT);
   const [returnPct, setReturnPct] = useState(AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT);
@@ -249,8 +251,12 @@ export function AirportQuote() {
         // heard of, with nothing on screen explaining why. The fare was right (both sit in the same
         // airport zone) but nothing said so, which is worse than a wrong price at the moment someone
         // decides whether to trust you with their arrival.
-        const picked = place.name?.trim();
-        setPickedName(picked && picked !== n.hotelName ? picked : null);
+        const pickedName = place.name?.trim();
+        setPicked(
+          pickedName && pickedName !== n.hotelName
+            ? { name: pickedName, lat: loc.lat(), lng: loc.lng() }
+            : null,
+        );
       });
     } catch {
       /* Places unavailable — the typeahead fallback covers it */
@@ -311,7 +317,7 @@ export function AirportQuote() {
     setQuery(x.hotelName);
     // Chosen straight off our own list, so the field and the priced hotel are the same thing and
     // there is nothing to explain.
-    setPickedName(null);
+    setPicked(null);
     setOpen(false);
     if (blurTimer.current) clearTimeout(blurTimer.current);
   }
@@ -364,6 +370,14 @@ export function AirportQuote() {
       trip: tripType,
       from: 'quote',
     });
+    // An unlisted pick rides along so the booking page keeps naming THEIR hotel, not the neighbour
+    // that owns the zone fare.
+    if (picked) {
+      for (const [k, v] of new URLSearchParams(
+        guestHotelQuery(picked.name, picked.lat, picked.lng),
+      ))
+        q.set(k, v);
+    }
     router.push(`${hotel.path}?${q.toString()}`);
   }
 
@@ -557,7 +571,7 @@ export function AirportQuote() {
             hotel, so the nearest listed resort produces the identical figure — but without this the
             guest is left guessing whether we understood where they are going. role=status so it is
             announced rather than silently appearing after a Places pick. */}
-        {pickedName && (
+        {picked && (
           <div
             role="status"
             aria-live="polite"
