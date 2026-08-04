@@ -4,17 +4,23 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { SITE } from '@/lib/seo/site';
 import { getLocale, getT } from '@/lib/i18n/server';
+import { localeAlternates } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
 
 const UPDATED = '21 July 2026';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
   title: { absolute: `Privacy policy · ${SITE.operator}` },
   description: `How ${SITE.legalName} collects, uses and protects your personal data when you book through ${SITE.name}, and the rights you have under Mauritius and EU data-protection law.`,
-  alternates: { canonical: '/privacy' },
 };
+
+// generateMetadata rather than a static export: the canonical has to follow the rendered locale
+// (/privacy vs /fr/privacy), and a static one would name the English URL on the French page.
+export async function generateMetadata(): Promise<Metadata> {
+  return { ...DEFAULT_METADATA, alternates: localeAlternates('/privacy', await getLocale()) };
+}
 
 const TOC = [
   { id: 'controller', label: 'Who controls your data' },

@@ -4,18 +4,24 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { SITE } from '@/lib/seo/site';
 import { getLocale, getT } from '@/lib/i18n/server';
+import { localeAlternates } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
 
 const UPDATED = '21 July 2026';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
   title: { absolute: `Cancellations & refunds · ${SITE.operator}` },
   description:
     'Free cancellation until 12:00 noon Mauritius time on the day before your activity. See exactly how cancellations, refunds and reschedules work with Belle Mare Tours.',
-  alternates: { canonical: '/refunds' },
 };
+
+// generateMetadata rather than a static export: the canonical has to follow the rendered locale
+// (/refunds vs /fr/refunds), and a static one would name the English URL on the French page.
+export async function generateMetadata(): Promise<Metadata> {
+  return { ...DEFAULT_METADATA, alternates: localeAlternates('/refunds', await getLocale()) };
+}
 
 const TOC = [
   { id: 'window', label: 'Free-cancellation window' },

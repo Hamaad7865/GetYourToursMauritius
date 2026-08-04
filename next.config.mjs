@@ -119,6 +119,16 @@ const nextConfig = {
       { key: 'Cache-Control', value },
       { key: 'Vary', value: 'Cookie' },
     ];
+    // French is URL-addressable under /fr (middleware.ts), and these rules match by PATH — so every
+    // rule below has to exist under the prefix too or the entire French half of the site would be
+    // served uncached, and worse, without the `Vary: Cookie` that keeps one visitor's DISPLAY
+    // CURRENCY out of the next visitor's page. (The locale itself is safe under /fr — the URL
+    // decides it, not the cookie — but currency is still a cookie.) Keep '/fr' in step with
+    // LOCALE_PREFIX.fr in src/lib/i18n/routing.ts.
+    const bothLocales = (source, value) => [
+      { source, headers: cc(value) },
+      { source: source === '/' ? '/fr' : `/fr${source}`, headers: cc(value) },
+    ];
     return [
       { source: '/(.*)', headers: security },
       // Preview deployments (<hash>.bellemaretours.pages.dev) are deliberately exempt from the
@@ -134,26 +144,26 @@ const nextConfig = {
       // /checkout must NEVER be cached or served from the bfcache: it mints/holds a booking and a
       // stale re-execution after a successful booking could otherwise create a duplicate. no-store
       // (defence-in-depth alongside the per-occurrence booking-identity stash in Checkout.tsx).
-      { source: '/checkout', headers: cc('no-store, must-revalidate') },
+      ...bothLocales('/checkout', 'no-store, must-revalidate'),
       // Listings (the activity DETAIL path /activities/:slug* is deliberately NOT cached — see above).
-      { source: '/', headers: cc(cache) },
-      { source: '/activities', headers: cc(cache) },
+      ...bothLocales('/', cache),
+      ...bothLocales('/activities', cache),
       // SEO landing pages list live tours like /activities, so they take the shorter listing cache.
-      { source: '/mauritius-tours', headers: cc(cache) },
-      { source: '/belle-mare-tours', headers: cc(cache) },
-      { source: '/ile-aux-cerfs-tours', headers: cc(cache) },
-      { source: '/mauritius-catamaran-cruise', headers: cc(cache) },
-      { source: '/dolphin-swim-mauritius', headers: cc(cache) },
+      ...bothLocales('/mauritius-tours', cache),
+      ...bothLocales('/belle-mare-tours', cache),
+      ...bothLocales('/ile-aux-cerfs-tours', cache),
+      ...bothLocales('/mauritius-catamaran-cruise', cache),
+      ...bothLocales('/dolphin-swim-mauritius', cache),
       // Static / code-generated content trees (build-fixed slug set; a redeploy busts the cache).
-      { source: '/attractions', headers: cc(cacheLong) },
-      { source: '/airport-transfers', headers: cc(cacheLong) },
-      { source: '/blog', headers: cc(cacheLong) },
-      { source: '/destinations', headers: cc(cacheLong) },
-      { source: '/mauritius-travel-guide', headers: cc(cacheLong) },
-      { source: '/reviews', headers: cc(cacheLong) },
-      { source: '/blog/:slug*', headers: cc(cacheLong) },
-      { source: '/airport-transfers/:slug*', headers: cc(cacheLong) },
-      { source: '/destinations/:slug*', headers: cc(cacheLong) },
+      ...bothLocales('/attractions', cacheLong),
+      ...bothLocales('/airport-transfers', cacheLong),
+      ...bothLocales('/blog', cacheLong),
+      ...bothLocales('/destinations', cacheLong),
+      ...bothLocales('/mauritius-travel-guide', cacheLong),
+      ...bothLocales('/reviews', cacheLong),
+      ...bothLocales('/blog/:slug*', cacheLong),
+      ...bothLocales('/airport-transfers/:slug*', cacheLong),
+      ...bothLocales('/destinations/:slug*', cacheLong),
     ];
   },
 };

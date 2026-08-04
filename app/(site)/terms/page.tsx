@@ -4,17 +4,23 @@ import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { SITE } from '@/lib/seo/site';
 import { getLocale, getT } from '@/lib/i18n/server';
+import { localeAlternates } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
 
 const UPDATED = '21 July 2026';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
   title: { absolute: `Terms of service · ${SITE.operator}` },
   description: `The booking conditions for ${SITE.legalName} (${SITE.name}) — payments, vouchers, cancellations, your responsibilities and our liability, under the laws of Mauritius.`,
-  alternates: { canonical: '/terms' },
 };
+
+// generateMetadata rather than a static export: the canonical has to follow the rendered locale
+// (/terms vs /fr/terms), and a static one would name the English URL on the French page.
+export async function generateMetadata(): Promise<Metadata> {
+  return { ...DEFAULT_METADATA, alternates: localeAlternates('/terms', await getLocale()) };
+}
 
 const TOC = [
   { id: 'about', label: 'About these terms' },

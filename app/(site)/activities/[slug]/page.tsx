@@ -35,6 +35,7 @@ import { Faq } from '@/components/catalogue/Faq';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getLocale, getT } from '@/lib/i18n/server';
+import { localeAlternates, localePath } from '@/lib/i18n/routing';
 import { publicServiceContext } from '@/lib/http/context';
 import { getActivity, searchActivities, CATALOGUE_HIDDEN_SLUGS } from '@/lib/services/activities';
 import { NotFoundError } from '@/lib/services/errors';
@@ -102,12 +103,14 @@ export async function generateMetadata({
     // operator) — that double-brand was pushing tour keywords past SERP truncation.
     title: { absolute: title },
     description,
-    alternates: { canonical },
+    // The tour page is the money page and the one the French half of the retired domain redirects
+    // into, so its hreflang pair is the single most valuable one on the site.
+    alternates: localeAlternates(canonical, locale),
     openGraph: {
       type: 'website',
       title,
       description,
-      url: `${SITE.url}${canonical}`,
+      url: `${SITE.url}${localePath(locale, canonical)}`,
       locale: locale === 'fr' ? 'fr_FR' : 'en_GB',
       ...(image ? { images: [{ url: image }] } : {}),
     },

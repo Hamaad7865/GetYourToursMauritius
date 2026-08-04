@@ -42,6 +42,16 @@ const DEFAULTS: Metadata = {
   },
 };
 
+/* overrideMetadata OWNS `alternates` now: French is URL-addressable at /fr, so every page has to
+ * declare both URLs, and the canonical has to follow the one being rendered. A caller's hand-written
+ * canonical is deliberately replaced — left alone, a French page would name the English URL as its
+ * canonical, which tells Google it is a duplicate and drops it from the index. */
+const LANGUAGES = { en: '/rent', fr: '/fr/rent', 'x-default': '/rent' };
+const EXPECTED = (canonical: string): Metadata => ({
+  ...DEFAULTS,
+  alternates: { canonical, languages: LANGUAGES },
+});
+
 beforeEach(() => {
   vi.mocked(getSeoMeta).mockReset();
   vi.mocked(listDbPosts).mockReset();
@@ -54,7 +64,7 @@ describe('overrideMetadata', () => {
     // visitor's locale (see the `openGraph.locale` test below), even on this no-override path — so a
     // new object comes back with the same values, not the same reference.
     vi.mocked(getSeoMeta).mockResolvedValue(null);
-    expect(await overrideMetadata('/rent', DEFAULTS)).toEqual(DEFAULTS);
+    expect(await overrideMetadata('/rent', DEFAULTS)).toEqual(EXPECTED('/rent'));
   });
 
   it("stamps openGraph.locale from the visitor's locale (fr_FR for a French visitor)", async () => {
@@ -78,7 +88,9 @@ describe('overrideMetadata', () => {
     expect(og.title).toBe('Override Title');
     expect(og.description).toBe('Override description');
     expect(og.locale).toBe('en_GB'); // untouched default OG fields survive
-    expect(m.alternates).toEqual({ canonical: '/rent' }); // canonical never overridden
+    // An /admin/seo row tunes title/description/OG image only — it must never move the canonical or
+    // drop the language pair, or an editor could deindex a page from the SEO screen by accident.
+    expect(m.alternates).toEqual({ canonical: '/rent', languages: LANGUAGES });
   });
 
   it('a partial override keeps the other defaults (only the OG image swaps)', async () => {
@@ -98,7 +110,27 @@ describe('overrideMetadata', () => {
   it('falls back to the defaults on any error (an override can never break a page)', async () => {
     // Not `.toBe` — see the no-override case above for why.
     vi.mocked(getSeoMeta).mockRejectedValue(new Error('db down'));
-    expect(await overrideMetadata('/rent', DEFAULTS)).toEqual(DEFAULTS);
+    expect(await overrideMetadata('/rent', DEFAULTS)).toEqual(EXPECTED('/rent'));
+  });
+
+  it('points the canonical at the French URL when rendering French', async () => {
+    vi.mocked(getLocale).mockResolvedValueOnce('fr');
+    vi.mocked(getSeoMeta).mockResolvedValue(null);
+    expect((await overrideMetadata('/rent', DEFAULTS)).alternates).toEqual({
+      canonical: '/fr/rent',
+      languages: LANGUAGES,
+    });
+  });
+
+  // Even when the DB is down the page must still declare its language pair — hreflang is not an
+  // enhancement that can fail open, it is how the French URL gets indexed at all.
+  it('still emits the hreflang pair when the override lookup fails', async () => {
+    vi.mocked(getLocale).mockResolvedValueOnce('fr');
+    vi.mocked(getSeoMeta).mockRejectedValue(new Error('db down'));
+    expect((await overrideMetadata('/rent', DEFAULTS)).alternates).toEqual({
+      canonical: '/fr/rent',
+      languages: LANGUAGES,
+    });
   });
 });
 

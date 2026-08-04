@@ -9,6 +9,7 @@ import { loadPost, loadRelatedPosts } from '@/lib/content/blog-live';
 import { articleJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { getT, getLocale } from '@/lib/i18n/server';
+import { localeAlternates, localePath } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
 
@@ -57,12 +58,12 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: p.path },
+    alternates: localeAlternates(p.path, locale),
     openGraph: {
       type: 'article',
       title,
       description,
-      url: `${SITE.url}${p.path}`,
+      url: `${SITE.url}${localePath(locale, p.path)}`,
       locale: locale === 'fr' ? 'fr_FR' : 'en_GB',
       publishedTime: p.datePublished,
       // The post's own cover photo beats the site-wide default on social shares.

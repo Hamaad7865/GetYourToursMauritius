@@ -19,14 +19,16 @@
 
 /**
  * LOCALE — the old site was addressable in two languages (French at the root, English under /en/).
- * The new site is NOT: `getLocale()` reads the `gytm_lang` COOKIE, so French exists but has no URL
- * of its own and no hreflang. A cross-domain redirect cannot set that cookie, so today every French
- * source lands on the English rendering of the right page.
+ * The new site now is too: French lives under /fr, served by middleware.ts + src/lib/i18n/routing.ts.
  *
- * When French becomes URL-addressable, set FR_PREFIX to '/fr' (or switch buildTarget to append
- * `?lang=fr`) and every French row below routes correctly — that is the ONLY edit required here.
+ * Until that shipped this was '', because `getLocale()` read the `gytm_lang` COOKIE and a
+ * cross-domain redirect cannot set a cookie on the destination — so every French source landed on
+ * the English rendering of the right page, losing the French half of the old site's ranking signals.
+ *
+ * Keep this in step with LOCALE_PREFIX.fr in src/lib/i18n/routing.ts; they describe the same URL
+ * space from either side of the domain move, and tests/unit/legacy-redirects.test.ts asserts it.
  */
-export const FR_PREFIX = '';
+export const FR_PREFIX = '/fr';
 
 /** Sources whose visitors were reading French. Everything else is treated as English. */
 export function isFrenchSource(path) {

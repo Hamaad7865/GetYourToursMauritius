@@ -4,18 +4,24 @@ import { InfoPage } from '@/components/site/InfoPage';
 import { LegalArticle, LegalSection, P, LegalList, Callout } from '@/components/site/Legal';
 import { CookieSettingsButton } from '@/components/site/CookieSettingsButton';
 import { SITE } from '@/lib/seo/site';
-import { getT } from '@/lib/i18n/server';
+import { getLocale, getT } from '@/lib/i18n/server';
+import { localeAlternates } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
 
 const UPDATED = '27 July 2026';
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   // absolute: the title already names the brand — stop the root "%s | Belle Mare Tours" template doubling it.
   title: { absolute: `Cookie policy · ${SITE.operator}` },
   description: `Which cookies and similar browser storage ${SITE.name} uses, why, and how to manage them — including analytics cookies, which run only with your consent.`,
-  alternates: { canonical: '/cookies' },
 };
+
+// generateMetadata rather than a static export: the canonical has to follow the rendered locale
+// (/cookies vs /fr/cookies), and a static one would name the English URL on the French page.
+export async function generateMetadata(): Promise<Metadata> {
+  return { ...DEFAULT_METADATA, alternates: localeAlternates('/cookies', await getLocale()) };
+}
 
 export default async function CookiesPage() {
   const t = await getT();

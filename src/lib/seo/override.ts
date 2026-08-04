@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { publicServiceContext } from '@/lib/http/context';
 import { getSeoMeta } from '@/lib/services/seo';
 import { getLocale } from '@/lib/i18n/server';
+import { localeAlternates } from '@/lib/i18n/routing';
 
 /**
  * Merge the admin-editable `seo_meta` override for `path` over a page's built-in metadata.
@@ -14,17 +15,28 @@ import { getLocale } from '@/lib/i18n/server';
  * cookie read. A shared French page must announce itself as `fr_FR`, not the `en_GB` every
  * caller used to hardcode; this always wins over whatever a caller's own `defaults.openGraph`
  * set; callers no longer need to (and shouldn't) hardcode it themselves.
+ *
+ * For the same reason it owns `alternates`, which is now more than a canonical: French lives at
+ * /fr/<path>, so each page has to declare BOTH URLs plus the canonical for the one being rendered.
+ * Overriding whatever the caller passed is deliberate — a hand-written `canonical` here would name
+ * the English URL on a French page, which tells Google the French page is a duplicate and drops it
+ * from the index. Callers should pass their English path and let this build the set.
  */
 export async function overrideMetadata(path: string, defaults: Metadata): Promise<Metadata> {
   const locale = await getLocale();
   const ogLocale = locale === 'fr' ? 'fr_FR' : 'en_GB';
+  const alternates = localeAlternates(path, locale);
   try {
     const o = await getSeoMeta(publicServiceContext(locale), path);
     if (!o || (!o.title && !o.description && !o.ogImageUrl)) {
-      return { ...defaults, openGraph: { ...(defaults.openGraph ?? {}), locale: ogLocale } };
+      return {
+        ...defaults,
+        alternates,
+        openGraph: { ...(defaults.openGraph ?? {}), locale: ogLocale },
+      };
     }
 
-    const merged: Metadata = { ...defaults };
+    const merged: Metadata = { ...defaults, alternates };
     const og = { ...(defaults.openGraph ?? {}), locale: ogLocale } as NonNullable<
       Metadata['openGraph']
     >;
@@ -43,6 +55,10 @@ export async function overrideMetadata(path: string, defaults: Metadata): Promis
     merged.openGraph = og;
     return merged;
   } catch {
-    return { ...defaults, openGraph: { ...(defaults.openGraph ?? {}), locale: ogLocale } };
+    return {
+      ...defaults,
+      alternates,
+      openGraph: { ...(defaults.openGraph ?? {}), locale: ogLocale },
+    };
   }
 }

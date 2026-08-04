@@ -6,55 +6,84 @@ import { loadPlaces } from '@/lib/catalogue/places';
 import { transfers } from '@/lib/content/transfers';
 import { loadPosts } from '@/lib/content/blog-live';
 import { areas } from '@/lib/content/areas';
+import { LOCALES } from '@/lib/i18n/config';
+import { localeAlternates, localePath } from '@/lib/i18n/routing';
 
 export const runtime = 'edge';
 
+/**
+ * NOTE: nothing here may call `getLocale()`. The sitemap is one document describing BOTH languages,
+ * not a per-visitor rendering — reading the request's locale would make it dynamic and emit a
+ * half-sitemap that depends on who asked for it. `localePath`/`localeAlternates` are pure.
+ */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = SITE.url;
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: `${base}/`, changeFrequency: 'daily', priority: 1 },
-    { url: `${base}/activities`, changeFrequency: 'daily', priority: 0.9 },
-    { url: `${base}/mauritius-tours`, changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${base}/attractions`, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${base}/things-to-do-in-belle-mare`, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${base}/airport-transfers`, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${base}/mauritius-catamaran-cruise`, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${base}/ile-aux-cerfs-tours`, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${base}/dolphin-swim-mauritius`, changeFrequency: 'weekly', priority: 0.8 },
-    { url: `${base}/belle-mare-tours`, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${base}/blog`, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${base}/mauritius-travel-guide`, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${base}/reviews`, changeFrequency: 'weekly', priority: 0.6 },
-    { url: `${base}/destinations`, changeFrequency: 'weekly', priority: 0.7 },
-    { url: `${base}/ai-road-trip-planner`, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${base}/rent`, changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${base}/contact`, changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${base}/about`, changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${base}/help`, changeFrequency: 'monthly', priority: 0.4 },
-    { url: `${base}/refunds`, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${base}/terms`, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${base}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${base}/cookies`, changeFrequency: 'yearly', priority: 0.3 },
+
+  type Entry = MetadataRoute.Sitemap[number];
+  type Meta = Omit<Entry, 'url' | 'alternates'>;
+
+  /**
+   * One sitemap entry per language for a route, each carrying the FULL set of alternates including
+   * itself — that is the form Google asks for, and it is what tells it the two URLs are the same
+   * page in different languages rather than duplicates competing with each other.
+   */
+  function bilingual(path: string, meta: Meta): MetadataRoute.Sitemap {
+    const { languages } = localeAlternates(path);
+    const absolute = Object.fromEntries(
+      Object.entries(languages).map(([code, p]) => [code, `${base}${p}`]),
+    );
+    return LOCALES.map((locale) => ({
+      ...meta,
+      url: `${base}${localePath(locale, path)}`,
+      alternates: { languages: absolute },
+    }));
+  }
+
+  const staticPages: { path: string; meta: Meta }[] = [
+    { path: '/', meta: { changeFrequency: 'daily', priority: 1 } },
+    { path: '/activities', meta: { changeFrequency: 'daily', priority: 0.9 } },
+    { path: '/mauritius-tours', meta: { changeFrequency: 'weekly', priority: 0.9 } },
+    { path: '/attractions', meta: { changeFrequency: 'weekly', priority: 0.7 } },
+    { path: '/things-to-do-in-belle-mare', meta: { changeFrequency: 'weekly', priority: 0.7 } },
+    { path: '/airport-transfers', meta: { changeFrequency: 'weekly', priority: 0.8 } },
+    { path: '/mauritius-catamaran-cruise', meta: { changeFrequency: 'weekly', priority: 0.8 } },
+    { path: '/ile-aux-cerfs-tours', meta: { changeFrequency: 'weekly', priority: 0.8 } },
+    { path: '/dolphin-swim-mauritius', meta: { changeFrequency: 'weekly', priority: 0.8 } },
+    { path: '/belle-mare-tours', meta: { changeFrequency: 'monthly', priority: 0.7 } },
+    { path: '/blog', meta: { changeFrequency: 'weekly', priority: 0.7 } },
+    { path: '/mauritius-travel-guide', meta: { changeFrequency: 'monthly', priority: 0.7 } },
+    { path: '/reviews', meta: { changeFrequency: 'weekly', priority: 0.6 } },
+    { path: '/destinations', meta: { changeFrequency: 'weekly', priority: 0.7 } },
+    { path: '/ai-road-trip-planner', meta: { changeFrequency: 'monthly', priority: 0.6 } },
+    { path: '/rent', meta: { changeFrequency: 'monthly', priority: 0.4 } },
+    { path: '/contact', meta: { changeFrequency: 'monthly', priority: 0.4 } },
+    { path: '/about', meta: { changeFrequency: 'monthly', priority: 0.4 } },
+    { path: '/help', meta: { changeFrequency: 'monthly', priority: 0.4 } },
+    { path: '/refunds', meta: { changeFrequency: 'yearly', priority: 0.3 } },
+    { path: '/terms', meta: { changeFrequency: 'yearly', priority: 0.3 } },
+    { path: '/privacy', meta: { changeFrequency: 'yearly', priority: 0.3 } },
+    { path: '/cookies', meta: { changeFrequency: 'yearly', priority: 0.3 } },
   ];
 
-  const transferRoutes: MetadataRoute.Sitemap = transfers.map((t) => ({
-    url: `${base}${t.path}`,
-    changeFrequency: 'monthly',
-    priority: 0.6,
-  }));
+  const staticRoutes: MetadataRoute.Sitemap = staticPages.flatMap(({ path, meta }) =>
+    bilingual(path, meta),
+  );
 
-  const blogRoutes: MetadataRoute.Sitemap = (await loadPosts()).map((p) => ({
-    url: `${base}${p.path}`,
-    lastModified: p.datePublished,
-    changeFrequency: 'monthly',
-    priority: 0.6,
-  }));
+  const transferRoutes: MetadataRoute.Sitemap = transfers.flatMap((t) =>
+    bilingual(t.path, { changeFrequency: 'monthly', priority: 0.6 }),
+  );
 
-  const destinationRoutes: MetadataRoute.Sitemap = areas.map((a) => ({
-    url: `${base}${a.path}`,
-    changeFrequency: 'monthly',
-    priority: 0.6,
-  }));
+  const blogRoutes: MetadataRoute.Sitemap = (await loadPosts()).flatMap((p) =>
+    bilingual(p.path, {
+      lastModified: p.datePublished,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    }),
+  );
+
+  const destinationRoutes: MetadataRoute.Sitemap = areas.flatMap((a) =>
+    bilingual(a.path, { changeFrequency: 'monthly', priority: 0.6 }),
+  );
 
   const activityRoutes: MetadataRoute.Sitemap = [];
   try {
@@ -64,11 +93,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     for (let page = 1; page <= 50; page += 1) {
       const { items } = await searchActivities(publicServiceContext(), { page, pageSize });
       for (const activity of items) {
-        activityRoutes.push({
-          url: `${base}/activities/${activity.slug}`,
-          changeFrequency: 'weekly',
-          priority: 0.8,
-        });
+        activityRoutes.push(
+          ...bilingual(`/activities/${activity.slug}`, {
+            changeFrequency: 'weekly',
+            priority: 0.8,
+          }),
+        );
       }
       // `items` is POST-filter: searchActivities drops CATALOGUE_HIDDEN_SLUGS after the RPC returns,
       // so a FULL page can come back short. Comparing it against pageSize therefore ended the loop on
@@ -84,11 +114,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let attractionRoutes: MetadataRoute.Sitemap = [];
   try {
     const places = await loadPlaces();
-    attractionRoutes = places.map((place) => ({
-      url: `${base}/attractions/${place.id}`,
-      changeFrequency: 'monthly',
-      priority: 0.6,
-    }));
+    attractionRoutes = places.flatMap((place) =>
+      bilingual(`/attractions/${place.id}`, { changeFrequency: 'monthly', priority: 0.6 }),
+    );
   } catch (error) {
     console.error('[sitemap] places fetch failed', error);
   }

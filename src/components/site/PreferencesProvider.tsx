@@ -10,6 +10,7 @@ import {
   type Currency,
   type Locale,
 } from '@/lib/i18n/config';
+import { localePath } from '@/lib/i18n/routing';
 import { translate } from '@/lib/i18n/translate';
 import { formatMoney } from '@/lib/money/fx';
 import { LangCurrencyModal } from './LangCurrencyModal';
@@ -68,11 +69,33 @@ export function PreferencesProvider({
     document.documentElement.lang = language;
   }, [language]);
 
+  /**
+   * Switching language MOVES the visitor: French lives at /fr/…, English at the root. Navigating
+   * rather than only re-rendering is what makes the choice shareable — the URL in the address bar is
+   * now the thing that decides the language, so a French page can be linked, bookmarked and indexed.
+   *
+   * The cookie is still written, and still decides for paths that have no French URL of their own
+   * (checkout, account) and for a visitor's next arrival at the bare domain.
+   *
+   * `window.location` rather than `usePathname()` on purpose: /fr/x is a middleware REWRITE, so the
+   * router's idea of the path is the rewritten one while the address bar — the thing being switched
+   * — still reads /fr/x.
+   */
   const setLanguage = useCallback(
     (l: Locale) => {
       setLanguageState(l);
       writeCookie(LANG_COOKIE, l);
-      router.refresh();
+      if (typeof window === 'undefined') {
+        router.refresh();
+        return;
+      }
+      const { pathname, search, hash } = window.location;
+      const next = localePath(l, pathname);
+      if (next === pathname) {
+        router.refresh();
+        return;
+      }
+      router.push(`${next}${search}${hash}`);
     },
     [router],
   );

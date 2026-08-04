@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { EXACT, PREFIXES } from '../../workers/redirect-legacy/src/map.js';
+import { EXACT, FR_PREFIX, PREFIXES } from '../../workers/redirect-legacy/src/map.js';
+import { LOCALE_PREFIX } from '@/lib/i18n/routing';
 import worker, {
   buildTarget,
   normalisePath,
@@ -221,11 +222,32 @@ describe('buildTarget', () => {
       ),
     ).toBe('https://bellemaretours.com/activities/north-tour');
   });
-  it('treats a non-/en path as French', () => {
-    // FR_PREFIX is '' today, so this asserts the wiring, not the prefix.
+  it('sends a non-/en (French) source to the French URL', () => {
     expect(
       buildTarget('https://x.test', '/visites-guidees/le-nord', '/activities/north-tour'),
-    ).toBe('https://x.test/activities/north-tour');
+    ).toBe('https://x.test/fr/activities/north-tour');
+  });
+
+  it('sends an /en source to the unprefixed English URL', () => {
+    expect(buildTarget('https://x.test', '/en/sightseeing/le-nord', '/activities/north-tour')).toBe(
+      'https://x.test/activities/north-tour',
+    );
+  });
+
+  // '/fr' + '/' would be '/fr/', which then 308s — the old French home page is the single most
+  // linked URL on the retired domain, so it must land in one hop.
+  it('sends the French home page to /fr with no trailing slash', () => {
+    expect(buildTarget('https://x.test', '', '/')).toBe('https://x.test/fr');
+  });
+
+  it('keeps the English home page at the root', () => {
+    expect(buildTarget('https://x.test', '/en', '/')).toBe('https://x.test/');
+  });
+
+  // The Worker and the app describe the same URL space from opposite sides of the domain move; if
+  // one moves without the other, every French redirect silently lands on English again.
+  it('agrees with the app about where French lives', () => {
+    expect(FR_PREFIX).toBe(LOCALE_PREFIX.fr);
   });
 });
 
