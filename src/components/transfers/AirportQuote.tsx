@@ -178,6 +178,12 @@ export function AirportQuote() {
   // curated typeahead over our covered resorts is used.
   const placesReady = useGoogleMaps() === 'ready';
   const atInputRef = useRef<HTMLInputElement>(null);
+  /**
+   * The hotel the guest actually chose, when it is not one we list by name — kept so the field can
+   * show THEIR hotel while the fare is derived from the nearest listed one. Null whenever the two
+   * are the same thing, which is the case for every pick off our own typeahead.
+   */
+  const [pickedName, setPickedName] = useState<string | null>(null);
 
   const [fares, setFares] = useState<AirportFareByZone>(AIRPORT_FARE_DEFAULT);
   const [returnPct, setReturnPct] = useState(AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT);
@@ -230,14 +236,21 @@ export function AirportQuote() {
         fields: ['name', 'geometry'],
       });
       ac.addListener('place_changed', () => {
-        const loc = ac!.getPlace().geometry?.location;
+        const place = ac!.getPlace();
+        const loc = place.geometry?.location;
         if (!loc) return;
         const n = nearestTransfer(loc.lat(), loc.lng());
         setHotel(n);
         setQuery(n.hotelName);
         setOpen(false);
-        // Snap the field text to the priced hotel (the price ribbon + CTA all follow `hotel`).
-        if (atInputRef.current) atInputRef.current.value = n.hotelName;
+        // The field KEEPS the guest's own hotel. It used to be overwritten with the snapped hotel's
+        // name, which read as the site quietly booking somewhere else: type "Veranda Palmar Beach"
+        // and the box would say "The Residence Mauritius" — a resort 500 m away that they have never
+        // heard of, with nothing on screen explaining why. The fare was right (both sit in the same
+        // airport zone) but nothing said so, which is worse than a wrong price at the moment someone
+        // decides whether to trust you with their arrival.
+        const picked = place.name?.trim();
+        setPickedName(picked && picked !== n.hotelName ? picked : null);
       });
     } catch {
       /* Places unavailable — the typeahead fallback covers it */
@@ -296,6 +309,9 @@ export function AirportQuote() {
     if (!x) return;
     setHotel(x);
     setQuery(x.hotelName);
+    // Chosen straight off our own list, so the field and the priced hotel are the same thing and
+    // there is nothing to explain.
+    setPickedName(null);
     setOpen(false);
     if (blurTimer.current) clearTimeout(blurTimer.current);
   }
@@ -537,6 +553,23 @@ export function AirportQuote() {
             </div>
           )}
         </div>
+        {/* Says out loud why an unlisted hotel still gets a price. Fares are set per ZONE, not per
+            hotel, so the nearest listed resort produces the identical figure — but without this the
+            guest is left guessing whether we understood where they are going. role=status so it is
+            announced rather than silently appearing after a Places pick. */}
+        {pickedName && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mt-2 rounded-[11px] px-3 py-2 text-[12.5px] font-semibold"
+            style={{ background: 'rgba(14,140,146,0.08)', color: TEAL_DARK }}
+          >
+            {t('Fixed {area} zone fare — the same price we charge for {hotel} nearby.', {
+              area: hotel.area,
+              hotel: hotel.hotelName,
+            })}
+          </div>
+        )}
         <div
           className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-semibold"
           style={{ color: 'rgba(17,32,31,0.7)' }}

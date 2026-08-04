@@ -1,0 +1,59 @@
+import { describe, expect, it } from 'vitest';
+import { nearestTransfer, transfers } from '@/lib/content/transfers';
+
+/**
+ * The airport price tool lets a guest type ANY hotel in Mauritius via Google Places, then snaps the
+ * pick to the nearest hotel we actually list, because airport fares are set per ZONE rather than per
+ * hotel. That snap is invisible maths behind a booking decision, so it is pinned here.
+ *
+ * The reported case: a guest picked Veranda Palmar Beach and the field changed to "The Residence
+ * Mauritius". That looked like the site substituting a different hotel. It is not — The Residence is
+ * genuinely the closest listed resort, ~500 m away, and both sit in the same airport zone, so the
+ * fare is identical. What was missing was any explanation on screen; AirportQuote now keeps the
+ * guest's own hotel in the field and names the zone instead.
+ */
+
+/**
+ * Veranda Palmar Beach as Google geocodes it (2026-08-04) — the coordinates the Places pick actually
+ * hands to nearestTransfer. Deliberately NOT one of our stored positions: this is the outside input.
+ */
+const VERANDA_PALMAR = { lat: -20.20074, lng: 57.78339 };
+
+describe('nearestTransfer', () => {
+  it('snaps an unlisted Belle Mare hotel to the closest listed one', () => {
+    expect(nearestTransfer(VERANDA_PALMAR.lat, VERANDA_PALMAR.lng).slug).toBe(
+      'the-residence-mauritius',
+    );
+  });
+
+  // The whole justification for snapping is that the fare cannot change. If a future map edit moves
+  // a hotel across a zone boundary, the snapped price would silently stop matching the guest's
+  // actual destination — so assert the neighbourhood shares one region.
+  it('snaps to a hotel in the same region, so the zone fare still applies', () => {
+    const snapped = nearestTransfer(VERANDA_PALMAR.lat, VERANDA_PALMAR.lng);
+    expect(snapped.region).toBe('East');
+  });
+
+  // Every hotel must be its own nearest match. If two entries ever sat close enough to swap, a guest
+  // picking one off the map would be quoted against the other — and the resorts along Belle Mare are
+  // already within a kilometre of each other.
+  it('resolves every listed hotel to itself from its own coordinates', () => {
+    const swapped = transfers
+      .filter((t) => t.lat != null && t.lng != null)
+      .map((t) => ({ slug: t.slug, got: nearestTransfer(t.lat!, t.lng!).slug }))
+      .filter((r) => r.got !== r.slug);
+    expect(swapped).toEqual([]);
+  });
+
+  // A hotel with no coordinates is skipped by the loop; if EVERY entry lacked them the function
+  // would silently hand back transfers[0] for the whole island.
+  it('has coordinates on every listed hotel', () => {
+    const missing = transfers.filter((t) => t.lat == null || t.lng == null).map((t) => t.slug);
+    expect(missing).toEqual([]);
+  });
+
+  it('always returns a listed hotel, even for a point far offshore', () => {
+    const far = nearestTransfer(-21.5, 59.5);
+    expect(transfers.some((t) => t.slug === far.slug)).toBe(true);
+  });
+});
