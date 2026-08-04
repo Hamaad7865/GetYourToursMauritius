@@ -90,16 +90,28 @@ export function TransferBookingWidget({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // The transfer activity's catalogue photo (set from the fares fetch below); null until it loads,
+  // in which case the cart simply keeps its colour-block fallback.
+  const [heroUrl, setHeroUrl] = useState<string | null>(null);
+
   // Pull the live fare matrix + return discount so the shown price matches the server cent-for-cent
   // (falls back to the seeded defaults if the activity/migration isn't live yet).
   useEffect(() => {
     let active = true;
     fetch(`/api/v1/activities/${SLUG}`)
       .then((r) =>
-        parseApiJson<{ airportFares?: AirportFareByZone; returnDiscountPct?: number }>(r),
+        parseApiJson<{
+          airportFares?: AirportFareByZone;
+          returnDiscountPct?: number;
+          heroImage?: { url?: string };
+        }>(r),
       )
       .then((body) => {
         if (!active || !body.ok) return;
+        // The activity's catalogue photo, for the cart line — without it the cart shows a bare
+        // colour block next to the transfer. Same response as the fares, so no extra request.
+        const hero = body.data?.heroImage?.url;
+        if (typeof hero === 'string' && hero) setHeroUrl(hero);
         // Only adopt the live matrix if it's the ZONE-keyed shape (zone1/zone2) the quote prices
         // against; a pre-migration DB may still return a region-keyed matrix, in which case the bundled
         // zone defaults stand (the server reconciles the price at pay regardless).
@@ -230,7 +242,7 @@ export function TransferBookingWidget({
             id: `${occ}:transfer`,
             slug: SLUG,
             title: transferTitle,
-            image: null,
+            image: heroUrl,
             occurrenceId: occ,
             dateLabel: tripType === 'return' ? `${dateText} (+ return)` : dateText,
             lang: 'en',
