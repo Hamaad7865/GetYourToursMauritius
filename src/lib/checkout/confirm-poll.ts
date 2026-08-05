@@ -48,6 +48,24 @@ export function shouldKeepPolling(input: {
 }
 
 /**
+ * Whether the booking page should keep polling after a LATE-PICKUP supplement was paid.
+ *
+ * The status poll above cannot do this job: that booking is already `confirmed`, so
+ * `shouldKeepPolling` stops on its first call. What flips instead is the pickup — the address only
+ * reaches the booking when the add-on payment settles, which clears `pendingPickup`. So the signal is
+ * the disappearance of that object, not a status change.
+ */
+export function shouldKeepPollingPickup(input: {
+  /** True while the booking still carries an unapplied, unpaid pickup request. */
+  pendingPickup: boolean;
+  elapsedMs: number;
+  maxMs: number;
+}): boolean {
+  if (!input.pendingPickup) return false;
+  return input.elapsedMs < input.maxMs;
+}
+
+/**
  * Backoff delay for the Nth sync retry attempt (0-based): 1.5s, 3s, 4.5s, … capped at 6s. Monotonic,
  * always positive, never unbounded — so the embedded checkout can retry the idempotent sync a few
  * times without making the customer wait too long before we navigate.

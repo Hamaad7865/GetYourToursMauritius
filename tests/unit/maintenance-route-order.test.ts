@@ -2,44 +2,56 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 // Record the order the maintenance steps run in. The money-safety property is that reconcile
 // (confirm-paid) runs BEFORE the booking-expiry sweep, and that each step is isolated.
-const { calls, reconcile, expire, materialize, reviewInvites, fxRefresh, purgeErrors } = vi.hoisted(
-  () => {
-    const calls: string[] = [];
-    return {
-      calls,
-      purgeErrors: vi.fn(async () => {
-        calls.push('purgeErrors');
-        return { deleted: 0, aged: 0, overflow: 0 };
-      }),
-      reconcile: vi.fn(async () => {
-        calls.push('reconcile');
-        return { queried: 0, confirmed: 0, pending: 0, failed: 0, errored: 0 };
-      }),
-      expire: vi.fn(async () => {
-        calls.push('expire');
-        return { holdsExpired: 0, bookingsExpired: 0 };
-      }),
-      materialize: vi.fn(async () => {
-        calls.push('materialize');
-        return 0;
-      }),
-      reviewInvites: vi.fn(async () => {
-        calls.push('reviewInvites');
-        return 0;
-      }),
-      fxRefresh: vi.fn(async () => {
-        calls.push('fx');
-        return { refreshed: true, rate: 53.98, ageHours: 0 };
-      }),
-    };
-  },
-);
+const {
+  calls,
+  reconcile,
+  expire,
+  materialize,
+  reviewInvites,
+  pickupReminders,
+  fxRefresh,
+  purgeErrors,
+} = vi.hoisted(() => {
+  const calls: string[] = [];
+  return {
+    calls,
+    purgeErrors: vi.fn(async () => {
+      calls.push('purgeErrors');
+      return { deleted: 0, aged: 0, overflow: 0 };
+    }),
+    reconcile: vi.fn(async () => {
+      calls.push('reconcile');
+      return { queried: 0, confirmed: 0, pending: 0, failed: 0, errored: 0 };
+    }),
+    expire: vi.fn(async () => {
+      calls.push('expire');
+      return { holdsExpired: 0, bookingsExpired: 0 };
+    }),
+    materialize: vi.fn(async () => {
+      calls.push('materialize');
+      return 0;
+    }),
+    reviewInvites: vi.fn(async () => {
+      calls.push('reviewInvites');
+      return 0;
+    }),
+    pickupReminders: vi.fn(async () => {
+      calls.push('pickupReminders');
+      return 0;
+    }),
+    fxRefresh: vi.fn(async () => {
+      calls.push('fx');
+      return { refreshed: true, rate: 53.98, ageHours: 0 };
+    }),
+  };
+});
 
 vi.mock('@/lib/services/maintenance', () => ({
   reconcilePaymentsPending: reconcile,
   runBookingMaintenance: expire,
   materializeAvailability: materialize,
   enqueueReviewInvites: reviewInvites,
+  enqueuePickupReminders: pickupReminders,
   refreshFxRate: fxRefresh,
   purgeErrorLogs: purgeErrors,
 }));
@@ -60,6 +72,7 @@ beforeEach(() => {
   expire.mockClear();
   materialize.mockClear();
   reviewInvites.mockClear();
+  pickupReminders.mockClear();
   fxRefresh.mockClear();
   purgeErrors.mockClear();
   fxRefresh.mockImplementation(async () => {

@@ -20,7 +20,9 @@ import {
   CONFIRM_POLL_MAX_MS,
   isConfirmedStatus,
   shouldKeepPolling,
+  shouldKeepPollingPickup,
 } from '@/lib/checkout/confirm-poll';
+import { LatePickupPanel } from './LatePickupPanel';
 
 interface BookingItem {
   priceLabel: string;
@@ -42,6 +44,13 @@ interface Booking {
   pickupLocation?: string | null;
   dropoffLocation?: string | null;
   pickupPending?: boolean;
+  /** A pickup the guest has committed to but whose transport supplement hasn't settled yet. The
+   *  address is deliberately not on the booking until it does — see 20260910000000. */
+  pendingPickup?: {
+    pickupLocation: string;
+    dropoffLocation?: string | null;
+    feeEur: number;
+  } | null;
   childSeats?: number | null;
   /** Region-based transport add-on (EUR), already inside totalEur — shown as its own breakdown line. */
   transportEur?: number | null;
@@ -195,6 +204,44 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
     // is read but intentionally omitted so toggling it doesn't restart the loop.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, booking?.status, justPaid, fetchBooking]);
+
+  // A LATE-PICKUP supplement that was just paid needs its own poll. The loop above stops immediately
+  // here — the booking is already `confirmed`, which is terminal for it — but the pickup itself only
+  // lands when the add-on payment settles and the trigger applies it. Poll until `pendingPickup`
+  // disappears, so the guest sees their address rather than a stale "nearly set" card.
+  useEffect(() => {
+    if (!session || !justPaid) return;
+    if (!booking?.pendingPickup) return;
+
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
+    const startedAt = Date.now();
+
+    const tick = async () => {
+      if (stopped) return;
+      const next = await fetchBooking();
+      if (stopped) return;
+      if (
+        !shouldKeepPollingPickup({
+          pendingPickup: Boolean(next?.pendingPickup),
+          elapsedMs: Date.now() - startedAt,
+          maxMs: CONFIRM_POLL_MAX_MS,
+        })
+      ) {
+        return;
+      }
+      timer = setTimeout(() => void tick(), CONFIRM_POLL_INTERVAL_MS);
+    };
+
+    timer = setTimeout(() => void tick(), CONFIRM_POLL_INTERVAL_MS);
+    return () => {
+      stopped = true;
+      if (timer) clearTimeout(timer);
+    };
+    // Keyed on WHETHER a pending pickup exists, not the object: a benign re-fetch returning the same
+    // request must not restart the loop, but it clearing must stop it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, Boolean(booking?.pendingPickup), justPaid, fetchBooking]);
 
   // Manual "Refresh status" — re-fetch on demand after the auto-poll window has elapsed.
   const [refreshing, setRefreshing] = useState(false);
@@ -535,6 +582,19 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                 {t('Pickup to be arranged')}
               </span>
             )}
+            {/* …and the way to stop it being "to be arranged". Only the owner of a live, confirmed
+                booking sees it: a staff view is read-only here, and a cancelled or finished trip has
+                nothing to collect. The server re-checks every one of those conditions. */}
+            {!booking.pickupLocation &&
+              booking.pickupPending &&
+              booking.status === 'confirmed' &&
+              booking.isOwn !== false && (
+                <LatePickupPanel
+                  bookingRef={booking.ref}
+                  pending={booking.pendingPickup ?? null}
+                  onChanged={() => void fetchBooking()}
+                />
+              )}
           </div>
         )}
 

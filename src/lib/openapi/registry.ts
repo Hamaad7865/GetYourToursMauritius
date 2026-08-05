@@ -40,6 +40,11 @@ import {
   leadSchema,
   paymentLinkSchema,
   rescheduleBookingInputSchema,
+  quotePickupInputSchema,
+  pickupQuoteSchema,
+  requestPickupInputSchema,
+  pickupRequestResultSchema,
+  paymentLinkSchema as pickupPaymentLinkSchema,
   syncPaymentInputSchema,
 } from '@/lib/validation/booking';
 import { clientErrorReportSchema } from '@/lib/validation/telemetry';
@@ -512,6 +517,59 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '409': errorResponse(
           'Outside the free-change window, a different option, sold out, or not reschedulable',
         ),
+      },
+    },
+  },
+  '/bookings/{ref}/pickup/quote': {
+    post: {
+      operationId: 'quotePickupAddon',
+      summary: 'Quote the transport supplement for a pickup added after booking',
+      description:
+        'Read-only. The fee is derived server-side from the coordinates — the caller never sends a price, ' +
+        'and dragging a map pin never mints a payment row.',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      requestBody: jsonBody(quotePickupInputSchema),
+      responses: {
+        '200': okJson(pickupQuoteSchema, 'Supplement quote'),
+        '400': errorResponse('Invalid coordinates'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Not your booking'),
+        '404': errorResponse('Booking not found'),
+        '429': errorResponse('Too many quotes — slow down'),
+      },
+    },
+  },
+  '/bookings/{ref}/pickup': {
+    post: {
+      operationId: 'requestPickup',
+      summary: 'Commit to a pickup for a booking taken as "pickup to be arranged"',
+      description:
+        'Returns `applied: true` when nothing was owed and the pickup is already on the booking. ' +
+        'Otherwise the address is held until the returned checkout is paid — it is deliberately NOT ' +
+        'written to the booking before the transport supplement settles.',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      requestBody: jsonBody(requestPickupInputSchema),
+      responses: {
+        '200': okJson(
+          pickupRequestResultSchema.extend({ payment: z.null() }),
+          'Applied — no supplement was due',
+        ),
+        '201': okJson(
+          pickupRequestResultSchema.extend({ payment: pickupPaymentLinkSchema }),
+          'Supplement due — checkout to pay it',
+        ),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Not your booking'),
+        '404': errorResponse('Booking not found'),
+        '409': errorResponse(
+          'Not eligible for a late pickup, or a supplement payment is in flight',
+        ),
+        '429': errorResponse('Too many requests'),
       },
     },
   },

@@ -78,6 +78,22 @@ export function mapDbError(error: unknown): never {
   if (/\btarget_not_bookable\b/.test(message)) {
     throw new ConflictError('That date is no longer available — please pick another.');
   }
+  // Late-pickup guards (api_request_pickup / api_create_payment's add-on branch) → friendly 409s.
+  // Above the generic `forbidden` branch because first match wins.
+  if (/\bpickup_not_allowed\b/.test(message)) {
+    throw new ConflictError('This booking can no longer take a pickup online — please message us.');
+  }
+  if (/\bpickup_payment_in_flight\b/.test(message)) {
+    throw new ConflictError(
+      'A payment for your pickup is already open — finish it, or try again in a few minutes.',
+    );
+  }
+  if (/\bpickup_request_not_found\b/.test(message)) {
+    throw new ConflictError('Choose your pickup point again — that request is no longer open.');
+  }
+  if (/\bpickup_incomplete\b/.test(message)) {
+    throw new ValidationError('A pickup needs an address and a map location');
+  }
   if (/\bforbidden\b/.test(message)) {
     throw new ForbiddenError();
   }

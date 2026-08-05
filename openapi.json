@@ -5354,6 +5354,43 @@
                             "null"
                           ]
                         },
+                        "pendingPickup": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "pickupLocation": {
+                              "type": "string"
+                            },
+                            "dropoffLocation": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "feeEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "paymentId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "createdAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "pickupLocation",
+                            "feeEur"
+                          ]
+                        },
                         "isOwn": {
                           "type": [
                             "boolean",
@@ -6038,6 +6075,43 @@
                           "type": [
                             "boolean",
                             "null"
+                          ]
+                        },
+                        "pendingPickup": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "pickupLocation": {
+                              "type": "string"
+                            },
+                            "dropoffLocation": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "feeEur": {
+                              "type": "number",
+                              "minimum": 0
+                            },
+                            "paymentId": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "createdAt": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "pickupLocation",
+                            "feeEur"
                           ]
                         },
                         "isOwn": {
@@ -7214,6 +7288,764 @@
         }
       }
     },
+    "/bookings/{ref}/pickup/quote": {
+      "post": {
+        "operationId": "quotePickupAddon",
+        "summary": "Quote the transport supplement for a pickup added after booking",
+        "description": "Read-only. The fee is derived server-side from the coordinates — the caller never sends a price, and dragging a map pin never mints a payment row.",
+        "tags": [
+          "Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pickupLat": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  "pickupLng": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  }
+                },
+                "required": [
+                  "pickupLat",
+                  "pickupLng"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Supplement quote",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "eligible": {
+                          "type": "boolean"
+                        },
+                        "reason": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "feeMinor": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "region": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "band": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "pax": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "eligible",
+                        "feeMinor"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid coordinates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many quotes — slow down",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/bookings/{ref}/pickup": {
+      "post": {
+        "operationId": "requestPickup",
+        "summary": "Commit to a pickup for a booking taken as \"pickup to be arranged\"",
+        "description": "Returns `applied: true` when nothing was owed and the pickup is already on the booking. Otherwise the address is held until the returned checkout is paid — it is deliberately NOT written to the booking before the transport supplement settles.",
+        "tags": [
+          "Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "pickupLocation": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "dropoffLocation": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "maxLength": 200
+                  },
+                  "pickupLat": {
+                    "type": "number",
+                    "minimum": -90,
+                    "maximum": 90
+                  },
+                  "pickupLng": {
+                    "type": "number",
+                    "minimum": -180,
+                    "maximum": 180
+                  }
+                },
+                "required": [
+                  "pickupLocation",
+                  "pickupLat",
+                  "pickupLng"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Applied — no supplement was due",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "applied": {
+                          "type": "boolean"
+                        },
+                        "feeMinor": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "paymentId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "payment": {
+                          "type": "null"
+                        }
+                      },
+                      "required": [
+                        "applied",
+                        "feeMinor",
+                        "payment"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Supplement due — checkout to pay it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "applied": {
+                          "type": "boolean"
+                        },
+                        "feeMinor": {
+                          "type": "integer",
+                          "minimum": 0
+                        },
+                        "paymentId": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "payment": {
+                          "type": "object",
+                          "properties": {
+                            "sessionId": {
+                              "type": "string"
+                            },
+                            "redirectUrl": {
+                              "type": "string"
+                            },
+                            "checkoutId": {
+                              "type": "string"
+                            },
+                            "provider": {
+                              "type": "string"
+                            },
+                            "chargeAmountMinor": {
+                              "type": "integer"
+                            },
+                            "chargeCurrency": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "sessionId",
+                            "provider"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "applied",
+                        "feeMinor",
+                        "payment"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not eligible for a late pickup, or a supplement payment is in flight",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/payments": {
       "post": {
         "operationId": "createPayment",
@@ -7236,6 +8068,13 @@
                     "type": "string",
                     "minLength": 8,
                     "maxLength": 200
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "enum": [
+                      "booking",
+                      "pickup_addon"
+                    ]
                   }
                 },
                 "required": [

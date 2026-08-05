@@ -153,6 +153,59 @@ Three surfaces do it, and they should agree:
 that line ever appears in the admin drawer, a priced component has been added to `api_book` and not
 mirrored here — the point is that it shows up as a visible line instead of silently inflating a total.
 
+### The one booking that is charged twice, on purpose
+
+A guest who ticked **"I don't know yet"** at checkout books with `pickup_pending = true`: no address,
+no coordinates, and therefore **no transport add-on** — `api_book`'s region fare never fires without a
+pickup point. `20260910000000` lets them finish the job later from `/bookings/:ref`, which means
+charging the supplement on a booking that is already `confirmed` + `paid`.
+
+That cannot go through the booking's own payment. `api_create_payment` refuses a confirmed booking
+(`booking_not_payable`), and that guard is load-bearing — it is what stops a second payable session for
+money we already hold. So the supplement gets its **own `payments` row**, `purpose = 'pickup_addon'`.
+
+Why that is safe rather than a second money path bolted on the side:
+
+- `append_payment_event`'s booking-level projection was **already** a roll-up across every payments
+  row of a booking (best row wins), so a pending add-on never drags a paid booking backwards;
+- it only confirms a booking whose status is `draft`/`held`/`payment_pending`, so an add-on settling on
+  a confirmed booking is a no-op for status;
+- the reuse window, the single-flight lease and the FX pin are all **per payments row**, so they apply
+  to the add-on unchanged.
+
+**Five pre-existing functions assumed one payments row per booking**, and every one of them was wrong
+the moment a second appeared. They are fixed in the same migration; the pattern to recognise is
+_"the booking's payment"_ expressed as `order by created_at desc limit 1`:
+
+| Function                        | What it did with two rows                                                                                                                                                    |
+| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api_create_payment`            | a booking re-pay picked up the **add-on row**. Now every lookup is scoped by `purpose`.                                                                                      |
+| `api_pending_payment_checkouts` | enumerated by BOOKING state, so a lost webhook stranded a supplement forever. Add-ons enumerate on their own state.                                                          |
+| `api_mark_refunded`             | reversed the **newest** row — the €30 supplement instead of the €500 booking, then latched. Now reverses every row that holds money.                                         |
+| `api_booking_receipt`           | put the add-on's charge, date and provider ref on the **VAT invoice**. Now scoped to the booking row, with the supplement added to the charged figure.                       |
+| `append_payment_event`          | its refunded branch stamped `bookings.status='refunded'` from ONE row, so refunding a supplement "refunded" a live booking. Now requires the booking-level roll-up to agree. |
+
+`api_erase_user` needed a sixth change for a different reason: `booking_pickup_requests` holds its own
+copy of the guest's address and GPS coordinates, and a late pickup only exists on a paid booking — the
+retained, anonymize-only branch. Nulling `bookings.pickup_location` left that copy behind forever.
+
+**The address is not written until the money lands.** `api_request_pickup` parks it in
+`booking_pickup_requests`; a trigger on the payments status write calls `apply_pickup_request`, which
+sets `pickup_location`, clears `pickup_pending`, and adds the fee to `transport_minor` + `total_minor`
+
+- `operator_payout_minor` — guarded by `applied_at is null`, so a replayed webhook adds nothing twice.
+  Writing the address at request time would let a guest clear their own "pickup to be arranged" badge for
+  free, and the owner would find out on the morning.
+
+The trigger is deliberate, not an oversight of _"never confirm a booking outside
+`append_payment_event`"_: it confirms nothing (the booking already is), it fires from that function's
+own write inside the same transaction, and re-declaring 170 lines of the codebase's most dangerous
+function to add one call is precisely the migration-revert drift `landmines.md` warns about.
+
+A still-missing pickup is chased by `api_enqueue_pickup_reminders()` (maintenance cron): the guest at
+48h and again at 24h before departure, the owner at 24h. Idempotency keys carry the threshold, so each
+booking is chased once per window and never once an address exists.
+
 ### The one activity type that skips this whole path
 
 `activities.extra.inquiryOnly` (e.g. skydiving) opts an activity **out of every step above** — no hold,

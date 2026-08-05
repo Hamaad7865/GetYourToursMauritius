@@ -659,6 +659,41 @@ export const fr: Record<string, string> = {
   'Drop-off — same as pickup': 'Dépose — identique à la prise en charge',
   'Same as pickup': 'Identique à la prise en charge',
   'Pickup to be arranged': 'Prise en charge à organiser',
+  // Late pickup — the guest completes a "pickup to be arranged" booking themselves and pays the
+  // transport supplement (20260910000000). Curly apostrophes are load-bearing: an exact string match
+  // is what looks these up, so a straight ' here silently falls back to English.
+  'Tell us where to collect you': 'Dites-nous où vous récupérer',
+  'Search for your hotel or drop the pin on the map. If your pickup is further from where the trip departs, a transport supplement applies — you’ll see it before you pay.':
+    'Cherchez votre hôtel ou placez le repère sur la carte. Si votre point de prise en charge est éloigné du lieu de départ, un supplément transport s’applique — vous le verrez avant de payer.',
+  'Transport supplement': 'Supplément transport',
+  'Choose a pickup point': 'Choisissez un point de prise en charge',
+  Included: 'Inclus',
+  'Pay and confirm pickup': 'Payer et confirmer la prise en charge',
+  'Confirm pickup': 'Confirmer la prise en charge',
+  'Your pickup is nearly set': 'Votre prise en charge est presque confirmée',
+  'We’re waiting for your transport supplement to clear. This usually takes a few seconds — refresh if it lingers.':
+    'Nous attendons la validation de votre supplément transport. Cela prend généralement quelques secondes — actualisez si cela persiste.',
+  'Please sign in to add your pickup.':
+    'Veuillez vous connecter pour ajouter votre prise en charge.',
+  'Add your pickup address, and drop the pin where we should collect you.':
+    'Ajoutez votre adresse et placez le repère à l’endroit où nous devons vous récupérer.',
+  'Could not save your pickup.': 'Impossible d’enregistrer votre prise en charge.',
+  // …and the two emails the cron sends about it.
+  'Where should we collect you for {activity}?': 'Où devons-nous vous récupérer pour {activity} ?',
+  'Tomorrow: where should we collect you for {activity}?':
+    'Demain : où devons-nous vous récupérer pour {activity} ?',
+  "Hi {name}, your {activity} is in two days. You chose to give us your pickup point later — here's the link to add it.":
+    'Bonjour {name}, votre {activity} a lieu dans deux jours. Vous aviez choisi de nous indiquer votre point de prise en charge plus tard — voici le lien pour l’ajouter.',
+  "Hi {name}, your {activity} is tomorrow and we still don't have a pickup address. Add it now so your driver can be routed to you.":
+    'Bonjour {name}, votre {activity} a lieu demain et nous n’avons toujours pas d’adresse de prise en charge. Ajoutez-la maintenant pour que votre chauffeur puisse venir jusqu’à vous.',
+  'If your pickup is further from the departure point, a transport supplement may apply — you will see the exact amount before you pay anything.':
+    'Si votre point de prise en charge est éloigné du lieu de départ, un supplément transport peut s’appliquer — vous verrez le montant exact avant tout paiement.',
+  'Add your pickup': 'Ajouter votre prise en charge',
+  'Your pickup is confirmed — {activity}': 'Votre prise en charge est confirmée — {activity}',
+  'Hi {name}, your driver will collect you at:':
+    'Bonjour {name}, votre chauffeur viendra vous chercher à :',
+  'Transport supplement paid: €{amount}': 'Supplément transport payé : {amount} €',
+  'View your booking': 'Voir votre réservation',
   'Hotel name or address': 'Nom de l’hôtel ou adresse',
   'Same as pickup, or a different address': 'Identique à la prise en charge, ou une autre adresse',
   'Meet at {location}': 'Rendez-vous à {location}',

@@ -9,6 +9,7 @@ import {
   materializeAvailability,
   reconcilePaymentsPending,
   enqueueReviewInvites,
+  enqueuePickupReminders,
   refreshFxRate,
   purgeErrorLogs,
 } from '@/lib/services/maintenance';
@@ -125,7 +126,17 @@ export const POST = apiHandler(async (req) => {
     await log('review invites sweep', err);
   }
 
-  // 5) Prune error_logs (retention + the crash-loop row cap). Housekeeping, and deliberately NOT part
+  // 5) Chase a still-missing pickup at 48h / 24h before departure. Not money-critical either, so
+  //    position doesn't matter — but it IS customer-affecting (a guest nobody can collect), so a
+  //    failure counts towards the red verdict below alongside the other sweeps.
+  let pickupRemindersEnqueued: number | { errored: true } = { errored: true };
+  try {
+    pickupRemindersEnqueued = await enqueuePickupReminders(ctx);
+  } catch (err) {
+    await log('pickup reminder sweep', err);
+  }
+
+  // 6) Prune error_logs (retention + the crash-loop row cap). Housekeeping, and deliberately NOT part
   //    of the pass/fail verdict below: a red cron on this dashboard means customers are affected
   //    (money, emails, availability). A purge that failed is recorded in error_logs itself — where
   //    anyone reading the table will see it — and retried on the next tick.
@@ -164,16 +175,34 @@ export const POST = apiHandler(async (req) => {
     ...(failedJob(result) ? ['bookingMaintenance'] : []),
     ...(failedJob(slotsCreated) ? ['availability'] : []),
     ...(failedJob(reviewInvitesCreated) ? ['reviewInvites'] : []),
+    ...(failedJob(pickupRemindersEnqueued) ? ['pickupReminders'] : []),
   ];
   if (erroredJobs.length > 0) {
     return jsonError(
       503,
       'maintenance_partial_failure',
       `Maintenance job(s) failed: ${erroredJobs.join(', ')} — see server logs`,
-      { ...result, slotsCreated, payments, reviewInvitesCreated, fx, errorLogsPurged, erroredJobs },
+      {
+        ...result,
+        slotsCreated,
+        payments,
+        reviewInvitesCreated,
+        pickupRemindersEnqueued,
+        fx,
+        errorLogsPurged,
+        erroredJobs,
+      },
     );
   }
-  return jsonOk({ ...result, slotsCreated, payments, reviewInvitesCreated, fx, errorLogsPurged });
+  return jsonOk({
+    ...result,
+    slotsCreated,
+    payments,
+    reviewInvitesCreated,
+    pickupRemindersEnqueued,
+    fx,
+    errorLogsPurged,
+  });
 });
 
 export function OPTIONS(req: Request): Response {

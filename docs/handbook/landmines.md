@@ -94,6 +94,23 @@ what turned the trap above from a 25-minute annoyance into a permanent one.
 The window reads `payments.checkout_created_at` (stamped only by `api_record_payment_checkout`, when a
 session is actually minted). Don't "simplify" it back to `updated_at`.
 
+### "The booking's payment" is no longer one row
+
+Since `20260910000000` a booking can carry a **second** `payments` row: `purpose = 'pickup_addon'`, the
+transport supplement for a pickup added after the booking was paid. It is always the NEWER row.
+
+So `select … from payments where booking_id = $1 order by created_at desc limit 1` — which read as
+"the payment" for a year — now returns the €30 supplement instead of the €500 booking. That single
+idiom broke five functions at once: a refund reversed the wrong money and then latched so the real one
+could never be recorded; the VAT invoice quoted the add-on's charge, date and provider reference
+against the booking's total, inventing an FX rate; a re-pay picked up the wrong row.
+
+**Before you write anything that reasons about a booking's payment, decide which money you mean** and
+scope by `purpose`. And before you write anything that projects booking-level state from a payments
+row, use the roll-up across ALL of them — `append_payment_event` already computes it. Deriving a
+booking-level fact from one child row is the same mistake as the sticky `payment_state` latch
+(20260902000000) and the refunded-branch bug found in review; it will keep coming back.
+
 ### Don't reorder the maintenance steps
 
 `/api/v1/internal/maintenance` runs: **payment-reconcile → expire bookings → materialize availability.**
@@ -136,6 +153,14 @@ This has happened at least twice. Once it removed a guard protecting customer PI
 **Before any `create or replace`:** `grep -ln "function <name>" supabase/migrations/*.sql` → the **last**
 file printed is the winning body. Base your change on that, and diff it against the guards in every
 earlier definition. Full procedure in [database.md](database.md#-the-worst-one-migration-revert-drift).
+
+Two things make that grep less reliable than it looks, and both bit during the late-pickup work
+(2026-08-05): a migration named for one feature often re-declares a function belonging to another (the
+quotes module re-applied `api_erase_user` to add quote erasure), and reading "the last definition" out
+of the generated `setup.sql` can mislead while your own new migration is already concatenated into it.
+**Verify by test, not by reading**: the suite for the OTHER feature is what catches the revert. Basing
+`api_erase_user` on the second-to-last body silently re-opened a GDPR hole in two tables, and only
+`gdpr-erase.test.ts` — a file untouched by that change — noticed.
 
 ### `revoke … from anon, authenticated` does nothing on its own
 

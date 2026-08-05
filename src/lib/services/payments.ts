@@ -31,6 +31,15 @@ export interface CreatePaymentLinkInput {
   /** Where the hosted checkout redirects back to after payment. */
   returnUrl: string;
   idempotencyKey?: string;
+  /**
+   * Which money this checkout is for. Defaults to the booking total.
+   *
+   * 'pickup_addon' is the transport supplement for a pickup added AFTER the booking was paid — a
+   * second payments row on the same booking, whose amount api_request_pickup already wrote from the
+   * server-derived fare. Every guard below (the FX pin, the reuse window, the single-flight lease,
+   * the liveness re-query) applies to it unchanged, because they are all per-PAYMENT-ROW.
+   */
+  purpose?: 'booking' | 'pickup_addon';
 }
 
 /**
@@ -68,6 +77,7 @@ export async function createPaymentLink(
   let data = await callRpc(ctx, 'api_create_payment', {
     bookingRef: input.bookingRef,
     idempotencyKey,
+    purpose: input.purpose ?? 'booking',
   });
   let payment = paymentCreateResultSchema.parse(data);
 
@@ -80,6 +90,7 @@ export async function createPaymentLink(
     data = await callRpc(ctx, 'api_create_payment', {
       bookingRef: input.bookingRef,
       idempotencyKey,
+      purpose: input.purpose ?? 'booking',
     });
     payment = paymentCreateResultSchema.parse(data);
     if (payment.checkoutPending) throw new CheckoutPendingError();
@@ -119,6 +130,7 @@ export async function createPaymentLink(
     data = await callRpc(ctx, 'api_create_payment', {
       bookingRef: input.bookingRef,
       idempotencyKey,
+      purpose: input.purpose ?? 'booking',
     });
     payment = paymentCreateResultSchema.parse(data);
     if (payment.checkoutPending) throw new CheckoutPendingError();

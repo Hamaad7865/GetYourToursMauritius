@@ -157,6 +157,27 @@ review requests go out. Check it the same way as in
 One more thing worth knowing: **every submitted review sits in the Reviews queue until you approve
 it** — nothing a customer writes appears on the site automatically, by design.
 
+## A guest has no pickup address
+
+Some guests book before they know where they'll be staying — they tick **"I don't know yet"** at
+checkout, and their booking shows **"Pickup to be arranged"** on the calendar day sheet and in the
+Bookings drawer.
+
+You no longer have to chase these by hand. The guest can open their own booking page, drop a pin on
+the map and pay any transport supplement themselves; the address appears on the booking the moment
+that payment clears, and you get an email (**"Pickup set"**) with the address and their phone number.
+
+If they don't come back, they are reminded automatically **two days** and **one day** before the trip.
+At the one-day mark you also get an email — **"No pickup yet"** — naming the booking and the date, so
+you can phone them. That is the point to pick up the phone; nothing else will chase it after that.
+
+Both the reminders and the "pickup set" alert are queued by the background job, so if they've gone
+quiet, check [Nothing is emailing anyone](#nothing-is-emailing-anyone) first.
+
+**About the supplement.** It's the same distance-based transport fee the normal checkout charges, from
+the same table you tune in `/admin` — a guest who books blind and turns out to be an hour away is
+charged for that drive, rather than getting it free because they answered late.
+
 ## Seats appear taken but nobody booked them
 
 When someone starts a checkout, their seat is held for 30 minutes and then released automatically. That

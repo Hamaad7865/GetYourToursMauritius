@@ -26,7 +26,13 @@ import { saveChargeHandoff } from '@/lib/checkout/charge-handoff';
  * `booking_not_payable` (409) — the booking is already paid or terminal — is surfaced as a friendly,
  * non-alarming message rather than a hard error, mirroring Checkout.pay().
  */
-export function useResumePayment(bookingRef: string) {
+export function useResumePayment(
+  bookingRef: string,
+  /** Which money to reopen. 'pickup_addon' resumes the transport supplement for a late pickup — a
+   *  separate payments row on the same booking, so the booking's own already-paid state is no
+   *  obstacle (api_create_payment scopes its guards by purpose). */
+  purpose?: 'booking' | 'pickup_addon',
+) {
   const { session } = useAuth();
   const t = useT();
   const [busy, setBusy] = useState(false);
@@ -54,7 +60,11 @@ export function useResumePayment(bookingRef: string) {
             'content-type': 'application/json',
             authorization: `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({ bookingRef, idempotencyKey: crypto.randomUUID() }),
+          body: JSON.stringify({
+            bookingRef,
+            idempotencyKey: crypto.randomUUID(),
+            ...(purpose ? { purpose } : {}),
+          }),
         }).then((r) => r.json());
 
       let res = await start();
@@ -106,7 +116,7 @@ export function useResumePayment(bookingRef: string) {
       setBusy(false);
       clearPayHandoff();
     }
-  }, [busy, session, bookingRef, t]);
+  }, [busy, session, bookingRef, purpose, t]);
 
   return { resume, busy, error, notPayable };
 }

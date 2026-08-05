@@ -158,6 +158,39 @@ Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
 Belle Mare Tours (internal alert)`,
     };
   }
+  // Late pickup, owner side. Email only by design: the Telegram/WhatsApp owner channels are unset in
+  // production and resolveOwnerRecipient throws for them, so enqueuing those rows would only create
+  // permanently-failing outbox entries.
+  if (message.template === 'owner_pickup_set') {
+    const fee =
+      typeof p.feeEur === 'number' && p.feeEur > 0 ? ` (supplement €${p.feeEur.toFixed(2)})` : '';
+    const where = typeof p.pickupLocation === 'string' ? p.pickupLocation : 'an address';
+    const phone =
+      typeof p.customerPhone === 'string' && p.customerPhone ? `\nPhone: ${p.customerPhone}` : '';
+    return {
+      subject: `Pickup set: ${ref} — ${where}`,
+      text: `${name} set their pickup for ${ref}${fee}.
+
+Pick-up: ${where}${phone}
+Trip: ${typeof p.activityTitle === 'string' ? p.activityTitle : ''} · ${dayOf(p.startsAt)}
+
+Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
+
+Belle Mare Tours (internal alert)`,
+    };
+  }
+  if (message.template === 'owner_pickup_missing') {
+    return {
+      subject: `No pickup yet: ${ref} departs ${dayOf(p.startsAt)}`,
+      text: `${name}'s booking ${ref} departs on ${dayOf(p.startsAt)} and still has NO pickup address — they chose "I'll decide later" and haven't come back. They have been reminded twice.
+
+Trip: ${typeof p.activityTitle === 'string' ? p.activityTitle : ''}
+
+Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
+
+Belle Mare Tours (internal alert)`,
+    };
+  }
   if (message.template === 'booking_expired') {
     return {
       subject: `Your Belle Mare Tours reservation ${ref} has expired`,

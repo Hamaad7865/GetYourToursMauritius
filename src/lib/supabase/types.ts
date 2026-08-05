@@ -455,6 +455,10 @@ type PaymentsRow = {
   provider_checkout_id: string | null;
   prev_provider_checkout_id: string | null;
   checkout_claimed_until: string | null;
+  /** Which money this row is for (20260910000000). 'booking' is the booking total; 'pickup_addon' is
+   *  the transport supplement for a pickup added after the booking was paid. api_create_payment scopes
+   *  every lookup by this — a booking re-pay must never pick up the add-on row. */
+  purpose: 'booking' | 'pickup_addon';
   created_at: string;
   updated_at: string;
 };
@@ -471,6 +475,41 @@ type PaymentsInsert = {
   charged_amount_minor?: number | null;
   charged_currency?: string | null;
   provider_checkout_id?: string | null;
+  purpose?: 'booking' | 'pickup_addon';
+  created_at?: string;
+  updated_at?: string;
+};
+
+/** A pickup the guest committed to after booking, held until its supplement settles (20260910000000).
+ *  Written only by api_request_pickup / apply_pickup_request; read by booking_json + admin. */
+type BookingPickupRequestsRow = {
+  id: string;
+  booking_id: string;
+  /** Null only for a zero-fee request, which is applied on the spot with no payment. */
+  payment_id: string | null;
+  pickup_location: string;
+  pickup_lat: number;
+  pickup_lng: number;
+  pickup_region: string;
+  dropoff_location: string | null;
+  fee_minor: number;
+  /** Set the moment the supplement settles and the address reaches the booking. The `applied_at is
+   *  null` guard is what makes a replayed webhook a no-op. */
+  applied_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+type BookingPickupRequestsInsert = {
+  id?: string;
+  booking_id: string;
+  payment_id?: string | null;
+  pickup_location: string;
+  pickup_lat: number;
+  pickup_lng: number;
+  pickup_region: string;
+  dropoff_location?: string | null;
+  fee_minor?: number;
+  applied_at?: string | null;
   created_at?: string;
   updated_at?: string;
 };
@@ -957,6 +996,7 @@ export interface Database {
       booking_supplements: TableDef<BookingSupplementsRow, BookingSupplementsInsert>;
       payments: TableDef<PaymentsRow, PaymentsInsert>;
       payment_events: TableDef<PaymentEventsRow, PaymentEventsInsert>;
+      booking_pickup_requests: TableDef<BookingPickupRequestsRow, BookingPickupRequestsInsert>;
       notification_outbox: TableDef<NotificationOutboxRow, NotificationOutboxInsert>;
       audit_logs: TableDef<AuditLogsRow, AuditLogsInsert>;
       leads: TableDef<LeadsRow, LeadsInsert>;

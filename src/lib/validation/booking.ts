@@ -167,6 +167,21 @@ export const bookingSchema = z.object({
   dropoffLocation: z.string().nullish(),
   /** True when the pickup is "to be arranged" (TBD) rather than a fixed address or no pickup. */
   pickupPending: z.boolean().nullish(),
+  /** A pickup the guest has committed to but not yet paid the transport supplement for. Present only
+   *  between "confirm my pickup" and the supplement settling — the address is deliberately NOT on the
+   *  booking until the money lands (20260910000000). Drives the booking page's "waiting for your
+   *  payment" state and keeps its poll alive, which the status-based poll cannot do on a booking that
+   *  is already confirmed. `.catch` so a DTO from a DB without that migration still parses. */
+  pendingPickup: z
+    .object({
+      pickupLocation: z.string(),
+      dropoffLocation: z.string().nullish(),
+      feeEur: z.number().nonnegative(),
+      paymentId: z.string().nullish(),
+      createdAt: z.string().nullish(),
+    })
+    .nullish()
+    .catch(null),
   /** False when the signed-in viewer is NOT this booking's owner — RLS admits no one else, so
    *  that's a STAFF view of a guest's booking. Absent on service-role DTOs (api_book, receipts). */
   isOwn: z.boolean().nullish(),
@@ -301,8 +316,51 @@ export type HoldStatus = z.infer<typeof holdStatusSchema>;
 export const createPaymentInputSchema = z.object({
   bookingRef: z.string().min(3).max(40),
   idempotencyKey: z.string().min(8).max(200).optional(),
+  /** Which money this checkout is for. 'booking' (default) is the booking total and is refused once
+   *  the booking is paid; 'pickup_addon' is the transport supplement for a pickup added after the
+   *  fact, whose amount comes from the open booking_pickup_requests row — never from the client. */
+  purpose: z.enum(['booking', 'pickup_addon']).optional(),
 });
 export type CreatePaymentInput = z.infer<typeof createPaymentInputSchema>;
+
+// --- Late pickup (a booking taken as "pickup to be arranged") ----------------
+/** Quote the transport supplement for a candidate pickup point. Read-only — no rows are written. */
+export const quotePickupInputSchema = z.object({
+  pickupLat: z.number().min(-90).max(90),
+  pickupLng: z.number().min(-180).max(180),
+});
+export type QuotePickupInput = z.infer<typeof quotePickupInputSchema>;
+
+export const pickupQuoteSchema = z.object({
+  /** False when this booking can't take a late pickup at all (already set, departed, wrong product). */
+  eligible: z.boolean(),
+  /** Why not, when `eligible` is false — a stable code, not a customer-facing string. */
+  reason: z.string().nullish(),
+  /** The supplement in EUR cents, server-derived from the coordinates. 0 means nothing to pay. */
+  feeMinor: z.coerce.number().int().nonnegative(),
+  region: z.string().nullish(),
+  band: z.string().nullish(),
+  pax: z.coerce.number().int().nullish(),
+});
+export type PickupQuote = z.infer<typeof pickupQuoteSchema>;
+
+/** Commit to a pickup. The fee is NOT accepted from the client — the server re-derives it. */
+export const requestPickupInputSchema = z.object({
+  pickupLocation: z.string().trim().min(1).max(200),
+  dropoffLocation: z.string().trim().max(200).nullish(),
+  pickupLat: z.number().min(-90).max(90),
+  pickupLng: z.number().min(-180).max(180),
+});
+export type RequestPickupInput = z.infer<typeof requestPickupInputSchema>;
+
+export const pickupRequestResultSchema = z.object({
+  /** True when there was nothing to pay and the pickup is already on the booking. */
+  applied: z.boolean(),
+  feeMinor: z.coerce.number().int().nonnegative(),
+  /** The add-on payment to take to checkout. Null exactly when `applied` is true. */
+  paymentId: z.string().nullish(),
+});
+export type PickupRequestResult = z.infer<typeof pickupRequestResultSchema>;
 
 export const paymentLinkSchema = z.object({
   sessionId: z.string(),

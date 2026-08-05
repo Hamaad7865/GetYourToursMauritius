@@ -11,6 +11,7 @@ import { buildInvoice } from '@/lib/invoice/model';
 import { renderInvoicePdf } from '@/lib/invoice/pdf';
 import { escapeHtml, renderConfirmationEmail } from '@/lib/email/booking-confirmation';
 import { renderReviewRequestEmail } from '@/lib/email/review-request';
+import { renderPickupConfirmedEmail, renderPickupReminderEmail } from '@/lib/email/pickup';
 import { renderLeadEnquiryEmail } from '@/lib/email/lead-enquiry';
 import { INVOICE_BUSINESS } from '@/lib/invoice/business';
 import { SITE } from '@/lib/seo/site';
@@ -348,6 +349,44 @@ function enrichOwnerNewLead(message: NotificationMessage): void {
   message.text = email.text;
 }
 
+/**
+ * The two guest emails of the late-pickup flow. Payload-only and synchronous, like
+ * enrichReviewRequest: api_enqueue_pickup_reminders / notify_pickup_set embed the title, the name and
+ * the booking's stored locale at insert time, so there is no DB round-trip and no failure mode that
+ * could strand the row. Both are sent off-request (a cron sweep, or a webhook thread), which is
+ * exactly why the locale has to come off the payload rather than the request context.
+ */
+function enrichPickupEmail(message: NotificationMessage): void {
+  const p = message.payload;
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '');
+  const ref = str(p.ref);
+  const bookingUrl = `${SITE.url}/bookings/${ref}`;
+  const customerName = str(p.customerName) || 'there';
+  const activityTitle = str(p.activityTitle) || 'your trip';
+  const locale = typeof p.locale === 'string' ? p.locale : null;
+
+  const email =
+    message.template === 'pickup_confirmed'
+      ? renderPickupConfirmedEmail({
+          customerName,
+          activityTitle,
+          pickupLocation: str(p.pickupLocation),
+          bookingUrl,
+          feeEur: typeof p.feeEur === 'number' ? p.feeEur : 0,
+          locale,
+        })
+      : renderPickupReminderEmail({
+          customerName,
+          activityTitle,
+          bookingUrl,
+          hoursBefore: typeof p.hoursBefore === 'number' ? p.hoursBefore : 48,
+          locale,
+        });
+  message.subject = email.subject;
+  message.html = email.html;
+  message.text = email.text;
+}
+
 export interface DrainResult {
   processed: number;
   sent: number;
@@ -392,6 +431,11 @@ export async function drainNotifications(
         enrichReviewRequest(message);
       } else if (message.template === 'owner_new_lead') {
         enrichOwnerNewLead(message);
+      } else if (
+        message.template === 'pickup_reminder' ||
+        message.template === 'pickup_confirmed'
+      ) {
+        enrichPickupEmail(message);
       }
       await provider.send(message);
       await callRpc(ctx, 'mark_notification', { id: message.id, result: 'sent' });

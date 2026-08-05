@@ -71,6 +71,20 @@ export async function enqueueReviewInvites(ctx: ServiceContext): Promise<number>
   return enqueueReviewInvitesRpc(ctx);
 }
 
+/**
+ * Chase the bookings taken as "pickup to be arranged" that still have no address: the guest at 48h
+ * and again at 24h before departure, the owner at 24h. Idempotency keys carry the threshold, so each
+ * booking is chased at most once per window and never once a pickup exists.
+ *
+ * Like the review sweep, not money-critical — its position in the maintenance sequence doesn't matter
+ * for correctness. Returns the number of candidates seen this run (a booking inside 24h that was
+ * already chased at 48h counts, even though only the 24h row is new).
+ */
+export async function enqueuePickupReminders(ctx: ServiceContext): Promise<number> {
+  const data = await callRpc(ctx, 'api_enqueue_pickup_reminders', {});
+  return z.coerce.number().int().parse(data);
+}
+
 const purgeResultSchema = z.object({
   deleted: z.coerce.number().int(),
   aged: z.coerce.number().int(),

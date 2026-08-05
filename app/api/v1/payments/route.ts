@@ -45,6 +45,9 @@ export const POST = apiHandler(async (req) => {
       bookingRef: input.bookingRef,
       returnUrl,
       idempotencyKey: input.idempotencyKey,
+      // 'pickup_addon' re-opens the transport supplement for a pickup added after the booking was
+      // paid (the amount lives on the open booking_pickup_requests row, never on this request).
+      purpose: input.purpose,
     },
     serviceRoleRpcContext(),
   );
