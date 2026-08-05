@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { nearestTransfer, transfers } from '@/lib/content/transfers';
 
@@ -57,5 +58,36 @@ describe('nearestTransfer', () => {
   it('always returns a listed hotel, even for a point far offshore', () => {
     const far = nearestTransfer(-21.5, 59.5);
     expect(transfers.some((t) => t.slug === far.slug)).toBe(true);
+  });
+});
+
+/**
+ * The snap is a PRICING device, and the owner's 2026-08-05 directive is that the hotel it lands on is
+ * never named to the guest. The field was fixed for that; the summary panel was not — pick "Veranda
+ * Palmar Beach" and the priced destination chip still read "LUX* Belle Mare", so the console answered
+ * a question about a resort the guest had not asked about.
+ *
+ * Source-scanned rather than rendered: this leaks back the moment someone reaches for the nearer
+ * variable, and `hotel` legitimately appears all over the file for pricing.
+ */
+describe('AirportQuote never names the snapped hotel to the guest', () => {
+  const src = readFileSync('src/components/transfers/AirportQuote.tsx', 'utf8');
+
+  it('derives one display name from the guest pick', () => {
+    expect(src).toMatch(/const displayName = picked\?\.name \?\? hotel\.hotelName;/);
+  });
+
+  it('renders no anchor name as JSX text', () => {
+    expect(src).not.toMatch(/>\s*\{hotel\.hotelName\}/);
+  });
+
+  it('passes no anchor name into a translated label', () => {
+    expect(src).not.toMatch(/hotel:\s*hotel\.hotelName/);
+  });
+
+  // The route preview is the other place the anchor showed through — it drew the line to the listed
+  // hotel's coordinates while the panel above it quoted the guest's own.
+  it('routes the map to the guest coordinates when they picked their own hotel', () => {
+    expect(src).toMatch(/const daddr = picked\s*\n?\s*\? `\$\{picked\.lat\},\$\{picked\.lng\}`/);
   });
 });

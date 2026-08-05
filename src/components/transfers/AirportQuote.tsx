@@ -303,8 +303,18 @@ export function AirportQuote() {
   const hotelFromEur = (x: Transfer) =>
     airportTransferQuote(airportZoneForSlug(x.slug), 4, false, 'one_way', fares, returnPct);
 
-  const daddr =
-    hotel.lat != null && hotel.lng != null
+  /**
+   * The hotel NAMED to the guest, everywhere on this console: their own pick when they chose a place
+   * we don't list, else the listed hotel. Owner directive (2026-08-05) — the neighbouring listed hotel
+   * that anchors the zone is never surfaced. `hotel` stays the pricing anchor; only the label changes.
+   */
+  const displayName = picked?.name ?? hotel.hotelName;
+
+  // Route preview goes to the guest's OWN coordinates when we have them. Anchoring it to `hotel` drew
+  // the line to a resort they never asked about (pick "Veranda Palmar Beach", get LUX* Belle Mare).
+  const daddr = picked
+    ? `${picked.lat},${picked.lng}`
+    : hotel.lat != null && hotel.lng != null
       ? `${hotel.lat},${hotel.lng}`
       : `${hotel.hotelName}, Mauritius`;
   const mapSrc =
@@ -427,8 +437,8 @@ export function AirportQuote() {
           </span>
           {placesReady ? (
             // Google Places autocomplete (any hotel in Mauritius). Uncontrolled — Google manages the text
-            // + its own dropdown; the place_changed effect snaps to the nearest listed hotel and rewrites
-            // the field to it. defaultValue seeds the opening hotel so the price is instant on load.
+            // + its own dropdown, so the field KEEPS the guest's own hotel; the place_changed effect only
+            // snaps the PRICING anchor. defaultValue seeds the opening hotel so the price is instant on load.
             <input
               // Distinct keys on the two branches: without them React reuses the same DOM node when
               // Maps becomes ready and warns "changing a controlled input to be uncontrolled".
@@ -755,7 +765,7 @@ export function AirportQuote() {
               <path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" />
               <circle cx="12" cy="10" r="2.2" />
             </svg>
-            <span className="truncate">{hotel.hotelName}</span>
+            <span className="truncate">{displayName}</span>
           </span>
         </div>
 
@@ -925,7 +935,7 @@ export function AirportQuote() {
           <div className="relative aspect-[16/7]">
             <iframe
               src={mapSrc}
-              title={t('Route from SSR Airport to {hotel}', { hotel: hotel.hotelName })}
+              title={t('Route from SSR Airport to {hotel}', { hotel: displayName })}
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
               className="absolute inset-0 h-full w-full border-0"
