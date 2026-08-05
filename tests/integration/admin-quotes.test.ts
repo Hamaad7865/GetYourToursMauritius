@@ -104,6 +104,50 @@ describe('admin quote service (RLS + real schema)', () => {
     return rows[0]!;
   }
 
+  /**
+   * Make the guest's payment land in the middle of a save: the next `update` against `quotes` stamps
+   * `converted_at` immediately BEFORE its own statement runs. That is the window a read-then-write
+   * guard leaves open, and the only way to prove the refusal rests on the write rather than on a
+   * read that has already happened. Returns the undo.
+   */
+  function convertWhileSaving(quoteId: string): () => void {
+    const shim = hoisted.shim!;
+    const realFrom = shim.from.bind(shim);
+    let armed = true;
+    shim.from = (table: string) => {
+      const builder = realFrom(table);
+      if (!armed || table !== 'quotes') return builder;
+      const realUpdate = builder.update.bind(builder);
+      Object.assign(builder, {
+        update(payload: Record<string, unknown>) {
+          armed = false;
+          const write = realUpdate(payload);
+          const exec = write.then.bind(write);
+          Object.assign(write, {
+            then: (
+              onfulfilled?: (value: unknown) => unknown,
+              onrejected?: (e: unknown) => unknown,
+            ) =>
+              (async () => {
+                await db.asOwner();
+                await db.pg.query(
+                  `update quotes set converted_at = now(), status = 'accepted' where id = $1`,
+                  [quoteId],
+                );
+                await db.as({ sub: STAFF, role: 'authenticated' });
+                return exec();
+              })().then(onfulfilled, onrejected),
+          });
+          return write;
+        },
+      });
+      return builder;
+    };
+    return () => {
+      shim.from = realFrom;
+    };
+  }
+
   it('creates a draft quote whose stored total is the sum of its lines', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     const id = await saveQuote({
@@ -236,6 +280,67 @@ describe('admin quote service (RLS + real schema)', () => {
     expect(Number(row.lines_minor)).toBe(50000);
   });
 
+  it('refuses a blank line description without touching the stored quote', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 70000 }],
+    });
+
+    // `quote_item_shape` requires a non-catalogue line to carry a description, and a whitespace-only
+    // one trims to null. Refused at INSERT it would be refused LAST — after the new total is written
+    // and the old lines are deleted — leaving the guest holding a link to a quote whose total no
+    // longer has any itemisation behind it, which api_convert_quote will not charge.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(
+      saveQuote({
+        ...GUEST,
+        id,
+        items: [
+          { kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 70000 },
+          { kind: 'custom', description: '   ', quantity: 1, unitAmountMinor: 5000 },
+        ],
+      }),
+    ).rejects.toThrow(/description/i);
+
+    const row = await readQuote(id);
+    expect(Number(row.total_minor), 'the total was re-priced by an edit that was refused').toBe(
+      70000,
+    );
+    expect(row.line_count, 'the itemisation behind the stored total was deleted').toBe(1);
+    expect(Number(row.lines_minor)).toBe(70000);
+  });
+
+  it('refuses an edit that raced the guest’s payment', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    // The conversion lands in the window a read-then-write guard leaves open. It has to be the
+    // WRITE that refuses: api_convert_quote re-arms a quote whose booking later dies, so a total
+    // rewritten here is a figure a returning guest is charged against an offer they never saw.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const restore = convertWhileSaving(id);
+    try {
+      await expect(
+        saveQuote({
+          ...GUEST,
+          id,
+          items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 5 }],
+        }),
+      ).rejects.toThrow(/converted/i);
+    } finally {
+      restore();
+    }
+
+    const row = await readQuote(id);
+    expect(Number(row.total_minor), 'a converted quote was re-priced under the guard').toBe(50000);
+    expect(row.line_count).toBe(1);
+    expect(Number(row.lines_minor)).toBe(50000);
+  });
+
   it('withdraws an offer by cancelling it', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     const id = await saveQuote({
@@ -249,6 +354,31 @@ describe('admin quote service (RLS + real schema)', () => {
     const row = await readQuote(id);
     // api_convert_quote raises `quote_cancelled` on this status — the link stops being payable.
     expect(row.status).toBe('cancelled');
+  });
+
+  it('refuses to withdraw a quote the guest has already paid for', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    await db.asOwner();
+    await db.pg.query(`update quotes set converted_at = now(), status = 'accepted' where id = $1`, [
+      id,
+    ]);
+
+    // 'cancelled' means "the offer was withdrawn". On a quote that was taken and paid it is simply
+    // false, there is no un-cancel, and it would sit beside a booking_id and a converted_at that say
+    // the opposite. Cancelling or refunding the BOOKING is the bookings screen's job.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(
+      cancelQuote(id),
+      'the offer the guest accepted now reads as withdrawn',
+    ).rejects.toThrow(/converted/i);
+
+    const row = await readQuote(id);
+    expect(row.status).toBe('accepted');
   });
 
   it('gives a signed-in customer no way to draft a quote (RLS)', async () => {

@@ -76,6 +76,20 @@ describe('saveQuote totals', () => {
       ]),
     ).toThrow(/whole number/i);
   });
+
+  it('refuses a blank description on a custom line, for the same reason', () => {
+    // `quote_item_shape` requires a non-catalogue line to carry a description. A whitespace-only one
+    // trims to null and only fails at INSERT — i.e. on the edit path, after the new total has been
+    // written and the old lines deleted, leaving a stored total with no itemisation behind it. That
+    // is a quote api_convert_quote then refuses to charge (`quote_total_mismatch`), against a link
+    // the guest already holds.
+    expect(() =>
+      quoteItemRows([{ kind: 'custom', description: '   ', quantity: 1, unitAmountMinor: 1000 }]),
+    ).toThrow(/description/i);
+    expect(() => quoteItemRows([{ kind: 'rental', quantity: 1, unitAmountMinor: 1000 }])).toThrow(
+      /description/i,
+    );
+  });
 });
 
 describe('quote line rows', () => {
@@ -90,24 +104,45 @@ describe('quote line rows', () => {
     expect(rows.map((row) => row.description)).toEqual(['Day one', 'Day two']);
   });
 
-  it('clears the catalogue-only columns on a custom line', () => {
+  it('clears every column that belongs to a kind the line no longer is', () => {
     // quote_item_shape requires a custom/rental line to name NEITHER an occurrence nor an option. The
     // editor switches a line's kind in place, so the ids of a line that used to be a catalogue one
     // are still in the form object — carrying them through raises a raw check violation the operator
     // cannot act on.
+    //
+    // The vehicle slug of a line that used to be a RENTAL one is the same stale field, and no
+    // constraint catches it: api_convert_quote copies it into booking_custom_items, whose FK is
+    // `on delete restrict`, so a paid custom line would pin a rental vehicle it has nothing to do
+    // with — permanently, and against a reference the operator cannot find or clear.
     const [row] = quoteItemRows([
       {
         kind: 'custom',
         description: 'Private guide, full day',
         sessionOccurrenceId: '22222222-2222-2222-2222-222222222222',
         activityOptionId: '33333333-3333-3333-3333-333333333333',
+        rentalVehicleSlug: 'nissan-march',
         quantity: 1,
         unitAmountMinor: 12000,
       },
     ]);
     expect(row!.session_occurrence_id).toBeNull();
     expect(row!.activity_option_id).toBeNull();
+    expect(row!.rental_vehicle_slug).toBeNull();
     expect(row!.description).toBe('Private guide, full day');
+  });
+
+  it('keeps the vehicle on a line that really is a rental', () => {
+    const [row] = quoteItemRows([
+      {
+        kind: 'rental',
+        description: 'Nissan March, 5 days',
+        rentalVehicleSlug: 'nissan-march',
+        quantity: 5,
+        unitAmountMinor: 3500,
+      },
+    ]);
+    expect(row!.rental_vehicle_slug).toBe('nissan-march');
+    expect(row!.subtotal_minor).toBe(17500);
   });
 
   it('keeps the occurrence and option on a catalogue line', () => {

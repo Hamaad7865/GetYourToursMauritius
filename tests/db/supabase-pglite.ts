@@ -15,7 +15,7 @@ import type { PGlite } from '@electric-sql/pglite';
  * `throw error` themselves). Only the operations the helpers actually use are implemented.
  */
 
-type Filter = { col: string; op: 'eq' | 'in'; val: unknown };
+type Filter = { col: string; op: 'eq' | 'in' | 'is'; val: unknown };
 type RowMode = 'many' | 'single' | 'maybeSingle';
 type Result = { data: unknown; error: unknown; count?: number | null };
 /** PostgREST's `select(cols, { count, head })`: `count` asks for the row count, `head` drops the rows. */
@@ -40,8 +40,10 @@ class QueryBuilder implements PromiseLike<Result> {
   ) {}
 
   select(cols = '*', opts?: SelectOpts): this {
-    // After an insert, `.select(...)` requests a RETURNING clause; otherwise it's a read.
-    if (this.op === 'insert') this.returning = cols;
+    // After a write, `.select(...)` requests a RETURNING clause; otherwise it's a read. On an
+    // update it is not cosmetic: `update(...).eq(...).is(...).select('id')` is how a guard is made
+    // part of the write, and the caller reads "did it match?" off the returned rows.
+    if (this.op !== 'select') this.returning = cols;
     else {
       this.op = 'select';
       this.cols = cols;
@@ -72,6 +74,11 @@ class QueryBuilder implements PromiseLike<Result> {
   }
   in(col: string, vals: unknown[]): this {
     this.filters.push({ col, op: 'in', val: vals });
+    return this;
+  }
+  /** PostgREST's `is`: a null/boolean test, which SQL cannot express with `=`. */
+  is(col: string, val: null | boolean): this {
+    this.filters.push({ col, op: 'is', val });
     return this;
   }
   order(col: string, opts?: { ascending?: boolean }): this {
@@ -107,6 +114,8 @@ class QueryBuilder implements PromiseLike<Result> {
   private buildWhere(params: unknown[]): string {
     if (this.filters.length === 0) return '';
     const parts = this.filters.map((f) => {
+      // `is` takes a literal, never a parameter: `col is $1` is not valid SQL.
+      if (f.op === 'is') return `${f.col} is ${f.val === null ? 'null' : String(f.val)}`;
       params.push(f.val);
       return f.op === 'eq' ? `${f.col} = $${params.length}` : `${f.col} = any($${params.length})`;
     });
@@ -121,6 +130,10 @@ class QueryBuilder implements PromiseLike<Result> {
       params,
     );
     return rows[0]?.n ?? 0;
+  }
+
+  private returningClause(): string {
+    return this.returning ? ` returning ${this.returning}` : '';
   }
 
   private shape(rows: Record<string, unknown>[]): Result {
@@ -174,8 +187,7 @@ class QueryBuilder implements PromiseLike<Result> {
                 .join(', ')})`,
           )
           .join(', ');
-        const returning = this.returning ? ` returning ${this.returning}` : '';
-        sql = `insert into ${this.table} (${cols.join(', ')}) values ${tuples}${returning}`;
+        sql = `insert into ${this.table} (${cols.join(', ')}) values ${tuples}${this.returningClause()}`;
       } else if (this.op === 'update') {
         const payload = (this.payload ?? {}) as Record<string, unknown>;
         const set = Object.keys(payload)
@@ -184,9 +196,9 @@ class QueryBuilder implements PromiseLike<Result> {
             return `${c} = $${params.length}`;
           })
           .join(', ');
-        sql = `update ${this.table} set ${set}${this.buildWhere(params)}`;
+        sql = `update ${this.table} set ${set}${this.buildWhere(params)}${this.returningClause()}`;
       } else {
-        sql = `delete from ${this.table}${this.buildWhere(params)}`;
+        sql = `delete from ${this.table}${this.buildWhere(params)}${this.returningClause()}`;
       }
 
       const { rows } = await this.pg.query<Record<string, unknown>>(sql, params);

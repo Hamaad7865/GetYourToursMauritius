@@ -1,4 +1,5 @@
 import { lineSubtotalMinor, quoteTotalMinor, type PricedLine } from '@/lib/quotes/totals';
+import { ValidationError } from '@/lib/services/errors';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 
 /* Staff-side quotes: draft, re-price, withdraw, send. Mirrors src/lib/admin/bookings.ts — the
@@ -130,27 +131,38 @@ export function quoteRowTotal(input: { totalMinor?: number; items: PricedLine[] 
  *  - `subtotal_minor` comes from `lineSubtotalMinor`, the same function `quoteRowTotal` sums, so the
  *    stored total and the stored lines cannot drift apart. api_convert_quote refuses to charge a
  *    quote where they have.
- *  - the catalogue-only columns are CLEARED on a custom/rental line. `quote_item_shape` requires a
- *    non-catalogue line to name neither an occurrence nor an option, and the editor switches a line's
- *    kind in place — so the ids of a line that used to be a catalogue one are still in the form
- *    object, and carrying them through would raise a raw check violation at the operator.
+ *  - EVERY column that belongs to a kind the line no longer is gets CLEARED. The editor switches a
+ *    line's kind in place, so a line that used to be a catalogue one still carries its occurrence and
+ *    option ids, and one that used to be a rental still carries its vehicle slug. The ids would raise
+ *    a raw `quote_item_shape` violation at the operator; the slug is worse, because nothing catches
+ *    it — api_convert_quote copies it into booking_custom_items, whose FK is `on delete restrict`, so
+ *    a paid custom line silently pins a rental vehicle it has nothing to do with and deleteRentalVehicle
+ *    then reports a reference the operator cannot find.
  *
- * It throws (ValidationError, from totals.ts) on a line that is not whole, non-negative money —
- * BEFORE saveQuote writes anything, so a bad line can never leave a stored total with no itemisation.
+ * It throws (ValidationError) on a line that is not whole, non-negative money, and on a custom/rental
+ * line with no description — the other half of `quote_item_shape`, and the half that would otherwise
+ * only fail at INSERT. That matters on the edit path, where the INSERT is the LAST statement: by then
+ * the new total is written and the old lines are deleted, so a stored total is left with no
+ * itemisation behind it, which is a quote api_convert_quote refuses to charge (`quote_total_mismatch`)
+ * against a link the guest already holds. Refusing here means saveQuote has written nothing yet.
  */
 export function quoteItemRows(items: QuoteItemInput[]): QuoteItemInsert[] {
   return items.map((item, index) => {
     const catalogue = item.kind === 'catalogue';
+    const description = item.description?.trim() || null;
+    if (!catalogue && !description) {
+      throw new ValidationError(`Quote line ${index + 1} needs a description.`);
+    }
     return {
       position: index,
       kind: item.kind,
       session_occurrence_id: catalogue ? (item.sessionOccurrenceId ?? null) : null,
       activity_option_id: catalogue ? (item.activityOptionId ?? null) : null,
       price_label: item.priceLabel?.trim() || null,
-      description: item.description?.trim() || null,
+      description,
       starts_at: item.startsAt || null,
       ends_at: item.endsAt || null,
-      rental_vehicle_slug: catalogue ? null : (item.rentalVehicleSlug ?? null),
+      rental_vehicle_slug: item.kind === 'rental' ? (item.rentalVehicleSlug ?? null) : null,
       quantity: item.quantity,
       unit_amount_minor: item.unitAmountMinor,
       subtotal_minor: lineSubtotalMinor(item),
@@ -198,8 +210,12 @@ interface InsertBuilder extends PromiseLike<{ error: unknown }> {
   select(columns: string): { single(): PromiseLike<{ data: Row | null; error: unknown }> };
 }
 
-interface WriteBuilder extends PromiseLike<{ error: unknown }> {
+interface WriteBuilder extends PromiseLike<{ data: Row[] | null; error: unknown }> {
   eq(column: string, value: string): WriteBuilder;
+  /** A null test. `.eq(col, null)` is not it — PostgREST needs `is` for that. */
+  is(column: string, value: null): WriteBuilder;
+  /** RETURNING. On an update it is how the caller learns whether the filters matched anything. */
+  select(columns: string): WriteBuilder;
 }
 
 interface QuotesClient {
@@ -292,6 +308,45 @@ function mapItem(raw: Row): QuoteItem {
   };
 }
 
+/**
+ * Update a quote ONLY while it is still unconverted, and say so when it is not.
+ *
+ * The `converted_at is null` test is part of the UPDATE's own WHERE clause, never a SELECT before it.
+ * A read-then-write guard is two PostgREST round trips with the guest's pay route free to convert
+ * between them — and what it is guarding is the money: api_convert_quote re-arms a quote whose
+ * booking has died, so a total rewritten in that window is charged to a returning guest against an
+ * offer they never saw. Section 4 of migration 20260909000000 names the same class of mistake ("a
+ * guard resting on a column another statement can reset").
+ *
+ * Zero rows back means the filters did not match. The follow-up read only decides WHICH refusal to
+ * report — it is never what permits the write.
+ *
+ * Returns true when the row was updated; throws otherwise.
+ */
+async function updateUnconvertedQuote(
+  id: string,
+  fields: Row,
+  convertedMessage: string,
+): Promise<true> {
+  const { data, error } = await db()
+    .from('quotes')
+    .update(fields)
+    .eq('id', id)
+    .is('converted_at', null)
+    .select('id');
+  if (error) throw error;
+  if (data && data.length > 0) return true;
+
+  const { data: existing, error: readError } = await db()
+    .from('quotes')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle();
+  if (readError) throw readError;
+  if (!existing) throw new Error('This quote no longer exists.');
+  throw new Error(convertedMessage);
+}
+
 /** The signed-in staff session, or null. Never throws: it is read for attribution and a bearer. */
 async function session(): Promise<{ accessToken: string; userId: string } | null> {
   try {
@@ -341,16 +396,17 @@ export async function loadQuote(id: string): Promise<QuoteDetail | null> {
  *
  * Order of operations, and why:
  *
- *  1. The lines are BUILT first (`quoteItemRows`), so a line that is not whole money throws before
- *     anything is written.
- *  2. A quote that has already been converted is refused. Its lines are the itemisation behind a
- *     charge, and api_convert_quote can re-arm a quote whose booking died — so re-pricing one here
- *     would charge a returning guest a figure they never agreed to. Read off `converted_at`, never
- *     `booking_id`: an erasure hard-deletes an unpaid booking and the FK then nulls booking_id
- *     (migration section 4).
- *  3. The quote row is written, then its lines are replaced.
+ *  1. The lines are BUILT first (`quoteItemRows`), so every line the database would reject — money
+ *     that is not whole, a custom line with no description — throws before anything is written.
+ *  2. A quote that has already been converted is refused, by `updateUnconvertedQuote`: the test is
+ *     part of the UPDATE's WHERE clause, so the guest's pay route cannot slip a conversion between
+ *     the guard and the write. Its lines are the itemisation behind a charge, and api_convert_quote
+ *     can re-arm a quote whose booking died — so re-pricing one here would charge a returning guest a
+ *     figure they never agreed to. Keyed on `converted_at`, never `booking_id`: an erasure
+ *     hard-deletes an unpaid booking and the FK then nulls booking_id (migration section 4).
+ *  3. The quote row is written, then — only if step 2 matched — its lines are replaced.
  *
- * Steps 3's two statements are not one transaction — PostgREST has no such thing, and an RPC would be
+ * Step 3's two statements are not one transaction — PostgREST has no such thing, and an RPC would be
  * a migration this task does not need. It fails CLOSED: if the line replacement is lost after the
  * total is written, the two disagree and api_convert_quote refuses to charge (`quote_total_mismatch`)
  * until the operator saves again.
@@ -387,21 +443,14 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
   let id = input.id ?? null;
 
   if (id) {
-    const { data: existing, error: readError } = await db()
-      .from('quotes')
-      .select('id, converted_at')
-      .eq('id', id)
-      .maybeSingle();
-    if (readError) throw readError;
-    if (!existing) throw new Error('This quote no longer exists.');
-    if (existing.converted_at) {
-      throw new Error(
-        'This quote has already been converted into a booking, so its lines and total can no longer be changed. Draft a new quote instead.',
-      );
-    }
-
-    const { error } = await db().from('quotes').update(fields).eq('id', id);
-    if (error) throw error;
+    // The line replacement is gated on this having matched: the lines are the itemisation behind the
+    // stored total, and deleting them for an edit that was refused is exactly the state the guard is
+    // here to prevent.
+    await updateUnconvertedQuote(
+      id,
+      fields,
+      'This quote has already been converted into a booking, so its lines and total can no longer be changed. Draft a new quote instead.',
+    );
 
     const { error: clearError } = await db().from('quote_items').delete().eq('quote_id', id);
     if (clearError) throw clearError;
@@ -433,14 +482,17 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
  *
  * It does NOT touch a booking the quote already minted: that is a real booking with its own money
  * trail, and cancelling or refunding it is the bookings screen's job (`setBookingStatus`,
- * `markBookingRefunded`).
+ * `markBookingRefunded`). Which is precisely why a CONVERTED quote is refused here rather than
+ * quietly flipped: the row would then read "withdrawn" beside the `booking_id` and `converted_at`
+ * that say the guest took this offer and paid for it, in the admin list and in `loadQuote` — and
+ * there is no un-cancel. Same guard, and same shape of guard, as saveQuote.
  */
 export async function cancelQuote(id: string): Promise<void> {
-  const { error } = await db()
-    .from('quotes')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .eq('id', id);
-  if (error) throw error;
+  await updateUnconvertedQuote(
+    id,
+    { status: 'cancelled', updated_at: new Date().toISOString() },
+    'This quote has already been converted into a booking, so the offer can no longer be withdrawn. Cancel or refund the booking itself on the bookings screen.',
+  );
 }
 
 export interface SendQuoteResult {
