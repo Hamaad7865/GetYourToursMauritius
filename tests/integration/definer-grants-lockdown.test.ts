@@ -31,6 +31,9 @@ const LOCKED = [
   // DELETES, which would let anyone erase the record of what they just broke.
   'api_log_error(jsonb)',
   'api_purge_error_logs(jsonb)',
+  // Mints a PAYABLE booking from a quote id alone (20260909000000) — no in-function caller guard, so
+  // an open grant would let any caller mint bookings (and enumerate quotes by probing ids).
+  'api_convert_quote(jsonb)',
 ];
 
 describe('internal SECURITY DEFINER functions are locked to service_role', () => {
