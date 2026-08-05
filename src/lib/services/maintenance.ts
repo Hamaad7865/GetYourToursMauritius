@@ -85,6 +85,19 @@ export async function enqueuePickupReminders(ctx: ServiceContext): Promise<numbe
   return z.coerce.number().int().parse(data);
 }
 
+/**
+ * Settle a late-pickup supplement we already hold but could not apply at settlement time — the guest
+ * paid, then the departure was called off, and they have since been rescheduled onto a live date.
+ *
+ * The SQL re-checks every gate itself, so this is safe to run unconditionally on a schedule; it is
+ * also what stops that money from sitting stranded behind a "Complete payment" button the guest has
+ * already pressed once. Returns how many pickups actually landed this run.
+ */
+export async function applyFundedPickups(ctx: ServiceContext): Promise<number> {
+  const data = await callRpc(ctx, 'api_apply_funded_pickups', {});
+  return z.coerce.number().int().parse(data);
+}
+
 const purgeResultSchema = z.object({
   deleted: z.coerce.number().int(),
   aged: z.coerce.number().int(),

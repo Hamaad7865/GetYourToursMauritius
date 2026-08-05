@@ -91,8 +91,46 @@ export function mapDbError(error: unknown): never {
   if (/\bpickup_request_not_found\b/.test(message)) {
     throw new ConflictError('Choose your pickup point again — that request is no longer open.');
   }
+  // The supplement is already paid for. Reached when a settlement could not be applied (we called the
+  // departure off) and the guest presses "Complete payment" again after rescheduling — without this
+  // mapping the guard that stops the second charge would surface as a 500 "Database error".
+  if (/\bpickup_already_paid\b/.test(message)) {
+    throw new ConflictError(
+      'Your pickup supplement is already paid — we’re applying it. Refresh in a moment, or message us.',
+    );
+  }
   if (/\bpickup_incomplete\b/.test(message)) {
     throw new ValidationError('A pickup needs an address and a map location');
+  }
+  // Quote conversion guards (api_convert_quote) → readable 404/409s. Without these every guard in
+  // that function — including the convert-once guard, the only thing standing between a guest and a
+  // second payable booking — falls through to the unmapped ProviderError below and reaches the guest
+  // as a 500 "Database error", which reads as a broken site and invites the retry loop the guard
+  // exists to end. Above the generic `forbidden` branch because first match wins.
+  if (/\bquote_not_found\b/.test(message)) {
+    throw new NotFoundError('Not found');
+  }
+  if (/\bquote_already_converted\b/.test(message)) {
+    throw new ConflictError(
+      'This quote has already been paid for or is being paid — check your email for the booking.',
+    );
+  }
+  if (/\bquote_cancelled\b/.test(message)) {
+    throw new ConflictError('This quote has been withdrawn — please message us for a new one.');
+  }
+  if (/\bquote_expired\b/.test(message)) {
+    throw new ConflictError('This quote has expired — please message us for an updated one.');
+  }
+  // Draft / zero-total: the offer is not finished, so there is nothing honest to charge for yet.
+  if (/\bquote_not_convertible\b/.test(message)) {
+    throw new ConflictError('This quote is not ready to pay yet — please message us.');
+  }
+  // A scheduled activity on the quote still needs the hold path (a later task), so the conversion
+  // fails closed rather than charging for a seat nobody reserved.
+  if (/\bquote_has_catalogue_lines\b/.test(message)) {
+    throw new ConflictError(
+      'This quote includes a scheduled activity, so it cannot be paid online yet — please message us.',
+    );
   }
   if (/\bforbidden\b/.test(message)) {
     throw new ForbiddenError();

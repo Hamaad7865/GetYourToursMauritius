@@ -10,6 +10,7 @@ import {
   reconcilePaymentsPending,
   enqueueReviewInvites,
   enqueuePickupReminders,
+  applyFundedPickups,
   refreshFxRate,
   purgeErrorLogs,
 } from '@/lib/services/maintenance';
@@ -136,7 +137,16 @@ export const POST = apiHandler(async (req) => {
     await log('pickup reminder sweep', err);
   }
 
-  // 6) Prune error_logs (retention + the crash-loop row cap). Housekeeping, and deliberately NOT part
+  // 6) Settle any late-pickup supplement we hold but could not apply (the departure was called off
+  //    and the guest has since been rescheduled). Money already taken, so a failure here counts.
+  let fundedPickupsApplied: number | { errored: true } = { errored: true };
+  try {
+    fundedPickupsApplied = await applyFundedPickups(ctx);
+  } catch (err) {
+    await log('funded pickup apply sweep', err);
+  }
+
+  // 7) Prune error_logs (retention + the crash-loop row cap). Housekeeping, and deliberately NOT part
   //    of the pass/fail verdict below: a red cron on this dashboard means customers are affected
   //    (money, emails, availability). A purge that failed is recorded in error_logs itself — where
   //    anyone reading the table will see it — and retried on the next tick.
@@ -176,6 +186,7 @@ export const POST = apiHandler(async (req) => {
     ...(failedJob(slotsCreated) ? ['availability'] : []),
     ...(failedJob(reviewInvitesCreated) ? ['reviewInvites'] : []),
     ...(failedJob(pickupRemindersEnqueued) ? ['pickupReminders'] : []),
+    ...(failedJob(fundedPickupsApplied) ? ['fundedPickups'] : []),
   ];
   if (erroredJobs.length > 0) {
     return jsonError(
@@ -188,6 +199,7 @@ export const POST = apiHandler(async (req) => {
         payments,
         reviewInvitesCreated,
         pickupRemindersEnqueued,
+        fundedPickupsApplied,
         fx,
         errorLogsPurged,
         erroredJobs,
@@ -200,6 +212,7 @@ export const POST = apiHandler(async (req) => {
     payments,
     reviewInvitesCreated,
     pickupRemindersEnqueued,
+    fundedPickupsApplied,
     fx,
     errorLogsPurged,
   });

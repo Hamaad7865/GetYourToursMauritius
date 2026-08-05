@@ -58,10 +58,14 @@ create table if not exists booking_pickup_requests (
   booking_id uuid not null references bookings (id) on delete cascade,
   -- Null only for a zero-fee request (same region, no supplement due), which is applied immediately.
   payment_id uuid references payments (id) on delete set null,
-  pickup_location text not null,
-  pickup_lat double precision not null,
-  pickup_lng double precision not null,
-  pickup_region text not null,
+  -- Nullable so a GDPR erasure can strip the address WITHOUT deleting the row: api_booking_receipt
+  -- reads applied_at as its proof that a settled supplement belongs on the invoice, and the fare
+  -- stays inside bookings.total_minor forever. Deleting the row made the retained financial record
+  -- contradict itself. api_request_pickup always writes all three.
+  pickup_location text,
+  pickup_lat double precision,
+  pickup_lng double precision,
+  pickup_region text,
   dropoff_location text,
   fee_minor int not null default 0 check (fee_minor >= 0),
   applied_at timestamptz,
@@ -365,10 +369,14 @@ begin
      where id = v_booking.id;
 
     if v_req.id is not null then
+      -- payment_id is CUT LOOSE. This row is being applied at zero, so it is no longer the record of
+      -- what that payment bought — and two things read it that way: notify_pickup_orphan_payment
+      -- (which must still alert if the old session settles) and api_booking_receipt's fold-in gate
+      -- (which would otherwise put a charge on the invoice that never reached the booking total).
       update booking_pickup_requests
          set pickup_location = v_pickup, pickup_lat = v_lat, pickup_lng = v_lng,
              pickup_region = v_region, dropoff_location = v_dropoff, fee_minor = 0,
-             applied_at = now(), updated_at = now()
+             payment_id = null, applied_at = now(), updated_at = now()
        where id = v_req.id;
     else
       insert into booking_pickup_requests (
@@ -743,6 +751,18 @@ begin
     if not found then
       raise exception 'pickup_request_not_found';
     end if;
+    -- …and it must not ALREADY hold the guest's money. A request refused at settlement (the departure
+    -- was called off) stays open behind a payments row that is already 'paid'. If the trip is then
+    -- rescheduled onto a live date the eligibility ladder goes green again, and without this guard
+    -- the booking page's "Complete payment" button minted a SECOND Peach session on that same row —
+    -- charging the card twice for one supplement, invisibly: the apply trigger cannot fire again
+    -- (its WHEN clause needs old.status distinct from 'paid'), so no second alert is raised either.
+    if exists (
+      select 1 from payments pay
+       where pay.id = v_req.payment_id and pay.paid_minor >= pay.amount_minor and pay.amount_minor > 0
+    ) then
+      raise exception 'pickup_already_paid';
+    end if;
     if not coalesce((pickup_addon_quote(v_booking.id, v_req.pickup_lat, v_req.pickup_lng) ->> 'eligible')::boolean, false) then
       raise exception 'booking_not_payable' using detail = 'pickup_addon';
     end if;
@@ -910,7 +930,12 @@ as $$
     from (
       select distinct on (b.id, pay.purpose)
              b.id, b.ref,
-             case when pay.purpose = 'pickup_addon' then pay.created_at else b.created_at end as created_at,
+             -- For an add-on, from whichever is later: the row is created when the guest commits the
+             -- ADDRESS, but they can mint the Peach session on it hours later (the resume button), and
+             -- the grace window has to cover the session, not the intent.
+             case when pay.purpose = 'pickup_addon'
+                  then greatest(pay.created_at, coalesce(pay.checkout_created_at, pay.created_at))
+                  else b.created_at end as created_at,
              pay.id as payment_id, pay.provider_checkout_id, pay.prev_provider_checkout_id
         from bookings b
         join payments pay on pay.booking_id = b.id
@@ -921,7 +946,9 @@ as $$
                or
                (pay.purpose = 'pickup_addon' and pay.status in ('pending', 'failed'))
              )
-         and (case when pay.purpose = 'pickup_addon' then pay.created_at else b.created_at end)
+         and (case when pay.purpose = 'pickup_addon'
+                   then greatest(pay.created_at, coalesce(pay.checkout_created_at, pay.created_at))
+                   else b.created_at end)
                > now() - make_interval(
                    mins => least(greatest(coalesce((p ->> 'graceMinutes')::int, 240), 1), 10080)
                  )
@@ -1291,6 +1318,27 @@ begin
   set status = v_state, paid_minor = v_paid, refunded_minor = v_refunded, updated_at = now()
   where id = p_payment_id
   returning * into v_payment;
+
+  -- MORE money than we asked for, on one payments row. Nothing else in this system can see that: the
+  -- reducer's own branches all read `>= amount_minor`, so a second capture on an already-paid row is
+  -- indistinguishable from the first, and the late-pickup apply trigger cannot re-fire on it. It
+  -- should be impossible — but "impossible" is what the double-charge guards keep discovering it is
+  -- not, and the only honest response to money we did not ask for is to tell someone who can return it.
+  if v_payment.amount_minor > 0 and v_paid > v_payment.amount_minor then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    select 'email', 'owner', 'owner_overpayment',
+           jsonb_build_object(
+             'ref', b.ref,
+             'customerName', b.customer_name,
+             'expectedEur', v_payment.amount_minor::float / 100,
+             'paidEur', v_paid::float / 100,
+             'purpose', v_payment.purpose
+           ),
+           b.id,
+           'overpaid:' || v_payment.id::text
+      from bookings b where b.id = v_payment.booking_id
+    on conflict (idempotency_key) do nothing;
+  end if;
 
   -- BOOKING-level projection, rolled up across every payment row of this booking -- best row wins,
   -- and 'failed' only when EVERY row failed. Written from the single touched row it was a latch: one
@@ -1738,9 +1786,18 @@ begin
   -- GPS coordinates of where they were staying (20260910000000). Nulling bookings.pickup_location
   -- above leaves that copy untouched, and because a late pickup only ever exists on a confirmed+paid
   -- booking, every one of these rows belongs to the RETAINED set - it would survive erasure forever.
-  -- Nothing financial lives here: the fare is on bookings.transport_minor and the money trail is in
-  -- payments/payment_events, so these rows are deleted outright rather than redacted.
-  delete from booking_pickup_requests where booking_id = any(v_anon_ids);
+  --
+  -- ANONYMIZED, not deleted. The row is also the receipt's evidence that a settled supplement was
+  -- applied (api_booking_receipt folds a charge in only when applied_at is set), while its fare stays
+  -- inside bookings.total_minor for good — so deleting it made the retained VAT invoice report a
+  -- charge smaller than its own line items. Keep the money facts (fee_minor, applied_at, payment_id),
+  -- strip the person.
+  update booking_pickup_requests
+     set pickup_location = null, pickup_lat = null, pickup_lng = null,
+         pickup_region = null, dropoff_location = null, updated_at = now()
+   where booking_id = any(v_anon_ids)
+     and (pickup_location is not null or dropoff_location is not null
+          or pickup_lat is not null or pickup_lng is not null);
 
   -- ---- Redact the notification outbox -------------------------------------------------------------
   -- Strip recipient (the email) + the customerName key from any queued/sent message for this person,
@@ -1859,5 +1916,63 @@ $$;
 
 revoke execute on function api_erase_user(jsonb) from public, anon;
 grant execute on function api_erase_user(jsonb) to authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 15) api_apply_funded_pickups — settle a supplement we already hold but could not apply.
+--
+--     apply_pickup_request refuses at settlement when the departure has been called off. The guest's
+--     money is captured, the request stays open, and the owner is told to refund it — but the usual
+--     next step is that the guest takes the RESCHEDULE arm onto a live date, at which point they still
+--     want the pickup and we are still holding exactly the right amount for it. Leaving that to a
+--     manual refund + a second payment is worse for everyone, and it is what made the double-charge
+--     above reachable.
+--
+--     So the maintenance cron retries. apply_pickup_request re-checks every gate itself (booking live,
+--     departure running, not already applied), which is what makes an unconditional retry safe: this
+--     function only decides WHICH payments are worth re-offering to it.
+-- ---------------------------------------------------------------------------
+create or replace function api_apply_funded_pickups(p jsonb default '{}'::jsonb)
+returns int
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_count int := 0;
+  v_payment_id uuid;
+  v_before timestamptz;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  for v_payment_id in
+    select r.payment_id
+      from booking_pickup_requests r
+      join payments pay on pay.id = r.payment_id
+     where r.applied_at is null
+       and r.fee_minor > 0
+       and pay.purpose = 'pickup_addon'
+       and pay.paid_minor >= r.fee_minor
+     order by r.created_at
+  loop
+    select applied_at into v_before from booking_pickup_requests where payment_id = v_payment_id;
+    perform apply_pickup_request(v_payment_id);
+    -- Count only what actually landed: the gates inside may still refuse (the trip is still called
+    -- off), and this number is read by the cron's health verdict.
+    if v_before is null and exists (
+      select 1 from booking_pickup_requests where payment_id = v_payment_id and applied_at is not null
+    ) then
+      v_count := v_count + 1;
+    end if;
+  end loop;
+
+  return v_count;
+end;
+$$;
+
+revoke execute on function api_apply_funded_pickups(jsonb) from public, anon, authenticated;
+grant execute on function api_apply_funded_pickups(jsonb) to service_role;
 
 commit;

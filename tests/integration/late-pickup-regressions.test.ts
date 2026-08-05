@@ -421,15 +421,29 @@ describe('late pickup — regressions', () => {
     await call(db, 'api_erase_user', { userId: CUSTOMER, email: `reg${seq}@example.com` });
 
     await db.asOwner();
-    const left = (
-      await db.pg.query<{ n: string }>(
-        `select count(*) as n from booking_pickup_requests where booking_id = $1`,
+    const row = (
+      await db.pg.query<{
+        pickup_location: string | null;
+        pickup_lat: number | null;
+        dropoff_location: string | null;
+        fee_minor: number;
+        applied_at: string | null;
+      }>(
+        `select pickup_location, pickup_lat, dropoff_location, fee_minor, applied_at
+           from booking_pickup_requests where booking_id = $1`,
         [b.id],
       )
-    ).rows[0]!.n;
+    ).rows[0]!;
     // The request row carries its own copy of the street address AND the guest's GPS coordinates.
     // Nulling bookings.pickup_location left that copy behind forever.
-    expect(Number(left)).toBe(0);
+    expect(row.pickup_location).toBeNull();
+    expect(row.pickup_lat).toBeNull();
+    expect(row.dropoff_location).toBeNull();
+    // …but the row SURVIVES: api_booking_receipt reads applied_at as its proof that the settled
+    // supplement belongs on the invoice, and the fare stays in total_minor for good. Deleting it made
+    // the retained VAT record report a charge smaller than its own line items.
+    expect(row.applied_at).not.toBeNull();
+    expect(row.fee_minor).toBe(FAR_SEDAN_MINOR);
     const bk = (
       await db.pg.query<{ pickup_location: string | null; transport_minor: number }>(
         `select pickup_location, transport_minor from bookings where id = $1`,
@@ -843,5 +857,233 @@ describe('late pickup — regressions', () => {
     // notify_pickup_set copied the street address and phone into the outbox payload, and nothing
     // purges that table — so redacting only customerName left the address behind forever.
     expect(Number(left)).toBe(0);
+  });
+
+  // ── Round 3: a refused supplement must not become a second charge ─────────────────────────────
+
+  it('never re-sells a supplement it has already captured', async () => {
+    await db.asOwner();
+    const occ = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() + interval '10 days', now() + interval '10 days 4 hours', 10) returning id`,
+        [optionId, operatorId],
+      )
+    ).rows[0]!.id;
+    const b = await booking(occ);
+
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const req = await call<{ paymentId: string }>(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Le Morne Beach Villa',
+      pickupLat: SOUTH_LAT,
+      pickupLng: SOUTH_LNG,
+    });
+
+    // The departure is called off while the session is live, and the capture lands anyway: the
+    // request stays OPEN behind a payments row that is already paid.
+    await db.asOwner();
+    await db.pg.query(`update session_occurrences set status = 'cancelled' where id = $1`, [occ]);
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, $3, now(), '{}'::jsonb)`, [
+      req.paymentId,
+      'resell-addon-evt',
+      FAR_SEDAN_MINOR,
+    ]);
+
+    // The guest is rescheduled onto a live date — the documented remedy — so the eligibility ladder
+    // goes green again. The resume button must NOT mint a second Peach session on money we hold.
+    await db.pg.query(`update session_occurrences set status = 'open' where id = $1`, [occ]);
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    await expect(
+      call(db, 'api_create_payment', {
+        bookingRef: b.ref,
+        idempotencyKey: 'resell-second-key',
+        purpose: 'pickup_addon',
+      }),
+    ).rejects.toThrow(/pickup_already_paid/);
+  });
+
+  it('settles a supplement it already holds once the trip is running again', async () => {
+    await db.asOwner();
+    const occ = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() + interval '10 days', now() + interval '10 days 4 hours', 10) returning id`,
+        [optionId, operatorId],
+      )
+    ).rows[0]!.id;
+    const b = await booking(occ);
+
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const req = await call<{ paymentId: string }>(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Le Morne Beach Villa',
+      pickupLat: SOUTH_LAT,
+      pickupLng: SOUTH_LNG,
+    });
+    await db.asOwner();
+    await db.pg.query(`update session_occurrences set status = 'cancelled' where id = $1`, [occ]);
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, $3, now(), '{}'::jsonb)`, [
+      req.paymentId,
+      'refund-then-settle-evt',
+      FAR_SEDAN_MINOR,
+    ]);
+    expect(
+      (
+        await db.pg.query<{ pickup_location: string | null }>(
+          `select pickup_location from bookings where id = $1`,
+          [b.id],
+        )
+      ).rows[0]!.pickup_location,
+    ).toBeNull();
+
+    // Rescheduled onto a live departure. The cron settles what we already hold, rather than leaving
+    // the guest paid-and-unserved behind a button that would charge them again.
+    await db.pg.query(`update session_occurrences set status = 'open' where id = $1`, [occ]);
+    await db.as({ role: 'service_role' });
+    // At least this one. Other cases in this file deliberately leave a funded-but-refused request
+    // behind (their departure is still cancelled), and the sweep re-offers those every run — being
+    // refused again each time, which is exactly the intended no-op.
+    const applied = await db.pg.query<{ n: number }>(
+      `select api_apply_funded_pickups('{}'::jsonb) as n`,
+    );
+    expect(applied.rows[0]!.n).toBeGreaterThanOrEqual(1);
+
+    await db.asOwner();
+    const after = (
+      await db.pg.query<{ pickup_location: string | null; transport_minor: number }>(
+        `select pickup_location, transport_minor from bookings where id = $1`,
+        [b.id],
+      )
+    ).rows[0]!;
+    expect(after.pickup_location).toBe('Le Morne Beach Villa');
+    expect(after.transport_minor).toBe(FAR_SEDAN_MINOR);
+  });
+
+  it('tells the owner when one payment row takes more money than it asked for', async () => {
+    const b = await booking();
+    const addon = await addPaidPickup(b, 'overpay');
+    // A second capture on the same row — the shape a duplicated checkout session produces. Every
+    // branch of the reducer reads `>= amount_minor`, so without this alert it is indistinguishable
+    // from the first and the apply trigger cannot fire again either.
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, $3, now(), '{}'::jsonb)`, [
+      addon,
+      'overpay-second-capture',
+      FAR_SEDAN_MINOR,
+    ]);
+    const alerts = (
+      await db.pg.query<{ n: string }>(
+        `select count(*) as n from notification_outbox
+          where booking_id = $1 and template = 'owner_overpayment'`,
+        [b.id],
+      )
+    ).rows[0]!.n;
+    expect(Number(alerts)).toBe(1);
+  });
+
+  it('keeps the invoice honest after a zero-fee revision orphans the old charge', async () => {
+    const b = await booking();
+    await db.asOwner();
+    await db.pg.query(
+      `update payments set charged_amount_minor = 371000, charged_currency = 'MUR' where id = $1`,
+      [b.bookingPaymentId],
+    );
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const first = await call<{ paymentId: string }>(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Le Morne Beach Villa',
+      pickupLat: SOUTH_LAT,
+      pickupLng: SOUTH_LNG,
+    });
+    await db.asOwner();
+    await db.pg.query(
+      `update payments set charged_amount_minor = 265000, charged_currency = 'MUR' where id = $1`,
+      [first.paymentId],
+    );
+    await db.pg.query(`update transport_band_pricing set sedan_minor = 0 where band = 'same'`);
+
+    // Revised to a free address: the row is applied at zero and CUT LOOSE from that payment.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    await call(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Grand Baie, Royal Palm',
+      pickupLat: NORTH_LAT,
+      pickupLng: NORTH_LNG,
+    });
+    await db.asOwner();
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, $3, now(), '{}'::jsonb)`, [
+      first.paymentId,
+      'zero-revise-settle',
+      FAR_SEDAN_MINOR,
+    ]);
+
+    const receipt = await call<{ payment: { chargedAmountMinor: number }; totalEur: number }>(
+      db,
+      'api_booking_receipt',
+      { bookingId: b.id },
+    );
+    // Nothing of that payment reached total_minor, so nothing of it may reach the charged figure.
+    expect(receipt.totalEur).toBe(b.totalMinor / 100);
+    expect(receipt.payment.chargedAmountMinor).toBe(371000);
+    await db.pg.query(`update transport_band_pricing set sedan_minor = 1500 where band = 'same'`);
+  });
+
+  it('keeps the invoice whole after the guest is erased', async () => {
+    const b = await booking();
+    await db.asOwner();
+    await db.pg.query(
+      `update payments set charged_amount_minor = 371000, charged_currency = 'MUR' where id = $1`,
+      [b.bookingPaymentId],
+    );
+    const addon = await addPaidPickup(b, 'erase-invoice');
+    await db.pg.query(
+      `update payments set charged_amount_minor = 265000, charged_currency = 'MUR' where id = $1`,
+      [addon],
+    );
+    const before = await call<{ payment: { chargedAmountMinor: number } }>(
+      db,
+      'api_booking_receipt',
+      {
+        bookingId: b.id,
+      },
+    );
+    expect(before.payment.chargedAmountMinor).toBe(636000);
+
+    await db.pg.query(`update bookings set user_id = $1 where id = $2`, [CUSTOMER, b.id]);
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await call(db, 'api_erase_user', { userId: CUSTOMER, email: `reg${seq}@example.com` });
+
+    await db.asOwner();
+    const after = await call<{ payment: { chargedAmountMinor: number }; totalEur: number }>(
+      db,
+      'api_booking_receipt',
+      { bookingId: b.id },
+    );
+    // Erasure must not rewrite the money on the record it exists to RETAIN.
+    expect(after.payment.chargedAmountMinor).toBe(636000);
+    expect(after.totalEur).toBe((b.totalMinor + FAR_SEDAN_MINOR) / 100);
+  });
+
+  it('re-queries a supplement whose session was minted long after the address', async () => {
+    const b = await booking();
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const req = await call<{ paymentId: string }>(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Le Morne Beach Villa',
+      pickupLat: SOUTH_LAT,
+      pickupLng: SOUTH_LNG,
+    });
+    // The guest commits the address, walks away, and pays from the resume button six hours later.
+    // The grace window has to cover the SESSION, not the intent, or a lost webhook is never swept.
+    await db.asOwner();
+    await db.pg.query(
+      `update payments
+          set created_at = now() - interval '6 hours',
+              provider_checkout_id = 'chk_late_mint', checkout_created_at = now()
+        where id = $1`,
+      [req.paymentId],
+    );
+    const found = await call<Array<{ paymentId: string }>>(db, 'api_pending_payment_checkouts', {});
+    expect(found.some((c) => c.paymentId === req.paymentId)).toBe(true);
   });
 });

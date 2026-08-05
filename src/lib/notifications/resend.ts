@@ -217,6 +217,24 @@ Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
 Belle Mare Tours (internal alert)`,
     };
   }
+  // Money we did not ask for. Rare by construction, and invisible everywhere else in the ledger —
+  // which is exactly why it is worth a loud, specific email rather than a log line.
+  if (message.template === 'owner_overpayment') {
+    const expected = typeof p.expectedEur === 'number' ? p.expectedEur.toFixed(2) : '?';
+    const paid = typeof p.paidEur === 'number' ? p.paidEur.toFixed(2) : '?';
+    return {
+      subject: `Action needed: ${ref} was overpaid (€${paid} against €${expected})`,
+      text: `Booking ${ref} (${name}) has taken MORE money than it asked for on a single payment: €${paid} settled against an expected €${expected}${
+        typeof p.purpose === 'string' ? ` (${p.purpose})` : ''
+      }.
+
+That normally means one checkout session was completed twice. Check the transactions in the Peach dashboard and refund the duplicate.
+
+Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
+
+Belle Mare Tours (internal alert)`,
+    };
+  }
   if (message.template === 'booking_expired') {
     return {
       subject: `Your Belle Mare Tours reservation ${ref} has expired`,

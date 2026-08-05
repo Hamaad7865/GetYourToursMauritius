@@ -27960,25 +27960,55 @@ create trigger quotes_redact_lines_on_anonymize
 --
 -- Everything downstream of it is the existing, untouched money path (Peach checkout → HMAC webhook →
 -- append_payment_event → confirmation + VAT invoice), so this function is the whole of the new code
--- standing between a staff-drafted offer and a real charge. Three rules are baked in:
+-- standing between a staff-drafted offer and a real charge. The rules baked in:
 --
---   * a quote converts ONCE. The guard reads `converted_at`, NEVER `booking_id` — that is the
---     contract stated in section 4, and it exists because api_erase_user hard-deletes unpaid
---     bookings and the `on delete set null` FK then silently clears booking_id, which would re-arm a
---     converted quote to mint a second payable booking. Both columns are written together;
---     quote_converted_shape makes forgetting one impossible, and the UNIQUE on booking_id is the
---     second line of defence.
+--   * "converts once" means ONE PAYABLE BOOKING AT A TIME, not one attempt ever — see the
+--     re-arm note below.
 --   * `for update` on the quote row, so two guests clicking Pay at the same instant serialise here
 --     rather than both reading an unconverted quote and both minting a booking.
---   * only NON-catalogue lines are copied. A catalogue line names an occurrence, so it carries
---     capacity and must go through the existing hold path into booking_items — that is the pay
---     route's job (a later task). This function therefore covers custom/rental lines only, which is
---     also what makes it independently testable.
+--   * it FAILS CLOSED on a catalogue line — see the guard below.
+--   * every refusal raises a repo error TOKEN, never a human sentence. src/lib/services/db-errors.ts
+--     matches snake_case tokens on word boundaries; anything else falls through to
+--     `console.error('[db] unmapped database error')` + ProviderError, i.e. HTTP 500 "Database
+--     error". On the money path that reads as a broken site and invites the retry loop the
+--     convert-once guard exists to end, and it floods error_logs with unmapped noise. Each token
+--     below has a branch in mapDbError; add them together or the guard is invisible to the guest.
+--
+-- WHY THE GUARD READS `converted_at`, NEVER `booking_id`: that is the contract stated in section 4.
+-- api_erase_user hard-deletes unpaid bookings and the `on delete set null` FK then silently clears
+-- booking_id, so a guard on `booking_id is null` would see an erased quote as unconverted and mint a
+-- second payable booking. Both columns are written together; quote_converted_shape makes forgetting
+-- one impossible, and the UNIQUE on booking_id is the second line of defence.
+--
+-- WHY CONVERSION IS NOT A ONE-WAY DOOR: the minted booking is `payment_pending`, and
+-- run_booking_maintenance expires such a booking 30 minutes after it was created. A guest who
+-- converts and then leaves to fetch their card would come back to a booking api_create_payment
+-- refuses ('booking_not_payable' on 'expired') attached to a quote this function refused to convert
+-- again — payable by nobody, recoverable only by hand-editing production. That is precisely the
+-- "cancelled-checkout trap" this repo already fixed once (2026-07-25). So when `converted_at` is
+-- set, the linked booking is inspected inside the same `for update`: if it is DEAD and never took a
+-- cent (expired/cancelled/failed, booking-level payment_state pending or failed, and no payments row
+-- that settled, refunded or is under settlement review) the quote re-arms and mints afresh, leaving
+-- the dead booking behind as the audit trail. Everything else keeps refusing — including, and
+-- deliberately, the case where the linked booking is GONE (booking_id null after an erasure), which
+-- is the section-4 invariant and must never be softened into "no booking, so mint one".
 --
 -- `ref` is deliberately NOT supplied. The column default has been the Peach-safe generator since
 -- 20260736000000 ('BMT' + 13 hex, 16 alnum chars, no separator) — and that default has already been
 -- changed once, precisely to satisfy Peach's merchantTransactionId limit. Re-deriving the format
 -- here would be a second copy that a third change would silently leave behind, on the money path.
+--
+-- `operator_payout_minor` is set alongside `total_minor` because payout == total is the invariant
+-- every other booking-minting path in the repo maintains (the bookings table header states it;
+-- 20260805000000 inserts `v_total, v_total, 0`). It is not self-healing either:
+-- enforce_booking_admin_update (20260615121600) pins the column for any anon/authenticated write, so
+-- a quote booking minted with the 0 default is permanently wrong in the payout report.
+--
+-- It returns `booking_json(id)` — the camelCase DTO every other booking-returning RPC returns and
+-- the shape the service layer and the booking Zod schema parse. `to_jsonb(v_booking)` would return
+-- the raw 46-column row AND silently widen this function's output contract every time a column is
+-- added to `bookings`, which for a service_role-only function on the money path is a contract that
+-- changes with nobody editing it.
 --
 -- No in-function caller guard by design: like every other server-only api_* function here, the
 -- EXECUTE grant IS the authorization, which is why the revoke below names anon and authenticated
@@ -27993,7 +28023,9 @@ set search_path = public
 as $$
 declare
   v_quote quotes;
+  v_prior bookings;
   v_booking bookings;
+  v_reusable boolean := false;
 begin
   select * into v_quote
     from quotes
@@ -28001,28 +28033,86 @@ begin
    for update;
 
   if v_quote.id is null then
-    raise exception 'Quote not found';
+    raise exception 'quote_not_found';
   end if;
+
+  -- Convert-once, read off converted_at, and meaning "one PAYABLE booking at a time" (see above).
   if v_quote.converted_at is not null then
-    raise exception 'Quote already converted';
+    -- booking_id is null here when an erasure hard-deleted the booking; the select finds nothing and
+    -- v_reusable stays false, which is the section-4 invariant.
+    select * into v_prior from bookings where id = v_quote.booking_id;
+    v_reusable := found
+      and v_prior.status in ('expired', 'cancelled', 'failed')
+      and v_prior.payment_state in ('pending', 'failed')
+      and not exists (
+        select 1 from payments pay
+         where pay.booking_id = v_prior.id
+           and (pay.paid_minor > 0
+                or pay.refunded_minor > 0
+                or pay.status in ('paid', 'partially_refunded', 'refunded')
+                or pay.settlement_review_at is not null)
+      );
+    if not v_reusable then
+      raise exception 'quote_already_converted'
+        using detail = coalesce(v_prior.status::text, 'linked booking no longer exists');
+    end if;
   end if;
+
+  -- Status: an explicit WHITELIST, the shape api_create_payment uses next door. A blacklist of one
+  -- let a 'draft' (a half-built offer the owner has not sent, whose total may be mid-edit) and an
+  -- 'expired' quote — a terminal state of the very enum this migration created — both convert.
+  -- 'accepted' is in the list because that is what a converted quote's status already is, and the
+  -- re-arm branch above has to be able to get past here.
   if v_quote.status = 'cancelled' then
-    raise exception 'Quote is cancelled';
+    raise exception 'quote_cancelled';
   end if;
-  if v_quote.valid_until < current_date then
-    raise exception 'Quote has expired';
+  if v_quote.status = 'expired' or v_quote.valid_until < current_date then
+    raise exception 'quote_expired';
+  end if;
+  if v_quote.status not in ('sent', 'accepted') then
+    raise exception 'quote_not_convertible' using detail = v_quote.status::text;
+  end if;
+
+  -- A zero-total quote mints a booking that can NEVER confirm: api_create_payment skips the FX pin
+  -- for a zero amount, and append_payment_event carries an explicit guard whose own comment says "a
+  -- zero-amount payment must never read as fully paid (0 >= 0)". The booking would sit in
+  -- payment_pending until the sweep expired it. quotes.total_minor DEFAULTS to 0, so an empty or
+  -- never-priced draft reaches this state by default rather than by accident.
+  if coalesce(v_quote.total_minor, 0) <= 0 then
+    raise exception 'quote_not_convertible' using detail = 'zero total';
+  end if;
+
+  -- FAIL CLOSED on a catalogue line, until the hold path exists.
+  --
+  -- A catalogue line names an occurrence, so it carries capacity and must travel through the
+  -- existing hold path into booking_items — that is the pay route's job, in a later task. Copying
+  -- `total_minor` whole while dropping the line would charge the guest for a seat nobody reserved,
+  -- with no voucher line and no day-sheet entry; and append_payment_event's oversell re-check loops
+  -- `select distinct session_occurrence_id from booking_items where booking_id = …`, which would be
+  -- EMPTY, so the booking would confirm unconditionally. converted_at would then lock the quote, so
+  -- the lines could never be attached by a second call either. A comment saying "that is the pay
+  -- route's job" is not a guard.
+  --
+  -- DELETE THIS GUARD IN THE TASK THAT ADDS THE HOLD PATH, not before.
+  if exists (
+    select 1 from quote_items qi where qi.quote_id = v_quote.id and qi.kind = 'catalogue'
+  ) then
+    raise exception 'quote_has_catalogue_lines';
   end if;
 
   insert into bookings (
     customer_name, customer_email, customer_phone, status, source,
-    currency, total_minor, payment_state, locale
+    currency, total_minor, operator_payout_minor, payment_state, locale
   )
   values (
     v_quote.customer_name, v_quote.customer_email, v_quote.customer_phone, 'payment_pending', 'quote',
-    v_quote.currency, v_quote.total_minor, 'pending', v_quote.locale
+    v_quote.currency, v_quote.total_minor, v_quote.total_minor, 'pending', v_quote.locale
   )
   returning * into v_booking;
 
+  -- The `kind <> 'catalogue'` filter is redundant after the guard above and stays deliberately:
+  -- booking_custom_items has a `check (kind <> 'catalogue')`, so this select is what keeps the two
+  -- statements agreeing when the guard is lifted and catalogue lines start taking the hold path.
   insert into booking_custom_items (
     booking_id, position, kind, description, starts_at, ends_at,
     rental_vehicle_slug, quantity, unit_amount_minor, subtotal_minor
@@ -28033,6 +28123,7 @@ begin
    where qi.quote_id = v_quote.id
      and qi.kind <> 'catalogue';
 
+  -- Overwrites booking_id on a re-arm, which releases the dead booking from the UNIQUE.
   update quotes
      set booking_id = v_booking.id,
          converted_at = now(),
@@ -28040,7 +28131,7 @@ begin
          updated_at = now()
    where id = v_quote.id;
 
-  return to_jsonb(v_booking);
+  return booking_json(v_booking.id);
 end;
 $$;
 revoke execute on function api_convert_quote(jsonb) from public, anon, authenticated;
@@ -28138,10 +28229,14 @@ create table if not exists booking_pickup_requests (
   booking_id uuid not null references bookings (id) on delete cascade,
   -- Null only for a zero-fee request (same region, no supplement due), which is applied immediately.
   payment_id uuid references payments (id) on delete set null,
-  pickup_location text not null,
-  pickup_lat double precision not null,
-  pickup_lng double precision not null,
-  pickup_region text not null,
+  -- Nullable so a GDPR erasure can strip the address WITHOUT deleting the row: api_booking_receipt
+  -- reads applied_at as its proof that a settled supplement belongs on the invoice, and the fare
+  -- stays inside bookings.total_minor forever. Deleting the row made the retained financial record
+  -- contradict itself. api_request_pickup always writes all three.
+  pickup_location text,
+  pickup_lat double precision,
+  pickup_lng double precision,
+  pickup_region text,
   dropoff_location text,
   fee_minor int not null default 0 check (fee_minor >= 0),
   applied_at timestamptz,
@@ -28445,10 +28540,14 @@ begin
      where id = v_booking.id;
 
     if v_req.id is not null then
+      -- payment_id is CUT LOOSE. This row is being applied at zero, so it is no longer the record of
+      -- what that payment bought — and two things read it that way: notify_pickup_orphan_payment
+      -- (which must still alert if the old session settles) and api_booking_receipt's fold-in gate
+      -- (which would otherwise put a charge on the invoice that never reached the booking total).
       update booking_pickup_requests
          set pickup_location = v_pickup, pickup_lat = v_lat, pickup_lng = v_lng,
              pickup_region = v_region, dropoff_location = v_dropoff, fee_minor = 0,
-             applied_at = now(), updated_at = now()
+             payment_id = null, applied_at = now(), updated_at = now()
        where id = v_req.id;
     else
       insert into booking_pickup_requests (
@@ -28823,6 +28922,18 @@ begin
     if not found then
       raise exception 'pickup_request_not_found';
     end if;
+    -- …and it must not ALREADY hold the guest's money. A request refused at settlement (the departure
+    -- was called off) stays open behind a payments row that is already 'paid'. If the trip is then
+    -- rescheduled onto a live date the eligibility ladder goes green again, and without this guard
+    -- the booking page's "Complete payment" button minted a SECOND Peach session on that same row —
+    -- charging the card twice for one supplement, invisibly: the apply trigger cannot fire again
+    -- (its WHEN clause needs old.status distinct from 'paid'), so no second alert is raised either.
+    if exists (
+      select 1 from payments pay
+       where pay.id = v_req.payment_id and pay.paid_minor >= pay.amount_minor and pay.amount_minor > 0
+    ) then
+      raise exception 'pickup_already_paid';
+    end if;
     if not coalesce((pickup_addon_quote(v_booking.id, v_req.pickup_lat, v_req.pickup_lng) ->> 'eligible')::boolean, false) then
       raise exception 'booking_not_payable' using detail = 'pickup_addon';
     end if;
@@ -28990,7 +29101,12 @@ as $$
     from (
       select distinct on (b.id, pay.purpose)
              b.id, b.ref,
-             case when pay.purpose = 'pickup_addon' then pay.created_at else b.created_at end as created_at,
+             -- For an add-on, from whichever is later: the row is created when the guest commits the
+             -- ADDRESS, but they can mint the Peach session on it hours later (the resume button), and
+             -- the grace window has to cover the session, not the intent.
+             case when pay.purpose = 'pickup_addon'
+                  then greatest(pay.created_at, coalesce(pay.checkout_created_at, pay.created_at))
+                  else b.created_at end as created_at,
              pay.id as payment_id, pay.provider_checkout_id, pay.prev_provider_checkout_id
         from bookings b
         join payments pay on pay.booking_id = b.id
@@ -29001,7 +29117,9 @@ as $$
                or
                (pay.purpose = 'pickup_addon' and pay.status in ('pending', 'failed'))
              )
-         and (case when pay.purpose = 'pickup_addon' then pay.created_at else b.created_at end)
+         and (case when pay.purpose = 'pickup_addon'
+                   then greatest(pay.created_at, coalesce(pay.checkout_created_at, pay.created_at))
+                   else b.created_at end)
                > now() - make_interval(
                    mins => least(greatest(coalesce((p ->> 'graceMinutes')::int, 240), 1), 10080)
                  )
@@ -29371,6 +29489,27 @@ begin
   set status = v_state, paid_minor = v_paid, refunded_minor = v_refunded, updated_at = now()
   where id = p_payment_id
   returning * into v_payment;
+
+  -- MORE money than we asked for, on one payments row. Nothing else in this system can see that: the
+  -- reducer's own branches all read `>= amount_minor`, so a second capture on an already-paid row is
+  -- indistinguishable from the first, and the late-pickup apply trigger cannot re-fire on it. It
+  -- should be impossible — but "impossible" is what the double-charge guards keep discovering it is
+  -- not, and the only honest response to money we did not ask for is to tell someone who can return it.
+  if v_payment.amount_minor > 0 and v_paid > v_payment.amount_minor then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    select 'email', 'owner', 'owner_overpayment',
+           jsonb_build_object(
+             'ref', b.ref,
+             'customerName', b.customer_name,
+             'expectedEur', v_payment.amount_minor::float / 100,
+             'paidEur', v_paid::float / 100,
+             'purpose', v_payment.purpose
+           ),
+           b.id,
+           'overpaid:' || v_payment.id::text
+      from bookings b where b.id = v_payment.booking_id
+    on conflict (idempotency_key) do nothing;
+  end if;
 
   -- BOOKING-level projection, rolled up across every payment row of this booking -- best row wins,
   -- and 'failed' only when EVERY row failed. Written from the single touched row it was a latch: one
@@ -29818,9 +29957,18 @@ begin
   -- GPS coordinates of where they were staying (20260910000000). Nulling bookings.pickup_location
   -- above leaves that copy untouched, and because a late pickup only ever exists on a confirmed+paid
   -- booking, every one of these rows belongs to the RETAINED set - it would survive erasure forever.
-  -- Nothing financial lives here: the fare is on bookings.transport_minor and the money trail is in
-  -- payments/payment_events, so these rows are deleted outright rather than redacted.
-  delete from booking_pickup_requests where booking_id = any(v_anon_ids);
+  --
+  -- ANONYMIZED, not deleted. The row is also the receipt's evidence that a settled supplement was
+  -- applied (api_booking_receipt folds a charge in only when applied_at is set), while its fare stays
+  -- inside bookings.total_minor for good — so deleting it made the retained VAT invoice report a
+  -- charge smaller than its own line items. Keep the money facts (fee_minor, applied_at, payment_id),
+  -- strip the person.
+  update booking_pickup_requests
+     set pickup_location = null, pickup_lat = null, pickup_lng = null,
+         pickup_region = null, dropoff_location = null, updated_at = now()
+   where booking_id = any(v_anon_ids)
+     and (pickup_location is not null or dropoff_location is not null
+          or pickup_lat is not null or pickup_lng is not null);
 
   -- ---- Redact the notification outbox -------------------------------------------------------------
   -- Strip recipient (the email) + the customerName key from any queued/sent message for this person,
@@ -29939,6 +30087,64 @@ $$;
 
 revoke execute on function api_erase_user(jsonb) from public, anon;
 grant execute on function api_erase_user(jsonb) to authenticated, service_role;
+
+-- ---------------------------------------------------------------------------
+-- 15) api_apply_funded_pickups — settle a supplement we already hold but could not apply.
+--
+--     apply_pickup_request refuses at settlement when the departure has been called off. The guest's
+--     money is captured, the request stays open, and the owner is told to refund it — but the usual
+--     next step is that the guest takes the RESCHEDULE arm onto a live date, at which point they still
+--     want the pickup and we are still holding exactly the right amount for it. Leaving that to a
+--     manual refund + a second payment is worse for everyone, and it is what made the double-charge
+--     above reachable.
+--
+--     So the maintenance cron retries. apply_pickup_request re-checks every gate itself (booking live,
+--     departure running, not already applied), which is what makes an unconditional retry safe: this
+--     function only decides WHICH payments are worth re-offering to it.
+-- ---------------------------------------------------------------------------
+create or replace function api_apply_funded_pickups(p jsonb default '{}'::jsonb)
+returns int
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_count int := 0;
+  v_payment_id uuid;
+  v_before timestamptz;
+begin
+  if auth.role() <> 'service_role' then
+    raise exception 'forbidden' using errcode = '42501';
+  end if;
+
+  for v_payment_id in
+    select r.payment_id
+      from booking_pickup_requests r
+      join payments pay on pay.id = r.payment_id
+     where r.applied_at is null
+       and r.fee_minor > 0
+       and pay.purpose = 'pickup_addon'
+       and pay.paid_minor >= r.fee_minor
+     order by r.created_at
+  loop
+    select applied_at into v_before from booking_pickup_requests where payment_id = v_payment_id;
+    perform apply_pickup_request(v_payment_id);
+    -- Count only what actually landed: the gates inside may still refuse (the trip is still called
+    -- off), and this number is read by the cron's health verdict.
+    if v_before is null and exists (
+      select 1 from booking_pickup_requests where payment_id = v_payment_id and applied_at is not null
+    ) then
+      v_count := v_count + 1;
+    end if;
+  end loop;
+
+  return v_count;
+end;
+$$;
+
+revoke execute on function api_apply_funded_pickups(jsonb) from public, anon, authenticated;
+grant execute on function api_apply_funded_pickups(jsonb) to service_role;
 
 commit;
 
