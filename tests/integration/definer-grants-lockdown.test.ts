@@ -34,6 +34,13 @@ const LOCKED = [
   // Mints a PAYABLE booking from a quote id alone (20260909000000) — no in-function caller guard, so
   // an open grant would let any caller mint bookings (and enumerate quotes by probing ids).
   'api_convert_quote(jsonb)',
+  // The quote anonymize trigger (20260909000000). Listed here, not only in the per-migration loop in
+  // quotes-schema.test.ts, because THIS is the guard that survives: it is the one a future migration
+  // adding a definer gets measured against, and dropping `authenticated` from a revoke is the mistake
+  // this repo has now made three times. A trigger function belongs here for the same reason
+  // enqueue_booking_notification() does — trigger execution never checks the caller's EXECUTE, so the
+  // grant buys the function nothing and costs it nothing to remove.
+  'quotes_redact_lines()',
 ];
 
 describe('internal SECURITY DEFINER functions are locked to service_role', () => {
