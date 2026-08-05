@@ -147,7 +147,14 @@ create policy quote_items_staff on quote_items for all to authenticated
 create policy booking_custom_items_staff on booking_custom_items for all to authenticated
   using (is_staff()) with check (is_staff());
 
+-- The revoke is what actually closes anon (stock Supabase default privileges hand every new table to
+-- anon + authenticated). The grants must then be explicit, because a fresh database built from
+-- setup.sql — and the PGlite harness — has no default privileges at all, so without them the staff
+-- policies above would gate a table nobody may touch.
 revoke all on quotes, quote_items, booking_custom_items from public, anon;
+grant select, insert, update, delete on quotes to authenticated, service_role;
+grant select, insert, update, delete on quote_items to authenticated, service_role;
+grant select, insert, update, delete on booking_custom_items to authenticated, service_role;
 ```
 
 - [ ] **Step 2: Append the identical body to `supabase/catch-up.sql`**

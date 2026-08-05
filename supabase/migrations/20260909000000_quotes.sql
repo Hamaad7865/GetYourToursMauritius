@@ -75,6 +75,8 @@ create table if not exists quotes (
   -- Set once the guest pays. UNIQUE so one quote can never mint two payable bookings.
   booking_id uuid unique references bookings (id) on delete set null,
   locale content_locale not null default 'en',
+  -- `set null`: a quote is a financial record that outlives its author, so deleting a departed
+  -- colleague's auth user must forget who drafted it, never be blocked by it or delete it with them.
   created_by uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

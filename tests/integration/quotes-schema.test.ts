@@ -9,6 +9,11 @@ import { seedOccurrence } from '../db/seed';
  * just the same if a table were spelled wrong or a constraint silently dropped. This asserts the
  * invariants the migration exists to enforce, before api_convert_quote is built on top of them:
  *
+ *  - `booking_source` gained the label 'quote'. This is the migration's ONE order-sensitive statement
+ *    — it has to come first, because Postgres forbids using a value added by ALTER TYPE inside the
+ *    transaction that added it — and it is the value api_convert_quote writes into `bookings.source`.
+ *    Drop it or move it and every other guard in this file, the ledger tests and catch-up parity all
+ *    stay green; the failure would surface only when the conversion RPC is built on top of it.
  *  - the money columns are `bigint`, like every other column on the money path (int caps at ~21.4M
  *    EUR-cents; 20260615121000 widened bookings/booking_items for exactly the full-boat charter case
  *    a bespoke quote is FOR, so the quotes tables must not reintroduce the cap);
@@ -53,6 +58,22 @@ describe('quotes schema (20260909000000)', () => {
 
   afterAll(async () => {
     await db.close();
+  });
+
+  it("adds 'quote' to the booking_source enum", async () => {
+    const { rows } = await db.pg.query<{ label: string }>(
+      `select e.enumlabel as label
+         from pg_enum e
+         join pg_type t on t.oid = e.enumtypid
+        where t.typname = 'booking_source'
+        order by e.enumsortorder`,
+    );
+    const labels = rows.map((row) => row.label);
+    expect(labels, 'booking_source enum is missing entirely').not.toHaveLength(0);
+    expect(
+      labels,
+      `booking_source is [${labels.join(', ')}]; api_convert_quote inserts source = 'quote' and would fail at runtime`,
+    ).toContain('quote');
   });
 
   it('stores every money column as bigint, not int', async () => {
