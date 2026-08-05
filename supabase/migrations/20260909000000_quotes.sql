@@ -60,10 +60,11 @@ create table if not exists quotes (
   customer_phone text,
   status quote_status not null default 'draft',
   currency text not null default 'EUR',
-  -- Minor units, like every other money column here (bookings.total_minor is `int`, and this figure
-  -- is copied straight into it at conversion — same type, so a too-large quote fails when it is
-  -- entered, not silently at the insert).
-  total_minor int not null default 0,
+  -- Minor units, and `bigint` like every other money column on the money path: 20260615121000
+  -- widened bookings.total_minor and booking_items' amounts precisely because int caps at ~21.4M
+  -- EUR-cents and a full-boat charter overflows it. A bespoke quote IS that case, and this figure is
+  -- copied straight into bookings.total_minor at conversion, so it must be the same width.
+  total_minor bigint not null default 0,
   valid_until date not null,
   intro_note text,
   -- Staff-only. Never rendered into the guest email or the public page.
@@ -95,8 +96,8 @@ create table if not exists quote_items (
   ends_at timestamptz,
   rental_vehicle_slug text references rental_vehicles (slug),
   quantity int not null check (quantity > 0),
-  unit_amount_minor int not null check (unit_amount_minor >= 0),
-  subtotal_minor int not null check (subtotal_minor >= 0),
+  unit_amount_minor bigint not null check (unit_amount_minor >= 0),
+  subtotal_minor bigint not null check (subtotal_minor >= 0),
   -- A catalogue line must name an occurrence + option; a custom/rental line must not.
   constraint quote_item_shape check (
     (kind = 'catalogue' and session_occurrence_id is not null and activity_option_id is not null)
@@ -121,8 +122,8 @@ create table if not exists booking_custom_items (
   ends_at timestamptz,
   rental_vehicle_slug text references rental_vehicles (slug),
   quantity int not null check (quantity > 0),
-  unit_amount_minor int not null check (unit_amount_minor >= 0),
-  subtotal_minor int not null check (subtotal_minor >= 0),
+  unit_amount_minor bigint not null check (unit_amount_minor >= 0),
+  subtotal_minor bigint not null check (subtotal_minor >= 0),
   created_at timestamptz not null default now()
 );
 create index if not exists booking_custom_items_booking_idx on booking_custom_items (booking_id, position);
