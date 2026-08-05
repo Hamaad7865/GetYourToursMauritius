@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { transfers, nearestTransfer, type Transfer } from '@/lib/content/transfers';
+import { transferFromPriceEur } from '@/lib/transfers/from-price';
+import type { AirportFareByZone } from '@/lib/services/pricing';
 import { guestHotelQuery } from '@/lib/content/guest-hotel';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import { useT } from '@/components/site/PreferencesProvider';
@@ -16,8 +18,11 @@ import { IconArrowRight, IconPin, IconSearch } from '@/components/ui/icons';
  * a picked place that isn't one of our 45 listed hotels is SNAPPED to the geographically nearest listed
  * hotel (same coarse airport zone → same fixed price → a real bookable page). When Maps isn't ready it
  * degrades to the curated typeahead over our covered resorts.
+ *
+ * `fares` is the live zone matrix, handed down by the (server) page so each suggestion's "from" price
+ * is the fare that hotel's zone really charges rather than a per-region estimate sitting below it.
  */
-export function TransferSearch() {
+export function TransferSearch({ fares }: { fares: AirportFareByZone }) {
   const t = useT();
   const router = useRouter();
   const placesReady = useGoogleMaps() === 'ready';
@@ -54,7 +59,11 @@ export function TransferSearch() {
         </div>
 
         {/* To — Google Places (any hotel) when Maps is ready, else the curated typeahead. */}
-        {placesReady ? <PlacesToField onPick={go} /> : <TypeaheadToField onPick={go} />}
+        {placesReady ? (
+          <PlacesToField onPick={go} />
+        ) : (
+          <TypeaheadToField onPick={go} fares={fares} />
+        )}
       </div>
     </div>
   );
@@ -126,7 +135,13 @@ function PlacesToField({
 }
 
 /** Fallback: typeahead over the 45 covered resorts (used until Google Maps is ready / if it fails). */
-function TypeaheadToField({ onPick }: { onPick: (hotel: Transfer) => void }) {
+function TypeaheadToField({
+  onPick,
+  fares,
+}: {
+  onPick: (hotel: Transfer) => void;
+  fares: AirportFareByZone;
+}) {
   const t = useT();
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
@@ -238,7 +253,7 @@ function TypeaheadToField({ onPick }: { onPick: (hotel: Transfer) => void }) {
                     </span>
                   </span>
                   <span className="shrink-0 text-[12.5px] font-extrabold text-ink">
-                    {t('from')} €{hotel.fromPriceEur}
+                    {t('from')} €{transferFromPriceEur(hotel.slug, fares)}
                   </span>
                 </button>
               </li>

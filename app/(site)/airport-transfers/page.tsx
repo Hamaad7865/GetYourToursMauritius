@@ -17,6 +17,7 @@ import { HeroWaves } from '@/components/about/HeroWaves';
 import { AirportArrival } from '@/components/transfers/AirportArrival';
 import { TransferSearch } from '@/components/transfers/TransferSearch';
 import { HotelMap } from '@/components/transfers/HotelMap';
+import { loadAirportFares } from '@/lib/transfers/from-price';
 import { TransferModeSwitch } from '@/components/transfers/TransferModeSwitch';
 import { TransferReviews } from '@/components/transfers/TransferReviews';
 import {
@@ -236,8 +237,11 @@ export default async function AirportTransfersPage() {
     vanMinor: 0,
     coasterMinor: 0,
   };
-  const zone2Fare: AirportFare = AIRPORT_FARE_DEFAULT.zone2 ?? EMPTY_FARE;
-  const zone1Fare: AirportFare = AIRPORT_FARE_DEFAULT.zone1 ?? EMPTY_FARE;
+  // LIVE fares (falling back to the bundled seed), so this published table, the map pins, the search
+  // suggestions and every hotel page quote the one matrix the owner edits in admin → Pricing.
+  const fares = await loadAirportFares();
+  const zone2Fare: AirportFare = fares.zone2 ?? AIRPORT_FARE_DEFAULT.zone2 ?? EMPTY_FARE;
+  const zone1Fare: AirportFare = fares.zone1 ?? AIRPORT_FARE_DEFAULT.zone1 ?? EMPTY_FARE;
   const fareRows: { zone: string; hint: string; fare: AirportFare }[] = [
     {
       zone: t('Zone 2 — near the airport'),
@@ -599,7 +603,7 @@ export default async function AirportTransfersPage() {
               >
                 {t('Where are you staying?')}
               </div>
-              <TransferSearch />
+              <TransferSearch fares={fares} />
               <p
                 className="mt-3.5 text-[14px] font-semibold"
                 style={{ color: 'rgba(255,255,255,0.92)' }}
@@ -807,7 +811,7 @@ export default async function AirportTransfersPage() {
             </p>
           </div>
           <div data-reveal>
-            <HotelMap />
+            <HotelMap fares={fares} />
           </div>
           <div data-reveal className="mt-[clamp(22px,3vw,30px)]">
             <div

@@ -8,6 +8,7 @@ import { loadPosts } from '@/lib/content/blog-live';
 import type { AuditPage } from '@/lib/seo/audit';
 import { areas, areaMetaTitle, areaMetaDescription } from '@/lib/content/areas';
 import { transfers, transferMetaTitle, transferMetaDescription } from '@/lib/content/transfers';
+import { loadAirportFares, transferFromPriceEur } from '@/lib/transfers/from-price';
 import { loadPlaces } from '@/lib/catalogue/places';
 import {
   attractionPath,
@@ -39,6 +40,9 @@ export interface SeoPageGroup {
 
 /** Defaults come from the SAME helpers the pages use, so a preview can never drift from the page. */
 export async function buildSeoPageGroups(): Promise<SeoPageGroup[]> {
+  // Transfer titles quote a "from" price, which comes off the live fare table (same call the pages
+  // make, cached per request) — the SEO editor must preview the price the page will actually print.
+  const fares = await loadAirportFares();
   const groups: SeoPageGroup[] = [
     {
       key: 'core',
@@ -62,13 +66,16 @@ export async function buildSeoPageGroups(): Promise<SeoPageGroup[]> {
       key: 'transfers',
       label: 'Hotel transfers',
       hint: 'One per resort we quote a fixed airport fare for (/airport-transfers/…).',
-      pages: transfers.map((t) => ({
-        path: t.path,
-        label: t.hotelName,
-        defaultTitle: transferMetaTitle(t),
-        defaultDescription: transferMetaDescription(t),
-        templated: true,
-      })),
+      pages: transfers.map((t) => {
+        const fromPriceEur = transferFromPriceEur(t.slug, fares);
+        return {
+          path: t.path,
+          label: t.hotelName,
+          defaultTitle: transferMetaTitle(t, fromPriceEur),
+          defaultDescription: transferMetaDescription(t, fromPriceEur),
+          templated: true,
+        };
+      }),
     },
   ];
 

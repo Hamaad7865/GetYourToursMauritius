@@ -157,7 +157,7 @@ describe('transfers content localisation', () => {
     expect(en.faq).toEqual(luxBelleMare.faq);
   });
 
-  it('never touches hotel/area/region/distance/duration/path/fromPriceEur or nearbyAttractions', () => {
+  it('never touches hotel/area/region/distance/duration/path or nearbyAttractions', () => {
     // These are real-world facts a customer relies on (or real proper nouns) — TransferTranslation
     // cannot even express them, so a French entry can never override them.
     const fr = localisedTransfer(luxBelleMare, 'fr');
@@ -167,7 +167,6 @@ describe('transfers content localisation', () => {
     expect(fr.distanceKmFromAirport).toBe(luxBelleMare.distanceKmFromAirport);
     expect(fr.durationMinFromAirport).toBe(luxBelleMare.durationMinFromAirport);
     expect(fr.path).toBe(luxBelleMare.path);
-    expect(fr.fromPriceEur).toBe(luxBelleMare.fromPriceEur);
     expect(fr.nearbyAttractions).toEqual(luxBelleMare.nearbyAttractions);
   });
 

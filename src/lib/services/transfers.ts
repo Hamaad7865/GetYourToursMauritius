@@ -1,7 +1,9 @@
 import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
-import { transfers, type TransferRegion } from '@/lib/content/transfers';
+import { transfers } from '@/lib/content/transfers';
+import { loadAirportFares } from '@/lib/transfers/from-price';
+import { airportTransferFareMinor, centsToEur } from '@/lib/services/pricing';
 import {
   transferAreaSchema,
   transferHotelSchema,
@@ -13,17 +15,7 @@ import {
   type TransferQuoteQuery,
 } from '@/lib/validation/transfers';
 
-/** Representative "from" price by region — fallback when a hotel has no generated content row (mirror of
- *  FROM_PRICE_BY_REGION in src/lib/content/transfers.ts). The exact price always comes from the quote. */
-const FROM_PRICE_BY_REGION: Record<string, number> = {
-  South: 25,
-  East: 35,
-  Central: 30,
-  West: 40,
-  North: 50,
-};
-
-/** slug → generated landing-page content (area, coords, duration, from-price). */
+/** slug → generated landing-page content (area, coords, duration). */
 const CONTENT_BY_SLUG = new Map(transfers.map((t) => [t.slug, t]));
 
 const hotelsRpcSchema = z.object({
@@ -44,6 +36,10 @@ export async function searchTransferHotels(
     pageSize: query.pageSize,
   });
   const parsed = hotelsRpcSchema.parse(data ?? { items: [], total: 0 });
+  // The row's own ZONE decides the fare, priced off the live matrix — this used to be a per-region
+  // estimate (a second copy of the one the landing pages carried), which sat below what a guest is
+  // actually charged. Standard car, one way: the cheapest thing bookable to that hotel.
+  const fares = await loadAirportFares();
   const items = parsed.items.map((h): TransferHotel => {
     const c = CONTENT_BY_SLUG.get(h.slug);
     return transferHotelSchema.parse({
@@ -55,7 +51,7 @@ export async function searchTransferHotels(
       lat: c?.lat ?? null,
       lng: c?.lng ?? null,
       durationMin: c?.durationMinFromAirport ?? null,
-      fromPriceEur: c?.fromPriceEur ?? FROM_PRICE_BY_REGION[h.region as TransferRegion] ?? null,
+      fromPriceEur: centsToEur(airportTransferFareMinor(h.zone, 4, false, fares)) || null,
     });
   });
   return { items, total: parsed.total };

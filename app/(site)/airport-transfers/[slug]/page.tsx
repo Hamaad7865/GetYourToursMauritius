@@ -13,6 +13,7 @@ import {
   localisedTransfer,
 } from '@/lib/content/transfers';
 import { parseGuestHotel } from '@/lib/content/guest-hotel';
+import { loadAirportFares, transferFromPriceEur } from '@/lib/transfers/from-price';
 import { transferServiceJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
@@ -33,8 +34,11 @@ export async function generateMetadata({
   // hardcoded English sentences built from the hotel name and fare facts. Localising `t` first
   // would change nothing, so it's skipped; these stay English until someone writes French sentence
   // templates for them (a content task, not a wiring one).
-  const title = transferMetaTitle(t);
-  const description = transferMetaDescription(t);
+  // The from-price comes off the LIVE fare table (cached per request, so the page body below reuses
+  // this same fetch) — a snippet advertising less than the widget charges is the worst place for it.
+  const fromPriceEur = transferFromPriceEur(t.slug, await loadAirportFares());
+  const title = transferMetaTitle(t, fromPriceEur);
+  const description = transferMetaDescription(t, fromPriceEur);
   const canonical = t.path;
   return overrideMetadata(canonical, {
     title,
@@ -83,6 +87,9 @@ export default async function TransferDetailPage({
    */
   const guest = parseGuestHotel(await searchParams);
   const displayName = guest?.name ?? hotel.hotelName;
+  // This hotel's real entry fare (its zone's standard car, one way) — the same number the booking
+  // widget quotes below. Never a per-region estimate: the two drifted and the page under-advertised.
+  const fromPriceEur = transferFromPriceEur(hotel.slug, await loadAirportFares());
 
   const path = hotel.path;
   const homeLabel = t('Home');
@@ -93,10 +100,10 @@ export default async function TransferDetailPage({
       <JsonLd
         data={transferServiceJsonLd({
           name: `Airport transfer to ${hotel.hotelName}`,
-          description: transferMetaDescription(hotel),
+          description: transferMetaDescription(hotel, fromPriceEur),
           path,
           area: hotel.area,
-          fromPriceEur: hotel.fromPriceEur,
+          fromPriceEur,
         })}
       />
       <JsonLd
@@ -115,7 +122,7 @@ export default async function TransferDetailPage({
           'Private, fixed-price transfer from SSR International Airport to {hotel} — from €{price} per car, about {min} minutes.',
           {
             hotel: displayName,
-            price: hotel.fromPriceEur,
+            price: fromPriceEur,
             min: hotel.durationMinFromAirport,
           },
         )}
@@ -143,7 +150,7 @@ export default async function TransferDetailPage({
           <div className="min-w-0">
             {/* Quick facts */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              <Fact label={t('From')} value={`€${hotel.fromPriceEur} / car`} />
+              <Fact label={t('From')} value={`€${fromPriceEur} / car`} />
               <Fact label={t('Drive time')} value={`~${hotel.durationMinFromAirport} min`} />
               <Fact label={t('Distance')} value={`~${hotel.distanceKmFromAirport} km`} />
               <Fact label={t('Coast')} value={`${hotel.region} (${hotel.area})`} />

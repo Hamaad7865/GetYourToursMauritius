@@ -374,3 +374,21 @@ still running against the old URL.
 ### `MUR_PER_EUR` is a dead environment variable
 
 Documented in `.env.example`; read by no code. Tuning it does nothing.
+
+### A price rendered from a code constant is a price the owner cannot fix
+
+The 45 airport-transfer landing pages advertised `from €X / car` from a hardcoded per-region table
+(`FROM_PRICE_BY_REGION`) written when fares were region-based. The fares later became **zone**-based
+and the constant never followed, so every page — plus its `<title>`, meta description, JSON-LD
+`Offer` and map pin — advertised **below** what the widget charges (Belle Mare: "from €35" against a
+real €55). Two copies of the constant existed; the second, in `src/lib/services/transfers.ts`, fed
+the hotels API.
+
+Fixed 2026-08-05: `transferFromPriceEur(slug, fares)` derives it from the live matrix
+(`src/lib/transfers/from-price.ts`, cached per request), and `tests/unit/transfer-from-price.test.ts`
+pins the advertised number to what `airportTransferQuote` returns for every listed hotel.
+
+The rule this breaks is already in [operations.md](operations.md#what-you-can-change-yourself-with-no-developer):
+anything the owner edits in `/admin` must be READ from the database everywhere it is shown. A
+"representative" or "roughly right" duplicate in code will drift, and the drift is invisible — the
+widget kept quoting correctly the whole time.

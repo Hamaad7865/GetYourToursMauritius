@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
 import {
@@ -12,6 +12,8 @@ import {
 import { clusterByGrid } from '@/components/maps/cluster';
 import { drawRoute } from '@/components/maps/draw-route';
 import { transfers, type Transfer } from '@/lib/content/transfers';
+import { transferFromPriceEur } from '@/lib/transfers/from-price';
+import type { AirportFareByZone } from '@/lib/services/pricing';
 import { Price } from '@/components/site/Price';
 import { useMoney } from '@/components/site/PreferencesProvider';
 import { SSR_AIRPORT } from './TransferRouteMap';
@@ -35,10 +37,16 @@ const PINNED: Array<Transfer & { lat: number; lng: number }> = transfers.filter(
  * Interactive all-hotels map for /airport-transfers: every resort is pinned (coloured by coast), and
  * selecting one draws the real SSR Airport → hotel driving route and shows a card with the price + a
  * link to book. Degrades silently to the region list already on the page if Maps can't load.
+ *
+ * `fares` is the live zone matrix, handed down by the (server) page so each pin's price is the fare
+ * that hotel's zone really charges — the pins used to carry a per-region estimate that sat below it.
  */
-export function HotelMap() {
+export function HotelMap({ fares }: { fares: AirportFareByZone }) {
   const status = useGoogleMaps();
   const money = useMoney();
+  // Stable per fare matrix, so it can be a real dependency of the map effect below — an inline
+  // closure would be a new function every render and rebuild every pin on each one.
+  const fromEur = useCallback((t: Transfer) => transferFromPriceEur(t.slug, fares), [fares]);
   const elRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const lineRef = useRef<google.maps.Polyline[]>([]);
@@ -136,12 +144,12 @@ export function HotelMap() {
             position: { lat: hotel.lat, lng: hotel.lng },
             content: hotelMarkerContent({
               name: hotel.hotelName,
-              priceLabel: money(hotel.fromPriceEur),
+              priceLabel: money(fromEur(hotel)),
               color,
               selected: hotel.slug === activeSlug,
               detailed,
             }),
-            title: `${hotel.hotelName} — from ${money(hotel.fromPriceEur)}`,
+            title: `${hotel.hotelName} — from ${money(fromEur(hotel))}`,
             gmpClickable: true,
             // Clustering does the heavy lifting; this catches the residual overlap between two
             // adjacent cells whose full-width name pills still touch.
@@ -155,15 +163,13 @@ export function HotelMap() {
         }
 
         // A group: show how many and the cheapest fare among them, and zoom to split it on click.
-        const cheapest = cluster.members.reduce((a, b) =>
-          a.fromPriceEur <= b.fromPriceEur ? a : b,
-        );
+        const cheapest = cluster.members.reduce((a, b) => (fromEur(a) <= fromEur(b) ? a : b));
         const marker = new google.maps.marker.AdvancedMarkerElement({
           map,
           position: { lat: cluster.lat, lng: cluster.lng },
           content: hotelClusterContent({
             count: cluster.members.length,
-            fromLabel: money(cheapest.fromPriceEur),
+            fromLabel: money(fromEur(cheapest)),
             color: REGION_COLOR[cheapest.region] ?? '#0E8C92',
           }),
           title: cluster.members.map((m) => m.hotelName).join(', '),
@@ -206,7 +212,7 @@ export function HotelMap() {
       pins = [];
       airport.map = null;
     };
-  }, [status, money]);
+  }, [status, money, fromEur]);
 
   // Maps failed to load — the page already lists every hotel by region, so render nothing.
   if (status === 'error' || PINNED.length === 0) return null;
@@ -254,7 +260,7 @@ export function HotelMap() {
             <span>~{selected.distanceKmFromAirport} km</span>
             <span>·</span>
             <span className="font-bold text-ink">
-              from <Price eur={selected.fromPriceEur} />
+              from <Price eur={fromEur(selected)} />
             </span>
           </div>
           <Link

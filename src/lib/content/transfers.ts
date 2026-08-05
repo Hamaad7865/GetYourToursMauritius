@@ -30,7 +30,6 @@ export interface TransferContent {
 
 export interface Transfer extends TransferContent {
   path: string;
-  fromPriceEur: number;
 }
 
 /**
@@ -50,14 +49,11 @@ export function localisedTransfer(t: Transfer, locale: Locale): Transfer {
   return localiseContent(t, TRANSFERS_FR[t.slug], locale);
 }
 
-/** Representative private-car "from" price by region. The exact quote comes at booking. */
-const FROM_PRICE_BY_REGION: Record<TransferRegion, number> = {
-  South: 25,
-  East: 35,
-  Central: 30,
-  West: 40,
-  North: 50,
-};
+/* A hotel's "from" price is NOT here. It used to be a hardcoded per-region constant, written when
+ * airport fares were region-based; the fares later became ZONE-based and the constant never followed,
+ * so every page advertised below what the widget charges (Belle Mare read "from €35" against a real
+ * €55). It now comes from the live fare table via `transferFromPriceEur` in
+ * `@/lib/transfers/from-price` — one source of truth, the one the owner edits in admin → Pricing. */
 
 export function transferPath(slug: string): string {
   return `/airport-transfers/${slug}`;
@@ -66,7 +62,6 @@ export function transferPath(slug: string): string {
 export const transfers: Transfer[] = TRANSFERS_RAW.map((t) => ({
   ...t,
   path: transferPath(t.slug),
-  fromPriceEur: FROM_PRICE_BY_REGION[t.region] ?? 35,
 })).sort((a, b) => a.hotelName.localeCompare(b.hotelName));
 
 export function getTransfer(slug: string): Transfer | null {
@@ -107,13 +102,17 @@ export const TRANSFER_REGION_ORDER: TransferRegion[] = [
   'Central',
 ];
 
-export function transferMetaTitle(t: Transfer): string {
+/* Both take the from-price as an argument rather than reading it off the hotel: it comes from the
+ * live fare table now (see the note above), and a stale number in a <title> is the one place a wrong
+ * price is hardest to notice — it goes straight into Google's snippet. */
+
+export function transferMetaTitle(t: Transfer, fromPriceEur: number): string {
   // Root template appends the site name — don't repeat the brand here.
-  return `Airport Transfer to ${t.hotelName} — from €${t.fromPriceEur}`;
+  return `Airport Transfer to ${t.hotelName} — from €${fromPriceEur}`;
 }
 
-export function transferMetaDescription(t: Transfer): string {
-  return `Private airport transfer from SSR Airport to ${t.hotelName}, ${t.area} (about ${t.durationMinFromAirport} min). Fixed price from €${t.fromPriceEur} per car, meet & greet, flight tracking and a free child seat. Book online with Belle Mare Tours.`.slice(
+export function transferMetaDescription(t: Transfer, fromPriceEur: number): string {
+  return `Private airport transfer from SSR Airport to ${t.hotelName}, ${t.area} (about ${t.durationMinFromAirport} min). Fixed price from €${fromPriceEur} per car, meet & greet, flight tracking and a free child seat. Book online with Belle Mare Tours.`.slice(
     0,
     320,
   );
