@@ -395,6 +395,24 @@ describe('api_erase_user — anonymize-with-retention', () => {
       )
     ).rows[0]!.id;
 
+    // The RETAINED quote is where line text survives an erasure indefinitely — the deleted one loses
+    // it with the row. Both kinds of line, because quote_item_shape allows description to be null
+    // only on a catalogue line (a custom/rental line must carry one), so they redact differently.
+    const { occurrenceId, optionId } = await seedOccurrence(db, 5);
+    await db.asOwner();
+    await db.pg.query(
+      `insert into quote_items
+         (quote_id, position, kind, session_occurrence_id, activity_option_id, description,
+          quantity, unit_amount_minor, subtotal_minor)
+       values ($1, 1, 'catalogue', $2, $3, 'Quote Person + wife, front seats', 2, 7500, 15000)`,
+      [convertedQuote, occurrenceId, optionId],
+    );
+    await db.pg.query(
+      `insert into quote_items (quote_id, position, kind, description, quantity, unit_amount_minor, subtotal_minor)
+       values ($1, 2, 'custom', 'Skipper for Quote Person, full day', 1, 40000, 40000)`,
+      [convertedQuote],
+    );
+
     await db.as({ sub: STAFF, role: 'authenticated' });
     await expect(callErase(db, { email: QUOTE_EMAIL })).resolves.toBeTruthy();
 
@@ -423,6 +441,35 @@ describe('api_erase_user — anonymize-with-retention', () => {
     expect(conv.customer_email).toBe('deleted@privacy.invalid');
     expect(conv.customer_phone).toBeNull();
     expect(conv.internal_notes).toBeNull();
+
+    // …and so do its LINES. Staff type the guest's name straight into them, so the free text is PII
+    // exactly like internal_notes; the money shape of the line is what makes the retained quote a
+    // record and is untouched. Nulled where the shape constraint allows it, redacted where it does not.
+    const lines = (
+      await db.pg.query<{
+        kind: string;
+        description: string | null;
+        quantity: number;
+        subtotal_minor: number;
+      }>(
+        `select kind, description, quantity, subtotal_minor from quote_items
+          where quote_id = $1 order by position`,
+        [convertedQuote],
+      )
+    ).rows;
+    expect(lines, 'the retained quote lost its lines').toHaveLength(2);
+    expect(lines[0]!.description, 'a catalogue line still names the erased guest').toBeNull();
+    expect(lines[1]!.description, 'a custom line still names the erased guest').not.toContain(
+      'Quote Person',
+    );
+    expect(
+      lines[1]!.description,
+      'a custom line must keep a description (quote_item_shape)',
+    ).not.toBeNull();
+    // The money is the retention duty and survives verbatim.
+    expect(lines[0]!.quantity).toBe(2);
+    expect(lines[0]!.subtotal_minor).toBe(15000);
+    expect(lines[1]!.subtotal_minor).toBe(40000);
 
     // Belt and braces: the address must not survive anywhere in the table.
     const leftovers = (

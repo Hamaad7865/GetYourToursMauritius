@@ -17,7 +17,9 @@ import type { PGlite } from '@electric-sql/pglite';
 
 type Filter = { col: string; op: 'eq' | 'in'; val: unknown };
 type RowMode = 'many' | 'single' | 'maybeSingle';
-type Result = { data: unknown; error: unknown };
+type Result = { data: unknown; error: unknown; count?: number | null };
+/** PostgREST's `select(cols, { count, head })`: `count` asks for the row count, `head` drops the rows. */
+type SelectOpts = { count?: 'exact' | 'planned' | 'estimated'; head?: boolean };
 
 class QueryBuilder implements PromiseLike<Result> {
   private op: 'select' | 'insert' | 'update' | 'delete' = 'select';
@@ -29,18 +31,24 @@ class QueryBuilder implements PromiseLike<Result> {
   private payload: Record<string, unknown> | Record<string, unknown>[] | null = null;
   private returning: string | null = null;
   private rowMode: RowMode = 'many';
+  private wantCount = false;
+  private headOnly = false;
 
   constructor(
     private readonly pg: PGlite,
     private readonly table: string,
   ) {}
 
-  select(cols = '*'): this {
+  select(cols = '*', opts?: SelectOpts): this {
     // After an insert, `.select(...)` requests a RETURNING clause; otherwise it's a read.
     if (this.op === 'insert') this.returning = cols;
     else {
       this.op = 'select';
       this.cols = cols;
+      // `{ count: 'exact', head: true }` is the repo's idiom for "how many rows match?" — it must
+      // return a real number here, or a guard written against it silently reads as zero.
+      this.wantCount = opts?.count !== undefined;
+      this.headOnly = opts?.head === true;
     }
     return this;
   }
@@ -105,6 +113,16 @@ class QueryBuilder implements PromiseLike<Result> {
     return ` where ${parts.join(' and ')}`;
   }
 
+  /** Rows matching the current filters, counted in the database (not by materialising them). */
+  private async countRows(): Promise<number> {
+    const params: unknown[] = [];
+    const { rows } = await this.pg.query<{ n: number }>(
+      `select count(*)::int as n from ${this.table}${this.buildWhere(params)}`,
+      params,
+    );
+    return rows[0]?.n ?? 0;
+  }
+
   private shape(rows: Record<string, unknown>[]): Result {
     if (this.rowMode === 'single') {
       if (rows.length !== 1) {
@@ -120,9 +138,21 @@ class QueryBuilder implements PromiseLike<Result> {
 
   private async exec(): Promise<Result> {
     try {
-      if (this.hasEmptyIn()) return this.shape([]);
+      if (this.hasEmptyIn()) return { ...this.shape([]), ...(this.wantCount ? { count: 0 } : {}) };
       const params: unknown[] = [];
       let sql: string;
+
+      if (this.op === 'select' && this.wantCount) {
+        const count = await this.countRows();
+        // head:true is a count-only request — PostgREST returns no rows at all.
+        if (this.headOnly) return { data: null, error: null, count };
+        this.wantCount = false;
+        try {
+          return { ...(await this.exec()), count };
+        } finally {
+          this.wantCount = true;
+        }
+      }
 
       if (this.op === 'select') {
         const order = this.orderBy

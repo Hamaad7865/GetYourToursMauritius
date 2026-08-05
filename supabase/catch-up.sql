@@ -23480,8 +23480,18 @@ create index if not exists booking_custom_items_starts_idx on booking_custom_ite
 -- CONTRACT for api_convert_quote and the pay route: set `converted_at` alongside `booking_id`, and
 -- guard on `converted_at is null` — never on `booking_id is null`. The UNIQUE stays as the second
 -- line of defence.
+--
+-- And the contract is a CONSTRAINT, not a comment: this is the schema half of "a quote must never
+-- mint two payable bookings", so a conversion path that sets booking_id and forgets converted_at must
+-- be impossible rather than merely discouraged. It holds under the `on delete set null` above —
+-- booking_id clears, converted_at stays, and (null, not-null) is legal — which is precisely the
+-- direction this column exists to survive.
 -- ---------------------------------------------------------------------------
 alter table quotes add column if not exists converted_at timestamptz;
+
+alter table quotes drop constraint if exists quote_converted_shape;
+alter table quotes add constraint quote_converted_shape
+  check (booking_id is null or converted_at is not null);
 
 -- ---------------------------------------------------------------------------
 -- 5) The two rental foreign keys say what they mean.
@@ -23511,13 +23521,19 @@ alter table booking_custom_items add constraint booking_custom_items_rental_vehi
   foreign key (rental_vehicle_slug) references rental_vehicles (slug) on delete restrict;
 
 -- ---------------------------------------------------------------------------
--- 6) Two existing functions have to learn that quotes exist.
+-- 6) The existing code has to learn that quotes exist.
 --
 -- `quote_items.session_occurrence_id` is deliberately NOT `on delete set null` (quote_item_shape
 -- requires a catalogue line to keep its occurrence, so that action would only trade a
 -- foreign_key_violation for a check_violation) and NOT `on delete cascade` (a quote line must not
--- vanish because someone tidied the calendar). It stays NO ACTION, and the callers that delete
--- occurrences are taught about it instead.
+-- vanish because someone tidied the calendar). It stays NO ACTION, and so does
+-- `activity_option_id` — and because session_occurrences CASCADEs from activity_options
+-- (20260615120200), deleting an OPTION reaches quote_items down both foreign keys at once.
+--
+-- Three callers delete those rows, and each is taught here or in its own file:
+--   * stop_availability_atomic          — 6a below (a quoted slot is closed, not deleted);
+--   * reconcileOptions (src/lib/admin/activity-write.ts) — keeps a quoted option, like a booked one;
+--   * deleteActivity   (src/lib/admin/activity-write.ts) — translates the 23503 for the operator.
 -- ---------------------------------------------------------------------------
 
 -- 6a) stop_availability_atomic — a quoted slot is CLOSED, never deleted.
@@ -23574,7 +23590,13 @@ begin
      and not exists (select 1 from quote_items qi where qi.session_occurrence_id = so.id);
 end;
 $$;
-revoke execute on function stop_availability_atomic(jsonb) from public;
+-- `from public, anon`, not `from public`. Supabase's stock ALTER DEFAULT PRIVILEGES grants EXECUTE on
+-- every new function to anon and authenticated EXPLICITLY — not through PUBLIC — so a revoke naming
+-- only PUBLIC leaves anon holding the grant, and CREATE OR REPLACE never resets an existing ACL. That
+-- exact one-word omission has shipped a live leak from this repo twice (api_booking_receipt,
+-- api_pending_payment_checkouts). is_staff() is this function's first statement so anon could not have
+-- got anything out of it, but the ACL is stated correctly at the point of definition all the same.
+revoke execute on function stop_availability_atomic(jsonb) from public, anon;
 grant execute on function stop_availability_atomic(jsonb) to authenticated, service_role;
 
 -- 6b) api_erase_user — a GDPR erasure has to reach the quotes tables too.
@@ -23802,6 +23824,57 @@ begin
   );
 end;
 $$;
+-- Stated here rather than inherited: CREATE OR REPLACE keeps whatever ACL the ORIGINAL definition was
+-- given, so re-applying a function is the moment to say what its grants are. Same `public, anon` as
+-- above — a self-erase is called by the signed-in user, so `authenticated` keeps EXECUTE.
+revoke execute on function api_erase_user(jsonb) from public, anon;
+grant execute on function api_erase_user(jsonb) to authenticated, service_role;
+
+-- 6c) A retained quote's LINE TEXT is redacted with its parent.
+--
+-- The anonymize branch above scrubs customer_name / _email / _phone / internal_notes, but the guest's
+-- name is just as routinely typed into a line: "Skipper for the Ramdin family, full day". A DELETED
+-- quote loses that text with the row; a CONVERTED one is retained forever, which is exactly the case
+-- an Art. 17 request is about. The money shape of the line (quantity, unit_amount_minor,
+-- subtotal_minor, dates) is the retention duty and is never touched — the same split the bookings half
+-- makes when it nulls `notes` and keeps `total_minor`.
+--
+-- Why a TRIGGER on the parent rather than one more statement inside api_erase_user: the delete half of
+-- this relationship is declarative (`on delete cascade`) and no caller can forget it. The anonymize
+-- half has no declarative form, so it lives in ONE place attached to the parent row instead of being
+-- restated by every path that redacts a quote — including a future migration that re-applies
+-- api_erase_user from an older body, which is the migration-revert drift documented in
+-- docs/handbook/landmines.md and has already cost this repo a guard once.
+--
+-- `'deleted@privacy.invalid'` is the schema's erasure marker, already load-bearing above (it is what
+-- makes the anonymize idempotent). SECURITY DEFINER so the redaction cannot be half-applied by a
+-- caller whose RLS reaches the quote but not every one of its lines.
+create or replace function quotes_redact_lines()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- `description` is nullable ONLY on a catalogue line; quote_item_shape requires a custom/rental line
+  -- to carry one, so those are redacted to a sentinel instead of nulled. The filter makes a re-run a
+  -- no-op (0 rows), matching the idempotency of the update that fires it.
+  update quote_items
+     set description = case when kind = 'catalogue' then null else '(Redacted)' end
+   where quote_id = new.id
+     and coalesce(description, '') not in ('', '(Redacted)');
+  return null;
+end;
+$$;
+revoke execute on function quotes_redact_lines() from public, anon;
+
+drop trigger if exists quotes_redact_lines_on_anonymize on quotes;
+create trigger quotes_redact_lines_on_anonymize
+  after update of customer_email on quotes
+  for each row
+  when (new.customer_email = 'deleted@privacy.invalid'
+        and old.customer_email is distinct from new.customer_email)
+  execute function quotes_redact_lines();
 
 -- ---------------------------------------------------------------------------
 -- 7) RLS + grants. A quote is staff data; the guest never reads it with the anon key — the public

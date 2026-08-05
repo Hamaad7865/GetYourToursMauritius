@@ -1,4 +1,5 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { countRowsEq, countRowsIn, isForeignKeyViolation } from '@/lib/admin/delete-guards';
 import { normalizeBadges, type BadgeInput } from '@/lib/catalogue/badges';
 import type { PricingMode } from '@/lib/validation/tours';
 
@@ -446,19 +447,51 @@ async function reconcileOptions(activityId: string, formOptions: OptionInput[]):
   }
 
   for (const optionId of removedIds) {
-    // Delete a removed option UNLESS real bookings reference it. `booking_items` is ON DELETE RESTRICT
+    // Delete a removed option UNLESS something still references it. `booking_items` is ON DELETE RESTRICT
     // (you can't un-sell a seat), so a booked option is kept. Its prices AND auto-materialised availability
     // (`session_occurrences`) are both ON DELETE CASCADE, so an option that only has availability — no
     // bookings — is removed cleanly. (Previously the occurrence check wrongly kept it, so a staff deletion
     // never persisted: the option reappeared on reload.)
-    const { count: items } = await sb
+    //
+    // A count that FAILED is not a zero: this runs mid-save, after the activities row and the images
+    // have already been written as separate statements, so deleting on an unread guard would either
+    // strand a live reference or abort the save half-applied. Unknown ⇒ keep the option.
+    const { count: items, error: itemsErr } = await sb
       .from('booking_items')
       .select('id', { count: 'exact', head: true })
       .eq('activity_option_id', optionId);
-    if ((items ?? 0) > 0) continue; // has real bookings — keep it
+    if (itemsErr || items === null || (items ?? 0) > 0) continue; // booked, or unprovable — keep it
+
+    // A quote line names the option too (and its slots, which CASCADE from it). Both quote_items
+    // foreign keys are NO ACTION — deliberately: a live offer sitting in a guest's inbox must not
+    // silently lose the option it quotes, and it must not vanish because someone tidied the editor.
+    // So a quoted option is kept exactly like a booked one; without this the raw 23503 reached the
+    // tour editor mid-save. (20260909000000, section 6.)
+    const quoted = await countQuoteLinesForOption(optionId);
+    if (quoted === null || quoted > 0) continue; // on a live quote, or unprovable — keep it
+
     const { error } = await sb.from('activity_options').delete().eq('id', optionId);
     if (error) throw error;
   }
+}
+
+/** Quote lines naming this option. Null = the count failed (never treated as "none"). */
+async function countQuoteLinesForOption(optionId: string): Promise<number | null> {
+  return countRowsEq('quote_items', 'activity_option_id', optionId);
+}
+
+/** Quote lines naming ANY option of this activity. Null = the count failed. */
+async function countQuoteLinesForActivity(activityId: string): Promise<number | null> {
+  const { data, error } = await getBrowserSupabase()
+    .from('activity_options')
+    .select('id')
+    .eq('activity_id', activityId);
+  if (error) return null;
+  return countRowsIn(
+    'quote_items',
+    'activity_option_id',
+    (data ?? []).map((o) => o.id),
+  );
 }
 
 /**
@@ -668,7 +701,27 @@ export async function updateActivity(
 
 export async function deleteActivity(id: string): Promise<void> {
   const { error } = await getBrowserSupabase().from('activities').delete().eq('id', id);
-  if (error) throw error;
+  if (!error) return;
+
+  // A tour's options CASCADE from it and its slots CASCADE from those, so a delete reaches
+  // quote_items down both of its NO ACTION foreign keys and comes back as a raw constraint name.
+  // AdminActivities already turns an integrity violation into "…has bookings or availability", which
+  // is the right answer for booking_items and a wrong one for a quote — the operator would go looking
+  // for a booking that does not exist. Only translate when quote lines are actually there; anything
+  // else is rethrown UNCHANGED so that screen keeps its own message (and the `code` it reads).
+  if (isForeignKeyViolation(error)) {
+    const quoted = await countQuoteLinesForActivity(id);
+    if (quoted === null || quoted > 0) {
+      const scale =
+        quoted === null
+          ? 'is named on at least one quote line'
+          : `is named on ${quoted} quote line${quoted === 1 ? '' : 's'}`;
+      throw new Error(
+        `This tour ${scale}, so it can’t be deleted. Cancel or delete those quotes first — or set the tour to Draft instead, which hides it from the site and keeps the quotes readable.`,
+      );
+    }
+  }
+  throw error;
 }
 
 /* --------------------------------------------------------------------------------------------

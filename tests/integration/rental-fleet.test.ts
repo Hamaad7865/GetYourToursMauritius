@@ -166,6 +166,61 @@ describe('rental fleet: public list RPC + admin RLS', () => {
     ).toHaveLength(1);
   });
 
+  it('never reports "0 booking lines" when the count itself failed', async () => {
+    // The count is a second read, and it can fail on its own: PostgREST's schema cache not yet aware
+    // of booking_custom_items right after a deploy, an RLS denial, a dropped connection. Swallowing
+    // that error and reporting its absent result as zero tells the operator the vehicle "appears on 0
+    // booking lines and cannot be removed" — self-contradictory, and it hides the real cause.
+    await db.asOwner();
+    const bookingId = (
+      await db.pg.query<{ id: string }>(
+        `insert into bookings (ref, status, payment_state, total_minor, currency, customer_name, customer_email, source)
+         values ('RENT-2', 'confirmed', 'paid', 6000, 'EUR', 'Rental Guest', 'rental2@example.com', 'web')
+         returning id`,
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into booking_custom_items
+         (booking_id, position, kind, description, rental_vehicle_slug,
+          quantity, unit_amount_minor, subtotal_minor)
+       values ($1, 1, 'rental', 'Suzuki Ertiga, 2 days', 'suzuki-ertiga', 2, 2000, 4000)`,
+      [bookingId],
+    );
+
+    const real = hoisted.shim!;
+    const broken = {
+      message: 'Could not find the table public.booking_custom_items in the schema cache',
+    };
+    hoisted.shim = {
+      ...real,
+      from: (table: string) =>
+        table === 'booking_custom_items'
+          ? ({
+              select: () => ({
+                eq: () => Promise.resolve({ data: null, count: null, error: broken }),
+              }),
+            } as never)
+          : real.from(table),
+    } as SupabaseShim;
+
+    try {
+      await db.as({ sub: STAFF, role: 'authenticated' });
+      const err = await deleteRentalVehicle('suzuki-ertiga').then(
+        () => null,
+        (e: unknown) => e,
+      );
+      expect(err, 'the RESTRICT delete silently succeeded').toBeInstanceOf(Error);
+      const message = (err as Error).message;
+      expect(message, 'a failed count was reported as zero booking lines').not.toMatch(/\b0\b/);
+      expect(message, 'the operator is not told the vehicle is still in use').toMatch(
+        /at least one/i,
+      );
+      expect(message, 'the alternative action is missing').toMatch(/active/i);
+    } finally {
+      hoisted.shim = real;
+    }
+  });
+
   it('loads the fleet through the admin helper (staff), newest sort order', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     const fleet = await loadRentalFleet();

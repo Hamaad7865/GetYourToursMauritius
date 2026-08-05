@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { seedOccurrence } from '../db/seed';
+import { makeSupabaseShim, type SupabaseShim } from '../db/supabase-pglite';
 
 /**
  * Schema guard for 20260909000000_quotes.
@@ -29,13 +30,28 @@ import { seedOccurrence } from '../db/seed';
  *    belongs in booking_items, not here;
  *  - the two FKs a quote line points OUT through behave as declared: a quoted occurrence survives
  *    "stop availability" (closed, never deleted), a draft quote never blocks a vehicle leaving the
- *    fleet, and a priced booking line does.
+ *    fleet, and a priced booking line does;
+ *  - and every OTHER caller that deletes the rows a quote line points at — the tour editor's option
+ *    reconcile and "delete tour" — is taught about them too, through the real admin helpers.
  */
 
 const QUOTES_MIGRATION = readFileSync(
   join(process.cwd(), 'supabase', 'migrations', '20260909000000_quotes.sql'),
   'utf8',
 );
+
+/* The tour-editor helpers under test talk to Supabase through the browser client; the shim maps that
+ * query builder onto the same PGlite instance, so the FK actions they trip over are the real ones. */
+const hoisted = vi.hoisted(() => ({ shim: null as SupabaseShim | null }));
+vi.mock('@/lib/supabase/browser', () => ({
+  getBrowserSupabase: () => {
+    if (!hoisted.shim) throw new Error('shim not initialised');
+    return hoisted.shim;
+  },
+}));
+
+const { EMPTY_ACTIVITY, updateActivity, deleteActivity } =
+  await import('@/lib/admin/activity-write');
 
 /**
  * The migration's table-lockdown tail — the `revoke all … from public, anon` plus the explicit
@@ -93,6 +109,7 @@ describe('quotes schema (20260909000000)', () => {
     await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [
       STAFF,
     ]);
+    hoisted.shim = makeSupabaseShim(db.pg);
   });
 
   afterAll(async () => {
@@ -166,18 +183,73 @@ describe('quotes schema (20260909000000)', () => {
     );
     const bookingId = booking[0]!.id;
 
+    // Both carry converted_at: quote_converted_shape (below) refuses a booking_id without one, and
+    // this case must reach the UNIQUE, not die on the check.
     await db.pg.query(
-      `insert into quotes (ref, customer_name, customer_email, valid_until, booking_id)
-       values ('BMT-QUNIQ1', 'Guest', 'guest@example.com', current_date + 7, $1)`,
+      `insert into quotes (ref, customer_name, customer_email, valid_until, booking_id, converted_at)
+       values ('BMT-QUNIQ1', 'Guest', 'guest@example.com', current_date + 7, $1, now())`,
       [bookingId],
     );
     await expect(
       db.pg.query(
-        `insert into quotes (ref, customer_name, customer_email, valid_until, booking_id)
-         values ('BMT-QUNIQ2', 'Guest', 'guest@example.com', current_date + 7, $1)`,
+        `insert into quotes (ref, customer_name, customer_email, valid_until, booking_id, converted_at)
+         values ('BMT-QUNIQ2', 'Guest', 'guest@example.com', current_date + 7, $1, now())`,
         [bookingId],
       ),
     ).rejects.toThrow(/quotes_booking_id_key/);
+  });
+
+  it('refuses a booking_id with no converted_at — the conversion record is not optional', async () => {
+    // Section 4 of the migration states the contract "set converted_at alongside booking_id, and
+    // guard on converted_at" in a COMMENT. A comment is not an invariant: a conversion path that
+    // sets booking_id and forgets converted_at leaves the quote looking unconverted the moment
+    // api_erase_user hard-deletes the unpaid booking and the FK nulls booking_id — which re-arms the
+    // guard the next task builds on and is the precise scenario converted_at exists to prevent.
+    const { rows: booking } = await db.pg.query<{ id: string }>(
+      `insert into bookings (customer_name, customer_email, status, total_minor)
+       values ('Half-converted Guest', 'halfconv@example.com', 'draft', 5000) returning id`,
+    );
+    await expect(
+      db.pg.query(
+        `insert into quotes (ref, customer_name, customer_email, valid_until, booking_id)
+         values ('BMT-QSHAPE3', 'Guest', 'guest@example.com', current_date + 7, $1)`,
+        [booking[0]!.id],
+      ),
+      'a quote can name a booking without recording that it converted',
+    ).rejects.toThrow(/quote_converted_shape/);
+
+    // …and the constraint holds under the FK that clears booking_id: converted_at stays, so the row
+    // is still legal after the booking is hard-deleted.
+    await db.pg.query(
+      `insert into quotes (ref, customer_name, customer_email, valid_until, booking_id, converted_at)
+       values ('BMT-QSHAPE4', 'Guest', 'guest@example.com', current_date + 7, $1, now())`,
+      [booking[0]!.id],
+    );
+    await expect(
+      db.pg.query(`delete from bookings where id = $1`, [booking[0]!.id]),
+      'quote_converted_shape blocked the `on delete set null` it has to coexist with',
+    ).resolves.toBeTruthy();
+  });
+
+  it('closes anon EXECUTE on both functions this migration re-applies', async () => {
+    // `revoke ... from public` is the known-insufficient form: Supabase's stock ALTER DEFAULT
+    // PRIVILEGES grants EXECUTE on a new function to anon and authenticated EXPLICITLY, not through
+    // PUBLIC, and CREATE OR REPLACE does not reset an existing ACL — so re-applying a function whose
+    // original grant leaked leaves it leaking. This repo has shipped exactly that twice
+    // (api_booking_receipt, api_pending_payment_checkouts). Both functions below are staff/owner
+    // tools, so anon must be closed while authenticated (the signed-in admin, and the user erasing
+    // their own account) keeps EXECUTE.
+    for (const sig of ['stop_availability_atomic(jsonb)', 'api_erase_user(jsonb)']) {
+      const { rows } = await db.pg.query<{ anon: boolean; auth: boolean; sr: boolean }>(
+        `select has_function_privilege('anon', $1, 'EXECUTE') as anon,
+                has_function_privilege('authenticated', $1, 'EXECUTE') as auth,
+                has_function_privilege('service_role', $1, 'EXECUTE') as sr`,
+        [`public.${sig}`],
+      );
+      expect(rows[0]!.anon, `anon can execute ${sig}`).toBe(false);
+      expect(rows[0]!.auth, `the signed-in admin lost ${sig}`).toBe(true);
+      expect(rows[0]!.sr, `service_role lost ${sig}`).toBe(true);
+    }
   });
 
   describe('quote_item_shape', () => {
@@ -364,6 +436,190 @@ describe('quotes schema (20260909000000)', () => {
       await expect(
         db.pg.query(`delete from rental_vehicles where slug = 'suzuki-address'`),
       ).rejects.toThrow(/booking_custom_items_rental_vehicle_slug_fkey/);
+    });
+  });
+
+  /**
+   * stop_availability_atomic is not the only caller that deletes the rows a catalogue quote line
+   * points at. `quote_items.activity_option_id` is NO ACTION and `session_occurrences` CASCADEs from
+   * `activity_options`, so deleting an OPTION reaches quote_items through both foreign keys — and two
+   * live admin paths delete options, guarded only by a booking_items check.
+   */
+  describe('the tour editor is taught about quote lines too', () => {
+    const OPERATOR = 'belle-mare-tours';
+
+    /** An activity + two options (each with a materialised slot) owned by the real operator slug. */
+    async function seedTour(slug: string): Promise<{
+      activityId: string;
+      keptOptionId: string;
+      quotedOptionId: string;
+      quotedOccurrenceId: string;
+    }> {
+      await db.asOwner();
+      const operatorId = (
+        await db.pg.query<{ id: string }>(`select id from operators where slug = $1`, [OPERATOR])
+      ).rows[0]!.id;
+      const activityId = (
+        await db.pg.query<{ id: string }>(
+          `insert into activities (operator_id, slug, title, category, status)
+           values ($1, $2, 'Quoted Tour', 'Sightseeing tours', 'published') returning id`,
+          [operatorId, slug],
+        )
+      ).rows[0]!.id;
+      const optionIds: string[] = [];
+      const occurrenceIds: string[] = [];
+      for (const [position, name] of [
+        [0, 'Shared'],
+        [1, 'Sunset'],
+      ] as const) {
+        const optionId = (
+          await db.pg.query<{ id: string }>(
+            `insert into activity_options (activity_id, name, position) values ($1, $2, $3) returning id`,
+            [activityId, name, position],
+          )
+        ).rows[0]!.id;
+        await db.pg.query(
+          `insert into activity_option_prices (activity_option_id, label, amount_minor, position)
+           values ($1, 'Adult', 7000, 0)`,
+          [optionId],
+        );
+        occurrenceIds.push(
+          (
+            await db.pg.query<{ id: string }>(
+              `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+               values ($1, $2, now() + interval '9 days', now() + interval '9 days 4 hours', 10)
+               returning id`,
+              [optionId, operatorId],
+            )
+          ).rows[0]!.id,
+        );
+        optionIds.push(optionId);
+      }
+      return {
+        activityId,
+        keptOptionId: optionIds[0]!,
+        quotedOptionId: optionIds[1]!,
+        quotedOccurrenceId: occurrenceIds[1]!,
+      };
+    }
+
+    /** A draft quote whose single catalogue line names the given option + occurrence. */
+    async function quoteLineOn(ref: string, occurrenceId: string, optionId: string): Promise<void> {
+      const quoteId = (
+        await db.pg.query<{ id: string }>(
+          `insert into quotes (ref, customer_name, customer_email, valid_until)
+           values ($1, 'Guest', 'guest@example.com', current_date + 7) returning id`,
+          [ref],
+        )
+      ).rows[0]!.id;
+      await db.pg.query(
+        `insert into quote_items
+           (quote_id, position, kind, session_occurrence_id, activity_option_id,
+            quantity, unit_amount_minor, subtotal_minor)
+         values ($1, 1, 'catalogue', $2, $3, 2, 7000, 14000)`,
+        [quoteId, occurrenceId, optionId],
+      );
+    }
+
+    beforeAll(async () => {
+      await db.asOwner();
+      await db.pg.query(`insert into operators (name, slug) values ('Belle Mare Tours', $1)`, [
+        OPERATOR,
+      ]);
+    });
+
+    it('keeps a quoted option the owner removed from the editor, instead of failing the save', async () => {
+      const tour = await seedTour('quoted-option-tour');
+      await quoteLineOn('BMT-QOPT1', tour.quotedOccurrenceId, tour.quotedOptionId);
+
+      // The owner drops the quoted option from the form and saves.
+      const form = {
+        ...EMPTY_ACTIVITY,
+        slug: 'quoted-option-tour',
+        title: 'Quoted Tour',
+        options: [
+          {
+            id: tour.keptOptionId,
+            name: 'Shared',
+            prices: [{ label: 'Adult', amountEur: 70, maxGuests: null }],
+          },
+        ],
+      };
+
+      await db.as({ sub: STAFF, role: 'authenticated' });
+      // Before the guard this threw the raw 23503 MID-SAVE — after the activities row and the images
+      // had already been written as separate statements, so the save was left half-applied.
+      await expect(
+        updateActivity(tour.activityId, form),
+        'the save blew up on a quoted option',
+      ).resolves.toBeUndefined();
+
+      await db.asOwner();
+      const opts = (
+        await db.pg.query<{ id: string }>(
+          `select id from activity_options where activity_id = $1`,
+          [tour.activityId],
+        )
+      ).rows.map((r) => r.id);
+      expect(opts, 'the quoted option was deleted out from under a live offer').toContain(
+        tour.quotedOptionId,
+      );
+    });
+
+    it('explains a quoted tour instead of surfacing the raw constraint on delete', async () => {
+      const tour = await seedTour('quoted-delete-tour');
+      await quoteLineOn('BMT-QOPT2', tour.quotedOccurrenceId, tour.quotedOptionId);
+
+      await db.as({ sub: STAFF, role: 'authenticated' });
+      const err = await deleteActivity(tour.activityId).then(
+        () => null,
+        (e: unknown) => e,
+      );
+      await db.asOwner();
+
+      expect(err, 'deleting a quoted tour silently succeeded').not.toBeNull();
+      const message =
+        err instanceof Error ? err.message : String((err as { message?: string })?.message ?? err);
+      expect(message, 'the raw Postgres constraint reached the operator').not.toMatch(
+        /foreign key|fkey|violates/i,
+      );
+      expect(message, 'the message does not say the tour is on a quote').toMatch(/quote/i);
+      expect(message, 'the message does not offer the alternative').toMatch(/draft/i);
+    });
+
+    it('still surfaces a non-quote foreign-key failure unchanged (the UI translates 23503 itself)', async () => {
+      // A tour with a CONFIRMED booking is blocked by booking_items, not by quotes. Translating that
+      // into a quotes message would be a lie — and would mask the "…has bookings or availability"
+      // branch AdminActivities already renders from the 23503 code.
+      const tour = await seedTour('booked-delete-tour');
+      const bookingId = (
+        await db.pg.query<{ id: string }>(
+          `insert into bookings (customer_name, customer_email, status, total_minor)
+           values ('Booked Guest', 'booked@example.com', 'confirmed', 7000) returning id`,
+        )
+      ).rows[0]!.id;
+      await db.pg.query(
+        `insert into booking_items
+           (booking_id, session_occurrence_id, activity_option_id, price_label, quantity,
+            unit_amount_minor, subtotal_minor)
+         values ($1, $2, $3, 'Adult', 1, 7000, 7000)`,
+        [bookingId, tour.quotedOccurrenceId, tour.quotedOptionId],
+      );
+
+      await db.as({ sub: STAFF, role: 'authenticated' });
+      const err = (await deleteActivity(tour.activityId).then(
+        () => null,
+        (e: unknown) => e,
+      )) as { code?: string; message?: string } | null;
+      await db.asOwner();
+
+      expect(err, 'deleting a booked tour silently succeeded').not.toBeNull();
+      // Rethrown verbatim: still a PostgrestError-shaped object carrying the integrity-violation code
+      // (23001 for the RESTRICT on booking_items), which is what AdminActivities keys its own message
+      // off. Wrapping it in an Error would strip `code` and silence that branch.
+      expect(err?.code, 'the DB error code the admin screen keys off was swallowed').toMatch(/^23/);
+      expect(err?.message, 'a booked tour was reported as a quoted one').not.toMatch(/quote/i);
+      expect(err?.message, 'the underlying cause was replaced').toMatch(/booking_items/);
     });
   });
 });
