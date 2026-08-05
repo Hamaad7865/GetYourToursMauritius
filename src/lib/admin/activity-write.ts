@@ -709,15 +709,17 @@ export async function deleteActivity(id: string): Promise<void> {
   // is the right answer for booking_items and a wrong one for a quote — the operator would go looking
   // for a booking that does not exist. Only translate when quote lines are actually there; anything
   // else is rethrown UNCHANGED so that screen keeps its own message (and the `code` it reads).
+  //
+  // A count that FAILED is not a quote. The option-reconcile loop above resolves an unknown count
+  // toward KEEPING the option, which is the conservative direction; resolving it here toward ACCUSING
+  // would name quotes that may not exist, send the operator hunting for them, and do it through a
+  // bare `new Error` that strips the `code` — so a tour blocked purely by booking_items would ALSO
+  // lose the admin screen's own message. Unknown therefore falls through to the untouched rethrow.
   if (isForeignKeyViolation(error)) {
     const quoted = await countQuoteLinesForActivity(id);
-    if (quoted === null || quoted > 0) {
-      const scale =
-        quoted === null
-          ? 'is named on at least one quote line'
-          : `is named on ${quoted} quote line${quoted === 1 ? '' : 's'}`;
+    if (quoted !== null && quoted > 0) {
       throw new Error(
-        `This tour ${scale}, so it can’t be deleted. Cancel or delete those quotes first — or set the tour to Draft instead, which hides it from the site and keeps the quotes readable.`,
+        `This tour is named on ${quoted} quote line${quoted === 1 ? '' : 's'}, so it can’t be deleted. Cancel or delete those quotes first — or set the tour to Draft instead, which hides it from the site and keeps the quotes readable.`,
       );
     }
   }

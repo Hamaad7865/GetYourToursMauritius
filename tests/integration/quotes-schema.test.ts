@@ -81,6 +81,22 @@ const MONEY_COLUMNS: Array<[string, string]> = [
 
 const QUOTE_TABLES = ['quotes', 'quote_items', 'booking_custom_items'] as const;
 
+/**
+ * Every function this migration creates or re-applies, with the EXECUTE the `authenticated` role is
+ * supposed to be left holding. anon is never allowed one and service_role always is.
+ *
+ * `authenticated: true` = a staff/owner tool the signed-in admin (or the user erasing their own
+ * account) calls through PostgREST. `authenticated: false` = a definer that only ever runs from
+ * inside the database: 20260814000000 established that trigger execution never checks the caller's
+ * EXECUTE, so revoking it costs the trigger nothing and closes the direct PostgREST call an
+ * authenticated user could otherwise make to redact someone else's quote lines.
+ */
+const DEFINER_EXECUTE: ReadonlyArray<{ sig: string; authenticated: boolean }> = [
+  { sig: 'stop_availability_atomic(jsonb)', authenticated: true },
+  { sig: 'api_erase_user(jsonb)', authenticated: true },
+  { sig: 'quotes_redact_lines()', authenticated: false },
+];
+
 /** A syntactically valid INSERT per table, so the failure is the privilege check and nothing else. */
 const ANON_INSERTS: Record<(typeof QUOTE_TABLES)[number], string> = {
   quotes: `insert into quotes (ref, customer_name, customer_email, valid_until)
@@ -231,15 +247,14 @@ describe('quotes schema (20260909000000)', () => {
     ).resolves.toBeTruthy();
   });
 
-  it('closes anon EXECUTE on both functions this migration re-applies', async () => {
+  it('closes EXECUTE on every function this migration creates or re-applies', async () => {
     // `revoke ... from public` is the known-insufficient form: Supabase's stock ALTER DEFAULT
     // PRIVILEGES grants EXECUTE on a new function to anon and authenticated EXPLICITLY, not through
     // PUBLIC, and CREATE OR REPLACE does not reset an existing ACL — so re-applying a function whose
     // original grant leaked leaves it leaking. This repo has shipped exactly that twice
-    // (api_booking_receipt, api_pending_payment_checkouts). Both functions below are staff/owner
-    // tools, so anon must be closed while authenticated (the signed-in admin, and the user erasing
-    // their own account) keeps EXECUTE.
-    for (const sig of ['stop_availability_atomic(jsonb)', 'api_erase_user(jsonb)']) {
+    // (api_booking_receipt, api_pending_payment_checkouts), both times by omitting ONE word from the
+    // revoke list — so the list is asserted per role, per function, rather than for anon alone.
+    for (const { sig, authenticated } of DEFINER_EXECUTE) {
       const { rows } = await db.pg.query<{ anon: boolean; auth: boolean; sr: boolean }>(
         `select has_function_privilege('anon', $1, 'EXECUTE') as anon,
                 has_function_privilege('authenticated', $1, 'EXECUTE') as auth,
@@ -247,7 +262,12 @@ describe('quotes schema (20260909000000)', () => {
         [`public.${sig}`],
       );
       expect(rows[0]!.anon, `anon can execute ${sig}`).toBe(false);
-      expect(rows[0]!.auth, `the signed-in admin lost ${sig}`).toBe(true);
+      expect(
+        rows[0]!.auth,
+        authenticated
+          ? `the signed-in admin lost ${sig}`
+          : `a signed-in user can still call ${sig} directly over PostgREST`,
+      ).toBe(authenticated);
       expect(rows[0]!.sr, `service_role lost ${sig}`).toBe(true);
     }
   });
@@ -614,11 +634,81 @@ describe('quotes schema (20260909000000)', () => {
       await db.asOwner();
 
       expect(err, 'deleting a booked tour silently succeeded').not.toBeNull();
-      // Rethrown verbatim: still a PostgrestError-shaped object carrying the integrity-violation code
-      // (23001 for the RESTRICT on booking_items), which is what AdminActivities keys its own message
-      // off. Wrapping it in an Error would strip `code` and silence that branch.
-      expect(err?.code, 'the DB error code the admin screen keys off was swallowed').toMatch(/^23/);
+      // Rethrown verbatim: still a PostgrestError-shaped object carrying the integrity-violation code,
+      // which is what AdminActivities keys its own message off. Wrapping it in an Error would strip
+      // `code` and silence that branch.
+      //
+      // The EXACT code, not /^23/: booking_items.activity_option_id is `on delete restrict`
+      // (20260615120300), and RESTRICT raises 23001 — NOT the 23503 that plain NO ACTION raises. A
+      // prefix match cannot tell the two apart, and AdminActivities matched only 23503, so a booked
+      // tour missed the branch and showed the operator the raw Postgres string. Pin the code the real
+      // schema produces so that stays honest.
+      expect(err?.code, 'the DB error code the admin screen keys off was swallowed').toBe('23001');
       expect(err?.message, 'a booked tour was reported as a quoted one').not.toMatch(/quote/i);
+      expect(err?.message, 'the underlying cause was replaced').toMatch(/booking_items/);
+    });
+
+    it('rethrows the real failure when the quote count itself could not be taken', async () => {
+      // The mirror image of the test above: same BOOKED tour, but the quote_items count fails (a
+      // schema cache that has not caught up with a deploy, an RLS denial, a dropped connection).
+      //
+      // A failed count is not evidence of a quote. Resolving the unknown in the ASSERTIVE direction
+      // told the operator a tour was "named on at least one quote line" when the only thing holding
+      // it was a booking — and did so through a bare `new Error`, which strips the `code` the admin
+      // screen reads and so also suppressed its own "has bookings or availability" message. (The
+      // option-reconcile guard resolves an unknown count the other way, toward KEEPING the option,
+      // which is conservative and right; accusing is not the same shape of decision.)
+      const tour = await seedTour('count-failed-delete-tour');
+      const bookingId = (
+        await db.pg.query<{ id: string }>(
+          `insert into bookings (customer_name, customer_email, status, total_minor)
+           values ('Counted Guest', 'counted@example.com', 'confirmed', 7000) returning id`,
+        )
+      ).rows[0]!.id;
+      await db.pg.query(
+        `insert into booking_items
+           (booking_id, session_occurrence_id, activity_option_id, price_label, quantity,
+            unit_amount_minor, subtotal_minor)
+         values ($1, $2, $3, 'Adult', 1, 7000, 7000)`,
+        [bookingId, tour.quotedOccurrenceId, tour.quotedOptionId],
+      );
+
+      // Break ONLY the quote_items read, exactly as the fleet test breaks booking_custom_items.
+      const real = hoisted.shim!;
+      const broken = {
+        message: 'Could not find the table public.quote_items in the schema cache',
+      };
+      hoisted.shim = {
+        ...real,
+        from: (table: string) =>
+          table === 'quote_items'
+            ? ({
+                select: () => ({
+                  in: () => Promise.resolve({ data: null, count: null, error: broken }),
+                }),
+              } as never)
+            : real.from(table),
+      } as SupabaseShim;
+
+      let err: { code?: string; message?: string } | null;
+      try {
+        await db.as({ sub: STAFF, role: 'authenticated' });
+        err = (await deleteActivity(tour.activityId).then(
+          () => null,
+          (e: unknown) => e,
+        )) as { code?: string; message?: string } | null;
+      } finally {
+        hoisted.shim = real;
+        await db.asOwner();
+      }
+
+      expect(err, 'deleting a booked tour silently succeeded').not.toBeNull();
+      expect(err?.code, 'an unreadable count cost the admin screen the code it keys off').toBe(
+        '23001',
+      );
+      expect(err?.message, 'a count that failed was reported as an existing quote').not.toMatch(
+        /quote/i,
+      );
       expect(err?.message, 'the underlying cause was replaced').toMatch(/booking_items/);
     });
   });

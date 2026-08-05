@@ -386,9 +386,13 @@ describe('api_erase_user — anonymize-with-retention', () => {
     await db.asOwner();
     const convertedQuote = (
       await db.pg.query<{ id: string }>(
+        // intro_note is the GUEST-FACING covering note a staff member types above the priced lines,
+        // and it opens by addressing the guest by name — so on a retained quote it is the same class
+        // of free text as internal_notes and must go the same way.
         `insert into quotes (ref, customer_name, customer_email, customer_phone, valid_until,
-                             internal_notes, booking_id, converted_at)
+                             intro_note, internal_notes, booking_id, converted_at)
          values ('BMT-QER2', 'Quote Person', $1, '+23057000002', current_date + 7,
+                 'Dear Quote Person, here is the private boat day we discussed.',
                  'Quote Person paid up front', $2, now())
          returning id`,
         [QUOTE_EMAIL, paidBooking],
@@ -431,15 +435,18 @@ describe('api_erase_user — anonymize-with-retention', () => {
         customer_name: string;
         customer_email: string;
         customer_phone: string | null;
+        intro_note: string | null;
         internal_notes: string | null;
       }>(
-        `select customer_name, customer_email, customer_phone, internal_notes from quotes where id = $1`,
+        `select customer_name, customer_email, customer_phone, intro_note, internal_notes
+           from quotes where id = $1`,
         [convertedQuote],
       )
     ).rows[0]!;
     expect(conv.customer_name).toBe('(Deleted user)');
     expect(conv.customer_email).toBe('deleted@privacy.invalid');
     expect(conv.customer_phone).toBeNull();
+    expect(conv.intro_note, 'the covering note still greets the erased guest by name').toBeNull();
     expect(conv.internal_notes).toBeNull();
 
     // …and so do its LINES. Staff type the guest's name straight into them, so the free text is PII
@@ -471,14 +478,21 @@ describe('api_erase_user — anonymize-with-retention', () => {
     expect(lines[0]!.subtotal_minor).toBe(15000);
     expect(lines[1]!.subtotal_minor).toBe(40000);
 
-    // Belt and braces: the address must not survive anywhere in the table.
+    // Belt and braces: neither the address NOR the name may survive anywhere in the table. The name
+    // half is what a search for the email address alone cannot see — a free-text column a redaction
+    // forgot holds the guest's name, not their address, so an email-only sweep reports 0 while the
+    // text sits there forever. That is exactly how intro_note went unnoticed.
     const leftovers = (
       await db.pg.query<{ n: number }>(
-        `select count(*)::int as n from quotes where lower(customer_email) = $1`,
-        [QUOTE_EMAIL],
+        `select count(*)::int as n
+           from quotes
+          where lower(customer_email) = $1
+             or coalesce(customer_name, '') || ' ' || coalesce(intro_note, '')
+                || ' ' || coalesce(internal_notes, '') ilike $2`,
+        [QUOTE_EMAIL, '%Quote Person%'],
       )
     ).rows[0]!.n;
-    expect(leftovers, 'a quote still carries the erased guest’s email address').toBe(0);
+    expect(leftovers, 'a quote still carries the erased guest’s email address or name').toBe(0);
   });
 
   it('is idempotent over quotes too — a second erase by the same email is a no-op', async () => {

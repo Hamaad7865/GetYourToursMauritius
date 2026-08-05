@@ -23779,13 +23779,15 @@ begin
        and q.booking_id is null;
     get diagnostics v_del_quotes = row_count;
 
-    -- Retained (converted) quotes: same redaction as the bookings they minted. internal_notes is
-    -- staff free text that routinely names the guest, so it goes too. Idempotent via the same
+    -- Retained (converted) quotes: same redaction as the bookings they minted. internal_notes (staff
+    -- free text) and intro_note (the guest-FACING covering note, which opens by addressing the guest
+    -- by name) both routinely carry the guest, so they go too. Idempotent via the same
     -- already-anonymized skip.
     update quotes
        set customer_name = '(Deleted user)',
            customer_email = 'deleted@privacy.invalid',
            customer_phone = null,
+           intro_note = null,
            internal_notes = null
      where lower(customer_email) = v_email
        and (converted_at is not null or booking_id is not null)
@@ -23830,12 +23832,12 @@ $$;
 revoke execute on function api_erase_user(jsonb) from public, anon;
 grant execute on function api_erase_user(jsonb) to authenticated, service_role;
 
--- 6c) A retained quote's LINE TEXT is redacted with its parent.
+-- 6c) A retained quote's FREE TEXT — its lines, and its own covering note — is redacted with it.
 --
--- The anonymize branch above scrubs customer_name / _email / _phone / internal_notes, but the guest's
--- name is just as routinely typed into a line: "Skipper for the Ramdin family, full day". A DELETED
--- quote loses that text with the row; a CONVERTED one is retained forever, which is exactly the case
--- an Art. 17 request is about. The money shape of the line (quantity, unit_amount_minor,
+-- The anonymize branch above scrubs customer_name / _email / _phone / intro_note / internal_notes, but
+-- the guest's name is just as routinely typed into a line: "Skipper for the Ramdin family, full day".
+-- A DELETED quote loses that text with the row; a CONVERTED one is retained forever, which is exactly
+-- the case an Art. 17 request is about. The money shape of the line (quantity, unit_amount_minor,
 -- subtotal_minor, dates) is the retention duty and is never touched — the same split the bookings half
 -- makes when it nulls `notes` and keeps `total_minor`.
 --
@@ -23844,7 +23846,9 @@ grant execute on function api_erase_user(jsonb) to authenticated, service_role;
 -- half has no declarative form, so it lives in ONE place attached to the parent row instead of being
 -- restated by every path that redacts a quote — including a future migration that re-applies
 -- api_erase_user from an older body, which is the migration-revert drift documented in
--- docs/handbook/landmines.md and has already cost this repo a guard once.
+-- docs/handbook/landmines.md and has already cost this repo a guard once. It has now cost it a second
+-- one: a migration that landed AFTER this file carries a copy of api_erase_user predating the
+-- intro_note line, so intro_note is scrubbed here as well and not only in that UPDATE.
 --
 -- `'deleted@privacy.invalid'` is the schema's erasure marker, already load-bearing above (it is what
 -- makes the anonymize idempotent). SECURITY DEFINER so the redaction cannot be half-applied by a
@@ -23863,10 +23867,32 @@ begin
      set description = case when kind = 'catalogue' then null else '(Redacted)' end
    where quote_id = new.id
      and coalesce(description, '') not in ('', '(Redacted)');
+
+  -- …and the parent's own guest-facing free text. `intro_note` is the covering note a staff member
+  -- types above the priced lines ("Dear …, here is the private boat day we discussed"), so it names
+  -- the guest as reliably as the lines do. api_erase_user's anonymize UPDATE nulls it as well, but
+  -- THAT statement is precisely the one a later migration re-applies from an older body — the drift
+  -- this trigger was created to be immune to, and which has already happened once here (a migration
+  -- landed after this one carrying a copy of api_erase_user that predates the intro_note line). So
+  -- the durable place for it is beside the lines, on the parent. Filtered, so a re-run is 0 rows.
+  --
+  -- No recursion: the trigger is `after update OF customer_email`, and this statement's target list
+  -- is intro_note alone, so it cannot re-fire (and the WHEN clause would reject it regardless).
+  update quotes
+     set intro_note = null
+   where id = new.id
+     and intro_note is not null;
   return null;
 end;
 $$;
-revoke execute on function quotes_redact_lines() from public, anon;
+-- `authenticated` is named too, and it is the word this repo has now dropped THREE times
+-- (api_booking_receipt, api_pending_payment_checkouts, and here): Supabase's default privileges grant
+-- EXECUTE to anon AND authenticated explicitly at creation, so `from public, anon` leaves every
+-- signed-in account able to POST /rpc/quotes_redact_lines and blank the line text of any quote it can
+-- name. It costs the trigger nothing — 20260814000000 established that trigger execution never checks
+-- the caller's EXECUTE — so the only caller left is the one that should have it.
+revoke execute on function quotes_redact_lines() from public, anon, authenticated;
+grant execute on function quotes_redact_lines() to service_role;
 
 drop trigger if exists quotes_redact_lines_on_anonymize on quotes;
 create trigger quotes_redact_lines_on_anonymize

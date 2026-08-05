@@ -97,11 +97,17 @@ export function AdminActivities() {
       await load();
     } catch (err) {
       // Supabase errors are plain PostgrestError objects (not Error instances), so read the fields
-      // directly. A foreign-key violation (23503) means the tour has bookings/availability and can't be
+      // directly. An integrity violation means the tour has bookings/availability and can't be
       // deleted — guide the user to Draft instead of showing the opaque DB message.
+      //
+      // BOTH codes, because Postgres does not use one: a plain NO ACTION foreign key raises 23503,
+      // ON DELETE RESTRICT raises 23001. booking_items.activity_option_id is RESTRICT
+      // (20260615120300), so the commonest case of all — the tour has been sold — arrives as 23001
+      // and used to miss this branch entirely, showing the operator the raw constraint text.
       const e = err as { code?: string; message?: string } | null;
+      const stillReferenced = e?.code === '23001' || e?.code === '23503';
       setError(
-        e?.code === '23503'
+        stillReferenced
           ? 'This tour has bookings or availability, so it can’t be deleted. Set it to Draft instead to hide it from the site.'
           : e?.message || (err instanceof Error ? err.message : 'Could not delete.'),
       );
