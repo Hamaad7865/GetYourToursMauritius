@@ -353,4 +353,90 @@ describe('api_erase_user — anonymize-with-retention', () => {
       expect(row.body).toContain('(Deleted user)');
     }
   });
+
+  it('erases the guest from quotes: drafts deleted outright, a converted quote anonymized in place', async () => {
+    // quotes.customer_name / _email / _phone are guest PII in a table api_erase_user knew nothing
+    // about, so a name, an address and a phone number survived an erasure request indefinitely.
+    // The split mirrors bookings: a quote that never became a booking carries no retention duty and
+    // is deleted; a CONVERTED quote is the offer behind a real payment, so it is kept and stripped.
+    const QUOTE_EMAIL = 'quote-erase@example.com';
+    await db.asOwner();
+
+    const draftQuote = (
+      await db.pg.query<{ id: string }>(
+        `insert into quotes (ref, customer_name, customer_email, customer_phone, valid_until, internal_notes)
+         values ('BMT-QER1', 'Quote Person', $1, '+23057000001', current_date + 7, 'Quote Person haggles')
+         returning id`,
+        [QUOTE_EMAIL],
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into quote_items (quote_id, position, kind, description, quantity, unit_amount_minor, subtotal_minor)
+       values ($1, 1, 'custom', 'Skipper for Quote Person, full day', 1, 40000, 40000)`,
+      [draftQuote],
+    );
+
+    const paidBooking = await seedBooking(db, 'q-confirmed', {
+      userId: null,
+      email: QUOTE_EMAIL,
+      status: 'confirmed',
+      paymentState: 'paid',
+      name: 'Quote Person',
+    });
+    await db.asOwner();
+    const convertedQuote = (
+      await db.pg.query<{ id: string }>(
+        `insert into quotes (ref, customer_name, customer_email, customer_phone, valid_until,
+                             internal_notes, booking_id, converted_at)
+         values ('BMT-QER2', 'Quote Person', $1, '+23057000002', current_date + 7,
+                 'Quote Person paid up front', $2, now())
+         returning id`,
+        [QUOTE_EMAIL, paidBooking],
+      )
+    ).rows[0]!.id;
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(callErase(db, { email: QUOTE_EMAIL })).resolves.toBeTruthy();
+
+    await db.asOwner();
+    // The draft quote and its lines are GONE (children first — quote_items would otherwise block it).
+    expect(
+      (await db.pg.query(`select 1 from quotes where id = $1`, [draftQuote])).rows,
+    ).toHaveLength(0);
+    expect(
+      (await db.pg.query(`select 1 from quote_items where quote_id = $1`, [draftQuote])).rows,
+    ).toHaveLength(0);
+
+    // The converted quote is retained (it is the paper behind a paid booking) but carries no PII.
+    const conv = (
+      await db.pg.query<{
+        customer_name: string;
+        customer_email: string;
+        customer_phone: string | null;
+        internal_notes: string | null;
+      }>(
+        `select customer_name, customer_email, customer_phone, internal_notes from quotes where id = $1`,
+        [convertedQuote],
+      )
+    ).rows[0]!;
+    expect(conv.customer_name).toBe('(Deleted user)');
+    expect(conv.customer_email).toBe('deleted@privacy.invalid');
+    expect(conv.customer_phone).toBeNull();
+    expect(conv.internal_notes).toBeNull();
+
+    // Belt and braces: the address must not survive anywhere in the table.
+    const leftovers = (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from quotes where lower(customer_email) = $1`,
+        [QUOTE_EMAIL],
+      )
+    ).rows[0]!.n;
+    expect(leftovers, 'a quote still carries the erased guest’s email address').toBe(0);
+  });
+
+  it('is idempotent over quotes too — a second erase by the same email is a no-op', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(callErase(db, { email: 'quote-erase@example.com' })).resolves.toBeTruthy();
+    await db.asOwner();
+  });
 });

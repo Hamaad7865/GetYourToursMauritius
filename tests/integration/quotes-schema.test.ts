@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { seedOccurrence } from '../db/seed';
@@ -19,12 +21,38 @@ import { seedOccurrence } from '../db/seed';
  *    a bespoke quote is FOR, so the quotes tables must not reintroduce the cap);
  *  - anon can neither read nor write any of the three tables (the guest reads a quote server-side
  *    behind the link token, never with the anon key);
- *  - `quotes.booking_id` is UNIQUE — the schema-level half of "one quote never mints two bookings";
+ *  - `quotes.booking_id` is UNIQUE — the schema-level half of "one quote never mints two bookings" —
+ *    and `converted_at` survives the hard-delete that nulls it;
  *  - `quote_item_shape` — a catalogue line names an occurrence + option, a custom/rental line names
  *    neither and must carry its own description;
  *  - `booking_custom_items` refuses `kind = 'catalogue'` — a catalogue line has an occurrence, so it
- *    belongs in booking_items, not here.
+ *    belongs in booking_items, not here;
+ *  - the two FKs a quote line points OUT through behave as declared: a quoted occurrence survives
+ *    "stop availability" (closed, never deleted), a draft quote never blocks a vehicle leaving the
+ *    fleet, and a priced booking line does.
  */
+
+const QUOTES_MIGRATION = readFileSync(
+  join(process.cwd(), 'supabase', 'migrations', '20260909000000_quotes.sql'),
+  'utf8',
+);
+
+/**
+ * The migration's table-lockdown tail — the `revoke all … from public, anon` plus the explicit
+ * grants, which are deliberately the LAST statements in the file so this slice is exactly them.
+ *
+ * Why the test re-executes it: tests/db/auth-shim.sql replicates Supabase's ALTER DEFAULT PRIVILEGES
+ * for FUNCTIONS ONLY (its own comment says so), so under PGlite a brand-new table hands anon nothing
+ * to begin with and the anon-denied assertions below pass whether or not the revoke exists. On the
+ * real project stock defaults DO hand anon every new table, so that revoke is the only thing closing
+ * it — the one line in the migration with no coverage, and this repo has shipped exactly that leak
+ * twice (api_booking_receipt, api_pending_payment_checkouts). beforeAll therefore grants anon the
+ * tables to reproduce production's starting point and re-runs this tail: delete the revoke and the
+ * grants survive, so the anon test goes red.
+ */
+const LOCKDOWN_TAIL = QUOTES_MIGRATION.slice(QUOTES_MIGRATION.indexOf('revoke all on quotes'));
+
+const STAFF = 'd1d1d1d1-d1d1-d1d1-d1d1-d1d1d1d1d1d1';
 
 /** [table, column] pairs that carry money and therefore must be bigint. */
 const MONEY_COLUMNS: Array<[string, string]> = [
@@ -54,6 +82,17 @@ describe('quotes schema (20260909000000)', () => {
 
   beforeAll(async () => {
     db = await createTestDb();
+    // Production's starting point: stock Supabase default privileges hand anon every new table.
+    // See LOCKDOWN_TAIL above for why the harness cannot show that on its own.
+    await db.pg.exec(
+      `grant select, insert, update, delete on quotes, quote_items, booking_custom_items to anon;`,
+    );
+    await db.pg.exec(LOCKDOWN_TAIL);
+    // A staff account, so the admin RPCs below run through their real is_staff() gate.
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [STAFF]);
+    await db.pg.query(`insert into profiles (id, full_name, role) values ($1, 'Admin', 'admin')`, [
+      STAFF,
+    ]);
   });
 
   afterAll(async () => {
@@ -92,6 +131,18 @@ describe('quotes schema (20260909000000)', () => {
   });
 
   it('refuses anon reads and writes on all three tables', async () => {
+    // Privilege check first, and via has_table_privilege(): role_table_grants is documented in this
+    // repo as lying (it once reported NO grant on a table anon could freely read).
+    for (const table of QUOTE_TABLES) {
+      for (const priv of ['select', 'insert', 'update', 'delete'] as const) {
+        const { rows } = await db.pg.query<{ granted: boolean }>(
+          `select has_table_privilege('anon', $1, $2) as granted`,
+          [table, priv],
+        );
+        expect(rows[0]!.granted, `anon still holds ${priv} on ${table}`).toBe(false);
+      }
+    }
+
     await db.as(null);
     try {
       for (const table of QUOTE_TABLES) {
@@ -203,5 +254,116 @@ describe('quotes schema (20260909000000)', () => {
         [booking[0]!.id],
       ),
     ).rejects.toThrow(/booking_custom_items_kind_check/);
+  });
+
+  it('keeps converted_at after the converted booking is hard-deleted (booking_id alone is not the record)', async () => {
+    // api_erase_user hard-deletes every unpaid/pending booking for a person, and quotes.booking_id is
+    // `on delete set null` — so the column the conversion guard reads can be cleared by a statement
+    // that knows nothing about quotes, re-arming a converted quote to mint a second booking.
+    // converted_at is the durable half: no FK can reach it.
+    const { rows: booking } = await db.pg.query<{ id: string }>(
+      `insert into bookings (customer_name, customer_email, status, total_minor)
+       values ('Erased Guest', 'erased@example.com', 'draft', 9000) returning id`,
+    );
+    await db.pg.query(
+      `insert into quotes (ref, customer_name, customer_email, valid_until, booking_id, converted_at)
+       values ('BMT-QCONV1', 'Guest', 'guest@example.com', current_date + 7, $1, now())`,
+      [booking[0]!.id],
+    );
+
+    await db.pg.query(`delete from bookings where id = $1`, [booking[0]!.id]);
+
+    const { rows } = await db.pg.query<{ booking_id: string | null; converted_at: string | null }>(
+      `select booking_id, converted_at from quotes where ref = 'BMT-QCONV1'`,
+    );
+    expect(rows[0]!.booking_id, 'the FK should have nulled booking_id').toBeNull();
+    expect(
+      rows[0]!.converted_at,
+      'converted_at was cleared with the booking — the conversion guard has nothing durable to read',
+    ).not.toBeNull();
+  });
+
+  it('closes — never deletes — an empty future slot a quote line still points at', async () => {
+    // stop_availability_atomic DELETEs empty future occurrences, guarded only by "no booking_items,
+    // no booking_holds". A draft quote's catalogue line has neither, so without a quote guard the
+    // NO ACTION foreign key aborts the whole SECURITY DEFINER function and admin "stop availability"
+    // dies with a raw Postgres error for any activity that appears on any quote.
+    await db.asOwner();
+    const seeded = await seedOccurrence(db, 8);
+    const { rows: quote } = await db.pg.query<{ id: string }>(
+      `insert into quotes (ref, customer_name, customer_email, valid_until)
+       values ('BMT-QSTOP1', 'Guest', 'guest@example.com', current_date + 7) returning id`,
+    );
+    await db.pg.query(
+      `insert into quote_items
+         (quote_id, position, kind, session_occurrence_id, activity_option_id,
+          quantity, unit_amount_minor, subtotal_minor)
+       values ($1, 1, 'catalogue', $2, $3, 2, 7500, 15000)`,
+      [quote[0]!.id, seeded.occurrenceId, seeded.optionId],
+    );
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(
+      db.pg.query(`select stop_availability_atomic($1::jsonb)`, [
+        JSON.stringify({ activityId: seeded.activityId }),
+      ]),
+      'stop_availability_atomic aborted on a quoted occurrence',
+    ).resolves.toBeTruthy();
+
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ status: string }>(
+      `select status from session_occurrences where id = $1`,
+      [seeded.occurrenceId],
+    );
+    expect(rows[0]?.status, 'the quoted occurrence was deleted instead of closed').toBe('closed');
+  });
+
+  describe('rental_vehicle_slug foreign keys declare their intent', () => {
+    it('lets a vehicle leave the fleet while a DRAFT quote names it (set null)', async () => {
+      await db.asOwner();
+      const { rows: quote } = await db.pg.query<{ id: string }>(
+        `insert into quotes (ref, customer_name, customer_email, valid_until)
+         values ('BMT-QRENT1', 'Guest', 'guest@example.com', current_date + 7) returning id`,
+      );
+      await db.pg.query(
+        `insert into quote_items
+           (quote_id, position, kind, description, rental_vehicle_slug,
+            quantity, unit_amount_minor, subtotal_minor)
+         values ($1, 1, 'rental', 'Haojue VX, 3 days', 'haojue-vx', 3, 2000, 6000)`,
+        [quote[0]!.id],
+      );
+
+      await expect(
+        db.pg.query(`delete from rental_vehicles where slug = 'haojue-vx'`),
+        'a draft quote line blocked a vehicle from leaving the fleet',
+      ).resolves.toBeTruthy();
+
+      const { rows } = await db.pg.query<{ slug: string | null; description: string }>(
+        `select rental_vehicle_slug as slug, description from quote_items where quote_id = $1`,
+        [quote[0]!.id],
+      );
+      expect(rows[0]!.slug).toBeNull();
+      // The line stays readable without the join — the description carries the vehicle name.
+      expect(rows[0]!.description).toContain('Haojue VX');
+    });
+
+    it('refuses to remove a vehicle a priced booking line names (restrict)', async () => {
+      await db.asOwner();
+      const { rows: booking } = await db.pg.query<{ id: string }>(
+        `insert into bookings (customer_name, customer_email, status, total_minor)
+         values ('Rental Guest', 'rental@example.com', 'confirmed', 6000) returning id`,
+      );
+      await db.pg.query(
+        `insert into booking_custom_items
+           (booking_id, position, kind, description, rental_vehicle_slug,
+            quantity, unit_amount_minor, subtotal_minor)
+         values ($1, 1, 'rental', 'Suzuki Address, 3 days', 'suzuki-address', 3, 2000, 6000)`,
+        [booking[0]!.id],
+      );
+
+      await expect(
+        db.pg.query(`delete from rental_vehicles where slug = 'suzuki-address'`),
+      ).rejects.toThrow(/booking_custom_items_rental_vehicle_slug_fkey/);
+    });
   });
 });

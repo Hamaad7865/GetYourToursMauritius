@@ -135,6 +135,37 @@ describe('rental fleet: public list RPC + admin RLS', () => {
     expect(rows[0]).toMatchObject({ name: 'Nissan March', daily_rate_minor: 3600 }); // unchanged
   });
 
+  it('explains, instead of leaking Postgres, when a vehicle is still on a booking', async () => {
+    // booking_custom_items.rental_vehicle_slug is ON DELETE RESTRICT on purpose: a priced booking
+    // line must keep naming the vehicle it was sold as. Postgres answers with a raw 23503 string,
+    // which the fleet screen used to rethrow verbatim — the operator saw a constraint name and no
+    // way to act on it.
+    await db.asOwner();
+    const bookingId = (
+      await db.pg.query<{ id: string }>(
+        `insert into bookings (ref, status, payment_state, total_minor, currency, customer_name, customer_email, source)
+         values ('RENT-1', 'confirmed', 'paid', 6000, 'EUR', 'Rental Guest', 'rental@example.com', 'web')
+         returning id`,
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into booking_custom_items
+         (booking_id, position, kind, description, rental_vehicle_slug,
+          quantity, unit_amount_minor, subtotal_minor)
+       values ($1, 1, 'rental', 'Nissan Note, 3 days', 'nissan-note', 3, 2000, 6000)`,
+      [bookingId],
+    );
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(deleteRentalVehicle('nissan-note')).rejects.toThrow(/appears on 1 booking line/i);
+
+    // The vehicle is still there — the RESTRICT held and nothing was half-applied.
+    await db.asOwner();
+    expect(
+      (await db.pg.query(`select 1 from rental_vehicles where slug = 'nissan-note'`)).rows,
+    ).toHaveLength(1);
+  });
+
   it('loads the fleet through the admin helper (staff), newest sort order', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     const fleet = await loadRentalFleet();
