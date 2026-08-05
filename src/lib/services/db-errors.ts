@@ -122,7 +122,11 @@ export function mapDbError(error: unknown): never {
     throw new ConflictError('This quote has expired — please message us for an updated one.');
   }
   // Draft / zero-total: the offer is not finished, so there is nothing honest to charge for yet.
-  if (/\bquote_not_convertible\b/.test(message)) {
+  // `quote_total_mismatch` joins them: the amount charged is copied from quotes.total_minor while the
+  // lines are copied separately, and nothing ties the two together, so a total edited away from its
+  // lines would charge a figure the itemisation does not support. Same register — the offer is not
+  // finished, and only the owner can put it right.
+  if (/\b(quote_not_convertible|quote_total_mismatch)\b/.test(message)) {
     throw new ConflictError('This quote is not ready to pay yet — please message us.');
   }
   // A scheduled activity on the quote still needs the hold path (a later task), so the conversion

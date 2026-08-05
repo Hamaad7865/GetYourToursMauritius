@@ -574,12 +574,15 @@ create trigger quotes_redact_lines_on_anonymize
 -- refuses ('booking_not_payable' on 'expired') attached to a quote this function refused to convert
 -- again — payable by nobody, recoverable only by hand-editing production. That is precisely the
 -- "cancelled-checkout trap" this repo already fixed once (2026-07-25). So when `converted_at` is
--- set, the linked booking is inspected inside the same `for update`: if it is DEAD and never took a
--- cent (expired/cancelled/failed, booking-level payment_state pending or failed, and no payments row
--- that settled, refunded or is under settlement review) the quote re-arms and mints afresh, leaving
--- the dead booking behind as the audit trail. Everything else keeps refusing — including, and
+-- set, the linked booking is inspected inside the same `for update`: if it is DEAD, never took a
+-- cent, and can no longer take one (expired/cancelled/failed, booking-level payment_state pending or
+-- failed, no payments row that settled, refunded, part-settled or is under settlement review, and no
+-- Peach session still completable or being minted) the quote re-arms and mints afresh, leaving the
+-- dead booking behind as the audit trail. Everything else keeps refusing — including, and
 -- deliberately, the case where the linked booking is GONE (booking_id null after an erasure), which
--- is the section-4 invariant and must never be softened into "no booking, so mint one".
+-- is the section-4 invariant and must never be softened into "no booking, so mint one". The money is
+-- read under the payments row locks, in append_payment_event's own lock order, so a settlement in
+-- flight serialises here rather than being read stale.
 --
 -- `ref` is deliberately NOT supplied. The column default has been the Peach-safe generator since
 -- 20260736000000 ('BMT' + 13 hex, 16 alnum chars, no separator) — and that default has already been
@@ -614,6 +617,7 @@ declare
   v_prior bookings;
   v_booking bookings;
   v_reusable boolean := false;
+  v_lines_minor bigint;
 begin
   select * into v_quote
     from quotes
@@ -626,12 +630,31 @@ begin
 
   -- Convert-once, read off converted_at, and meaning "one PAYABLE booking at a time" (see above).
   if v_quote.converted_at is not null then
+    -- LOCK THE MONEY BEFORE JUDGING IT. append_payment_event locks the payments row, writes paid_minor
+    -- and status onto it, and only THEN rolls the projection onto bookings — so an unlocked read of
+    -- either table can catch a settlement mid-flight, conclude "this booking never took a cent", mint
+    -- booking B, commit, and let the settlement land on A afterwards. Taking the payments locks in the
+    -- same order that function does serialises the two instead of racing them.
+    --
+    -- `bookings` is deliberately NOT locked here as well: api_create_payment locks bookings and then
+    -- payments, so adding payments -> bookings on this side would close a deadlock cycle on the money
+    -- path. It is also unnecessary — read committed gives every later statement in this function a
+    -- fresh snapshot, so once the payments locks are held the reads below see post-settlement state.
+    -- A booking with no payments row locks nothing, which is safe: api_create_payment refuses a dead
+    -- booking ('booking_not_payable'), so no first payment can appear on one.
+    perform 1 from payments where booking_id = v_quote.booking_id for update;
+
     -- booking_id is null here when an erasure hard-deleted the booking; the select finds nothing and
     -- v_reusable stays false, which is the section-4 invariant.
     select * into v_prior from bookings where id = v_quote.booking_id;
     v_reusable := found
       and v_prior.status in ('expired', 'cancelled', 'failed')
       and v_prior.payment_state in ('pending', 'failed')
+      -- Money already HELD, including the shapes the booking-level projection above cannot see: an
+      -- underpayment (append_payment_event sets 'pending' when v_paid > 0 but below amount_minor, so
+      -- paid_minor is positive while payment_state is not) and a wrong-currency settlement quarantine
+      -- (settlement_review_at, 20260830000000), which is stamped precisely so the projection is left
+      -- alone. Both hold a capture on a booking that still reads clean.
       and not exists (
         select 1 from payments pay
          where pay.booking_id = v_prior.id
@@ -639,6 +662,35 @@ begin
                 or pay.refunded_minor > 0
                 or pay.status in ('paid', 'partially_refunded', 'refunded')
                 or pay.settlement_review_at is not null)
+      )
+      -- Money that can still be TAKEN. A dead booking is not a dead checkout: run_booking_maintenance
+      -- expires a booking 30 minutes after it was CREATED, while a Peach session stays completable
+      -- ~30 minutes after it was MINTED (api_pending_payment_checkouts says exactly that in its own
+      -- comment). A guest who converts at T0, clicks Pay at T0+26 and wanders off has an expired
+      -- booking at T0+30 and a live session until roughly T0+56; re-arming in that gap leaves TWO
+      -- payable sessions for one quote — the double charge api_create_payment's reuse guard refuses
+      -- to create one level down ("Minting a replacement while the original is still live would leave
+      -- TWO payable sessions for one booking") and the one 20260902000000 removed. It is also
+      -- unreconcilable: api_pending_payment_checkouts only re-queries bookings still in
+      -- 'payment_pending', so once the booking is expired a lost webhook on that capture is never
+      -- swept — money taken, no ledger row, no link back to the quote.
+      --
+      -- 30 minutes, not api_create_payment's 25: 25 is the REUSE window, deliberately short of the
+      -- session's life so a session handed back cannot die under the guest. The hazard here lasts as
+      -- long as the session can be COMPLETED, so this window has to be the wider of the two.
+      --
+      -- The claimed-lease arm covers the ~90 seconds where a caller is out at Peach and the session
+      -- id has not been recorded yet: provider_checkout_id is still null, so freshness alone sees
+      -- nothing and would re-arm into the same double charge moments before the session appears.
+      --
+      -- The refusal is a wait, not a wall: mapDbError already reads quote_already_converted as "has
+      -- already been paid for or is being paid", and the quote converts again once the session dies.
+      and not exists (
+        select 1 from payments pay
+         where pay.booking_id = v_prior.id
+           and ((pay.provider_checkout_id is not null
+                 and coalesce(pay.checkout_created_at, pay.updated_at) > now() - interval '30 minutes')
+                or (pay.checkout_claimed_until is not null and pay.checkout_claimed_until > now()))
       );
     if not v_reusable then
       raise exception 'quote_already_converted'
@@ -686,6 +738,32 @@ begin
     select 1 from quote_items qi where qi.quote_id = v_quote.id and qi.kind = 'catalogue'
   ) then
     raise exception 'quote_has_catalogue_lines';
+  end if;
+
+  -- THE CHARGE AND THE ITEMISATION MUST AGREE, or nothing is minted.
+  --
+  -- The amount charged is copied from quotes.total_minor while the lines are copied by the separate
+  -- statement below, and nothing else ties the two together: total_minor carries no CHECK against its
+  -- lines and no trigger recomputing it, and the editor writes the total in a different statement from
+  -- the lines. src/lib/quotes/totals.ts states in its own header that there is no Zod layer above it
+  -- yet and that its guards "ARE the only validation between a browser-supplied line and
+  -- quotes.total_minor" — so this function is the last gate before a card is charged, and failing OPEN
+  -- on the drift charges the guest a figure the itemisation does not support and renders a VAT
+  -- invoice whose lines do not sum to the charge.
+  --
+  -- The sum is over ALL lines, not just the ones copied below: the catalogue guard above already
+  -- guarantees every line reaches the booking, and when that guard is lifted the catalogue lines will
+  -- travel through the hold path and must still be part of the total they were priced into.
+  --
+  -- It subsumes the zero-lines case too — a hand-set total with no itemisation at all would otherwise
+  -- mint a booking with no lines and a booking_json carrying no items: charged for something with no
+  -- record of what it was.
+  select coalesce(sum(qi.subtotal_minor), 0) into v_lines_minor
+    from quote_items qi
+   where qi.quote_id = v_quote.id;
+  if v_quote.total_minor <> v_lines_minor then
+    raise exception 'quote_total_mismatch'
+      using detail = format('total %s vs lines %s', v_quote.total_minor, v_lines_minor);
   end if;
 
   insert into bookings (

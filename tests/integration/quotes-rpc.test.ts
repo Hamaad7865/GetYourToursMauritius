@@ -360,6 +360,164 @@ describe('api_convert_quote', () => {
     expect(old[0]!.status).toBe('expired');
   });
 
+  it('never re-arms while the dead booking still holds a Peach session the guest can complete', async () => {
+    // The re-arm's other half. run_booking_maintenance expires a booking 30 minutes after it was
+    // CREATED, but a Peach session stays completable ~30 minutes after it was MINTED (the repo's own
+    // note in api_pending_payment_checkouts). A guest who converts at T0, clicks Pay at T0+26 and
+    // wanders off has an expired booking at T0+30 and a live session until roughly T0+56. Re-arming
+    // in that window mints a SECOND payable session for one quote while the first can still charge
+    // the card — the exact double-charge api_create_payment's reuse guard refuses to create one level
+    // down, and the one 20260902000000 removed. It is also unreconcilable: api_pending_payment_checkouts
+    // only sweeps `b.status = 'payment_pending'`, so a lost webhook on that capture is never
+    // re-queried — money taken, no ledger row, no link back to the quote.
+    const quote = await seedQuote({
+      customLines: [{ description: 'Wandered off', amount: 44000 }],
+    });
+    const first = await callRpc<{ id: string }>('api_convert_quote', { quoteId: quote.id });
+
+    // A live checkout on that booking: minted 5 minutes ago, the booking itself created 31 minutes
+    // ago so the sweep kills it. Exactly the timeline above.
+    await db.pg.query(
+      `insert into payments (booking_id, idempotency_key, amount_minor, provider_checkout_id,
+                             checkout_created_at)
+       values ($1, $2, 44000, 'peach-live-session', now() - interval '5 minutes')`,
+      [first.id, `idem-live-${first.id}`],
+    );
+    await db.pg.query(
+      `update bookings set created_at = now() - interval '31 minutes' where id = $1`,
+      [first.id],
+    );
+    const swept = await callRpc<{ bookingsExpired: number }>('run_booking_maintenance', {});
+    expect(swept.bookingsExpired, 'the sweep did not expire the abandoned booking').toBe(1);
+
+    const before = await quoteBookingCount();
+    const error = await refusalFor(quote.id);
+    expect(error.status, 'the live-session refusal reaches the guest as a 500').toBe(409);
+    expect(
+      await quoteBookingCount(),
+      'a second payable Peach session was minted while the first could still charge the card',
+    ).toBe(before);
+
+    // Once the session is dead, the quote is payable again — the refusal is a wait, not a wall.
+    await db.pg.query(
+      `update payments set checkout_created_at = now() - interval '40 minutes' where booking_id = $1`,
+      [first.id],
+    );
+    const second = await callRpc<{ id: string; status: string }>('api_convert_quote', {
+      quoteId: quote.id,
+    });
+    expect(second.id, 'the dead booking was handed back').not.toBe(first.id);
+    expect(second.status).toBe('payment_pending');
+    expect(await quoteBookingCount()).toBe(before + 1);
+  });
+
+  it('never re-arms while a checkout LEASE is still out on the dead booking', async () => {
+    // The 90-second single-flight lease api_create_payment stamps: a caller is out at Peach right
+    // now and will record a completable session id moments later. provider_checkout_id is still
+    // null, so a freshness check alone sees nothing and re-arms into the same double-charge.
+    const quote = await seedQuote({ customLines: [{ description: 'Mid-flight', amount: 27000 }] });
+    const first = await callRpc<{ id: string }>('api_convert_quote', { quoteId: quote.id });
+
+    await db.pg.query(
+      `insert into payments (booking_id, idempotency_key, amount_minor, checkout_claimed_until)
+       values ($1, $2, 27000, now() + interval '60 seconds')`,
+      [first.id, `idem-lease-${first.id}`],
+    );
+    await db.pg.query(`update bookings set status = 'expired' where id = $1`, [first.id]);
+
+    const before = await quoteBookingCount();
+    const error = await refusalFor(quote.id);
+    expect(error.status).toBe(409);
+    expect(
+      await quoteBookingCount(),
+      'a quote re-armed while a Peach session was being minted for the dead booking',
+    ).toBe(before);
+
+    // Lease lapsed, nothing recorded: payable again.
+    await db.pg.query(
+      `update payments set checkout_claimed_until = now() - interval '1 minute' where booking_id = $1`,
+      [first.id],
+    );
+    const second = await callRpc<{ id: string }>('api_convert_quote', { quoteId: quote.id });
+    expect(second.id).not.toBe(first.id);
+  });
+
+  it('never re-arms a booking holding money that never rolled up to paid', async () => {
+    // The payments-level money clause on its own. A FULL settlement is decided one conjunct earlier
+    // (bookings.payment_state goes to 'paid'), so it proves nothing about this clause. What only
+    // this clause catches is money held while the booking still projects 'pending': an underpayment
+    // — append_payment_event sets 'pending' when v_paid > 0 but below amount_minor, so paid_minor is
+    // positive and payment_state is not. Re-arming there charges a guest twice for one quote and
+    // strands the part-payment on a booking nothing will reconcile.
+    const quote = await seedQuote({ customLines: [{ description: 'Part paid', amount: 60000 }] });
+    const short = await callRpc<{ id: string }>('api_convert_quote', { quoteId: quote.id });
+
+    const { rows: payment } = await db.pg.query<{ id: string }>(
+      `insert into payments (booking_id, idempotency_key, amount_minor)
+       values ($1, $2, 60000) returning id`,
+      [short.id, `idem-short-${short.id}`],
+    );
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, 25000, now(), '{}'::jsonb)`, [
+      payment[0]!.id,
+      `evt-short-${short.id}`,
+    ]);
+
+    // The setup is only honest if the earlier conjuncts really do NOT decide this.
+    const { rows: state } = await db.pg.query<{
+      paid_minor: number;
+      pay_status: string;
+      booking_state: string;
+    }>(
+      `select pay.paid_minor, pay.status as pay_status, b.payment_state as booking_state
+         from payments pay join bookings b on b.id = pay.booking_id where pay.id = $1`,
+      [payment[0]!.id],
+    );
+    expect(state[0]!.paid_minor, 'the part-payment did not land').toBe(25000);
+    expect(state[0]!.pay_status).toBe('pending');
+    expect(
+      state[0]!.booking_state,
+      'the booking rolled up to paid, so this no longer tests the payments clause',
+    ).toBe('pending');
+
+    // Set directly, not through the sweep: run_booking_maintenance correctly REFUSES to expire a
+    // booking holding money, which is the point — this is the state a hand-cancel or an older row
+    // reaches.
+    await db.pg.query(`update bookings set status = 'expired' where id = $1`, [short.id]);
+
+    const before = await quoteBookingCount();
+    const error = await refusalFor(quote.id);
+    expect(error.status).toBe(409);
+    expect(
+      await quoteBookingCount(),
+      'a quote holding a part-payment minted a second payable booking',
+    ).toBe(before);
+  });
+
+  it('never re-arms a booking whose settlement is quarantined for review', async () => {
+    // The other shape of "money we cannot see yet": a wrong-currency settlement (20260830000000)
+    // stamps settlement_review_at and deliberately leaves the projection alone, so every
+    // booking-level conjunct reads clean while a capture is under review.
+    const quote = await seedQuote({
+      customLines: [{ description: 'Wrong currency', amount: 31000 }],
+    });
+    const held = await callRpc<{ id: string }>('api_convert_quote', { quoteId: quote.id });
+
+    await db.pg.query(
+      `insert into payments (booking_id, idempotency_key, amount_minor, settlement_review_at)
+       values ($1, $2, 31000, now())`,
+      [held.id, `idem-review-${held.id}`],
+    );
+    await db.pg.query(`update bookings set status = 'expired' where id = $1`, [held.id]);
+
+    const before = await quoteBookingCount();
+    const error = await refusalFor(quote.id);
+    expect(error.status).toBe(409);
+    expect(
+      await quoteBookingCount(),
+      'a quote with a settlement under review minted a second payable booking',
+    ).toBe(before);
+  });
+
   it('never re-arms a quote whose booking TOOK MONEY, however dead it looks', async () => {
     const quote = await seedQuote({
       customLines: [{ description: 'Paid charter', amount: 60000 }],
@@ -471,6 +629,49 @@ describe('api_convert_quote', () => {
     const error = await refusalFor(quote.id);
     expect(error.status).toBe(409);
     expect(await quoteBookingCount(), 'a zero-total quote minted a payable booking').toBe(before);
+  });
+
+  it('refuses a quote whose total no longer matches its lines, and one with no lines at all', async () => {
+    // The charge is copied from quotes.total_minor while the lines are copied by a separate
+    // statement, and nothing ties the two together: quotes.total_minor has no CHECK against its
+    // lines and no trigger recomputing it, and src/lib/quotes/totals.ts says in its own header that
+    // its guards "ARE the only validation between a browser-supplied line and quotes.total_minor" —
+    // there is no Zod layer above it yet. api_convert_quote is the last gate before a card is
+    // charged, so it has to fail CLOSED on that drift: otherwise the guest is charged a figure the
+    // itemisation does not support and the VAT invoice renders lines that do not sum to the charge.
+    const drifted = await seedQuote({
+      customLines: [{ description: 'Sunset cruise', amount: 12000 }],
+    });
+    await db.pg.query(`update quotes set total_minor = 30000 where id = $1`, [drifted.id]);
+
+    let before = await quoteBookingCount();
+    let error = await refusalFor(drifted.id);
+    expect(error.status, 'a total that outran its lines fell through as an unmapped 500').toBe(409);
+    expect(error.code).toBe('conflict');
+    expect(error.message, 'the guest is shown a raw database token').toMatch(/[a-z] [a-z]/);
+    expect(await quoteBookingCount(), 'a guest was charged 300 for lines totalling 120').toBe(
+      before,
+    );
+
+    // Nothing half-written, and the quote is still convertible once the owner fixes the total.
+    const { rows } = await db.pg.query<{ booking_id: string | null; converted_at: string | null }>(
+      `select booking_id, converted_at from quotes where id = $1`,
+      [drifted.id],
+    );
+    expect(rows[0]!.booking_id).toBeNull();
+    expect(rows[0]!.converted_at, 'the quote was locked shut by a refused conversion').toBeNull();
+
+    // The same guard subsumes the zero-lines case: a hand-set total with no itemisation at all would
+    // mint a booking with no lines — charged for something with no record of what it was.
+    const bare = await seedQuote({});
+    await db.pg.query(`update quotes set total_minor = 25000 where id = $1`, [bare.id]);
+    before = await quoteBookingCount();
+    error = await refusalFor(bare.id);
+    expect(error.status).toBe(409);
+    expect(
+      await quoteBookingCount(),
+      'a quote with a hand-set total and no lines minted a booking with nothing on it',
+    ).toBe(before);
   });
 
   it('reports an unknown quote id as a 404, not a database error', async () => {
