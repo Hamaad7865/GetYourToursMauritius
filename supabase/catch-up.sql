@@ -24442,6 +24442,63 @@ $$;
 revoke execute on function notify_pickup_set(uuid, uuid, bigint) from public, anon, authenticated;
 grant execute on function notify_pickup_set(uuid, uuid, bigint) to service_role;
 
+-- A settled supplement that could NOT be applied. Every branch that refuses to write a pickup routes
+-- here, because the alternative is keeping a guest's money with no record anyone will ever look at.
+-- Email only, and idempotent per payment: the reconcile sweep re-queries the same capture for hours.
+create or replace function notify_pickup_orphan_payment(p_payment_id uuid)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_payment payments;
+  v_booking bookings;
+  v_applied bigint;
+begin
+  select * into v_payment from payments where id = p_payment_id;
+  if not found or v_payment.purpose <> 'pickup_addon' or v_payment.paid_minor <= 0 then
+    return;
+  end if;
+
+  -- How much of THIS payment actually reached a booking. A normal apply puts exactly amount_minor
+  -- there, so the common replay path (request already applied, in full) is silent. A request applied
+  -- at a different figure — the zero-fee revision — is not.
+  select coalesce(sum(r.fee_minor), 0) into v_applied
+    from booking_pickup_requests r
+   where r.payment_id = p_payment_id and r.applied_at is not null;
+  if v_applied >= v_payment.amount_minor then
+    return;
+  end if;
+
+  select * into v_booking from bookings where id = v_payment.booking_id;
+  -- A booking that is already cancelled/expired/refunded had this capture routed to refund_pending by
+  -- append_payment_event, which raises its own owner alert. Don't send a second one for it.
+  if v_booking.status not in ('confirmed', 'completed') then
+    return;
+  end if;
+
+  insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+  values (
+    'email', 'owner', 'owner_pickup_orphan_payment',
+    jsonb_build_object(
+      'ref', v_booking.ref,
+      'customerName', v_booking.customer_name,
+      'feeEur', v_payment.amount_minor::float / 100,
+      'chargedAmountMinor', v_payment.charged_amount_minor,
+      'chargedCurrency', v_payment.charged_currency
+    ),
+    v_booking.id,
+    'pickup_orphan:' || p_payment_id::text
+  )
+  on conflict (idempotency_key) do nothing;
+end;
+$$;
+
+revoke execute on function notify_pickup_orphan_payment(uuid) from public, anon, authenticated;
+grant execute on function notify_pickup_orphan_payment(uuid) to service_role;
+
 create or replace function apply_pickup_request(p_payment_id uuid)
 returns void
 language plpgsql
@@ -24452,6 +24509,8 @@ as $$
 declare
   v_req booking_pickup_requests;
   v_status booking_status;
+  v_disruption jsonb;
+  v_called_off boolean;
 begin
   -- `applied_at is null` is the whole idempotency story: a replayed webhook, the reconcile sweep and
   -- the customer's own sync poll all land here, and only the first one moves money onto the booking.
@@ -24459,6 +24518,11 @@ begin
    where payment_id = p_payment_id and applied_at is null
    for update;
   if not found then
+    -- Money with nothing to apply it to. The ONE case that is normal is a replay of a supplement
+    -- already applied in full; anything else is a real capture we would otherwise keep silently
+    -- (the guest revised to a zero-fee address while this session was still payable, or the request
+    -- was superseded). Alerting is the whole point: nobody can refund what nobody knows about.
+    perform notify_pickup_orphan_payment(p_payment_id);
     return;
   end if;
 
@@ -24467,8 +24531,30 @@ begin
   -- a cancelled/refunded booking. append_payment_event's own "money on a non-live booking" branch
   -- routes that capture to refund_pending, which is the right answer; this must not undo it by
   -- writing a pickup onto it.
-  select status into v_status from bookings where id = v_req.booking_id;
-  if v_status is distinct from 'confirmed' then
+  --
+  -- 'completed' counts as live, exactly as it does in append_payment_event, api_mark_refunded and the
+  -- capacity count. Excluding it meant a supplement that settled late on a trip the owner had already
+  -- marked complete was KEPT and never applied — that branch does not route to refund_pending either,
+  -- so the money simply vanished from view.
+  select status, disruption into v_status, v_disruption from bookings where id = v_req.booking_id;
+  if v_status not in ('confirmed', 'completed') then
+    return;
+  end if;
+
+  -- …and the departure must still be running. api_weather_cancel_occurrence leaves the booking
+  -- 'confirmed' with its items on the cancelled occurrence, so the status check above sails past a
+  -- called-off trip. Every SELL-side path already refuses this (pickup_addon_quote), but this is the
+  -- path that actually takes the money onto the booking, and it was the only one that did not: the
+  -- guest was charged for transport to a trip we had just told them was cancelled, and the pickup was
+  -- stamped onto a booking that still owes them a reschedule-or-refund choice.
+  select exists (
+    select 1
+      from booking_items bi
+      join session_occurrences so on so.id = bi.session_occurrence_id
+     where bi.booking_id = v_req.booking_id and so.status = 'cancelled'
+  ) into v_called_off;
+  if v_called_off or booking_awaiting_choice(v_disruption) then
+    perform notify_pickup_orphan_payment(p_payment_id);
     return;
   end if;
 
@@ -24930,7 +25016,11 @@ begin
   for v_candidate in (
     select b.id as booking_id, b.ref, b.customer_email, b.customer_name, b.locale::text as locale,
            a.title as activity_title, fo.starts_at,
-           case when fo.starts_at <= now() + interval '24 hours' then 24 else 48 end as window_hours
+           case when fo.starts_at <= now() + interval '24 hours' then 24 else 48 end as window_hours,
+           -- The eligibility ladder, evaluated ONCE per candidate. It gates the guest chase (there is
+           -- no point mailing "add it now" to someone the booking page will refuse) but deliberately
+           -- NOT the owner escalation — see the split below.
+           pickup_addon_quote(b.id, null, null) ->> 'reason' as refusal
     from bookings b
     join lateral (
       select min(so.starts_at) as starts_at
@@ -24953,18 +25043,18 @@ begin
       and b.customer_email is not null
       and fo.starts_at > now()
       and fo.starts_at <= now() + interval '48 hours'
-      -- Only chase a guest who can actually comply. pickup_addon_quote carries the WHOLE eligibility
-      -- ladder (pickup_available, per_person/per_group, neither transfer product, not departed, not
-      -- called off); duplicating a subset of it here is how the two drift. Called with null
-      -- coordinates it prices nothing and answers the eligibility question alone.
-      --
-      -- Without this, a guest booked on an activity with pickup_available = false — the majority of
-      -- the catalogue, and reachable because checkout asks the pickup question unconditionally — was
-      -- mailed twice and escalated to the owner for an address the booking page then refuses to
-      -- accept: its CTA stays disabled forever with the fee shown as '—'.
-      and coalesce((pickup_addon_quote(b.id, null, null) ->> 'eligible')::boolean, false)
   )
   loop
+    -- A trip that has departed or been called off needs no signal to anyone; every OTHER refusal
+    -- (no pickup service on this activity, a pricing mode the add-on does not serve) still leaves a
+    -- guest the owner must collect, so it must still reach the owner below.
+    if v_candidate.refusal in ('departed', 'departure_cancelled', 'pickup_not_pending') then
+      continue;
+    end if;
+
+    -- Guest chase: only when they can actually comply. Chasing someone whose booking page answers
+    -- "this trip doesn't include a pickup service" is a demand with no way to satisfy it.
+    if v_candidate.refusal is null then
     insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
     values (
       'email', v_candidate.customer_email, 'pickup_reminder',
@@ -24984,9 +25074,14 @@ begin
         || ':' || to_char(v_candidate.starts_at at time zone 'UTC', 'YYYYMMDDHH24MI')
     )
     on conflict (idempotency_key) do nothing;
+    end if;
 
     -- The owner nudge fires at the 24h mark only: at 48h the guest still has plenty of time, and an
-    -- alert the owner cannot act on yet is an alert they learn to ignore.
+    -- alert the owner cannot act on yet is an alert they learn to ignore. It fires whether or not the
+    -- guest could be chased — a booking that still says "pickup to be arranged" the day before
+    -- departure is exactly the thing the owner must know about, and on an activity with no online
+    -- pickup service they are the ONLY one who can resolve it. `refusal` rides along so the alert can
+    -- say whether the guest was chased twice or never chased at all.
     if v_candidate.window_hours = 24 then
       insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
       values (
@@ -24995,7 +25090,9 @@ begin
           'ref', v_candidate.ref,
           'customerName', v_candidate.customer_name,
           'activityTitle', v_candidate.activity_title,
-          'startsAt', v_candidate.starts_at
+          'startsAt', v_candidate.starts_at,
+          'guestChased', (v_candidate.refusal is null),
+          'refusal', v_candidate.refusal
         ),
         v_candidate.booking_id,
         'pickup_missing_owner:' || v_candidate.booking_id::text
@@ -25402,6 +25499,14 @@ begin
      where pay.booking_id = v_booking_id
        and pay.purpose = 'pickup_addon'
        and pay.paid_minor > 0
+       -- APPLIED, not merely settled. apply_pickup_request adds the fare to total_minor only for a
+       -- live booking on a running departure; a capture it refused leaves the total untouched, so
+       -- folding its charge in here would print a charged figure the invoice's own lines do not add
+       -- up to — and buildPaymentBlock derives its fx rate from charged/total.
+       and exists (
+         select 1 from booking_pickup_requests r
+          where r.payment_id = pay.id and r.applied_at is not null
+       )
        and coalesce(pay.charged_currency, pay.currency)
              is not distinct from (v_payment ->> 'chargedCurrency');
     if v_addon_charged > 0 then
@@ -25554,13 +25659,25 @@ begin
   -- customerName from the payload (jsonb - key) is a no-op when the key is already absent -> idempotent.
   update notification_outbox
      set recipient = 'deleted@privacy.invalid',
-         payload = payload - 'customerName'
+         payload = coalesce(
+           (select jsonb_object_agg(k, v) from jsonb_each(payload) as e(k, v)
+             where k in ('ref', 'activityTitle', 'startsAt', 'feeEur', 'totalMinor', 'currency',
+                         'locale', 'hoursBefore', 'guestChased', 'refusal', 'token',
+                         'previousStartsAt', 'reason', 'chargedAmountMinor', 'chargedCurrency')),
+           '{}'::jsonb
+         )
    where v_email is not null and lower(recipient) = v_email;
   -- Booking-linked rows keep their RECIPIENT -- they may address the OWNER (the 'owner' sentinel or
   -- the ops inbox), and severing that address would silently kill a pending owner alert for a real
   -- paid booking. Only the person's name leaves the payload. Matched by the pre-captured id set.
   update notification_outbox
-     set payload = payload - 'customerName'
+     set payload = coalesce(
+           (select jsonb_object_agg(k, v) from jsonb_each(payload) as e(k, v)
+             where k in ('ref', 'activityTitle', 'startsAt', 'feeEur', 'totalMinor', 'currency',
+                         'locale', 'hoursBefore', 'guestChased', 'refusal', 'token',
+                         'previousStartsAt', 'reason', 'chargedAmountMinor', 'chargedCurrency')),
+           '{}'::jsonb
+         )
    where booking_id = any(v_anon_ids);
   -- Staff bell rows (admin_new_booking / admin_refund_pending) embed the customer's name in `body` --
   -- rebuild them anonymously so no feed retains PII after erasure.

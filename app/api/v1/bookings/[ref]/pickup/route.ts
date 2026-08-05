@@ -34,13 +34,11 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   const input = await parseJsonBody(req, requestPickupInputSchema);
   const ctx = buildServiceContext(req);
 
-  const result = await requestPickup(ctx, ref, input);
-  if (result.applied) {
-    return jsonOk({ ...result, payment: null });
-  }
-
   // Same fail-closed gate as POST /api/v1/payments: a deploy that forgot NEXT_PUBLIC_SITE_URL would
-  // hand Peach a localhost return URL and Origin. Refuse rather than break the payment silently.
+  // hand Peach a localhost return URL and Origin. Checked BEFORE the write, not after: refusing
+  // downstream still leaves an open request row and a 'pickup_addon' payments row behind, so the
+  // guest's booking page comes back showing "waiting for your supplement" for a checkout that was
+  // never created — a worse dead end than the plain error this raises.
   const env = getServerEnv();
   if (!isSiteUrlConfiguredForLive(env)) {
     throw new ConfigError(
@@ -48,6 +46,11 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
         'production-like runtime; refusing to create a pickup-supplement checkout.',
       { code: 'site_url_not_configured' },
     );
+  }
+
+  const result = await requestPickup(ctx, ref, input);
+  if (result.applied) {
+    return jsonOk({ ...result, payment: null });
   }
 
   const payment = await createPaymentLink(

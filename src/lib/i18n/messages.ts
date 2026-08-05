@@ -678,6 +678,19 @@ export const fr: Record<string, string> = {
   'Add your pickup address, and drop the pin where we should collect you.':
     'Ajoutez votre adresse et placez le repère à l’endroit où nous devons vous récupérer.',
   'Could not save your pickup.': 'Impossible d’enregistrer votre prise en charge.',
+  'Change address': 'Modifier l’adresse',
+  // Why a chosen point was refused — without these the CTA sat disabled with no explanation at all.
+  'This trip doesn’t include a pickup service — message us and we’ll sort it out.':
+    'Cette excursion ne comprend pas de service de prise en charge — écrivez-nous et nous trouverons une solution.',
+  'This departure was called off, so a pickup can’t be added.':
+    'Ce départ a été annulé, une prise en charge ne peut donc pas être ajoutée.',
+  'This trip has already departed.': 'Cette excursion est déjà partie.',
+  'A pickup is already set for this booking.':
+    'Une prise en charge est déjà définie pour cette réservation.',
+  'We can’t add a pickup to this booking online — please message us.':
+    'Nous ne pouvons pas ajouter de prise en charge à cette réservation en ligne — écrivez-nous.',
+  'We couldn’t price that pickup point — try again, or move the pin slightly.':
+    'Nous n’avons pas pu calculer le tarif pour ce point — réessayez ou déplacez légèrement le repère.',
   // …and the two emails the cron sends about it.
   'Where should we collect you for {activity}?': 'Où devons-nous vous récupérer pour {activity} ?',
   'Tomorrow: where should we collect you for {activity}?':

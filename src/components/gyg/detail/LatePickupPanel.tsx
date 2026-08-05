@@ -33,6 +33,24 @@ interface Quote {
   feeMinor: number;
   region?: string | null;
   band?: string | null;
+  reason?: string | null;
+}
+
+/** Why a pickup point was refused, in words the guest can act on. Anything unmapped falls back to a
+ *  generic line — never a bare disabled button with no explanation. */
+function refusalMessage(reason: string | null | undefined, t: (k: string) => string): string {
+  switch (reason) {
+    case 'transport_not_applicable':
+      return t('This trip doesn’t include a pickup service — message us and we’ll sort it out.');
+    case 'departure_cancelled':
+      return t('This departure was called off, so a pickup can’t be added.');
+    case 'departed':
+      return t('This trip has already departed.');
+    case 'pickup_not_pending':
+      return t('A pickup is already set for this booking.');
+    default:
+      return t('We can’t add a pickup to this booking online — please message us.');
+  }
 }
 
 /** A pickup request already committed to, waiting on its supplement to settle. */
@@ -60,12 +78,20 @@ export function LatePickupPanel({
   const { session } = useAuth();
   const [address, setAddress] = useState(pending?.pickupLocation ?? '');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [dropoffSame, setDropoffSame] = useState(true);
+  // Seeded from what was actually committed, NOT hardcoded true: re-entering the picker with the
+  // box ticked hides a distinct drop-off the guest already gave, and the submit body then sends
+  // dropoffLocation: null, which api_request_pickup writes over the stored one.
+  const [dropoffSame, setDropoffSame] = useState(!pending?.dropoffLocation);
   const [dropoff, setDropoff] = useState(pending?.dropoffLocation ?? '');
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A committed-but-unpaid pickup shows the resume card, NOT the map — but a guest who typed the wrong
+  // hotel has to be able to fix it, and api_request_pickup revises an open request in place. This flips
+  // the card back to the picker. (The server still refuses a RE-PRICE while that session is live, and
+  // says so in words.)
+  const [editing, setEditing] = useState(false);
   // Guards the async quote against an out-of-order response: the pin can move faster than the
   // round-trip, and a stale reply must never overwrite the price for where the pin actually is.
   const quoteSeq = useRef(0);
@@ -190,11 +216,16 @@ export function LatePickupPanel({
   }
 
   // ── Committed, waiting on the supplement ───────────────────────────────────────────────────────
-  if (pending) {
+  if (pending && !editing) {
     return (
       <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50/60 p-4">
         <p className="text-[13px] font-bold text-ink">{t('Your pickup is nearly set')}</p>
         <p className="mt-1 text-[13px] text-ink/80">{pending.pickupLocation}</p>
+        {pending.dropoffLocation && (
+          <p className="mt-0.5 text-[12.5px] text-ink-muted">
+            {t('Drop-off')}: {pending.dropoffLocation}
+          </p>
+        )}
         <p className="mt-2 text-[12.5px] text-ink-muted">
           {t(
             'We’re waiting for your transport supplement to clear. This usually takes a few seconds — refresh if it lingers.',
@@ -208,6 +239,18 @@ export function LatePickupPanel({
             className="inline-flex items-center justify-center rounded-full bg-teal px-4 py-2 text-[13px] font-bold text-white hover:bg-teal-dark disabled:opacity-60"
           >
             {resumeAddon.busy ? t('Starting…') : t('Complete payment')}
+          </button>
+          {error && (
+            <p role="alert" className="mb-2 text-[12.5px] font-medium text-coral">
+              {error}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="ml-2 inline-flex items-center justify-center rounded-full border border-ink/20 px-4 py-2 text-[13px] font-bold text-ink hover:bg-ink/5"
+          >
+            {t('Change address')}
           </button>
           {resumeAddon.error && (
             <p role="alert" className="mt-2 text-[12.5px] font-medium text-coral">
@@ -277,6 +320,34 @@ export function LatePickupPanel({
         </span>
       </div>
 
+      {/* Why the button is disabled. Without this the panel just sat there showing '—' and a dead CTA
+          — the exact state a guest reaches on a tour that has no pickup service at all. */}
+      {coords && !quoting && quote && !quote.eligible && (
+        <p role="status" className="mt-2 text-[12.5px] font-medium text-ink-muted">
+          {refusalMessage(quote.reason, t)}
+        </p>
+      )}
+      {coords && !quoting && quote === null && (
+        <p role="status" className="mt-2 text-[12.5px] font-medium text-ink-muted">
+          {t('We couldn’t price that pickup point — try again, or move the pin slightly.')}
+        </p>
+      )}
+
+      {/* A guest who opened the editor from a parked pickup must be able to get back to the payment
+          button; without this the only affordance that reopens the supplement checkout was gone for
+          the rest of the page session, including after a refusal. */}
+      {pending && (
+        <button
+          type="button"
+          onClick={() => {
+            setEditing(false);
+            setError(null);
+          }}
+          className="mt-3 mr-2 inline-flex items-center justify-center rounded-full border border-ink/20 px-4 py-2.5 text-[13px] font-bold text-ink hover:bg-ink/5"
+        >
+          {t('Cancel')}
+        </button>
+      )}
       <button
         type="button"
         onClick={() => void submit()}

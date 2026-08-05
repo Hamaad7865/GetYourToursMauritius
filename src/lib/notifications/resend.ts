@@ -180,11 +180,37 @@ Belle Mare Tours (internal alert)`,
     };
   }
   if (message.template === 'owner_pickup_missing') {
+    // Whether the guest was chased at all decides what the owner should DO, so it decides the copy.
+    // On an activity with no online pickup service the guest is never mailed — telling the owner
+    // "they have been reminded twice" would be a flat lie, and would make them wait instead of call.
+    const chased = p.guestChased !== false;
+    const why = chased
+      ? `They have been reminded twice.`
+      : `They have NOT been chased: this trip can't take a pickup online (${typeof p.refusal === 'string' ? p.refusal : 'not eligible'}), so nothing will reach them automatically — please phone them.`;
     return {
       subject: `No pickup yet: ${ref} departs ${dayOf(p.startsAt)}`,
-      text: `${name}'s booking ${ref} departs on ${dayOf(p.startsAt)} and still has NO pickup address — they chose "I'll decide later" and haven't come back. They have been reminded twice.
+      text: `${name}'s booking ${ref} departs on ${dayOf(p.startsAt)} and still has NO pickup address — they chose "I'll decide later" and haven't come back. ${why}
 
 Trip: ${typeof p.activityTitle === 'string' ? p.activityTitle : ''}
+
+Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
+
+Belle Mare Tours (internal alert)`,
+    };
+  }
+  // A supplement we took but could not apply — the guest's money is sitting on a booking with no
+  // pickup against it. Nobody can refund what nobody knows about, so this alert IS the control.
+  if (message.template === 'owner_pickup_orphan_payment') {
+    const card =
+      typeof p.chargedAmountMinor === 'number' && typeof p.chargedCurrency === 'string'
+        ? ` (card: ${p.chargedCurrency} ${(p.chargedAmountMinor / 100).toFixed(2)})`
+        : '';
+    const fee = typeof p.feeEur === 'number' ? `€${p.feeEur.toFixed(2)}` : 'a pickup supplement';
+    return {
+      subject: `Action needed: refund ${fee} pickup supplement on ${ref}`,
+      text: `${name} paid ${fee}${card} for a late pickup on booking ${ref}, but it could NOT be applied — the trip was called off, or they changed to an address that costs nothing while that payment was still open.
+
+The money is held and no pickup was added. Refund it in the Peach dashboard.
 
 Open in admin: ${SITE.url}/admin/bookings?q=${encodeURIComponent(ref)}
 

@@ -504,15 +504,24 @@ describe('late pickup — regressions', () => {
 
   it('stops chasing — and stops selling — once the departure is called off', async () => {
     await db.asOwner();
+    // Seeded far out and moved in AFTER booking: api_book enforces a minimum advance in MAURITIUS
+    // CALENDAR DAYS, so seeding directly at +20h passes in the evening and raises occurrence_too_soon
+    // after midnight — a test that fails depending on what time CI runs.
     const occ = (
       await db.pg.query<{ id: string }>(
         `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
-         values ($1, $2, now() + interval '20 hours', now() + interval '24 hours', 10) returning id`,
+         values ($1, $2, now() + interval '10 days', now() + interval '10 days 4 hours', 10) returning id`,
         [optionId, operatorId],
       )
     ).rows[0]!.id;
     const b = await booking(occ);
-    await db.pg.query(`update session_occurrences set status = 'cancelled' where id = $1`, [occ]);
+    await db.pg.query(
+      `update session_occurrences
+          set starts_at = now() + interval '20 hours', ends_at = now() + interval '24 hours',
+              status = 'cancelled'
+        where id = $1`,
+      [occ],
+    );
 
     await db.as({ role: 'service_role' });
     await db.pg.query(`select api_enqueue_pickup_reminders('{}'::jsonb)`);
@@ -578,5 +587,261 @@ describe('late pickup — regressions', () => {
     ).rows.map((r) => r.idempotency_key);
     expect(keys).toHaveLength(2);
     expect(new Set(keys).size).toBe(2);
+  });
+
+  // ── Round 2: money we took but could not apply ────────────────────────────────────────────────
+
+  it('refuses to apply a supplement to a departure we called off, and flags the money', async () => {
+    await db.asOwner();
+    const occ = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() + interval '10 days', now() + interval '10 days 4 hours', 10) returning id`,
+        [optionId, operatorId],
+      )
+    ).rows[0]!.id;
+    const b = await booking(occ);
+
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const req = await call<{ paymentId: string }>(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Le Morne Beach Villa',
+      pickupLat: SOUTH_LAT,
+      pickupLng: SOUTH_LNG,
+    });
+
+    // The owner calls the departure off. api_weather_cancel_occurrence leaves the booking
+    // 'confirmed', so a status-only guard sails straight past it.
+    await db.asOwner();
+    await db.pg.query(`update session_occurrences set status = 'cancelled' where id = $1`, [occ]);
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, $3, now(), '{}'::jsonb)`, [
+      req.paymentId,
+      'calledoff-addon-evt',
+      FAR_SEDAN_MINOR,
+    ]);
+
+    const after = (
+      await db.pg.query<{ pickup_location: string | null; transport_minor: number }>(
+        `select pickup_location, transport_minor from bookings where id = $1`,
+        [b.id],
+      )
+    ).rows[0]!;
+    // Charged for transport to a trip we had just told them was cancelled.
+    expect(after.pickup_location).toBeNull();
+    expect(after.transport_minor).toBe(0);
+    // …and the money is not silent: the owner is told to refund it.
+    const alerts = (
+      await db.pg.query<{ n: string }>(
+        `select count(*) as n from notification_outbox
+          where booking_id = $1 and template = 'owner_pickup_orphan_payment'`,
+        [b.id],
+      )
+    ).rows[0]!.n;
+    expect(Number(alerts)).toBe(1);
+  });
+
+  it('applies a supplement that settles late on a completed trip', async () => {
+    const b = await booking();
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const req = await call<{ paymentId: string }>(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Le Morne Beach Villa',
+      pickupLat: SOUTH_LAT,
+      pickupLng: SOUTH_LNG,
+    });
+    // The owner marks the trip complete before the webhook lands. 'completed' is live everywhere else
+    // in the ledger; treating it as dead here KEPT the capture and never applied it.
+    await db.asOwner();
+    await db.pg.query(`update bookings set status = 'completed' where id = $1`, [b.id]);
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, $3, now(), '{}'::jsonb)`, [
+      req.paymentId,
+      'completed-addon-evt',
+      FAR_SEDAN_MINOR,
+    ]);
+
+    const after = (
+      await db.pg.query<{ pickup_location: string | null; transport_minor: number }>(
+        `select pickup_location, transport_minor from bookings where id = $1`,
+        [b.id],
+      )
+    ).rows[0]!;
+    expect(after.pickup_location).toBe('Le Morne Beach Villa');
+    expect(after.transport_minor).toBe(FAR_SEDAN_MINOR);
+  });
+
+  it('flags a capture orphaned by a revision to a zero-fee address', async () => {
+    const b = await booking();
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const first = await call<{ paymentId: string }>(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Le Morne Beach Villa',
+      pickupLat: SOUTH_LAT,
+      pickupLng: SOUTH_LNG,
+    });
+
+    // The guest pays, the webhook is lost, and later they revise to a free address.
+    await db.asOwner();
+    await db.pg.query(`update transport_band_pricing set sedan_minor = 0 where band = 'same'`);
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const revised = await call<{ applied: boolean }>(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Grand Baie, Royal Palm',
+      pickupLat: NORTH_LAT,
+      pickupLng: NORTH_LNG,
+    });
+    expect(revised.applied).toBe(true);
+
+    // The original session settles anyway. Nothing can apply it — but it must not vanish.
+    await db.asOwner();
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, $3, now(), '{}'::jsonb)`, [
+      first.paymentId,
+      'orphan-addon-evt',
+      FAR_SEDAN_MINOR,
+    ]);
+    const alerts = (
+      await db.pg.query<{ n: string }>(
+        `select count(*) as n from notification_outbox
+          where booking_id = $1 and template = 'owner_pickup_orphan_payment'`,
+        [b.id],
+      )
+    ).rows[0]!.n;
+    expect(Number(alerts)).toBe(1);
+    await db.pg.query(`update transport_band_pricing set sedan_minor = 1500 where band = 'same'`);
+  });
+
+  it('does not raise an orphan alert on an ordinary replayed capture', async () => {
+    const b = await booking();
+    const addon = await addPaidPickup(b, 'noorphan');
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, $3, now(), '{}'::jsonb)`, [
+      addon,
+      'noorphan-replay',
+      FAR_SEDAN_MINOR,
+    ]);
+    const alerts = (
+      await db.pg.query<{ n: string }>(
+        `select count(*) as n from notification_outbox
+          where booking_id = $1 and template = 'owner_pickup_orphan_payment'`,
+        [b.id],
+      )
+    ).rows[0]!.n;
+    expect(Number(alerts)).toBe(0);
+  });
+
+  it('keeps the invoice charge equal to what actually reached the booking total', async () => {
+    const b = await booking();
+    await db.asOwner();
+    await db.pg.query(
+      `update payments set charged_amount_minor = 371000, charged_currency = 'MUR' where id = $1`,
+      [b.bookingPaymentId],
+    );
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const req = await call<{ paymentId: string }>(db, 'api_request_pickup', {
+      bookingRef: b.ref,
+      pickupLocation: 'Le Morne Beach Villa',
+      pickupLat: SOUTH_LAT,
+      pickupLng: SOUTH_LNG,
+    });
+    await db.asOwner();
+    await db.pg.query(
+      `update payments set charged_amount_minor = 265000, charged_currency = 'MUR' where id = $1`,
+      [req.paymentId],
+    );
+    // The guest cancels; the still-open session settles afterwards, so the fare never reaches the
+    // total. Folding its charge into the receipt would print MUR 6,360 against a EUR 70 order — an
+    // fx rate of 90 on a VAT document whose own lines add up to EUR 70.
+    await db.pg.query(`update bookings set status = 'cancelled' where id = $1`, [b.id]);
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, $3, now(), '{}'::jsonb)`, [
+      req.paymentId,
+      'receipt-orphan-evt',
+      FAR_SEDAN_MINOR,
+    ]);
+
+    const receipt = await call<{
+      payment: { chargedAmountMinor: number };
+      totalEur: number;
+    }>(db, 'api_booking_receipt', { bookingId: b.id });
+    expect(receipt.totalEur).toBe(b.totalMinor / 100);
+    expect(receipt.payment.chargedAmountMinor).toBe(371000);
+  });
+
+  it('still escalates to the owner when the guest cannot be chased at all', async () => {
+    await db.asOwner();
+    const act = (
+      await db.pg.query<{ id: string }>(
+        `insert into activities (operator_id, slug, type, title, category, status, pickup_available, lat, lng)
+         values ($1, 'no-pickup-owner-tour', 'activity', 'No Pickup Owner Tour', 'Sightseeing tours', 'published', false, $2, $3)
+         returning id`,
+        [operatorId, ACTIVITY_LAT, ACTIVITY_LNG],
+      )
+    ).rows[0]!.id;
+    const opt = (
+      await db.pg.query<{ id: string }>(
+        `insert into activity_options (activity_id, name) values ($1, 'Shared') returning id`,
+        [act],
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into activity_option_prices (activity_option_id, label, amount_minor) values ($1, 'Adult', 7000)`,
+      [opt],
+    );
+    const occ = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() + interval '10 days', now() + interval '10 days 4 hours', 10) returning id`,
+        [opt, operatorId],
+      )
+    ).rows[0]!.id;
+    const b = await booking(occ);
+    await db.pg.query(
+      `update session_occurrences set starts_at = now() + interval '20 hours',
+              ends_at = now() + interval '24 hours' where id = $1`,
+      [occ],
+    );
+
+    await db.as({ role: 'service_role' });
+    await db.pg.query(`select api_enqueue_pickup_reminders('{}'::jsonb)`);
+    await db.asOwner();
+    const rows = (
+      await db.pg.query<{ template: string; payload: { guestChased?: boolean } }>(
+        `select template, payload from notification_outbox
+          where booking_id = $1 and idempotency_key like 'pickup%'`,
+        [b.id],
+      )
+    ).rows;
+    // The guest is NOT chased (the booking page would refuse them), but the owner still gets the one
+    // signal that matters — and it says so, instead of claiming they were reminded twice.
+    expect(rows.map((r) => r.template)).toEqual(['owner_pickup_missing']);
+    expect(rows[0]!.payload.guestChased).toBe(false);
+  });
+
+  it('erases the guest address from queued notifications too', async () => {
+    const b = await booking();
+    await addPaidPickup(b, 'outbox-gdpr');
+    await db.asOwner();
+    await db.pg.query(`update bookings set user_id = $1 where id = $2`, [CUSTOMER, b.id]);
+    const before = (
+      await db.pg.query<{ n: string }>(
+        `select count(*) as n from notification_outbox
+          where booking_id = $1 and payload ? 'pickupLocation'`,
+        [b.id],
+      )
+    ).rows[0]!.n;
+    expect(Number(before)).toBeGreaterThan(0);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await call(db, 'api_erase_user', { userId: CUSTOMER, email: `reg${seq}@example.com` });
+
+    await db.asOwner();
+    const left = (
+      await db.pg.query<{ n: string }>(
+        `select count(*) as n from notification_outbox
+          where booking_id = $1
+            and (payload ? 'pickupLocation' or payload ? 'customerPhone' or payload ? 'customerName')`,
+        [b.id],
+      )
+    ).rows[0]!.n;
+    // notify_pickup_set copied the street address and phone into the outbox payload, and nothing
+    // purges that table — so redacting only customerName left the address behind forever.
+    expect(Number(left)).toBe(0);
   });
 });
