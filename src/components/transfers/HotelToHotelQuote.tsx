@@ -21,6 +21,7 @@ import {
   type TripType,
 } from '@/lib/services/pricing';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
+import { DATE_TIME_INPUT } from '@/components/ui/date-input';
 
 const SLUG = 'hotel-transfer';
 const MAX_PARTY = 25;
@@ -621,7 +622,7 @@ export function HotelToHotelQuote() {
               value={date}
               min={today}
               onChange={(e) => setDate(e.target.value)}
-              className="mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal"
+              className={`mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal ${DATE_TIME_INPUT}`}
               style={{ borderColor: 'rgba(17,32,31,0.15)' }}
             />
           </label>
@@ -634,7 +635,7 @@ export function HotelToHotelQuote() {
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal"
+              className={`mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal ${DATE_TIME_INPUT}`}
               style={{ borderColor: 'rgba(17,32,31,0.15)' }}
             />
           </label>
@@ -651,7 +652,7 @@ export function HotelToHotelQuote() {
                 value={returnDate}
                 min={date || today}
                 onChange={(e) => setReturnDate(e.target.value)}
-                className="mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal"
+                className={`mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                 style={{ borderColor: 'rgba(17,32,31,0.15)' }}
               />
             </label>
@@ -664,7 +665,7 @@ export function HotelToHotelQuote() {
                 type="time"
                 value={returnTime}
                 onChange={(e) => setReturnTime(e.target.value)}
-                className="mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal"
+                className={`mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                 style={{ borderColor: 'rgba(17,32,31,0.15)' }}
               />
             </label>

@@ -5,6 +5,7 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { useT } from '@/components/site/PreferencesProvider';
 import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
+import { DATE_TIME_INPUT } from '@/components/ui/date-input';
 
 export function AccountProfile() {
   const t = useT();
@@ -102,7 +103,7 @@ export function AccountProfile() {
             value={dob}
             max={today}
             onChange={(e) => setDob(e.target.value)}
-            className="rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal"
+            className={`rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal ${DATE_TIME_INPUT}`}
           />
         </label>
 

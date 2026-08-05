@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
 import { parseApiJson } from '@/lib/http/fetch-json';
+import { DATE_FIELD_WRAPPER, DATE_TIME_INPUT } from '@/components/ui/date-input';
 import {
   AIRPORT_FARE_DEFAULT,
   AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
@@ -374,7 +375,7 @@ export function TransferBookingWidget({
       {/* Dates + times */}
       <div className="mt-4 grid gap-3">
         <div className="grid grid-cols-2 gap-3">
-          <label className="block text-[13px] font-semibold text-ink">
+          <label className={`block text-[13px] font-semibold text-ink ${DATE_FIELD_WRAPPER}`}>
             <span className="flex items-center gap-1.5">
               <IconCalendar width={15} height={15} className="text-teal" /> {t('Arrival date')}
             </span>
@@ -383,10 +384,10 @@ export function TransferBookingWidget({
               value={date}
               min={today}
               onChange={(e) => setDate(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+              className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
             />
           </label>
-          <label className="block text-[13px] font-semibold text-ink">
+          <label className={`block text-[13px] font-semibold text-ink ${DATE_FIELD_WRAPPER}`}>
             <span className="flex items-center gap-1.5">
               <IconClock width={15} height={15} className="text-teal" /> {t('Arrival time')}
             </span>
@@ -394,13 +395,13 @@ export function TransferBookingWidget({
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+              className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
             />
           </label>
         </div>
         {tripType === 'return' && (
           <div className="grid grid-cols-2 gap-3">
-            <label className="block text-[13px] font-semibold text-ink">
+            <label className={`block text-[13px] font-semibold text-ink ${DATE_FIELD_WRAPPER}`}>
               <span className="flex items-center gap-1.5">
                 <IconCalendar width={15} height={15} className="text-teal" /> {t('Return date')}
               </span>
@@ -409,10 +410,10 @@ export function TransferBookingWidget({
                 value={returnDate}
                 min={date || today}
                 onChange={(e) => setReturnDate(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
               />
             </label>
-            <label className="block text-[13px] font-semibold text-ink">
+            <label className={`block text-[13px] font-semibold text-ink ${DATE_FIELD_WRAPPER}`}>
               <span className="flex items-center gap-1.5">
                 <IconClock width={15} height={15} className="text-teal" /> {t('Pickup time')}
               </span>
@@ -420,7 +421,7 @@ export function TransferBookingWidget({
                 type="time"
                 value={returnTime}
                 onChange={(e) => setReturnTime(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
               />
             </label>
           </div>

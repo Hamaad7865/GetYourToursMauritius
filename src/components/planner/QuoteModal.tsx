@@ -8,6 +8,7 @@ import { useDialog } from '@/lib/a11y/useDialog';
 import { fmtDur } from './planner-constants';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
+import { DATE_TIME_INPUT } from '@/components/ui/date-input';
 
 const inputCls =
   'w-full rounded-[11px] border border-[#E3EEEC] bg-white px-[13px] py-[11px] text-[14.5px] text-ink outline-none focus:border-teal';
@@ -153,7 +154,7 @@ export function QuoteModal({
                     min={minDate}
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className={inputCls}
+                    className={`${inputCls} ${DATE_TIME_INPUT}`}
                   />
                 )}
               </div>
@@ -167,7 +168,7 @@ export function QuoteModal({
                   type="time"
                   value={time}
                   onChange={(e) => setTime(e.target.value)}
-                  className={inputCls}
+                  className={`${inputCls} ${DATE_TIME_INPUT}`}
                 />
               </div>
             </div>

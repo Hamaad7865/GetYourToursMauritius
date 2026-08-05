@@ -13,6 +13,7 @@ import {
   IconUsers,
   IconInfo,
 } from '@/components/ui/icons';
+import { DATE_TIME_INPUT } from '@/components/ui/date-input';
 
 /** Friendly label for a vehicle's class (free-text category → display). Returned strings are English
  *  source text — callers must pass them through t() at the display site. */
@@ -255,7 +256,7 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
             </span>
             <input
               type="date"
-              className={fieldClass}
+              className={`${fieldClass} ${DATE_TIME_INPUT}`}
               value={pickup}
               min={today || undefined}
               onChange={(e) => {
@@ -271,7 +272,7 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
             </span>
             <input
               type="date"
-              className={fieldClass}
+              className={`${fieldClass} ${DATE_TIME_INPUT}`}
               value={ret}
               min={pickup || today || undefined}
               onChange={(e) => setRet(e.target.value)}

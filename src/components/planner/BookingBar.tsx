@@ -3,6 +3,7 @@
 import type { PlannerQuote } from '@/lib/planner/pricing';
 import { useT } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
+import { DATE_TIME_INPUT } from '@/components/ui/date-input';
 
 /**
  * The live-price + book bar. The price comes from the same flat per-vehicle logic as the server
@@ -91,7 +92,7 @@ export function BookingBar({
             value={date}
             min={minDate}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-full border border-ink/15 px-4 py-2 text-sm text-ink outline-none focus:border-teal"
+            className={`rounded-full border border-ink/15 px-4 py-2 text-sm text-ink outline-none focus:border-teal ${DATE_TIME_INPUT}`}
           />
         </div>
 

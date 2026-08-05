@@ -44,6 +44,7 @@ import {
   IconSearch,
   IconUsers,
 } from '@/components/ui/icons';
+import { DATE_TIME_INPUT } from '@/components/ui/date-input';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 
@@ -1530,7 +1531,7 @@ export function Checkout() {
                               type="date"
                               value={arrivalDate}
                               onChange={(e) => setArrivalDate(e.target.value)}
-                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                              className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                             />
                           </label>
                           <label className="block text-[13px] font-semibold text-ink">
@@ -1539,7 +1540,7 @@ export function Checkout() {
                               type="time"
                               value={arrivalTime}
                               onChange={(e) => setArrivalTime(e.target.value)}
-                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                              className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                             />
                           </label>
                         </div>
@@ -1559,7 +1560,7 @@ export function Checkout() {
                               type="date"
                               value={departureDate}
                               onChange={(e) => setDepartureDate(e.target.value)}
-                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                              className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                             />
                           </label>
                           <label className="block text-[13px] font-semibold text-ink">
@@ -1568,7 +1569,7 @@ export function Checkout() {
                               type="time"
                               value={returnTime}
                               onChange={(e) => setReturnTime(e.target.value)}
-                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                              className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                             />
                           </label>
                         </div>
@@ -1658,7 +1659,7 @@ export function Checkout() {
                           type="date"
                           value={arrivalDate}
                           onChange={(e) => setArrivalDate(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                          className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                         />
                       </label>
                       <label className="block text-[13px] font-semibold text-ink">
@@ -1667,7 +1668,7 @@ export function Checkout() {
                           type="time"
                           value={arrivalTime}
                           onChange={(e) => setArrivalTime(e.target.value)}
-                          className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                          className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                         />
                       </label>
                     </div>
@@ -1681,7 +1682,7 @@ export function Checkout() {
                             type="date"
                             value={departureDate}
                             onChange={(e) => setDepartureDate(e.target.value)}
-                            className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                            className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                           />
                         </label>
                         <label className="block text-[13px] font-semibold text-ink">
@@ -1690,7 +1691,7 @@ export function Checkout() {
                             type="time"
                             value={returnTime}
                             onChange={(e) => setReturnTime(e.target.value)}
-                            className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                            className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
                           />
                         </label>
                       </div>

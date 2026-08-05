@@ -7,6 +7,7 @@ import { useToast } from '@/components/site/ToastProvider';
 import { Price } from '@/components/site/Price';
 import { buildInquiryMessage, inquiryReady, packInquiryContact } from '@/lib/catalogue/inquiry';
 import { IconCalendar, IconChat, IconMail } from '@/components/ui/icons';
+import { DATE_TIME_INPUT } from '@/components/ui/date-input';
 
 export interface InquiryActivity {
   id: string;
@@ -128,7 +129,7 @@ export function InquiryWidget({ activity }: { activity: InquiryActivity }) {
               <input
                 type="date"
                 min={todayStr}
-                className={inputClass}
+                className={`${inputClass} ${DATE_TIME_INPUT}`}
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
