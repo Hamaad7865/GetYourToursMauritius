@@ -60,6 +60,7 @@ const ALLOWED = new Set([
   'api_flag_settlement_review',
   'api_log_error',
   'api_purge_error_logs',
+  'api_convert_quote',
 ]);
 
 /**

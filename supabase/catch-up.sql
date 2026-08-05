@@ -23877,7 +23877,98 @@ create trigger quotes_redact_lines_on_anonymize
   execute function quotes_redact_lines();
 
 -- ---------------------------------------------------------------------------
--- 7) RLS + grants. A quote is staff data; the guest never reads it with the anon key — the public
+-- 7) api_convert_quote — the one step that mints a PAYABLE booking.
+--
+-- Everything downstream of it is the existing, untouched money path (Peach checkout → HMAC webhook →
+-- append_payment_event → confirmation + VAT invoice), so this function is the whole of the new code
+-- standing between a staff-drafted offer and a real charge. Three rules are baked in:
+--
+--   * a quote converts ONCE. The guard reads `converted_at`, NEVER `booking_id` — that is the
+--     contract stated in section 4, and it exists because api_erase_user hard-deletes unpaid
+--     bookings and the `on delete set null` FK then silently clears booking_id, which would re-arm a
+--     converted quote to mint a second payable booking. Both columns are written together;
+--     quote_converted_shape makes forgetting one impossible, and the UNIQUE on booking_id is the
+--     second line of defence.
+--   * `for update` on the quote row, so two guests clicking Pay at the same instant serialise here
+--     rather than both reading an unconverted quote and both minting a booking.
+--   * only NON-catalogue lines are copied. A catalogue line names an occurrence, so it carries
+--     capacity and must go through the existing hold path into booking_items — that is the pay
+--     route's job (a later task). This function therefore covers custom/rental lines only, which is
+--     also what makes it independently testable.
+--
+-- `ref` is deliberately NOT supplied. The column default has been the Peach-safe generator since
+-- 20260736000000 ('BMT' + 13 hex, 16 alnum chars, no separator) — and that default has already been
+-- changed once, precisely to satisfy Peach's merchantTransactionId limit. Re-deriving the format
+-- here would be a second copy that a third change would silently leave behind, on the money path.
+--
+-- No in-function caller guard by design: like every other server-only api_* function here, the
+-- EXECUTE grant IS the authorization, which is why the revoke below names anon and authenticated
+-- explicitly and not just PUBLIC (see the note in 6a — that one-word omission has shipped a live
+-- leak from this repo twice).
+-- ---------------------------------------------------------------------------
+create or replace function api_convert_quote(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_quote quotes;
+  v_booking bookings;
+begin
+  select * into v_quote
+    from quotes
+   where id = nullif(p ->> 'quoteId', '')::uuid
+   for update;
+
+  if v_quote.id is null then
+    raise exception 'Quote not found';
+  end if;
+  if v_quote.converted_at is not null then
+    raise exception 'Quote already converted';
+  end if;
+  if v_quote.status = 'cancelled' then
+    raise exception 'Quote is cancelled';
+  end if;
+  if v_quote.valid_until < current_date then
+    raise exception 'Quote has expired';
+  end if;
+
+  insert into bookings (
+    customer_name, customer_email, customer_phone, status, source,
+    currency, total_minor, payment_state, locale
+  )
+  values (
+    v_quote.customer_name, v_quote.customer_email, v_quote.customer_phone, 'payment_pending', 'quote',
+    v_quote.currency, v_quote.total_minor, 'pending', v_quote.locale
+  )
+  returning * into v_booking;
+
+  insert into booking_custom_items (
+    booking_id, position, kind, description, starts_at, ends_at,
+    rental_vehicle_slug, quantity, unit_amount_minor, subtotal_minor
+  )
+  select v_booking.id, qi.position, qi.kind, qi.description, qi.starts_at, qi.ends_at,
+         qi.rental_vehicle_slug, qi.quantity, qi.unit_amount_minor, qi.subtotal_minor
+    from quote_items qi
+   where qi.quote_id = v_quote.id
+     and qi.kind <> 'catalogue';
+
+  update quotes
+     set booking_id = v_booking.id,
+         converted_at = now(),
+         status = 'accepted',
+         updated_at = now()
+   where id = v_quote.id;
+
+  return to_jsonb(v_booking);
+end;
+$$;
+revoke execute on function api_convert_quote(jsonb) from public, anon, authenticated;
+grant execute on function api_convert_quote(jsonb) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- 8) RLS + grants. A quote is staff data; the guest never reads it with the anon key — the public
 --    page resolves it server-side behind the link token (a later task).
 --
 --    Kept LAST in the file on purpose: tests/integration/quotes-schema.test.ts re-executes this
