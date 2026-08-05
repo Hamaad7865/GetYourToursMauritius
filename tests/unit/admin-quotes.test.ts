@@ -90,6 +90,30 @@ describe('saveQuote totals', () => {
       /description/i,
     );
   });
+
+  it('refuses a catalogue line with no occurrence or option, for the same reason', () => {
+    // The OTHER half of `quote_item_shape`: a catalogue line must name both an occurrence and an
+    // option. The editor switches a line's kind in place, so a line switched TO catalogue before a
+    // slot has been picked carries null ids — and, exactly like the blank description above, that
+    // only fails at INSERT: last, after the new total is written and the old lines are deleted.
+    // Worse, the lines go in as ONE multi-row insert, so the bad line takes the good ones with it
+    // and leaves a re-priced total with zero itemisation behind it.
+    expect(() =>
+      quoteItemRows([
+        { kind: 'catalogue', priceLabel: 'Adult', quantity: 2, unitAmountMinor: 7500 },
+      ]),
+    ).toThrow(/occurrence/i);
+    expect(() =>
+      quoteItemRows([
+        {
+          kind: 'catalogue',
+          sessionOccurrenceId: '22222222-2222-2222-2222-222222222222',
+          quantity: 2,
+          unitAmountMinor: 7500,
+        },
+      ]),
+    ).toThrow(/option/i);
+  });
 });
 
 describe('quote line rows', () => {

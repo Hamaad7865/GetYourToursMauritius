@@ -139,12 +139,20 @@ export function quoteRowTotal(input: { totalMinor?: number; items: PricedLine[] 
  *    a paid custom line silently pins a rental vehicle it has nothing to do with and deleteRentalVehicle
  *    then reports a reference the operator cannot find.
  *
- * It throws (ValidationError) on a line that is not whole, non-negative money, and on a custom/rental
- * line with no description — the other half of `quote_item_shape`, and the half that would otherwise
- * only fail at INSERT. That matters on the edit path, where the INSERT is the LAST statement: by then
- * the new total is written and the old lines are deleted, so a stored total is left with no
- * itemisation behind it, which is a quote api_convert_quote refuses to charge (`quote_total_mismatch`)
- * against a link the guest already holds. Refusing here means saveQuote has written nothing yet.
+ * It throws (ValidationError) on a line that is not whole, non-negative money, and on every line
+ * SHAPE `quote_item_shape` would reject: a custom/rental line with no description, and a catalogue
+ * line that does not name both an occurrence and an option. Both arise the same way — the editor
+ * switches a line's kind in place, so a line switched TO catalogue before a slot is picked carries
+ * null ids exactly as one switched away from it carries stale ones — and both would otherwise fail
+ * only at INSERT. That matters on the edit path, where the INSERT is the LAST statement: by then the
+ * new total is written and the old lines are deleted, and because the lines go in as ONE multi-row
+ * insert the bad line takes the good ones with it. What is left is a stored total with no itemisation
+ * behind it, i.e. a quote api_convert_quote refuses to charge (`quote_total_mismatch`) against a link
+ * the guest already holds. Refusing here means saveQuote has written nothing yet.
+ *
+ * SHAPE is the limit of it: a well-formed line naming an occurrence that has since been deleted, or
+ * one belonging to a different option, is a 23503 no client-side check can pre-empt, and there the
+ * delete-then-insert ordering does leave that residual behind.
  */
 export function quoteItemRows(items: QuoteItemInput[]): QuoteItemInsert[] {
   return items.map((item, index) => {
@@ -152,6 +160,9 @@ export function quoteItemRows(items: QuoteItemInput[]): QuoteItemInsert[] {
     const description = item.description?.trim() || null;
     if (!catalogue && !description) {
       throw new ValidationError(`Quote line ${index + 1} needs a description.`);
+    }
+    if (catalogue && !(item.sessionOccurrenceId && item.activityOptionId)) {
+      throw new ValidationError(`Quote line ${index + 1} needs an occurrence and an option.`);
     }
     return {
       position: index,
@@ -396,8 +407,11 @@ export async function loadQuote(id: string): Promise<QuoteDetail | null> {
  *
  * Order of operations, and why:
  *
- *  1. The lines are BUILT first (`quoteItemRows`), so every line the database would reject — money
- *     that is not whole, a custom line with no description — throws before anything is written.
+ *  1. The lines are BUILT first (`quoteItemRows`), so every line SHAPE the database would reject —
+ *     money that is not whole, a custom line with no description, a catalogue line with no occurrence
+ *     — throws before anything is written. Not every rejection: an occurrence id that is stale or
+ *     belongs to another option is a 23503 only the database can see, and step 3's ordering leaves
+ *     that one as a residual.
  *  2. A quote that has already been converted is refused, by `updateUnconvertedQuote`: the test is
  *     part of the UPDATE's WHERE clause, so the guest's pay route cannot slip a conversion between
  *     the guard and the write. Its lines are the itemisation behind a charge, and api_convert_quote

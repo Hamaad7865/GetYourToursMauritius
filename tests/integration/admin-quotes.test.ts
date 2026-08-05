@@ -311,6 +311,38 @@ describe('admin quote service (RLS + real schema)', () => {
     expect(Number(row.lines_minor)).toBe(70000);
   });
 
+  it('refuses a catalogue line with no occurrence without touching the stored quote', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 70000 }],
+    });
+
+    // The other half of `quote_item_shape`, and the same failure mode as the blank description: the
+    // editor switches a line's kind in place, so a line switched TO catalogue before a slot is picked
+    // carries null ids. Refused at INSERT it would be refused LAST — and because the lines go in as
+    // one multi-row insert, the bad line takes the good one with it, leaving the guest's link
+    // pointing at a re-priced total with nothing itemised behind it.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(
+      saveQuote({
+        ...GUEST,
+        id,
+        items: [
+          { kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 70000 },
+          { kind: 'catalogue', priceLabel: 'Adult', quantity: 2, unitAmountMinor: 5000 },
+        ],
+      }),
+    ).rejects.toThrow(/occurrence/i);
+
+    const row = await readQuote(id);
+    expect(Number(row.total_minor), 'the total was re-priced by an edit that was refused').toBe(
+      70000,
+    );
+    expect(row.line_count, 'the itemisation behind the stored total was deleted').toBe(1);
+    expect(Number(row.lines_minor)).toBe(70000);
+  });
+
   it('refuses an edit that raced the guest’s payment', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     const id = await saveQuote({
@@ -397,5 +429,47 @@ describe('admin quote service (RLS + real schema)', () => {
       `select count(*)::int as n from quotes where customer_email = 'forged@example.com'`,
     );
     expect(rows[0]!.n).toBe(0);
+  });
+
+  it('gives a signed-in customer no way to edit or withdraw a staff quote (RLS)', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 90000 }],
+    });
+
+    // The INSERT path above is refused by RLS RAISING. The edit and cancel paths are not: RLS
+    // refuses an UPDATE by matching zero rows, so the customer lands in updateUnconvertedQuote's
+    // zero-row branch — and its follow-up read is refused too, so the quote reads as absent. Both
+    // halves are the contract: treating zero rows as success would let a customer withdraw an offer
+    // silently, and reporting the row after reading it back would tell them which quote ids exist.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const edit = saveQuote({
+      ...GUEST,
+      id,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 1 }],
+    });
+    await expect(edit, 'a customer account re-priced a staff quote').rejects.toThrow();
+    const editMessage = await edit.catch((error: unknown) => (error as Error).message);
+
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const cancel = cancelQuote(id);
+    await expect(cancel, 'a customer account withdrew a staff quote').rejects.toThrow();
+    const cancelMessage = await cancel.catch((error: unknown) => (error as Error).message);
+
+    // …and the refusal must read identically for a quote that does not exist at all, or it is an
+    // oracle a signed-up guest can walk over other people's offers with.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const absentMessage = await cancelQuote('44444444-4444-4444-4444-444444444444').catch(
+      (error: unknown) => (error as Error).message,
+    );
+    expect(editMessage, 'the refusal says a forbidden quote exists').toBe(absentMessage);
+    expect(cancelMessage, 'the refusal says a forbidden quote exists').toBe(absentMessage);
+
+    const row = await readQuote(id);
+    expect(row.status, 'a customer withdrew an offer they do not own').toBe('draft');
+    expect(Number(row.total_minor), 'a customer re-priced an offer they do not own').toBe(90000);
+    expect(row.line_count).toBe(1);
+    expect(Number(row.lines_minor)).toBe(90000);
   });
 });
