@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useCart, itemTotal, lineCap, type CartItem } from '@/lib/cart/useCart';
+import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { checkoutHref } from '@/lib/cart/checkout-href';
 import { createHoldsForLines, type PendingBooking } from '@/lib/cart/holdClient';
 import { ResumePaymentButton } from '@/components/checkout/ResumePaymentButton';
@@ -202,6 +203,9 @@ export function CartView() {
   const [mounted, setMounted] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => setMounted(true), []);
+  // Publish the mobile checkout bar's height so the floating enquiry bubble rides above it.
+  const barRef = useRef<HTMLDivElement>(null);
+  useBottomBarOffset(barRef);
 
   // Checkout handoff: create a server hold per saved line, flip each line to held (with its countdown)
   // or unavailable (sold out), notify, then hand off to the EXISTING per-line checkout exactly as the
@@ -456,7 +460,10 @@ export function CartView() {
           per-item list (each books separately). Only for saved/held cart lines — pending bookings pay
           from their own row above. */}
       {items.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">
+        <div
+          ref={barRef}
+          className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden"
+        >
           <div className="min-w-0">
             <div className="text-[11px] font-medium text-ink-muted">
               {items.length > 1 ? t('Estimated total') : t('Total')}

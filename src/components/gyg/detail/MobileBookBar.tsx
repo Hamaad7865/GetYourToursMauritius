@@ -1,9 +1,11 @@
 'use client';
 
+import { useRef } from 'react';
 import { useBooking } from './BookingProvider';
 import { useT } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
 import { activityFromPriceEur } from '@/lib/catalogue/options';
+import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { VEHICLE_BANDS } from '@/lib/services/pricing';
 
 /**
@@ -13,6 +15,9 @@ import { VEHICLE_BANDS } from '@/lib/services/pricing';
 export function MobileBookBar() {
   const t = useT();
   const b = useBooking();
+  // Publish this bar's height so the floating enquiry bubble rides above it (see useBottomBarOffset).
+  const barRef = useRef<HTMLDivElement>(null);
+  useBottomBarOffset(barRef);
   const price = activityFromPriceEur(b.activity);
   // Mirror the desktop headline (BookingWidget): a vehicle-priced SIGHTSEEING tour reads "per group up
   // to 4 people" (pinned to the entry Sedan the "From" price covers); transfers keep "per vehicle".
@@ -25,7 +30,10 @@ export function MobileBookBar() {
       : t(b.unitLabel);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">
+    <div
+      ref={barRef}
+      className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between gap-3 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden"
+    >
       <div className="min-w-0">
         <div className="text-[11px] font-medium text-ink-muted">{t('From')}</div>
         <div className="flex items-baseline gap-1.5">

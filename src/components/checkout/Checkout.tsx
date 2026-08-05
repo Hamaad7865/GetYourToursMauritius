@@ -10,6 +10,7 @@ import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { PickupDropoffMap } from '@/components/maps/PickupDropoffMap';
 import { childSeatsCost, regionFromCoords, transportFare } from '@/lib/services/pricing';
 import { decodeParty } from '@/lib/services/party';
+import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
@@ -336,6 +337,9 @@ export function Checkout() {
   });
 
   const [step, setStep] = useState(1);
+  // Publish the mobile CTA bar's height so the floating enquiry bubble rides above it.
+  const bottomBarRef = useRef<HTMLDivElement>(null);
+  useBottomBarOffset(bottomBarRef);
   // Draft restore/save handshake — see the two effects below. The ref makes the restore run exactly
   // once even under StrictMode's double-invoke; the state flag is what gates saving.
   const hydratedRef = useRef(false);
@@ -2090,7 +2094,10 @@ export function Checkout() {
       </main>
 
       {/* Mobile sticky primary action — mirrors the current step's CTA. */}
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden">
+      <div
+        ref={bottomBarRef}
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-white px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-10px_30px_-16px_rgba(10,46,54,0.45)] lg:hidden"
+      >
         {step === 1 && (
           <button
             type="button"

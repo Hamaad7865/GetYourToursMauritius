@@ -12,9 +12,13 @@ import { enquiryReady, enquiryWhatsAppMessage, packEnquiryContact } from '@/lib/
 const PANEL_ID = 'enquiry-panel';
 
 /**
- * Global floating enquiry button (bottom-right, every customer-facing page). Sits above the mobile
- * sticky book bar (MobileBookBar, `fixed inset-x-0 bottom-0`) rather than on top of it — hence the
- * taller mobile offset; desktop has no such bar so it sits closer to the corner.
+ * Global floating enquiry button (bottom-right corner, every customer-facing page).
+ *
+ * It rests in the corner and lifts ONLY over a mobile sticky bottom bar that is actually on screen:
+ * each such bar (MobileBookBar, the checkout CTA, the cart CTA) publishes its measured height as
+ * `--gyt-bottom-bar` (see useBottomBarOffset), which this button adds to its own inset. It used to
+ * carry a flat `bottom-24` for the book bar's sake — so on the home page, listings and blog, where
+ * no bar exists, it hovered ~96px up the screen instead of sitting in the corner.
  *
  * Replaced the old WhatsAppFloat, which was a bare wa.me deep-link: a visitor without WhatsApp (or
  * unwilling to hand over their number to open a chat) had no way to ask a question, and nothing they
@@ -37,7 +41,7 @@ export function ContactFloat() {
         aria-expanded={open}
         aria-controls={open ? PANEL_ID : undefined}
         aria-label={t('Message us')}
-        className="gyt-wa-float animate-pop group fixed bottom-24 right-4 z-40 flex items-center rounded-full bg-teal text-white shadow-[0_14px_32px_-10px_rgba(14,140,146,0.55)] transition-[box-shadow,background-color] duration-300 hover:bg-teal-dark hover:shadow-[0_18px_38px_-8px_rgba(11,92,99,0.65)] lg:bottom-6"
+        className="gyt-wa-float animate-pop group fixed bottom-[calc(1rem+var(--gyt-bottom-bar,env(safe-area-inset-bottom)))] right-4 z-40 flex items-center rounded-full bg-teal text-white shadow-[0_14px_32px_-10px_rgba(14,140,146,0.55)] transition-[box-shadow,background-color] duration-300 hover:bg-teal-dark hover:shadow-[0_18px_38px_-8px_rgba(11,92,99,0.65)] lg:bottom-6"
       >
         <span className="relative grid h-14 w-14 shrink-0 place-items-center">
           <span aria-hidden className="gyt-wa-ring absolute inset-0 rounded-full bg-white/70" />
