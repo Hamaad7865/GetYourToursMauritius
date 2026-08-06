@@ -809,7 +809,14 @@ export const apiPaths: ZodOpenApiPathsObject = {
         '401': errorResponse('Authentication required'),
         '403': errorResponse('Staff only'),
         '404': errorResponse('No such quote'),
-        '409': errorResponse('Withdrawn, already accepted, or carrying a catalogue line'),
+        // The three ConflictErrors the handler actually raises, in its own order: a quote already
+        // accepted (its converted_at is stamped, or its status says so), a status that is neither
+        // draft nor sent — withdrawn or expired — and the guest accepting between the status check and
+        // the guarded UPDATE, which comes back with no rows and no email sent. A catalogue line was a
+        // fourth until the capacity-hold path made those quotes sendable; it is not a refusal any more.
+        '409': errorResponse(
+          'Withdrawn or expired, already accepted, or accepted while it was being sent',
+        ),
         '429': errorResponse('Too many requests'),
         '500': errorResponse('The email could not be sent'),
       },

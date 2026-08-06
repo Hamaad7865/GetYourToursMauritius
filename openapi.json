@@ -10502,7 +10502,7 @@
             }
           },
           "409": {
-            "description": "Withdrawn, already accepted, or carrying a catalogue line",
+            "description": "Withdrawn or expired, already accepted, or accepted while it was being sent",
             "content": {
               "application/json": {
                 "schema": {
