@@ -27526,7 +27526,7 @@ declare
   v_purpose text := coalesce(nullif(p ->> 'purpose', ''), 'booking');
   v_req booking_pickup_requests;
 begin
-  if v_purpose not in ('booking', 'pickup_addon') then
+  if v_purpose not in ('booking', 'pickup_addon', 'balance') then
     raise exception 'invalid_payment_purpose' using detail = v_purpose;
   end if;
 
@@ -27548,6 +27548,20 @@ begin
     if v_booking.status in ('confirmed', 'completed', 'cancelled', 'expired', 'refund_pending', 'refunded', 'failed')
        or v_booking.payment_state in ('paid', 'partially_refunded', 'refunded') then
       raise exception 'booking_not_payable' using detail = v_booking.status::text;
+    end if;
+  elsif v_purpose = 'balance' then
+    -- THE BALANCE'S OWN PAYABILITY. The deposit has already CONFIRMED the booking, so a 'booking' row
+    -- here would trip the guard above (booking_not_payable) — which is exactly why the balance is a
+    -- separate purpose, the same reason the pickup add-on is. What is left to collect is the booking's
+    -- balance_due_minor, the projection append_payment_event maintains (add-on-immune, the true amount
+    -- still owed). Payable only on a confirmed booking that still owes something; a fully-paid booking
+    -- (balance_due_minor = 0) has nothing to charge, so it is refused with a readable code of its own —
+    -- distinct from booking_not_payable, which the balance row could never itself provoke.
+    if v_booking.status <> 'confirmed' then
+      raise exception 'booking_not_payable' using detail = 'balance:' || v_booking.status::text;
+    end if;
+    if coalesce(v_booking.balance_due_minor, 0) <= 0 then
+      raise exception 'balance_already_paid';
     end if;
   else
     -- The add-on's own payability: an open request must exist, and the trip must not have left.
@@ -27595,6 +27609,22 @@ begin
       select * into v_payment from payments
       where idempotency_key = p ->> 'idempotencyKey' and booking_id = v_booking.id and purpose = 'booking';
     end if;
+  elsif v_purpose = 'balance' then
+    -- The newest 'balance' row for this booking — never a 'booking' row (that is the deposit, a distinct
+    -- purpose). Under the booking-row FOR UPDATE above this is the single-open-lease guard: a second mint
+    -- finds the row the first minted and REUSES its checkout lease, so one balance is one payable session,
+    -- not a fork. No `and status <> 'failed'`, exactly as the deposit path: a declined balance attempt's
+    -- row (which carries the checkout-reuse window and the lease) is reused rather than orphaned by a
+    -- second row.
+    select * into v_payment from payments
+    where booking_id = v_booking.id and purpose = 'balance'
+    order by created_at desc
+    limit 1;
+
+    if not found then
+      select * into v_payment from payments
+      where idempotency_key = p ->> 'idempotencyKey' and booking_id = v_booking.id and purpose = 'balance';
+    end if;
   else
     -- Exactly the row the open request points at — never "the newest add-on row", which after a
     -- superseded request could be a different, abandoned one.
@@ -27602,24 +27632,36 @@ begin
   end if;
 
   if not found then
-    if v_purpose <> 'booking' then
+    if v_purpose = 'pickup_addon' then
       -- api_request_pickup owns the add-on row (it is the only place that knows the fare). Never
       -- invent one here, or the amount would come from nowhere.
       raise exception 'pickup_request_not_found';
+    elsif v_purpose = 'balance' then
+      -- Mint the balance row. Its amount is the booking's CURRENT balance_due_minor — the SERVER's figure
+      -- for what is still owed, read off the booking row (never caller input, exactly like the deposit
+      -- and the FX pin) and snapshotted onto this row, so charging it drives balance_due_minor to 0. The
+      -- balance-payability branch above has already proved it is > 0. From here everything is per-payment-
+      -- row: this row takes its own FX pin, its own checkout lease and its own provider_checkout_id.
+      insert into payments (booking_id, idempotency_key, amount_minor, purpose)
+      values (v_booking.id, p ->> 'idempotencyKey', v_booking.balance_due_minor, 'balance')
+      returning * into v_payment;
+      insert into payment_events (payment_id, type, amount_minor)
+      values (v_payment.id, 'intent', v_booking.balance_due_minor);
+    else
+      -- The first `booking` row is sized to the DEPOSIT when the booking carries one. A quote booking
+      -- carries a positive deposit_minor (api_convert_quote sized it from deposit_bps), and a pay-in-full
+      -- quote's is the whole total; an ordinary customer booking has none — deposit_minor DEFAULTS to 0,
+      -- so nullif() falls the charge back to total_minor and the customer path is bit-for-bit what it was.
+      -- Sized off the BOOKING ROW, never caller input, exactly like the FX pin below: what a card is
+      -- charged is a server figure. append_payment_event then confirms the booking when THIS row is paid
+      -- in full, so paying the deposit confirms it and reserves the seat with no change to that gate.
+      insert into payments (booking_id, idempotency_key, amount_minor, purpose)
+      values (v_booking.id, p ->> 'idempotencyKey',
+              coalesce(nullif(v_booking.deposit_minor, 0), v_booking.total_minor), 'booking')
+      returning * into v_payment;
+      insert into payment_events (payment_id, type, amount_minor)
+      values (v_payment.id, 'intent', coalesce(nullif(v_booking.deposit_minor, 0), v_booking.total_minor));
     end if;
-    -- The first `booking` row is sized to the DEPOSIT when the booking carries one. A quote booking
-    -- carries a positive deposit_minor (api_convert_quote sized it from deposit_bps), and a pay-in-full
-    -- quote's is the whole total; an ordinary customer booking has none — deposit_minor DEFAULTS to 0,
-    -- so nullif() falls the charge back to total_minor and the customer path is bit-for-bit what it was.
-    -- Sized off the BOOKING ROW, never caller input, exactly like the FX pin below: what a card is
-    -- charged is a server figure. append_payment_event then confirms the booking when THIS row is paid
-    -- in full, so paying the deposit confirms it and reserves the seat with no change to that gate.
-    insert into payments (booking_id, idempotency_key, amount_minor, purpose)
-    values (v_booking.id, p ->> 'idempotencyKey',
-            coalesce(nullif(v_booking.deposit_minor, 0), v_booking.total_minor), 'booking')
-    returning * into v_payment;
-    insert into payment_events (payment_id, type, amount_minor)
-    values (v_payment.id, 'intent', coalesce(nullif(v_booking.deposit_minor, 0), v_booking.total_minor));
   end if;
 
   -- ── Pin the charge (once per payment row) ────────────────────────────────────────────────────
@@ -27994,3 +28036,47 @@ $$;
 
 revoke execute on function append_payment_event(uuid, text, text, bigint, timestamptz, jsonb) from public, anon, authenticated;
 grant execute on function append_payment_event(uuid, text, text, bigint, timestamptz, jsonb) to service_role;
+
+
+-- Task 4 — the accountless quote guest's way into the BALANCE checkout (20260912000000).
+-- create_payment (re-applied above) now carries a 'balance' branch; this re-applies
+-- api_create_quote_payment as the winning body, widened so the same token-authorized guest who paid the
+-- deposit can pay the balance the same way. Service-role only, narrowed to the quote path, still routes
+-- to the shared create_payment body — everything that made the deposit entry sound, one purpose along.
+create or replace function api_create_quote_payment(p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_purpose text := coalesce(nullif(p ->> 'purpose', ''), 'booking');
+begin
+  if v_purpose not in ('booking', 'balance') then
+    raise exception 'forbidden' using detail = 'quote_payment_purpose:' || v_purpose;
+  end if;
+
+  if not exists (
+    select 1
+      from bookings b
+      join quotes q on q.booking_id = b.id
+     where b.ref = p ->> 'bookingRef'
+       and b.source = 'quote'
+  ) then
+    raise exception 'forbidden' using detail = 'not_a_quote_booking';
+  end if;
+
+  return create_payment(p, false);
+end;
+$$;
+
+revoke execute on function api_create_quote_payment(jsonb) from public, anon, authenticated;
+grant execute on function api_create_quote_payment(jsonb) to service_role;
+
+comment on function api_create_quote_payment(jsonb) is
+  'Opens a checkout for a QUOTE booking, which has no owner to check (the guest has no account). '
+  'Authorization is the emailed link token, verified by resolveQuoteForToken before the route calls '
+  'this; service_role only, and refuses any booking no quote points at. Admits the DEPOSIT (''booking'') '
+  'and the BALANCE (''balance'') — the two the accountless guest pays through the link — and refuses the '
+  'pickup add-on, which is the signed-in owner''s to pay. Shares api_create_payment''s body, so both '
+  'take the same single-flight checkout lease.';

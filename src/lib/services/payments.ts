@@ -32,14 +32,16 @@ export interface CreatePaymentLinkInput {
   returnUrl: string;
   idempotencyKey?: string;
   /**
-   * Which money this checkout is for. Defaults to the booking total.
+   * Which money this checkout is for. Defaults to the booking total (the DEPOSIT, for a quote booking).
    *
    * 'pickup_addon' is the transport supplement for a pickup added AFTER the booking was paid — a
    * second payments row on the same booking, whose amount api_request_pickup already wrote from the
-   * server-derived fare. Every guard below (the FX pin, the reuse window, the single-flight lease,
-   * the liveness re-query) applies to it unchanged, because they are all per-PAYMENT-ROW.
+   * server-derived fare. 'balance' is the outstanding remainder on a deposit-confirmed quote booking —
+   * a further payments row whose amount create_payment sizes from the booking's balance_due_minor. Both
+   * are server-derived, never client input. Every guard below (the FX pin, the reuse window, the
+   * single-flight lease, the liveness re-query) applies to them unchanged — they are all per-PAYMENT-ROW.
    */
-  purpose?: 'booking' | 'pickup_addon';
+  purpose?: 'booking' | 'pickup_addon' | 'balance';
   /**
    * WHICH ENTRY POINT AUTHORIZES THIS CHECKOUT. Default 'caller' — api_create_payment, which checks
    * that `ctx`'s identity owns the booking (or is staff). That is every customer checkout, and it is

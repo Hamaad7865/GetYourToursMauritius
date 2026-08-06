@@ -316,10 +316,12 @@ export type HoldStatus = z.infer<typeof holdStatusSchema>;
 export const createPaymentInputSchema = z.object({
   bookingRef: z.string().min(3).max(40),
   idempotencyKey: z.string().min(8).max(200).optional(),
-  /** Which money this checkout is for. 'booking' (default) is the booking total and is refused once
-   *  the booking is paid; 'pickup_addon' is the transport supplement for a pickup added after the
-   *  fact, whose amount comes from the open booking_pickup_requests row — never from the client. */
-  purpose: z.enum(['booking', 'pickup_addon']).optional(),
+  /** Which money this checkout is for. 'booking' (default) is the booking total (or, for a quote, the
+   *  deposit) and is refused once that row is paid; 'pickup_addon' is the transport supplement for a
+   *  pickup added after the fact; 'balance' is the outstanding remainder on a deposit-confirmed quote
+   *  booking. Every non-'booking' amount is server-derived (the open pickup request, or the booking's
+   *  balance_due_minor) — never from the client. */
+  purpose: z.enum(['booking', 'pickup_addon', 'balance']).optional(),
 });
 export type CreatePaymentInput = z.infer<typeof createPaymentInputSchema>;
 

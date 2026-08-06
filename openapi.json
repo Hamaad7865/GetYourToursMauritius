@@ -8073,7 +8073,8 @@
                     "type": "string",
                     "enum": [
                       "booking",
-                      "pickup_addon"
+                      "pickup_addon",
+                      "balance"
                     ]
                   }
                 },
