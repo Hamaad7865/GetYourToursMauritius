@@ -14,6 +14,7 @@ export type ServiceErrorCode =
   | 'sold_out'
   | 'booking_not_payable'
   | 'checkout_pending'
+  | 'quote_already_converted'
   | 'rate_limited'
   | 'config_error'
   | 'provider_error'
@@ -96,6 +97,28 @@ export class BookingNotPayableError extends ServiceError {
 export class CheckoutPendingError extends ServiceError {
   constructor(message = 'A checkout session is already being prepared for this booking') {
     super('checkout_pending', message, 409);
+  }
+}
+
+/**
+ * A quote already has a payable/paid booking behind it — api_convert_quote's convert-once guard, which
+ * is the only thing standing between a guest and a second payable booking for one offer.
+ *
+ * A DISTINCT 409 code rather than the generic `conflict`, for the same reason `sold_out` and
+ * `booking_not_payable` are distinct. The public quote page's Pay button gets several 409s (a withdrawn
+ * offer, a lapsed one, an unfinished one, a checkout race) and can only tell them apart by code; without
+ * this one, a guest whose booking already exists is shown the generic "Sorry — we could not start this
+ * payment." on the screen where they are trying to pay — alarming, and untrue.
+ *
+ * Its `details.bookingRef`, when the caller can supply it, is what lets the page name the booking
+ * instead of describing it.
+ */
+export class QuoteAlreadyConvertedError extends ServiceError {
+  constructor(
+    message = 'This quote has already been paid for or is being paid',
+    details?: unknown,
+  ) {
+    super('quote_already_converted', message, 409, details);
   }
 }
 

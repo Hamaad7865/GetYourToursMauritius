@@ -16,7 +16,9 @@ import { hashQuoteToken, mintQuoteToken } from '@/lib/quotes/token';
  *   - a token that does not match the stored hash;
  *   - a quote with NO stored hash at all (a draft that was never sent — `token_hash` is nullable);
  *   - status `cancelled` (the operator withdrew the offer);
- *   - `valid_until` already past.
+ *   - `valid_until` already past;
+ *   - no `quote_items` rows at all — a total with no itemisation behind it, which is both a state
+ *     saveQuote can leave behind mid-edit and one api_convert_quote refuses to charge.
  *
  * Null for all of them, deliberately: a 404-for-unknown / 403-for-wrong-token split would tell a
  * prober which quote refs exist, and `quotes.ref` is the path segment of a link that is emailed
@@ -60,7 +62,15 @@ describe('public quote access', () => {
    * Seeding off it would make the expiry assertions pass or fail depending on the hour the suite ran.
    */
   async function seedSentQuote(
-    input: { status?: string; validUntilDays?: number; withToken?: boolean } = {},
+    input: {
+      status?: string;
+      validUntilDays?: number;
+      withToken?: boolean;
+      /** Skip the two priced lines, leaving `total_minor` standing over nothing. */
+      withItems?: boolean;
+      /** Stamp `converted_at` — the quote has already been accepted and a booking exists. */
+      converted?: boolean;
+    } = {},
   ): Promise<SeededQuote> {
     seq += 1;
     const ref = `QPAGE${seq}`;
@@ -73,22 +83,32 @@ describe('public quote access', () => {
     await db.asOwner();
     const { rows } = await db.pg.query<{ id: string }>(
       `insert into quotes (ref, customer_name, customer_email, customer_phone, status, valid_until,
-                           total_minor, intro_note, internal_notes, token_hash, sent_at)
+                           total_minor, intro_note, internal_notes, token_hash, sent_at,
+                           converted_at)
        values ($1, 'Marie Dupont', 'marie@example.com', '+230 5555 1234', $2::quote_status,
                $3::date, 23000, 'As discussed on the phone.',
-               $4, $5, now())
+               $4, $5, now(), $6)
        returning id`,
-      [ref, input.status ?? 'sent', validUntil, INTERNAL_NOTE, tokenHash],
+      [
+        ref,
+        input.status ?? 'sent',
+        validUntil,
+        INTERNAL_NOTE,
+        tokenHash,
+        input.converted ? new Date() : null,
+      ],
     );
     const id = rows[0]!.id;
-    await db.pg.query(
-      `insert into quote_items
-         (quote_id, position, kind, description, starts_at, quantity, unit_amount_minor,
-          subtotal_minor)
-       values ($1, 0, 'custom', 'Catamaran cruise, 23 Aug', now() + interval '10 days', 2, 5500, 11000),
-              ($1, 1, 'custom', 'Private guide, full day', null, 1, 12000, 12000)`,
-      [id],
-    );
+    if (input.withItems !== false) {
+      await db.pg.query(
+        `insert into quote_items
+           (quote_id, position, kind, description, starts_at, quantity, unit_amount_minor,
+            subtotal_minor)
+         values ($1, 0, 'custom', 'Catamaran cruise, 23 Aug', now() + interval '10 days', 2, 5500, 11000),
+                ($1, 1, 'custom', 'Private guide, full day', null, 1, 12000, 12000)`,
+        [id],
+      );
+    }
 
     // Back to the role the page's read actually runs as: service_role, which is the only role the
     // migration grants `select` on `quotes` outside the staff RLS policies.
@@ -182,5 +202,37 @@ describe('public quote access', () => {
   it('returns null for a ref that does not exist', async () => {
     expect(await resolveQuoteForToken('QNOSUCHREF', 'f'.repeat(64))).toBeNull();
     expect(await resolveQuoteForToken('', 'f'.repeat(64))).toBeNull();
+  });
+
+  it('returns null for a total with no lines behind it', async () => {
+    // A reachable state, not a hypothetical: saveQuote writes the total, DELETEs every line and
+    // re-INSERTs them in three non-transactional PostgREST statements, and documents its own failure
+    // mode (a stale occurrence id raises 23503 on the re-insert, AFTER the new total is written and
+    // the old lines are gone). A guest loading the link in that window would otherwise read
+    // "Total EUR 230.00" over an empty list — and if the re-insert failed, indefinitely.
+    //
+    // It is also the state api_convert_quote refuses with `quote_total_mismatch`, so the Pay button's
+    // only possible answer is a refusal: there is nothing chargeable to show.
+    const { ref, token } = await seedSentQuote({ withItems: false });
+    expect(await resolveQuoteForToken(ref, token)).toBeNull();
+  });
+
+  it('reports an already-accepted quote as converted rather than as a fresh offer', async () => {
+    // The link gets forwarded — to a partner, a travel agent, or just reopened by the guest after
+    // paying. Without `converted_at` on the model the page shows an unqualified "Accept & pay" to
+    // someone whose booking already exists, and clicking it yields a raw refusal.
+    const { ref, token } = await seedSentQuote({ status: 'accepted', converted: true });
+
+    const quote = await resolveQuoteForToken(ref, token);
+    expect(
+      quote,
+      'a converted quote must still be readable — the guest paid for it',
+    ).not.toBeNull();
+    expect(quote!.convertedAt).not.toBeNull();
+    expect(new Date(quote!.convertedAt!).getTime()).toBeGreaterThan(0);
+
+    // An un-converted one must not claim to be converted.
+    const fresh = await seedSentQuote();
+    expect((await resolveQuoteForToken(fresh.ref, fresh.token))!.convertedAt).toBeNull();
   });
 });

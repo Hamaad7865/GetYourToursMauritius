@@ -9821,6 +9821,112 @@
         }
       }
     },
+    "/quotes/{ref}/open": {
+      "get": {
+        "operationId": "openQuoteLink",
+        "summary": "Open a quote link: move the link token into an httpOnly cookie and redirect",
+        "description": "The target of the link in a quote email. It authenticates nothing — it validates only the shape of the ref and token, sets an httpOnly, Secure, SameSite=Lax cookie scoped to this quote, and 302s to /quotes/{ref}. The token is deliberately kept out of any rendered page URL, where GTM (page_location) and the client-error reporter (window.location.href) would both export it. A request with no valid token still redirects, so nothing here reveals which quote refs exist.",
+        "tags": [
+          "Quotes"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "t",
+            "description": "The raw link token from the quote email",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirect to the quote page (cookie set only for a well-formed token)"
+          },
+          "404": {
+            "description": "Malformed quote reference",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/client-errors": {
       "post": {
         "operationId": "reportClientError",

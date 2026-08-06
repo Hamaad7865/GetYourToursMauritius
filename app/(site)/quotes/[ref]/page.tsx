@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
+import { notFound, redirect } from 'next/navigation';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { QuotePayButton } from '@/components/quotes/QuotePayButton';
+import { QUOTE_TOKEN_COOKIE, quoteOpenPath } from '@/lib/quotes/link-cookie';
 import { resolveQuoteForToken, type PublicQuoteLine } from '@/lib/quotes/resolve';
 import { formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
 import { SITE } from '@/lib/seo/site';
@@ -11,19 +13,26 @@ export const runtime = 'edge';
 
 export const metadata: Metadata = {
   title: 'Your quote',
-  // The URL carries a link token and the page shows a named guest their prices. Never indexed, and
-  // `follow: false` so the tokenised URL is not walked either — same stance as the pay page.
+  // The page shows a named guest their prices. Never indexed, and `follow: false` so the links on it
+  // are not walked either — same stance as the pay page.
   robots: { index: false, follow: false },
 };
 
 /**
  * The PUBLIC quote page — the other end of the emailed link.
  *
- * The guest has no account: `?t=` carries the raw link token, and {@link resolveQuoteForToken} is the
- * whole of the authorization (it runs with the service-role client, which bypasses RLS). It answers
- * null for every refusal — unknown ref, wrong token, unsent draft, withdrawn offer, lapsed validity —
- * so this page has exactly ONE branch. That is deliberate: a different response per case would tell a
- * prober which quote refs exist, and the ref is the path segment of a link that gets forwarded.
+ * THE TOKEN IS NEVER IN THIS PAGE'S URL. It arrives in the httpOnly cookie that
+ * GET /api/v1/quotes/{ref}/open sets before redirecting here; src/lib/quotes/link-cookie.ts has the
+ * full reasoning, but the short version is that app/layout.tsx renders GTM on every page (whose tags
+ * fall back to cookieless pings carrying `page_location`) and src/lib/client-error-report.ts posts
+ * `window.location.href` into `error_logs` — so a token in the query string would be handed to Google
+ * and written to a staff-readable log table, undoing the point of storing only its hash.
+ *
+ * The guest has no account, so {@link resolveQuoteForToken} is the whole of the authorization (it runs
+ * with the service-role client, which bypasses RLS). It answers null for every refusal — unknown ref,
+ * wrong token, unsent draft, withdrawn offer, lapsed validity, a total with no lines behind it — so this
+ * page has exactly ONE branch. That is deliberate: a different response per case would tell a prober
+ * which quote refs exist, and the ref is the path segment of a link that gets forwarded.
  *
  * Nothing is reserved until it is paid. Conversion happens at PAY, in the route the button posts to,
  * so an offer the guest never accepts holds no capacity.
@@ -64,11 +73,17 @@ export default async function QuotePage({
 }) {
   const { ref } = await params;
   const { t } = await searchParams;
-  // Anything but a single token is no token — `resolveQuoteForToken` would refuse it anyway, but a
-  // stringified array must never be what reaches it or what the Pay button posts.
-  const token = typeof t === 'string' ? t : '';
+
+  // A hand-built or pre-cookie `?t=` link: bounce it through the open route rather than render a page
+  // whose URL carries a bearer credential. `redirect()` throws before any HTML exists, so nothing is
+  // rendered, no GTM tag loads, and no `window.location.href` is ever set to this URL.
+  if (typeof t === 'string' && t.length > 0) redirect(quoteOpenPath(ref, t));
+
+  const token = (await cookies()).get(QUOTE_TOKEN_COOKIE)?.value ?? '';
   const quote = await resolveQuoteForToken(ref, token);
   if (!quote) notFound();
+
+  const converted = quote.convertedAt !== null;
 
   return (
     <>
@@ -121,10 +136,25 @@ export default async function QuotePage({
             Valid until {quote.validUntil}. Nothing is reserved until the quote is paid.
           </p>
 
+          {/* An ACCEPTED quote must not present an unqualified "Accept & pay". The link gets forwarded
+              — to a partner, to a travel agent — and gets reopened by the guest after paying; a live
+              payment CTA there invites a second attempt whose only answer is a refusal. The button
+              stays, as a secondary action, because api_convert_quote's re-arm branch is a real recovery
+              route for a booking that died unpaid. */}
+          {converted && (
+            <div className="mt-7 rounded-xl border border-teal/30 bg-teal/5 p-4">
+              <p className="text-sm font-bold text-ink">
+                You have accepted this quote — a booking has been created.
+              </p>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
+                Check your email for the confirmation. If your payment did not go through, you can
+                still complete it below.
+              </p>
+            </div>
+          )}
+
           <div className="mt-7">
-            {/* The token is already in this page's URL, so handing it to the button adds no exposure —
-                it is what authenticates the guest at the pay route. */}
-            <QuotePayButton quoteRef={quote.ref} token={token} />
+            <QuotePayButton quoteRef={quote.ref} converted={converted} />
           </div>
 
           <p className="mt-6 text-[13px] leading-relaxed text-ink-muted">

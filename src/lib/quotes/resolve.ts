@@ -2,7 +2,9 @@ import { quoteTokenMatches } from './token';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 
 /**
- * The read behind the PUBLIC quote page — /quotes/{ref}?t={token}.
+ * The read behind the PUBLIC quote page — /quotes/{ref}, authenticated by the httpOnly link-token
+ * cookie that GET /api/v1/quotes/{ref}/open sets (see src/lib/quotes/link-cookie.ts for why the token
+ * is never in the page's own URL).
  *
  * This function IS the authorization. The guest has no account (that is the point of the emailed
  * link), so there is no session to check, no `auth.uid()` to compare against, and the staff RLS
@@ -16,7 +18,8 @@ import { createServiceRoleClient } from '@/lib/supabase/admin';
  *   - a row whose `token_hash` is null (a draft that was never sent — the column is nullable and only
  *     the send route ever fills it);
  *   - status `cancelled`, i.e. the operator withdrew the offer;
- *   - `valid_until` already past.
+ *   - `valid_until` already past;
+ *   - no `quote_items` at all, i.e. a total with no itemisation behind it.
  *
  * ONE indistinguishable answer, never a different status code per case. `quotes.ref` is the path
  * segment of a link that gets forwarded, quoted in replies and pasted into chats; answering "404 no
@@ -59,6 +62,21 @@ export interface PublicQuote {
   validUntil: string;
   /** The operator's covering note TO the guest. The internal one is a different column. */
   introNote: string | null;
+  /**
+   * When the guest accepted this offer and a booking was minted, ISO — null while it is still an offer.
+   *
+   * The page needs it because the link gets FORWARDED: to a partner, to a travel agent, or simply
+   * reopened by the guest after paying. Rendering an unqualified "Accept & pay" to someone whose
+   * booking already exists invites a second attempt whose only possible answer is a raw
+   * `quote_already_converted` refusal. (api_convert_quote's `for update` convert-once guard means it
+   * cannot mint a second payable booking — this is comprehension, not double-charge — but a money
+   * screen is the wrong place to be vague.)
+   *
+   * Read off `converted_at`, never `booking_id`: the migration's section 4 states the contract, because
+   * api_erase_user hard-deletes an unpaid booking and the `on delete set null` FK then silently clears
+   * `booking_id` while `converted_at` stays.
+   */
+  convertedAt: string | null;
   items: PublicQuoteLine[];
 }
 
@@ -125,7 +143,8 @@ function todayUtc(): string {
 }
 
 const QUOTE_COLUMNS =
-  'id, ref, customer_name, status, currency, total_minor, valid_until, intro_note, token_hash';
+  'id, ref, customer_name, status, currency, total_minor, valid_until, intro_note, token_hash, ' +
+  'converted_at';
 
 const ITEM_COLUMNS =
   'position, description, price_label, starts_at, ends_at, quantity, unit_amount_minor, ' +
@@ -171,6 +190,17 @@ export async function resolveQuoteForToken(
   // The lines ARE the offer: showing a total with no itemisation behind it is how a guest ends up
   // paying a figure they cannot check. Refuse the whole page instead.
   if (itemsError) return null;
+  // NO lines is that same harm, reached from the other side — and it is a state this repo documents as
+  // REACHABLE, not a hypothetical. saveQuote (src/lib/admin/quotes.ts) writes `total_minor`, DELETEs
+  // every line and re-INSERTs them in three non-transactional PostgREST statements, and its own doc
+  // comment names the failure: a stale occurrence id raises 23503 on the re-insert, AFTER the new total
+  // is written and the old lines are gone. A guest loading the link in that window would read "Total
+  // EUR 230.00" over an empty list; if the re-insert failed outright, indefinitely, with a live link.
+  //
+  // It is also unchargeable, so there is nothing to lose by refusing: api_convert_quote sums the lines
+  // and raises `quote_total_mismatch` on any disagreement with `total_minor`, and its own comment says
+  // the check subsumes exactly this case ("a hand-set total with no itemisation at all").
+  if ((items ?? []).length === 0) return null;
 
   return {
     ref: text(data.ref),
@@ -179,6 +209,7 @@ export async function resolveQuoteForToken(
     totalMinor: minor(data.total_minor),
     validUntil: dateText(data.valid_until),
     introNote: textOrNull(data.intro_note),
+    convertedAt: textOrNull(data.converted_at),
     items: (items ?? []).map((row) => ({
       position: Number(row.position ?? 0),
       description: textOrNull(row.description),

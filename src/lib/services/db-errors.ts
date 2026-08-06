@@ -4,6 +4,7 @@ import {
   ForbiddenError,
   NotFoundError,
   ProviderError,
+  QuoteAlreadyConvertedError,
   RateLimitError,
   SoldOutError,
   ValidationError,
@@ -110,8 +111,12 @@ export function mapDbError(error: unknown): never {
   if (/\bquote_not_found\b/.test(message)) {
     throw new NotFoundError('Not found');
   }
+  // A DISTINCT code, not the generic `conflict`: the public quote page's Pay button gets several 409s
+  // and can only tell "you have already paid for this" from "this offer was withdrawn" by code. With a
+  // generic one it shows a guest whose booking already exists the same "we could not start this
+  // payment" it shows a real failure — on the screen where they are trying to pay.
   if (/\bquote_already_converted\b/.test(message)) {
-    throw new ConflictError(
+    throw new QuoteAlreadyConvertedError(
       'This quote has already been paid for or is being paid — check your email for the booking.',
     );
   }

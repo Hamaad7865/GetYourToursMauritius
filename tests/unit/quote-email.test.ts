@@ -27,7 +27,7 @@ describe('quote email', () => {
   it('lists every line and the total', () => {
     const { html } = renderQuoteEmail({
       ...quote,
-      payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+      payUrl: 'https://bellemaretours.com/api/v1/quotes/Q7F3A21/open?t=abc',
     });
     expect(html).toContain('Private guide, full day');
     expect(html).toContain('Catamaran cruise, 23 Aug, 2 adults');
@@ -35,7 +35,7 @@ describe('quote email', () => {
   });
 
   it('links to the tokenised pay URL exactly once', () => {
-    const payUrl = 'https://bellemaretours.com/quotes/Q7F3A21?t=abc';
+    const payUrl = 'https://bellemaretours.com/api/v1/quotes/Q7F3A21/open?t=abc';
     const { html } = renderQuoteEmail({ ...quote, payUrl });
     expect(html.split(payUrl).length - 1).toBeGreaterThanOrEqual(1);
   });
@@ -49,7 +49,7 @@ describe('quote email', () => {
     const withStaffNotes = {
       ...quote,
       internalNotes: 'margin is thin, do not discount further',
-      payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+      payUrl: 'https://bellemaretours.com/api/v1/quotes/Q7F3A21/open?t=abc',
     };
     const { html, text } = renderQuoteEmail(withStaffNotes);
     expect(html).not.toContain('margin is thin');
@@ -69,7 +69,7 @@ describe('quote email', () => {
         ...quote,
         totalMinor: 50000,
         items: [],
-        payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+        payUrl: 'https://bellemaretours.com/api/v1/quotes/Q7F3A21/open?t=abc',
       }),
     ).toThrow(/total/i);
 
@@ -78,7 +78,7 @@ describe('quote email', () => {
       renderQuoteEmail({
         ...quote,
         items: [quote.items[0]!],
-        payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+        payUrl: 'https://bellemaretours.com/api/v1/quotes/Q7F3A21/open?t=abc',
       }),
     ).toThrow(/total/i);
   });
@@ -96,7 +96,7 @@ describe('quote email', () => {
         ...quote,
         totalMinor: 0,
         items: [],
-        payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+        payUrl: 'https://bellemaretours.com/api/v1/quotes/Q7F3A21/open?t=abc',
       }),
     ).toThrow(/total/i);
 
@@ -107,7 +107,7 @@ describe('quote email', () => {
         ...quote,
         totalMinor: 0,
         items: [{ description: 'Complimentary transfer', quantity: 1, unitAmountMinor: 0 }],
-        payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+        payUrl: 'https://bellemaretours.com/api/v1/quotes/Q7F3A21/open?t=abc',
       }),
     ).toThrow(/total/i);
   });
@@ -118,7 +118,7 @@ describe('quote email', () => {
       totalMinor: 1000,
       customerName: '<script>alert(1)</script>',
       items: [{ description: '<b>Charter</b>', quantity: 1, unitAmountMinor: 1000 }],
-      payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+      payUrl: 'https://bellemaretours.com/api/v1/quotes/Q7F3A21/open?t=abc',
     });
     expect(html).not.toContain('<script>');
     expect(html).not.toContain('<b>Charter</b>');

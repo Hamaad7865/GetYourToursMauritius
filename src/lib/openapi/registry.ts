@@ -702,6 +702,31 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/quotes/{ref}/open': {
+    get: {
+      operationId: 'openQuoteLink',
+      summary: 'Open a quote link: move the link token into an httpOnly cookie and redirect',
+      description:
+        'The target of the link in a quote email. It authenticates nothing — it validates only the ' +
+        'shape of the ref and token, sets an httpOnly, Secure, SameSite=Lax cookie scoped to this ' +
+        'quote, and 302s to /quotes/{ref}. The token is deliberately kept out of any rendered page ' +
+        'URL, where GTM (page_location) and the client-error reporter (window.location.href) would ' +
+        'both export it. A request with no valid token still redirects, so nothing here reveals ' +
+        'which quote refs exist.',
+      tags: ['Quotes'],
+      requestParams: {
+        path: refParam,
+        query: z.object({ t: z.string().describe('The raw link token from the quote email') }),
+      },
+      responses: {
+        '302': {
+          description: 'Redirect to the quote page (cookie set only for a well-formed token)',
+        },
+        '404': errorResponse('Malformed quote reference'),
+        '429': errorResponse('Too many requests'),
+      },
+    },
+  },
   '/client-errors': {
     post: {
       operationId: 'reportClientError',

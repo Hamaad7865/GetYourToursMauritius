@@ -6,6 +6,7 @@ import { EmbeddedCheckout } from '@/components/checkout/EmbeddedCheckout';
 import { PayPageFallback } from '@/components/checkout/PayPageFallback';
 import { PeachWidgetPreload } from '@/components/checkout/PeachWidgetPreload';
 import { getPeachWidgetConfig } from '@/lib/payments';
+import { safeReturnPath } from '@/lib/checkout/return-path';
 import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
@@ -19,19 +20,26 @@ export const metadata: Metadata = {
  * Embedded payment step. The checkout was created server-side at /api/v1/payments and its id arrives
  * as `?cid=`; here we mount the Peach widget with it. Booking confirmation comes from the verified
  * webhook — this page just collects the card and hands the customer back to their booking.
+ *
+ * `?return=` overrides where "back" is, and exists for the guest who paid a QUOTE. The default,
+ * /bookings/{ref}, only renders for the booking's owner: BookingConfirmation fetches with a bearer
+ * token and otherwise says "Sign in to view booking …". A quote guest has no account by definition, so
+ * without this they are charged and then shown a sign-in wall. It is pinned to a same-origin relative
+ * path by {@link safeReturnPath} — an unvalidated redirect target on the screen right after a card
+ * number is typed is an open door to a convincing phishing page.
  */
 export default async function PayPage({
   params,
   searchParams,
 }: {
   params: Promise<{ ref: string }>;
-  searchParams: Promise<{ cid?: string }>;
+  searchParams: Promise<{ cid?: string; return?: string | string[] }>;
 }) {
   const { ref } = await params;
-  const { cid } = await searchParams;
+  const { cid, return: requestedReturn } = await searchParams;
   const widget = getPeachWidgetConfig();
   const t = await getT();
-  const returnUrl = `/bookings/${ref}`;
+  const returnUrl = safeReturnPath(requestedReturn, `/bookings/${ref}`);
 
   return (
     <>

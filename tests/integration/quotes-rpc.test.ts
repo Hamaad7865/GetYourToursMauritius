@@ -277,7 +277,11 @@ describe('api_convert_quote', () => {
     expect(error.status, 'the convert-once guard reaches the guest as a 500 "Database error"').toBe(
       409,
     );
-    expect(error.code).toBe('conflict');
+    // A DISTINCT code, not the generic `conflict`, for the same reason `sold_out` and
+    // `booking_not_payable` are distinct: the public quote page's Pay button has to tell "you have
+    // already paid for this" apart from every other 409 it can get, or it shows a guest who has a
+    // booking the generic "Sorry — we could not start this payment." on a money screen.
+    expect(error.code).toBe('quote_already_converted');
     expect(error.message, 'the guest is shown a raw database token').toMatch(/[a-z] [a-z]/);
 
     expect(await quoteBookingCount(), 'a second payable booking was minted for one quote').toBe(

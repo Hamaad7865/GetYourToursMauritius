@@ -53,7 +53,17 @@ export interface QuoteEmailInput {
   /** The operator's covering note TO the guest. Optional; the internal one is a different column. */
   introNote?: string | null;
   items: QuoteEmailLine[];
-  /** The public quote page with the raw link token on it — the guest's only way in. */
+  /**
+   * The guest's only way in. MUST be `SITE.url + quoteOpenPath(ref, token)` — i.e. the
+   * `/api/v1/quotes/{ref}/open?t=…` route, NEVER `/quotes/{ref}?t=…`.
+   *
+   * An emailed link cannot be recalled, and a token in a RENDERED page's URL is exported verbatim by
+   * two things that run on every customer page: GTM's `page_location` (its tags fall back to cookieless
+   * pings even when consent is denied) and src/lib/client-error-report.ts, which writes
+   * `window.location.href` into `error_logs`. The open route renders no HTML, loads no GTM, and moves
+   * the token into an httpOnly cookie before redirecting to the clean page — see
+   * src/lib/quotes/link-cookie.ts.
+   */
   payUrl: string;
 }
 
