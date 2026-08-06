@@ -50,6 +50,11 @@ const LOCKED = [
   // EXECUTE grant IS its authorization, which is why `authenticated` has to be named in the revoke.
   'create_payment(jsonb, boolean)',
   'api_create_quote_payment(jsonb)',
+  // An ACCOUNT-EXISTENCE ORACLE over auth.users (20260909000000): it answers "is there a confirmed
+  // account at this address?". The privilege is already correct in the migration — this row is the
+  // regression guard, so re-opening it later fails CI instead of shipping. That distinction is the whole
+  // point of this list: every entry below was correct on the day it was written too.
+  'quote_owner_for_email(text)',
 ];
 
 describe('internal SECURITY DEFINER functions are locked to service_role', () => {
