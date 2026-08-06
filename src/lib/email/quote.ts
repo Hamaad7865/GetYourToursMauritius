@@ -124,6 +124,14 @@ function quantityNote(currency: string, line: QuoteEmailLine): string {
  * Send is the last human-visible moment before the guest holds that link: failing here costs the
  * operator one error toast and a re-save; failing later costs a guest a dead offer and a support
  * ticket.
+ *
+ * THE THIRD REFUSAL IS THE CALLER'S, and for the same reason this function is pure: an offer whose
+ * `valid_until` has already gone by is unchargeable too (api_convert_quote raises `quote_expired`,
+ * and the public page will not even open), but deciding that needs today's date, and taking a clock
+ * in here would make every rendered email depend on one. So the send path calls
+ * `assertQuoteStillValid` (src/lib/quotes/validity.ts) on the STORED `valid_until` immediately
+ * before calling this — a quote drafted on Friday and sent on Monday passed saveQuote's identical
+ * check and is dead by the time the email goes out.
  */
 export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
   const operator = SITE.operator;

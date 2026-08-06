@@ -194,7 +194,12 @@ export function buildInvoice(
     const safeQty = quantity || 1;
     const lineGrossEur = round2(item.subtotalEur);
     return {
-      description: `${booking.activityTitle} — ${item.priceLabel}`,
+      // A booking with no catalogue activity behind it — a converted QUOTE, whose lines all live in
+      // `booking_custom_items` — carries no activityTitle, and prefixing an empty one would print a
+      // tax-document line that opens with a bare em dash. The label already says what was sold.
+      description: booking.activityTitle
+        ? `${booking.activityTitle} — ${item.priceLabel}`
+        : item.priceLabel,
       quantity,
       unitGrossEur: round2(item.subtotalEur / safeQty),
       lineGrossEur,

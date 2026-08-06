@@ -163,6 +163,35 @@ describe('quotes schema (20260909000000)', () => {
     }
   });
 
+  it('refuses a quote priced in anything but EUR', async () => {
+    // The DENOMINATION gets the same second look the amount already gets. api_convert_quote
+    // re-derives and re-compares `total_minor` before it mints a booking, then copies `currency`
+    // across untouched — and downstream nothing re-checks it: payments_ledger_currency_eur
+    // (20260830000000) pins payments.currency = 'EUR' and api_create_payment never reads the
+    // booking's currency. A quote stored as 'MUR' would therefore be shown and emailed as
+    // "MUR 50000" and then charged 500 EUR: a silent mismatch, not a failure anyone would see.
+    await expect(
+      db.pg.query(
+        `insert into quotes (ref, customer_name, customer_email, valid_until, currency, total_minor)
+         values ('QCURR1', 'Guest', 'mur@example.com', current_date + 7, 'MUR', 50000)`,
+      ),
+      'a MUR quote was stored; it would be quoted in rupees and charged in euro',
+    ).rejects.toThrow(/quotes_currency_eur/);
+
+    // …and an UPDATE cannot reach it either, which is the way an already-sent quote would drift.
+    await db.pg.query(
+      `insert into quotes (ref, customer_name, customer_email, valid_until, total_minor)
+       values ('QCURR2', 'Guest', 'eur@example.com', current_date + 7, 50000)`,
+    );
+    await expect(
+      db.pg.query(`update quotes set currency = 'MUR' where ref = 'QCURR2'`),
+    ).rejects.toThrow(/quotes_currency_eur/);
+    const { rows } = await db.pg.query<{ currency: string }>(
+      `select currency from quotes where ref = 'QCURR2'`,
+    );
+    expect(rows[0]!.currency).toBe('EUR');
+  });
+
   it('refuses anon reads and writes on all three tables', async () => {
     // Privilege check first, and via has_table_privilege(): role_table_grants is documented in this
     // repo as lying (it once reported NO grant on a table anon could freely read).

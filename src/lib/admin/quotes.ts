@@ -1,4 +1,5 @@
 import { lineSubtotalMinor, quoteTotalMinor, type PricedLine } from '@/lib/quotes/totals';
+import { assertQuoteStillValid } from '@/lib/quotes/validity';
 import { ValidationError } from '@/lib/services/errors';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 
@@ -552,6 +553,14 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
   if (!input.validUntil) {
     throw new Error('A quote needs a valid-until date.');
   }
+  // …and it must not be a date that has already gone by. `valid_until` is not a display field:
+  // api_convert_quote raises `quote_expired` on `valid_until < current_date` and resolveQuoteForToken
+  // refuses the public page outright, so a quote saved with a past date is an offer nobody can open
+  // and nobody can pay — while the list, the editor and the send path all go on treating it as a live
+  // draft. Refusing at the keystroke costs one error toast; the send path re-checks the STORED date
+  // immediately before rendering the email, because a quote drafted on Friday and sent on Monday
+  // passes this check and is dead by the time the guest reads it.
+  assertQuoteStillValid(input.validUntil);
 
   // Both are typed narrowly above; these are the half that survives a cast or a JSON body, and both
   // land before ANY statement is issued. See QuoteCurrency: an unsupported currency is not refused

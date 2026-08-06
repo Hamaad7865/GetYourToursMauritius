@@ -146,6 +146,19 @@ describe('saveQuote denomination', () => {
     // INSERT with a raw enum error the operator cannot act on.
     await expect(widened({ ...guest, locale: 'de' })).rejects.toThrow(/locale/i);
   });
+
+  it('refuses a valid-until date that has already gone by', async () => {
+    // `valid_until` is not a display field: api_convert_quote raises `quote_expired` on
+    // `valid_until < current_date` and resolveQuoteForToken hides the public page outright, so a
+    // quote saved with a past date is an offer nobody can open and nobody can pay — while the editor
+    // and the send path go on treating it as a live draft. Refusing at the keystroke costs the
+    // operator one toast; not refusing costs a guest a priced email above a dead link.
+    //
+    // Like the two refusals above, this lands before ANY statement is issued: the mocked client here
+    // has an `auth` and nothing else, so a guard that ran after the first `from()` would fail with a
+    // TypeError instead of this message.
+    await expect(widened({ ...guest, validUntil: '2020-01-01' })).rejects.toThrow(/2020-01-01/);
+  });
 });
 
 describe('quote line rows', () => {

@@ -161,6 +161,35 @@ alter table quotes add constraint quote_converted_shape
   check (booking_id is null or converted_at is not null);
 
 -- ---------------------------------------------------------------------------
+-- 4b) The DENOMINATION is re-checked, exactly as the amount already is.
+--
+-- api_convert_quote carefully re-derives `total_minor` from the lines and refuses to mint a booking
+-- on any drift — and then copies `currency` across untouched, because nothing had ever questioned it.
+-- Downstream nothing questions it either: payments_ledger_currency_eur (20260830000000) pins
+-- `payments.currency = 'EUR'`, and api_create_payment inserts the payments row from
+-- (booking_id, idempotency_key, amount_minor) without ever reading the booking's currency.
+--
+-- So a quote stored as 'MUR' would be shown "MUR 50000" on the public page, emailed as "MUR 50000",
+-- and then charged 500 EUR. Not a failure anyone would see: a silent denomination mismatch on the
+-- money path, reached through a column that carried a DEFAULT and no CHECK, i.e. through convention
+-- alone. An amount deserves the second look it already gets; the unit it is counted in deserves the
+-- same one.
+--
+-- src/lib/admin/quotes.ts refuses a non-EUR quote in the editor. This is the half that a cast, a raw
+-- PostgREST write or a psql session cannot get past.
+--
+-- WIDEN IT THE DAY A SECOND SETTLEMENT CURRENCY EXISTS — and that day belongs to the LEDGER, not to
+-- the quote: relax payments_ledger_currency_eur and teach api_create_payment to read the booking's
+-- currency first, then this constraint, in that order. Relaxing this one alone only re-opens the
+-- mismatch it was added to close.
+--
+-- drop-then-add so the whole file stays idempotent: `create table if not exists` above is a no-op on
+-- a database that already has the table, so it would never restate the constraint.
+-- ---------------------------------------------------------------------------
+alter table quotes drop constraint if exists quotes_currency_eur;
+alter table quotes add constraint quotes_currency_eur check (currency = 'EUR');
+
+-- ---------------------------------------------------------------------------
 -- 5) The two rental foreign keys say what they mean.
 --
 -- Both were declared with no ON DELETE action, i.e. NO ACTION, i.e. "block the delete" — by accident
@@ -828,6 +857,142 @@ end;
 $$;
 revoke execute on function api_convert_quote(jsonb) from public, anon, authenticated;
 grant execute on function api_convert_quote(jsonb) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- 7b) api_booking_receipt — the VAT invoice has to see the lines a quote booking actually has.
+--
+-- api_convert_quote mints a booking whose every line lives in `booking_custom_items`; by
+-- construction such a booking has ZERO booking_items. api_booking_receipt builds its `items` array
+-- out of booking_json, which reads `from booking_items bi` and nothing else — so the receipt DTO
+-- reached buildInvoice (src/lib/invoice/model.ts) with `items: []`.
+--
+-- That is not a cosmetic gap, it is a WRONG TAX DOCUMENT. buildInvoice backs the 15% out of the
+-- gross PER LINE and sums: with no lines, `subtotalNetEur` is 0 and
+-- `vatAmountEur = round2(totalGrossEur - 0)` becomes the entire charge. The guest is emailed an
+-- invoice stating that a EUR 500 order was EUR 500 of VAT, with nothing itemised beneath it — and
+-- the confirmation email, the invoice PDF and the voucher all render off that same model.
+--
+-- THE FIX is to union the custom lines into the items array the receipt already returns:
+--   * `priceLabel` <- `description`. A custom line has no price label (it is not a catalogue price
+--     band) and `booking_custom_items.description` is NOT NULL precisely so the line stays readable
+--     on its own; receiptSchema types priceLabel as a required string, so this is the field it maps
+--     to. buildInvoice then renders "<activityTitle> — <priceLabel>", or just the label when the
+--     booking has no activity behind it, which a quote booking does not.
+--   * `quantity` verbatim, and `pax` explicitly null — a custom line is priced per LINE, not per
+--     person, and buildInvoice reads `pax ?? quantity`, so null is what makes it use the quantity.
+--   * `subtotalEur` <- `subtotal_minor / 100.0`, the same minor->major conversion booking_json does
+--     for booking_items. `unitAmountEur` rides along so the two item shapes stay identical.
+-- Ordered by `position`, and APPENDED AFTER any booking_items rows: buildInvoice's own header notes
+-- that voucher-pdf.ts reads `lines[0].quantity` positionally for its pax count, so the catalogue
+-- lines must stay first for the day the hold path lands and a booking carries both kinds.
+--
+-- The arithmetic then needs no special case: api_convert_quote already refuses to mint unless
+-- `total_minor` equals the sum of the lines, so the lines reconcile to `totalEur` by construction
+-- and the net/VAT split is the identical rule every other booking gets.
+--
+-- Re-applied in FULL from its winning definition (20260901000300_booking_locale.sql) so this
+-- migration cannot silently revert the `customerPhone` (20260826000000) or `locale` fields that
+-- landed there.
+--
+-- ORDERING — READ THIS BEFORE ASSUMING THE FIX IS LIVE. The rule in this repo is "the LAST migration
+-- to define a function wins", and at the time of writing 20260910000000_late_pickup_addon.sql
+-- re-applies api_booking_receipt from a body that predates this union. On a database built from the
+-- whole directory (and on catch-up.sql / setup.sql, which concatenate in the same order) THIS
+-- DEFINITION IS OVERWRITTEN and the union is lost. That file belongs to another workstream, so it
+-- must carry the `booking_custom_items` union too — copy the two additions below verbatim — or a
+-- migration ordered after it must restore them. Until then a quote booking is still invoiced with
+-- no lines. This is the migration-revert drift documented in docs/handbook/landmines.md.
+-- ---------------------------------------------------------------------------
+create or replace function api_booking_receipt(p jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_booking_id uuid := nullif(p ->> 'bookingId', '')::uuid;
+  v_base jsonb;
+  v_title text;
+  v_when timestamptz;
+  v_payment jsonb;
+  v_phone text;
+  v_locale text;
+  v_custom jsonb;
+begin
+  if v_booking_id is null then
+    raise exception 'invalid_request' using detail = 'booking_receipt: bookingId required';
+  end if;
+
+  v_base := booking_json(v_booking_id);
+  if v_base is null then
+    return null;
+  end if;
+
+  -- Primary activity title + the earliest trip date, joined off the booking's items.
+  select a.title, o.starts_at
+    into v_title, v_when
+    from booking_items bi
+    join session_occurrences o on o.id = bi.session_occurrence_id
+    join activity_options ao on ao.id = bi.activity_option_id
+    join activities a on a.id = ao.activity_id
+   where bi.booking_id = v_booking_id
+   order by o.starts_at asc, bi.created_at asc
+   limit 1;
+
+  -- The booking's most recent payment, with the real charge (or the EUR ledger fallback), the paid
+  -- timestamp (first 'paid' event) and the provider event ref.
+  select jsonb_build_object(
+           'chargedAmountMinor', coalesce(pay.charged_amount_minor, pay.amount_minor),
+           'chargedCurrency', coalesce(pay.charged_currency, pay.currency),
+           'paidAt', paid.occurred_at,
+           'providerRef', paid.provider_event_id
+         )
+    into v_payment
+    from payments pay
+    left join lateral (
+      select pe.occurred_at, pe.provider_event_id
+        from payment_events pe
+       where pe.payment_id = pay.id and pe.type in ('paid', 'captured')
+       order by pe.occurred_at asc
+       limit 1
+    ) paid on true
+   where pay.booking_id = v_booking_id
+   order by pay.created_at desc
+   limit 1;
+
+  -- The guest's stored booking locale (Task 15): the notification drain runs off-request (cron), so
+  -- this is the only correct source for which language the confirmation email + PDFs render in.
+  select b.customer_phone, b.locale::text into v_phone, v_locale from bookings b where b.id = v_booking_id;
+
+  -- ADDITION 1 of 2 — the priced lines that have no session_occurrence: a converted quote's lines
+  -- today, rentals in Part 2. Empty (and therefore free) for every booking that has none.
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'priceLabel', ci.description,
+           'quantity', ci.quantity,
+           'pax', null::int,
+           'unitAmountEur', ci.unit_amount_minor::float / 100,
+           'subtotalEur', ci.subtotal_minor::float / 100
+         ) order by ci.position), '[]'::jsonb)
+    into v_custom
+    from booking_custom_items ci
+   where ci.booking_id = v_booking_id;
+
+  -- ADDITION 2 of 2 — appended AFTER booking_json's own items, never merged into them.
+  return v_base
+    || jsonb_build_object('items', coalesce(v_base -> 'items', '[]'::jsonb) || v_custom)
+    || jsonb_build_object('activityTitle', v_title, 'when', v_when)
+    || jsonb_build_object('payment', coalesce(v_payment, 'null'::jsonb))
+    || jsonb_build_object('customerPhone', v_phone)
+    || jsonb_build_object('locale', v_locale);
+end;
+$$;
+-- Stated at the point of definition, and naming anon + authenticated rather than PUBLIC alone:
+-- Supabase's stock ALTER DEFAULT PRIVILEGES grants EXECUTE on every new function to those two roles
+-- EXPLICITLY, CREATE OR REPLACE never resets an existing ACL, and this exact function is one of the
+-- two that shipped a live leak from this repo for that reason (closed by 20260818000000).
+revoke execute on function api_booking_receipt(jsonb) from public, anon, authenticated;
+grant execute on function api_booking_receipt(jsonb) to service_role;
 
 -- ---------------------------------------------------------------------------
 -- 8) RLS + grants. A quote is staff data; the guest never reads it with the anon key — the public
