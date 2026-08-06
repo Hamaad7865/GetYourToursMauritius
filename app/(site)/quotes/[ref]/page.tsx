@@ -9,6 +9,7 @@ import { LOCALE_HEADER } from '@/lib/i18n/routing';
 import { QUOTE_TOKEN_COOKIE, quoteOpenPath, quotePagePath } from '@/lib/quotes/link-cookie';
 import {
   quotePaymentReceived,
+  quoteRefundState,
   resolveQuoteForToken,
   type PublicQuoteLine,
 } from '@/lib/quotes/resolve';
@@ -109,6 +110,12 @@ export default async function QuotePage({
   // WHAT THE GUEST IS TOLD ABOUT THEIR MONEY COMES FROM THE BOOKING, never from the URL: the booking's
   // own status and payment_state, read alongside the quote. See quotePaymentReceived.
   const paymentReceived = quotePaymentReceived(quote);
+  // …and whether it stayed. `refunded` / `partially_refunded` are inside `paymentReceived` on
+  // purpose — a refunded booking must never be shown a live charge affordance — but they are not the
+  // thank-you either: this is the ONE record a guest with no account can see, and thanking someone
+  // for a payment we have already given back, while promising a confirmation email, reads as the
+  // booking still being on. Null for every ordinary paid booking.
+  const refundState = quoteRefundState(quote);
   // The guest has just come back from the card form. EmbeddedCheckout sets this whenever it could not
   // confirm the payment itself — which for a quote guest is ALWAYS, since /api/v1/payments/sync needs
   // a bearer token and they have no account — so it means "a card was submitted", never "it worked":
@@ -171,17 +178,36 @@ export default async function QuotePage({
           {/* THE MONEY REALLY ARRIVED — the booking says so, not the query string. This is the one
               state that may thank the guest, and the only one that may take the pay affordance away.
               The webhook is what set it (and the confirmation email + VAT invoice follow it), so the
-              wording is "received, we're confirming it". */}
+              wording is "received, we're confirming it".
+
+              AND WHETHER IT STAYED is a separate question, asked first. A refund is money that
+              arrived and went back; the pay button stays off for it either way, but the guest is not
+              waiting on a confirmation email and their booking is not going ahead unchanged. */}
           {paymentReceived ? (
-            <div className="mt-7 rounded-xl border border-teal/30 bg-teal/5 p-4">
-              <p className="text-sm font-bold text-ink">
-                Thank you — your payment has been received.
-              </p>
-              <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-                We are confirming it now, and your confirmation email is on its way. There is
-                nothing else for you to do.
-              </p>
-            </div>
+            refundState ? (
+              <div className="mt-7 rounded-xl border border-ink/15 bg-ink/[0.03] p-4">
+                <p className="text-sm font-bold text-ink">
+                  {refundState === 'refunded'
+                    ? 'Your payment was received, and has since been refunded.'
+                    : 'Your payment was received, and part of it has been refunded.'}
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
+                  The refund goes back to the card you paid with, and your bank can take a few
+                  working days to show it. If that is not what you expected, reply to the email we
+                  sent you and we will look into it.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-7 rounded-xl border border-teal/30 bg-teal/5 p-4">
+                <p className="text-sm font-bold text-ink">
+                  Thank you — your payment has been received.
+                </p>
+                <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
+                  We are confirming it now, and your confirmation email is on its way. There is
+                  nothing else for you to do.
+                </p>
+              </div>
+            )
           ) : (
             <>
               {/* STRAIGHT OFF THE CARD FORM, WITH NOTHING TO SHOW FOR IT YET. Either the payment is

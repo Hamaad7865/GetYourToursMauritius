@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { beforeAll, afterAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { pgliteServiceRoleRpc } from '../db/rpc';
@@ -26,32 +24,16 @@ import { INVOICE_BUSINESS } from '@/lib/invoice/business';
  *
  * That is a legally wrong tax document mailed to a guest, so the assertions below are about the
  * arithmetic ON the document, not about the shape of an RPC's JSON.
- */
-
-const QUOTES_MIGRATION = readFileSync(
-  join(process.cwd(), 'supabase', 'migrations', '20260909000000_quotes.sql'),
-  'utf8',
-);
-
-/**
- * The quotes migration's own api_booking_receipt, sliced out of the file and re-applied on top of the
- * built schema.
  *
- * WHY THIS EXISTS, and when to delete it: this repo's rule is "the LAST migration to define a
- * function wins", and 20260910000000_late_pickup_addon.sql — a parallel workstream's file, ordered
- * after this one — re-applies api_booking_receipt from a body that predates the
- * `booking_custom_items` union. On a database built from the whole directory that later definition
- * therefore overwrites the fix. Re-applying the quotes migration's definition here pins the contract
- * the quotes module owns, so this test measures the fix rather than the ordering accident. DELETE
- * THESE FOUR LINES the moment 20260910000000 (or a migration after it) carries the union itself —
- * the test then exercises the real stack unaided.
+ * MEASURED AGAINST THE UNPATCHED SCHEMA. This file used to slice api_booking_receipt out of
+ * 20260909000000_quotes.sql and re-apply it in `beforeAll`, because the later
+ * 20260910000000_late_pickup_addon.sql re-defined the function from a body predating the
+ * `booking_custom_items` union and — "the LAST migration to define a function wins" — silently won.
+ * That pin made this suite green while the live bug stood. It is gone: 20260910000000 now carries the
+ * union itself, so what follows exercises the migration directory exactly as a real database builds
+ * it. Never re-introduce a definition here; a test that patches the schema it is testing measures
+ * nothing. tests/integration/resolved-function-bodies.test.ts guards the ordering itself.
  */
-const RECEIPT_END = 'grant execute on function api_booking_receipt(jsonb) to service_role;';
-const RECEIPT_START = QUOTES_MIGRATION.indexOf('create or replace function api_booking_receipt');
-const RECEIPT_DEFINITION = QUOTES_MIGRATION.slice(
-  RECEIPT_START,
-  QUOTES_MIGRATION.indexOf(RECEIPT_END, RECEIPT_START) + RECEIPT_END.length,
-);
 
 /** Mauritius VAT, applied INCLUSIVELY — the invoice backs it out of the gross, never adds it on. */
 const VAT_RATE_PCT = 15;
@@ -66,12 +48,6 @@ describe('a converted quote is invoiced with its lines', () => {
 
   beforeAll(async () => {
     db = await createTestDb();
-    expect(
-      RECEIPT_START,
-      '20260909000000_quotes.sql does not define api_booking_receipt, so a quote booking is still ' +
-        'invoiced from booking_items alone — i.e. with no lines at all',
-    ).toBeGreaterThan(-1);
-    await db.pg.exec(RECEIPT_DEFINITION);
     await db.asOwner();
     ctx = {
       db: pgliteServiceRoleRpc(db.pg),

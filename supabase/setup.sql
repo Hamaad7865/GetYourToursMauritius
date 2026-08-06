@@ -27954,9 +27954,11 @@ grant execute on function api_erase_user(jsonb) to authenticated, service_role;
 -- half has no declarative form, so it lives in ONE place attached to the parent row instead of being
 -- restated by every path that redacts a quote — including a future migration that re-applies
 -- api_erase_user from an older body, which is the migration-revert drift documented in
--- docs/handbook/landmines.md and has already cost this repo a guard once. It has now cost it a second
--- one: a migration that landed AFTER this file carries a copy of api_erase_user predating the
--- intro_note line, so intro_note is scrubbed here as well and not only in that UPDATE.
+-- docs/handbook/landmines.md and has already cost this repo a guard once. It cost it a second one
+-- here: 20260910000000_late_pickup_addon.sql landed after this file carrying a copy of api_erase_user
+-- that predated the intro_note line, and — the last definition wins — that copy was the live one.
+-- THAT IS FIXED AT SOURCE: 20260910000000's UPDATE now nulls intro_note itself. This trigger stays
+-- anyway, as the belt to those braces and because it is the only thing that reaches the LINE text.
 --
 -- `'deleted@privacy.invalid'` is the schema's erasure marker, already load-bearing above (it is what
 -- makes the anonymize idempotent). SECURITY DEFINER so the redaction cannot be half-applied by a
@@ -27980,9 +27982,10 @@ begin
   -- types above the priced lines ("Dear …, here is the private boat day we discussed"), so it names
   -- the guest as reliably as the lines do. api_erase_user's anonymize UPDATE nulls it as well, but
   -- THAT statement is precisely the one a later migration re-applies from an older body — the drift
-  -- this trigger was created to be immune to, and which has already happened once here (a migration
-  -- landed after this one carrying a copy of api_erase_user that predates the intro_note line). So
-  -- the durable place for it is beside the lines, on the parent. Filtered, so a re-run is 0 rows.
+  -- this trigger was created to be immune to, and which did happen here (20260910000000 landed after
+  -- this file with a copy of api_erase_user predating the intro_note line, and won). Its UPDATE has
+  -- since been corrected, so this is now belt AND braces rather than the only scrub standing; the
+  -- durable place for it is still beside the lines, on the parent. Filtered, so a re-run is 0 rows.
   --
   -- No recursion: the trigger is `after update OF customer_email`, and this statement's target list
   -- is intro_note alone, so it cannot re-fire (and the WHEN clause would reject it regardless).
@@ -28306,14 +28309,17 @@ grant execute on function api_convert_quote(jsonb) to service_role;
 -- migration cannot silently revert the `customerPhone` (20260826000000) or `locale` fields that
 -- landed there.
 --
--- ORDERING — READ THIS BEFORE ASSUMING THE FIX IS LIVE. The rule in this repo is "the LAST migration
--- to define a function wins", and at the time of writing 20260910000000_late_pickup_addon.sql
--- re-applies api_booking_receipt from a body that predates this union. On a database built from the
--- whole directory (and on catch-up.sql / setup.sql, which concatenate in the same order) THIS
--- DEFINITION IS OVERWRITTEN and the union is lost. That file belongs to another workstream, so it
--- must carry the `booking_custom_items` union too — copy the two additions below verbatim — or a
--- migration ordered after it must restore them. Until then a quote booking is still invoiced with
--- no lines. This is the migration-revert drift documented in docs/handbook/landmines.md.
+-- ORDERING — THIS DEFINITION IS NOT THE LIVE ONE, AND DOES NOT NEED TO BE. The rule in this repo is
+-- "the LAST migration to define a function wins", and 20260910000000_late_pickup_addon.sql defines
+-- api_booking_receipt after this file — so on any database built from the whole directory (and on
+-- catch-up.sql / setup.sql, which concatenate in the same order) THAT body is the one that runs.
+-- It originally predated this union and threw it away, which is the migration-revert drift in
+-- docs/handbook/landmines.md; it now carries the union itself, merged with its own `purpose` scoping
+-- and supplement fold-in. This copy is kept because it is CORRECT AS OF THIS POINT IN HISTORY: a
+-- database replayed only this far still invoices a quote with its lines, and deleting it would make
+-- the file's own section 7b describe a fix it no longer performs. Do not "simplify" by dropping
+-- either copy — drop the LATER one and the bug is back.
+-- tests/integration/resolved-function-bodies.test.ts asserts on pg_proc.prosrc which body won.
 -- ---------------------------------------------------------------------------
 create or replace function api_booking_receipt(p jsonb)
 returns jsonb
@@ -29995,14 +30001,29 @@ grant execute on function api_mark_refunded(jsonb) to authenticated, service_rol
 
 
 -- ---------------------------------------------------------------------------
--- 13) api_booking_receipt - the 20260901000300 body with its payment select scoped to
---     `purpose = 'booking'`, plus the settled supplement folded into the charged figure.
+-- 13) api_booking_receipt - the payment select scoped to `purpose = 'booking'`, the settled
+--     supplement folded into the charged figure, AND the `booking_custom_items` union that
+--     20260909000000_quotes.sql section 7b added.
 --
---     It picked "the booking's most recent payment" unscoped, so once a supplement settled the VAT
---     invoice reported the ADD-ON's charge, timestamp and provider reference as the booking's: a
---     EUR 150 invoice showing MUR 1,590 settled on the wrong date under the wrong reference, with
---     buildPaymentBlock deriving an FX rate of ~10 against a real ~53. That is a customer-facing tax
---     document and the owner's own refund evidence.
+--     THE SCOPING FIX: this body picked "the booking's most recent payment" unscoped, so once a
+--     supplement settled the VAT invoice reported the ADD-ON's charge, timestamp and provider
+--     reference as the booking's: a EUR 150 invoice showing MUR 1,590 settled on the wrong date
+--     under the wrong reference, with buildPaymentBlock deriving an FX rate of ~10 against a real
+--     ~53. That is a customer-facing tax document and the owner's own refund evidence.
+--
+--     THE UNION, and why it is HERE rather than only in the file that wrote it: this repo's rule is
+--     "the LAST migration to define a function wins", and this file is that migration. 20260909000000
+--     taught api_booking_receipt to read `booking_custom_items` — a converted quote's lines live in
+--     that table and NOWHERE else (api_convert_quote refuses a catalogue line, so such a booking has
+--     ZERO booking_items) - and this definition, written from a body that predated it, silently threw
+--     the union away on every database built from the directory. buildInvoice backs the 15% out of
+--     the gross PER LINE and sums, so with no lines `subtotalNetEur` is 0 and
+--     `vatAmountEur = round2(totalGrossEur - 0)` becomes the WHOLE charge: a EUR 1200 quote was
+--     invoiced as EUR 1200 of VAT, with nothing itemised beneath it, and the confirmation email, the
+--     invoice PDF and the voucher all render off that same model. Merged in below rather than
+--     re-applied over the top, so this file carries BOTH contracts and no third migration is needed.
+--     tests/integration/resolved-function-bodies.test.ts reads pg_proc.prosrc and fails if a future
+--     re-definition drops either one again.
 -- ---------------------------------------------------------------------------
 
 create or replace function api_booking_receipt(p jsonb)
@@ -30021,6 +30042,7 @@ declare
   v_phone text;
   v_locale text;
   v_addon_charged bigint := 0;
+  v_custom jsonb;
 begin
   if v_booking_id is null then
     raise exception 'invalid_request' using detail = 'booking_receipt: bookingId required';
@@ -30098,7 +30120,34 @@ begin
   -- this is the only correct source for which language the confirmation email + PDFs render in.
   select b.customer_phone, b.locale::text into v_phone, v_locale from bookings b where b.id = v_booking_id;
 
+  -- FROM 20260909000000 SECTION 7b - the priced lines that have no session_occurrence: a converted
+  -- quote's lines today, rentals in Part 2. Empty (and therefore free) for every booking that has
+  -- none, which is every ordinary catalogue booking.
+  --   * `priceLabel` <- `description`. A custom line has no price label (it is not a catalogue price
+  --     band) and `booking_custom_items.description` is NOT NULL precisely so the line stays readable
+  --     on its own; receiptSchema types priceLabel as a required string, so this is the field it maps
+  --     to. buildInvoice then renders "<activityTitle> - <priceLabel>", or just the label when the
+  --     booking has no activity behind it, which a quote booking does not.
+  --   * `quantity` verbatim, and `pax` explicitly null - a custom line is priced per LINE, not per
+  --     person, and buildInvoice reads `pax ?? quantity`, so null is what makes it use the quantity.
+  --   * `subtotalEur` <- `subtotal_minor / 100.0`, the same minor->major conversion booking_json does
+  --     for booking_items. `unitAmountEur` rides along so the two item shapes stay identical.
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'priceLabel', ci.description,
+           'quantity', ci.quantity,
+           'pax', null::int,
+           'unitAmountEur', ci.unit_amount_minor::float / 100,
+           'subtotalEur', ci.subtotal_minor::float / 100
+         ) order by ci.position), '[]'::jsonb)
+    into v_custom
+    from booking_custom_items ci
+   where ci.booking_id = v_booking_id;
+
+  -- Ordered by `position`, and APPENDED AFTER booking_json's own items - never merged into them.
+  -- buildInvoice's own header notes that voucher-pdf.ts reads `lines[0].quantity` positionally for
+  -- its pax count, so the catalogue lines must stay first for the day a booking carries both kinds.
   return v_base
+    || jsonb_build_object('items', coalesce(v_base -> 'items', '[]'::jsonb) || v_custom)
     || jsonb_build_object('activityTitle', v_title, 'when', v_when)
     || jsonb_build_object('payment', coalesce(v_payment, 'null'::jsonb))
     || jsonb_build_object('customerPhone', v_phone)
@@ -30308,13 +30357,23 @@ begin
        and q.booking_id is null;
     get diagnostics v_del_quotes = row_count;
 
-    -- Retained (converted) quotes: same redaction as the bookings they minted. internal_notes is
-    -- staff free text that routinely names the guest, so it goes too. Idempotent via the same
+    -- Retained (converted) quotes: same redaction as the bookings they minted. internal_notes (staff
+    -- free text) and intro_note (the guest-FACING covering note, which opens by addressing the guest
+    -- by name) both routinely carry the guest, so they go too. Idempotent via the same
     -- already-anonymized skip.
+    --
+    -- `intro_note = null` IS FROM 20260909000000, and this definition was written from a body that
+    -- predated it - so on a database built from the whole directory (this file is the LAST to define
+    -- api_erase_user, and the last one wins) the column survived an Art. 17 erasure here. The only
+    -- reason it did not survive in practice is the quotes_redact_lines() trigger, which fires on the
+    -- same anonymize UPDATE and nulls it as a belt to these braces. That trigger STAYS - it also
+    -- redacts the quote_items free text, which nothing in this statement reaches - but the
+    -- function-level scrub is now correct on its own rather than depending on it.
     update quotes
        set customer_name = '(Deleted user)',
            customer_email = 'deleted@privacy.invalid',
            customer_phone = null,
+           intro_note = null,
            internal_notes = null
      where lower(customer_email) = v_email
        and (converted_at is not null or booking_id is not null)

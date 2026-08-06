@@ -113,8 +113,21 @@ export interface PublicQuoteBooking {
  * `payment_state` values that mean the money actually reached us. `refunded` / `partially_refunded`
  * are in here on purpose: that money arrived and was sent back, which is many things but never
  * "pay us now", so those bookings must not be shown a live charge affordance either.
+ *
+ * THAT IS A STATEMENT ABOUT THE BUTTON, NOT ABOUT THE WORDING. Reading this set as "the payment
+ * succeeded, say thank you" is what put a refunded guest in front of "Thank you — your payment has
+ * been received… we are confirming it now, and your confirmation email is on its way", with no
+ * mention anywhere on the page that the money had gone back. {@link quoteRefundState} is the second
+ * question the page must ask, and the two answers are independent: no charge affordance, honest
+ * words.
  */
 const PAID_PAYMENT_STATES = new Set(['paid', 'partially_refunded', 'refunded']);
+
+/** How much of the money went back. `null` is "none of it", not "unknown". */
+export type QuoteRefundState = 'refunded' | 'partially_refunded';
+
+/** The `payment_state` values that say a refund has actually been issued. */
+const REFUNDED_PAYMENT_STATES = new Set<string>(['refunded', 'partially_refunded']);
 
 /** Statuses a booking only reaches after a verified payment (the webhook sets `confirmed`). */
 const SETTLED_BOOKING_STATUSES = new Set(['confirmed', 'completed']);
@@ -134,6 +147,27 @@ export function quotePaymentReceived(quote: PublicQuote): boolean {
   return (
     PAID_PAYMENT_STATES.has(booking.paymentState) || SETTLED_BOOKING_STATUSES.has(booking.status)
   );
+}
+
+/**
+ * Has this quote's payment been refunded, in whole or in part? Null when it has not.
+ *
+ * Asked only of a booking {@link quotePaymentReceived} already answered true for — a refund is by
+ * definition money that arrived first. It exists so the page can say what happened instead of
+ * thanking someone for a payment it has since given back: that guest is not waiting on a
+ * confirmation email, and telling them "there is nothing else for you to do" while showing no sign
+ * of the refund reads as the booking still being on.
+ *
+ * Read off `payment_state` ONLY, never `status`: `payment_state` is the projection of the
+ * payment_events ledger, i.e. the money itself, while `status` carries the booking's lifecycle and
+ * has a `refund_pending` value that means the OPPOSITE of settled — the owner still owes the money
+ * back and refunds it by hand in Peach. Calling that "refunded" on the guest's one visible record
+ * would be a promise the ledger does not support.
+ */
+export function quoteRefundState(quote: PublicQuote): QuoteRefundState | null {
+  const state = quote.booking?.paymentState;
+  if (!state || !REFUNDED_PAYMENT_STATES.has(state)) return null;
+  return state as QuoteRefundState;
 }
 
 /* ---------------------------------------------------------------------------------------------

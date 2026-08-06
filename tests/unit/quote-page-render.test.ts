@@ -23,8 +23,9 @@ import type { PublicQuote, PublicQuoteBooking } from '@/lib/quotes/resolve';
  *     declined card and an abandoned 3-D Secure step arrive back here carrying exactly the same `1`.
  *     What the page says about the guest's money is decided by the BOOKING's own status and
  *     payment_state, which `resolveQuoteForToken` reads; the flag only chooses the wording for the
- *     wait. The two tests at the end are the two halves of that: money in → thank you and no pay
- *     affordance; money not in → say so, and keep the way to pay.
+ *     wait. The tests at the end are the halves of that: money in → thank you and no pay affordance;
+ *     money not in → say so, and keep the way to pay; money in AND back out again → say THAT, and
+ *     still no pay affordance (the button and the wording are two separate decisions).
  *
  * The page's default export is called directly and the returned React element tree is walked, the same
  * way tests/unit/landing-faq-jsonld-parity.test.ts does it: no DOM, no Next request context, and the
@@ -219,8 +220,51 @@ describe('public quote page rendering', () => {
 
     expect(text).not.toMatch(/did not go through/i);
     expect(text, 'the guest is not told their payment arrived').toMatch(/received/i);
+    expect(text, 'a payment that was never refunded is described as refunded').not.toMatch(
+      /refund/i,
+    );
     // A "Complete payment" CTA seconds after a successful charge reads as a failure notice.
     expect(payButtons, 'the pay button is still offered after a completed payment').toHaveLength(0);
+  });
+
+  /**
+   * MONEY THAT ARRIVED AND WENT BACK. `refunded` / `partially_refunded` are in
+   * `PAID_PAYMENT_STATES` on purpose — they are emphatically not "pay us now", so the pay button
+   * must stay off. But they are not "thank you, your payment has been received, we are confirming
+   * it now and your confirmation email is on its way" either: that is the page telling someone who
+   * has already been refunded that their booking is going ahead, on the ONE screen a guest with no
+   * account can reach. The affordance and the wording are two decisions, and only the first one
+   * these states share with `paid`.
+   */
+  it('tells a guest whose payment was refunded that it was refunded', async () => {
+    const { text, payButtons } = await render({
+      converted: true,
+      booking: { status: 'refunded', paymentState: 'refunded' },
+    });
+
+    expect(text, 'a refunded guest is told their payment was received, and nothing more').toMatch(
+      /refunded/i,
+    );
+    expect(text, 'a refunded booking is still promised a confirmation email').not.toMatch(
+      /confirmation email/i,
+    );
+    expect(payButtons, 'a refunded booking is offered a live charge affordance again').toHaveLength(
+      0,
+    );
+  });
+
+  it('says only PART of the payment went back when only part of it did', async () => {
+    // A partial refund is a booking that IS still going ahead, for less money. Wording it as a full
+    // refund would be the mirror-image lie.
+    const { text, payButtons } = await render({
+      converted: true,
+      booking: { status: 'confirmed', paymentState: 'partially_refunded' },
+    });
+
+    expect(text, 'a partial refund is worded as if the whole payment went back').toMatch(
+      /part of it has been refunded/i,
+    );
+    expect(payButtons).toHaveLength(0);
   });
 
   it('does not thank a guest whose card was declined just because they came back from the form', async () => {

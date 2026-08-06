@@ -542,9 +542,11 @@ grant execute on function api_erase_user(jsonb) to authenticated, service_role;
 -- half has no declarative form, so it lives in ONE place attached to the parent row instead of being
 -- restated by every path that redacts a quote — including a future migration that re-applies
 -- api_erase_user from an older body, which is the migration-revert drift documented in
--- docs/handbook/landmines.md and has already cost this repo a guard once. It has now cost it a second
--- one: a migration that landed AFTER this file carries a copy of api_erase_user predating the
--- intro_note line, so intro_note is scrubbed here as well and not only in that UPDATE.
+-- docs/handbook/landmines.md and has already cost this repo a guard once. It cost it a second one
+-- here: 20260910000000_late_pickup_addon.sql landed after this file carrying a copy of api_erase_user
+-- that predated the intro_note line, and — the last definition wins — that copy was the live one.
+-- THAT IS FIXED AT SOURCE: 20260910000000's UPDATE now nulls intro_note itself. This trigger stays
+-- anyway, as the belt to those braces and because it is the only thing that reaches the LINE text.
 --
 -- `'deleted@privacy.invalid'` is the schema's erasure marker, already load-bearing above (it is what
 -- makes the anonymize idempotent). SECURITY DEFINER so the redaction cannot be half-applied by a
@@ -568,9 +570,10 @@ begin
   -- types above the priced lines ("Dear …, here is the private boat day we discussed"), so it names
   -- the guest as reliably as the lines do. api_erase_user's anonymize UPDATE nulls it as well, but
   -- THAT statement is precisely the one a later migration re-applies from an older body — the drift
-  -- this trigger was created to be immune to, and which has already happened once here (a migration
-  -- landed after this one carrying a copy of api_erase_user that predates the intro_note line). So
-  -- the durable place for it is beside the lines, on the parent. Filtered, so a re-run is 0 rows.
+  -- this trigger was created to be immune to, and which did happen here (20260910000000 landed after
+  -- this file with a copy of api_erase_user predating the intro_note line, and won). Its UPDATE has
+  -- since been corrected, so this is now belt AND braces rather than the only scrub standing; the
+  -- durable place for it is still beside the lines, on the parent. Filtered, so a re-run is 0 rows.
   --
   -- No recursion: the trigger is `after update OF customer_email`, and this statement's target list
   -- is intro_note alone, so it cannot re-fire (and the WHEN clause would reject it regardless).
@@ -894,14 +897,17 @@ grant execute on function api_convert_quote(jsonb) to service_role;
 -- migration cannot silently revert the `customerPhone` (20260826000000) or `locale` fields that
 -- landed there.
 --
--- ORDERING — READ THIS BEFORE ASSUMING THE FIX IS LIVE. The rule in this repo is "the LAST migration
--- to define a function wins", and at the time of writing 20260910000000_late_pickup_addon.sql
--- re-applies api_booking_receipt from a body that predates this union. On a database built from the
--- whole directory (and on catch-up.sql / setup.sql, which concatenate in the same order) THIS
--- DEFINITION IS OVERWRITTEN and the union is lost. That file belongs to another workstream, so it
--- must carry the `booking_custom_items` union too — copy the two additions below verbatim — or a
--- migration ordered after it must restore them. Until then a quote booking is still invoiced with
--- no lines. This is the migration-revert drift documented in docs/handbook/landmines.md.
+-- ORDERING — THIS DEFINITION IS NOT THE LIVE ONE, AND DOES NOT NEED TO BE. The rule in this repo is
+-- "the LAST migration to define a function wins", and 20260910000000_late_pickup_addon.sql defines
+-- api_booking_receipt after this file — so on any database built from the whole directory (and on
+-- catch-up.sql / setup.sql, which concatenate in the same order) THAT body is the one that runs.
+-- It originally predated this union and threw it away, which is the migration-revert drift in
+-- docs/handbook/landmines.md; it now carries the union itself, merged with its own `purpose` scoping
+-- and supplement fold-in. This copy is kept because it is CORRECT AS OF THIS POINT IN HISTORY: a
+-- database replayed only this far still invoices a quote with its lines, and deleting it would make
+-- the file's own section 7b describe a fix it no longer performs. Do not "simplify" by dropping
+-- either copy — drop the LATER one and the bug is back.
+-- tests/integration/resolved-function-bodies.test.ts asserts on pg_proc.prosrc which body won.
 -- ---------------------------------------------------------------------------
 create or replace function api_booking_receipt(p jsonb)
 returns jsonb
