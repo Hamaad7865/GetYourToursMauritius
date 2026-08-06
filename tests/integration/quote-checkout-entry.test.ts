@@ -134,7 +134,9 @@ describe('api_create_quote_payment', () => {
     });
 
     expect(out.bookingRef).toBe(ref);
-    expect(out.amountMinor).toBe(12000);
+    // A converted quote carries the default 10% deposit (deposit_bps = 1000, 20260912000000 Task 2),
+    // so the first checkout is sized to the DEPOSIT — 10% of the 12000 total — not the full total.
+    expect(out.amountMinor).toBe(1200);
     expect(out.existingCheckoutId).toBeNull();
     expect(out.checkoutPending ?? null).toBeNull();
     // The charge is pinned by the SHARED body, so a quote pays in the same currency as everyone else.

@@ -118,6 +118,21 @@ const CONTRACTS: ResolvedContract[] = [
       'the quote path must reach the SHARED body (which is also what makes it skip the caller ' +
       'identity check deliberately, in one place, rather than by re-implementing the guards)',
   },
+  // The deposit is the first `booking` payments row SIZED to it, not a partial capture — that is the
+  // whole design (20260912000000): append_payment_event confirms a booking when THIS row is paid in
+  // full, so a deposit-sized row confirms on the deposit. A re-definition that re-inlined the old
+  // `amount_minor = v_booking.total_minor` would charge a quote guest the full price at the deposit
+  // step; a naive `v_booking.deposit_minor` with no fallback would charge an ordinary customer booking
+  // 0 (deposit_minor DEFAULTS to 0 for the non-quote path). Both are silent — the suite stays green
+  // for the customer path in the first case and only the quote guest sees the second. Pin the shape.
+  {
+    fn: 'create_payment',
+    must: 'sizes the first booking payments row to the deposit, falling back to total_minor',
+    code: /\bcoalesce\s*\(\s*nullif\s*\(\s*v_booking\.deposit_minor\s*,\s*0\s*\)\s*,\s*v_booking\.total_minor\s*\)/,
+    why:
+      'the first booking row is the DEPOSIT charge; losing the coalesce/nullif either bills a quote ' +
+      'guest the full price at the deposit step or bills a depositless customer booking its default 0',
+  },
   // The quote-booking owner match (20260909000000, section 6d). Its absence is INVISIBLE at every
   // level a test usually looks: the booking is minted, it is payable, it confirms, the guest is
   // emailed their invoice — and only the person who paid can never see it again, because
@@ -130,6 +145,18 @@ const CONTRACTS: ResolvedContract[] = [
     why:
       'the minted booking is ownerless, so the bookings RLS policy can never match it and the guest ' +
       'who paid cannot open /bookings/{ref} — the page their own confirmation email links to',
+  },
+  // Deposit sizing at conversion (20260912000000). The booking is minted with deposit_minor and
+  // balance_due_minor derived from quotes.deposit_bps; a re-definition from the pre-deposit body would
+  // leave both at their column DEFAULT (0), so create_payment would charge the full total and the
+  // deposit feature would silently revert to pay-in-full for every quote. Pin the computation itself.
+  {
+    fn: 'api_convert_quote',
+    must: 'sizes the booking deposit from deposit_bps at conversion',
+    code: /\bv_deposit_minor\s*:=\s*round\s*\(\s*v_quote\.total_minor\s*\*\s*v_quote\.deposit_bps\s*\/\s*10000/,
+    why:
+      'without it the booking carries deposit_minor/balance_due_minor at their default 0, so the ' +
+      'deposit charge collapses to the full total and no balance is ever owed',
   },
   {
     fn: 'api_claim_quote_bookings',

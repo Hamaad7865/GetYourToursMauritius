@@ -264,7 +264,10 @@ describe('a quote booking gets an owner', () => {
     );
     await db.asOwner();
     expect(checkout.paymentId, 'an ownerless quote booking could not open a checkout').toBeTruthy();
-    expect(checkout.amountMinor).toBe(12_000);
+    // Sized to the default 10% deposit (deposit_bps = 1000, 20260912000000 Task 2), not the 12000
+    // total: a converted quote now takes a deposit that confirms the booking, with the balance chased
+    // later. The subject of this test is that an OWNERLESS booking can open a checkout at all.
+    expect(checkout.amountMinor).toBe(1_200);
   });
 
   it('refuses to guess when two CONFIRMED accounts hold the same address', async () => {
