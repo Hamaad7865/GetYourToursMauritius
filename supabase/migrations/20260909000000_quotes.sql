@@ -1044,6 +1044,15 @@ begin
   --
   -- The idempotency key is scoped to THIS booking, so a re-arm (a fresh booking for the same quote)
   -- takes fresh holds rather than being handed create_hold's idempotent replay of a released one.
+  --
+  -- WHAT IS DELIBERATELY *NOT* RE-USED FROM THE CHECKOUT: create_booking's per-booking guests-per-trip
+  -- cap (20260908000000). That cap exists because a self-serve guest cannot know the day's pool is
+  -- several departures — "the boat only seats so many, however big the day's pool is" — and it is
+  -- enforced per BOOKING, so one quote line could never express "twenty guests, two boats" with it in
+  -- the way. The operator drafting this quote chose the departure and the party size, and the POOL is
+  -- still enforced by create_hold, so no other guest can be oversold; what a big party costs is two
+  -- boats' worth of units out of the day, which is what it consumes. Revisit this the day quotes are
+  -- drafted by anyone but staff.
   for v_seats in
     select qi.session_occurrence_id as occurrence_id, sum(qi.quantity)::int as units
       from quote_items qi
