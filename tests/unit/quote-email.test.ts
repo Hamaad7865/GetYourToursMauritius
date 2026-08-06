@@ -83,6 +83,35 @@ describe('quote email', () => {
     ).toThrow(/total/i);
   });
 
+  it('refuses to email an offer no card can be charged for', () => {
+    // The drift check above passes an EMPTY quote, because 0 lines sum to 0 and the stored total is
+    // 0 too — and `quotes.total_minor` DEFAULTS to 0 (migration 20260909000000), so a never-priced
+    // draft reaches that state by default rather than by accident. It is the same harm the drift
+    // check exists to stop, arrived at from the other side: api_convert_quote raises
+    // `quote_not_convertible` with detail 'zero total' on any quote totalling <= 0, so the guest is
+    // emailed "Total: EUR 0.00" over an empty itemisation above a link that can only ever answer
+    // "this quote is not ready to pay yet".
+    expect(() =>
+      renderQuoteEmail({
+        ...quote,
+        totalMinor: 0,
+        items: [],
+        payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+      }),
+    ).toThrow(/total/i);
+
+    // And the same thing with lines on it: every line priced at zero sums to a zero total, which
+    // agrees with itself and is still unchargeable.
+    expect(() =>
+      renderQuoteEmail({
+        ...quote,
+        totalMinor: 0,
+        items: [{ description: 'Complimentary transfer', quantity: 1, unitAmountMinor: 0 }],
+        payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+      }),
+    ).toThrow(/total/i);
+  });
+
   it('escapes guest-supplied text instead of letting it inject markup', () => {
     const { html } = renderQuoteEmail({
       ...quote,

@@ -193,6 +193,51 @@ describe('admin quote service (RLS + real schema)', () => {
     };
   }
 
+  /**
+   * The OTHER way the post-write guard finds nothing: the quote is GONE. api_erase_user_data
+   * hard-deletes an unconverted quote outright (migration section 4, `delete from quotes … where
+   * converted_at is null and booking_id is null`), so an erasure landing after the new lines are
+   * inserted leaves saveQuote's re-assert with no row to match — indistinguishable, to a blind
+   * UPDATE, from a quote the guest just paid for. Armed on the `quote_items` INSERT and fired AFTER
+   * it, because a quote deleted any earlier takes the FK with it and the insert fails first.
+   * Returns the undo.
+   */
+  function eraseWhileReplacingLines(quoteId: string): () => void {
+    const shim = hoisted.shim!;
+    const realFrom = shim.from.bind(shim);
+    let armed = true;
+    shim.from = (table: string) => {
+      const builder = realFrom(table);
+      if (!armed || table !== 'quote_items') return builder;
+      const realInsert = builder.insert.bind(builder);
+      Object.assign(builder, {
+        insert(payload: Record<string, unknown> | Record<string, unknown>[]) {
+          armed = false;
+          const write = realInsert(payload);
+          const exec = write.then.bind(write);
+          Object.assign(write, {
+            then: (
+              onfulfilled?: (value: unknown) => unknown,
+              onrejected?: (e: unknown) => unknown,
+            ) =>
+              (async () => {
+                const result = await exec();
+                await db.asOwner();
+                await db.pg.query(`delete from quotes where id = $1`, [quoteId]);
+                await db.as({ sub: STAFF, role: 'authenticated' });
+                return result;
+              })().then(onfulfilled, onrejected),
+          });
+          return write;
+        },
+      });
+      return builder;
+    };
+    return () => {
+      shim.from = realFrom;
+    };
+  }
+
   it('creates a draft quote whose stored total is the sum of its lines', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     const id = await saveQuote({
@@ -470,6 +515,51 @@ describe('admin quote service (RLS + real schema)', () => {
     const row = await readQuote(id);
     expect(row.status).toBe('accepted');
     expect(row.line_count).toBe(1);
+  });
+
+  it('says the quote is gone, not that the guest paid, when an erasure deletes it mid-save', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    // A GDPR erasure for this guest lands while the lines are being replaced. Nobody paid: the row
+    // is deleted precisely BECAUSE it was unconverted. The post-write guard sees the same zero rows
+    // either way, so it must read what is actually there before it names a cause — telling the
+    // operator "the guest paid, reconcile the booking" sends them to look for a booking that was
+    // never minted, and buries the one fact that matters, which is that the quote is gone.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const restore = eraseWhileReplacingLines(id);
+    let message = '';
+    try {
+      message = await saveQuote({
+        ...GUEST,
+        id,
+        items: [
+          { kind: 'custom', description: 'Charter, revised', quantity: 1, unitAmountMinor: 60000 },
+        ],
+      }).then(
+        () => '',
+        (error: unknown) => (error as Error).message,
+      );
+    } finally {
+      restore();
+    }
+
+    expect(message, 'the save reported success after the quote had been deleted').not.toBe('');
+    expect(message, 'the operator was not told the quote is gone').toMatch(/no longer exists/i);
+    expect(
+      message,
+      'a deleted quote was reported as a payment the operator must reconcile',
+    ).not.toMatch(/paid|booking/i);
+
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ n: number }>(
+      `select count(*)::int as n from quotes where id = $1`,
+      [id],
+    );
+    expect(rows[0]!.n, 'the erasure did not actually delete the quote').toBe(0);
   });
 
   it('withdraws an offer by cancelling it', async () => {

@@ -397,16 +397,25 @@ async function updateUnconvertedQuote(
  * lines are already rewritten — so silence IS the harm, and this exists to break it. The operator is
  * told which booking to reconcile, because that booking's `booking_custom_items` are what the guest
  * actually paid for.
+ *
+ * A READ, unlike every other guard in this file, and deliberately: nothing is written after it, so a
+ * guarded UPDATE would buy no atomicity here — it would only bump `updated_at` a second time on every
+ * successful edit and, worse, collapse two different outcomes into one. Zero rows back from
+ * `update … eq(id) is(converted_at, null)` means "no row matched", which is equally true when the row
+ * is GONE: api_erase_user_data hard-deletes an unconverted quote outright (migration 20260909000000,
+ * section 4). Reporting that as a payment sends the operator to reconcile a booking nobody ever
+ * minted. So this reads what is actually there and names the case, reusing `updateUnconvertedQuote`'s
+ * own refusal for the deleted one.
  */
 async function assertStillUnconverted(id: string): Promise<void> {
   const { data, error } = await db()
     .from('quotes')
-    .update({ updated_at: new Date().toISOString() })
+    .select('converted_at')
     .eq('id', id)
-    .is('converted_at', null)
-    .select('id');
+    .maybeSingle();
   if (error) throw error;
-  if (data && data.length > 0) return;
+  if (!data) throw new Error('This quote no longer exists.');
+  if (textOrNull(data.converted_at) === null) return;
   throw new Error(
     `The guest paid for this quote while it was being saved, so the edit landed on a quote that had ` +
       `already been converted. ${await convertedBookingHint(id)}`,

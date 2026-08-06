@@ -81,21 +81,29 @@ function quantityNote(currency: string, line: QuoteEmailLine): string {
 }
 
 /**
- * Render the quote email — or REFUSE to, when the total and the itemisation under it disagree.
+ * Render the quote email — or REFUSE to, when the offer is one api_convert_quote could not charge.
  *
  * The TOTAL printed is the caller's `totalMinor`, not a re-sum of `items`: that is the stored
  * `quotes.total_minor`, the figure copied into `bookings.total_minor` at conversion and charged to
  * the card, so it is the honest one to print. Re-summing instead would produce an email quoting a
  * number no code path can take money for.
  *
- * But it is only honest while the lines support it, so the two are CROSS-CHECKED here and the render
- * throws when they do not match. This is the one pair of numbers that must agree: api_convert_quote
- * raises `quote_total_mismatch` and refuses to charge on any drift, and saveQuote writes the total
- * and the lines in two non-transactional PostgREST statements whose failure mode it documents itself
- * (a stale occurrence id raises 23503 on the re-insert AFTER the new total is written and the old
- * lines are deleted). Without the check, an operator who missed that error and hit Send emails a
- * guest "Total: EUR 500.00" over an empty itemisation, above a link that can only ever answer "this
- * quote is not ready to pay yet".
+ * Two ways that figure can be unchargeable, and the guard below covers both, because they are the
+ * same harm reached from opposite sides — a guest emailed a priced offer above a link whose only
+ * possible answer is "this quote is not ready to pay yet":
+ *
+ *  - it DRIFTS from the lines. api_convert_quote raises `quote_total_mismatch` and refuses to charge
+ *    on any disagreement, and saveQuote writes the total and the lines in two non-transactional
+ *    PostgREST statements whose failure mode it documents itself (a stale occurrence id raises 23503
+ *    on the re-insert AFTER the new total is written and the old lines are deleted). An operator who
+ *    missed that error and hit Send emails "Total: EUR 500.00" over an empty itemisation.
+ *  - it is ZERO. api_convert_quote raises `quote_not_convertible` with detail 'zero total' on any
+ *    quote totalling <= 0, because such a booking can never confirm (api_create_payment skips the FX
+ *    pin and append_payment_event refuses to read 0 >= 0 as fully paid) and would sit in
+ *    payment_pending until the sweep expired it. `quotes.total_minor` DEFAULTS to 0, so an empty or
+ *    never-priced draft is in that state by default rather than by accident — and a drift check
+ *    alone waves it through, since no lines sum to exactly the zero stored beside them. Same for a
+ *    quote whose every line is priced at nothing.
  *
  * Send is the last human-visible moment before the guest holds that link: failing here costs the
  * operator one error toast and a re-save; failing later costs a guest a dead offer and a support
@@ -106,11 +114,13 @@ export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
   const ref = input.ref;
   const currency = input.currency;
   const linesMinor = quoteTotalMinor(input.items);
-  if (linesMinor !== input.totalMinor) {
+  if (linesMinor !== input.totalMinor || input.totalMinor <= 0) {
     throw new ValidationError(
-      `Quote ${ref} cannot be emailed: its lines add up to ${linesMinor} but its stored total is ` +
-        `${input.totalMinor}. Save the quote again before sending it — as it stands, ` +
-        `api_convert_quote would refuse to charge it (quote_total_mismatch).`,
+      `Quote ${ref} cannot be emailed: its lines add up to ${linesMinor} and its stored total is ` +
+        `${input.totalMinor}. Save the quote again with a priced line on it before sending it — as ` +
+        `it stands, api_convert_quote would refuse to charge it (quote_total_mismatch on a total ` +
+        `its lines do not support; quote_not_convertible, 'zero total', on a quote with no priced ` +
+        `lines at all).`,
     );
   }
   const totalStr = money(currency, input.totalMinor);
