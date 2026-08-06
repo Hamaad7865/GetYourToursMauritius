@@ -27,6 +27,7 @@
     "seed:gen": "tsx scripts/seed.ts",
     "setup:sql": "tsx scripts/build-setup-sql.ts",
     "db:setup": "tsx scripts/db-setup.ts",
+    "sandbox:setup": "tsx scripts/sandbox/setup-sandbox.ts",
     "import:catalogue": "tsx scripts/import-catalogue.ts",
     "gen:types": "supabase gen types typescript --local > src/lib/supabase/types.ts",
     "email:test": "tsx scripts/send-test-email.ts"

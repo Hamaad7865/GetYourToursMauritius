@@ -9,6 +9,9 @@ Two audiences:
   [Development](handbook/development.md), then **[Landmines](handbook/landmines.md)** before you touch
   anything. The landmines page is not optional; it is the accumulated scar tissue of this codebase.
 
+Fixing something rather than building something? Go straight to
+**[Debugging](handbook/debugging.md)** — the evidence order, the test ladder, and the symptom index.
+
 ---
 
 ## The 60-second orientation
@@ -73,7 +76,11 @@ select * from error_logs order by created_at desc;
 ```
 
 Every server crash, page-render crash, browser crash and failed cron step of the last 30 days, newest
-first. See [Operations → the error log](handbook/operations.md#what-broke-the-error-log).
+first. See [Operations → the error log](handbook/operations.md#what-broke--the-error-log).
+
+**Then work the method:** [Debugging → evidence, in the order to collect it](handbook/debugging.md#1-evidence-in-the-order-to-collect-it).
+Note that **4xx are deliberately absent** from `error_logs` — a sold-out date or a refused login is the
+system working. If customers report an error that leaves no row, you want the request log lines instead.
 
 ---
 
@@ -102,10 +109,23 @@ first. See [Operations → the error log](handbook/operations.md#what-broke-the-
    Non-obvious invariants that a competent developer _will_ violate on day one. Several of these have
    already caused real incidents.
 
-7. **[French localisation](handbook/localisation.md)**
+7. **[Debugging — finding and fixing a bug](handbook/debugging.md)**
+   The method: triage, the six evidence sources and what each is blind to, how to localise a fault by
+   layer, the test ladder, the six causes of prod-only bugs, and a long symptom → cause index.
+
+8. **[Maintenance — keeping it healthy over time](handbook/maintenance.md)**
+   The recurring upkeep: the daily/weekly/monthly calendar, dependency pins and how to upgrade without
+   breaking the edge build, secret rotation (several secrets live in two places), what expires.
+
+9. **[French localisation](handbook/localisation.md)**
    How the gettext-style `t()` system works, the per-field coalesce rule, the machine-draft catalogue
    review workflow, what's deliberately left English, and why cookie-switched French earns **zero**
    French search traffic.
+
+10. **[Sandbox — a throwaway test environment](handbook/sandbox.md)**
+    A safe, fully-seeded copy of the app on a separate Supabase project — one command
+    (`npm run sandbox:setup`) gives you the catalogue, test logins and fake bookings, with payments and
+    email stubbed. Use it to click through anything without touching production.
 
 ### Also in `docs/`
 
