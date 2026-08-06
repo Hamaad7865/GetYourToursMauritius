@@ -1,6 +1,7 @@
 import { escapeHtml } from './booking-confirmation';
-import { lineSubtotalMinor } from '@/lib/quotes/totals';
+import { lineSubtotalMinor, quoteTotalMinor } from '@/lib/quotes/totals';
 import { SITE } from '@/lib/seo/site';
+import { ValidationError } from '@/lib/services/errors';
 
 /**
  * The guest-facing quote email: the offer the operator drafted in /admin/quotes, itemised, with the
@@ -80,19 +81,38 @@ function quantityNote(currency: string, line: QuoteEmailLine): string {
 }
 
 /**
- * Render the quote email.
+ * Render the quote email — or REFUSE to, when the total and the itemisation under it disagree.
  *
  * The TOTAL printed is the caller's `totalMinor`, not a re-sum of `items`: that is the stored
- * `quotes.total_minor`, and it is the figure copied into `bookings.total_minor` at conversion and
- * charged to the card. The two cannot disagree in practice — saveQuote derives the stored total from
- * the same lines, and api_convert_quote refuses to charge a quote whose lines no longer sum to it
- * (`quote_total_mismatch`) — so printing the charged figure is the honest one to print. Re-summing
- * here would instead produce an email quoting a number no code path can take money for.
+ * `quotes.total_minor`, the figure copied into `bookings.total_minor` at conversion and charged to
+ * the card, so it is the honest one to print. Re-summing instead would produce an email quoting a
+ * number no code path can take money for.
+ *
+ * But it is only honest while the lines support it, so the two are CROSS-CHECKED here and the render
+ * throws when they do not match. This is the one pair of numbers that must agree: api_convert_quote
+ * raises `quote_total_mismatch` and refuses to charge on any drift, and saveQuote writes the total
+ * and the lines in two non-transactional PostgREST statements whose failure mode it documents itself
+ * (a stale occurrence id raises 23503 on the re-insert AFTER the new total is written and the old
+ * lines are deleted). Without the check, an operator who missed that error and hit Send emails a
+ * guest "Total: EUR 500.00" over an empty itemisation, above a link that can only ever answer "this
+ * quote is not ready to pay yet".
+ *
+ * Send is the last human-visible moment before the guest holds that link: failing here costs the
+ * operator one error toast and a re-save; failing later costs a guest a dead offer and a support
+ * ticket.
  */
 export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
   const operator = SITE.operator;
   const ref = input.ref;
   const currency = input.currency;
+  const linesMinor = quoteTotalMinor(input.items);
+  if (linesMinor !== input.totalMinor) {
+    throw new ValidationError(
+      `Quote ${ref} cannot be emailed: its lines add up to ${linesMinor} but its stored total is ` +
+        `${input.totalMinor}. Save the quote again before sending it — as it stands, ` +
+        `api_convert_quote would refuse to charge it (quote_total_mismatch).`,
+    );
+  }
   const totalStr = money(currency, input.totalMinor);
   const introNote = input.introNote?.trim() || '';
   const supportEmail = escapeHtml(SITE.email);

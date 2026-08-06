@@ -17,10 +17,31 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
  * arrived from a form is discarded and recomputed from the lines. api_convert_quote re-checks the same
  * thing from the other side (`quote_total_mismatch`, which refuses to charge on any drift) — that is
  * the backstop, not the reason to skip it here.
+ *
+ * A CATALOGUE LINE IS NOT PAYABLE YET, and nothing in this file stops one being drafted. `quoteItemRows`
+ * validates its shape, `saveQuote` stores it and the send route will email it — but api_convert_quote
+ * raises `quote_has_catalogue_lines` for any quote carrying one (migration 20260909000000), because
+ * the hold path that would reserve the seat has not been written. The module's own motivating example
+ * (a catamaran cruise plus a private guide) is therefore an offer the guest cannot pay: they click Pay
+ * and are told to message us. Until the hold path lands, the SEND ROUTE is the place to refuse one —
+ * it is the only caller holding both the quote and its lines — and that refusal must be deleted in the
+ * same commit that deletes `quote_has_catalogue_lines` from the migration, not before.
  */
 
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'expired' | 'cancelled';
 export type QuoteItemKind = 'catalogue' | 'custom' | 'rental';
+
+/**
+ * The ONLY currency a quote may be written in, and it is a money-path constraint, not a preference.
+ * `payments_ledger_currency_eur` (20260830000000) pins `payments.currency = 'EUR'`, and
+ * api_create_payment inserts the payments row from `(booking_id, idempotency_key, amount_minor)`
+ * without ever reading the booking's currency — so a quote saved as 'MUR' would quote and email
+ * "MUR 50000" while the card is charged 500 EUR. A silent denomination mismatch, not a hard failure.
+ */
+export type QuoteCurrency = 'EUR';
+
+/** `quotes.locale` is the `content_locale` enum. Anything else fails at INSERT with a raw enum error. */
+export type QuoteLocale = 'en' | 'fr';
 
 /**
  * Money stays in MINOR UNITS across this module, unlike src/lib/admin/bookings.ts which divides by
@@ -92,8 +113,9 @@ export interface QuoteInput {
   validUntil: string;
   introNote?: string | null;
   internalNotes?: string | null;
-  currency?: string;
-  locale?: string;
+  /** Narrow on purpose, so a UI author cannot widen the money path. See {@link QuoteCurrency}. */
+  currency?: QuoteCurrency;
+  locale?: QuoteLocale;
   /** Accepted so a form object can be passed straight in, and then DISCARDED. See `quoteRowTotal`. */
   totalMinor?: number;
   items: QuoteItemInput[];
@@ -230,7 +252,7 @@ interface WriteBuilder extends PromiseLike<{ data: Row[] | null; error: unknown 
 }
 
 interface QuotesClient {
-  from(table: 'quotes' | 'quote_items'): {
+  from(table: 'quotes' | 'quote_items' | 'bookings'): {
     select(columns: string): SelectBuilder;
     insert(payload: Row | Row[]): InsertBuilder;
     update(payload: Row): WriteBuilder;
@@ -358,6 +380,70 @@ async function updateUnconvertedQuote(
   throw new Error(convertedMessage);
 }
 
+/**
+ * Re-assert the unconverted guard AFTER the lines have been rewritten, and report it loudly when it
+ * no longer holds.
+ *
+ * `updateUnconvertedQuote` puts `converted_at is null` in the UPDATE's own WHERE clause, which closes
+ * the window around THAT statement — but the two that follow it, the DELETE of the old lines and the
+ * re-insert of the new ones, carry no guard at all. A conversion landing in between copies the lines
+ * as they then stand into `booking_custom_items`, stamps `converted_at`, and saveQuote rewrites the
+ * quote's lines regardless. `quote_total_mismatch` is no backstop for this: it only bites when the
+ * TOTAL changed, so an edit that reworded a description or moved a line's `starts_at` converts
+ * cleanly and then diverges — the paid booking's itemisation permanently disagreeing with the quote
+ * the operator is looking at.
+ *
+ * It cannot be prevented from here (PostgREST has no transaction), and by the time it is detected the
+ * lines are already rewritten — so silence IS the harm, and this exists to break it. The operator is
+ * told which booking to reconcile, because that booking's `booking_custom_items` are what the guest
+ * actually paid for.
+ */
+async function assertStillUnconverted(id: string): Promise<void> {
+  const { data, error } = await db()
+    .from('quotes')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .is('converted_at', null)
+    .select('id');
+  if (error) throw error;
+  if (data && data.length > 0) return;
+  throw new Error(
+    `The guest paid for this quote while it was being saved, so the edit landed on a quote that had ` +
+      `already been converted. ${await convertedBookingHint(id)}`,
+  );
+}
+
+/**
+ * "Which booking?", for the message above. Best effort by design: it runs only on a path that has
+ * already gone wrong, so a read that fails must not replace a message the operator can act on with a
+ * PostgREST error they cannot.
+ */
+async function convertedBookingHint(id: string): Promise<string> {
+  const fallback =
+    'The booking now holds the lines as they stood when the guest paid — reconcile it on the bookings screen.';
+  try {
+    const { data } = await db().from('quotes').select('ref, booking_id').eq('id', id).maybeSingle();
+    const bookingId = textOrNull(data?.booking_id ?? null);
+    if (bookingId) {
+      const { data: booking } = await db()
+        .from('bookings')
+        .select('ref')
+        .eq('id', bookingId)
+        .maybeSingle();
+      const bookingRef = textOrNull(booking?.ref ?? null);
+      if (bookingRef) {
+        return `Booking ${bookingRef} holds the lines as they stood when the guest paid — reconcile it on the bookings screen.`;
+      }
+    }
+    const quoteRef = textOrNull(data?.ref ?? null);
+    return quoteRef
+      ? `Find the booking quote ${quoteRef} minted on the bookings screen — it holds the lines as they stood when the guest paid.`
+      : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 /** The signed-in staff session, or null. Never throws: it is read for attribution and a bearer. */
 async function session(): Promise<{ accessToken: string; userId: string } | null> {
   try {
@@ -419,11 +505,20 @@ export async function loadQuote(id: string): Promise<QuoteDetail | null> {
  *     figure they never agreed to. Keyed on `converted_at`, never `booking_id`: an erasure
  *     hard-deletes an unpaid booking and the FK then nulls booking_id (migration section 4).
  *  3. The quote row is written, then — only if step 2 matched — its lines are replaced.
+ *  4. On an edit, the guard is RE-ASSERTED after the lines have been rewritten
+ *     (`assertStillUnconverted`). Step 2's guard belongs to its own UPDATE and cannot see a conversion
+ *     that lands during step 3 — and that one is not caught by `quote_total_mismatch` either, since an
+ *     edit that only reworded a description converts cleanly and diverges silently afterwards. By then
+ *     the lines are already rewritten, so this does not prevent it; it makes the operator hear about
+ *     it, naming the booking to reconcile.
  *
  * Step 3's two statements are not one transaction — PostgREST has no such thing, and an RPC would be
  * a migration this task does not need. It fails CLOSED: if the line replacement is lost after the
  * total is written, the two disagree and api_convert_quote refuses to charge (`quote_total_mismatch`)
  * until the operator saves again.
+ *
+ * `currency` and `locale` are checked here as well as typed, because a cast or a JSON body erases the
+ * type. EUR is not a default with alternatives — see {@link QuoteCurrency}.
  *
  * `status` is deliberately untouched. Re-pricing a SENT quote before the guest pays is a normal
  * negotiation ("I'll take €50 off"), and the guest is charged whatever the quote says at pay time;
@@ -440,6 +535,21 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
     throw new Error('A quote needs a valid-until date.');
   }
 
+  // Both are typed narrowly above; these are the half that survives a cast or a JSON body, and both
+  // land before ANY statement is issued. See QuoteCurrency: an unsupported currency is not refused
+  // anywhere downstream — the ledger is EUR-only by constraint and api_create_payment never reads the
+  // booking's currency, so 'MUR 50000' would be quoted, emailed, and then charged as 500 EUR.
+  const currency: string = input.currency ?? 'EUR';
+  if (currency !== 'EUR') {
+    throw new ValidationError(
+      `A quote can only be priced in EUR — the payment ledger is EUR-only, so a ${currency} quote would still be charged in EUR.`,
+    );
+  }
+  const locale: string = input.locale ?? 'en';
+  if (locale !== 'en' && locale !== 'fr') {
+    throw new ValidationError(`A quote's locale must be 'en' or 'fr', not '${locale}'.`);
+  }
+
   const rows = quoteItemRows(input.items);
   const fields: Row = {
     customer_name: customerName,
@@ -448,13 +558,14 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
     valid_until: input.validUntil,
     intro_note: input.introNote?.trim() || null,
     internal_notes: input.internalNotes?.trim() || null,
-    currency: input.currency ?? 'EUR',
-    locale: input.locale ?? 'en',
+    currency,
+    locale,
     total_minor: quoteRowTotal(input),
     updated_at: new Date().toISOString(),
   };
 
   let id = input.id ?? null;
+  const editing = Boolean(id);
 
   if (id) {
     // The line replacement is gated on this having matched: the lines are the itemisation behind the
@@ -486,6 +597,9 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
       .insert(rows.map((row) => ({ ...row, quote_id: id })));
     if (error) throw error;
   }
+
+  // Only on the edit path: a quote created a statement ago has no link, so nobody can have paid it.
+  if (editing) await assertStillUnconverted(id);
 
   return id;
 }

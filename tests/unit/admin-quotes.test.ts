@@ -29,7 +29,7 @@ vi.mock('@/lib/supabase/browser', () => ({
   }),
 }));
 
-const { quoteRowTotal, quoteItemRows, mintQuoteRef, sendQuote } =
+const { quoteRowTotal, quoteItemRows, mintQuoteRef, sendQuote, saveQuote } =
   await import('@/lib/admin/quotes');
 
 describe('saveQuote totals', () => {
@@ -113,6 +113,38 @@ describe('saveQuote totals', () => {
         },
       ]),
     ).toThrow(/option/i);
+  });
+});
+
+describe('saveQuote denomination', () => {
+  /**
+   * `currency` and `locale` are typed narrowly (`'EUR'`, `'en' | 'fr'`) so a UI author cannot widen
+   * them, and the runtime guard below is the half that survives a cast or a JSON body. The cast is
+   * therefore the point of the test, not a shortcut around the types.
+   *
+   * Both refusals land before ANY statement is issued — the mocked client here has an `auth` and
+   * nothing else, so a guard that ran after the first `from()` would fail with a TypeError instead.
+   */
+  const widened = saveQuote as unknown as (input: Record<string, unknown>) => Promise<string>;
+  const guest = {
+    customerName: 'Marie Dupont',
+    customerEmail: 'marie@example.com',
+    validUntil: '2099-12-31',
+    items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+  };
+
+  it('refuses a currency the card can never be charged in', async () => {
+    // `payments_ledger_currency_eur` (20260830000000) pins payments.currency = 'EUR', and
+    // api_create_payment inserts the payments row without ever reading the booking's currency. A
+    // quote saved as 'MUR' would therefore quote and email "MUR 50000" and charge 500 EUR — a silent
+    // denomination mismatch, not a failure anyone would see.
+    await expect(widened({ ...guest, currency: 'MUR' })).rejects.toThrow(/EUR/);
+  });
+
+  it('refuses a locale outside the content_locale enum', async () => {
+    // Copied verbatim into quotes.locale, whose type is the content_locale enum: today that fails at
+    // INSERT with a raw enum error the operator cannot act on.
+    await expect(widened({ ...guest, locale: 'de' })).rejects.toThrow(/locale/i);
   });
 });
 

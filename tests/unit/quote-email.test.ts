@@ -56,9 +56,37 @@ describe('quote email', () => {
     expect(text).not.toContain('margin is thin');
   });
 
+  it('refuses to print a total its own lines do not add up to', () => {
+    // The headline figure and the itemisation under it are the one pair of numbers that must agree:
+    // api_convert_quote raises `quote_total_mismatch` and refuses to charge whenever they don't, and
+    // saveQuote writes them in two non-transactional statements — so a lost line replacement leaves a
+    // stored total with no lines behind it. Rendering that produces a guest email headed
+    // "Total: EUR 500.00" over nothing, above a link whose only possible answer is "this quote is not
+    // ready to pay yet". Send is the last human-visible moment before the guest holds that link:
+    // failing here costs the operator one error toast.
+    expect(() =>
+      renderQuoteEmail({
+        ...quote,
+        totalMinor: 50000,
+        items: [],
+        payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+      }),
+    ).toThrow(/total/i);
+
+    // And on the quieter version of the same drift — one line lost, not all of them.
+    expect(() =>
+      renderQuoteEmail({
+        ...quote,
+        items: [quote.items[0]!],
+        payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',
+      }),
+    ).toThrow(/total/i);
+  });
+
   it('escapes guest-supplied text instead of letting it inject markup', () => {
     const { html } = renderQuoteEmail({
       ...quote,
+      totalMinor: 1000,
       customerName: '<script>alert(1)</script>',
       items: [{ description: '<b>Charter</b>', quantity: 1, unitAmountMinor: 1000 }],
       payUrl: 'https://bellemaretours.com/quotes/Q7F3A21?t=abc',

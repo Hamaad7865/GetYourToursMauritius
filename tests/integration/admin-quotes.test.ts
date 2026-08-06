@@ -148,6 +148,51 @@ describe('admin quote service (RLS + real schema)', () => {
     };
   }
 
+  /**
+   * The OTHER side of the same window: the conversion lands AFTER the guarded UPDATE has matched,
+   * while the lines are being replaced. The guard is in the UPDATE's WHERE clause, so it cannot see
+   * this one — and the two statements that follow it (the DELETE and the re-insert) carry no guard at
+   * all. Armed on the first `quote_items` write. Returns the undo.
+   */
+  function convertWhileReplacingLines(quoteId: string, bookingId: string): () => void {
+    const shim = hoisted.shim!;
+    const realFrom = shim.from.bind(shim);
+    let armed = true;
+    shim.from = (table: string) => {
+      const builder = realFrom(table);
+      if (!armed || table !== 'quote_items') return builder;
+      const realDelete = builder.delete.bind(builder);
+      Object.assign(builder, {
+        delete() {
+          armed = false;
+          const write = realDelete();
+          const exec = write.then.bind(write);
+          Object.assign(write, {
+            then: (
+              onfulfilled?: (value: unknown) => unknown,
+              onrejected?: (e: unknown) => unknown,
+            ) =>
+              (async () => {
+                await db.asOwner();
+                await db.pg.query(
+                  `update quotes set converted_at = now(), status = 'accepted', booking_id = $2
+                     where id = $1`,
+                  [quoteId, bookingId],
+                );
+                await db.as({ sub: STAFF, role: 'authenticated' });
+                return exec();
+              })().then(onfulfilled, onrejected),
+          });
+          return write;
+        },
+      });
+      return builder;
+    };
+    return () => {
+      shim.from = realFrom;
+    };
+  }
+
   it('creates a draft quote whose stored total is the sum of its lines', async () => {
     await db.as({ sub: STAFF, role: 'authenticated' });
     const id = await saveQuote({
@@ -371,6 +416,60 @@ describe('admin quote service (RLS + real schema)', () => {
     expect(Number(row.total_minor), 'a converted quote was re-priced under the guard').toBe(50000);
     expect(row.line_count).toBe(1);
     expect(Number(row.lines_minor)).toBe(50000);
+  });
+
+  it('names the booking when a conversion lands while the lines are being replaced', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ id: string; ref: string }>(
+      `insert into bookings (customer_name, customer_email, total_minor)
+         values ('Marie Dupont', 'marie@example.com', 50000) returning id, ref`,
+    );
+    const booking = rows[0]!;
+
+    // The guarded UPDATE matches — the quote really was unconverted when it ran — and the guest pays
+    // a heartbeat later, while the lines are being rewritten. api_convert_quote copies the lines AS
+    // THEY THEN STAND into booking_custom_items and stamps converted_at; saveQuote then rewrites
+    // them anyway. `quote_total_mismatch` is no backstop for this: an edit that only reworded a
+    // description or moved a line's date converts cleanly and diverges silently afterwards.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const restore = convertWhileReplacingLines(id, booking.id);
+    let message = '';
+    try {
+      message = await saveQuote({
+        ...GUEST,
+        id,
+        items: [
+          {
+            kind: 'custom',
+            description: 'Charter, revised wording',
+            quantity: 1,
+            unitAmountMinor: 50000,
+          },
+        ],
+      }).then(
+        () => '',
+        (error: unknown) => (error as Error).message,
+      );
+    } finally {
+      restore();
+    }
+
+    // The lines have already been rewritten by the time this is discovered, so silence IS the harm:
+    // the operator has to be told, and told which booking to reconcile.
+    expect(message, 'the save reported success after the quote had been converted').not.toBe('');
+    expect(message, 'the refusal does not name the booking the operator must reconcile').toContain(
+      booking.ref,
+    );
+
+    const row = await readQuote(id);
+    expect(row.status).toBe('accepted');
+    expect(row.line_count).toBe(1);
   });
 
   it('withdraws an offer by cancelling it', async () => {
