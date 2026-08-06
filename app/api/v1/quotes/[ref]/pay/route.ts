@@ -14,10 +14,9 @@ import { callRpc } from '@/lib/services/rpc';
 import { createPaymentLink } from '@/lib/services/payments';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import {
-  QUOTE_TOKEN_COOKIE,
   quotePayReturnUrl,
   quoteRefLooksValid,
-  quoteTokenLooksValid,
+  readQuoteTokenCookie,
 } from '@/lib/quotes/link-cookie';
 import { resolveQuoteForToken } from '@/lib/quotes/resolve';
 import { lineSubtotalMinor } from '@/lib/quotes/totals';
@@ -111,26 +110,6 @@ function text(value: unknown): string {
 /** `bigint` columns: PostgREST hands back a JSON number, a wire driver a string or a BigInt. */
 function minor(value: unknown): number {
   return Number(value ?? 0);
-}
-
-/**
- * The raw link token from the request cookies, or null.
- *
- * At most one can match: the two cookies the open route sets share a NAME and differ only in Path
- * (`/quotes/{ref}` and `/api/v1/quotes/{ref}`), and this URL is under the second only — so a guest
- * holding links to several quotes still sends exactly the one for this ref. A value that is not 32
- * bytes of lowercase hex can never match a stored SHA-256, so it is skipped rather than trusted.
- */
-function readQuoteToken(req: Request): string | null {
-  const header = req.headers.get('cookie');
-  if (!header) return null;
-  for (const part of header.split(';')) {
-    const [name, ...rest] = part.trim().split('=');
-    if (name !== QUOTE_TOKEN_COOKIE) continue;
-    const value = rest.join('=');
-    if (quoteTokenLooksValid(value)) return value;
-  }
-  return null;
 }
 
 /**
@@ -278,7 +257,7 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
 
   // Not a ref we could have minted, so there is nothing to open. Same answer as every other refusal.
   if (!quoteRefLooksValid(ref)) throw new NotFoundError('Not found');
-  const token = readQuoteToken(req);
+  const token = readQuoteTokenCookie(req);
   if (!token) throw new NotFoundError('Not found');
 
   // THE authorization. Null for every refusal — see the header.

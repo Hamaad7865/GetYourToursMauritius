@@ -752,6 +752,32 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/quotes/{ref}/receipt': {
+    get: {
+      operationId: 'getQuoteReceipt',
+      summary: 'Download the paid quote’s invoice & receipt PDF (link token, no account needed)',
+      description:
+        'The document route for the one customer who has no account by design. Every other ' +
+        'customer-facing PDF route opens with a bearer token and an RLS read whose policy is ' +
+        '`user_id = auth.uid() or is_staff()`, which an ownerless quote booking can never satisfy — ' +
+        'so this one is authenticated by the LINK TOKEN instead, in the httpOnly cookie ' +
+        '/quotes/{ref}/open set (scoped to this path, which is why the route lives here and not under ' +
+        '/bookings). The same document the confirmation email attaches. Every refusal to open the ' +
+        'quote is the same 404, so nothing here reveals which quote refs exist; the 409 is only ever ' +
+        'shown to a caller who has already proved they hold the link.',
+      tags: ['Quotes'],
+      requestParams: { path: refParam },
+      responses: {
+        '200': {
+          description: 'Invoice & receipt PDF',
+          content: { 'application/pdf': { schema: z.string() } },
+        },
+        '404': errorResponse('No readable quote for this link'),
+        '409': errorResponse('The payment has not been confirmed yet'),
+        '429': errorResponse('Too many requests'),
+      },
+    },
+  },
   '/admin/quotes/send': {
     post: {
       operationId: 'sendQuote',

@@ -10131,6 +10131,146 @@
         }
       }
     },
+    "/quotes/{ref}/receipt": {
+      "get": {
+        "operationId": "getQuoteReceipt",
+        "summary": "Download the paid quote’s invoice & receipt PDF (link token, no account needed)",
+        "description": "The document route for the one customer who has no account by design. Every other customer-facing PDF route opens with a bearer token and an RLS read whose policy is `user_id = auth.uid() or is_staff()`, which an ownerless quote booking can never satisfy — so this one is authenticated by the LINK TOKEN instead, in the httpOnly cookie /quotes/{ref}/open set (scoped to this path, which is why the route lives here and not under /bookings). The same document the confirmation email attaches. Every refusal to open the quote is the same 404, so nothing here reveals which quote refs exist; the 409 is only ever shown to a caller who has already proved they hold the link.",
+        "tags": [
+          "Quotes"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invoice & receipt PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No readable quote for this link",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The payment has not been confirmed yet",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/quotes/send": {
       "post": {
         "operationId": "sendQuote",

@@ -4,9 +4,14 @@
 
 create schema if not exists auth;
 
+-- `email_confirmed_at` is Supabase's own column and is NOT decoration here: the quote-booking owner
+-- match (20260909000000, quote_owner_for_email) attaches a paid quote booking to the account holding
+-- that address, and it only does so for a CONFIRMED one — otherwise registering a stranger's address
+-- would be a way to claim their booking. A shim without the column would make that rule untestable.
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),
   email text,
+  email_confirmed_at timestamptz,
   created_at timestamptz not null default now()
 );
 

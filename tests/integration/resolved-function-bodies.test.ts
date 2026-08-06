@@ -103,6 +103,36 @@ const CONTRACTS: ResolvedContract[] = [
       'the quote path must reach the SHARED body (which is also what makes it skip the caller ' +
       'identity check deliberately, in one place, rather than by re-implementing the guards)',
   },
+  // The quote-booking owner match (20260909000000, section 6d). Its absence is INVISIBLE at every
+  // level a test usually looks: the booking is minted, it is payable, it confirms, the guest is
+  // emailed their invoice — and only the person who paid can never see it again, because
+  // `using (user_id = auth.uid() or is_staff())` has no branch that matches null.
+  {
+    fn: 'api_convert_quote',
+    must: 'resolves the booking owner through quote_owner_for_email',
+    code: /\bquote_owner_for_email\s*\(/,
+    alsoSaidInAComment: 'quote_owner_for_email',
+    why:
+      'the minted booking is ownerless, so the bookings RLS policy can never match it and the guest ' +
+      'who paid cannot open /bookings/{ref} — the page their own confirmation email links to',
+  },
+  {
+    fn: 'api_claim_quote_bookings',
+    must: 'only ever fills a NULL user_id',
+    code: /\bupdate\s+bookings\b[^;]*?\buser_id\s+is\s+null\b/,
+    alsoSaidInAComment: 'user_id is null',
+    why:
+      'without it a claim can move a booking from one account to another, so an address later ' +
+      "re-registered — or simply mistyped — silently transfers someone else's paid booking away",
+  },
+  {
+    fn: 'api_claim_quote_bookings',
+    must: 'matches the caller’s own address, read from auth.users by auth.uid()',
+    code: /\bfrom\s+auth\.users\b[^;]*?\bid\s*=\s*v_uid\b/,
+    why:
+      'a claim that matched on an address from the payload would let any signed-in account name a ' +
+      "stranger's address and be handed that stranger's booking",
+  },
 ];
 
 /**

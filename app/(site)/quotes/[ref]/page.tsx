@@ -206,6 +206,19 @@ export default async function QuotePage({
                   We are confirming it now, and your confirmation email is on its way. There is
                   nothing else for you to do.
                 </p>
+                {/* THE ONE WAY A GUEST WITH NO ACCOUNT REACHES THEIR OWN DOCUMENT. Every other
+                    customer-facing PDF route is behind `requireUser` plus an RLS read whose policy
+                    is `user_id = auth.uid() or is_staff()`, which an ownerless quote booking can
+                    never satisfy. This link is authenticated by the SAME link-token cookie that
+                    authorised the payment — it is scoped `Path=/api/v1/quotes/{ref}`, so the browser
+                    attaches it here and nowhere else on the site. A plain <a>, not a fetch: the
+                    response is a PDF the browser should hand straight to the download. */}
+                <a
+                  href={`/api/v1/quotes/${quote.ref}/receipt`}
+                  className="mt-3 inline-block text-[13px] font-medium text-teal underline underline-offset-2 hover:text-teal-dark"
+                >
+                  Download your invoice &amp; receipt (PDF)
+                </a>
               </div>
             )
           ) : (

@@ -28014,6 +28014,78 @@ create trigger quotes_redact_lines_on_anonymize
   execute function quotes_redact_lines();
 
 -- ---------------------------------------------------------------------------
+-- 6d) quote_owner_for_email — WHO, IF ANYONE, OWNS A BOOKING MADE FOR THIS ADDRESS.
+--
+-- Every booking in this schema until now has carried a `user_id`; a quote booking is the first
+-- ownerless one, because the guest has no account — that is the entire point of an emailed offer. The
+-- bookings policy is `using (user_id = auth.uid() or is_staff())`, and `null = auth.uid()` evaluates to
+-- NULL rather than true, so a PAID quote booking with a null user_id is invisible to every customer
+-- forever, including the guest who paid for it. /bookings/{ref} — the page the confirmation email's
+-- e-voucher button points at — is guarded by that policy.
+--
+-- The owner's decision is to match by EMAIL: at conversion (below) and, for a guest who signs up
+-- afterwards, again at claim time (7c). Both go through this one function so the rule cannot be stated
+-- twice and drift, and the rule is deliberately NARROW:
+--
+--   * CASE-INSENSITIVE. The operator types the address into the quote editor by hand, and
+--     "Anouk.Leclerc@Example.com" is the same mailbox as the one the account was opened with. A
+--     case-sensitive compare would leave most genuine matches ownerless for no visible reason.
+--   * CONFIRMED ACCOUNTS ONLY (`email_confirmed_at is not null`). This is the whole of the difference
+--     between an address someone TYPED and one they have demonstrably received mail at. Without it,
+--     signing up with a stranger's address — and never confirming it, which you could not, since the
+--     mail goes to them — would be a way to be handed their booking, with its name, phone, pickup
+--     address and amount.
+--   * EXACTLY ONE MATCH, or none. `auth.users` does not constrain `email` to be unique, and picking
+--     "the oldest" of two confirmed accounts on one address would be a coin toss on a money record.
+--     Ownerless is already a fully supported state, so ambiguity fails closed into it.
+--
+-- KNOWN AND ACCEPTED BY THE OWNER: a mistyped address that belongs to a real confirmed account
+-- attaches that booking to the wrong person. The same typo already emailed them the offer itself, so
+-- the first disclosure happens either way — which is precisely why this must never widen beyond a
+-- confirmed, exact (case-insensitive) address.
+--
+-- SECURITY DEFINER because `auth.users` is not readable by the roles that reach the callers, and
+-- service_role-only because it answers "does an account exist at this address?" — an enumeration
+-- oracle if anything reachable from a browser could ask it. api_claim_quote_bookings is granted to
+-- `authenticated` and calls this; that works because the privilege check for the inner call runs as the
+-- (shared) owner of both functions, the same arrangement api_create_payment/create_payment uses.
+-- ---------------------------------------------------------------------------
+create or replace function quote_owner_for_email(p_email text)
+returns uuid
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_email text := lower(nullif(btrim(p_email), ''));
+  v_ids uuid[];
+begin
+  if v_email is null then
+    return null;
+  end if;
+
+  select array_agg(u.id) into v_ids
+    from auth.users u
+   where lower(u.email) = v_email
+     and u.email_confirmed_at is not null;
+
+  -- No account, or more than one confirmed account on this address: no answer, not a guess.
+  if v_ids is null or array_length(v_ids, 1) <> 1 then
+    return null;
+  end if;
+  return v_ids[1];
+end;
+$$;
+revoke execute on function quote_owner_for_email(text) from public, anon, authenticated;
+grant execute on function quote_owner_for_email(text) to service_role;
+
+comment on function quote_owner_for_email(text) is
+  'The single CONFIRMED account holding this address, case-insensitively — or null for none, and null '
+  'for more than one. The one place the quote-booking owner match is defined; api_convert_quote and '
+  'api_claim_quote_bookings both read it so the rule cannot drift into two versions.';
+
+-- ---------------------------------------------------------------------------
 -- 7) api_convert_quote — the one step that mints a PAYABLE booking.
 --
 -- Everything downstream of it is the existing, untouched money path (Peach checkout → HMAC webhook →
@@ -28088,6 +28160,7 @@ declare
   v_booking bookings;
   v_reusable boolean := false;
   v_lines_minor bigint;
+  v_owner uuid;
 begin
   select * into v_quote
     from quotes
@@ -28236,13 +28309,25 @@ begin
       using detail = format('total %s vs lines %s', v_quote.total_minor, v_lines_minor);
   end if;
 
+  -- WHO WILL BE ABLE TO SEE THIS BOOKING. `user_id` is what the bookings RLS policy reads
+  -- (`user_id = auth.uid() or is_staff()`), so a booking minted with a null one is invisible to every
+  -- customer — including the guest about to pay for it, whose confirmation email links to
+  -- /bookings/{ref}. quote_owner_for_email (section 6d) answers with the single CONFIRMED account
+  -- holding the quoted address, or null; see its header for why that rule is exactly this narrow.
+  --
+  -- NULL IS A SUPPORTED ANSWER, NOT A FAILURE. Most quote guests never open an account, and nothing
+  -- downstream requires an owner: api_create_quote_payment (20260911000000) exists precisely because a
+  -- quote booking has none, the guest's own record stays reachable through the link token, and
+  -- api_claim_quote_bookings (7c) fills the column in later if they ever do sign up.
+  v_owner := quote_owner_for_email(v_quote.customer_email);
+
   insert into bookings (
-    customer_name, customer_email, customer_phone, status, source,
+    user_id, customer_name, customer_email, customer_phone, status, source,
     currency, total_minor, operator_payout_minor, payment_state, locale
   )
   values (
-    v_quote.customer_name, v_quote.customer_email, v_quote.customer_phone, 'payment_pending', 'quote',
-    v_quote.currency, v_quote.total_minor, v_quote.total_minor, 'pending', v_quote.locale
+    v_owner, v_quote.customer_name, v_quote.customer_email, v_quote.customer_phone, 'payment_pending',
+    'quote', v_quote.currency, v_quote.total_minor, v_quote.total_minor, 'pending', v_quote.locale
   )
   returning * into v_booking;
 
@@ -28272,6 +28357,100 @@ end;
 $$;
 revoke execute on function api_convert_quote(jsonb) from public, anon, authenticated;
 grant execute on function api_convert_quote(jsonb) to service_role;
+
+-- ---------------------------------------------------------------------------
+-- 7c) api_claim_quote_bookings — the guest who signs up AFTER paying.
+--
+-- The other half of section 6d. At conversion there may simply be no account yet: the guest reads an
+-- emailed offer and pays it, and only weeks later — booking their next trip — do they register. Their
+-- paid booking is sitting there with a null `user_id`, which the bookings policy can never match, so
+-- "My trips" would be empty and /bookings/{ref} would 404 the person who paid. This is what fills the
+-- column in, and the app calls it once per sign-in (AuthProvider, right after the profile row is
+-- ensured).
+--
+-- FOUR PROPERTIES, and each one is a hole if it is dropped:
+--
+--   1. THE CLAIMER'S OWN ADDRESS, read from `auth.users` by `auth.uid()` — never anything in `p`. The
+--      function takes a jsonb argument only because every api_* RPC in this schema does; nothing in it
+--      is read. A caller-supplied address is untrusted input, and matching on one would let any
+--      signed-in account name a stranger's address and be handed that stranger's booking.
+--      api_erase_user closed the identical hole by forcing its email scope to the caller's own JWT
+--      identity.
+--   2. CONFIRMED ONLY, and via the SAME function conversion uses. Rather than restating
+--      `email_confirmed_at is not null` here — a second copy of the rule, free to drift from the first
+--      — the claimer's own address is put through quote_owner_for_email and the answer must come back
+--      as the caller themselves. An unconfirmed account resolves to null and matches nobody; an address
+--      shared by two confirmed accounts resolves to null and neither of them can claim it.
+--   3. NULL -> A USER ONLY, NEVER USER A -> USER B. `b.user_id is null` is part of the WHERE, so a
+--      booking that already has an owner is untouchable here. Without it, a quote whose address was
+--      later re-registered — or simply mistyped onto a real account — would silently transfer someone
+--      else's paid booking away from them.
+--   4. QUOTE BOOKINGS ONLY. `source = 'quote'` is written by api_convert_quote and by nothing else
+--      (enforce_booking_admin_update pins the column against any browser write), so this cannot grow
+--      into a general "claim any booking that carries my address" mechanism — which would be a far
+--      wider blast radius than the one case the owner decided on.
+--
+-- IDEMPOTENT by construction: the second run finds no null-owner rows left and updates none, which is
+-- what makes it safe to fire on every sign-in.
+--
+-- SECURITY DEFINER is load-bearing twice over: `authenticated` deliberately has no EXECUTE on
+-- quote_owner_for_email, and enforce_booking_admin_update pins `new.user_id := old.user_id` for any
+-- write whose `current_user` is anon or authenticated — so the same UPDATE run through PostgREST would
+-- be silently reverted by the trigger rather than refused.
+-- ---------------------------------------------------------------------------
+create or replace function api_claim_quote_bookings(p jsonb default '{}'::jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_email text;
+  v_claimed int := 0;
+begin
+  -- No identity, nothing to claim FOR. service_role holds EXECUTE (it is an ordinary server-callable
+  -- RPC) but has no auth.uid(), and a claim that matched on nothing would be a mass re-assignment.
+  if v_uid is null then
+    raise exception 'unauthorized' using errcode = '42501';
+  end if;
+
+  select lower(u.email) into v_email from auth.users u where u.id = v_uid;
+  if v_email is null then
+    return jsonb_build_object('claimed', 0);
+  end if;
+
+  -- Property 2: the SAME rule conversion applies, asked in the same place. Unconfirmed or ambiguous
+  -- comes back as null (or as somebody else), and this is where both stop.
+  if quote_owner_for_email(v_email) is distinct from v_uid then
+    return jsonb_build_object('claimed', 0);
+  end if;
+
+  -- Property 3, and the reason it is in the WHERE rather than in a caller: `user_id is null` makes an
+  -- already-owned booking unreachable from here, so this can only ever fill an empty column. Property
+  -- 4 is the `source` filter — a claim must never grow into "any booking carrying my address".
+  update bookings b
+     set user_id = v_uid
+   where b.source = 'quote'
+     and b.user_id is null
+     and lower(b.customer_email) = v_email;
+  get diagnostics v_claimed = row_count;
+
+  return jsonb_build_object('claimed', v_claimed);
+end;
+$$;
+-- `authenticated` KEEPS execute — the signed-in guest is the only real caller. anon is named
+-- explicitly alongside public because Supabase's stock ALTER DEFAULT PRIVILEGES grants EXECUTE on
+-- every new function to anon AND authenticated directly, so `from public` alone strips neither; that
+-- one-word omission has shipped a live hole from this repo three times.
+revoke execute on function api_claim_quote_bookings(jsonb) from public, anon;
+grant execute on function api_claim_quote_bookings(jsonb) to authenticated, service_role;
+
+comment on function api_claim_quote_bookings(jsonb) is
+  'Attaches the caller''s previously ownerless QUOTE bookings to their account, matched on their own '
+  'CONFIRMED address (quote_owner_for_email) and never on anything in the payload. Only ever fills a '
+  'null user_id — it can never move a booking from one account to another — and is idempotent, so the '
+  'app fires it once per sign-in.';
 
 -- ---------------------------------------------------------------------------
 -- 7b) api_booking_receipt — the VAT invoice has to see the lines a quote booking actually has.

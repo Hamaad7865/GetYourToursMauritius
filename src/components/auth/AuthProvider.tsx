@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import { supabaseRpc } from '@/lib/supabase/rpc';
 import { useToast } from '@/components/site/ToastProvider';
 import { useT } from '@/components/site/PreferencesProvider';
 import { AuthDialog } from './AuthDialog';
@@ -41,6 +42,34 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
+
+/**
+ * Attach any QUOTE bookings this person paid for as a guest, before they had an account.
+ *
+ * A quote booking is the only ownerless booking in the schema: the guest is emailed an offer and pays
+ * it with no account at all. `bookings` is read under `using (user_id = auth.uid() or is_staff())`, and
+ * a null user_id matches neither branch — so if they sign up later, their paid booking would be
+ * missing from "My trips" and /bookings/{ref} would 404 the person who paid for it.
+ *
+ * `api_claim_quote_bookings` fills that column in. It reads the caller's OWN confirmed address out of
+ * auth.users (nothing is sent to it — an address in the payload would be untrusted input), only ever
+ * moves a booking from NULL to a user, and is idempotent, which is what makes it safe to fire here on
+ * every sign-in rather than needing a one-shot trigger.
+ *
+ * BEST-EFFORT BY DESIGN: a failure must never block the session. The claim is a convenience — the
+ * guest can still reach their record through the quote link that authorised the payment — and it will
+ * simply run again on the next sign-in.
+ */
+async function claimGuestQuoteBookings(): Promise<void> {
+  try {
+    // Through the shared adapter rather than `client.rpc(...)` directly: it wraps the argument as the
+    // `{ p: … }` every api_* function takes, and it THROWS on a PostgREST error — supabase-js returns
+    // one in `{ error }`, which a bare await would swallow past this catch.
+    await supabaseRpc(getBrowserSupabase()).rpc('api_claim_quote_bookings', {});
+  } catch {
+    /* never block sign-in on this; the next sign-in retries it */
+  }
+}
 
 /**
  * App-wide auth state backed by the Supabase browser client. Exposes the current user +
@@ -188,6 +217,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (u.id !== loadedFor) {
           loadedFor = u.id;
           void loadProfile(u);
+          // Once per user per page load, alongside the profile row. A guest who paid a quote before
+          // they had an account has an ownerless booking the RLS policy cannot match; this is what
+          // hands it to them. Idempotent, so running it on every sign-in costs one no-op statement.
+          void claimGuestQuoteBookings();
         }
       } else {
         loadedFor = null;

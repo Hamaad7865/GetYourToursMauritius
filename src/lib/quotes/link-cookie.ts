@@ -65,6 +65,28 @@ export function quoteCookiePaths(ref: string): [string, string] {
 }
 
 /**
+ * The raw link token from a request's cookies, or null. THE credential for every `/api/v1/quotes/{ref}`
+ * route — the pay route and the receipt route both read it through here rather than each parsing the
+ * header themselves, so there is one place that decides what counts as a token.
+ *
+ * At most one cookie can match: the two the open route sets share a NAME and differ only in Path
+ * (`/quotes/{ref}` and `/api/v1/quotes/{ref}`), and these URLs are under the second only — so a guest
+ * holding links to several quotes still sends exactly the one for this ref. A value that is not 32
+ * bytes of lowercase hex can never match a stored SHA-256, so it is skipped rather than trusted.
+ */
+export function readQuoteTokenCookie(req: Request): string | null {
+  const header = req.headers.get('cookie');
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const [name, ...rest] = part.trim().split('=');
+    if (name !== QUOTE_TOKEN_COOKIE) continue;
+    const value = rest.join('=');
+    if (quoteTokenLooksValid(value)) return value;
+  }
+  return null;
+}
+
+/**
  * The `Set-Cookie` values that hand the token to the page and the pay route, and to nothing else.
  *
  * `Secure` unconditionally, including on http://localhost: a Secure cookie IS accepted on localhost by
