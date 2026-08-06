@@ -66,11 +66,19 @@ export function EmbeddedCheckout({
   entityId,
   checkoutId,
   returnUrl,
+  retryUrl,
 }: {
   scriptUrl: string;
   entityId: string;
   checkoutId: string;
+  /** Where the customer goes when the widget is DONE — their booking, or a quote guest's own page. */
   returnUrl: string;
+  /**
+   * Where "Try again" goes when the widget never came up. ALWAYS /bookings/{ref}/pay, and separate
+   * from `returnUrl` because those are two different destinations: `?return=` sends a quote guest to
+   * /quotes/{ref}, and there is no /quotes/{ref}/pay route to derive.
+   */
+  retryUrl: string;
 }) {
   const router = useRouter();
   const t = useT();
@@ -295,10 +303,16 @@ export function EmbeddedCheckout({
           {/* "Try again" navigates to the pay page WITHOUT the ?cid — a reload would re-mount this same,
               now-EXPIRED Peach session. Landing on /bookings/{ref}/pay with no cid lets PayPageFallback
               mint a fresh checkout (or reuse a still-valid one via the double-charge guard) and redirect
-              to a new ?cid. returnUrl is /bookings/{ref}, so the pay page is `${returnUrl}/pay`. */}
+              to a new ?cid.
+
+              It takes an explicit `retryUrl` and never appends "/pay" to returnUrl. That derivation
+              held only while returnUrl was always /bookings/{ref}; since `?return=` exists, a quote
+              guest carries /quotes/{ref} — and /quotes/{ref}/pay is not a route, so the one recovery
+              affordance on this card would be a hard 404 for exactly the customer who has no account
+              and no /account/bookings to fall back to. */}
           <button
             type="button"
-            onClick={() => window.location.assign(`${returnUrl}/pay`)}
+            onClick={() => window.location.assign(retryUrl)}
             className="text-sm font-bold text-teal hover:text-teal-dark"
           >
             {t('Try again')}

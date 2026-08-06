@@ -1,4 +1,5 @@
 import { escapeHtml } from './booking-confirmation';
+import { quoteOpenPath, quoteRefLooksValid, quoteTokenLooksValid } from '@/lib/quotes/link-cookie';
 import { lineSubtotalMinor, quoteTotalMinor } from '@/lib/quotes/totals';
 import { SITE } from '@/lib/seo/site';
 import { ValidationError } from '@/lib/services/errors';
@@ -54,17 +55,22 @@ export interface QuoteEmailInput {
   introNote?: string | null;
   items: QuoteEmailLine[];
   /**
-   * The guest's only way in. MUST be `SITE.url + quoteOpenPath(ref, token)` — i.e. the
-   * `/api/v1/quotes/{ref}/open?t=…` route, NEVER `/quotes/{ref}?t=…`.
+   * The RAW link token — 32 bytes of lowercase hex from {@link import('@/lib/quotes/token').mintQuoteToken}
+   * — and deliberately NOT a URL.
    *
-   * An emailed link cannot be recalled, and a token in a RENDERED page's URL is exported verbatim by
-   * two things that run on every customer page: GTM's `page_location` (its tags fall back to cookieless
-   * pings even when consent is denied) and src/lib/client-error-report.ts, which writes
-   * `window.location.href` into `error_logs`. The open route renders no HTML, loads no GTM, and moves
-   * the token into an httpOnly cookie before redirecting to the clean page — see
-   * src/lib/quotes/link-cookie.ts.
+   * The link this email carries has one legal shape, `/api/v1/quotes/{ref}/open?t=…`, and never
+   * `/quotes/{ref}?t=…`: an emailed link cannot be recalled, and a token in a RENDERED page's URL is
+   * exported verbatim by two things that run on every customer page — GTM's `page_location` (its tags
+   * fall back to cookieless pings even when consent is denied) and src/lib/client-error-report.ts,
+   * which writes `window.location.href` into `error_logs` for staff to read for 30 days. The open
+   * route renders no HTML, loads no GTM, and moves the token into an httpOnly cookie before
+   * redirecting to the clean page (src/lib/quotes/link-cookie.ts).
+   *
+   * So the caller hands over the token and {@link renderQuoteEmail} builds the URL. A `payUrl: string`
+   * field made that a contract in a doc comment, which nothing can fail; this makes the wrong shape
+   * unrepresentable.
    */
-  payUrl: string;
+  linkToken: string;
 }
 
 export interface RenderedEmail {
@@ -133,6 +139,19 @@ export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
         `lines at all).`,
     );
   }
+  // THE LINK, built here rather than accepted from the caller — see `linkToken` above. A malformed
+  // ref or token cannot open anything (the open route validates the ref before writing it into a
+  // cookie Path, and resolveQuoteForToken refuses any token that is not a possible SHA-256 pre-image),
+  // so it would email a live-looking offer behind a dead link the guest cannot distinguish from a
+  // withdrawn one. Refuse at send, the same as an unchargeable total.
+  if (!quoteRefLooksValid(ref) || !quoteTokenLooksValid(input.linkToken)) {
+    throw new ValidationError(
+      `Quote ${ref} cannot be emailed: its link ref/token is not a shape the open route accepts ` +
+        `(ref must be 1-32 alphanumerics; the token must be 64 lowercase hex characters, exactly ` +
+        `what mintQuoteToken() produces). The guest would receive a link that can only ever 404.`,
+    );
+  }
+  const payUrl = `${SITE.url}${quoteOpenPath(ref, input.linkToken)}`;
   const totalStr = money(currency, input.totalMinor);
   const introNote = input.introNote?.trim() || '';
   const supportEmail = escapeHtml(SITE.email);
@@ -211,12 +230,12 @@ ${introHtml}
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
                 <tr>
                   <td style="border-radius:6px;background:${ACCENT};">
-                    <a href="${escapeHtml(input.payUrl)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:6px;">View &amp; pay your quote</a>
+                    <a href="${escapeHtml(payUrl)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:6px;">View &amp; pay your quote</a>
                   </td>
                 </tr>
               </table>
               <p style="margin:0 0 20px 0;color:${MUTED};font-size:12.5px;line-height:1.5;word-break:break-all;">
-                Or open this link: ${escapeHtml(input.payUrl)}
+                Or open this link: ${escapeHtml(payUrl)}
               </p>
 
               <p style="margin:0;color:${MUTED};font-size:13px;line-height:1.6;">
@@ -255,7 +274,7 @@ ${introHtml}
   textLines.push(`Valid until ${input.validUntil}. Nothing is reserved until the quote is paid.`);
   textLines.push('');
   textLines.push('View and pay your quote:');
-  textLines.push(input.payUrl);
+  textLines.push(payUrl);
   textLines.push('');
   textLines.push(
     `Something to change? Reply to this email, or contact us at ${SITE.email} or ${SITE.phone}.`,

@@ -64,6 +64,11 @@ export default async function PayPage({
                 entityId={widget.entityId}
                 checkoutId={cid}
                 returnUrl={returnUrl}
+                // Where "Try again" goes when the widget never came up — THIS page, minus the ?cid, so
+                // PayPageFallback mints a fresh session. It is passed separately from `returnUrl`
+                // because they stopped being the same thing when `?return=` arrived: a quote guest's
+                // return is /quotes/{ref}, and /quotes/{ref}/pay is not a route.
+                retryUrl={`/bookings/${ref}/pay`}
               />
             ) : (
               // No `cid` — a returning customer reached this page via the email link / a new tab, so no

@@ -715,6 +715,10 @@ Order of operations: rate limit → `resolveQuoteForToken` (404 on null) → if 
 
 Do **not** call `createCheckout()` in `src/lib/payments/peach.ts` directly. `createPaymentLink` goes through `api_create_payment`, which holds the checkout lease and single-flights concurrent callers — that lease is what stops a second payable session existing for one booking, the defect class fixed in `ec5ebcf`. Reusing it means the "same checkout id twice" test passes because the invariant is genuinely enforced, not re-implemented.
 
+Pass `returnUrl: quotePayReturnUrl(quoteRef)` (`src/lib/quotes/link-cookie.ts`) — **not** the `${SITE_URL}/bookings/{ref}` that `/api/v1/payments` builds. That value becomes Peach's `shopperResultUrl`, which is where a card taking the redirect-based 3-D Secure path returns the guest **top-level**; `?return=` cannot help there, because it is read only by `EmbeddedCheckout`'s own `router.replace`. Left at the default, a quote guest is charged and then shown BookingConfirmation's "Sign in to view booking …" — they have no account. It must stay absolute and same-origin: `peach.ts` derives the `Origin` header from it via `originOf`. Assert it in the route test: the `returnUrl` handed to the provider points at `/quotes/{ref}`.
+
+The route's 404 for a missing/expired link cookie is what `startQuotePayment` turns into "This quote link has timed out. Please open the link in your quote email again." — so answer `NotFoundError` there, and keep the code `not_found`.
+
 Also verify the recomputed catalogue total matches `quotes.total_minor` before minting, and fail with a 409 if it doesn't (see Self-Review, Known gap).
 
 - [ ] **Step 4: Run it to verify it passes**

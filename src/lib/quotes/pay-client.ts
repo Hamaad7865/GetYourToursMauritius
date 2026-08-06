@@ -57,6 +57,20 @@ const ALREADY_CONVERTED =
   'You have already accepted this quote — a booking exists for it, and it has been paid or is being ' +
   'paid right now. Check your email for the confirmation, or message us.';
 
+/**
+ * The likeliest refusal of the three, and the only one with a remedy the guest can act on.
+ *
+ * Both link cookies carry QUOTE_TOKEN_MAX_AGE_SECONDS (2 hours), so a guest who opens the quote,
+ * talks it over at lunch and comes back to the still-rendered tab clicks this button with no
+ * credential attached. The route answers 404 — deliberately, and NOT a distinguishable 401, because
+ * `quotes.ref` is the path segment of a link that gets forwarded and a per-case status would make the
+ * page an existence oracle — so the server's own message is the framework's bare "Not found". Shown
+ * verbatim in red under the button it names nothing to do, while the fix is one click away in the
+ * email the guest already has.
+ */
+const LINK_TIMED_OUT =
+  'This quote link has timed out. Please open the link in your quote email again.';
+
 /** Matches Checkout.tsx and ResumePaymentButton: three retries, 1.5s apart. */
 const PENDING_RETRIES = 3;
 const PENDING_WAIT_MS = 1500;
@@ -114,6 +128,9 @@ export async function startQuotePayment({
           message: ALREADY_CONVERTED,
           ...(bookingRef ? { bookingRef } : {}),
         };
+      }
+      if (res.status === 404 || body?.error?.code === 'not_found') {
+        return { kind: 'error', message: LINK_TIMED_OUT };
       }
       return { kind: 'error', message: body?.error?.message ?? GENERIC };
     }

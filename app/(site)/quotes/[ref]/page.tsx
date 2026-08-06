@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { GygHeader } from '@/components/gyg/GygHeader';
 import { SiteFooter } from '@/components/site/SiteFooter';
 import { QuotePayButton } from '@/components/quotes/QuotePayButton';
-import { QUOTE_TOKEN_COOKIE, quoteOpenPath } from '@/lib/quotes/link-cookie';
+import { DEFAULT_LOCALE, isLocale } from '@/lib/i18n/config';
+import { LOCALE_HEADER } from '@/lib/i18n/routing';
+import { QUOTE_TOKEN_COOKIE, quoteOpenPath, quotePagePath } from '@/lib/quotes/link-cookie';
 import { resolveQuoteForToken, type PublicQuoteLine } from '@/lib/quotes/resolve';
 import { formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
 import { SITE } from '@/lib/seo/site';
@@ -69,21 +71,42 @@ export default async function QuotePage({
 }: {
   params: Promise<{ ref: string }>;
   /** `?t=` repeated (`?t=a&t=b`) arrives as an ARRAY, so the type is not narrowed to a string here. */
-  searchParams: Promise<{ t?: string | string[] }>;
+  searchParams: Promise<{ t?: string | string[]; just_paid?: string | string[] }>;
 }) {
   const { ref } = await params;
-  const { t } = await searchParams;
+  const { t, just_paid: justPaidParam } = await searchParams;
 
   // A hand-built or pre-cookie `?t=` link: bounce it through the open route rather than render a page
   // whose URL carries a bearer credential. `redirect()` throws before any HTML exists, so nothing is
   // rendered, no GTM tag loads, and no `window.location.href` is ever set to this URL.
+  //
+  // FIRST, before the locale bounce below: that one drops the query string, so reordering these two
+  // would strip the token off `/fr/quotes/{ref}?t=…` and land the guest on a 404.
   if (typeof t === 'string' && t.length > 0) redirect(quoteOpenPath(ref, t));
+
+  // ONE CLICK ON THE LANGUAGE BUTTON WOULD OTHERWISE 404 THIS PAGE. GygHeader's PrefsButton calls
+  // PreferencesProvider.setLanguage → `router.push(localePath('fr', pathname))`, and `localePath` has
+  // no allow-list, so this page gets the prefix like any other. The link-token cookie is scoped
+  // `Path=/quotes/{ref}` (RFC 6265 §5.3 path-matching), so it is NOT sent to `/fr/quotes/{ref}`;
+  // middleware rewrites that back here, `cookies()` comes up empty and the page 404s a live quote
+  // whose only recovery is the emailed link. Bounce to the canonical path instead — the redirected
+  // request IS under /quotes/{ref}, so the cookie is sent. Matching this page's deliberate
+  // English-only stance (see the header note), which is also why widening the cookie's Path is the
+  // weaker fix: it would need a third cookie per locale added.
+  const urlLocale = (await headers()).get(LOCALE_HEADER);
+  if (isLocale(urlLocale) && urlLocale !== DEFAULT_LOCALE) redirect(quotePagePath(ref));
 
   const token = (await cookies()).get(QUOTE_TOKEN_COOKIE)?.value ?? '';
   const quote = await resolveQuoteForToken(ref, token);
   if (!quote) notFound();
 
   const converted = quote.convertedAt !== null;
+  // The guest has just come back from the card form. EmbeddedCheckout sets this whenever it could not
+  // confirm the payment itself — which for a quote guest is ALWAYS, since /api/v1/payments/sync needs
+  // a bearer token and they have no account — so it means "a card was submitted", never "it worked".
+  // What it rules out is the opposite reading: without it this page tells someone whose charge went
+  // through seconds ago that their payment may have failed.
+  const justPaid = typeof justPaidParam === 'string' && justPaidParam.length > 0;
 
   return (
     <>
@@ -136,26 +159,46 @@ export default async function QuotePage({
             Valid until {quote.validUntil}. Nothing is reserved until the quote is paid.
           </p>
 
-          {/* An ACCEPTED quote must not present an unqualified "Accept & pay". The link gets forwarded
-              — to a partner, to a travel agent — and gets reopened by the guest after paying; a live
-              payment CTA there invites a second attempt whose only answer is a refusal. The button
-              stays, as a secondary action, because api_convert_quote's re-arm branch is a real recovery
-              route for a booking that died unpaid. */}
-          {converted && (
+          {/* STRAIGHT OFF THE CARD FORM. The guest submitted a payment seconds ago, so this is the
+              moment for reassurance, not for a caveat about it having failed — and certainly not
+              above a live "Complete payment" button, which reads as "that didn't work, try again".
+              The webhook is what confirms the booking (and the confirmation email + VAT invoice
+              follow it), so the honest wording is "received, we're confirming it". Reloading the page
+              without the flag brings the recovery branch below back, if it is ever really needed. */}
+          {justPaid ? (
             <div className="mt-7 rounded-xl border border-teal/30 bg-teal/5 p-4">
               <p className="text-sm font-bold text-ink">
-                You have accepted this quote — a booking has been created.
+                Thank you — your payment has been received.
               </p>
               <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-                Check your email for the confirmation. If your payment did not go through, you can
-                still complete it below.
+                We are confirming it now, and your confirmation email is on its way. There is
+                nothing else for you to do.
               </p>
             </div>
-          )}
+          ) : (
+            <>
+              {/* An ACCEPTED quote must not present an unqualified "Accept & pay". The link gets
+                  forwarded — to a partner, to a travel agent — and gets reopened by the guest after
+                  paying; a live payment CTA there invites a second attempt whose only answer is a
+                  refusal. The button stays, as a secondary action, because api_convert_quote's re-arm
+                  branch is a real recovery route for a booking that died unpaid. */}
+              {converted && (
+                <div className="mt-7 rounded-xl border border-teal/30 bg-teal/5 p-4">
+                  <p className="text-sm font-bold text-ink">
+                    You have accepted this quote — a booking has been created.
+                  </p>
+                  <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
+                    Check your email for the confirmation. If your payment did not go through, you
+                    can still complete it below.
+                  </p>
+                </div>
+              )}
 
-          <div className="mt-7">
-            <QuotePayButton quoteRef={quote.ref} converted={converted} />
-          </div>
+              <div className="mt-7">
+                <QuotePayButton quoteRef={quote.ref} converted={converted} />
+              </div>
+            </>
+          )}
 
           <p className="mt-6 text-[13px] leading-relaxed text-ink-muted">
             Something to change? Reply to the email we sent you, or contact us at{' '}

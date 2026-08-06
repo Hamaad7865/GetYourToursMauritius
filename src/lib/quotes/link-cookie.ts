@@ -29,6 +29,8 @@
  * cookies that never cross.
  */
 
+import { SITE } from '@/lib/seo/site';
+
 /** One name for both scopes — the differing Path is what keeps them apart. */
 export const QUOTE_TOKEN_COOKIE = 'bmt_quote_token';
 
@@ -83,6 +85,24 @@ export function buildQuoteTokenCookies(ref: string, token: string): string[] {
 /** The page the guest ends up on: no token, nothing a tag or an error report could carry away. */
 export function quotePagePath(ref: string): string {
   return `/quotes/${ref}`;
+}
+
+/**
+ * THE `returnUrl` THE QUOTE PAY ROUTE MUST HAND `createPaymentLink`. Absolute, and this origin.
+ *
+ * `?return=` on /bookings/{ref}/pay only fixes the CLIENT-side half of the return trip: it is read by
+ * EmbeddedCheckout's own `router.replace` when the embedded widget completes or is cancelled. A card
+ * that takes the REDIRECT-based 3-D Secure path never gets there — the issuer sends the guest back
+ * top-level to whatever `shopperResultUrl` Peach was given, which is this value (see
+ * src/lib/payments/peach.ts). Leave it at the /api/v1/payments default, `${SITE_URL}/bookings/{ref}`,
+ * and the quote guest lands on BookingConfirmation's "Sign in to view booking …" — charged, then
+ * walled, which is the exact outcome the `?return=` work set out to remove.
+ *
+ * Absolute and same-origin are both load-bearing: peach.ts derives the `Origin` header it sends from
+ * this URL via `originOf`, so a relative path or another host breaks the checkout create outright.
+ */
+export function quotePayReturnUrl(ref: string): string {
+  return `${SITE.url}${quotePagePath(ref)}`;
 }
 
 /**

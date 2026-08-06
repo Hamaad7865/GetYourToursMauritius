@@ -3,8 +3,10 @@ import {
   QUOTE_TOKEN_COOKIE,
   buildQuoteTokenCookies,
   quoteOpenPath,
+  quotePayReturnUrl,
   quoteRefLooksValid,
 } from '@/lib/quotes/link-cookie';
+import { SITE } from '@/lib/seo/site';
 
 /**
  * The link token must never reach a RENDERED page's URL.
@@ -87,6 +89,21 @@ describe('quote link cookie', () => {
     expect(path).toBe(`/api/v1/quotes/${REF}/open?t=${TOKEN}`);
     // If this ever starts with /quotes/, the token is back in a rendered page URL.
     expect(path.startsWith('/api/')).toBe(true);
+  });
+
+  it('names an absolute, same-origin return URL for the provider — not /bookings/{ref}', () => {
+    // `?return=` only fixes the CLIENT-side half of the return trip: EmbeddedCheckout consumes it in
+    // its own router.replace on onCompleted/onCancelled. A card that takes the redirect-based 3-D
+    // Secure path comes back TOP-LEVEL to whatever `shopperResultUrl` Peach was given, and
+    // /bookings/{ref} renders "Sign in to view booking …" to someone who by definition has no account
+    // — charged, then walled. So the quote pay route must hand createPaymentLink THIS url.
+    const url = quotePayReturnUrl(REF);
+
+    expect(url).toBe(`${SITE.url}/quotes/${REF}`);
+    expect(url).not.toContain('/bookings/');
+    // Absolute and same-origin, both load-bearing: peach.ts derives the Origin header it sends from
+    // this URL via `originOf`, so a relative path (or another host) breaks the checkout create.
+    expect(url.startsWith(`${SITE.url}/`)).toBe(true);
   });
 
   it('moves the token into the cookie and redirects to a URL that does not carry it', async () => {

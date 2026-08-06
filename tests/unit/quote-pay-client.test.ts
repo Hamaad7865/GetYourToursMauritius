@@ -145,6 +145,24 @@ describe('quote pay flow', () => {
     expect(outcome.message).not.toMatch(/could not start/i);
   });
 
+  it('names the quote email when the link has timed out, rather than echoing “Not found”', async () => {
+    // The commonest refusal of the three, and the one the first cut had no branch for. Both link
+    // cookies carry QUOTE_TOKEN_MAX_AGE_SECONDS = 2 hours, so a guest who opens the quote, discusses
+    // it over lunch and comes back to the still-rendered tab clicks Accept & pay with no credential.
+    // The pay route answers 404 (never a distinguishable 401 — the ref must not become an existence
+    // oracle), whose message is the framework's own 'Not found'. Rendered verbatim in red under the
+    // button, that names nothing the guest can do; the one action that recovers it is reopening the
+    // emailed link, and the page says so nowhere.
+    const { outcome } = await run([
+      { status: 404, body: { ok: false, error: { code: 'not_found', message: 'Not found' } } },
+    ]);
+
+    expect(outcome.kind).toBe('error');
+    if (outcome.kind !== 'error') throw new Error('unreachable');
+    expect(outcome.message).not.toMatch(/^Not found\.?$/i);
+    expect(outcome.message, 'the guest is not told to reopen the emailed link').toMatch(/email/i);
+  });
+
   it('follows a hosted redirect when there is no embedded session', async () => {
     const { outcome } = await run([
       { status: 200, body: { ok: true, data: { redirectUrl: 'https://pay.example/abc' } } },
