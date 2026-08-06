@@ -5,6 +5,7 @@ import {
   NotFoundError,
   ProviderError,
   QuoteAlreadyConvertedError,
+  QuoteHasCatalogueLinesError,
   RateLimitError,
   SoldOutError,
   ValidationError,
@@ -134,12 +135,13 @@ export function mapDbError(error: unknown): never {
   if (/\b(quote_not_convertible|quote_total_mismatch)\b/.test(message)) {
     throw new ConflictError('This quote is not ready to pay yet — please message us.');
   }
-  // A scheduled activity on the quote still needs the hold path (a later task), so the conversion
-  // fails closed rather than charging for a seat nobody reserved.
+  // A scheduled activity on the quote still needs the hold path, which is NOT built, so the conversion
+  // fails closed rather than charging for a seat nobody reserved. Its own 409 code, not the generic
+  // `conflict` the three refusals above share: this one is a tracked product gap rather than a state
+  // the guest or the operator can put right, and it is the symbol to delete when the guard goes. See
+  // QuoteHasCatalogueLinesError.
   if (/\bquote_has_catalogue_lines\b/.test(message)) {
-    throw new ConflictError(
-      'This quote includes a scheduled activity, so it cannot be paid online yet — please message us.',
-    );
+    throw new QuoteHasCatalogueLinesError();
   }
   if (/\bforbidden\b/.test(message)) {
     throw new ForbiddenError();

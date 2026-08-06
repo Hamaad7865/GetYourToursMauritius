@@ -27,6 +27,13 @@ import type { CreatePaymentLinkInput } from '@/lib/services/payments';
  *   - and the catalogue re-price gate: if a catalogue line's price has moved since the offer was
  *     sent, the guest is refused with a 409 rather than charged a figure they never agreed to.
  *
+ * TWO TESTS AT THE END RECORD GAPS, THEY DO NOT SPECIFY BEHAVIOUR. Both are named KNOWN GAP / KNOWN
+ * BLOCKER, both carry the commit that should delete them, and both are refusals the module is meant to
+ * stop making: a quote carrying a scheduled activity cannot convert (the hold path Task 8 was
+ * specified to add is not built), and an ownerless quote booking cannot actually be charged
+ * (api_create_payment's authz guard). Each needs a money-path migration, so each has been raised for
+ * sign-off rather than written unilaterally. Read them as a to-do list, not as the answer.
+ *
  * `createPaymentLink` is faked for those tests, deliberately. Its own guarantee — that one booking can
  * never have two payable Peach sessions — is enforced by api_create_payment's single-flight lease and
  * is tested against the real database in tests/integration/payment-checkout-lease.test.ts. What this
@@ -411,11 +418,29 @@ describe('POST /api/v1/quotes/{ref}/pay', () => {
     expect(await bookingCount(quote)).toBe(0);
   });
 
-  it('lets an UNCHANGED catalogue price through the gate (it is not refusing everything)', async () => {
-    // The positive control. Without it, "refuse on drift" is satisfied by refusing always. The
-    // conversion then stops one step later, at api_convert_quote's own `quote_has_catalogue_lines`
-    // guard, which stands until the hold path exists — so the refusal here must be THAT one, and it
-    // must not be the price message.
+  it('KNOWN GAP: a correctly-priced catalogue quote is refused — the hold path is not built', async () => {
+    // THIS 409 IS NOT THE SPECIFIED ANSWER. It is a tracked gap, and the module's primary use case —
+    // a tailor-made itinerary of tours — is on the wrong side of it.
+    //
+    // Two things are pinned here at once. The first is the positive control the re-price gate needs:
+    // without it, "refuse on drift" is satisfied by refusing ALWAYS, so the refusal below must not be
+    // the price message. The second is the gap. The conversion stops one step later, at
+    // api_convert_quote's own `quote_has_catalogue_lines` guard (20260909000000), whose comment ends
+    // "DELETE THIS GUARD IN THE TASK THAT ADDS THE HOLD PATH, not before". Task 8 was specified to add
+    // it — take the hold against `session_occurrence_id` for each catalogue line, write the
+    // `booking_items` row, drop the guard — and did not. Doing so deletes a guard from a money-path
+    // SECURITY DEFINER function, so it is a migration, and it has been raised for sign-off rather than
+    // written unilaterally.
+    //
+    // The refusal carries its OWN error code rather than the generic `conflict` (the precedent is
+    // SoldOutError, for the same reason): the gap is then greppable, countable in error_logs, separable
+    // by the page from a real price refusal, and the commit that deletes the guard has one symbol to
+    // delete alongside it. DELETE THIS TEST in that commit and replace it with one asserting the seat
+    // is actually held.
+    //
+    // While it stands it must fail CLOSED and leave nothing half-done: no booking minted, `converted_at`
+    // unstamped, so the operator can still take this guest by hand and the same quote converts cleanly
+    // the day the guard lifts.
     const option = await seedOption('Adult', 5500);
     const quote = await seedQuote({
       lines: [
@@ -426,9 +451,19 @@ describe('POST /api/v1/quotes/{ref}/pay', () => {
     const res = await pay(quote.ref, quote.token);
 
     expect(res.status).toBe(409);
-    const message = (await res.json()).error.message;
-    expect(message).toMatch(/scheduled activity/i);
-    expect(message).not.toMatch(/price/i);
+    const { error } = await res.json();
+    expect(error.code).toBe('quote_has_catalogue_lines');
+    expect(error.message).toMatch(/scheduled activity/i);
+    // Not the re-price refusal: the quoted figure still matches the catalogue to the cent.
+    expect(error.message).not.toMatch(/price/i);
+
+    expect(await bookingCount(quote)).toBe(0);
+    const { rows } = await db.pg.query<{ booking_id: string | null; converted_at: string | null }>(
+      `select booking_id, converted_at from quotes where id = $1`,
+      [quote.id],
+    );
+    expect(rows[0]!.booking_id).toBeNull();
+    expect(rows[0]!.converted_at).toBeNull();
   });
 
   it('KNOWN BLOCKER: the real createPaymentLink cannot pay an ownerless quote booking', async () => {

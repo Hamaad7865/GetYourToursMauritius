@@ -50,7 +50,19 @@ type RouteCtx = { params: Promise<{ ref: string }> };
  *   1. rate limit, then the token — nothing is read for a caller who has not proved they hold a link;
  *   2. re-price the catalogue lines (below) — refuse BEFORE anything is minted;
  *   3. reuse the quote's existing payable booking, or convert with api_convert_quote;
+ *   3b. NOT BUILT — take the hold for each catalogue line and write its `booking_items` row;
  *   4. mint the checkout through `createPaymentLink`.
+ *
+ * STEP 3b IS MISSING, and it is the specified shape of this route, not an optional extra. The plan
+ * gives the order as "… otherwise api_convert_quote → for each catalogue line take the hold and insert
+ * the booking_items row → mint the checkout", and Task 4 defers it here by name ("catalogue lines are
+ * inserted by a follow-up step in Task 8, which calls the existing hold/capacity path"). Until it
+ * lands, api_convert_quote's `quote_has_catalogue_lines` guard stands — its own comment ends "DELETE
+ * THIS GUARD IN THE TASK THAT ADDS THE HOLD PATH, not before" — so a quote carrying ANY scheduled
+ * activity is refused with a 409 here (QuoteHasCatalogueLinesError), and a tailor-made itinerary of
+ * tours is exactly the module's motivating case. Custom lines convert and pay as specified; that is
+ * the whole of what works. Lifting the guard means editing a money-path SECURITY DEFINER function, so
+ * it is a migration, and it has been raised for sign-off rather than written unilaterally.
  *
  * STEP 4 IS `createPaymentLink`, NEVER `createCheckout` in src/lib/payments/peach.ts. That service
  * goes through api_create_payment, which holds the single-flight checkout lease and pins the charge:

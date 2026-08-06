@@ -15,6 +15,7 @@ export type ServiceErrorCode =
   | 'booking_not_payable'
   | 'checkout_pending'
   | 'quote_already_converted'
+  | 'quote_has_catalogue_lines'
   | 'rate_limited'
   | 'config_error'
   | 'provider_error'
@@ -119,6 +120,31 @@ export class QuoteAlreadyConvertedError extends ServiceError {
     details?: unknown,
   ) {
     super('quote_already_converted', message, 409, details);
+  }
+}
+
+/**
+ * A KNOWN, TRACKED GAP — not a rule the product means to keep.
+ *
+ * A quote carrying a catalogue (scheduled-activity) line cannot be converted yet: the line names an
+ * occurrence, so it carries capacity and must travel through the existing hold path into
+ * `booking_items`, and that step was specified for the pay route but is not built. api_convert_quote
+ * therefore fails closed with `quote_has_catalogue_lines` (20260909000000) rather than charge for a
+ * seat nobody reserved, and this is that refusal at the HTTP edge.
+ *
+ * It gets its own 409 code instead of the generic `conflict` for the reason {@link SoldOutError} does:
+ * a caller — and error_logs, and anyone grepping — can then tell a temporary, product-side gap from a
+ * price that moved or a quote that is simply unfinished, all of which are otherwise 409 `conflict`
+ * with different prose. It is also the single symbol to delete when the guard goes.
+ *
+ * DELETE THIS ERROR in the same commit that adds the hold path and drops the SQL guard, not before.
+ */
+export class QuoteHasCatalogueLinesError extends ServiceError {
+  constructor(
+    message = 'This quote includes a scheduled activity, so it cannot be paid online yet — please message us.',
+    details?: unknown,
+  ) {
+    super('quote_has_catalogue_lines', message, 409, details);
   }
 }
 
