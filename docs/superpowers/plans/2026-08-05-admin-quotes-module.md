@@ -781,6 +781,50 @@ git commit -m "docs(quotes): contract and handbook entry"
 
 ---
 
+## Task 11: Give a quote booking an owner
+
+> Added 2026-08-06, BEFORE implementation, on the owner's explicit decision. Not started when written.
+
+**Why this is not optional.** Every booking in production today has a `user_id`; a quote booking would be
+the first ownerless one. The booking RLS policy is `using (user_id = auth.uid() or is_staff())`, and with
+a null `user_id` neither branch is true — `null = auth.uid()` is null, not true. So a paid quote booking
+is invisible to every customer forever, including the guest who paid, and the confirmation email's
+"View & download your e-voucher" button points at `/bookings/{ref}`, which that policy guards. Left as is,
+the guest pays and then hits a wall.
+
+**Owner's decision:** match by email at payment, and claim retroactively if they sign up later.
+
+**Files:**
+
+- Modify: `supabase/migrations/20260909000000_quotes.sql` (`api_convert_quote`)
+- Create: a claim RPC + its migration section
+- Modify: the confirmation/voucher link path for a guest who never signs up
+- Test: `tests/integration/quote-booking-owner.test.ts`
+
+**Rules the tests must pin:**
+
+1. At conversion, `api_convert_quote` sets `bookings.user_id` to the account whose email matches the
+   quote's, matched **case-insensitively** and **only against a CONFIRMED account**
+   (`email_confirmed_at is not null`). An unconfirmed signup must never be able to claim someone else's
+   booking simply by registering their address.
+2. No match means `user_id` stays null and the booking is still payable and still reachable through the
+   quote link. Ownerless is a valid state, not an error.
+3. Claiming later is idempotent and **never re-assigns an already-owned booking** — it may only move a
+   booking from null to a user, never from one user to another.
+4. A later claim matches on the claimer's own confirmed email only. Never on an address they merely typed.
+5. The guest who never signs up must still reach their voucher. Either the confirmation email links
+   through the quote token, or the voucher route accepts it — pick one and test that a signed-out guest
+   with a valid token can load their voucher while an invalid token cannot.
+6. Erasure still reaches these bookings (it matches on email, so confirm it, do not assume it).
+
+**Known risk, accepted by the owner:** a mistyped email that belongs to a real confirmed account attaches
+that booking to the wrong person's account, exposing name, phone, pickup address and amount. The same typo
+already emails the offer itself to that person, so the first disclosure happens either way — but the
+booking attachment is the more durable one. Do not widen matching beyond a confirmed exact
+(case-insensitive) address.
+
+---
+
 ## Self-Review
 
 **Spec coverage:** draft with catalogue + custom lines (Tasks 1, 5, 9) · dates on custom lines (Task 1, `starts_at`/`ends_at`) · send by email with everything requested (Task 6) · link to checkout (Tasks 7, 8) · payment lands in the ledger and fires invoice/confirmation (Task 8 reuses the untouched Peach path) · rentals (Part 2, groundwork in Task 1) · calendar visibility (Part 3, index in Task 1).
