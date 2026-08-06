@@ -5,7 +5,6 @@ import {
   NotFoundError,
   ProviderError,
   QuoteAlreadyConvertedError,
-  QuoteHasCatalogueLinesError,
   RateLimitError,
   SoldOutError,
   ValidationError,
@@ -19,6 +18,19 @@ import {
 export function mapDbError(error: unknown): never {
   const message = error instanceof Error ? error.message : String(error);
 
+  // A quote's catalogue line could not take its seat (api_convert_quote's hold path). ABOVE the
+  // generic capacity branch on purpose — first match wins, and the DETAIL this token carries names
+  // create_hold's own refusal, so the order is what keeps a quote from being answered in the cart's
+  // words. Same `sold_out` code, because that is what happened; a different MESSAGE, because a quote
+  // guest cannot act on "pick another date" — the date was arranged for them, and the person who can
+  // re-arrange it is the operator.
+  if (/\bquote_seats_unavailable\b/.test(message)) {
+    throw new SoldOutError(
+      'One of the activities on this quote is no longer available on the date we offered, so we ' +
+        'could not take your payment — nothing has been charged. Please message us and we will ' +
+        'sort out a new date.',
+    );
+  }
   if (/\binsufficient_capacity\b/.test(message)) {
     // Distinct `sold_out` code (not generic `conflict`) so the cart can tell a REAL sold-out from the
     // retryable 409s below (idempotency dup-key race, expired hold) and only then drop the line.
@@ -134,14 +146,6 @@ export function mapDbError(error: unknown): never {
   // finished, and only the owner can put it right.
   if (/\b(quote_not_convertible|quote_total_mismatch)\b/.test(message)) {
     throw new ConflictError('This quote is not ready to pay yet — please message us.');
-  }
-  // A scheduled activity on the quote still needs the hold path, which is NOT built, so the conversion
-  // fails closed rather than charging for a seat nobody reserved. Its own 409 code, not the generic
-  // `conflict` the three refusals above share: this one is a tracked product gap rather than a state
-  // the guest or the operator can put right, and it is the symbol to delete when the guard goes. See
-  // QuoteHasCatalogueLinesError.
-  if (/\bquote_has_catalogue_lines\b/.test(message)) {
-    throw new QuoteHasCatalogueLinesError();
   }
   if (/\bforbidden\b/.test(message)) {
     throw new ForbiddenError();

@@ -417,30 +417,80 @@ describe('POST /api/v1/quotes/{ref}/pay', () => {
     expect(await bookingCount(quote)).toBe(0);
   });
 
-  it('KNOWN GAP: a correctly-priced catalogue quote is refused — the hold path is not built', async () => {
-    // THIS 409 IS NOT THE SPECIFIED ANSWER. It is a tracked gap, and the module's primary use case —
-    // a tailor-made itinerary of tours — is on the wrong side of it.
+  it('a correctly-priced catalogue quote converts, RESERVES the seat and mints a checkout', async () => {
+    // The module's motivating case — a tailor-made itinerary of real tours — and the positive control
+    // the two re-price tests above need: without it, "refuse when the price moved" would be satisfied
+    // by refusing always.
     //
-    // Two things are pinned here at once. The first is the positive control the re-price gate needs:
-    // without it, "refuse on drift" is satisfied by refusing ALWAYS, so the refusal below must not be
-    // the price message. The second is the gap. The conversion stops one step later, at
-    // api_convert_quote's own `quote_has_catalogue_lines` guard (20260909000000), whose comment ends
-    // "DELETE THIS GUARD IN THE TASK THAT ADDS THE HOLD PATH, not before". Task 8 was specified to add
-    // it — take the hold against `session_occurrence_id` for each catalogue line, write the
-    // `booking_items` row, drop the guard — and did not. Doing so deletes a guard from a money-path
-    // SECURITY DEFINER function, so it is a migration, and it has been raised for sign-off rather than
-    // written unilaterally.
-    //
-    // The refusal carries its OWN error code rather than the generic `conflict` (the precedent is
-    // SoldOutError, for the same reason): the gap is then greppable, countable in error_logs, separable
-    // by the page from a real price refusal, and the commit that deletes the guard has one symbol to
-    // delete alongside it. DELETE THIS TEST in that commit and replace it with one asserting the seat
-    // is actually held.
-    //
-    // While it stands it must fail CLOSED and leave nothing half-done: no booking minted, `converted_at`
-    // unstamped, so the operator can still take this guest by hand and the same quote converts cleanly
-    // the day the guard lifts.
+    // The seat is reserved by api_convert_quote itself, in the transaction that mints the booking, so
+    // by the time a checkout exists the departure is already short two places.
     const option = await seedOption('Adult', 5500);
+    const quote = await seedQuote({
+      lines: [
+        { kind: 'catalogue', priceLabel: 'Adult', option, quantity: 2, unitAmountMinor: 5500 },
+        {
+          kind: 'custom',
+          description: 'Private guide for the day',
+          quantity: 1,
+          unitAmountMinor: 12_000,
+        },
+      ],
+    });
+
+    const res = await pay(quote.ref, quote.token);
+
+    expect(res.status).toBe(201);
+    const { data } = await res.json();
+    expect(data.bookingRef).toMatch(/^BMT[0-9A-F]{13}$/);
+    expect(await bookingCount(quote)).toBe(1);
+
+    // The catalogue line is a booking_items row on a real occurrence; the custom line rides along on
+    // booking_custom_items. Both, in one booking, from one transaction.
+    const { rows: sold } = await db.pg.query<{
+      items: number;
+      units: number;
+      custom: number;
+      total: string;
+    }>(
+      `select (select count(*)::int from booking_items bi where bi.booking_id = b.id) as items,
+              (select coalesce(sum(bi.quantity), 0)::int from booking_items bi
+                where bi.booking_id = b.id) as units,
+              (select count(*)::int from booking_custom_items bc where bc.booking_id = b.id) as custom,
+              b.total_minor::text as total
+         from bookings b where b.ref = $1`,
+      [data.bookingRef],
+    );
+    expect(sold[0]!.items).toBe(1);
+    expect(sold[0]!.units).toBe(2);
+    expect(sold[0]!.custom).toBe(1);
+    expect(Number(sold[0]!.total)).toBe(23_000);
+
+    // …and the seats are actually gone: an active hold, attached to this booking, counted by the same
+    // used_capacity() the availability calendar and every other checkout read.
+    const { rows: held } = await db.pg.query<{ n: number; qty: number; used: number }>(
+      `select count(*)::int as n, coalesce(sum(h.quantity), 0)::int as qty,
+              used_capacity($1)::int as used
+         from booking_holds h
+         join bookings b on b.id = h.booking_id
+        where h.session_occurrence_id = $1 and h.status = 'active' and b.ref = $2`,
+      [option.occurrenceId, data.bookingRef],
+    );
+    expect(held[0]!.n, 'no hold was attached to the quote booking').toBe(1);
+    expect(held[0]!.qty).toBe(2);
+    expect(held[0]!.used).toBe(2);
+  });
+
+  it('refuses a SOLD-OUT catalogue line without minting a booking or a checkout', async () => {
+    // The one that takes money for a seat that does not exist if it is wrong. The refusal has to land
+    // before `createPaymentLink` is ever reached — a checkout minted here is a card form in front of a
+    // guest for a place we cannot sell.
+    const option = await seedOption('Adult', 5500);
+    // Another party takes all twenty units a moment before this guest clicks Pay.
+    await db.pg.query(
+      `insert into booking_holds (session_occurrence_id, quantity, idempotency_key)
+       values ($1, 20, $2)`,
+      [option.occurrenceId, `full-${option.occurrenceId}`],
+    );
     const quote = await seedQuote({
       lines: [
         { kind: 'catalogue', priceLabel: 'Adult', option, quantity: 2, unitAmountMinor: 5500 },
@@ -451,18 +501,51 @@ describe('POST /api/v1/quotes/{ref}/pay', () => {
 
     expect(res.status).toBe(409);
     const { error } = await res.json();
-    expect(error.code).toBe('quote_has_catalogue_lines');
-    expect(error.message).toMatch(/scheduled activity/i);
+    expect(error.code).toBe('sold_out');
+    // Something the guest can do: they cannot pick another date themselves — the date was arranged
+    // for them — so the message has to hand them back to the operator, and say nothing was charged.
+    expect(error.message).toMatch(/message us/i);
+    expect(error.message).toMatch(/nothing has been charged/i);
     // Not the re-price refusal: the quoted figure still matches the catalogue to the cent.
-    expect(error.message).not.toMatch(/price/i);
+    expect(error.message).not.toMatch(/prices on this quote have changed/i);
 
+    // NOTHING minted and NOTHING charged.
     expect(await bookingCount(quote)).toBe(0);
+    expect(hoisted.calls, 'a checkout was minted for a departure with no seats').toHaveLength(0);
     const { rows } = await db.pg.query<{ booking_id: string | null; converted_at: string | null }>(
       `select booking_id, converted_at from quotes where id = $1`,
       [quote.id],
     );
     expect(rows[0]!.booking_id).toBeNull();
-    expect(rows[0]!.converted_at).toBeNull();
+    expect(rows[0]!.converted_at, 'a refused quote was locked shut').toBeNull();
+  });
+
+  it('a second click on a catalogue quote takes the seat once, not twice', async () => {
+    // The double click, one level up from the RPC's own convert-once guard: the route reuses the
+    // booking the first call minted, so no second conversion runs and no second hold is taken.
+    const option = await seedOption('Adult', 5500);
+    const quote = await seedQuote({
+      lines: [
+        { kind: 'catalogue', priceLabel: 'Adult', option, quantity: 3, unitAmountMinor: 5500 },
+      ],
+    });
+
+    const first = await pay(quote.ref, quote.token);
+    const second = await pay(quote.ref, quote.token);
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    expect((await second.json()).data.bookingRef).toBe((await first.json()).data.bookingRef);
+    expect(await bookingCount(quote)).toBe(1);
+
+    const { rows } = await db.pg.query<{ holds: number; used: number }>(
+      `select (select count(*)::int from booking_holds h
+                where h.session_occurrence_id = $1 and h.status = 'active') as holds,
+              used_capacity($1)::int as used`,
+      [option.occurrenceId],
+    );
+    expect(rows[0]!.holds, 'the second click reserved the seats again').toBe(1);
+    expect(rows[0]!.used).toBe(3);
   });
 
   it('the REAL payments service mints a checkout for the ownerless quote booking', async () => {

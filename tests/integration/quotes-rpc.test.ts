@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
 import { pgliteRpc, pgliteServiceRoleRpc } from '../db/rpc';
-import { seedOccurrence } from '../db/seed';
+import { seedOccurrence, seedPrivateOption } from '../db/seed';
 import { mapDbError } from '@/lib/services/db-errors';
 import type { ServiceError } from '@/lib/services/errors';
 import type { DbRpc } from '@/lib/db/rpc';
@@ -47,6 +47,8 @@ interface CatalogueLine {
   optionId: string;
   quantity: number;
   amount: number;
+  /** The catalogue tier. `booking_items.price_label` is NOT NULL, so the conversion needs one. */
+  label?: string;
 }
 
 interface SeededQuote {
@@ -113,14 +115,15 @@ describe('api_convert_quote', () => {
       position += 1;
       await db.pg.query(
         `insert into quote_items
-           (quote_id, position, kind, session_occurrence_id, activity_option_id,
+           (quote_id, position, kind, session_occurrence_id, activity_option_id, price_label,
             quantity, unit_amount_minor, subtotal_minor)
-         values ($1, $2, 'catalogue', $3, $4, $5, $6, $7)`,
+         values ($1, $2, 'catalogue', $3, $4, $5, $6, $7, $8)`,
         [
           id,
           position,
           line.occurrenceId,
           line.optionId,
+          line.label ?? 'Adult',
           line.quantity,
           line.amount,
           line.amount * line.quantity,
@@ -128,6 +131,51 @@ describe('api_convert_quote', () => {
       );
     }
     return { id, ref, email };
+  }
+
+  /**
+   * The occurrence's seat count as the REST of the system reads it: confirmed booking_items plus
+   * active holds, summed in booking UNITS. Every capacity assertion below goes through this rather
+   * than counting rows, because this is the function api_list_availability and create_hold consult.
+   */
+  async function usedCapacity(occurrenceId: string): Promise<number> {
+    const { rows } = await db.pg.query<{ n: number }>(`select used_capacity($1)::int as n`, [
+      occurrenceId,
+    ]);
+    return rows[0]!.n;
+  }
+
+  interface HoldRow {
+    quantity: number;
+    status: string;
+    booking_id: string | null;
+  }
+
+  /** Every hold ever taken against an occurrence, oldest first. */
+  async function holdsFor(occurrenceId: string): Promise<HoldRow[]> {
+    const { rows } = await db.pg.query<HoldRow>(
+      `select quantity, status, booking_id from booking_holds
+        where session_occurrence_id = $1 order by created_at, quantity`,
+      [occurrenceId],
+    );
+    return rows;
+  }
+
+  interface ItemRow {
+    session_occurrence_id: string;
+    activity_option_id: string;
+    price_label: string;
+    quantity: number;
+    subtotal_minor: number;
+  }
+
+  async function bookingItems(bookingId: string): Promise<ItemRow[]> {
+    const { rows } = await db.pg.query<ItemRow>(
+      `select session_occurrence_id, activity_option_id, price_label, quantity, subtotal_minor
+         from booking_items where booking_id = $1 order by created_at, price_label`,
+      [bookingId],
+    );
+    return rows;
   }
 
   /** How many bookings exist at all — the "did a second payable booking appear?" counter. */
@@ -551,20 +599,142 @@ describe('api_convert_quote', () => {
     ).toBe(before);
   });
 
-  it('refuses a quote carrying a catalogue line rather than half-converting it', async () => {
-    // A catalogue line names an occurrence, so it carries capacity and has to travel through the
-    // hold path. Until that exists, copying total_minor while dropping the line would charge the
-    // guest for a seat nobody reserved — and append_payment_event's oversell re-check loops over
-    // `booking_items`, which would be empty, so the booking would CONFIRM unconditionally with no
-    // voucher line and no day-sheet entry. converted_at would then lock the quote forever.
+  // ── The capacity-hold path for catalogue lines ────────────────────────────
+  //
+  // A catalogue line names an occurrence, so it carries CAPACITY: unlike a custom line it is a seat
+  // on a real departure, and it is only really reserved if it is reserved by the machinery every
+  // other booking uses — create_hold (the universal gate api_create_hold and api_book both delegate
+  // their hold INSERT to) plus a booking_items row, which is what used_capacity() sums and what
+  // append_payment_event's oversell re-check reads before it confirms anything.
+  //
+  // Capacity is counted in booking UNITS (sum of quantity), never in people, so every assertion here
+  // goes through used_capacity() rather than counting rows.
+
+  it('holds the seat for a catalogue line and lands it on the booking as a booking_items row', async () => {
     await db.asOwner();
     const seeded = await seedOccurrence(db, 10);
     const quote = await seedQuote({
-      customLines: [{ description: 'Guide', amount: 5000 }],
+      customLines: [{ description: 'Private guide', amount: 5000 }],
       catalogueLines: [
         {
           occurrenceId: seeded.occurrenceId,
           optionId: seeded.optionId,
+          label: 'Adult',
+          quantity: 2,
+          amount: 30000,
+        },
+      ],
+    });
+
+    const booking = await callRpc<{ id: string; totalEur: number }>('api_convert_quote', {
+      quoteId: quote.id,
+    });
+
+    // The seat, as the rest of the system counts it. Without the booking_items row
+    // append_payment_event's oversell re-check loops over an EMPTY set and confirms unconditionally,
+    // and the day sheet has no entry for a guest who paid.
+    const items = await bookingItems(booking.id);
+    expect(items, 'the catalogue line did not reach booking_items').toHaveLength(1);
+    expect(items[0]!.session_occurrence_id).toBe(seeded.occurrenceId);
+    expect(items[0]!.activity_option_id).toBe(seeded.optionId);
+    expect(items[0]!.price_label).toBe('Adult');
+    expect(items[0]!.quantity).toBe(2);
+    expect(Number(items[0]!.subtotal_minor)).toBe(60000);
+
+    // The hold, ATTACHED to the booking. An unattached hold is not merely untidy: the oversell
+    // re-check counts every active hold that is not this booking's own against it, so the guest's
+    // own reservation would push their payment into refund_pending.
+    const holds = await holdsFor(seeded.occurrenceId);
+    expect(holds, 'no hold was taken for the catalogue line').toHaveLength(1);
+    expect(holds[0]!.quantity).toBe(2);
+    expect(holds[0]!.status).toBe('active');
+    expect(holds[0]!.booking_id, 'the hold was left detached from the booking it reserves').toBe(
+      booking.id,
+    );
+
+    // Two units gone from the pool of ten — once, not twice (the hold and the item are the same
+    // two seats, which is why the hold's quantity must equal the lines' quantities).
+    expect(await usedCapacity(seeded.occurrenceId)).toBe(2);
+
+    // …and the custom line still travels, in the same transaction and on the same booking.
+    const { rows: custom } = await db.pg.query<{ description: string }>(
+      `select description from booking_custom_items where booking_id = $1`,
+      [booking.id],
+    );
+    expect(custom).toHaveLength(1);
+    expect(custom[0]!.description).toBe('Private guide');
+    expect(booking.totalEur).toBe(650);
+  });
+
+  it('lets the payment CONFIRM: the reserved seat is not counted against the guest who reserved it', async () => {
+    // The end of the money path, and the reason the hold is attached to the booking rather than left
+    // floating. append_payment_event re-checks capacity before it confirms anything, counting every
+    // active hold that is NOT this booking's own — so a detached hold is the guest's own reservation
+    // proving the trip is full, and their good payment is routed to refund_pending: charged, then
+    // refunded, for a seat that was theirs all along.
+    await db.asOwner();
+    const seeded = await seedOccurrence(db, 4);
+    const quote = await seedQuote({
+      catalogueLines: [
+        {
+          occurrenceId: seeded.occurrenceId,
+          optionId: seeded.optionId,
+          label: 'Adult',
+          quantity: 4,
+          amount: 15000,
+        },
+      ],
+    });
+    const booking = await callRpc<{ id: string }>('api_convert_quote', { quoteId: quote.id });
+
+    // The real ledger, exactly as the verified Peach webhook writes it.
+    const { rows: payment } = await db.pg.query<{ id: string }>(
+      `insert into payments (booking_id, idempotency_key, amount_minor)
+       values ($1, $2, 60000) returning id`,
+      [booking.id, `idem-catalogue-${booking.id}`],
+    );
+    await db.pg.query(`select append_payment_event($1, 'paid', $2, 60000, now(), '{}'::jsonb)`, [
+      payment[0]!.id,
+      `evt-catalogue-${booking.id}`,
+    ]);
+
+    const { rows: after } = await db.pg.query<{ status: string; hold_status: string | null }>(
+      // The hold is read by SUBQUERY, not by a join: a detached hold would drop the row entirely and
+      // the failure would read as "cannot read properties of undefined" instead of naming the money.
+      `select b.status,
+              (select h.status::text from booking_holds h where h.booking_id = b.id) as hold_status
+         from bookings b where b.id = $1`,
+      [booking.id],
+    );
+    expect(after[0]!.status, 'a paid quote booking was sent for refund as an oversell').toBe(
+      'confirmed',
+    );
+    expect(after[0]!.hold_status, 'the hold was left active after the booking confirmed').toBe(
+      'consumed',
+    );
+    // Still four of four: the hold gave way to the confirmed booking_items rows, not to nothing.
+    expect(await usedCapacity(seeded.occurrenceId)).toBe(4);
+  });
+
+  it('refuses a sold-out occurrence with a message the guest can act on, and writes NOTHING', async () => {
+    // The money question this whole path exists for: a seat that is gone must stop the payment
+    // BEFORE a booking is minted, or the guest is charged for a place that does not exist.
+    await db.asOwner();
+    const seeded = await seedOccurrence(db, 2);
+    // Somebody else took the last two units a moment ago.
+    await db.pg.query(
+      `insert into booking_holds (session_occurrence_id, quantity, idempotency_key)
+       values ($1, 2, $2)`,
+      [seeded.occurrenceId, `other-party-${seeded.occurrenceId}`],
+    );
+
+    const quote = await seedQuote({
+      customLines: [{ description: 'Guide for the sold-out day', amount: 5000 }],
+      catalogueLines: [
+        {
+          occurrenceId: seeded.occurrenceId,
+          optionId: seeded.optionId,
+          label: 'Adult',
           quantity: 2,
           amount: 30000,
         },
@@ -573,10 +743,25 @@ describe('api_convert_quote', () => {
 
     const before = await quoteBookingCount();
     const error = await refusalFor(quote.id);
-    expect(error.status, 'a catalogue quote fell through as an unmapped 500').toBe(409);
-    expect(await quoteBookingCount(), 'a catalogue quote minted a booking anyway').toBe(before);
+    expect(error.status, 'a sold-out quote fell through as an unmapped 500').toBe(409);
+    // Its own code, not the generic `conflict`: this is a real sold-out, the same class the cart
+    // gets, and error_logs has to be able to count it.
+    expect(error.code).toBe('sold_out');
+    expect(error.message, 'the guest is shown a raw database token').toMatch(/[a-z] [a-z]/);
+    expect(error.message, 'the refusal names nothing the guest can do next').toMatch(/message us/i);
 
-    // Nothing half-written, and the quote is still convertible once the hold path lands.
+    // NOTHING written: no booking, no custom line orphaned on one, no hold, no conversion stamp.
+    expect(await quoteBookingCount(), 'a sold-out quote minted a payable booking').toBe(before);
+    expect(await usedCapacity(seeded.occurrenceId), 'the refused quote still moved capacity').toBe(
+      2,
+    );
+    expect(await holdsFor(seeded.occurrenceId), 'a hold survived the refusal').toHaveLength(1);
+    const { rows: orphans } = await db.pg.query<{ n: number }>(
+      `select count(*)::int as n from booking_custom_items where description = $1`,
+      ['Guide for the sold-out day'],
+    );
+    expect(orphans[0]!.n, 'the custom lines were written without the catalogue seats').toBe(0);
+
     const { rows } = await db.pg.query<{
       booking_id: string | null;
       converted_at: string | null;
@@ -585,6 +770,147 @@ describe('api_convert_quote', () => {
     expect(rows[0]!.booking_id).toBeNull();
     expect(rows[0]!.converted_at, 'the quote was locked shut by a refused conversion').toBeNull();
     expect(rows[0]!.status).toBe('sent');
+  });
+
+  it('takes the seat exactly ONCE, however many times the quote is presented', async () => {
+    // The double click. The convert-once guard is what makes this true, so this is also the test
+    // that would catch a hold path bolted on OUTSIDE it.
+    await db.asOwner();
+    const seeded = await seedOccurrence(db, 10);
+    const quote = await seedQuote({
+      catalogueLines: [
+        {
+          occurrenceId: seeded.occurrenceId,
+          optionId: seeded.optionId,
+          label: 'Adult',
+          quantity: 3,
+          amount: 20000,
+        },
+      ],
+    });
+
+    const booking = await callRpc<{ id: string }>('api_convert_quote', { quoteId: quote.id });
+    const error = await refusalFor(quote.id);
+    expect(error.status).toBe(409);
+    expect(error.code).toBe('quote_already_converted');
+
+    expect(await usedCapacity(seeded.occurrenceId), 'the second click took the seats again').toBe(
+      3,
+    );
+    expect(await holdsFor(seeded.occurrenceId)).toHaveLength(1);
+    expect(await bookingItems(booking.id)).toHaveLength(1);
+  });
+
+  it('still refuses a total that has drifted from its lines — and holds nothing on the way out', async () => {
+    // The re-check that already existed must keep firing now that a catalogue line reaches the
+    // booking: a catalogue price that moved between drafting and payment has to REFUSE rather than
+    // charge a different figure — and it must refuse without quietly reserving the seat first.
+    await db.asOwner();
+    const seeded = await seedOccurrence(db, 10);
+    const quote = await seedQuote({
+      catalogueLines: [
+        {
+          occurrenceId: seeded.occurrenceId,
+          optionId: seeded.optionId,
+          label: 'Adult',
+          quantity: 2,
+          amount: 30000,
+        },
+      ],
+    });
+    await db.pg.query(`update quotes set total_minor = 90000 where id = $1`, [quote.id]);
+
+    const before = await quoteBookingCount();
+    const error = await refusalFor(quote.id);
+    expect(error.status).toBe(409);
+    expect(error.code).toBe('conflict');
+    expect(await quoteBookingCount(), 'a drifted catalogue quote minted a booking').toBe(before);
+    expect(await usedCapacity(seeded.occurrenceId), 'a refused quote reserved a seat').toBe(0);
+    expect(await holdsFor(seeded.occurrenceId)).toHaveLength(0);
+  });
+
+  it('hands the dead booking’s seats back when the quote re-arms', async () => {
+    // The re-arm branch mints a SECOND booking for the same quote, which needs a second hold. The
+    // first booking's hold is still active — run_booking_maintenance only releases holds for the
+    // bookings IT expired, so a hand-cancelled one keeps its seats for the rest of the hold's life —
+    // and on a full departure that is the guest's own abandoned attempt selling the trip out from
+    // under them, with no way back until the hold lapses.
+    await db.asOwner();
+    const seeded = await seedOccurrence(db, 4);
+    const quote = await seedQuote({
+      catalogueLines: [
+        {
+          occurrenceId: seeded.occurrenceId,
+          optionId: seeded.optionId,
+          label: 'Adult',
+          quantity: 4,
+          amount: 15000,
+        },
+      ],
+    });
+
+    const first = await callRpc<{ id: string }>('api_convert_quote', { quoteId: quote.id });
+    expect(await usedCapacity(seeded.occurrenceId)).toBe(4);
+
+    // Cancelled by hand: dead, never took a cent, and its hold is untouched.
+    await db.pg.query(`update bookings set status = 'cancelled' where id = $1`, [first.id]);
+
+    const second = await callRpc<{ id: string; status: string }>('api_convert_quote', {
+      quoteId: quote.id,
+    });
+    expect(second.id).not.toBe(first.id);
+    expect(second.status).toBe('payment_pending');
+
+    // FOUR of four, not eight of four: the dead booking's units went back to the pool.
+    expect(await usedCapacity(seeded.occurrenceId), 'one quote is holding two sets of seats').toBe(
+      4,
+    );
+    const holds = await holdsFor(seeded.occurrenceId);
+    expect(holds.filter((hold) => hold.status === 'active')).toHaveLength(1);
+    expect(holds.find((hold) => hold.status === 'active')!.booking_id).toBe(second.id);
+  });
+
+  it('refuses a catalogue line on a private option rather than guessing at its capacity', async () => {
+    // A private/vehicle option counts ONE unit of the pool per BOOKING (the pool is trips per day)
+    // and records the head count in booking_items.pax. Reading a 6-guest line as 6 units would sell
+    // six departures. There is no editor that can draft such a line yet and no price tier to
+    // re-price it from, so the money path fails closed instead of guessing.
+    await db.asOwner();
+    const seeded = await seedOccurrence(db, 10);
+    // ROOMY on purpose: 8 trips in the day's pool against a 6-guest line. A tight pool would make
+    // create_hold refuse for lack of room, and this test would pass while reading a private line as
+    // six departures — the very mistake it exists to catch.
+    const priv = await seedPrivateOption(db, seeded, {
+      baseMinor: 40000,
+      included: 4,
+      extraMinor: 5000,
+      maxGuests: 8,
+      tripsPerDay: 8,
+    });
+    const quote = await seedQuote({
+      catalogueLines: [
+        {
+          occurrenceId: priv.occurrenceId,
+          optionId: priv.optionId,
+          label: 'Private charter',
+          quantity: 6,
+          amount: 10000,
+        },
+      ],
+    });
+
+    const before = await quoteBookingCount();
+    const error = await refusalFor(quote.id);
+    expect(error.status).toBe(409);
+    // `conflict` (quote_not_convertible), NOT `sold_out`: refused because the shape cannot be priced
+    // into seats, not because the pool happened to be too small to take six of them.
+    expect(error.code, 'the line was read as six departures and refused for lack of room').toBe(
+      'conflict',
+    );
+    expect(await quoteBookingCount(), 'a private catalogue quote minted a booking').toBe(before);
+    expect(await usedCapacity(priv.occurrenceId), 'six trips were reserved for one charter').toBe(
+      0,
+    );
   });
 
   it('refuses a cancelled quote', async () => {

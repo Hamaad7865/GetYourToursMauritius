@@ -24058,7 +24058,9 @@ comment on function quote_owner_for_email(text) is
 --     re-arm note below.
 --   * `for update` on the quote row, so two guests clicking Pay at the same instant serialise here
 --     rather than both reading an unconverted quote and both minting a booking.
---   * it FAILS CLOSED on a catalogue line — see the guard below.
+--   * a catalogue line TAKES ITS SEAT here, through create_hold and booking_items, in this same
+--     transaction — see the hold path below. Capacity that is reserved a round trip later is not
+--     reserved: it is a payable booking with nothing behind it.
 --   * every refusal raises a repo error TOKEN, never a human sentence. src/lib/services/db-errors.ts
 --     matches snake_case tokens on word boundaries; anything else falls through to
 --     `console.error('[db] unmapped database error')` + ProviderError, i.e. HTTP 500 "Database
@@ -24123,6 +24125,8 @@ declare
   v_reusable boolean := false;
   v_lines_minor bigint;
   v_owner uuid;
+  v_seats record;
+  v_hold booking_holds;
 begin
   select * into v_quote
     from quotes
@@ -24201,6 +24205,21 @@ begin
       raise exception 'quote_already_converted'
         using detail = coalesce(v_prior.status::text, 'linked booking no longer exists');
     end if;
+
+    -- THE DEAD BOOKING'S SEATS GO BACK BEFORE THIS CONVERSION TAKES FRESH ONES.
+    --
+    -- Re-arming mints a SECOND booking, which takes its own holds below — so unless the first
+    -- booking's holds are released here, one quote reserves two sets of seats for the rest of their
+    -- 30-minute life. Nothing else does it: run_booking_maintenance releases holds only for the
+    -- bookings IT expired, so a hand-cancelled booking (or one already swept while its hold ran on)
+    -- keeps them. On a nearly-full departure that is the guest's own abandoned attempt selling the
+    -- trip out from under them — create_hold would raise `insufficient_capacity` and the quote would
+    -- read as sold out to the only person entitled to those seats.
+    --
+    -- Safe because of what the branch above has already established: this booking is dead
+    -- (expired/cancelled/failed), never took a cent, and cannot take one.
+    update booking_holds set status = 'released'
+     where booking_id = v_prior.id and status = 'active';
   end if;
 
   -- Status: an explicit WHITELIST, the shape api_create_payment uses next door. A blacklist of one
@@ -24227,22 +24246,47 @@ begin
     raise exception 'quote_not_convertible' using detail = 'zero total';
   end if;
 
-  -- FAIL CLOSED on a catalogue line, until the hold path exists.
+  -- THE TWO CATALOGUE LINES THIS FUNCTION WILL NOT PRICE INTO A SEAT. Both fail closed here, before
+  -- anything is minted, because both are shapes whose capacity meaning cannot be read off the line.
   --
-  -- A catalogue line names an occurrence, so it carries capacity and must travel through the
-  -- existing hold path into booking_items — that is the pay route's job, in a later task. Copying
-  -- `total_minor` whole while dropping the line would charge the guest for a seat nobody reserved,
-  -- with no voucher line and no day-sheet entry; and append_payment_event's oversell re-check loops
-  -- `select distinct session_occurrence_id from booking_items where booking_id = …`, which would be
-  -- EMPTY, so the booking would confirm unconditionally. converted_at would then lock the quote, so
-  -- the lines could never be attached by a second call either. A comment saying "that is the pay
-  -- route's job" is not a guard.
+  -- 1. AN OPTION THAT IS NOT COUNTED IN PEOPLE. For a private or vehicle option one BOOKING is one
+  --    unit of the pool — the pool counts trips, not heads (20260908000000), and create_booking
+  --    records the real party size in booking_items.pax while writing quantity 1. A quote line for
+  --    six guests would therefore reserve SIX DEPARTURES if it were held like a per-person line, and
+  --    reserve one while charging for six if it were not. Neither is a guess worth making on the
+  --    money path: there is no editor that can draft such a line yet, and the pay route's re-price
+  --    gate refuses it one step earlier anyway (a private option has no activity_option_prices row
+  --    to re-price against). The day the editor learns to quote a private charter, this is the
+  --    branch that teaches the conversion the trips-vs-heads mapping — deliberately, with a test.
   --
-  -- DELETE THIS GUARD IN THE TASK THAT ADDS THE HOLD PATH, not before.
+  -- 2. AN OPTION THAT IS NOT THE OCCURRENCE'S OWN. `quote_item_shape` makes a catalogue line name
+  --    both, and nothing checks they agree; a mismatch would write a booking_items row whose option
+  --    contradicts its occurrence, i.e. a voucher and a day sheet naming a trip the guest is not on.
+  --
+  -- Both reuse `quote_not_convertible` rather than minting a token of their own: mapDbError already
+  -- reads it as "This quote is not ready to pay yet — please message us", which is exactly true, and
+  -- an unfinished offer is the operator's to fix.
   if exists (
-    select 1 from quote_items qi where qi.quote_id = v_quote.id and qi.kind = 'catalogue'
+    select 1
+      from quote_items qi
+      join activity_options o on o.id = qi.activity_option_id
+      join activities a on a.id = o.activity_id
+     where qi.quote_id = v_quote.id
+       and qi.kind = 'catalogue'
+       and (o.private_base_minor is not null
+            or coalesce(a.pricing_mode::text, 'per_person') in ('vehicle', 'vehicle_custom'))
   ) then
-    raise exception 'quote_has_catalogue_lines';
+    raise exception 'quote_not_convertible' using detail = 'private/vehicle catalogue line';
+  end if;
+  if exists (
+    select 1
+      from quote_items qi
+      join session_occurrences so on so.id = qi.session_occurrence_id
+     where qi.quote_id = v_quote.id
+       and qi.kind = 'catalogue'
+       and qi.activity_option_id is distinct from so.activity_option_id
+  ) then
+    raise exception 'quote_not_convertible' using detail = 'catalogue line option is not its occurrence''s';
   end if;
 
   -- THE CHARGE AND THE ITEMISATION MUST AGREE, or nothing is minted.
@@ -24256,9 +24300,9 @@ begin
   -- on the drift charges the guest a figure the itemisation does not support and renders a VAT
   -- invoice whose lines do not sum to the charge.
   --
-  -- The sum is over ALL lines, not just the ones copied below: the catalogue guard above already
-  -- guarantees every line reaches the booking, and when that guard is lifted the catalogue lines will
-  -- travel through the hold path and must still be part of the total they were priced into.
+  -- The sum is over ALL lines, of every kind: the custom ones are copied into booking_custom_items
+  -- below and the catalogue ones take the hold path into booking_items, so every line reaches the
+  -- booking and every line was priced into the total the guest agreed to.
   --
   -- It subsumes the zero-lines case too — a hand-set total with no itemisation at all would otherwise
   -- mint a booking with no lines and a booking_json carrying no items: charged for something with no
@@ -24293,9 +24337,9 @@ begin
   )
   returning * into v_booking;
 
-  -- The `kind <> 'catalogue'` filter is redundant after the guard above and stays deliberately:
-  -- booking_custom_items has a `check (kind <> 'catalogue')`, so this select is what keeps the two
-  -- statements agreeing when the guard is lifted and catalogue lines start taking the hold path.
+  -- The `kind <> 'catalogue'` filter is what keeps this statement and the hold path below from both
+  -- claiming the same line: booking_custom_items carries `check (kind <> 'catalogue')`, and a
+  -- catalogue line belongs in booking_items, where it can be counted against a departure.
   insert into booking_custom_items (
     booking_id, position, kind, description, starts_at, ends_at,
     rental_vehicle_slug, quantity, unit_amount_minor, subtotal_minor
@@ -24305,6 +24349,80 @@ begin
     from quote_items qi
    where qi.quote_id = v_quote.id
      and qi.kind <> 'catalogue';
+
+  -- ── THE CATALOGUE LINES TAKE THEIR SEATS, HERE, IN THIS TRANSACTION ─────────────────────────
+  --
+  -- A catalogue line names a session_occurrence, so unlike a custom line it is a place on a real
+  -- departure. It is only actually reserved if it is reserved the way every other booking reserves
+  -- one: create_hold — the universal gate, which api_create_hold and api_book both delegate their
+  -- hold INSERT to — takes `select … for update` on the occurrence, re-reads used_capacity() under
+  -- that lock and refuses an oversell; and the booking_items row is what used_capacity() counts once
+  -- the booking confirms, what append_payment_event's oversell re-check reads before it confirms
+  -- anything, and what puts the guest on the day sheet. Re-deriving either here would be a second,
+  -- quieter definition of "a seat exists" on the money path.
+  --
+  -- WHY IT IS IN THIS FUNCTION AND NOT IN THE PAY ROUTE (which is where the plan first put it): a
+  -- route does it in a SECOND transaction, so a hold that fails leaves a converted quote and a
+  -- payable booking with no seat behind it — the guest pays for a place nobody reserved, which is
+  -- the precise state the placeholder guard this replaces existed to prevent, now reached by a
+  -- different road. In here, a refusal takes the booking, its custom lines and `converted_at` back
+  -- with it, and the guest sees a refusal instead of a charge.
+  --
+  -- UNITS, NOT PEOPLE. used_capacity() sums booking_holds.quantity and booking_items.quantity, and
+  -- append_payment_event re-checks this booking's own booking_items sum against the occurrence's
+  -- capacity — so the hold's quantity must equal the quantities of the lines it covers, or the seat
+  -- count drifts the moment the payment lands. Lines that share an occurrence are aggregated into
+  -- ONE hold for exactly that reason (two 'Adult' and 'Child' lines on one boat are three seats on
+  -- one trip, not two reservations).
+  --
+  -- The idempotency key is scoped to THIS booking, so a re-arm (a fresh booking for the same quote)
+  -- takes fresh holds rather than being handed create_hold's idempotent replay of a released one.
+  for v_seats in
+    select qi.session_occurrence_id as occurrence_id, sum(qi.quantity)::int as units
+      from quote_items qi
+     where qi.quote_id = v_quote.id and qi.kind = 'catalogue'
+     group by qi.session_occurrence_id
+  loop
+    begin
+      v_hold := create_hold(
+        v_seats.occurrence_id, v_seats.units,
+        'quote:' || v_booking.id::text || ':' || v_seats.occurrence_id::text
+      );
+    exception when raise_exception then
+      -- create_hold refuses in the CHECKOUT's vocabulary — insufficient_capacity,
+      -- occurrence_not_bookable, occurrence_in_past, occurrence_too_soon — and mapDbError turns those
+      -- into "Not enough availability for this selection" or the bare "Invalid booking request",
+      -- neither of which tells a quote guest anything they can act on: they cannot pick another date,
+      -- because the date was arranged for them. One token for all of them, carrying the real reason in
+      -- DETAIL for error_logs, and mapped to a sold-out 409 that says to message us.
+      raise exception 'quote_seats_unavailable'
+        using detail = format('occurrence %s x%s: %s', v_seats.occurrence_id, v_seats.units, sqlerrm);
+    end;
+
+    -- ATTACH THE HOLD TO THE BOOKING. Not tidiness: append_payment_event's oversell re-check counts
+    -- every active hold that is NOT this booking's own against it, so a detached hold is the guest's
+    -- own reservation blocking their own confirmation and routing a good payment to refund_pending.
+    -- It is also what makes the confirmation mark it 'consumed' rather than leaving it to lapse.
+    update booking_holds set booking_id = v_booking.id where id = v_hold.id;
+  end loop;
+
+  -- One row per LINE (the hold above is one row per occurrence): the tiers are what the voucher, the
+  -- day sheet and the VAT invoice itemise. Prices are the quote's own — the negotiated figure the
+  -- guest saw and `quote_total_mismatch` has just re-checked — never re-derived from the catalogue
+  -- here; the pay route compares them against the live price list and refuses on drift before this
+  -- function is ever called. `price_label` is NOT NULL on booking_items, so a line that carries no
+  -- tier name falls back to its description rather than failing at the constraint.
+  insert into booking_items (
+    booking_id, session_occurrence_id, activity_option_id, price_label,
+    quantity, unit_amount_minor, subtotal_minor
+  )
+  select v_booking.id, qi.session_occurrence_id, qi.activity_option_id,
+         coalesce(nullif(btrim(qi.price_label), ''), nullif(btrim(qi.description), ''), 'Quoted place'),
+         qi.quantity, qi.unit_amount_minor, qi.subtotal_minor
+    from quote_items qi
+   where qi.quote_id = v_quote.id
+     and qi.kind = 'catalogue'
+   order by qi.position;
 
   -- Overwrites booking_id on a re-arm, which releases the dead booking from the UNIQUE.
   update quotes

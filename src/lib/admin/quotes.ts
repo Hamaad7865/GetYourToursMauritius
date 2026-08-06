@@ -19,14 +19,14 @@ import { getBrowserSupabase } from '@/lib/supabase/browser';
  * thing from the other side (`quote_total_mismatch`, which refuses to charge on any drift) — that is
  * the backstop, not the reason to skip it here.
  *
- * A CATALOGUE LINE IS NOT PAYABLE YET, and nothing in this file stops one being drafted. `quoteItemRows`
- * validates its shape, `saveQuote` stores it and the send route will email it — but api_convert_quote
- * raises `quote_has_catalogue_lines` for any quote carrying one (migration 20260909000000), because
- * the hold path that would reserve the seat has not been written. The module's own motivating example
- * (a catamaran cruise plus a private guide) is therefore an offer the guest cannot pay: they click Pay
- * and are told to message us. Until the hold path lands, the SEND ROUTE is the place to refuse one —
- * it is the only caller holding both the quote and its lines — and that refusal must be deleted in the
- * same commit that deletes `quote_has_catalogue_lines` from the migration, not before.
+ * A CATALOGUE LINE HOLDS NO SEAT WHILE IT IS DRAFTED, and that is deliberate. `quoteItemRows`
+ * validates its shape and `saveQuote` stores it, but capacity is reserved only when the guest pays:
+ * api_convert_quote takes the hold and writes the booking_items row in the transaction that mints the
+ * booking (migration 20260909000000). Reserving at draft time would let an unsent offer sit on a
+ * departure's last seats indefinitely, and would answer a question whose answer is stale by the time
+ * the guest reads the email. The consequence to design for is the other way round: a quoted departure
+ * CAN sell out before the guest accepts, and the payment is then refused with `sold_out` rather than
+ * charged — so an operator quoting a nearly-full trip should expect to re-book it by hand.
  */
 
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'expired' | 'cancelled';

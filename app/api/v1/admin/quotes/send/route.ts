@@ -19,7 +19,6 @@ import {
   ForbiddenError,
   NotFoundError,
   ProviderError,
-  QuoteHasCatalogueLinesError,
   ValidationError,
 } from '@/lib/services/errors';
 
@@ -61,19 +60,23 @@ export const runtime = 'edge';
  *      saveQuote makes the same check at the keystroke; this is not a duplicate of it but the second
  *      of the two moments that matter, because a quote drafted on Friday and sent on Monday passed
  *      that one and is dead by the time the email goes out.
- *   3. A CATALOGUE line. api_convert_quote raises `quote_has_catalogue_lines` for any quote carrying
- *      one (20260909000000, section 6) because the hold path that would reserve the seat is not
- *      built, so the guest clicks Pay and is told to message us instead.
- *      DELETE THIS REFUSAL IN THE SAME COMMIT THAT DELETES THAT SQL GUARD, not before, and delete
- *      QuoteHasCatalogueLinesError with both of them.
- *   4. No lines, a zero total, or a NEGATIVE one. `quotes.total_minor` defaults to 0 and carries no
+ *   3. No lines, a zero total, or a NEGATIVE one. `quotes.total_minor` defaults to 0 and carries no
  *      `>= 0` CHECK, so both ends are reachable by an empty draft or a hand-edited row;
  *      api_convert_quote reads either as `quote_not_convertible` ('zero total'), and a card cannot be
  *      charged a negative figure at all. `renderQuoteEmail` refuses <= 0 too, but it phrases its
  *      refusal in terms of the RPC's error names — these three say what the operator should do.
- *   5. A total that has drifted from its lines. That refusal is `renderQuoteEmail`'s and is left
+ *   4. A total that has drifted from its lines. That refusal is `renderQuoteEmail`'s and is left
  *      there: it is the same function that prints the figure, so the check cannot fall out of step
  *      with what the guest would read.
+ *
+ * A CATALOGUE LINE IS NO LONGER ONE OF THEM. It used to be: api_convert_quote refused any quote
+ * carrying a scheduled activity while the hold path that reserves the seat was unbuilt, so emailing
+ * one would have sent a priced offer whose Pay button could only say "message us". That path now
+ * exists — the conversion takes the hold and writes the booking_items row in the transaction that
+ * mints the booking — so a quote of real tours is exactly what this route is for. Availability is
+ * NOT re-checked here on purpose: the answer would be stale by the time the guest reads the email,
+ * and the only check that can be trusted is the one taken under the occurrence's own lock at the
+ * moment of payment.
  *
  * ── RE-SEND ROTATES THE TOKEN. THE PREVIOUS LINK STOPS WORKING. ───────────────────────────────
  * `quotes.token_hash` holds ONE hash, so this is the only migration-free behaviour available — but it
@@ -274,16 +277,7 @@ export const POST = apiHandler(async (req) => {
   }
   const lines = items ?? [];
 
-  // 3. A catalogue line cannot be paid for yet. DELETE THIS WITH THE SQL GUARD — see the header.
-  if (lines.some((line) => text(line.kind) === 'catalogue')) {
-    throw new QuoteHasCatalogueLinesError(
-      `Quote ${ref} has a scheduled activity on it, and those cannot be paid online yet — the guest ` +
-        `would receive a priced offer whose Pay button can only tell them to message us. Replace the ` +
-        `line with a custom one describing the same trip, or handle this quote by hand.`,
-    );
-  }
-
-  // 4. Nothing to charge. Each of the three is reachable and each produces an unpayable offer.
+  // 3. Nothing to charge. Each of the three is reachable and each produces an unpayable offer.
   if (lines.length === 0) {
     throw new ValidationError(
       `Quote ${ref} has no lines on it, so there is nothing itemised behind its total. Add the lines ` +
@@ -303,7 +297,7 @@ export const POST = apiHandler(async (req) => {
     );
   }
 
-  // 5. The last refusal — a total that does not match its lines — belongs to renderQuoteEmail, which
+  // 4. The last refusal — a total that does not match its lines — belongs to renderQuoteEmail, which
   //    is also what prints the figure. Rendering happens BEFORE any write, so a refusal here leaves
   //    the quote exactly as the operator left it.
   const token = mintQuoteToken();
@@ -320,8 +314,9 @@ export const POST = apiHandler(async (req) => {
     items: lines.map(
       (line): QuoteEmailLine => ({
         // A custom/rental line always has a description (`quote_item_shape` makes it NOT NULL for
-        // those kinds); the price label is the fallback a catalogue line would need, and those are
-        // refused above — it is here so lifting that refusal cannot silently email a blank line.
+        // those kinds). A CATALOGUE line need not: it is named by its tier, so the price label is
+        // what the guest reads — and api_convert_quote makes the same substitution when it writes
+        // the booking_items row, so the email and the voucher name the line identically.
         description: textOrNull(line.description) ?? text(line.price_label),
         quantity: Number(line.quantity ?? 0),
         unitAmountMinor: minor(line.unit_amount_minor),

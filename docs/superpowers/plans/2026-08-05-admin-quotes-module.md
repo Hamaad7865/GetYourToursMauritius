@@ -836,9 +836,15 @@ does NOT stop the website selling that same boat on the 23rd. The operator sees 
 and resolves it by hand. Do not "fix" this by quietly making custom lines take a hold — capacity is
 counted in occurrence units and a free-text line has no occurrence to count against.
 
-A catalogue line is the opposite and always will be: it is refused today
-(`quote_has_catalogue_lines`) precisely BECAUSE the hold path is unbuilt, and the task that builds that
-path must make it take the same hold as an ordinary checkout.
+A catalogue line is the opposite and always will be. It was refused outright while the hold path was
+unbuilt; **built 2026-08-06** (Task 8 step 3b), and it takes the same hold as an ordinary checkout —
+`create_hold` plus a `booking_items` row, inside `api_convert_quote`'s own transaction rather than in the
+pay route, so a hold that fails leaves no converted quote and no payable booking behind it. Two shapes
+still fail closed there and are the next thing to build if the editor ever offers them: a **private or
+vehicle** option (its pool counts trips, not heads, so a 6-guest line is one unit and a `pax`, not six)
+and a line whose option is not its occurrence's. A quoted departure can also SELL OUT before the guest
+accepts — nothing is reserved at draft or send time — and the payment is then refused (`sold_out`, "please
+message us") rather than charged.
 
 Rentals have no capacity concept at all — `rental_vehicles` has no fleet count — which is Part 2's open
 question 2, not something this part resolves.

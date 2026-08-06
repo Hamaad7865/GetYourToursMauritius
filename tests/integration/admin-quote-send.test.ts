@@ -18,11 +18,12 @@ import type { NotificationMessage } from '@/lib/notifications/types';
  * turn a draft into an offer a guest can open and pay. Everything asserted here is one of the two
  * halves of that:
  *
- *  - WHAT MUST NOT BE SENT. A quote whose validity has passed, one carrying a catalogue line
- *    (api_convert_quote raises `quote_has_catalogue_lines` until the hold path exists), one with no
- *    lines, a zero total or a NEGATIVE total, one that was withdrawn, and one the guest has already
- *    accepted. Each of those is an email nobody can act on, and an email cannot be recalled — so the
- *    refusals are also asserted to write NOTHING: no token, no status change, no `sent_at`.
+ *  - WHAT MUST NOT BE SENT. A quote whose validity has passed, one with no lines, a zero total or a
+ *    NEGATIVE total, one that was withdrawn, and one the guest has already accepted. Each of those is
+ *    an email nobody can act on, and an email cannot be recalled — so the refusals are also asserted
+ *    to write NOTHING: no token, no status change, no `sent_at`. A quote carrying a CATALOGUE line
+ *    used to be on this list, while api_convert_quote had no way to reserve the seat; it now converts
+ *    and is asserted below to send, holding no capacity until the guest actually pays.
  *  - WHAT THE RAW TOKEN MAY TOUCH. It is minted here, hashed into `quotes.token_hash`, put in the
  *    guest's emailed URL and returned once to the operator. Nowhere else — the stored column is
  *    asserted to be the SHA-256 and never the token, and the guest's email is asserted to be the only
@@ -456,19 +457,53 @@ describe('POST /api/v1/admin/quotes/send', () => {
     expect(row.status).toBe('draft');
   });
 
-  it('refuses a quote carrying a catalogue line, because it could not be paid', async () => {
+  it('SENDS a quote carrying a catalogue line — the seat is reserved when the guest pays', async () => {
+    // This route used to refuse one, because api_convert_quote could not convert it: the hold path
+    // that reserves the seat was unbuilt, so the email would have carried a priced offer whose Pay
+    // button could only say "message us". The conversion now takes the hold and writes the
+    // booking_items row in the transaction that mints the booking, so a quote of real tours — the
+    // module's motivating case — is exactly what this route is for.
     const option = await seedOption();
     const quote = await seedQuote({
       lines: [
         { kind: 'catalogue', priceLabel: 'Adult', option, quantity: 2, unitAmountMinor: 7500 },
       ],
     });
+
     const res = await send(quote.id);
-    expect(res.status).toBe(409);
-    const body = await res.json();
-    expect(body.error.code).toBe('quote_has_catalogue_lines');
-    expect(hoisted.sent).toHaveLength(0);
-    expect((await readQuote(quote.id)).token_hash).toBeNull();
+
+    expect(res.status).toBe(200);
+    expect(hoisted.sent).toHaveLength(1);
+    // A catalogue line has no free-text description, so the guest reads its TIER — the same
+    // substitution api_convert_quote makes when it writes the booking_items row.
+    expect(hoisted.sent[0]!.html).toContain('Adult');
+    expect(hoisted.sent[0]!.html).toContain('150.00');
+    const row = await readQuote(quote.id);
+    expect(row.status).toBe('sent');
+    expect(
+      row.token_hash,
+      'the guest was emailed a link with no hash stored behind it',
+    ).not.toBeNull();
+  });
+
+  it('does NOT pre-empt the seat: sending reserves nothing, paying does', async () => {
+    // An offer is not a booking. Holding capacity at send time would let one drafted quote sit on a
+    // departure's last seats for as long as the operator left it unsent-and-unpaid, and the answer
+    // would be stale by the time the guest read the email anyway — the only availability check worth
+    // trusting is the one create_hold takes under the occurrence's own lock as the payment is made.
+    const option = await seedOption();
+    const quote = await seedQuote({
+      lines: [
+        { kind: 'catalogue', priceLabel: 'Adult', option, quantity: 2, unitAmountMinor: 7500 },
+      ],
+    });
+
+    expect((await send(quote.id)).status).toBe(200);
+
+    const { rows } = await db.pg.query<{ used: number }>(`select used_capacity($1)::int as used`, [
+      option.occurrenceId,
+    ]);
+    expect(rows[0]!.used, 'sending a quote reserved capacity').toBe(0);
   });
 
   it('refuses a quote with no lines behind its total', async () => {

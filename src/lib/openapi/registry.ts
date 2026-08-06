@@ -737,8 +737,10 @@ export const apiPaths: ZodOpenApiPathsObject = {
         'credential. The quote converts ONCE (api_convert_quote), and every later call reuses that ' +
         'booking and its live checkout, so one offer can never hold two payable sessions. Catalogue ' +
         'lines are re-priced first and the call is refused if the catalogue has moved, rather than ' +
-        'charging a figure the guest never agreed to. Every refusal to open the quote is the same ' +
-        '404, so nothing here reveals which quote refs exist.',
+        'charging a figure the guest never agreed to; each one then takes its capacity hold inside ' +
+        'the conversion, so a departure that has sold out refuses the payment (409 sold_out) instead ' +
+        'of charging for a seat nobody reserved. Every refusal to open the quote is the same 404, so ' +
+        'nothing here reveals which quote refs exist.',
       tags: ['Quotes'],
       requestParams: { path: refParam },
       responses: {
@@ -747,7 +749,9 @@ export const apiPaths: ZodOpenApiPathsObject = {
           'Checkout link for the converted booking',
         ),
         '404': errorResponse('No readable quote for this link'),
-        '409': errorResponse('Prices changed, already paid, or the offer is not payable'),
+        '409': errorResponse(
+          'Prices changed, the departure sold out, already paid, or the offer is not payable',
+        ),
         '429': errorResponse('Too many requests'),
       },
     },
@@ -786,9 +790,10 @@ export const apiPaths: ZodOpenApiPathsObject = {
         'The only writer of quotes.token_hash, so the only thing that can turn a draft into an ' +
         'offer a guest can open and pay. STAFF ONLY, and the check is profiles.role — the JWT role ' +
         'claim is the Postgres role selector, never the business role. It refuses to email an offer ' +
-        'nobody could act on: one whose valid_until has passed, one carrying a catalogue line (not ' +
-        'payable until the hold path exists), and one with no lines, a zero total or a negative ' +
-        'one. A RE-SEND mints a fresh token and the previously emailed link stops working — ' +
+        'nobody could act on: one whose valid_until has passed, and one with no lines, a zero total ' +
+        'or a negative one. A quote of scheduled activities sends normally and reserves nothing — ' +
+        'the seats are held when the guest pays. A RE-SEND mints a fresh token and the previously ' +
+        'emailed link stops working — ' +
         'quotes.token_hash holds exactly one hash — which is also why an already-accepted quote is ' +
         'refused rather than re-sent. The raw token is returned once, here, for the operator to ' +
         'copy; only its SHA-256 is stored.',
