@@ -31480,14 +31480,20 @@ begin
   v_owner := quote_owner_for_email(v_quote.customer_email);
 
   -- DEPOSIT SIZING. The deposit is total_minor * deposit_bps / 10000 (basis points; 1000 = 10.00%),
-  -- rounded to the minor unit; the balance is the exact remainder. total_minor AND
-  -- operator_payout_minor stay the FULL quoted price — they feed the VAT invoice and the operator
-  -- payout, and it is only the FIRST payments row (sized to this deposit in create_payment) that the
-  -- guest is charged now. deposit_bps = 10000 makes the deposit the whole total and the balance zero:
-  -- the UNCHANGED pay-in-full path. deposit_bps carries a `between 1 and 10000` CHECK, so the deposit
-  -- is always a positive fraction of the total and balance_due_minor is never negative.
+  -- rounded to the minor unit. total_minor AND operator_payout_minor stay the FULL quoted price — they
+  -- feed the VAT invoice and the operator payout, and it is only the FIRST payments row (sized to this
+  -- deposit in create_payment) that the guest is charged now. deposit_bps = 10000 makes the deposit the
+  -- whole total — the UNCHANGED pay-in-full path. deposit_bps carries a `between 1 and 10000` CHECK, so
+  -- the deposit is always a positive fraction of the total.
   v_deposit_minor := round(v_quote.total_minor * v_quote.deposit_bps / 10000.0);
 
+  -- balance_due_minor is INITIALISED to the full total: nothing is settled at conversion, so the
+  -- "amount still owed" is the whole order, exactly as append_payment_event's projection would compute
+  -- it (total_minor - sum of settled money, which is 0 here). It is NOT total - deposit — that would
+  -- read as if the deposit were already paid the moment the booking is minted, before the guest has
+  -- been charged a cent, and would disagree with the projection that recomputes this column downward
+  -- as the deposit and then the balance settle (→ total - deposit → 0). The deposit is a CHARGE size
+  -- (deposit_minor / the first payments row), not a payment; only settling it reduces what is owed.
   insert into bookings (
     user_id, customer_name, customer_email, customer_phone, status, source,
     currency, total_minor, operator_payout_minor, payment_state, locale,
@@ -31496,7 +31502,7 @@ begin
   values (
     v_owner, v_quote.customer_name, v_quote.customer_email, v_quote.customer_phone, 'payment_pending',
     'quote', v_quote.currency, v_quote.total_minor, v_quote.total_minor, 'pending', v_quote.locale,
-    v_deposit_minor, v_quote.total_minor - v_deposit_minor
+    v_deposit_minor, v_quote.total_minor
   )
   returning * into v_booking;
 

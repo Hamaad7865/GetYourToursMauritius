@@ -74,11 +74,13 @@ alter table payments add constraint payments_purpose_check
 
 **Files:** the migration (append), `create_payment` + `api_create_quote_payment` in it or a follow-on section; `tests/integration/quote-deposit-convert.test.ts`.
 
-- [ ] Test FIRST: convert a quote with `deposit_bps=1000`, total EUR 1000 → booking has `deposit_minor=10000` (minor), `balance_due_minor=90000`, `total_minor=100000`; the minted checkout charges the **deposit** (assert `payments.amount_minor` of the `booking` row = 10000). A `deposit_bps=10000` quote charges the full 100000 and `balance_due_minor=0`.
+- [ ] Test FIRST: convert a quote with `deposit_bps=1000`, total EUR 1000 → booking has `deposit_minor=10000` (minor), `total_minor=100000`, and `balance_due_minor=100000` (the FULL total — nothing is settled at conversion, so the whole order is owed; `append_payment_event` later recomputes it down to `total - deposit` and then 0 as the deposit and balance settle, pinned in the ledger test). The minted checkout charges the **deposit** (assert `payments.amount_minor` of the `booking` row = 10000). A `deposit_bps=10000` quote charges the full 100000; `balance_due_minor` still reads the full total at conversion and clears to 0 once that deposit settles.
 
 - [ ] `api_convert_quote` ([20260909000000:997-1005]) computes, in the INSERT:
-      `deposit_minor := round(v_quote.total_minor * v_quote.deposit_bps / 10000.0)`,
-      `balance_due_minor := v_quote.total_minor - deposit_minor`.
+      `deposit_minor := round(v_quote.total_minor * v_quote.deposit_bps / 10000.0)` (the first CHARGE size),
+      `balance_due_minor := v_quote.total_minor` (the full total — nothing is settled at conversion, so the
+      whole order is owed; NOT `total - deposit`, which would read as if the deposit were already paid and
+      would disagree with the `append_payment_event` projection that recomputes this column down as money lands).
       `total_minor` and `operator_payout_minor` stay the FULL `v_quote.total_minor`.
 
 - [ ] `create_payment` booking branch ([20260911000000:154-156]): the first `booking` row is inserted with `amount_minor = v_booking.deposit_minor` (**not** `total_minor`). Everything downstream (the FX pin at :167-194, the MUR charge in payments.ts:173) follows `amount_minor` unchanged.
@@ -95,7 +97,7 @@ alter table payments add constraint payments_purpose_check
 
 - [ ] Test FIRST: deposit settles → booking `status='confirmed'`, `payment_state='paid'` (roll-up unchanged), **`balance_due_minor` still 90000**. Then the balance settles → `balance_due_minor=0`. A declined balance (failed event) leaves `balance_due_minor` unchanged and does NOT drag the paid booking backwards (roll-up protection).
 
-- [ ] After crediting, set `balance_due_minor = greatest(0, total_minor - (sum of paid_minor over payments WHERE purpose in ('booking','balance')))`. Purpose-scoped so a `pickup_addon` (which GROWS total_minor, [20260910000000:666-668]) never distorts it.
+- [ ] After crediting, set `balance_due_minor = greatest(0, total_minor - (sum of (paid_minor - refunded_minor) over the payment rows whose money actually REACHED total_minor))`. That scope is the `booking` (deposit) and `balance` rows — which ARE the total — PLUS a `pickup_addon` row **only once its request is APPLIED** (a `booking_pickup_requests` row with `applied_at` set and `fee_minor > 0` points at it). An applied pickup GROWS `total_minor` ([20260910000000:666-668]), so its capture MUST count on the summed side to net that growth back out; an ORPHANED pickup capture (zero-fee revision / called-off departure — its fee never reached `total_minor`) must NOT count, or the balance under-collects by the whole fee. Netting `refunded_minor` stops a later refund of a counted row still reading as settled; `greatest(0, …)` clamps any transient negative. (History: first shipped as the naive `purpose in ('booking','balance')` sum — which left a paid pickup add-on falsely owed because the fee grew `total_minor` but the add-on row was excluded; then the all-rows sum — which under-collected on an orphaned capture; the applied-pickup scope is the resolution of both.)
 
 - [ ] Confirmation is unchanged: the `booking` (deposit) row reaching its own `amount_minor` still flips `draft/held/payment_pending → confirmed` ([:163-224]).
 

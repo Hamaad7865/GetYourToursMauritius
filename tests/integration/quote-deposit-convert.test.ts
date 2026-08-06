@@ -7,17 +7,20 @@ import { createTestDb, type TestDb } from '../db/pglite';
  * A quote guest pays a DEPOSIT that confirms the booking; staff chase the balance later. The design
  * turns on two figures written at conversion and one row sized off them:
  *
- *   1. api_convert_quote writes deposit_minor = round(total_minor * deposit_bps / 10000) and
- *      balance_due_minor = total_minor - deposit_minor onto the booking. total_minor AND
- *      operator_payout_minor stay the FULL quoted price — they feed VAT and the operator payout, and
- *      must never be reduced to the deposit.
+ *   1. api_convert_quote writes deposit_minor = round(total_minor * deposit_bps / 10000) onto the
+ *      booking, and INITIALISES balance_due_minor to the FULL total_minor — nothing is settled at
+ *      conversion, so the "amount still owed" is the whole order. append_payment_event then recomputes
+ *      it downwards as money lands (deposit settles → total - deposit; balance settles → 0), which is
+ *      pinned in quote-deposit-ledger.test.ts. total_minor AND operator_payout_minor stay the FULL
+ *      quoted price — they feed VAT and the operator payout, and must never be reduced to the deposit.
  *
  *   2. create_payment sizes the FIRST `booking` payments row to the booking's deposit_minor (read from
  *      the row, never caller input), so append_payment_event confirms the booking the moment that row
  *      is paid in full — the existing confirm-on-paid path, unchanged.
  *
- * A pay-in-full quote (deposit_bps = 10000) makes the deposit the whole total and the balance zero:
- * the UNCHANGED current behaviour, asserted here so the deposit path cannot regress it.
+ * A pay-in-full quote (deposit_bps = 10000) makes the deposit the whole total; nothing is settled at
+ * conversion, so balance_due_minor still reads the full total until that deposit clears — the UNCHANGED
+ * charge path, asserted here so the deposit path cannot regress it.
  */
 
 interface CreatePaymentOut {
@@ -107,12 +110,12 @@ describe('api_convert_quote sizes the deposit; create_payment charges it', () =>
     await db.close();
   });
 
-  it('a 10% deposit quote (EUR 1000) mints a booking owing the 90% balance, full total intact', async () => {
+  it('a 10% deposit quote (EUR 1000) mints a booking owing the FULL total until the deposit settles', async () => {
     const { ref } = await convertQuote(100000, 1000);
 
     const money = await bookingMoney(ref);
-    expect(money.deposit_minor).toBe(10000); // 100000 * 1000 / 10000
-    expect(money.balance_due_minor).toBe(90000); // total - deposit
+    expect(money.deposit_minor).toBe(10000); // 100000 * 1000 / 10000 — sizes the first charge
+    expect(money.balance_due_minor).toBe(100000); // nothing settled at conversion → the whole order is owed
     expect(money.total_minor).toBe(100000); // the FULL price — feeds VAT
     expect(money.operator_payout_minor).toBe(100000); // never reduced to the deposit
 
@@ -131,15 +134,15 @@ describe('api_convert_quote sizes the deposit; create_payment charges it', () =>
     const { ref } = await convertQuote(100000);
     const money = await bookingMoney(ref);
     expect(money.deposit_minor).toBe(10000);
-    expect(money.balance_due_minor).toBe(90000);
+    expect(money.balance_due_minor).toBe(100000); // full total owed until the deposit clears
   });
 
-  it('a pay-in-full quote (deposit_bps = 10000) charges the whole total and owes nothing', async () => {
+  it('a pay-in-full quote (deposit_bps = 10000) charges the whole total; the balance clears when it settles', async () => {
     const { ref } = await convertQuote(100000, 10000);
 
     const money = await bookingMoney(ref);
-    expect(money.deposit_minor).toBe(100000); // the whole total
-    expect(money.balance_due_minor).toBe(0); // nothing chased later
+    expect(money.deposit_minor).toBe(100000); // the whole total is the first (and only) charge
+    expect(money.balance_due_minor).toBe(100000); // still owed at conversion — nothing has settled yet
     expect(money.total_minor).toBe(100000);
 
     await db.as({ role: 'service_role' });
@@ -151,12 +154,14 @@ describe('api_convert_quote sizes the deposit; create_payment charges it', () =>
     expect(await bookingPaymentAmount(ref)).toBe(100000);
   });
 
-  it('rounds a fractional deposit to the minor unit and keeps balance = total - deposit', async () => {
-    // 12.5% of EUR 999.99 = 12499.875 minor → rounds to 12500; balance is the exact remainder.
+  it('rounds a fractional deposit to the minor unit; the full total is owed until it settles', async () => {
+    // 12.5% of EUR 999.99 = 12499.875 minor → rounds to 12500 (the deposit CHARGE). balance_due_minor
+    // is the whole total at conversion; the deposit/balance split (total - 12500) only materialises once
+    // the deposit settles — asserted in quote-deposit-ledger.test.ts.
     const { ref } = await convertQuote(99999, 1250);
     const money = await bookingMoney(ref);
     expect(money.deposit_minor).toBe(12500);
-    expect(money.balance_due_minor).toBe(99999 - 12500);
-    expect(money.deposit_minor + money.balance_due_minor).toBe(money.total_minor);
+    expect(money.balance_due_minor).toBe(99999); // full total owed at conversion (nothing settled)
+    expect(money.balance_due_minor).toBe(money.total_minor);
   });
 });

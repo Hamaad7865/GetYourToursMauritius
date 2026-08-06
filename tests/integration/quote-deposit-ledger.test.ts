@@ -195,6 +195,49 @@ describe('append_payment_event maintains balance_due_minor', () => {
     expect(Number(tot[0]!.total_minor)).toBe(10000); // the orphaned fee never reached the order total
     expect((await bookingState(ref)).balance_due_minor).toBe(7000); // …so the balance owed is unchanged
   });
+
+  it('a deposit+balance fully-paid quote booking that then pays an APPLIED pickup add-on owes nothing', async () => {
+    // GOAL 3b: the deposit-path analogue of the customer add-on case. Bring a quote booking to
+    // fully-paid via BOTH the deposit and the balance rows, then add + settle a late-pickup supplement
+    // whose request APPLIES. apply_pickup_request grows total_minor by the fee from inside
+    // append_payment_event's own status write, and the applied pickup's capture counts on the summed
+    // side — so the fee appears on both sides and nets to 0. This proves the projection is not specific
+    // to the single-`booking`-row customer path: it holds when the total was covered by deposit + balance
+    // too. (It passes against the CURRENT formula, which already scopes the sum to booking/balance rows
+    // OR an applied pickup — the point is to lock that in so a later re-definition cannot regress it.)
+    const { ref } = await convertQuote(100000, 1000); // EUR 1000, 10% deposit
+    const dep = await mintDeposit(ref, 'led-3b-dep');
+    await settle(dep.paymentId, 'paid', 'evt-3b-dep', 10000);
+    const balId = await mintBalanceRow(ref, 90000);
+    await settle(balId, 'paid', 'evt-3b-bal', 90000);
+    expect((await bookingState(ref)).balance_due_minor).toBe(0); // deposit + balance cover the full total
+
+    // A 'pickup_addon' payments row behind an OPEN request pointing at it. Settling it fires the real
+    // apply_pickup_request trigger, which grows total_minor by the fee and stamps applied_at — so the
+    // applied pickup counts on BOTH sides of the projection.
+    const PICKUP_FEE = 5000;
+    await db.asOwner();
+    const { rows: pick } = await db.pg.query<{ id: string }>(
+      `insert into payments (booking_id, idempotency_key, amount_minor, purpose)
+       select b.id, $2, $3, 'pickup_addon' from bookings b where b.ref = $1 returning id`,
+      [ref, `${ref}-3b-pickup`, PICKUP_FEE],
+    );
+    const pickupId = pick[0]!.id;
+    await db.pg.query(
+      `insert into booking_pickup_requests (booking_id, payment_id, pickup_location, pickup_lat, pickup_lng, fee_minor)
+       select b.id, $2, 'Le Morne Villa', -20.5, 57.3, $3 from bookings b where b.ref = $1`,
+      [ref, pickupId, PICKUP_FEE],
+    );
+    await settle(pickupId, 'paid', 'evt-3b-pickup', PICKUP_FEE);
+
+    await db.asOwner();
+    const { rows: tot } = await db.pg.query<{ total_minor: number; balance_due_minor: number }>(
+      `select total_minor, balance_due_minor from bookings where ref = $1`,
+      [ref],
+    );
+    expect(Number(tot[0]!.total_minor)).toBe(100000 + PICKUP_FEE); // apply_pickup_request grew the order total
+    expect(Number(tot[0]!.balance_due_minor)).toBe(0); // …and the applied pickup nets out — nothing owed
+  });
 });
 
 /**
