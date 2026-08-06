@@ -87,6 +87,21 @@ const CONTRACTS: ResolvedContract[] = [
   // migration re-applies the winning body verbatim" — would produce a customer path and a quote path
   // with two independent leases, i.e. two payable Peach sessions for one booking, silently. Edit the
   // shared function instead.
+  // The erasure's SCOPE. api_erase_user normalised only the REQUEST and compared it against a raw
+  // `lower(customer_email)`, so a booking or quote whose stored address carried the whitespace it was
+  // pasted with fell outside an Art. 17 sweep and was silently retained with the guest's name, address,
+  // phone and free text on it — while the call returned ok: true. This is the highest-value row in the
+  // file to pin: the only evidence of the failure is data nobody can see, and api_erase_user is the
+  // function this repo has already silently re-defined from a stale body TWICE.
+  {
+    fn: 'api_erase_user',
+    must: 'normalises the STORED address through quote_email_key, not lower() alone',
+    code: /\bquote_email_key\s*\(\s*customer_email\s*\)\s*=\s*v_email\b/,
+    alsoSaidInAComment: 'quote_email_key(customer_email) = v_email',
+    why:
+      'the erasure matches only rows whose address is stored exactly as typed, so a booking or quote ' +
+      'carrying a pasted leading/trailing space keeps the guest’s name, email, phone and notes forever',
+  },
   {
     fn: 'api_create_payment',
     must: 'returns create_payment(p, true) rather than re-inlining it',

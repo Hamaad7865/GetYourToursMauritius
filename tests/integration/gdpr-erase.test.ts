@@ -500,4 +500,203 @@ describe('api_erase_user — anonymize-with-retention', () => {
     await expect(callErase(db, { email: 'quote-erase@example.com' })).resolves.toBeTruthy();
     await db.asOwner();
   });
+
+  /**
+   * THE WHITESPACE THE ADDRESS WAS PASTED WITH.
+   *
+   * api_erase_user normalised the REQUEST — `lower(nullif(btrim(p ->> 'email'), ''))` — and then
+   * compared it against a raw `lower(customer_email)` / `lower(contact)` / `lower(recipient)`. So the
+   * scope was "addresses stored exactly as typed", not "this person": a booking, quote or lead whose
+   * stored address carries a leading or trailing space — which is what an operator pasting out of a
+   * mail client produces, and nothing on any screen shows — fell OUTSIDE the erasure and was silently
+   * retained with the guest's name, address, phone and free text on it. An Art. 17 request reported
+   * `ok: true` and quietly did not honour itself.
+   *
+   * Same class of bug, same remedy as the quote owner/claim pair: quote_email_key on BOTH operands.
+   * The addresses below are padded with SPACES only, deliberately — btrim's default character set is
+   * a space, so that is exactly the reach the fix claims and nothing wider.
+   */
+  it('reaches rows whose STORED address carries the whitespace it was pasted with', async () => {
+    const PADDED = '  Pasted.Guest@Example.com  '; // as stored: pasted, mixed case
+    const CLEAN = 'pasted.guest@example.com'; // as requested: what the guest types in the form
+    // A different mailbox that merely looks alike. It must survive untouched — normalising both sides
+    // must widen the match to whitespace and case, never to a neighbouring address.
+    const NEIGHBOUR = 'pasted.guest2@example.com';
+
+    const paddedConfirmed = await seedBooking(db, 'pad-confirmed', {
+      userId: null,
+      email: PADDED,
+      status: 'confirmed',
+      paymentState: 'paid',
+      name: 'Padded Person',
+    });
+    const paddedDraft = await seedBooking(db, 'pad-draft', {
+      userId: null,
+      email: PADDED,
+      status: 'draft',
+      paymentState: 'pending',
+    });
+    // The SAME person's clean-address rows, erased in the SAME call: the fix must not trade the
+    // padded match for the exact one that has always worked.
+    const cleanConfirmed = await seedBooking(db, 'pad-clean-confirmed', {
+      userId: null,
+      email: CLEAN,
+      status: 'confirmed',
+      paymentState: 'paid',
+      name: 'Clean Person',
+    });
+    const neighbourConfirmed = await seedBooking(db, 'pad-neighbour', {
+      userId: null,
+      email: NEIGHBOUR,
+      status: 'confirmed',
+      paymentState: 'paid',
+      name: 'Neighbour Person',
+    });
+
+    await db.asOwner();
+    await db.pg.query(`insert into leads (name, contact) values ('Padded Person', $1)`, [PADDED]);
+    await db.pg.query(`insert into leads (name, contact) values ('Clean Person', $1)`, [CLEAN]);
+    await db.pg.query(`insert into leads (name, contact) values ('Neighbour', $1)`, [NEIGHBOUR]);
+
+    // booking_id NULL on purpose: only the RECIPIENT comparison can reach this row, so it isolates
+    // that call site from the booking-linked payload scrub that runs off the captured id array.
+    const paddedOutbox = (
+      await db.pg.query<{ id: string }>(
+        `insert into notification_outbox (channel, recipient, template, payload)
+         values ('email', $1, 'review_request',
+                 jsonb_build_object('ref', 'BMT-PAD', 'customerName', 'Padded Person'))
+         returning id`,
+        [PADDED],
+      )
+    ).rows[0]!.id;
+
+    const paddedDraftQuote = (
+      await db.pg.query<{ id: string }>(
+        `insert into quotes (ref, customer_name, customer_email, customer_phone, valid_until, internal_notes)
+         values ('BMT-QPAD1', 'Padded Person', $1, '+23057000011', current_date + 7,
+                 'Padded Person wants the catamaran')
+         returning id`,
+        [PADDED],
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into quote_items (quote_id, position, kind, description, quantity, unit_amount_minor, subtotal_minor)
+       values ($1, 1, 'custom', 'Skipper for Padded Person', 1, 40000, 40000)`,
+      [paddedDraftQuote],
+    );
+    const paddedConvertedQuote = (
+      await db.pg.query<{ id: string }>(
+        `insert into quotes (ref, customer_name, customer_email, customer_phone, valid_until,
+                             intro_note, internal_notes, booking_id, converted_at)
+         values ('BMT-QPAD2', 'Padded Person', $1, '+23057000012', current_date + 7,
+                 'Dear Padded Person, here is the day we discussed.', 'Padded Person paid up front',
+                 $2, now())
+         returning id`,
+        [PADDED, paddedConfirmed],
+      )
+    ).rows[0]!.id;
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(callErase(db, { email: CLEAN })).resolves.toBeTruthy();
+    await db.asOwner();
+
+    // ---- Bookings: the padded rows are in scope exactly as the clean one always was ---------------
+    expect(
+      await bookingRow(db, paddedDraft),
+      'an unpaid booking stored with a pasted address survived the erasure',
+    ).toBeUndefined();
+    const padded = (await bookingRow(db, paddedConfirmed))!;
+    expect(
+      padded.customer_name,
+      'a retained booking stored with a pasted address kept the guest’s name',
+    ).toBe('(Deleted user)');
+    expect(padded.customer_email).toBe('deleted@privacy.invalid');
+    expect(padded.status).toBe('confirmed'); // the financial record is still retained
+
+    // ---- …and the clean-address behaviour is unchanged --------------------------------------------
+    const clean = (await bookingRow(db, cleanConfirmed))!;
+    expect(clean.customer_name).toBe('(Deleted user)');
+    expect(clean.customer_email).toBe('deleted@privacy.invalid');
+
+    // ---- …and a neighbouring mailbox is NOT swept in ---------------------------------------------
+    const neighbour = (await bookingRow(db, neighbourConfirmed))!;
+    expect(neighbour.customer_name, 'a different mailbox was caught by the erasure').toBe(
+      'Neighbour Person',
+    );
+    expect(neighbour.customer_email).toBe(NEIGHBOUR);
+
+    // ---- Leads: keyed on `contact`, not customer_email --------------------------------------------
+    const leadContacts = (
+      await db.pg.query<{ contact: string }>(`select contact from leads order by contact`)
+    ).rows.map((r) => r.contact);
+    expect(leadContacts, 'a lead stored with a pasted address survived the erasure').not.toContain(
+      PADDED,
+    );
+    expect(leadContacts).not.toContain(CLEAN);
+    expect(leadContacts, 'a different mailbox’s lead was deleted').toContain(NEIGHBOUR);
+
+    // ---- Outbox: keyed on `recipient` -------------------------------------------------------------
+    const outbox = (
+      await db.pg.query<{ recipient: string; payload: Record<string, unknown> }>(
+        `select recipient, payload from notification_outbox where id = $1`,
+        [paddedOutbox],
+      )
+    ).rows[0]!;
+    expect(
+      outbox.recipient,
+      'a queued message still addresses the erased guest at their pasted address',
+    ).toBe('deleted@privacy.invalid');
+    expect(outbox.payload.customerName).toBeUndefined();
+
+    // ---- Quotes: the draft is deleted outright, the converted one stripped in place ---------------
+    expect(
+      (await db.pg.query(`select 1 from quotes where id = $1`, [paddedDraftQuote])).rows,
+      'a draft quote stored with a pasted address survived the erasure',
+    ).toHaveLength(0);
+    expect(
+      (await db.pg.query(`select 1 from quote_items where quote_id = $1`, [paddedDraftQuote])).rows,
+    ).toHaveLength(0);
+
+    const conv = (
+      await db.pg.query<{
+        customer_name: string;
+        customer_email: string;
+        customer_phone: string | null;
+        intro_note: string | null;
+        internal_notes: string | null;
+      }>(
+        `select customer_name, customer_email, customer_phone, intro_note, internal_notes
+           from quotes where id = $1`,
+        [paddedConvertedQuote],
+      )
+    ).rows[0]!;
+    expect(
+      conv.customer_name,
+      'a retained quote stored with a pasted address kept the guest’s name',
+    ).toBe('(Deleted user)');
+    expect(conv.customer_email).toBe('deleted@privacy.invalid');
+    expect(conv.customer_phone).toBeNull();
+    expect(conv.intro_note).toBeNull();
+    expect(conv.internal_notes).toBeNull();
+
+    // Belt and braces over the whole table: neither the padded address nor the name may remain
+    // anywhere. `btrim(lower(...))` here is the assertion's own normalisation, not the function's —
+    // a sweep that only knew the exact stored string is precisely what could not see this row.
+    const leftovers = (
+      await db.pg.query<{ n: number }>(
+        `select count(*)::int as n from quotes
+          where btrim(lower(customer_email)) = $1
+             or coalesce(customer_name, '') || ' ' || coalesce(intro_note, '')
+                || ' ' || coalesce(internal_notes, '') ilike $2`,
+        [CLEAN, '%Padded Person%'],
+      )
+    ).rows[0]!.n;
+    expect(leftovers, 'a quote still carries the erased guest’s address or name').toBe(0);
+  });
+
+  it('is idempotent over the padded rows too — a second erase is a no-op', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await expect(callErase(db, { email: 'pasted.guest@example.com' })).resolves.toBeTruthy();
+    await db.asOwner();
+  });
 });

@@ -26443,6 +26443,35 @@ grant execute on function api_booking_receipt(jsonb) to service_role;
 --     reverts the quotes erasure and re-opens an Art. 17 hole in two other tables. That is
 --     migration-revert drift, the worst landmine in docs/handbook/landmines.md, and the reason the
 --     rule is "the LAST migration to define it wins", verified against the whole directory.
+--
+--     EVERY EMAIL COMPARE IN HERE GOES THROUGH quote_email_key (20260909000000, section 6c-bis), ON
+--     BOTH OPERANDS. It used to normalise only the REQUEST - `lower(nullif(btrim(p ->> 'email'),''))`
+--     - and then compare that against a raw `lower(customer_email)`, `lower(contact)` or
+--     `lower(recipient)`. So the erasure's scope was "rows whose address is stored exactly as typed",
+--     not "this person". `bookings.customer_email` and `quotes.customer_email` have no trimming
+--     trigger and api_book / the quote editor store what they are handed, so an address pasted out of
+--     a mail client - ' nina@example.com ' - really is what sits in the column, and NOTHING ON ANY
+--     SCREEN SHOWS THE SPACE. That row fell outside the sweep and was retained forever with the
+--     guest's name, address, phone and free text on it, while the call returned ok: true. An Art. 17
+--     request quietly not honoured is the worst possible failure mode here, because the evidence that
+--     it failed is the very data nobody can see.
+--
+--     The compare is therefore quote_email_key(customer_email) = v_email - the same shape the quote
+--     owner match and the quote claim already use, and the same bug those two were written for (see
+--     6c-bis: the owner btrimmed its argument, the claim did not, and a booking matched at payment
+--     became unclaimable forever). One definition of "the same address", applied everywhere.
+--
+--     The columns are NOT all the same: bookings and quotes key on customer_email, leads on the
+--     packed `contact` blob, and the outbox on `recipient` - so each call site is normalised on the
+--     column it actually reads. The id-keyed statements (the booking_pickup_requests / outbox-payload
+--     / bell / audit_logs scrubs off v_anon_ids, and the chat + profile deletes off v_uid) compare no
+--     address at all and are left exactly as they were.
+--
+--     The REQUEST side was already trimmed on the staff path - `lower(nullif(btrim(...), ''))` is
+--     literally quote_email_key inlined - so the mirror-image case (a clean stored address requested
+--     WITH whitespace) was never broken there; it is routed through the function only so the rule is
+--     stated once. The SELF-ERASE path was NOT: it read `lower(email)` from auth.users, untrimmed,
+--     and would have compared '' rather than null for a blank one. That one is a real fix.
 -- ---------------------------------------------------------------------------
 create or replace function api_erase_user(p jsonb)
 returns jsonb
@@ -26452,7 +26481,9 @@ set search_path = public
 as $$
 declare
   v_uid uuid := nullif(p ->> 'userId', '')::uuid;
-  v_email text := lower(nullif(btrim(p ->> 'email'), ''));
+  -- quote_email_key IS `lower(nullif(btrim(...), ''))` - the request side was already correct, and is
+  -- routed through the function so the rule has exactly one definition rather than a copy here.
+  v_email text := quote_email_key(p ->> 'email');
   -- Non-paid booking statuses that are safe to hard-delete (only ever combined with payment_state pending).
   v_del_states text[] := array['draft', 'held', 'payment_pending', 'expired', 'cancelled', 'failed'];
   -- Paid / terminal statuses that must be retained (financial records) and only anonymized.
@@ -26472,14 +26503,19 @@ begin
 
   -- Bind the email scope to the CALLER'S identity for a non-staff self-erase. The caller-supplied email
   -- is untrusted: a signed-in user could pass a stranger's address and, because the row scope matches on
-  -- lower(customer_email) = v_email, sweep that stranger's GUEST bookings/leads (user_id null) -- broken
-  -- access control. So for non-staff we IGNORE the supplied email and force v_email to the caller's own
-  -- JWT identity, read from auth.users (the SECURITY DEFINER owner can see it; auth.email() is not
-  -- relied on here). This still catches the user's own pre-account guest bookings (made under their own
-  -- email before they had an account), while making a stranger's email unreachable. Staff keep the
-  -- supplied email -- they legitimately erase a pure-guest record by its address.
+  -- quote_email_key(customer_email) = v_email, sweep that stranger's GUEST bookings/leads (user_id null)
+  -- -- broken access control. So for non-staff we IGNORE the supplied email and force v_email to the
+  -- caller's own JWT identity, read from auth.users (the SECURITY DEFINER owner can see it; auth.email()
+  -- is not relied on here). This still catches the user's own pre-account guest bookings (made under
+  -- their own email before they had an account), while making a stranger's email unreachable. Staff keep
+  -- the supplied email -- they legitimately erase a pure-guest record by its address.
+  --
+  -- Through quote_email_key as well, so this branch cannot produce a v_email the request branch never
+  -- could: `lower(email)` alone left any padding auth.users happens to carry, and turned a blank
+  -- address into '' rather than null -- a value every `v_email is not null` guard below would wave
+  -- through to match nothing.
   if not is_staff() then
-    select lower(email) into v_email from auth.users where id = auth.uid();
+    select quote_email_key(email) into v_email from auth.users where id = auth.uid();
   end if;
 
   if v_uid is null and v_email is null then
@@ -26492,7 +26528,7 @@ begin
   select array_agg(id) into v_del_ids
     from bookings
    where ((v_uid is not null and user_id = v_uid)
-          or (v_email is not null and lower(customer_email) = v_email))
+          or (v_email is not null and quote_email_key(customer_email) = v_email))
      and status = any(v_del_states::booking_status[])
      and payment_state = 'pending';
 
@@ -26512,7 +26548,7 @@ begin
   select coalesce(array_agg(id), '{}') into v_anon_ids
     from bookings
    where (v_uid is not null and user_id = v_uid)
-      or (v_email is not null and lower(customer_email) = v_email);
+      or (v_email is not null and quote_email_key(customer_email) = v_email);
 
   -- ---- Anonymize the retained (paid/terminal) bookings --------------------------------------------
   -- Keep the row + every financial column (total_minor, payouts, payment_state, status); strip the PII.
@@ -26541,7 +26577,7 @@ begin
          return_time = null,
          departure_flight_number = null
    where ((v_uid is not null and user_id = v_uid)
-          or (v_email is not null and lower(customer_email) = v_email))
+          or (v_email is not null and quote_email_key(customer_email) = v_email))
      and status = any(v_anon_states::booking_status[])
      -- idempotent: skip rows already anonymized (so a second call updates 0 rows, never re-counts).
      and customer_name is distinct from '(Deleted user)';
@@ -26578,7 +26614,7 @@ begin
                          'previousStartsAt', 'reason', 'chargedAmountMinor', 'chargedCurrency')),
            '{}'::jsonb
          )
-   where v_email is not null and lower(recipient) = v_email;
+   where v_email is not null and quote_email_key(recipient) = v_email;
   -- Booking-linked rows keep their RECIPIENT -- they may address the OWNER (the 'owner' sentinel or
   -- the ops inbox), and severing that address would silently kill a pending owner alert for a real
   -- paid booking. Only the person's name leaves the payload. Matched by the pre-captured id set.
@@ -26609,8 +26645,12 @@ begin
 
   -- ---- Hard-delete the remaining personal data ----------------------------------------------------
   -- leads: PII lives in (name, contact); contact holds the email/phone. Delete by email match.
+  -- NOT customer_email -- `contact` is the leads table's own column, so the normalisation goes on
+  -- THAT one. (It is a packed "email · phone" blob, so an equality match only ever reaches a lead
+  -- captured without a phone number; widening that is a separate question from this one, and
+  -- deliberately not answered here.)
   if v_email is not null then
-    delete from leads where lower(contact) = v_email;
+    delete from leads where quote_email_key(contact) = v_email;
     get diagnostics v_del_leads = row_count;
   end if;
 
@@ -26623,12 +26663,12 @@ begin
     delete from quote_items qi
      using quotes q
      where qi.quote_id = q.id
-       and lower(q.customer_email) = v_email
+       and quote_email_key(q.customer_email) = v_email
        and q.converted_at is null
        and q.booking_id is null;
 
     delete from quotes q
-     where lower(q.customer_email) = v_email
+     where quote_email_key(q.customer_email) = v_email
        and q.converted_at is null
        and q.booking_id is null;
     get diagnostics v_del_quotes = row_count;
@@ -26651,7 +26691,7 @@ begin
            customer_phone = null,
            intro_note = null,
            internal_notes = null
-     where lower(customer_email) = v_email
+     where quote_email_key(customer_email) = v_email
        and (converted_at is not null or booking_id is not null)
        and customer_name is distinct from '(Deleted user)';
     get diagnostics v_anon_quotes = row_count;
