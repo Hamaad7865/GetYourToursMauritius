@@ -65,22 +65,22 @@ type RouteCtx = { params: Promise<{ ref: string }> };
  * it is a migration, and it has been raised for sign-off rather than written unilaterally.
  *
  * STEP 4 IS `createPaymentLink`, NEVER `createCheckout` in src/lib/payments/peach.ts. That service
- * goes through api_create_payment, which holds the single-flight checkout lease and pins the charge:
- * the lease is the thing that stops one booking having two payable Peach sessions (the defect class
- * fixed in ec5ebcf), and it also makes a second click on this route REUSE the live session instead of
- * opening another. Calling the provider directly would re-implement the invariant instead of keeping
- * it.
+ * goes through the create-payment RPC, which holds the single-flight checkout lease and pins the
+ * charge: the lease is the thing that stops one booking having two payable Peach sessions (the defect
+ * class fixed in ec5ebcf), and it also makes a second click on this route REUSE the live session
+ * instead of opening another. Calling the provider directly would re-implement the invariant instead
+ * of keeping it.
  *
- * KNOWN BLOCKER — the charge does not complete yet. api_create_payment ends its guard with
+ * WHY STEP 4 PASSES `authorizedBy: 'quote'`. api_create_payment ends its guard with
  *   `if not (is_staff() or (auth.uid() is not null and v_booking.user_id = auth.uid()))`
- * and a quote booking has NO user_id (the guest has no account) while this route calls as service_role
- * (auth.uid() null), so it raises `forbidden` → 403. /api/v1/bookings states the same fact from the
- * other side: "a guest booking could never be paid", which is why booking requires sign-in. Everything
- * up to that call is complete and tested; relaxing the guard is a money-path migration on a function
- * that a parallel branch is also rewriting (20260910000000), so it is deliberately NOT done here.
- * tests/integration/quote-pay.test.ts pins the refusal so the gap cannot be forgotten. Nothing is
- * reachable in production meanwhile: only the send route mints `token_hash`, and it does not exist
- * yet, so `resolveQuoteForToken` answers null for every live quote.
+ * which is right for a customer checkout — the public booking ref is not a bearer credential — and
+ * impossible here: a quote booking has NO user_id (the guest has no account) and this route calls as
+ * service_role, so auth.uid() is null and every quote payment was refused with 403 until
+ * 20260911000000. That guard is untouched. The flag routes to api_create_quote_payment instead, which
+ * SHARES api_create_payment's body — the same lease, the same reuse window, the same FX pin, so the
+ * two can never drift into two payable sessions — and skips only the identity check, because
+ * authorization here is the LINK TOKEN `resolveQuoteForToken` verified above, and the RPC is granted
+ * to service_role alone so nothing reachable from a browser can call it without one.
  */
 
 /* ---------------------------------------------------------------------------------------------
@@ -342,6 +342,9 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
       // where a card taking the redirect-based 3-D Secure path returns the guest top-level, and a
       // quote guest has no account to sign in to. See quotePayReturnUrl's own header.
       returnUrl: quotePayReturnUrl(ref),
+      // The quote entry point (api_create_quote_payment), because there is no caller identity to check
+      // here — see step 4 in the header.
+      authorizedBy: 'quote',
     },
     ctx,
   );

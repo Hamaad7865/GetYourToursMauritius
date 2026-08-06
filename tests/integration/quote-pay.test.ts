@@ -27,20 +27,19 @@ import type { CreatePaymentLinkInput } from '@/lib/services/payments';
  *   - and the catalogue re-price gate: if a catalogue line's price has moved since the offer was
  *     sent, the guest is refused with a 409 rather than charged a figure they never agreed to.
  *
- * TWO TESTS AT THE END RECORD GAPS, THEY DO NOT SPECIFY BEHAVIOUR. Both are named KNOWN GAP / KNOWN
- * BLOCKER, both carry the commit that should delete them, and both are refusals the module is meant to
- * stop making: a quote carrying a scheduled activity cannot convert (the hold path Task 8 was
- * specified to add is not built), and an ownerless quote booking cannot actually be charged
- * (api_create_payment's authz guard). Each needs a money-path migration, so each has been raised for
- * sign-off rather than written unilaterally. Read them as a to-do list, not as the answer.
+ * ONE TEST NEAR THE END RECORDS A GAP, IT DOES NOT SPECIFY BEHAVIOUR. It is named KNOWN GAP, carries
+ * the commit that should delete it, and pins a refusal the module is meant to stop making: a quote
+ * carrying a scheduled activity cannot convert, because the hold path Task 8 was specified to add is
+ * not built. It needs a money-path migration, so it has been raised for sign-off rather than written
+ * unilaterally. Read it as a to-do list, not as the answer.
  *
- * `createPaymentLink` is faked for those tests, deliberately. Its own guarantee — that one booking can
- * never have two payable Peach sessions — is enforced by api_create_payment's single-flight lease and
- * is tested against the real database in tests/integration/payment-checkout-lease.test.ts. What this
- * file must prove is that the ROUTE cannot break that invariant from above, by minting a SECOND
- * BOOKING for one quote; the fake returns a checkout id derived from the booking ref so a second
- * booking would be visible as a second checkout id. The last test in the file runs the REAL
- * `createPaymentLink` and records where the money path currently stops.
+ * `createPaymentLink` is faked for most tests, deliberately. Its own guarantee — that one booking can
+ * never have two payable Peach sessions — is enforced by the single-flight lease in SQL and is tested
+ * against the real database in tests/integration/payment-checkout-lease.test.ts and
+ * tests/integration/quote-checkout-entry.test.ts. What those tests must prove is that the ROUTE cannot
+ * break that invariant from above, by minting a SECOND BOOKING for one quote; the fake returns a
+ * checkout id derived from the booking ref so a second booking would be visible as a second checkout
+ * id. The last two tests run the REAL `createPaymentLink` end to end.
  *
  * The PGlite session stays as the OWNER while the route runs. The harness's auth shim replicates
  * Supabase's stock default privileges for FUNCTIONS only (see tests/db/auth-shim.sql), so `bookings`
@@ -466,27 +465,75 @@ describe('POST /api/v1/quotes/{ref}/pay', () => {
     expect(rows[0]!.converted_at).toBeNull();
   });
 
-  it('KNOWN BLOCKER: the real createPaymentLink cannot pay an ownerless quote booking', async () => {
-    // Run against the REAL payments service. api_create_payment ends its guard with
-    //   if not (is_staff() or (auth.uid() is not null and v_booking.user_id = auth.uid()))
-    // and a quote booking has NO user_id — the guest has no account — while the route calls as
-    // service_role, for which auth.uid() is null. So the charge is refused: `forbidden` → 403.
+  it('the REAL payments service mints a checkout for the ownerless quote booking', async () => {
+    // END TO END, against the real `createPaymentLink` and the real SQL — the money path this module
+    // exists for, and the one thing that did not work until 20260911000000.
     //
-    // /api/v1/bookings states the same fact from the other side ("a guest booking could never be
-    // paid"), which is why booking requires sign-in. Everything above this line is the route working
-    // exactly as specified; the one thing standing between it and a paid quote is that SQL guard, and
-    // relaxing it is a money-path migration on a function a parallel branch is also rewriting
-    // (20260910000000). DELETE THIS TEST in the commit that lands that migration, and replace it with
-    // one that asserts a checkout is minted.
+    // api_create_payment ends its guard with
+    //   if not (is_staff() or (auth.uid() is not null and v_booking.user_id = auth.uid()))
+    // which is correct for a customer checkout and fatal for a quote: the booking has NO user_id (the
+    // guest has no account) and the route calls as service_role, so auth.uid() is null and every quote
+    // payment was refused with `forbidden` → 403. That guard is deliberately untouched — the customer
+    // path is unchanged. The route now goes through api_create_quote_payment instead: service-role
+    // only, narrowed to bookings a quote points at, and sharing api_create_payment's body — so it takes
+    // THE SAME single-flight lease and pins the charge the same way.
     hoisted.fakeLink = false;
     const quote = await seedQuote();
 
     const res = await pay(quote.ref, quote.token);
 
-    expect(res.status).toBe(403);
-    expect((await res.json()).error.code).toBe('forbidden');
-    // The conversion itself succeeded — the quote is converted and the booking exists, payable by
-    // nobody until the guard moves.
+    expect(res.status).toBe(201);
+    const { data } = await res.json();
+    expect(data.bookingRef).toMatch(/^BMT[0-9A-F]{13}$/);
+    // A real session came back from the provider: the stub mints `stub_{ref}`.
+    expect(data.sessionId).toBe(`stub_${data.bookingRef}`);
+    // The guest is told the MUR figure their card will be charged — pinned by the shared SQL body,
+    // first-write-wins, so every re-minted session for this payment charges the identical amount.
+    expect(data.chargeCurrency).toBe('MUR');
+    expect(data.chargeAmountMinor).toBeGreaterThan(0);
     expect(await bookingCount(quote)).toBe(1);
+
+    // ONE payments row, carrying the pin — the row whose lease and reuse window the next click reads.
+    const { rows } = await db.pg.query<{ n: number; currency: string | null; charged: string }>(
+      `select count(*)::int as n, max(p.charged_currency) as currency,
+              max(p.charged_amount_minor)::text as charged
+         from payments p join bookings b on b.id = p.booking_id
+        where b.ref = $1`,
+      [data.bookingRef],
+    );
+    expect(rows[0]!.n).toBe(1);
+    expect(rows[0]!.currency).toBe('MUR');
+    expect(Number(rows[0]!.charged)).toBe(data.chargeAmountMinor);
+  });
+
+  it('a second click on the REAL path stays on one booking and one payment row', async () => {
+    // The single-flight lease and the 25-minute reuse window belong to api_create_payment's body, and
+    // the quote entry point SHARES that body rather than re-implementing it — so a second click cannot
+    // fork a second payable session. Only the outer half of that is observable here: the stub provider
+    // reports no `checkoutId` (it has no widget to mount), so nothing is recorded for the reuse branch
+    // to find and each click legitimately re-mints from the stub. What this asserts is the part the
+    // ROUTE owns — one booking, one payments row, the same charge — while the lease itself is asserted
+    // against real SQL, including sharing it with api_create_payment, in
+    // tests/integration/quote-checkout-entry.test.ts.
+    hoisted.fakeLink = false;
+    const quote = await seedQuote();
+
+    const first = await pay(quote.ref, quote.token);
+    const second = await pay(quote.ref, quote.token);
+
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    const a = (await first.json()).data;
+    const b = (await second.json()).data;
+    expect(b.bookingRef).toBe(a.bookingRef);
+    expect(b.chargeAmountMinor).toBe(a.chargeAmountMinor);
+    expect(await bookingCount(quote)).toBe(1);
+
+    const { rows } = await db.pg.query<{ n: number }>(
+      `select count(*)::int as n from payments p join bookings b on b.id = p.booking_id
+        where b.ref = $1`,
+      [a.bookingRef],
+    );
+    expect(rows[0]!.n).toBe(1);
   });
 });

@@ -40,6 +40,19 @@ export interface CreatePaymentLinkInput {
    * the liveness re-query) applies to it unchanged, because they are all per-PAYMENT-ROW.
    */
   purpose?: 'booking' | 'pickup_addon';
+  /**
+   * WHICH ENTRY POINT AUTHORIZES THIS CHECKOUT. Default 'caller' — api_create_payment, which checks
+   * that `ctx`'s identity owns the booking (or is staff). That is every customer checkout, and it is
+   * deliberately untouched: the public booking ref is not a bearer credential.
+   *
+   * 'quote' routes to api_create_quote_payment instead, for the one case where there is no identity to
+   * check: a quote booking has no user_id because the guest has no account. Authorization there is the
+   * emailed LINK TOKEN, verified by resolveQuoteForToken before the route reaches this function, and
+   * the RPC is granted to service_role only so nothing reachable from a browser can call it. Both
+   * entry points share ONE SQL body, so they take the SAME single-flight checkout lease — the thing
+   * that stops a booking having two payable Peach sessions. Every guard below applies unchanged.
+   */
+  authorizedBy?: 'caller' | 'quote';
 }
 
 /**
@@ -60,6 +73,11 @@ export interface CreatePaymentLinkInput {
  * authenticated booking owner must not be able to falsify it. `ctx` stays the CALLER's context so
  * api_create_payment keeps enforcing booking ownership on the caller's identity. The route passes
  * serviceRoleRpcContext().
+ *
+ * The ONE exception is `authorizedBy: 'quote'` (see the field's own note): a quote booking has no
+ * owner for that check to be about, so the quote pay route — which has already verified the emailed
+ * link token — passes the service-role port as BOTH ports and gets api_create_quote_payment. It shares
+ * api_create_payment's SQL body, so everything documented above still holds for it.
  */
 export async function createPaymentLink(
   ctx: ServiceContext,
@@ -67,6 +85,16 @@ export async function createPaymentLink(
   adminCtx: ServiceContext,
 ): Promise<PaymentLink> {
   const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
+  // ONE decision, made once and reused by all three call sites below — the re-entrant clear-and-retry
+  // path must never fall back to the caller-authorized function, or a quote guest would be refused
+  // half-way through recovering from a dead session.
+  const createPaymentFn =
+    input.authorizedBy === 'quote' ? 'api_create_quote_payment' : 'api_create_payment';
+  const createPaymentArgs = {
+    bookingRef: input.bookingRef,
+    idempotencyKey,
+    purpose: input.purpose ?? 'booking',
+  };
 
   // Overlap the provider's cold-start with our own DB work. Peach needs an OAuth token from a
   // separate host before it will mint a checkout — 1.0-1.8s on a cold edge isolate, and it depends on
@@ -74,11 +102,7 @@ export async function createPaymentLink(
   // than for both in sequence. Non-blocking and never throws.
   ctx.payments.prewarm?.();
 
-  let data = await callRpc(ctx, 'api_create_payment', {
-    bookingRef: input.bookingRef,
-    idempotencyKey,
-    purpose: input.purpose ?? 'booking',
-  });
+  let data = await callRpc(ctx, createPaymentFn, createPaymentArgs);
   let payment = paymentCreateResultSchema.parse(data);
 
   // Single-flight: another request holds the checkout lease (two tabs / a double-click racing).
@@ -87,11 +111,7 @@ export async function createPaymentLink(
   // that, surface checkout_pending (409) and let the caller retry the POST.
   if (payment.checkoutPending) {
     await new Promise((resolve) => setTimeout(resolve, 1200));
-    data = await callRpc(ctx, 'api_create_payment', {
-      bookingRef: input.bookingRef,
-      idempotencyKey,
-      purpose: input.purpose ?? 'booking',
-    });
+    data = await callRpc(ctx, createPaymentFn, createPaymentArgs);
     payment = paymentCreateResultSchema.parse(data);
     if (payment.checkoutPending) throw new CheckoutPendingError();
   }
@@ -127,11 +147,7 @@ export async function createPaymentLink(
 
     // Re-enter: with the pointer cleared this call takes the CLAIM path, so minting the replacement
     // still happens under the single-flight lease (never two payable sessions).
-    data = await callRpc(ctx, 'api_create_payment', {
-      bookingRef: input.bookingRef,
-      idempotencyKey,
-      purpose: input.purpose ?? 'booking',
-    });
+    data = await callRpc(ctx, createPaymentFn, createPaymentArgs);
     payment = paymentCreateResultSchema.parse(data);
     if (payment.checkoutPending) throw new CheckoutPendingError();
     // Another request won the race and minted a fresh session while we were clearing — use theirs

@@ -206,6 +206,33 @@ A still-missing pickup is chased by `api_enqueue_pickup_reminders()` (maintenanc
 48h and again at 24h before departure, the owner at 24h. Idempotency keys carry the threshold, so each
 booking is chased once per window and never once an address exists.
 
+### The one customer who has no account — quotes
+
+A quote is an offer the owner drafts and emails; the guest accepts it from a link, with **no account**.
+So step 6 above cannot be reached the ordinary way: `api_create_payment` ends its guard with
+`is_staff() or (auth.uid() is not null and v_booking.user_id = auth.uid())`, and a quote booking has no
+`user_id` at all while `POST /api/v1/quotes/{ref}/pay` calls as service_role.
+
+That guard is **not** relaxed. There is a second entry point instead:
+
+| function                   | grants                      | identity check | who calls it                    |
+| -------------------------- | --------------------------- | -------------- | ------------------------------- |
+| `api_create_payment`       | authenticated, service_role | **yes**        | `POST /api/v1/payments`         |
+| `api_create_quote_payment` | service_role only           | no             | `POST /api/v1/quotes/{ref}/pay` |
+| `create_payment(p, bool)`  | service_role only           | the argument   | the two above, nothing else     |
+
+The quote path may skip the identity check because authorization there is the **emailed link token**,
+verified by `resolveQuoteForToken` before the route reaches SQL — a stronger credential than the session
+it skips — and because the RPC is service-role only, so nothing reachable from a browser can call it
+without one. It additionally refuses any booking no `quotes` row points at, so the bypass cannot be
+aimed at a normal customer's booking.
+
+**Both wrap ONE body (`create_payment`) on purpose.** The single-flight checkout lease lives in it, and
+that lease is the only thing stopping one booking having two payable Peach sessions. A second copy is a
+copy free to drift. If you edit the lease, the reuse window or the FX pin, you are editing it once —
+keep it that way, and keep `tests/integration/quote-checkout-entry.test.ts` (which claims the lease
+through one entry point and asserts the other is told `checkoutPending`) passing.
+
 ### The one activity type that skips this whole path
 
 `activities.extra.inquiryOnly` (e.g. skydiving) opts an activity **out of every step above** — no hold,

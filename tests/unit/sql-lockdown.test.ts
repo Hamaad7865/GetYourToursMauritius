@@ -32,6 +32,11 @@ describe('public mutation lockdown (catch-up.sql)', () => {
     'revoke execute on function api_book(jsonb) from public, anon, authenticated;',
     'revoke execute on function api_create_payment(jsonb) from public, anon;',
     'revoke execute on function api_erase_user(jsonb) from public;',
+    // The quote checkout pair (20260911000000). Both skip or decide the caller-identity check, so the
+    // EXECUTE grant IS the authorization and all three roles have to be named — `from public` alone
+    // leaves Supabase's stock direct grants to anon/authenticated in place.
+    'revoke execute on function create_payment(jsonb, boolean) from public, anon, authenticated;',
+    'revoke execute on function api_create_quote_payment(jsonb) from public, anon, authenticated;',
   ])('revokes: %s', (stmt) => {
     expect(norm).toContain(stmt.replace(/\s+/g, ' '));
   });
@@ -41,6 +46,8 @@ describe('public mutation lockdown (catch-up.sql)', () => {
     'grant execute on function api_record_payment_charge(jsonb) to service_role;',
     'grant execute on function api_book(jsonb) to service_role;',
     'grant execute on function api_create_payment(jsonb) to authenticated, service_role;',
+    'grant execute on function create_payment(jsonb, boolean) to service_role;',
+    'grant execute on function api_create_quote_payment(jsonb) to service_role;',
   ])('restores the intended callers: %s', (stmt) => {
     expect(norm).toContain(stmt.replace(/\s+/g, ' '));
   });

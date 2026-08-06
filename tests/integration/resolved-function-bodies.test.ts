@@ -55,6 +55,26 @@ const CONTRACTS: ResolvedContract[] = [
       'the retained-quote anonymize UPDATE leaves intro_note — the guest-FACING covering note, ' +
       'which opens by addressing the guest by name — on the row after an Art. 17 erasure',
   },
+  // 20260911000000 made api_create_payment a WRAPPER over the shared `create_payment` body, so that
+  // the quote entry point (api_create_quote_payment) cannot hold a second copy of the single-flight
+  // checkout lease. Re-inlining the body here is the drift: this file's own convention — "a later
+  // migration re-applies the winning body verbatim" — would produce a customer path and a quote path
+  // with two independent leases, i.e. two payable Peach sessions for one booking, silently. Edit the
+  // shared function instead.
+  {
+    fn: 'api_create_payment',
+    needle: 'create_payment(p, true)',
+    why:
+      'a re-inlined body gives the customer path its own copy of the checkout lease, free to drift ' +
+      'from the one api_create_quote_payment takes — two payable sessions for one booking',
+  },
+  {
+    fn: 'api_create_quote_payment',
+    needle: 'create_payment(p, false)',
+    why:
+      'the quote path must reach the SHARED body (which is also what makes it skip the caller ' +
+      'identity check deliberately, in one place, rather than by re-implementing the guards)',
+  },
 ];
 
 describe('the winning definition of a re-defined function keeps its contract', () => {

@@ -41,6 +41,15 @@ const LOCKED = [
   // enqueue_booking_notification() does — trigger execution never checks the caller's EXECUTE, so the
   // grant buys the function nothing and costs it nothing to remove.
   'quotes_redact_lines()',
+  // The quote checkout pair (20260911000000). `create_payment` is the SHARED body behind
+  // api_create_payment and api_create_quote_payment, and its boolean argument is the caller-identity
+  // check itself — anyone able to call it directly could pass `false` and open a payable session for a
+  // booking they do not own. api_create_quote_payment is that bypass already applied: authorization for
+  // a quote is the LINK TOKEN, verified in the route long before SQL, so the function is only safe
+  // while nothing reachable from a browser can reach it. Both are exactly the shape of definer whose
+  // EXECUTE grant IS its authorization, which is why `authenticated` has to be named in the revoke.
+  'create_payment(jsonb, boolean)',
+  'api_create_quote_payment(jsonb)',
 ];
 
 describe('internal SECURITY DEFINER functions are locked to service_role', () => {
