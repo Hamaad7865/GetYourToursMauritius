@@ -164,19 +164,25 @@ const CONTRACTS: ResolvedContract[] = [
   // conversion value forever — a quote guest's balance would still read as owed after they paid it, and
   // every downstream "is this fully settled?" read off the column would be wrong. The comment paragraph
   // above the statement names `balance_due_minor` too, so a bare-substring assertion would false-green
-  // on exactly that dropped-code / kept-comment shape. Pin the STATEMENT: the assignment to
-  // balance_due_minor via greatest(0, …), summing pay.paid_minor over the booking's payment rows
-  // (from payments pay where pay.booking_id = b.id). Deliberately NOT scoped to a purpose set: an
-  // applied pickup_addon grows total_minor, so its capture must count on the summed side to net out —
-  // the ('booking','balance') scope this shipped with reported a paid pickup fee as still owed.
+  // on exactly that dropped-code / kept-comment shape. Pin the STATEMENT and its APPLIED scope: the
+  // assignment to balance_due_minor via greatest(0, …), summing (pay.paid_minor - pay.refunded_minor)
+  // over the booking's payment rows (from payments pay where pay.booking_id = b.id) restricted to the
+  // deposit/balance purposes OR an APPLIED pickup (a booking_pickup_requests row with applied_at set).
+  // The scope is load-bearing, not decorative: the first shape summed EVERY row of every purpose, which
+  // counted an ORPHANED pickup capture — one whose fee never reached total_minor (zero-fee revision /
+  // called-off departure) — and under-collected the balance by that fee. Reverting to the all-rows sum
+  // reintroduces that under-collection, so the regex requires both the refund-netting and the
+  // booking_pickup_requests/applied_at scope: an unscoped `sum(pay.paid_minor)` no longer matches.
   {
     fn: 'append_payment_event',
-    must: 'recomputes balance_due_minor as a sum of paid_minor over the booking’s payment rows',
-    code: /\bbalance_due_minor\s*=\s*greatest\s*\(\s*0\s*,[\s\S]*?\bsum\s*\(\s*pay\.paid_minor\s*\)[\s\S]*?\bfrom\s+payments\s+pay\b[\s\S]*?\bpay\.booking_id\s*=\s*b\.id/,
+    must:
+      'recomputes balance_due_minor as a sum of (paid_minor - refunded_minor) over the deposit/balance ' +
+      'rows and APPLIED pickups only',
+    code: /\bbalance_due_minor\s*=\s*greatest\s*\(\s*0\s*,[\s\S]*?\bsum\s*\(\s*pay\.paid_minor\s*-\s*pay\.refunded_minor\s*\)[\s\S]*?\bfrom\s+payments\s+pay\b[\s\S]*?\bpay\.booking_id\s*=\s*b\.id[\s\S]*?\bpurpose\s+in\s*\(\s*'booking'\s*,\s*'balance'\s*\)[\s\S]*?\bbooking_pickup_requests\b[\s\S]*?\bapplied_at\s+is\s+not\s+null/,
     alsoSaidInAComment: 'balance_due_minor',
     why:
-      'a re-definition from the pre-deposit body drops the balance_due_minor projection, so a paid ' +
-      'balance never clears the amount owed and the column lies to every reader that trusts it',
+      'a re-definition that drops the projection freezes the amount owed; one that reverts to the ' +
+      'all-purposes sum counts an orphaned pickup capture and permanently under-collects the balance',
   },
   {
     fn: 'api_claim_quote_bookings',

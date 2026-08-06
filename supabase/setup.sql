@@ -31826,17 +31826,22 @@ comment on function create_payment(jsonb, boolean) is
 -- owed", recomputed after every event as a PROJECTION over the payment rows, never latched from the
 -- single row this event touched (the sticky-failed landmine, [[gytm-sticky-failed-payment-state]]):
 --
---   balance_due_minor = greatest(0, total_minor - sum(paid_minor) over EVERY payment row of the booking)
+--   balance_due_minor = greatest(0, total_minor - sum(paid_minor - refunded_minor) over the payment rows
+--                                    that actually REACHED total_minor)
 --
--- Summed over every row, of every purpose, on purpose. total_minor is the running order total: the FULL
--- quoted price, which GROWS by an applied late-pickup fee (apply_pickup_request in 20260910000000, an
--- AFTER-UPDATE-of-status trigger on payments that fires from INSIDE the `update payments` a few lines up
--- in this very function). The minuend already carries every purpose's contribution, so the sum must too
--- — a 'pickup_addon' capture adds its fee to BOTH sides and nets to zero. Scoping the sum to
--- ('booking','balance') while total_minor moved with the add-on left a fully-paid guest owing the exact
--- pickup fee they had just paid (the original bug this statement shipped with). balance_due_minor stays
--- OUT of the payment_state enum, so the booking-level roll-up (and everything that reads it, incl. the
--- sticky-failed protection) is byte-for-byte what it was.
+-- total_minor is the running order total: the FULL quoted price, which GROWS by an applied late-pickup
+-- fee (apply_pickup_request in 20260910000000, an AFTER-UPDATE-of-status trigger on payments that fires
+-- from INSIDE the `update payments` a few lines up in this very function). A row counts on the summed
+-- side exactly to the extent its money reached that total: the deposit ('booking') and the balance
+-- ('balance') ARE the total, and an APPLIED 'pickup_addon' (a booking_pickup_requests row with
+-- applied_at set and fee_minor > 0) grew it, so its capture must count to net that growth back out.
+-- A pickup captured but NOT applied never reached total_minor — the zero-fee revision cuts its
+-- payment_id loose, a called-off departure returns before growing total, and both ORPHAN the capture —
+-- so summing its gross paid_minor in (the first, all-purposes shape) silently REDUCED the amount owed by
+-- money that never paid down the order: a permanent under-collection on a booking that still owes its
+-- balance. Netting refunds (paid_minor - refunded_minor) stops a later refund of a counted row still
+-- reading as settled. balance_due_minor stays OUT of the payment_state enum, so the booking-level
+-- roll-up (and everything that reads it, incl. the sticky-failed protection) is byte-for-byte what it was.
 --
 -- ONE MORE TIME, THE WHOLE BODY, VERBATIM. This is the most dangerous function in the repo: re-
 -- declaring it from a stale copy silently reverts an earlier fix ([[gytm-migration-revert-drift]]).
@@ -31975,20 +31980,38 @@ begin
   -- single row this event touched (that is precisely the sticky-failed class of bug: a booking-level
   -- figure derived from one child row). total_minor is the running order total — the FULL quoted price,
   -- GROWN by an applied late-pickup fee (apply_pickup_request, the AFTER-UPDATE-of-status trigger that
-  -- fires from inside the `update payments` above) — so "owed" is that total minus everything settled,
-  -- summed over EVERY payment row. Every purpose: the deposit ('booking'), the balance ('balance') AND a
-  -- 'pickup_addon', because the add-on grew total_minor too, so it must count on this side to net back
-  -- out; scoping the sum to ('booking','balance') reported the paid pickup fee as still owed. greatest(0,
-  -- …) so an overpayment, a refund event, or a pickup captured but NOT applied (its fee never reached
-  -- total_minor) can never drive balance_due_minor negative. A legacy/customer booking whose single
-  -- 'booking' row covers total_minor recomputes to 0 unchanged, so this is a pure widening.
+  -- fires from inside the `update payments` above) — so "owed" is that total minus everything settled.
+  -- A row counts only to the extent its money actually REACHED total_minor:
+  --   * the deposit ('booking') and the balance ('balance'), which ARE the total; and
+  --   * a 'pickup_addon' ONLY once its request was APPLIED (a booking_pickup_requests row with
+  --     applied_at set and fee_minor > 0 points at it) — an applied add-on grew total_minor, so its
+  --     capture must count here to net that growth back out.
+  -- A pickup captured but NOT applied never reached total_minor, so it must NOT count: the zero-fee
+  -- revision cuts its payment_id loose (api_request_pickup) and a called-off departure returns before
+  -- growing total (apply_pickup_request), and both leave the capture ORPHANED (notify_pickup_orphan_
+  -- payment). Summing that gross capture in — the original all-purposes shape — silently REDUCED the
+  -- amount owed by money that never paid down the order: a real, permanent under-collection on a booking
+  -- that still owes its balance. (paid_minor - refunded_minor) so a later refund of a counted row stops
+  -- it counting; greatest(0, …) so an overpayment, a refund event, or an unapplied pickup can never
+  -- drive balance_due_minor negative. A legacy/customer booking whose single 'booking' row covers
+  -- total_minor still recomputes to 0 unchanged.
   update bookings b
      set balance_due_minor = greatest(
            0,
            b.total_minor - coalesce((
-             select sum(pay.paid_minor)
+             select sum(pay.paid_minor - pay.refunded_minor)
                from payments pay
               where pay.booking_id = b.id
+                and (
+                  pay.purpose in ('booking', 'balance')
+                  or exists (
+                    select 1
+                      from booking_pickup_requests r
+                     where r.payment_id = pay.id
+                       and r.applied_at is not null
+                       and r.fee_minor > 0
+                  )
+                )
            ), 0)
          ),
          updated_at = now()

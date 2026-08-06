@@ -157,6 +157,44 @@ describe('append_payment_event maintains balance_due_minor', () => {
     expect(after.status).toBe('confirmed'); // roll-up protection: the paid deposit still holds it
     expect(after.payment_state).toBe('paid'); // 'paid' outranks 'failed' across the two rows
   });
+
+  it('an ORPHANED pickup capture whose fee never reached total_minor does NOT reduce the balance owed', async () => {
+    // The under-collection the all-rows sum caused. A 30%-deposit booking: total 10000, deposit 3000
+    // paid, balance 7000 still owed. The guest requested a chargeable far pickup, then revised to a free
+    // zone — api_request_pickup applies that revision at fee 0 and CUTS the old payment_id LOOSE
+    // (20260910000000:376-380) — and only afterwards the old fee>0 Peach session settles. That capture
+    // lands with no unapplied request to attach to, so apply_pickup_request takes its ORPHAN branch
+    // (notify_pickup_orphan_payment, :623) and total_minor is NEVER grown. Modelled here by settling a
+    // 'pickup_addon' row that has no matching booking_pickup_requests row, so the real trigger runs the
+    // real orphan path. balance_due_minor must still read the true 7000: summing the orphan's GROSS
+    // paid_minor reported 2000 (10000 - 3000 - 5000), under-collecting the balance by the whole fee —
+    // and, because the sum is gross, it stayed wrong even after the owner refunded the orphaned capture.
+    const { ref } = await convertQuote(10000, 3000); // total EUR 100, 30% deposit
+    const dep = await mintDeposit(ref, 'led-orphan-dep');
+    expect(dep.amountMinor).toBe(3000); // the deposit, sized to 30%
+    await settle(dep.paymentId, 'paid', 'evt-orphan-dep', 3000);
+    expect(await bookingState(ref)).toMatchObject({ status: 'confirmed', balance_due_minor: 7000 });
+
+    // The old, higher-fee pickup session settles after the free-zone revision cut its request loose: a
+    // 'pickup_addon' capture with no unapplied request behind it. apply_pickup_request finds nothing to
+    // apply and orphans it; total_minor stays 10000.
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ id: string }>(
+      `insert into payments (booking_id, idempotency_key, amount_minor, purpose)
+       select b.id, $2, 5000, 'pickup_addon' from bookings b where b.ref = $1 returning id`,
+      [ref, `${ref}-orphan-pickup`],
+    );
+    const orphanId = rows[0]!.id;
+    await settle(orphanId, 'paid', 'evt-orphan-pickup', 5000);
+
+    await db.asOwner();
+    const { rows: tot } = await db.pg.query<{ total_minor: number }>(
+      `select total_minor from bookings where ref = $1`,
+      [ref],
+    );
+    expect(Number(tot[0]!.total_minor)).toBe(10000); // the orphaned fee never reached the order total
+    expect((await bookingState(ref)).balance_due_minor).toBe(7000); // …so the balance owed is unchanged
+  });
 });
 
 /**
