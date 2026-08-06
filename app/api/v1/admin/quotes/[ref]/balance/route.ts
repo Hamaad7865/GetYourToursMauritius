@@ -9,7 +9,8 @@ import { getServerEnv } from '@/lib/config/env';
 import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { createPaymentLink } from '@/lib/services/payments';
-import { quotePayReturnUrl } from '@/lib/quotes/link-cookie';
+import { quotePagePath, quotePayReturnUrl } from '@/lib/quotes/link-cookie';
+import { SITE } from '@/lib/seo/site';
 import { ConfigError, ConflictError, ForbiddenError, NotFoundError } from '@/lib/services/errors';
 
 export const runtime = 'edge';
@@ -221,18 +222,33 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
     ctx,
   );
 
-  // The public payment URL for the operator's copy button. It is present on a freshly-minted checkout;
-  // it is absent only when createPaymentLink REUSED a still-live session (a balance link minted for
-  // this booking in the last few minutes), in which case the operator already has the URL from that
-  // click. Refuse rather than hand back an empty string to copy.
-  if (!link.redirectUrl) {
-    throw new ConflictError(
-      `A balance payment link for quote ${ref} was generated moments ago and is still live — use the ` +
-        `link you already copied, or try again shortly.`,
+  // The public payment URL for the operator's copy button — built the SAME way the deposit guest is
+  // sent to their card form (src/lib/quotes/pay-client.ts), and for the same reason: the PRODUCTION
+  // provider is Peach, an EMBEDDED widget, whose createCheckout returns a `checkoutId` and NO
+  // `redirectUrl` (src/lib/payments/peach.ts). Keying this on `redirectUrl` — the field only the dev
+  // stub ever populates — would 409 every real mint. So mount the widget from the checkout id at
+  // /bookings/{ref}/pay?cid=…, with `return=` back to the guest's own quote page (the pay page's
+  // default, /bookings/{ref}, shows a sign-in wall to a guest who has no account). `redirectUrl` stays
+  // only as the hosted-redirect / dev-stub fallback. A reused still-live session also carries the
+  // checkout id, so the operator still gets a working link on a repeat click rather than a 409.
+  const url = link.checkoutId
+    ? `${SITE.url}/bookings/${encodeURIComponent(bookingRef)}/pay` +
+      `?cid=${encodeURIComponent(link.checkoutId)}` +
+      `&return=${encodeURIComponent(quotePagePath(ref))}`
+    : (link.redirectUrl ?? null);
+
+  // Neither an embedded checkout id nor a hosted redirect URL: createPaymentLink always returns one or
+  // the other, so this is unreachable in practice — but a money-path route must never hand the operator
+  // an empty string to copy and tell them the guest can pay.
+  if (!url) {
+    throw new ConfigError(
+      'checkout_link_unavailable: the payment provider returned neither a checkout id nor a redirect ' +
+        'URL, so there is nothing for the guest to pay against. Try again shortly.',
+      { code: 'checkout_link_unavailable' },
     );
   }
 
-  return jsonOk({ url: link.redirectUrl });
+  return jsonOk({ url });
 });
 
 export function OPTIONS(req: Request): Response {

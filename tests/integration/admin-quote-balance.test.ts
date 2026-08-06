@@ -4,6 +4,12 @@ import { makeSupabaseShim, type SupabaseShim } from '../db/supabase-pglite';
 import { pgliteServiceRoleRpc } from '../db/rpc';
 import { setRouteContext } from '../db/route-context';
 import { StubPaymentProvider } from '@/lib/payments/stub';
+import type {
+  CheckoutSession,
+  CreateCheckoutInput,
+  PaymentEvent,
+  PaymentProvider,
+} from '@/lib/payments/types';
 import { createStubAiProvider } from '@/lib/ai/stub';
 import { SITE } from '@/lib/seo/site';
 
@@ -78,6 +84,30 @@ vi.mock('@/lib/http/auth', async () => {
 });
 
 const { POST } = await import('../../app/api/v1/admin/quotes/[ref]/balance/route');
+
+/**
+ * A provider shaped like the PRODUCTION one (Peach): an EMBEDDED widget, so `createCheckout` returns a
+ * `checkoutId` and NO hosted `redirectUrl` (src/lib/payments/peach.ts returns `{ id, checkoutId,
+ * provider }`). The dev stub is the only provider that ever yields a `redirectUrl`, so a route that
+ * keys its response on `redirectUrl` looks green under the stub yet 409s every real mint. Only
+ * `createCheckout` is exercised by this route.
+ */
+class PeachLikeProvider implements PaymentProvider {
+  readonly name = 'peach-like';
+  async createCheckout(input: CreateCheckoutInput): Promise<CheckoutSession> {
+    return {
+      id: `chk_${input.bookingRef}`,
+      checkoutId: `chk_${input.bookingRef}`,
+      provider: this.name,
+    };
+  }
+  async verifyWebhook(): Promise<PaymentEvent> {
+    throw new Error('not used by this route');
+  }
+  async getCheckoutStatus(): Promise<PaymentEvent> {
+    throw new Error('not used by this route');
+  }
+}
 
 describe('POST /api/v1/admin/quotes/:ref/balance', () => {
   let db: TestDb;
@@ -287,5 +317,47 @@ describe('POST /api/v1/admin/quotes/:ref/balance', () => {
     expect(res.status).toBe(200);
     const raw = JSON.stringify(await res.json());
     expect(raw).not.toContain(secret);
+  });
+
+  // ── The URL handed to the operator, on the PRODUCTION provider ─────────────
+  it('builds an embedded-widget pay URL from the checkoutId when the provider returns no redirectUrl (Peach)', async () => {
+    // Production runs Peach, an embedded-widget provider whose createCheckout returns a checkoutId and
+    // NO redirectUrl. Keying the response on redirectUrl 409s every real mint ("generated moments ago
+    // and is still live"), because only the dev stub ever populates redirectUrl. The operator's
+    // copyable URL must instead mount the widget at /bookings/{ref}/pay?cid=…, exactly as the DEPOSIT
+    // guest is sent there (src/lib/quotes/pay-client.ts), with return= pointing back at the quote page.
+    const { quoteRef, bookingRef } = await depositConfirmed(100000, 1000);
+
+    setRouteContext({
+      db: pgliteServiceRoleRpc(db.pg),
+      payments: new PeachLikeProvider(),
+      ai: createStubAiProvider(),
+      now: () => new Date(),
+      locale: 'en',
+    });
+    let res: Response | null = null;
+    try {
+      res = await sendBalance(quoteRef);
+    } finally {
+      // Restore the stub provider so the remaining tests are unaffected.
+      setRouteContext({
+        db: pgliteServiceRoleRpc(db.pg),
+        payments: new StubPaymentProvider(),
+        ai: createStubAiProvider(),
+        now: () => new Date(),
+        locale: 'en',
+      });
+    }
+
+    expect(res).not.toBeNull();
+    expect(res!.status).toBe(200);
+    const body = await res!.json();
+    expect(body.ok).toBe(true);
+    // The exact URL the deposit flow builds for an embedded session: absolute, the booking's pay page,
+    // the minted checkout id, and return= back to this quote page.
+    expect(body.data.url).toBe(
+      `${SITE.url}/bookings/${bookingRef}/pay?cid=chk_${bookingRef}` +
+        `&return=${encodeURIComponent(`/quotes/${quoteRef}`)}`,
+    );
   });
 });
