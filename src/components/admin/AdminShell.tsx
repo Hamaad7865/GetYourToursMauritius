@@ -9,74 +9,19 @@ import { Logo } from '@/components/site/Logo';
 import { AdminBell } from '@/components/admin/AdminBell';
 import { avatar } from '@/lib/admin/dashboard';
 import {
-  IconGrid,
-  IconBookings,
-  IconTag,
-  IconSliders,
-  IconWallet,
-  IconCar,
-  IconPin,
-  IconUsers,
+  BOTTOM_NAV_HREFS,
+  BOTTOM_NAV_HREFS_SEO,
+  isActive,
+  navForRole,
+} from '@/components/admin/nav';
+import {
   IconSearch,
   IconPlus,
   IconMenu,
   IconX,
   IconArrowRight,
   IconLogOut,
-  IconTrendUp,
-  IconDocument,
-  IconSwap,
-  IconChart,
-  IconCalendar,
-  IconStar,
 } from '@/components/ui/icons';
-
-interface NavItem {
-  href: string;
-  label: string;
-  icon: (p: { width?: number; height?: number }) => ReactNode;
-  exact?: boolean;
-  /** When true the item is also shown to the restricted 'seo' content role. */
-  seo?: boolean;
-}
-
-const NAV: NavItem[] = [
-  { href: '/admin', label: 'Dashboard', icon: IconGrid, exact: true },
-  { href: '/admin/bookings', label: 'Bookings', icon: IconBookings },
-  // Operations calendar — shows guest names, so deliberately NOT seo-flagged (RLS locks that role
-  // out of bookings/occurrences anyway; this is just navigation).
-  { href: '/admin/calendar', label: 'Calendar', icon: IconCalendar },
-  // Financial — deliberately NOT seo-flagged; the seo content role is RLS-locked out of bookings/payments.
-  { href: '/admin/reports', label: 'Reports', icon: IconChart },
-  { href: '/admin/activities', label: 'Tours', icon: IconTag, seo: true },
-  { href: '/admin/categories', label: 'Categories', icon: IconSliders },
-  { href: '/admin/content', label: 'Standard content', icon: IconDocument },
-  { href: '/admin/vehicle-pricing', label: 'Pricing', icon: IconWallet },
-  { href: '/admin/rental', label: 'Rental', icon: IconCar },
-  { href: '/admin/planner-places', label: 'Places', icon: IconPin, seo: true },
-  { href: '/admin/seo', label: 'SEO', icon: IconTrendUp, seo: true },
-  { href: '/admin/blog', label: 'Blog', icon: IconDocument, seo: true },
-  { href: '/admin/redirects', label: 'Redirects', icon: IconSwap, seo: true },
-  { href: '/admin/leads', label: 'Leads', icon: IconUsers },
-  // Customer-submitted content awaiting approval — deliberately NOT seo-flagged (guest_reviews RLS
-  // is is_staff()-only; the seo role has no access, matching Tours' pricing/availability panels).
-  { href: '/admin/reviews', label: 'Reviews', icon: IconStar },
-];
-
-/** Sections visible to a role: the 'seo' content role sees only the seo-flagged items; staff/admin
- *  see everything. RLS enforces the same boundary server-side — this is just navigation. */
-function navForRole(role: string | undefined): NavItem[] {
-  return role === 'seo' ? NAV.filter((n) => n.seo) : NAV;
-}
-
-const BOTTOM_NAV_HREFS = ['/admin', '/admin/bookings', '/admin/activities', '/admin/leads'];
-const BOTTOM_NAV_HREFS_SEO = ['/admin/seo', '/admin/blog', '/admin/activities', '/admin/redirects'];
-
-function isActive(pathname: string, item: NavItem): boolean {
-  return item.exact
-    ? pathname === item.href
-    : pathname === item.href || pathname.startsWith(`${item.href}/`);
-}
 
 /** The dark-teal back-office shell: sticky sidebar (desktop), frosted top bar, and a slide-in
  *  drawer + bottom nav on mobile. Renders the active screen as `children`. */
@@ -117,7 +62,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   const { initials, hue } = avatar(name);
 
   const NavList = ({ onNavigate }: { onNavigate?: () => void }) => (
-    // min-h-0 + overflow-y-auto: with 14 items the nav can exceed the viewport, and this is a
+    // min-h-0 + overflow-y-auto: with this many items the nav can exceed the viewport, and this is a
     // flex child of an h-dvh column — without min-h-0 it refuses to shrink and clips Dashboard and
     // the sign-out chip off the top and bottom with no way to scroll to them.
     <nav className="slim-bar-dark flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-3">
