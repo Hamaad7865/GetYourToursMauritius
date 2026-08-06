@@ -7,7 +7,11 @@ import { QuotePayButton } from '@/components/quotes/QuotePayButton';
 import { DEFAULT_LOCALE, isLocale } from '@/lib/i18n/config';
 import { LOCALE_HEADER } from '@/lib/i18n/routing';
 import { QUOTE_TOKEN_COOKIE, quoteOpenPath, quotePagePath } from '@/lib/quotes/link-cookie';
-import { resolveQuoteForToken, type PublicQuoteLine } from '@/lib/quotes/resolve';
+import {
+  quotePaymentReceived,
+  resolveQuoteForToken,
+  type PublicQuoteLine,
+} from '@/lib/quotes/resolve';
 import { formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
 import { SITE } from '@/lib/seo/site';
 
@@ -32,9 +36,10 @@ export const metadata: Metadata = {
  *
  * The guest has no account, so {@link resolveQuoteForToken} is the whole of the authorization (it runs
  * with the service-role client, which bypasses RLS). It answers null for every refusal — unknown ref,
- * wrong token, unsent draft, withdrawn offer, lapsed validity, a total with no lines behind it — so this
- * page has exactly ONE branch. That is deliberate: a different response per case would tell a prober
- * which quote refs exist, and the ref is the path segment of a link that gets forwarded.
+ * wrong token, unsent draft, a total with no lines behind it, and (while the quote is still an OFFER)
+ * a withdrawn or lapsed one — so this page has exactly ONE branch. That is deliberate: a different
+ * response per case would tell a prober which quote refs exist, and the ref is the path segment of a
+ * link that gets forwarded.
  *
  * Nothing is reserved until it is paid. Conversion happens at PAY, in the route the button posts to,
  * so an offer the guest never accepts holds no capacity.
@@ -101,11 +106,15 @@ export default async function QuotePage({
   if (!quote) notFound();
 
   const converted = quote.convertedAt !== null;
+  // WHAT THE GUEST IS TOLD ABOUT THEIR MONEY COMES FROM THE BOOKING, never from the URL: the booking's
+  // own status and payment_state, read alongside the quote. See quotePaymentReceived.
+  const paymentReceived = quotePaymentReceived(quote);
   // The guest has just come back from the card form. EmbeddedCheckout sets this whenever it could not
   // confirm the payment itself — which for a quote guest is ALWAYS, since /api/v1/payments/sync needs
-  // a bearer token and they have no account — so it means "a card was submitted", never "it worked".
-  // What it rules out is the opposite reading: without it this page tells someone whose charge went
-  // through seconds ago that their payment may have failed.
+  // a bearer token and they have no account — so it means "a card was submitted", never "it worked":
+  // a declined card and an abandoned 3-D Secure step arrive back carrying the identical `1`. It is
+  // therefore used for ONE thing only — the wording of the wait, for a guest who has a payment in
+  // flight rather than one that never started.
   const justPaid = typeof justPaidParam === 'string' && justPaidParam.length > 0;
 
   return (
@@ -159,13 +168,11 @@ export default async function QuotePage({
             Valid until {quote.validUntil}. Nothing is reserved until the quote is paid.
           </p>
 
-          {/* STRAIGHT OFF THE CARD FORM. The guest submitted a payment seconds ago, so this is the
-              moment for reassurance, not for a caveat about it having failed — and certainly not
-              above a live "Complete payment" button, which reads as "that didn't work, try again".
-              The webhook is what confirms the booking (and the confirmation email + VAT invoice
-              follow it), so the honest wording is "received, we're confirming it". Reloading the page
-              without the flag brings the recovery branch below back, if it is ever really needed. */}
-          {justPaid ? (
+          {/* THE MONEY REALLY ARRIVED — the booking says so, not the query string. This is the one
+              state that may thank the guest, and the only one that may take the pay affordance away.
+              The webhook is what set it (and the confirmation email + VAT invoice follow it), so the
+              wording is "received, we're confirming it". */}
+          {paymentReceived ? (
             <div className="mt-7 rounded-xl border border-teal/30 bg-teal/5 p-4">
               <p className="text-sm font-bold text-ink">
                 Thank you — your payment has been received.
@@ -177,21 +184,37 @@ export default async function QuotePage({
             </div>
           ) : (
             <>
-              {/* An ACCEPTED quote must not present an unqualified "Accept & pay". The link gets
-                  forwarded — to a partner, to a travel agent — and gets reopened by the guest after
-                  paying; a live payment CTA there invites a second attempt whose only answer is a
-                  refusal. The button stays, as a secondary action, because api_convert_quote's re-arm
-                  branch is a real recovery route for a booking that died unpaid. */}
-              {converted && (
-                <div className="mt-7 rounded-xl border border-teal/30 bg-teal/5 p-4">
-                  <p className="text-sm font-bold text-ink">
-                    You have accepted this quote — a booking has been created.
-                  </p>
+              {/* STRAIGHT OFF THE CARD FORM, WITH NOTHING TO SHOW FOR IT YET. Either the payment is
+                  still settling (the webhook lands a moment later) or the card was declined / the
+                  3-D Secure step was abandoned — and this page cannot tell those apart, so it says
+                  exactly that instead of picking one. The pay button stays: for the declined guest it
+                  is the only way left to pay, and it is a quote link they can come back to. */}
+              {justPaid ? (
+                <div className="mt-7 rounded-xl border border-gold/30 bg-gold/5 p-4">
+                  <p className="text-sm font-bold text-ink">Your payment has not completed yet.</p>
                   <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
-                    Check your email for the confirmation. If your payment did not go through, you
-                    can still complete it below.
+                    If your bank has taken it, it can take a moment to reach us — reload this page
+                    in a minute and it will say so. If it did not go through, you can try again
+                    below.
                   </p>
                 </div>
+              ) : (
+                /* An ACCEPTED quote must not present an unqualified "Accept & pay". The link gets
+                   forwarded — to a partner, to a travel agent — and gets reopened by the guest after
+                   paying; a live payment CTA there invites a second attempt whose only answer is a
+                   refusal. The button stays, as a secondary action, because api_convert_quote's
+                   re-arm branch is a real recovery route for a booking that died unpaid. */
+                converted && (
+                  <div className="mt-7 rounded-xl border border-gold/30 bg-gold/5 p-4">
+                    <p className="text-sm font-bold text-ink">
+                      You have accepted this quote — a booking has been created.
+                    </p>
+                    <p className="mt-1 text-[13px] leading-relaxed text-ink-muted">
+                      We have not received a payment for it yet, so if your payment did not go
+                      through, you can still complete it below.
+                    </p>
+                  </div>
+                )
               )}
 
               <div className="mt-7">

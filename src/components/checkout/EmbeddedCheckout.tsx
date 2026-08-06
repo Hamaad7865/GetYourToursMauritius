@@ -74,9 +74,11 @@ export function EmbeddedCheckout({
   /** Where the customer goes when the widget is DONE — their booking, or a quote guest's own page. */
   returnUrl: string;
   /**
-   * Where "Try again" goes when the widget never came up. ALWAYS /bookings/{ref}/pay, and separate
-   * from `returnUrl` because those are two different destinations: `?return=` sends a quote guest to
-   * /quotes/{ref}, and there is no /quotes/{ref}/pay route to derive.
+   * Where "Try again" goes when the widget never came up — somewhere the customer can MINT A FRESH
+   * CHECKOUT, which the caller decides: /bookings/{ref}/pay for a signed-in customer (PayPageFallback
+   * auto-mints one there), the quote page for a guest who has no account to sign in to. Passed in and
+   * used verbatim, never derived by appending "/pay" to `returnUrl` — that was a 404 for a quote
+   * guest, and tests/unit/pay-retry-url.test.ts scans this file to keep it that way.
    */
   retryUrl: string;
 }) {
@@ -300,14 +302,17 @@ export function EmbeddedCheckout({
           {error}
         </p>
         <div className="mt-3 flex items-center gap-4">
-          {/* "Try again" navigates to the pay page WITHOUT the ?cid — a reload would re-mount this same,
-              now-EXPIRED Peach session. Landing on /bookings/{ref}/pay with no cid lets PayPageFallback
-              mint a fresh checkout (or reuse a still-valid one via the double-charge guard) and redirect
-              to a new ?cid.
+          {/* "Try again" never reloads THIS url — that would re-mount the same, now-EXPIRED Peach
+              session. It goes to wherever the caller says a fresh checkout can be minted: for a
+              signed-in customer /bookings/{ref}/pay with no ?cid, where PayPageFallback mints one (or
+              reuses a still-valid one via the double-charge guard) and redirects to a new ?cid; for a
+              quote guest their own quote page, whose button posts to the token-authenticated
+              /api/v1/quotes/{ref}/pay — that same fallback would only ask them to sign in, and they
+              have no account by design.
 
-              It takes an explicit `retryUrl` and never appends "/pay" to returnUrl. That derivation
-              held only while returnUrl was always /bookings/{ref}; since `?return=` exists, a quote
-              guest carries /quotes/{ref} — and /quotes/{ref}/pay is not a route, so the one recovery
+              Hence an explicit `retryUrl`, never "/pay" appended to returnUrl. That derivation held
+              only while returnUrl was always /bookings/{ref}; since `?return=` exists, a quote guest
+              carries /quotes/{ref} — and /quotes/{ref}/pay is not a route, so the one recovery
               affordance on this card would be a hard 404 for exactly the customer who has no account
               and no /account/bookings to fall back to. */}
           <button

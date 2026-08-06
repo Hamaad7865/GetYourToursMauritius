@@ -88,6 +88,27 @@ export function quotePagePath(ref: string): string {
 }
 
 /**
+ * Is this relative path one of THIS module's public quote pages?
+ *
+ * Asked by /bookings/{ref}/pay about its own `?return=`, to decide where "Try again" goes when the
+ * Peach widget never came up. The default, /bookings/{ref}/pay minus the `?cid`, renders
+ * PayPageFallback — whose first branch is "Please sign in to complete your payment", i.e. a sign-in
+ * wall in front of the one customer who has no account by design. A quote guest's retry belongs on
+ * their own quote page instead: its "Complete payment" posts to /api/v1/quotes/{ref}/pay, which the
+ * link-token cookie authenticates, and that route reuses the payable booking and mints a fresh
+ * checkout.
+ *
+ * The ref is re-validated with {@link quoteRefLooksValid} rather than trusted: the caller's value came
+ * off a query parameter, and this answer sends a browser somewhere on the screen right after a card
+ * number was typed. `safeReturnPath` has already pinned it to a same-origin relative path; this pins
+ * the shape.
+ */
+export function isQuotePagePath(path: string): boolean {
+  const match = /^\/quotes\/([^/?#]+)$/.exec(path);
+  return match !== null && quoteRefLooksValid(match[1]!);
+}
+
+/**
  * THE `returnUrl` THE QUOTE PAY ROUTE MUST HAND `createPaymentLink`. Absolute, and this origin.
  *
  * `?return=` on /bookings/{ref}/pay only fixes the CLIENT-side half of the return trip: it is read by

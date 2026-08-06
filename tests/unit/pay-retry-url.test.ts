@@ -16,6 +16,13 @@ import { join } from 'node:path';
  * payment just failed, for the one class of customer with no account and no /account/bookings to fall
  * back to. The two URLs are different things and must be passed separately.
  *
+ * PINNING IT TO /bookings/{ref}/pay FOR EVERYONE ONLY MOVED THE DEAD END. That page without a `?cid`
+ * renders PayPageFallback, whose FIRST branch is "Please sign in to complete your payment" — a
+ * sign-in wall in front of the one customer who has no account by design. The retry has to reach
+ * somewhere the guest can actually re-mint a session, which for the quote flow is their own quote
+ * page: its "Complete payment" posts to /api/v1/quotes/{ref}/pay, authenticated by the link-token
+ * cookie, and that route reuses the payable booking and mints a fresh checkout.
+ *
  * The page's default export is called directly and the returned element tree walked (no DOM, no Next
  * request context), as tests/unit/landing-faq-jsonld-parity.test.ts does. The source assertion at the
  * end covers the other half — that the component navigates to the prop it is given rather than
@@ -68,13 +75,26 @@ async function widgetProps(requestedReturn?: string): Promise<Record<string, unk
 }
 
 describe('payment-failure retry target', () => {
-  it('stays under /bookings even when the guest returns to a quote page', async () => {
+  it('sends a quote guest back to their quote page, not into the sign-in wall', async () => {
     const props = await widgetProps(QUOTE_PATH);
 
     // "Back" honours the guest's own page …
     expect(props.returnUrl).toBe(QUOTE_PATH);
-    // … but "Try again" must reach a route that exists. /quotes/{ref}/pay does not.
-    expect(props.retryUrl).toBe(`/bookings/${BOOKING_REF}/pay`);
+    // … and so does "Try again", because that is the only place this guest can re-mint a checkout:
+    // the quote page's button posts to the token-authenticated /api/v1/quotes/{ref}/pay.
+    expect(props.retryUrl).toBe(QUOTE_PATH);
+    // /bookings/{ref}/pay with no ?cid is PayPageFallback, which asks a guest with no account to
+    // sign in. It is never a retry target for someone who arrived from a quote link.
+    expect(props.retryUrl, 'the retry lands on the sign-in wall').not.toBe(
+      `/bookings/${BOOKING_REF}/pay`,
+    );
+  });
+
+  it('never leaves the retry pointing at a route that does not exist', async () => {
+    // The original defect, kept: `${returnUrl}/pay` is a hard 404 for a quote guest.
+    const props = await widgetProps(QUOTE_PATH);
+
+    expect(props.retryUrl).not.toBe(`${QUOTE_PATH}/pay`);
   });
 
   it('is the same URL for the ordinary signed-in customer', async () => {

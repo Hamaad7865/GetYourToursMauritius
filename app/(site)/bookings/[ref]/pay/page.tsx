@@ -7,6 +7,7 @@ import { PayPageFallback } from '@/components/checkout/PayPageFallback';
 import { PeachWidgetPreload } from '@/components/checkout/PeachWidgetPreload';
 import { getPeachWidgetConfig } from '@/lib/payments';
 import { safeReturnPath } from '@/lib/checkout/return-path';
+import { isQuotePagePath } from '@/lib/quotes/link-cookie';
 import { getT } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
@@ -40,6 +41,20 @@ export default async function PayPage({
   const widget = getPeachWidgetConfig();
   const t = await getT();
   const returnUrl = safeReturnPath(requestedReturn, `/bookings/${ref}`);
+  // WHERE "TRY AGAIN" GOES when the widget never came up — somewhere the customer can actually MINT
+  // A FRESH CHECKOUT, which is not the same place for both kinds of customer:
+  //
+  //  - signed in: this page minus the `?cid`, where PayPageFallback auto-mints one;
+  //  - a QUOTE guest: their own quote page. The same fallback asks them to sign in first ("Please
+  //    sign in to complete your payment") and they have no account by design, so that is a dead end
+  //    on the screen where their card payment just failed. The quote page's "Complete payment"
+  //    posts to the token-authenticated /api/v1/quotes/{ref}/pay, which reuses the payable booking
+  //    and mints the new session.
+  //
+  // Recognised by SHAPE (see isQuotePagePath), so nothing here trusts an arbitrary `?return=`: it is
+  // already pinned to a same-origin relative path by safeReturnPath, and only the exact
+  // /quotes/{ref} form is treated as a quote guest.
+  const retryUrl = isQuotePagePath(returnUrl) ? returnUrl : `/bookings/${ref}/pay`;
 
   return (
     <>
@@ -64,11 +79,10 @@ export default async function PayPage({
                 entityId={widget.entityId}
                 checkoutId={cid}
                 returnUrl={returnUrl}
-                // Where "Try again" goes when the widget never came up — THIS page, minus the ?cid, so
-                // PayPageFallback mints a fresh session. It is passed separately from `returnUrl`
-                // because they stopped being the same thing when `?return=` arrived: a quote guest's
-                // return is /quotes/{ref}, and /quotes/{ref}/pay is not a route.
-                retryUrl={`/bookings/${ref}/pay`}
+                // Passed separately from `returnUrl` because the two stopped being the same thing
+                // when `?return=` arrived, and re-deriving one from the other (`${returnUrl}/pay`)
+                // is what once sent a quote guest to /quotes/{ref}/pay — not a route. See above.
+                retryUrl={retryUrl}
               />
             ) : (
               // No `cid` — a returning customer reached this page via the email link / a new tab, so no

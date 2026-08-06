@@ -17,8 +17,8 @@ import { createServiceRoleClient } from '@/lib/supabase/admin';
  *   - a token that does not hash to the stored `token_hash`;
  *   - a row whose `token_hash` is null (a draft that was never sent — the column is nullable and only
  *     the send route ever fills it);
- *   - status `cancelled`, i.e. the operator withdrew the offer;
- *   - `valid_until` already past;
+ *   - status `cancelled`, i.e. the operator withdrew the offer — WHILE IT IS STILL AN OFFER;
+ *   - `valid_until` already past — likewise;
  *   - no `quote_items` at all, i.e. a total with no itemisation behind it.
  *
  * ONE indistinguishable answer, never a different status code per case. `quotes.ref` is the path
@@ -31,6 +31,15 @@ import { createServiceRoleClient } from '@/lib/supabase/admin';
  * money-path guard behind it; duplicating that list here would be a second copy to keep in step with
  * the one that actually protects the charge. The two conditions mirrored here are the ones that mean
  * "there is nothing to show", not "this cannot be charged".
+ *
+ * WHICH IS WHY BOTH OF THEM STOP AT `converted_at`. Once the quote has converted there IS something to
+ * show — a booking, possibly a paid one — and this page is the ONE record a guest with no account can
+ * see. `valid_until` is a calendar day compared in UTC, so a guest who pays at 23:5x UTC on the last
+ * valid day and is bounced back by the card form would otherwise land on a 404 instead of their
+ * payment screen, and every later visit to the link would 404 too; withdrawing a quote whose booking
+ * already exists likewise hides the guest's own record without un-charging anything (api_convert_quote
+ * is what refuses to mint again — `quote_cancelled` — and it still does). The token is unchanged as
+ * the gate, and every OTHER refusal is still the same single null, so the no-oracle property stands.
  *
  * The returned model carries ONLY guest-facing fields — the same privacy stance, and for the same
  * reason, as src/lib/email/quote.ts: `internal_notes` ("margin is thin, don't discount further") lives
@@ -77,7 +86,54 @@ export interface PublicQuote {
    * `booking_id` while `converted_at` stays.
    */
   convertedAt: string | null;
+  /**
+   * The state of the booking this quote minted — null while it is still an offer, and null too if
+   * that booking has been erased (api_erase_user hard-deletes an unpaid one).
+   *
+   * THE PAGE HAS NO OTHER PROOF THAT MONEY ARRIVED. EmbeddedCheckout sends the guest back with
+   * `?just_paid=1` whenever it could not confirm the payment itself, which for a quote guest is
+   * ALWAYS (/api/v1/payments/sync needs a bearer token and they have no account) — so that flag means
+   * "a card was submitted", never "it worked", and a declined card or an abandoned 3-D Secure step
+   * carries the identical `1`. Reading these two columns is what lets the page thank the guest who
+   * really paid and keep the way to pay open for the one who did not.
+   */
+  booking: PublicQuoteBooking | null;
   items: PublicQuoteLine[];
+}
+
+/** The converted booking as the guest may see it: its lifecycle state, and nothing else off the row. */
+export interface PublicQuoteBooking {
+  /** `bookings.status` — 'payment_pending', 'confirmed', 'cancelled', … */
+  status: string;
+  /** `bookings.payment_state` — the cached projection of the payment_events ledger. */
+  paymentState: string;
+}
+
+/**
+ * `payment_state` values that mean the money actually reached us. `refunded` / `partially_refunded`
+ * are in here on purpose: that money arrived and was sent back, which is many things but never
+ * "pay us now", so those bookings must not be shown a live charge affordance either.
+ */
+const PAID_PAYMENT_STATES = new Set(['paid', 'partially_refunded', 'refunded']);
+
+/** Statuses a booking only reaches after a verified payment (the webhook sets `confirmed`). */
+const SETTLED_BOOKING_STATUSES = new Set(['confirmed', 'completed']);
+
+/**
+ * Has this quote's payment actually completed? The question the public page must ask before it says
+ * anything at all about the guest's money.
+ *
+ * FALSE for everything it cannot prove — no booking, an unreadable one, `payment_pending`/`pending`
+ * — because the two errors are not symmetric. A false "not yet" costs a guest one reload; a false
+ * "received" tells someone whose card was declined that there is nothing left to do and takes the pay
+ * button off their screen.
+ */
+export function quotePaymentReceived(quote: PublicQuote): boolean {
+  const booking = quote.booking;
+  if (!booking) return false;
+  return (
+    PAID_PAYMENT_STATES.has(booking.paymentState) || SETTLED_BOOKING_STATUSES.has(booking.status)
+  );
 }
 
 /* ---------------------------------------------------------------------------------------------
@@ -94,7 +150,7 @@ type Row = Record<string, unknown>;
 type Rows = { data: Row[] | null; error: unknown };
 
 interface QuotesReadClient {
-  from(table: 'quotes' | 'quote_items'): {
+  from(table: 'quotes' | 'quote_items' | 'bookings'): {
     select(columns: string): {
       eq(
         column: string,
@@ -144,11 +200,36 @@ function todayUtc(): string {
 
 const QUOTE_COLUMNS =
   'id, ref, customer_name, status, currency, total_minor, valid_until, intro_note, token_hash, ' +
-  'converted_at';
+  'converted_at, booking_id';
 
 const ITEM_COLUMNS =
   'position, description, price_label, starts_at, ends_at, quantity, unit_amount_minor, ' +
   'subtotal_minor';
+
+/**
+ * The converted booking's state, or null.
+ *
+ * NULL FOR A FAILED READ TOO, and that is the safe direction: {@link quotePaymentReceived} answers
+ * false for a null booking, so a database fault leaves the guest with an honest "not confirmed yet"
+ * and a live pay button, never a thank-you the row does not support.
+ *
+ * Nothing off this row reaches the guest but the two lifecycle columns — `bookings` carries the
+ * customer's own contact details, the pricing breakdown and `notes`, and this model is serialised
+ * into a page the recipient of a forwarded link can read. Same stance as the quote row above.
+ */
+async function readBookingState(
+  db: QuotesReadClient,
+  bookingId: string | null,
+): Promise<PublicQuoteBooking | null> {
+  if (!bookingId) return null;
+  const { data, error } = await db
+    .from('bookings')
+    .select('status, payment_state')
+    .eq('id', bookingId)
+    .maybeSingle();
+  if (error || !data) return null;
+  return { status: text(data.status), paymentState: text(data.payment_state) };
+}
 
 /**
  * The quote behind a public link, or null.
@@ -177,8 +258,16 @@ export async function resolveQuoteForToken(
 
   // Constant-time, and false on a null stored hash — an unsent draft is not openable by anyone.
   if (!(await quoteTokenMatches(token, textOrNull(data.token_hash)))) return null;
-  if (text(data.status) === 'cancelled') return null;
-  if (dateText(data.valid_until) < todayUtc()) return null;
+
+  const convertedAt = textOrNull(data.converted_at);
+  // The two "there is nothing to show" refusals — and only while that is true. Once the quote has
+  // converted, hiding the page hides the guest's own booking from the one screen they can reach; see
+  // the module header for the 23:5x-UTC case that makes it a payment dead end rather than a nicety.
+  // Every refusal is still the same null, converted or not.
+  if (!convertedAt) {
+    if (text(data.status) === 'cancelled') return null;
+    if (dateText(data.valid_until) < todayUtc()) return null;
+  }
 
   // A second read rather than a PostgREST embed: the lines must come back ordered by `position`, and
   // an embedded relation arrives unordered — ordering by id would be ordering by gen_random_uuid().
@@ -202,6 +291,12 @@ export async function resolveQuoteForToken(
   // the check subsumes exactly this case ("a hand-set total with no itemisation at all").
   if ((items ?? []).length === 0) return null;
 
+  // Read LAST: it is only ever set on a converted quote, and every refusal above has already run.
+  const booking = await readBookingState(
+    db,
+    data.booking_id == null ? null : text(data.booking_id),
+  );
+
   return {
     ref: text(data.ref),
     customerName: text(data.customer_name),
@@ -209,7 +304,8 @@ export async function resolveQuoteForToken(
     totalMinor: minor(data.total_minor),
     validUntil: dateText(data.valid_until),
     introNote: textOrNull(data.intro_note),
-    convertedAt: textOrNull(data.converted_at),
+    convertedAt,
+    booking,
     items: (items ?? []).map((row) => ({
       position: Number(row.position ?? 0),
       description: textOrNull(row.description),

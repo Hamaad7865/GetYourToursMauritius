@@ -15,14 +15,26 @@ import { hashQuoteToken, mintQuoteToken } from '@/lib/quotes/token';
  *   - no such ref;
  *   - a token that does not match the stored hash;
  *   - a quote with NO stored hash at all (a draft that was never sent — `token_hash` is nullable);
- *   - status `cancelled` (the operator withdrew the offer);
- *   - `valid_until` already past;
+ *   - status `cancelled` (the operator withdrew the offer) — WHILE THE QUOTE IS STILL AN OFFER;
+ *   - `valid_until` already past — likewise;
  *   - no `quote_items` rows at all — a total with no itemisation behind it, which is both a state
  *     saveQuote can leave behind mid-edit and one api_convert_quote refuses to charge.
  *
  * Null for all of them, deliberately: a 404-for-unknown / 403-for-wrong-token split would tell a
  * prober which quote refs exist, and `quotes.ref` is the path segment of a link that is emailed
  * around. One indistinguishable answer is what stops the page being an enumeration oracle.
+ *
+ * THE TWO REFUSALS THAT STOP ONCE THE QUOTE HAS CONVERTED are the last pair of tests. They mean
+ * "there is nothing to show", and once `converted_at` is stamped there IS: a booking, possibly a paid
+ * one. `valid_until` is a calendar day compared in UTC, so a guest who pays at 23:5x UTC on the last
+ * valid day and is bounced back by the card form would otherwise land on a 404 instead of their
+ * payment screen — and every later visit to the one record a guest with no account can see would 404
+ * too. The token still gates the read, so nothing is opened up.
+ *
+ * IT ALSO CARRIES THE BOOKING'S OWN STATE, because the page must never infer that money arrived. The
+ * `?just_paid=1` flag the card form sets means "a card was submitted" and nothing more, so
+ * `bookings.status` + `bookings.payment_state` are what the thank-you (and the removal of the pay
+ * button) hang off.
  *
  * The first test is the positive control and is load-bearing: without it every assertion below is
  * satisfied by `return null`.
@@ -70,6 +82,8 @@ describe('public quote access', () => {
       withItems?: boolean;
       /** Stamp `converted_at` — the quote has already been accepted and a booking exists. */
       converted?: boolean;
+      /** Mint the linked booking too, in this state — what the page reads to decide "paid". */
+      booking?: { status: string; paymentState: string };
     } = {},
   ): Promise<SeededQuote> {
     seq += 1;
@@ -99,6 +113,19 @@ describe('public quote access', () => {
       ],
     );
     const id = rows[0]!.id;
+    if (input.booking) {
+      const booking = await db.pg.query<{ id: string }>(
+        `insert into bookings (customer_name, customer_email, status, source, total_minor,
+                               payment_state)
+         values ('Marie Dupont', $1, $2::booking_status, 'quote', 23000, $3::payment_state)
+         returning id`,
+        [`marie+${seq}@example.com`, input.booking.status, input.booking.paymentState],
+      );
+      await db.pg.query(`update quotes set booking_id = $1 where id = $2`, [
+        booking.rows[0]!.id,
+        id,
+      ]);
+    }
     if (input.withItems !== false) {
       await db.pg.query(
         `insert into quote_items
@@ -114,6 +141,24 @@ describe('public quote access', () => {
     // migration grants `select` on `quotes` outside the staff RLS policies.
     await db.as({ role: 'service_role' });
     return { id, ref, token };
+  }
+
+  /**
+   * The same read, run as the OWNER — for the tests that need the booking row read as well.
+   *
+   * The harness's auth shim replicates Supabase's stock default privileges for FUNCTIONS only (see
+   * tests/db/auth-shim.sql), so `bookings` — which a real service-role client reads freely — carries
+   * no service_role table grant here; tests/integration/quote-pay.test.ts states the same thing and
+   * runs its whole route as the owner for it. Only the tests that need the booking switch, so every
+   * other assertion in this file still runs as the role the page's read actually uses.
+   */
+  async function resolveWithBooking(ref: string, token: string) {
+    await db.asOwner();
+    try {
+      return await resolveQuoteForToken(ref, token);
+    } finally {
+      await db.as({ role: 'service_role' });
+    }
   }
 
   beforeAll(async () => {
@@ -234,5 +279,69 @@ describe('public quote access', () => {
     // An un-converted one must not claim to be converted.
     const fresh = await seedSentQuote();
     expect((await resolveQuoteForToken(fresh.ref, fresh.token))!.convertedAt).toBeNull();
+  });
+
+  it('carries the converted booking’s real status and payment_state', async () => {
+    // The page has no other proof that money arrived: `?just_paid=1` is set by EmbeddedCheckout
+    // whenever it could not confirm the payment, which for a quote guest (no bearer token, so no
+    // /api/v1/payments/sync) is ALWAYS. Without these two fields a declined card is greeted with
+    // "your payment has been received" and the only way to pay is taken off the screen.
+    const paid = await seedSentQuote({
+      status: 'accepted',
+      converted: true,
+      booking: { status: 'confirmed', paymentState: 'paid' },
+    });
+    const unpaid = await seedSentQuote({
+      status: 'accepted',
+      converted: true,
+      booking: { status: 'payment_pending', paymentState: 'pending' },
+    });
+
+    expect((await resolveWithBooking(paid.ref, paid.token))!.booking).toEqual({
+      status: 'confirmed',
+      paymentState: 'paid',
+    });
+    expect((await resolveWithBooking(unpaid.ref, unpaid.token))!.booking).toEqual({
+      status: 'payment_pending',
+      paymentState: 'pending',
+    });
+
+    // Still an offer: there is no booking to report, and nothing may read as paid.
+    const fresh = await seedSentQuote();
+    expect((await resolveWithBooking(fresh.ref, fresh.token))!.booking).toBeNull();
+  });
+
+  it('still opens a CONVERTED quote once its validity day has passed', async () => {
+    // `valid_until` is a calendar day compared in UTC. A guest who pays at 23:5x UTC on the last
+    // valid day and is bounced back by the card form (or simply reopens the link the next morning)
+    // would otherwise be shown a 404 instead of their payment screen — and the quote page is the ONE
+    // record a guest with no account can see. The token still gates the read.
+    const { ref, token } = await seedSentQuote({
+      status: 'accepted',
+      validUntilDays: -3,
+      converted: true,
+      booking: { status: 'payment_pending', paymentState: 'pending' },
+    });
+
+    const quote = await resolveWithBooking(ref, token);
+    expect(quote, 'a converted quote 404s once its validity day passes').not.toBeNull();
+    expect(quote!.convertedAt).not.toBeNull();
+
+    // The refusal still stands for a quote that never converted — nothing there to show.
+    const lapsed = await seedSentQuote({ validUntilDays: -3 });
+    expect(await resolveQuoteForToken(lapsed.ref, lapsed.token)).toBeNull();
+  });
+
+  it('still opens a CONVERTED quote the operator later withdrew', async () => {
+    // Withdrawing does not un-charge anything: api_convert_quote's re-arm branch is what decides
+    // whether a cancelled quote can mint again, and it refuses (`quote_cancelled`). Hiding the page
+    // only takes the guest's own record away from them.
+    const { ref, token } = await seedSentQuote({
+      status: 'cancelled',
+      converted: true,
+      booking: { status: 'confirmed', paymentState: 'paid' },
+    });
+
+    expect(await resolveWithBooking(ref, token)).not.toBeNull();
   });
 });

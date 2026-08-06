@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { PublicQuote } from '@/lib/quotes/resolve';
+import type { PublicQuote, PublicQuoteBooking } from '@/lib/quotes/resolve';
 
 /**
  * What the PUBLIC quote page RENDERS — as opposed to what it reads, which is
@@ -19,9 +19,12 @@ import type { PublicQuote } from '@/lib/quotes/resolve';
  *
  *  2. COME BACK FROM THE CARD FORM. EmbeddedCheckout cannot reach /api/v1/payments/sync without a
  *     bearer token and a quote guest has none, so `confirmed` is always false and it always navigates
- *     to `?just_paid=1`. A page that ignores that flag renders "If your payment did not go through,
- *     you can still complete it below" seconds after a successful charge, above a "Complete payment"
- *     button — a failure notice at the one moment the guest most needs reassurance.
+ *     to `?just_paid=1`. THE FLAG THEREFORE MEANS "A CARD WAS SUBMITTED", NEVER "IT WORKED" — a
+ *     declined card and an abandoned 3-D Secure step arrive back here carrying exactly the same `1`.
+ *     What the page says about the guest's money is decided by the BOOKING's own status and
+ *     payment_state, which `resolveQuoteForToken` reads; the flag only chooses the wording for the
+ *     wait. The two tests at the end are the two halves of that: money in → thank you and no pay
+ *     affordance; money not in → say so, and keep the way to pay.
  *
  * The page's default export is called directly and the returned React element tree is walked, the same
  * way tests/unit/landing-faq-jsonld-parity.test.ts does it: no DOM, no Next request context, and the
@@ -61,7 +64,10 @@ vi.mock('next/navigation', () => ({
   },
 }));
 
-vi.mock('@/lib/quotes/resolve', () => ({
+// Only the READ is faked. `quotePaymentReceived` — the rule that turns a booking's status and
+// payment_state into "the money is in" — is the REAL one, so a fixture cannot declare itself paid.
+vi.mock('@/lib/quotes/resolve', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/quotes/resolve')>()),
   resolveQuoteForToken: async (_ref: string, token: string) =>
     token.length === 64 ? state.quote : null,
 }));
@@ -75,7 +81,7 @@ const { default: QuotePage } = await import('../../app/(site)/quotes/[ref]/page'
 
 const REF = 'Q0A1B2C3D4E5';
 
-function quoteFixture(converted: boolean): PublicQuote {
+function quoteFixture(converted: boolean, booking: PublicQuoteBooking | null): PublicQuote {
   return {
     ref: REF,
     customerName: 'Marie Dupont',
@@ -84,6 +90,7 @@ function quoteFixture(converted: boolean): PublicQuote {
     validUntil: '2026-08-19',
     introNote: 'As discussed on the phone.',
     convertedAt: converted ? '2026-08-06T09:00:00.000Z' : null,
+    booking,
     items: [
       {
         position: 0,
@@ -148,11 +155,13 @@ async function render(
   options: {
     locale?: 'en' | 'fr';
     converted?: boolean;
+    /** The converted booking's REAL state; null while the quote is still an offer. */
+    booking?: PublicQuoteBooking | null;
     searchParams?: { t?: string | string[]; just_paid?: string | string[] };
   } = {},
 ): Promise<RenderResult> {
   state.urlLocale = options.locale ?? 'en';
-  state.quote = quoteFixture(options.converted ?? false);
+  state.quote = quoteFixture(options.converted ?? false, options.booking ?? null);
   state.redirected = [];
   state.notFound = 0;
 
@@ -201,23 +210,47 @@ describe('public quote page rendering', () => {
     expect(redirected).toEqual([`/api/v1/quotes/${REF}/open?t=${'b'.repeat(64)}`]);
   });
 
-  it('greets a guest who has just paid instead of warning them the payment may have failed', async () => {
+  it('greets a guest whose booking is actually paid, and drops the pay affordance', async () => {
     const { text, payButtons } = await render({
       converted: true,
+      booking: { status: 'confirmed', paymentState: 'paid' },
       searchParams: { just_paid: '1' },
     });
 
     expect(text).not.toMatch(/did not go through/i);
-    expect(text).toMatch(/payment/i);
-    expect(text, 'the guest is not told their confirmation is coming').toMatch(/confirm/i);
+    expect(text, 'the guest is not told their payment arrived').toMatch(/received/i);
     // A "Complete payment" CTA seconds after a successful charge reads as a failure notice.
     expect(payButtons, 'the pay button is still offered after a completed payment').toHaveLength(0);
+  });
+
+  it('does not thank a guest whose card was declined just because they came back from the form', async () => {
+    // THE FLAG IS NOT PROOF. EmbeddedCheckout sets `just_paid=1` whenever it could not confirm the
+    // payment itself, which for a quote guest is ALWAYS (/api/v1/payments/sync needs a bearer token
+    // and they have no account) — so a declined card and an abandoned 3-D Secure step come back
+    // carrying the same `1`. The booking is still `payment_pending` / `pending`: telling this guest
+    // their payment "has been received" and that there is "nothing else for you to do", while
+    // removing the only way to pay, is the page lying about their money and stranding them with it.
+    const { text, payButtons } = await render({
+      converted: true,
+      booking: { status: 'payment_pending', paymentState: 'pending' },
+      searchParams: { just_paid: '1' },
+    });
+
+    expect(text, 'an unconfirmed payment is reported as received').not.toMatch(/been received/i);
+    expect(text, 'the guest is not told the payment has not completed').toMatch(
+      /not.*(complete|confirm)/i,
+    );
+    expect(payButtons, 'the only way left to pay was removed').toHaveLength(1);
+    expect(payButtons[0]!.props.converted).toBe(true);
   });
 
   it('keeps the recovery route for a converted quote reopened later, with no just_paid flag', async () => {
     // The link gets forwarded and reopened; api_convert_quote's re-arm branch is a real recovery for a
     // booking that died unpaid, so this state must keep both the note and the (secondary) button.
-    const { text, payButtons } = await render({ converted: true });
+    const { text, payButtons } = await render({
+      converted: true,
+      booking: { status: 'cancelled', paymentState: 'pending' },
+    });
 
     expect(text).toMatch(/did not go through/i);
     expect(payButtons).toHaveLength(1);
