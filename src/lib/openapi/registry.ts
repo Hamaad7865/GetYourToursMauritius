@@ -727,6 +727,31 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/quotes/{ref}/pay': {
+    post: {
+      operationId: 'payQuote',
+      summary: 'Accept and pay a quote: convert it to a booking and mint a checkout',
+      description:
+        'Authenticated by the LINK TOKEN, in the httpOnly cookie /quotes/{ref}/open set — never by a ' +
+        'bearer token, because the guest has no account. There is no request body: the cookie is the ' +
+        'credential. The quote converts ONCE (api_convert_quote), and every later call reuses that ' +
+        'booking and its live checkout, so one offer can never hold two payable sessions. Catalogue ' +
+        'lines are re-priced first and the call is refused if the catalogue has moved, rather than ' +
+        'charging a figure the guest never agreed to. Every refusal to open the quote is the same ' +
+        '404, so nothing here reveals which quote refs exist.',
+      tags: ['Quotes'],
+      requestParams: { path: refParam },
+      responses: {
+        '201': okJson(
+          paymentLinkSchema.extend({ bookingRef: z.string() }),
+          'Checkout link for the converted booking',
+        ),
+        '404': errorResponse('No readable quote for this link'),
+        '409': errorResponse('Prices changed, already paid, or the offer is not payable'),
+        '429': errorResponse('Too many requests'),
+      },
+    },
+  },
   '/client-errors': {
     post: {
       operationId: 'reportClientError',
