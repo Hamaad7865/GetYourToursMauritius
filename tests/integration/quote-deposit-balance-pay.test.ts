@@ -212,4 +212,41 @@ describe('the balance is its own payments row, mintable by the accountless quote
 
     expect((await balanceRows(ref)).count).toBe(0); // neither caller minted a row
   });
+
+  it('a stuck balance row is recoverable via the reconcile sweep (a lost webhook is re-queried)', async () => {
+    // A deposit-confirmed booking is CONFIRMED, so the sweep's `booking`-purpose branch — which keys on
+    // b.status = 'payment_pending' — can NEVER see a balance row. Without a purpose='balance' branch a
+    // lost/dropped balance webhook is unrecoverable: the guest is charged at Peach, append_payment_event
+    // never runs, balance_due_minor never reaches 0, and nothing re-queries it — the exact money-loss the
+    // pickup add-on branch was added to this same function to prevent. The balance row must therefore be
+    // enumerated by its OWN state, exactly like the add-on.
+    const { ref } = await depositConfirmed(100000, 1000);
+    const bal = await mint(ref, 'balance', `${ref}-bal`);
+
+    // The guest reached Peach (a checkout id was recorded) and then the webhook was lost: the row is
+    // stuck 'pending' with a session id. Age the BOOKING weeks back — a deposit confirms today and the
+    // balance is chased much later — to prove the grace window keys off the PAYMENT, not b.created_at
+    // (keying it off the booking would drop a balance on any booking older than the window).
+    await db.asOwner();
+    await db.pg.query(
+      `update bookings set created_at = now() - interval '20 days' where ref = $1`,
+      [ref],
+    );
+    await db.pg.query(
+      `update payments set provider_checkout_id = 'chk_bal_stuck', checkout_created_at = now()
+        where id = $1`,
+      [bal.paymentId],
+    );
+
+    // The sweep runs as the cron does: service_role (the enumeration RPC is granted only to it).
+    await db.as({ role: 'service_role' });
+    const found = await call<Array<{ ref: string; paymentId: string; checkoutId: string }>>(
+      'api_pending_payment_checkouts',
+      {},
+    );
+    const hit = found.find((c) => c.paymentId === bal.paymentId);
+    expect(hit).toBeDefined();
+    expect(hit?.checkoutId).toBe('chk_bal_stuck');
+    expect(hit?.ref).toBe(ref);
+  });
 });

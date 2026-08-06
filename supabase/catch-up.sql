@@ -25616,15 +25616,16 @@ revoke execute on function api_create_payment(jsonb) from public, anon;
 grant execute on function api_create_payment(jsonb) to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 8) api_pending_payment_checkouts — the 20260902000000 body with the add-on branch.
+-- 8) api_pending_payment_checkouts — the 20260912000000 body: the add-on branch PLUS the balance branch.
 --
 --    The sweep enumerated by BOOKING state (`status = 'payment_pending'`), which is exactly wrong for
---    a supplement on a confirmed booking: a lost webhook would strand the guest's money forever with
---    nothing re-querying it. Add-on rows are therefore enumerated by their OWN state, and their grace
---    window runs from the payment's creation rather than the booking's (the booking may be weeks old).
+--    a supplement OR a balance on a confirmed booking: a lost webhook would strand the guest's money
+--    forever with nothing re-querying it. Both are therefore enumerated by their OWN state, and their
+--    grace window runs from the payment's creation rather than the booking's (a balance is chased weeks
+--    after the deposit confirmed the booking, so keying its window off b.created_at would drop it).
 --
---    `distinct on` now keys on (booking, purpose) so a booking carrying both kinds of row surfaces
---    both.
+--    `distinct on` keys on (booking, purpose) so a booking carrying a paid deposit and a stuck balance
+--    surfaces the balance.
 -- ---------------------------------------------------------------------------
 create or replace function api_pending_payment_checkouts(p jsonb)
 returns jsonb
@@ -25652,10 +25653,11 @@ as $$
     from (
       select distinct on (b.id, pay.purpose)
              b.id, b.ref,
-             -- For an add-on, from whichever is later: the row is created when the guest commits the
-             -- ADDRESS, but they can mint the Peach session on it hours later (the resume button), and
-             -- the grace window has to cover the session, not the intent.
-             case when pay.purpose = 'pickup_addon'
+             -- For an add-on OR a balance, from whichever is later: the row is created when the guest
+             -- commits (the add-on's ADDRESS, or the balance link), but they can mint the Peach session
+             -- on it hours -- for a balance, weeks -- later, and the grace window has to cover the
+             -- session, not the intent.
+             case when pay.purpose in ('pickup_addon', 'balance')
                   then greatest(pay.created_at, coalesce(pay.checkout_created_at, pay.created_at))
                   else b.created_at end as created_at,
              pay.id as payment_id, pay.provider_checkout_id, pay.prev_provider_checkout_id
@@ -25667,8 +25669,12 @@ as $$
                  and b.payment_state in ('pending', 'failed'))
                or
                (pay.purpose = 'pickup_addon' and pay.status in ('pending', 'failed'))
+               or
+               -- The balance lives on a CONFIRMED booking, so it is swept by the payment row's OWN state,
+               -- exactly like the add-on -- never by b.status, which the `booking` branch keys on.
+               (pay.purpose = 'balance' and pay.status in ('pending', 'failed'))
              )
-         and (case when pay.purpose = 'pickup_addon'
+         and (case when pay.purpose in ('pickup_addon', 'balance')
                    then greatest(pay.created_at, coalesce(pay.checkout_created_at, pay.created_at))
                    else b.created_at end)
                > now() - make_interval(

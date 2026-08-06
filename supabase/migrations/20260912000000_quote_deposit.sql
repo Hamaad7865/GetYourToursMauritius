@@ -1003,3 +1003,97 @@ comment on function api_create_quote_payment(jsonb) is
   'and the BALANCE (''balance'') — the two the accountless guest pays through the link — and refuses the '
   'pickup add-on, which is the signed-in owner''s to pay. Shares api_create_payment''s body, so both '
   'take the same single-flight checkout lease.';
+
+
+-- ---------------------------------------------------------------------------------------------------
+-- Task 4 (cont.) — the reconcile sweep learns the BALANCE row.
+--
+-- api_pending_payment_checkouts is the webhook-less safety net: run_booking_maintenance re-queries Peach
+-- for stuck checkouts and settles the ones that actually paid. Its 20260910000000 body enumerated only
+--   (pay.purpose = 'booking'   and b.status = 'payment_pending' and b.payment_state in ('pending','failed'))
+--   (pay.purpose = 'pickup_addon' and pay.status in ('pending','failed'))
+-- A balance row always lives on a CONFIRMED booking (create_payment's balance branch requires
+-- v_booking.status = 'confirmed'), so the `booking` branch's b.status = 'payment_pending' predicate
+-- excludes it and it is not a 'pickup_addon' — a lost/dropped balance webhook would strand the guest's
+-- money forever with nothing re-querying it, the EXACT failure the add-on branch was added here to
+-- prevent (see this function's own header, and [[gytm-sticky-failed-payment-state]]).
+--
+-- So this re-applies the winning body VERBATIM apart from a third enumeration branch — a balance row
+-- swept by its OWN state, `(pay.purpose = 'balance' and pay.status in ('pending','failed'))` — and the
+-- grace-window CASE widened to `pay.purpose in ('pickup_addon','balance')`, for the same reason the
+-- add-on needs it: the window has to cover the SESSION, not the booking. A deposit confirms today and
+-- the balance is chased weeks later, so keying its window off b.created_at would drop it the moment the
+-- booking aged out. The `distinct on (b.id, pay.purpose)` already keys on purpose, so a booking carrying
+-- both a (paid, excluded) deposit and a stuck balance surfaces the balance.
+-- ---------------------------------------------------------------------------------------------------
+
+create or replace function api_pending_payment_checkouts(p jsonb)
+returns jsonb
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(
+    jsonb_agg(
+      jsonb_build_object('ref', t.ref, 'paymentId', t.payment_id, 'checkoutId', t.provider_checkout_id)
+      order by t.created_at desc
+    ),
+    '[]'::jsonb
+  )
+  from (
+    -- latest payment per booking+purpose (a re-pay opens a fresh checkout the sweep must query), then
+    -- the most-recent stuck rows up to the batch cap. The two orderings need separate query levels:
+    -- distinct-on requires its leading sort be (b.id, pay.purpose, pay.created_at), so recency + limit
+    -- wrap it.
+    -- LATERAL over (current, previous) checkout ids: a customer can complete a checkout minted
+    -- before a re-pay overwrote the pointer (Peach sessions stay completable ~30 min) -- sweeping
+    -- both ids means that capture is ingested instead of stranded.
+    select c.ref, c.payment_id, v.checkout_id as provider_checkout_id, c.created_at
+    from (
+      select distinct on (b.id, pay.purpose)
+             b.id, b.ref,
+             -- For an add-on OR a balance, from whichever is later: the row is created when the guest
+             -- commits (the add-on's ADDRESS, or the balance link), but they can mint the Peach session
+             -- on it hours -- for a balance, weeks -- later, and the grace window has to cover the
+             -- session, not the intent.
+             case when pay.purpose in ('pickup_addon', 'balance')
+                  then greatest(pay.created_at, coalesce(pay.checkout_created_at, pay.created_at))
+                  else b.created_at end as created_at,
+             pay.id as payment_id, pay.provider_checkout_id, pay.prev_provider_checkout_id
+        from bookings b
+        join payments pay on pay.booking_id = b.id
+       where (
+               (pay.purpose = 'booking'
+                 and b.status = 'payment_pending'
+                 and b.payment_state in ('pending', 'failed'))
+               or
+               (pay.purpose = 'pickup_addon' and pay.status in ('pending', 'failed'))
+               or
+               -- The balance lives on a CONFIRMED booking, so it is swept by the payment row's OWN state,
+               -- exactly like the add-on -- never by b.status, which the `booking` branch keys on.
+               (pay.purpose = 'balance' and pay.status in ('pending', 'failed'))
+             )
+         and (case when pay.purpose in ('pickup_addon', 'balance')
+                   then greatest(pay.created_at, coalesce(pay.checkout_created_at, pay.created_at))
+                   else b.created_at end)
+               > now() - make_interval(
+                   mins => least(greatest(coalesce((p ->> 'graceMinutes')::int, 240), 1), 10080)
+                 )
+         and pay.provider_checkout_id is not null
+         and not exists (
+               select 1 from payment_events pe
+                where pe.payment_id = pay.id and pe.type in ('paid', 'refunded')
+             )
+       order by b.id, pay.purpose, pay.created_at desc
+    ) c
+    cross join lateral (values (c.provider_checkout_id), (c.prev_provider_checkout_id)) as v(checkout_id)
+    where v.checkout_id is not null
+    -- recency-ordered batch, capped (default 100, hard ceiling 1000) to bound Peach API calls per run
+    order by c.created_at desc
+    limit least(greatest(coalesce((p ->> 'limit')::int, 100), 1), 1000)
+  ) t;
+$$;
+
+revoke execute on function api_pending_payment_checkouts(jsonb) from public, anon, authenticated;
+grant execute on function api_pending_payment_checkouts(jsonb) to service_role;
