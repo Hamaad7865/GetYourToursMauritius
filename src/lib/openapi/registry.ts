@@ -752,6 +752,38 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/admin/quotes/send': {
+    post: {
+      operationId: 'sendQuote',
+      summary: 'Email a drafted quote to its guest and mint its public link (staff-only)',
+      description:
+        'The only writer of quotes.token_hash, so the only thing that can turn a draft into an ' +
+        'offer a guest can open and pay. STAFF ONLY, and the check is profiles.role — the JWT role ' +
+        'claim is the Postgres role selector, never the business role. It refuses to email an offer ' +
+        'nobody could act on: one whose valid_until has passed, one carrying a catalogue line (not ' +
+        'payable until the hold path exists), and one with no lines, a zero total or a negative ' +
+        'one. A RE-SEND mints a fresh token and the previously emailed link stops working — ' +
+        'quotes.token_hash holds exactly one hash — which is also why an already-accepted quote is ' +
+        'refused rather than re-sent. The raw token is returned once, here, for the operator to ' +
+        'copy; only its SHA-256 is stored.',
+      tags: ['Quotes'],
+      security: [{ bearerAuth: [] }],
+      requestBody: jsonBody(z.object({ quoteId: z.string().uuid() })),
+      responses: {
+        '200': okJson(
+          z.object({ url: z.string().describe('The tokenised link the guest was emailed') }),
+          'The quote was emailed',
+        ),
+        '400': errorResponse('The quote cannot be emailed as it stands'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Staff only'),
+        '404': errorResponse('No such quote'),
+        '409': errorResponse('Withdrawn, already accepted, or carrying a catalogue line'),
+        '429': errorResponse('Too many requests'),
+        '500': errorResponse('The email could not be sent'),
+      },
+    },
+  },
   '/client-errors': {
     post: {
       operationId: 'reportClientError',

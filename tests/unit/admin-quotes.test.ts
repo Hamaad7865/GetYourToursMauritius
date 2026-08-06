@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 /**
@@ -244,6 +246,15 @@ describe('mintQuoteRef', () => {
 describe('sendQuote', () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  /**
+   * EVERY TEST BELOW STUBS `fetch`, so none of them can tell whether the route on the other end
+   * exists — and for a while it did not: `/api/v1/admin/quotes/send` was never written, so a drafted
+   * quote could not be sent to anyone while this block stayed green. What the stub is right to cover
+   * is the CLIENT's half (the bearer, the body shape, and refusing to report a link the route never
+   * returned); what it cannot cover is that the URL points at something. The test immediately after
+   * this one pins that, and the ROUTE's own behaviour is exercised for real — real schema, real
+   * refusals, real token — in tests/integration/admin-quote-send.test.ts.
+   */
   it('posts the quote id with the staff bearer and returns the public link', async () => {
     const fetchMock = vi.fn(
       async () =>
@@ -263,6 +274,23 @@ describe('sendQuote', () => {
     // happens on the staff-authenticated route and never in the browser.
     expect((init.headers as Record<string, string>).authorization).toBe('Bearer staff-token');
     expect(JSON.parse(String(init.body))).toEqual({ quoteId: 'quote-id' });
+  });
+
+  it('posts to a URL an App Router route file actually answers', async () => {
+    // Derived from the request the client really made, never from a literal repeated here: a rename
+    // on either side has to break this, which is the whole point of it.
+    const fetchMock = vi.fn(
+      async () => new Response(JSON.stringify({ ok: true, data: { url: 'https://x' } })),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    await sendQuote('quote-id');
+    const [url] = fetchMock.mock.calls[0]! as unknown as [string];
+
+    const file = join(process.cwd(), 'app', url.replace(/^\//, ''), 'route.ts');
+    expect(existsSync(file)).toBe(true);
+    // …and it answers POST. A route file exporting only GET would satisfy the check above while
+    // still 405-ing every send.
+    expect(readFileSync(file, 'utf8')).toMatch(/export (const|async function) POST/);
   });
 
   it("surfaces the route's own refusal instead of a generic failure", async () => {
