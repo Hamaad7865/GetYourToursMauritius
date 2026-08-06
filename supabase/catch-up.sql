@@ -27122,3 +27122,22 @@ comment on function api_create_quote_payment(jsonb) is
   'Authorization is the emailed link token, verified by resolveQuoteForToken before the route calls '
   'this; service_role only, and refuses any booking no quote points at. Shares api_create_payment''s '
   'body, so both take the same single-flight checkout lease.';
+
+-- ---- migration 20260912000000_quote_deposit (quote deposit + balance) -------------------------------
+-- Schema half of the deposit/balance feature: a quote guest pays a deposit (default 10%, editable per
+-- quote; 100% = pay in full) which confirms the booking; the balance is a SECOND, purpose-scoped
+-- payments row chased later. deposit_bps sizes the deposit; balance_due_minor is the "still owed"
+-- source of truth. See docs/superpowers/plans/2026-08-06-quote-deposit-balance.md.
+--
+-- DEFAULT 0 on balance_due_minor is LOAD-BEARING: an existing booking must read "nothing owed", never
+-- "full amount owed", so no legacy booking looks part-paid. (Idempotent for the paste-once operator:
+-- add-column-if-not-exists + a named check dropped-then-re-added, exactly like payments_purpose_check.)
+alter table quotes add column if not exists deposit_bps int not null default 1000;
+alter table quotes drop constraint if exists quotes_deposit_bps_check;
+alter table quotes add constraint quotes_deposit_bps_check
+  check (deposit_bps between 1 and 10000);
+alter table bookings add column if not exists deposit_minor     bigint not null default 0;
+alter table bookings add column if not exists balance_due_minor bigint not null default 0;
+alter table payments drop constraint if exists payments_purpose_check;
+alter table payments add constraint payments_purpose_check
+  check (purpose in ('booking', 'pickup_addon', 'balance'));
