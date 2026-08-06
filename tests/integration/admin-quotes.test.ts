@@ -82,6 +82,9 @@ describe('admin quote service (RLS + real schema)', () => {
     status: string;
     total_minor: number;
     created_by: string | null;
+    currency: string;
+    locale: string;
+    intro_note: string | null;
     lines_minor: number;
     line_count: number;
   }> {
@@ -91,10 +94,14 @@ describe('admin quote service (RLS + real schema)', () => {
       status: string;
       total_minor: number;
       created_by: string | null;
+      currency: string;
+      locale: string;
+      intro_note: string | null;
       lines_minor: number;
       line_count: number;
     }>(
       `select q.ref, q.status::text as status, q.total_minor::bigint as total_minor, q.created_by,
+              q.currency, q.locale::text as locale, q.intro_note,
               coalesce((select sum(qi.subtotal_minor) from quote_items qi where qi.quote_id = q.id), 0)::bigint
                 as lines_minor,
               (select count(*) from quote_items qi where qi.quote_id = q.id)::int as line_count
@@ -102,6 +109,37 @@ describe('admin quote service (RLS + real schema)', () => {
       [id],
     );
     return rows[0]!;
+  }
+
+  /**
+   * A booking in a named state, minted as the owner. The quote module never inserts one — only
+   * api_convert_quote does — so this stands in for the conversion's own INSERT.
+   */
+  async function mintBooking(
+    status: string,
+    paymentState: string,
+  ): Promise<{ id: string; ref: string }> {
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ id: string; ref: string }>(
+      `insert into bookings (customer_name, customer_email, total_minor, status, payment_state)
+         values ('Marie Dupont', 'marie@example.com', 50000, $1::booking_status, $2::payment_state)
+       returning id, ref`,
+      [status, paymentState],
+    );
+    return rows[0]!;
+  }
+
+  /**
+   * Stamp the conversion exactly as api_convert_quote does: `booking_id` AND `converted_at`
+   * together, which is the section-4 contract (`quote_converted_shape` makes forgetting one
+   * impossible) plus the 'accepted' status the whitelist expects on a re-arm.
+   */
+  async function linkConversion(quoteId: string, bookingId: string): Promise<void> {
+    await db.asOwner();
+    await db.pg.query(
+      `update quotes set converted_at = now(), status = 'accepted', booking_id = $2 where id = $1`,
+      [quoteId, bookingId],
+    );
   }
 
   /**
@@ -304,6 +342,44 @@ describe('admin quote service (RLS + real schema)', () => {
     expect(row.line_count, 'the removed line survived the edit').toBe(1);
     expect(Number(row.total_minor)).toBe(10000);
     expect(Number(row.lines_minor)).toBe(Number(row.total_minor));
+  });
+
+  it('keeps a French quote French when the edit form does not send the locale back', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      locale: 'fr',
+      items: [{ kind: 'custom', description: 'Bateau privé', quantity: 1, unitAmountMinor: 80000 }],
+    });
+    expect(await readQuote(id).then((row) => row.locale)).toBe('fr');
+
+    // api_convert_quote copies quotes.locale into bookings.locale, and that is what picks the
+    // language of the confirmation email and the VAT invoice. So an edit that simply does not
+    // round-trip the field — a re-price from a form that never had a locale input — must not turn a
+    // French offer into an English invoice. Same for `currency`: defaulting it on every write is the
+    // same silent overwrite, it just happens to have only one legal value today.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await saveQuote({
+      ...GUEST,
+      id,
+      items: [{ kind: 'custom', description: 'Bateau privé', quantity: 1, unitAmountMinor: 75000 }],
+    });
+
+    const row = await readQuote(id);
+    expect(row.locale, 'the guest reads the offer in French and is invoiced in English').toBe('fr');
+    expect(row.currency).toBe('EUR');
+    expect(Number(row.total_minor), 'the re-price did not land').toBe(75000);
+
+    // …and a locale the caller DOES supply still wins: this is "omitted means untouched", not
+    // "locale is immutable".
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await saveQuote({
+      ...GUEST,
+      id,
+      locale: 'en',
+      items: [{ kind: 'custom', description: 'Private boat', quantity: 1, unitAmountMinor: 75000 }],
+    });
+    expect(await readQuote(id).then((r) => r.locale)).toBe('en');
   });
 
   it('reads a quote back with its lines in the owner’s order', async () => {
@@ -584,22 +660,86 @@ describe('admin quote service (RLS + real schema)', () => {
       items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
     });
 
-    await db.asOwner();
-    await db.pg.query(`update quotes set converted_at = now(), status = 'accepted' where id = $1`, [
-      id,
-    ]);
+    const booking = await mintBooking('confirmed', 'paid');
+    await linkConversion(id, booking.id);
 
-    // 'cancelled' means "the offer was withdrawn". On a quote that was taken and paid it is simply
+    // 'cancelled' means "the offer was withdrawn". On a quote that was taken and PAID it is simply
     // false, there is no un-cancel, and it would sit beside a booking_id and a converted_at that say
     // the opposite. Cancelling or refunding the BOOKING is the bookings screen's job.
     await db.as({ sub: STAFF, role: 'authenticated' });
-    await expect(
-      cancelQuote(id),
-      'the offer the guest accepted now reads as withdrawn',
-    ).rejects.toThrow(/converted/i);
+    const message = await cancelQuote(id).then(
+      () => '',
+      (error: unknown) => (error as Error).message,
+    );
+    expect(message, 'the offer the guest paid for now reads as withdrawn').not.toBe('');
+    expect(message, 'the refusal does not name the booking the operator must act on').toContain(
+      booking.ref,
+    );
 
     const row = await readQuote(id);
     expect(row.status).toBe('accepted');
+  });
+
+  it('refuses to withdraw a quote whose booking is still alive and unpaid', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    // The guest is at Peach with the card in their hand. Withdrawing the offer would not stop that
+    // charge — api_create_payment answers to the BOOKING, not the quote — so the quote must not be
+    // made to read "withdrawn" beside a booking that is about to confirm. The booking is the thing
+    // to cancel, and once it is cancelled the withdrawal below goes through.
+    const booking = await mintBooking('payment_pending', 'pending');
+    await linkConversion(id, booking.id);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const message = await cancelQuote(id).then(
+      () => '',
+      (error: unknown) => (error as Error).message,
+    );
+    expect(message, 'an offer the guest may be paying for right now was withdrawn').not.toBe('');
+    expect(message, 'the refusal does not name the booking the operator must act on').toContain(
+      booking.ref,
+    );
+    expect(await readQuote(id).then((row) => row.status)).toBe('accepted');
+
+    // …and the instruction the refusal gives has to actually work. Cancelling the booking is what
+    // sets status='cancelled', payment_state='pending' — the re-arm precondition — so if the
+    // withdrawal were still refused here the operator's only route out would make the guest's link
+    // MORE payable, not less.
+    await db.asOwner();
+    await db.pg.query(`update bookings set status = 'cancelled' where id = $1`, [booking.id]);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await cancelQuote(id);
+    expect(await readQuote(id).then((row) => row.status)).toBe('cancelled');
+  });
+
+  it('withdraws an offer whose converted booking died without ever taking money', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 500000 }],
+    });
+
+    // The guest converted, went to fetch their card and never came back, so run_booking_maintenance
+    // expired the booking. api_convert_quote RE-ARMS exactly this quote (quotes-rpc.test.ts,
+    // 're-arms a quote whose booking died without ever taking money'), so the link in the guest's
+    // inbox is payable again until valid_until passes — and by then the boat has been resold. A
+    // guard on converted_at alone refuses every write to the row, so the offer could not be
+    // withdrawn by anyone, nor even have its validity shortened.
+    const booking = await mintBooking('expired', 'pending');
+    await linkConversion(id, booking.id);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await cancelQuote(id);
+
+    const row = await readQuote(id);
+    // api_convert_quote's re-arm branch runs BEFORE the status whitelist, so from here the quote
+    // raises `quote_cancelled` rather than minting a second payable booking.
+    expect(row.status, 'a live offer could be withdrawn by nobody').toBe('cancelled');
   });
 
   it('gives a signed-in customer no way to draft a quote (RLS)', async () => {
@@ -618,6 +758,33 @@ describe('admin quote service (RLS + real schema)', () => {
       `select count(*)::int as n from quotes where customer_email = 'forged@example.com'`,
     );
     expect(rows[0]!.n).toBe(0);
+  });
+
+  it('gives a signed-in customer no way to READ a staff quote (RLS)', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      introNote: 'Dear Marie, here is the private boat day we discussed.',
+      internalNotes: 'she pushed hard on price — hold at this figure',
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 90000 }],
+    });
+
+    // `authenticated` is the role a signed-up GUEST actually holds — not `anon`, which
+    // quotes-schema.test.ts pins — and `loadQuotes` takes no filter at all: every row it returns
+    // carries a name, an email, a phone number and the staff-only internal notes. This repo has
+    // shipped a visibility leak three times on the assumption that a policy does what it reads like
+    // (docs/handbook/landmines.md), so the read side is asserted rather than inferred from the
+    // write side.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    expect(await loadQuotes(50), 'a signed-in guest can list every quote in the business').toEqual(
+      [],
+    );
+
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    expect(
+      await loadQuote(id),
+      'a signed-in guest can read another guest’s quote by id',
+    ).toBeNull();
   });
 
   it('gives a signed-in customer no way to edit or withdraw a staff quote (RLS)', async () => {

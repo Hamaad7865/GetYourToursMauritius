@@ -526,6 +526,15 @@ export async function loadQuote(id: string): Promise<QuoteDetail | null> {
  * total is written, the two disagree and api_convert_quote refuses to charge (`quote_total_mismatch`)
  * until the operator saves again.
  *
+ * WHAT AN EDIT REPLACES, and what it leaves alone. The guest and note fields — `customerName`,
+ * `customerEmail`, `customerPhone`, `validUntil`, `introNote`, `internalNotes` — are a FULL REPLACE:
+ * omitting one CLEARS the stored column, exactly as `items` clears the lines it does not list. The
+ * caller must therefore hand over the whole quote, not a patch. `currency` and `locale` are the
+ * exception and are written only when supplied, because there a default is not a value: `locale` is
+ * copied into `bookings.locale` at conversion and picks the language of the confirmation email and
+ * the VAT invoice, so defaulting it on every write turns a French offer into an English invoice the
+ * moment it is re-priced by a form that has no locale input. Both defaults belong to the INSERT.
+ *
  * `currency` and `locale` are checked here as well as typed, because a cast or a JSON body erases the
  * type. EUR is not a default with alternatives — see {@link QuoteCurrency}.
  *
@@ -548,14 +557,17 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
   // land before ANY statement is issued. See QuoteCurrency: an unsupported currency is not refused
   // anywhere downstream — the ledger is EUR-only by constraint and api_create_payment never reads the
   // booking's currency, so 'MUR 50000' would be quoted, emailed, and then charged as 500 EUR.
-  const currency: string = input.currency ?? 'EUR';
-  if (currency !== 'EUR') {
+  //
+  // `null` means "the caller said nothing", NOT "the caller said the default" — see the fields split
+  // below. The validation runs on whatever WAS supplied, so a cast still cannot get 'MUR' past here.
+  const currency: string | null = input.currency ?? null;
+  if (currency !== null && currency !== 'EUR') {
     throw new ValidationError(
       `A quote can only be priced in EUR — the payment ledger is EUR-only, so a ${currency} quote would still be charged in EUR.`,
     );
   }
-  const locale: string = input.locale ?? 'en';
-  if (locale !== 'en' && locale !== 'fr') {
+  const locale: string | null = input.locale ?? null;
+  if (locale !== null && locale !== 'en' && locale !== 'fr') {
     throw new ValidationError(`A quote's locale must be 'en' or 'fr', not '${locale}'.`);
   }
 
@@ -567,8 +579,6 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
     valid_until: input.validUntil,
     intro_note: input.introNote?.trim() || null,
     internal_notes: input.internalNotes?.trim() || null,
-    currency,
-    locale,
     total_minor: quoteRowTotal(input),
     updated_at: new Date().toISOString(),
   };
@@ -577,6 +587,14 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
   const editing = Boolean(id);
 
   if (id) {
+    // Only what the caller SUPPLIED. Everything above is a full replace by contract; these two are
+    // not, because a default is not the same as a value and `locale` is on the money path: it is
+    // copied into bookings.locale at conversion and picks the language of the confirmation email and
+    // the VAT invoice. An edit from a form with no locale input would otherwise turn a French offer
+    // into an English invoice, silently, on a quote the guest read in French.
+    if (currency !== null) fields.currency = currency;
+    if (locale !== null) fields.locale = locale;
+
     // The line replacement is gated on this having matched: the lines are the itemisation behind the
     // stored total, and deleting them for an edit that was refused is exactly the state the guard is
     // here to prevent.
@@ -589,10 +607,18 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
     const { error: clearError } = await db().from('quote_items').delete().eq('quote_id', id);
     if (clearError) throw clearError;
   } else {
+    // The defaults live on the INSERT alone. (The columns carry the same two defaults in the schema;
+    // they are restated here so the row the module writes is the row it decided to write.)
     const staff = await session();
     const { data, error } = await db()
       .from('quotes')
-      .insert({ ...fields, ref: mintQuoteRef(), created_by: staff?.userId ?? null })
+      .insert({
+        ...fields,
+        currency: currency ?? 'EUR',
+        locale: locale ?? 'en',
+        ref: mintQuoteRef(),
+        created_by: staff?.userId ?? null,
+      })
       .select('id')
       .single();
     if (error) throw error;
@@ -614,22 +640,99 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
 }
 
 /**
+ * The linked booking is DEAD when it is in one of these statuses AND its payment projection carries
+ * no money — the same pair api_convert_quote's re-arm branch reads before it mints afresh. Stated
+ * here as the two halves of ONE test, because either half alone is wrong: a `cancelled` booking that
+ * was refunded still took money, and a `confirmed` one is alive whatever its payment_state says.
+ */
+const DEAD_BOOKING_STATUSES = new Set(['expired', 'cancelled', 'failed']);
+const UNPAID_PAYMENT_STATES = new Set(['pending', 'failed']);
+
+/**
  * Withdraw the offer. api_convert_quote raises `quote_cancelled` on this status, so the guest's link
  * stops being payable.
  *
  * It does NOT touch a booking the quote already minted: that is a real booking with its own money
  * trail, and cancelling or refunding it is the bookings screen's job (`setBookingStatus`,
- * `markBookingRefunded`). Which is precisely why a CONVERTED quote is refused here rather than
- * quietly flipped: the row would then read "withdrawn" beside the `booking_id` and `converted_at`
- * that say the guest took this offer and paid for it, in the admin list and in `loadQuote` — and
- * there is no un-cancel. Same guard, and same shape of guard, as saveQuote.
+ * `markBookingRefunded`).
+ *
+ * THE GATE IS THE BOOKING, NOT `converted_at`, and that is the whole point of this function.
+ * "Converted" does not mean "paid": api_convert_quote deliberately RE-ARMS a quote whose booking
+ * died without ever taking a cent (see its own header, and the RPC test 're-arms a quote whose
+ * booking died without ever taking money'), so a guest who converted, wandered off and lost the
+ * booking to the 30-minute maintenance sweep still holds a link that mints a fresh payable booking
+ * until `valid_until` passes. Gating on `converted_at` refused every write to that row — saveQuote
+ * could not re-price it, this could not withdraw it, and `valid_until` could not even be shortened
+ * — while pointing the operator at the bookings screen, where cancelling the booking sets
+ * status='cancelled', payment_state='pending': precisely the re-arm precondition. The offer got
+ * MORE payable, and a resold charter could still be paid for days later.
+ *
+ * So the two refusals below are about the BOOKING's state:
+ *
+ *  - it has taken money -> the offer was accepted and paid; 'cancelled' would be a lie sitting
+ *    beside a booking_id and a converted_at that say the opposite, and there is no un-cancel.
+ *  - it is still alive -> the guest may be at Peach with the card in their hand. Withdrawing would
+ *    not stop that charge (api_create_payment answers to the booking, not the quote), so the
+ *    booking is what has to be cancelled — and once it is, this goes through.
+ *
+ * Anything else — never converted, or converted into a booking that is dead and empty (including
+ * one an erasure hard-deleted, leaving booking_id null) — is withdrawn.
+ *
+ * A READ-THEN-WRITE, unlike saveQuote's guard, and safe HERE for the reason that one is not: this
+ * write can only make the quote LESS payable. The worst a conversion landing in the window can do
+ * is leave a cancelled quote beside a live booking the bookings screen still owns; a total rewritten
+ * in the same window would be a figure charged to a returning guest. api_convert_quote stays the
+ * real gate either way: its re-arm branch runs BEFORE the status whitelist, so a cancelled quote
+ * raises `quote_already_converted` while its booking is live and `quote_cancelled` once it is dead.
+ *
+ * The refusals name the booking, because "the bookings screen" is a list and the operator needs the
+ * row. A quote the caller may not read is reported as absent, word for word as `saveQuote`'s guard
+ * reports it — a different refusal would tell a signed-in guest which quote ids exist.
  */
 export async function cancelQuote(id: string): Promise<void> {
-  await updateUnconvertedQuote(
-    id,
-    { status: 'cancelled', updated_at: new Date().toISOString() },
-    'This quote has already been converted into a booking, so the offer can no longer be withdrawn. Cancel or refund the booking itself on the bookings screen.',
-  );
+  const { data: quote, error } = await db()
+    .from('quotes')
+    .select('booking_id')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!quote) throw new Error('This quote no longer exists.');
+
+  const bookingId = textOrNull(quote.booking_id);
+  if (bookingId) {
+    const { data: booking, error: bookingError } = await db()
+      .from('bookings')
+      .select('ref, status, payment_state')
+      .eq('id', bookingId)
+      .maybeSingle();
+    if (bookingError) throw bookingError;
+    // No row means the booking is GONE (an erasure hard-deletes an unpaid one, and the FK then
+    // nulls booking_id). Nothing holds money and nothing can take any, so the offer is withdrawable.
+    if (booking) {
+      const bookingRef = textOrNull(booking.ref) ?? bookingId;
+      if (!UNPAID_PAYMENT_STATES.has(text(booking.payment_state))) {
+        throw new Error(
+          `The guest has already paid for this quote, so the offer can no longer be withdrawn. ` +
+            `Cancel or refund booking ${bookingRef} on the bookings screen; draft a new quote for anything else.`,
+        );
+      }
+      if (!DEAD_BOOKING_STATUSES.has(text(booking.status))) {
+        throw new Error(
+          `This quote has been converted into booking ${bookingRef}, which is still live — the guest ` +
+            `may be paying for it right now, and withdrawing the offer would not stop that charge. ` +
+            `Cancel booking ${bookingRef} on the bookings screen first, then withdraw the quote.`,
+        );
+      }
+    }
+  }
+
+  const { data, error: writeError } = await db()
+    .from('quotes')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id');
+  if (writeError) throw writeError;
+  if (!data || data.length === 0) throw new Error('This quote no longer exists.');
 }
 
 export interface SendQuoteResult {
