@@ -127,6 +127,11 @@ system working. If customers report an error that leaves no row, you want the re
     (`npm run sandbox:setup`) gives you the catalogue, test logins and fake bookings, with payments and
     email stubbed. Use it to click through anything without touching production.
 
+11. **[Quotes — a priced offer that becomes a booking](handbook/quotes.md)**
+    The staff-drafted quote: its lifecycle, the link token that lets a guest pay without an account, the
+    one-booking-per-quote rule and when a dead booking re-arms it, why a free-text line holds no capacity
+    while a catalogue line reserves its seat, and how a paid quote booking finds its owner.
+
 ### Also in `docs/`
 
 - [`domain-cutover-runbook.md`](domain-cutover-runbook.md) — moving DNS to Cloudflare without breaking email.
