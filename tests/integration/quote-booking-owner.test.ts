@@ -319,6 +319,61 @@ describe('a quote booking gets an owner', () => {
     expect(await ownerOf(booking.id)).toBe(late);
   });
 
+  it('claims an address stored with the whitespace it was pasted in with', async () => {
+    // THE TWO MATCHERS MUST NORMALISE IDENTICALLY, or an address that works at payment can never be
+    // claimed afterwards. The operator copies the address out of a mail client and a space comes with
+    // it; `quotes.customer_email` has no trigger trimming it, and api_convert_quote copies the column
+    // into `bookings.customer_email` VERBATIM. So the stored booking address really can carry
+    // whitespace, and it looks identical to a correct one on every screen — which is precisely what
+    // makes an asymmetry here unreproducible later.
+    //
+    // Half 1: conversion normalises. quote_owner_for_email btrims, so the padded address finds the
+    // confirmed account and the booking is minted owned.
+    const known = await seedQuote(` ${GUEST_EMAIL} `);
+    const knownBooking = await convert(known);
+    expect(
+      await ownerOf(knownBooking.id),
+      'conversion stopped matching a padded address — the two matchers have to agree, and this is ' +
+        'the side that already did',
+    ).toBe(GUEST);
+
+    // Half 2: and so must the claim. Same padded shape, but nobody holds the address yet, so the
+    // booking is minted ownerless and the only route back to it is api_claim_quote_bookings.
+    const padded = '  Padded.Paste@example.com ';
+    const quote = await seedQuote(padded);
+    const booking = await convert(quote);
+    expect(await ownerOf(booking.id)).toBeNull();
+    await db.asOwner();
+    const { rows: stored } = await db.pg.query<{ customer_email: string }>(
+      `select customer_email from bookings where id = $1`,
+      [booking.id],
+    );
+    expect(
+      stored[0]!.customer_email,
+      'the booking no longer stores the quoted address verbatim, so this case is no longer testing ' +
+        'the asymmetry it was written for',
+    ).toBe(padded);
+
+    const pasted = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+    await db.pg.query(
+      `insert into auth.users (id, email, email_confirmed_at)
+       values ($1, 'padded.paste@example.com', now())`,
+      [pasted],
+    );
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [pasted]);
+
+    await db.as({ sub: pasted, role: 'authenticated' });
+    const result = await rpc<{ claimed: number }>('api_claim_quote_bookings', {});
+    await db.asOwner();
+
+    expect(
+      result.claimed,
+      'the address the guest paid with is unclaimable: conversion trimmed it and the claim did not',
+    ).toBe(1);
+    expect(await ownerOf(booking.id)).toBe(pasted);
+    expect(await visibleTo(pasted, booking.id)).toBe(true);
+  });
+
   it('never moves a booking from one user to another', async () => {
     // The single most dangerous shape here. A booking that already has an owner is settled; a claim may
     // only ever fill a NULL. Otherwise a quote whose address was later re-registered — or simply

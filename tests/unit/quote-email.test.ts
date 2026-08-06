@@ -27,6 +27,7 @@ const quote = {
   totalMinor: 23000,
   validUntil: '2026-08-19',
   introNote: 'As discussed on the phone.',
+  locale: 'en',
   linkToken: TOKEN,
   items: [
     { description: 'Catamaran cruise, 23 Aug, 2 adults', quantity: 2, unitAmountMinor: 5500 },
@@ -112,6 +113,47 @@ describe('quote email', () => {
         items: [{ description: 'Complimentary transfer', quantity: 1, unitAmountMinor: 0 }],
       }),
     ).toThrow(/total/i);
+  });
+
+  it('is written in the language the quote was drafted in', () => {
+    // `quotes.locale` is `content_locale not null default 'en'`, the operator picks it in the editor,
+    // and api_convert_quote copies it into `bookings.locale` — where it already decides the language
+    // of the confirmation email and the VAT invoice. This email is the FIRST thing the guest reads,
+    // so it must not be the one document in the chain that ignores the column.
+    const fr = renderQuoteEmail({ ...quote, locale: 'fr' });
+    const en = renderQuoteEmail({ ...quote, locale: 'en' });
+
+    expect(fr.subject).toContain('Votre devis');
+    expect(fr.html).toContain('Bonjour Marie Dupont');
+    expect(fr.html).toContain('voici le devis que vous nous avez demandé');
+    expect(fr.html).toContain('Voir et payer votre devis');
+    expect(fr.html).toContain('Valable jusqu’au 2026-08-19');
+    expect(fr.text).toContain('Voici le devis que vous nous avez demandé');
+
+    // The other half, and the one a "translate everything" change breaks: an English quote must NOT
+    // pick up French copy.
+    expect(en.subject).not.toContain('devis');
+    expect(en.html).toContain('here is the quote you asked us for');
+    expect(en.html).not.toContain('Voici');
+    expect(en.text).toContain('Here is the quote you asked us for');
+
+    // Neither language may touch the money, the dates or the link — those are data, not copy.
+    expect(fr.html).toContain(OPEN_URL);
+    expect(fr.html).toContain('EUR 230.00');
+    expect(fr.html).toContain('2026-08-19');
+    expect(fr.html).toContain('As discussed on the phone.');
+  });
+
+  it('falls back to English for a locale it does not have', () => {
+    // The send route reads whatever the column holds. `content_locale` is an enum of exactly en/fr
+    // today, so this is the branch that keeps a THIRD value — added to the enum before its messages
+    // exist — rendering an English email rather than raw translation keys.
+    for (const locale of [null, '', 'de', 'EN']) {
+      const mail = renderQuoteEmail({ ...quote, locale });
+      expect(mail.html, `locale ${JSON.stringify(locale)} did not fall back`).toContain(
+        'here is the quote you asked us for',
+      );
+    }
   });
 
   it('escapes guest-supplied text instead of letting it inject markup', () => {

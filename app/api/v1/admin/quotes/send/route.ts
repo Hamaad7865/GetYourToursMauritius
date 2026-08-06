@@ -224,8 +224,12 @@ export const POST = apiHandler(async (req) => {
   const { data: quote, error } = await db
     .from('quotes')
     .select(
+      // `locale` is on this list for the same reason `currency` is: it is a property of the OFFER,
+      // not of the operator pressing Send. api_convert_quote copies it into `bookings.locale`, which
+      // already picks the language of the confirmation email and the VAT invoice — so leaving it
+      // unselected would email a French guest an English quote and then French paperwork about it.
       'id, ref, customer_name, customer_email, status, currency, total_minor, valid_until, ' +
-        'intro_note, converted_at',
+        'intro_note, converted_at, locale',
     )
     .eq('id', quoteId)
     .maybeSingle();
@@ -310,6 +314,9 @@ export const POST = apiHandler(async (req) => {
     totalMinor,
     validUntil: dateText(quote.valid_until),
     introNote: textOrNull(quote.intro_note),
+    // `content_locale` comes back as a plain string; renderQuoteEmail falls back to English for
+    // anything that is not a locale it has messages for.
+    locale: textOrNull(quote.locale),
     items: lines.map(
       (line): QuoteEmailLine => ({
         // A custom/rental line always has a description (`quote_item_shape` makes it NOT NULL for

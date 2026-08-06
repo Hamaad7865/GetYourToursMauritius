@@ -133,6 +133,20 @@ const CONTRACTS: ResolvedContract[] = [
       'a claim that matched on an address from the payload would let any signed-in account name a ' +
       "stranger's address and be handed that stranger's booking",
   },
+  // The claim and the conversion have to decide "the same address" the same way, which is why the
+  // rule is a function (quote_email_key, 20260909000000 section 6c-bis) rather than an expression
+  // copied into two places. This pins the side that had drifted: the owner match btrimmed, the claim
+  // did not, so a booking minted for a pasted ' nina@example.com' was matchable at payment and
+  // unclaimable forever afterwards.
+  {
+    fn: 'api_claim_quote_bookings',
+    must: 'normalises the BOOKING address the same way conversion does',
+    code: /\bquote_email_key\s*\(\s*b\.customer_email\s*\)/,
+    alsoSaidInAComment: 'quote_email_key on the BOOKING column too',
+    why:
+      'a `lower()`-only compare cannot see a booking whose stored address carries the whitespace it ' +
+      'was quoted with — the guest paid, and their own sign-in can never pick that booking up',
+  },
 ];
 
 /**
@@ -231,12 +245,47 @@ function executableSql(prosrc: string): string {
  * A COPY of a resolved body with the contract's executable text deleted and every comment left
  * exactly where it was. This is the shape of both regressions: a migration re-applies the function
  * from a body that predates the fix, and carries forward the paragraph explaining it.
+ *
+ * THE MATCH RUNS OVER THE JOINED CODE, exactly as {@link executableSql} matches it, and never over
+ * each segment on its own. Several contracts pin a RANGE — api_erase_user's runs from
+ * `update quotes set` to `intro_note = null` — and a `--` comment anywhere inside that range splits
+ * it across two code segments. Per segment, neither half matches: the mutant would come back
+ * identical to the body and the bite proof would report 'the mutation removed nothing' about a
+ * contract that is perfectly intact, while the contract's own assertion stayed correctly green. The
+ * direction is safe (a false RED, never a false green), but the next person to comment that UPDATE
+ * would be sent looking for a bug that is not there.
+ *
+ * So the code runs are concatenated, each character remembering which segment it came from; the
+ * match is deleted from that joined text and a single space left at its start; and the segments are
+ * rebuilt from the survivors, with every comment put back untouched.
  */
 function codeRemovedCommentsKept(body: string, code: RegExp): string {
-  const global = new RegExp(code.source, 'gi');
-  return sqlSegments(body)
-    .map((seg) => (seg.code ? seg.text.replace(global, ' ') : seg.text))
-    .join('');
+  const segments = sqlSegments(body);
+  const owner: number[] = []; // joined-text position -> index of the segment it came from
+  let joined = '';
+  segments.forEach((seg, s) => {
+    if (!seg.code) return;
+    joined += seg.text;
+    for (let k = 0; k < seg.text.length; k += 1) owner.push(s);
+  });
+
+  // 0 = survives, 1 = inside a match, 2 = first character of a match (becomes the single space).
+  const cut = new Uint8Array(joined.length);
+  for (const m of joined.matchAll(new RegExp(code.source, 'gi'))) {
+    if (!m[0]) continue;
+    const start = m.index ?? 0;
+    for (let k = start; k < start + m[0].length; k += 1) cut[k] = 1;
+    cut[start] = 2;
+  }
+
+  const rebuilt = new Map<number, string>();
+  for (let i = 0; i < joined.length; i += 1) {
+    const s = owner[i]!;
+    const kept = cut[i] === 2 ? ' ' : cut[i] === 1 ? '' : joined[i]!;
+    rebuilt.set(s, (rebuilt.get(s) ?? '') + kept);
+  }
+
+  return segments.map((seg, s) => (seg.code ? (rebuilt.get(s) ?? '') : seg.text)).join('');
 }
 
 function assertContract(body: string | undefined, { fn, must, code, why }: ResolvedContract): void {
@@ -334,4 +383,55 @@ describe('the winning definition of a re-defined function keeps its contract', (
       }
     },
   );
+
+  /**
+   * A COMMENT INSIDE A CONTRACT'S SPAN MUST NOT BREAK THE MUTATION.
+   *
+   * Several contracts here pin a RANGE rather than a token — api_erase_user's runs from
+   * `update quotes set` all the way to `intro_note = null` — and a maintainer is free to annotate any
+   * line in between. That comment splits the span across two code SEGMENTS. The real assertion is
+   * unaffected (executableSql joins the code back together before matching), but a mutation applied
+   * per segment would then match neither half, hand back a copy identical to the body, and fail the
+   * bite proof with 'the mutation removed nothing' — which reads as "your contract regex is broken"
+   * about a contract that is perfectly intact.
+   *
+   * So this inserts exactly that comment into a COPY of the resolved body and pins both halves:
+   * the contract still holds, and the bite proof still bites.
+   */
+  it('still guts a contract whose span a maintainer has commented in the middle of', () => {
+    const contract = CONTRACTS.find((c) => c.fn === 'api_erase_user');
+    expect(contract, 'the ranged contract this case is written about is gone').toBeDefined();
+    const body = bodies.get('api_erase_user');
+    expect(body, 'api_erase_user is not defined at all').toBeDefined();
+
+    // A `--` between `set` and `intro_note = null`: the plainest edit a maintainer could make to the
+    // retained-quote anonymize UPDATE. Anchored from `update quotes` on purpose — the RETAINED-BOOKING
+    // anonymize a few lines above nulls a `customer_phone` too, and commenting that one would prove
+    // nothing about this contract's span.
+    const commented = (body as string).replace(
+      /(update\s+quotes\b[\s\S]*?customer_phone\s*=\s*null,)/i,
+      '$1 -- the phone, which the redact trigger does not reach\n',
+    );
+    expect(
+      commented,
+      'the anonymize UPDATE no longer has the line this case comments — re-anchor it',
+    ).not.toBe(body);
+
+    // 1. The contract itself is untouched: a comment does not run, so nothing it interrupts stopped
+    //    running either.
+    expect(() => assertContract(commented, contract!)).not.toThrow();
+
+    // 2. And the bite proof still bites: the statement really is deleted, the comments really do
+    //    survive, and the contract really does go red on the mutant.
+    const gutted = codeRemovedCommentsKept(commented, contract!.code);
+    expect(
+      gutted,
+      'the mutation removed nothing — a comment inside the span defeated it, so the bite proof for ' +
+        'this contract would fail for a reason that has nothing to do with the contract',
+    ).not.toBe(commented);
+    expect(() => assertContract(gutted, contract!)).toThrow();
+    expect(gutted, "the mutation ate the body's comments as well as its code").toContain(
+      'the phone, which the redact trigger does not reach',
+    );
+  });
 });

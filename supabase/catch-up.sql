@@ -23935,6 +23935,43 @@ create trigger quotes_redact_lines_on_anonymize
   execute function quotes_redact_lines();
 
 -- ---------------------------------------------------------------------------
+-- 6c-bis) quote_email_key — THE ONE DEFINITION OF "THE SAME ADDRESS".
+--
+-- Two places decide whether an address on a quote is the address on an account: quote_owner_for_email
+-- (6d), at conversion, and api_claim_quote_bookings (7c), for the guest who signs up afterwards. They
+-- have to normalise IDENTICALLY or the pair produces a booking that matches at payment and can never
+-- be claimed again.
+--
+-- That is not hypothetical. `quotes.customer_email` has no trimming trigger and api_convert_quote
+-- copies the column into `bookings.customer_email` verbatim, so an address the operator pasted out of
+-- a mail client — ' nina@example.com' — really is what gets stored. The owner match btrimmed its
+-- ARGUMENT while the claim compared the booking column with `lower()` alone: the guest paid, their
+-- booking was minted, and their later sign-in could never pick it up. Nothing on any screen shows the
+-- space, which is exactly what makes that class of bug unreproducible six months later.
+--
+-- So the rule lives in one function and both sides call it on BOTH operands. Plain (not definer) and
+-- left with its default grants, like is_staff(): it reads nothing, touches no table, and hands back a
+-- lowercased trim of a string the caller already had — there is nothing here to leak. Its callers are
+-- the definers, and the privilege check for their inner calls runs as the owner regardless.
+--
+-- NULL for an address that is empty or all whitespace, so "no address" can never compare equal to
+-- another "no address" — a null propagates through `=` and the match simply fails, which is the
+-- answer both callers want.
+-- ---------------------------------------------------------------------------
+create or replace function quote_email_key(p_email text)
+returns text
+language sql
+immutable
+as $$
+  select lower(nullif(btrim(p_email), ''));
+$$;
+
+comment on function quote_email_key(text) is
+  'The one normalisation behind every quote email match: lower(btrim(...)), null for blank. '
+  'quote_owner_for_email and api_claim_quote_bookings both apply it to BOTH sides of their compare, '
+  'so an address that matched at conversion can never be one a later claim cannot see.';
+
+-- ---------------------------------------------------------------------------
 -- 6d) quote_owner_for_email — WHO, IF ANYONE, OWNS A BOOKING MADE FOR THIS ADDRESS.
 --
 -- Every booking in this schema until now has carried a `user_id`; a quote booking is the first
@@ -23948,9 +23985,12 @@ create trigger quotes_redact_lines_on_anonymize
 -- afterwards, again at claim time (7c). Both go through this one function so the rule cannot be stated
 -- twice and drift, and the rule is deliberately NARROW:
 --
---   * CASE-INSENSITIVE. The operator types the address into the quote editor by hand, and
---     "Anouk.Leclerc@Example.com" is the same mailbox as the one the account was opened with. A
---     case-sensitive compare would leave most genuine matches ownerless for no visible reason.
+--   * CASE-INSENSITIVE AND TRIMMED, through quote_email_key (6c-bis) — on BOTH operands, never just
+--     the argument. The operator types or pastes the address into the quote editor by hand, and
+--     "Anouk.Leclerc@Example.com" (or " anouk.leclerc@example.com") is the same mailbox as the one
+--     the account was opened with. A case-sensitive compare would leave most genuine matches
+--     ownerless for no visible reason; normalising one side only would leave the claim path (7c)
+--     unable to see a booking this function had already matched.
 --   * CONFIRMED ACCOUNTS ONLY (`email_confirmed_at is not null`). This is the whole of the difference
 --     between an address someone TYPED and one they have demonstrably received mail at. Without it,
 --     signing up with a stranger's address — and never confirming it, which you could not, since the
@@ -23979,7 +24019,7 @@ security definer
 set search_path = public
 as $$
 declare
-  v_email text := lower(nullif(btrim(p_email), ''));
+  v_email text := quote_email_key(p_email);
   v_ids uuid[];
 begin
   if v_email is null then
@@ -23988,7 +24028,7 @@ begin
 
   select array_agg(u.id) into v_ids
     from auth.users u
-   where lower(u.email) = v_email
+   where quote_email_key(u.email) = v_email
      and u.email_confirmed_at is not null;
 
   -- No account, or more than one confirmed account on this address: no answer, not a guess.
@@ -24002,7 +24042,8 @@ revoke execute on function quote_owner_for_email(text) from public, anon, authen
 grant execute on function quote_owner_for_email(text) to service_role;
 
 comment on function quote_owner_for_email(text) is
-  'The single CONFIRMED account holding this address, case-insensitively — or null for none, and null '
+  'The single CONFIRMED account holding this address, normalised by quote_email_key on both sides — or '
+  'null for none, and null '
   'for more than one. The one place the quote-booking owner match is defined; api_convert_quote and '
   'api_claim_quote_bookings both read it so the rule cannot drift into two versions.';
 
@@ -24310,6 +24351,10 @@ grant execute on function api_convert_quote(jsonb) to service_role;
 --      (enforce_booking_admin_update pins the column against any browser write), so this cannot grow
 --      into a general "claim any booking that carries my address" mechanism — which would be a far
 --      wider blast radius than the one case the owner decided on.
+--   5. THE SAME NORMALISATION AS CONVERSION, on both operands, through quote_email_key (6c-bis). This
+--      one is not a hole but a dead end: an address the owner match trimmed into a hit was a booking a
+--      `lower()`-only claim could never see again, so the guest who paid was locked out of their own
+--      record by a space nothing on screen displays.
 --
 -- IDEMPOTENT by construction: the second run finds no null-owner rows left and updates none, which is
 -- what makes it safe to fire on every sign-in.
@@ -24336,7 +24381,7 @@ begin
     raise exception 'unauthorized' using errcode = '42501';
   end if;
 
-  select lower(u.email) into v_email from auth.users u where u.id = v_uid;
+  select quote_email_key(u.email) into v_email from auth.users u where u.id = v_uid;
   if v_email is null then
     return jsonb_build_object('claimed', 0);
   end if;
@@ -24350,11 +24395,15 @@ begin
   -- Property 3, and the reason it is in the WHERE rather than in a caller: `user_id is null` makes an
   -- already-owned booking unreachable from here, so this can only ever fill an empty column. Property
   -- 4 is the `source` filter — a claim must never grow into "any booking carrying my address".
+  -- quote_email_key on the BOOKING column too, not `lower()` alone. api_convert_quote copies
+  -- `quotes.customer_email` into this column verbatim, so a pasted ' nina@example.com' is stored with
+  -- its space — and matching it against a key that has been trimmed would make the one address
+  -- conversion DID match unclaimable forever. Section 6c-bis is the whole of that story.
   update bookings b
      set user_id = v_uid
    where b.source = 'quote'
      and b.user_id is null
-     and lower(b.customer_email) = v_email;
+     and quote_email_key(b.customer_email) = v_email;
   get diagnostics v_claimed = row_count;
 
   return jsonb_build_object('claimed', v_claimed);

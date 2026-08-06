@@ -2618,4 +2618,23 @@ export const fr: Record<string, string> = {
   'Departure — hotel to airport': 'Départ — hôtel vers aéroport',
   'Return — both directions': 'Aller-retour — les deux trajets',
   'Arrival — airport to hotel': 'Arrivée — aéroport vers hôtel',
+
+  // The guest-facing QUOTE email (src/lib/email/quote.ts). It rides on `quotes.locale`, the language
+  // the operator drafted the offer in — the same column api_convert_quote copies into
+  // `bookings.locale`, which already picks the language of the confirmation email and the VAT invoice
+  // above. This email is the first document of that chain, so it cannot be the one that ignores it.
+  // The ref, the dates, the money and the link are data and are never translated.
+  'Your {operator} quote {ref}': 'Votre devis {operator} {ref}',
+  'Your quote {ref}': 'Votre devis {ref}',
+  'Hi {name}, here is the quote you asked us for.':
+    'Bonjour {name}, voici le devis que vous nous avez demandé.',
+  'Here is the quote you asked us for ({ref}).':
+    'Voici le devis que vous nous avez demandé ({ref}).',
+  'Valid until {date}. Nothing is reserved until the quote is paid.':
+    'Valable jusqu’au {date}. Rien n’est réservé tant que le devis n’est pas payé.',
+  'View & pay your quote': 'Voir et payer votre devis',
+  'View and pay your quote:': 'Voir et payer votre devis :',
+  'Or open this link:': 'Ou ouvrez ce lien :',
+  'Something to change? Reply to this email, or contact us at {emailLink} or {phone}.':
+    'Une modification ? Répondez à cet e-mail ou contactez-nous à {emailLink} ou au {phone}.',
 };

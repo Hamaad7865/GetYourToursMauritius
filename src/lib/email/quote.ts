@@ -1,4 +1,6 @@
 import { escapeHtml } from './booking-confirmation';
+import { DEFAULT_LOCALE, isLocale, type Locale } from '@/lib/i18n/config';
+import { translate } from '@/lib/i18n/translate';
 import { quoteOpenPath, quoteRefLooksValid, quoteTokenLooksValid } from '@/lib/quotes/link-cookie';
 import { lineSubtotalMinor, quoteTotalMinor } from '@/lib/quotes/totals';
 import { SITE } from '@/lib/seo/site';
@@ -22,10 +24,14 @@ import { ValidationError } from '@/lib/services/errors';
  * template reads a note of any kind other than `introNote`, which is the one the operator wrote FOR
  * the guest. Nothing here filters internal notes out — they never arrive.
  *
- * NOT localised, unlike booking-confirmation.ts and review-request.ts: `quotes.locale` exists and is
- * carried into the booking at conversion, so a French quote still gets a French confirmation and
- * invoice, but the wording below is English only. Translating it is a follow-up, not a formatting
- * detail to improvise here — every string would need its French twin in src/lib/i18n/messages.ts.
+ * LOCALISED from `quotes.locale`, the same way booking-confirmation.ts is from `bookings.locale`:
+ * `translate(locale, …)` against the English source string, never a React `t()` (this renders from a
+ * route handler with no request locale of its own, and the language that matters is the QUOTE's, not
+ * the operator's). api_convert_quote copies the column into `bookings.locale`, so this email, the
+ * confirmation and the VAT invoice are all one language — the one the operator drafted the offer in.
+ *
+ * The ref, the money, the validity date and the link are NEVER translated or reformatted: they are
+ * data, and the invoice module makes the same distinction.
  */
 
 /** Brand accent (teal) — the same palette booking-confirmation.ts uses. */
@@ -53,6 +59,18 @@ export interface QuoteEmailInput {
   validUntil: string;
   /** The operator's covering note TO the guest. Optional; the internal one is a different column. */
   introNote?: string | null;
+  /**
+   * The stored `quotes.locale` — the language the offer was drafted in, and the one api_convert_quote
+   * copies into `bookings.locale` for the confirmation email and the VAT invoice.
+   *
+   * REQUIRED, though it is typed loosely enough to take the column straight off a PostgREST row
+   * (`content_locale` arrives as a plain string, and a row this renderer did not select it on arrives
+   * as null/undefined). Required because the harm it prevents is silent: an optional field that a
+   * caller forgets emails a French guest an English offer and then, one payment later, French
+   * paperwork about it — and nothing anywhere fails. Anything that is not a known {@link Locale}
+   * falls back to English rather than rendering raw keys.
+   */
+  locale: Locale | string | null | undefined;
   items: QuoteEmailLine[];
   /**
    * The RAW link token — 32 bytes of lowercase hex from {@link import('@/lib/quotes/token').mintQuoteToken}
@@ -134,6 +152,10 @@ function quantityNote(currency: string, line: QuoteEmailLine): string {
  * check and is dead by the time the email goes out.
  */
 export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
+  // Normalised ONCE, exactly as buildInvoiceModel does it: everything below calls `t()` without
+  // re-guarding, and an enum value whose messages do not exist yet renders English instead of keys.
+  const locale: Locale = isLocale(input.locale) ? input.locale : DEFAULT_LOCALE;
+  const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
   const operator = SITE.operator;
   const ref = input.ref;
   const currency = input.currency;
@@ -165,7 +187,7 @@ export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
   const supportEmail = escapeHtml(SITE.email);
   const supportPhone = escapeHtml(SITE.phone);
 
-  const subject = `Your ${operator} quote ${ref}`;
+  const subject = t('Your {operator} quote {ref}', { operator, ref });
 
   // ── HTML ──────────────────────────────────────────────────────────────────
   // Each line's figure comes from `lineSubtotalMinor`, not from a second `quantity × unit` written
@@ -221,34 +243,46 @@ export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
           <!-- body -->
           <tr>
             <td style="padding:28px;">
-              <h1 style="margin:0 0 8px 0;color:${INK};font-size:22px;">Your quote ${escapeHtml(ref)}</h1>
+              <h1 style="margin:0 0 8px 0;color:${INK};font-size:22px;">${escapeHtml(t('Your quote {ref}', { ref }))}</h1>
               <p style="margin:0 0 20px 0;color:${MUTED};font-size:14px;line-height:1.5;">
-                Hi ${escapeHtml(input.customerName)}, here is the quote you asked us for.
+                ${escapeHtml(t('Hi {name}, here is the quote you asked us for.', { name: input.customerName }))}
               </p>
 ${introHtml}
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 4px 0;">
                 ${lineRows}
                 <tr>
-                  <td style="padding:12px 0 0 0;color:${INK};font-size:15px;font-weight:bold;">Total</td>
+                  <td style="padding:12px 0 0 0;color:${INK};font-size:15px;font-weight:bold;">${escapeHtml(t('Total'))}</td>
                   <td style="padding:12px 0 0 0;color:${INK};font-size:15px;font-weight:bold;text-align:right;white-space:nowrap;">${escapeHtml(totalStr)}</td>
                 </tr>
               </table>
-              <p style="margin:4px 0 20px 0;color:${MUTED};font-size:12px;">Valid until ${escapeHtml(input.validUntil)}. Nothing is reserved until the quote is paid.</p>
+              <p style="margin:4px 0 20px 0;color:${MUTED};font-size:12px;">${escapeHtml(
+                t('Valid until {date}. Nothing is reserved until the quote is paid.', {
+                  date: input.validUntil,
+                }),
+              )}</p>
 
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
                 <tr>
                   <td style="border-radius:6px;background:${ACCENT};">
-                    <a href="${escapeHtml(payUrl)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:6px;">View &amp; pay your quote</a>
+                    <a href="${escapeHtml(payUrl)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:6px;">${escapeHtml(t('View & pay your quote'))}</a>
                   </td>
                 </tr>
               </table>
               <p style="margin:0 0 20px 0;color:${MUTED};font-size:12.5px;line-height:1.5;word-break:break-all;">
-                Or open this link: ${escapeHtml(payUrl)}
+                ${escapeHtml(t('Or open this link:'))} ${escapeHtml(payUrl)}
               </p>
 
               <p style="margin:0;color:${MUTED};font-size:13px;line-height:1.6;">
-                Something to change? Reply to this email, or contact us at
-                <a href="mailto:${supportEmail}" style="color:${ACCENT};">${supportEmail}</a> or ${supportPhone}.
+                ${t(
+                  'Something to change? Reply to this email, or contact us at {emailLink} or {phone}.',
+                  {
+                    // The one interpolation that is deliberately NOT escaped, exactly as
+                    // booking-confirmation.ts does it: the value is markup this module composed, and
+                    // both halves of it are escaped above.
+                    emailLink: `<a href="mailto:${supportEmail}" style="color:${ACCENT};">${supportEmail}</a>`,
+                    phone: supportPhone,
+                  },
+                )}
               </p>
             </td>
           </tr>
@@ -265,8 +299,8 @@ ${introHtml}
 </div>`;
 
   // ── Plain-text fallback (same content, same order — the two must not drift) ──
-  const textLines = [`Hi ${input.customerName},`, ''];
-  textLines.push(`Here is the quote you asked us for (${ref}).`);
+  const textLines = [t('Hi {name},', { name: input.customerName }), ''];
+  textLines.push(t('Here is the quote you asked us for ({ref}).', { ref }));
   if (introNote) {
     textLines.push('', introNote);
   }
@@ -278,14 +312,21 @@ ${introHtml}
     );
   }
   textLines.push('');
-  textLines.push(`Total: ${totalStr}`);
-  textLines.push(`Valid until ${input.validUntil}. Nothing is reserved until the quote is paid.`);
+  textLines.push(`${t('Total')}: ${totalStr}`);
+  textLines.push(
+    t('Valid until {date}. Nothing is reserved until the quote is paid.', {
+      date: input.validUntil,
+    }),
+  );
   textLines.push('');
-  textLines.push('View and pay your quote:');
+  textLines.push(t('View and pay your quote:'));
   textLines.push(payUrl);
   textLines.push('');
   textLines.push(
-    `Something to change? Reply to this email, or contact us at ${SITE.email} or ${SITE.phone}.`,
+    t('Something to change? Reply to this email, or contact us at {emailLink} or {phone}.', {
+      emailLink: SITE.email,
+      phone: SITE.phone,
+    }),
   );
   textLines.push('');
   textLines.push(operator);

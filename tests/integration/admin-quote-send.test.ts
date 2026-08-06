@@ -179,6 +179,7 @@ describe('POST /api/v1/admin/quotes/send', () => {
       totalMinor?: number;
       internalNotes?: string | null;
       converted?: boolean;
+      locale?: 'en' | 'fr';
     } = {},
   ): Promise<SeededQuote> {
     seq += 1;
@@ -200,9 +201,9 @@ describe('POST /api/v1/admin/quotes/send', () => {
 
     const { rows } = await db.pg.query<{ id: string }>(
       `insert into quotes (ref, customer_name, customer_email, customer_phone, status, valid_until,
-                           total_minor, intro_note, internal_notes)
+                           total_minor, intro_note, internal_notes, locale)
        values ($1, 'Marie Dupont', $2, '+230 5555 1234', $3::quote_status, $4::date, $5,
-               'As discussed on the phone.', $6)
+               'As discussed on the phone.', $6, $7::content_locale)
        returning id`,
       [
         ref,
@@ -211,6 +212,7 @@ describe('POST /api/v1/admin/quotes/send', () => {
         validUntil,
         total,
         input.internalNotes ?? 'Margin is thin — do not discount further.',
+        input.locale ?? 'en',
       ],
     );
     const id = rows[0]!.id;
@@ -418,6 +420,26 @@ describe('POST /api/v1/admin/quotes/send', () => {
     expect(`${email.subject}${email.text}${email.html}`).not.toContain('Margin is thin');
     // The note the operator wrote FOR the guest is a different column, and it does go out.
     expect(email.text).toContain('As discussed on the phone.');
+  });
+
+  it('emails a French quote in French, and leaves an English one in English', async () => {
+    // `quotes.locale` is the language the operator drafted the offer in, and api_convert_quote copies
+    // it into `bookings.locale` — where it already picks the language of the confirmation email and
+    // the VAT invoice. The column has to be SELECTED here and handed to the renderer, or a French
+    // guest reads an English offer and then, one payment later, receives French paperwork about it.
+    const fr = await seedQuote({ locale: 'fr' });
+    expect((await send(fr.id)).status).toBe(200);
+    const french = hoisted.sent[0]!;
+    expect(french.subject, 'the send route never read quotes.locale').toContain('Votre devis');
+    expect(french.text).toContain('Voici le devis que vous nous avez demandé');
+    expect(french.html).toContain('Voir et payer votre devis');
+
+    hoisted.sent.length = 0;
+    const en = await seedQuote({ locale: 'en' });
+    expect((await send(en.id)).status).toBe(200);
+    const english = hoisted.sent[0]!;
+    expect(english.subject).not.toContain('devis');
+    expect(english.text).toContain('Here is the quote you asked us for');
   });
 
   // ── What must not be sent ─────────────────────────────────────────────────
