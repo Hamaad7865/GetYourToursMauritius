@@ -780,3 +780,36 @@ export async function sendQuote(id: string): Promise<SendQuoteResult> {
   }
   return { url: body.data.url };
 }
+
+/**
+ * Mint the BALANCE payment link for a converted, deposit-confirmed quote, through the staff-
+ * authenticated route. The deposit confirms the booking and reserves the seat; the balance is chased
+ * later, and this hands the operator the public payment URL to copy to the guest.
+ *
+ * Keyed on the QUOTE ref (the path segment), not the booking: the route resolves the quote to its
+ * booking and reads the amount still owed (`balance_due_minor`) server-side. It does NOT rotate
+ * `quotes.token_hash`, so the guest's original link keeps working; the URL it returns is the balance
+ * checkout's own payment URL, not a new quote link. The thin client for that route, mirroring
+ * {@link sendQuote}: bearer from the session, `{ ok, data }` envelope unwrapped.
+ */
+export async function sendBalanceLink(ref: string): Promise<SendQuoteResult> {
+  const staff = await session();
+  const res = await fetch(`/api/v1/admin/quotes/${encodeURIComponent(ref)}/balance`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(staff ? { authorization: `Bearer ${staff.accessToken}` } : {}),
+    },
+    body: JSON.stringify({}),
+  });
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: Partial<SendQuoteResult>;
+    error?: { message?: string };
+  } | null;
+  // A 200 with no url is a failure too: reporting it would hand the operator `undefined` to copy.
+  if (!res.ok || !body?.ok || !body.data?.url) {
+    throw new Error(body?.error?.message ?? 'Could not create the balance link.');
+  }
+  return { url: body.data.url };
+}

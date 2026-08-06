@@ -822,6 +822,42 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/admin/quotes/{ref}/balance': {
+    post: {
+      operationId: 'sendQuoteBalanceLink',
+      summary: 'Mint the balance payment link for a deposit-confirmed quote (staff-only)',
+      description:
+        'A quote guest pays a DEPOSIT that confirms the booking and reserves the seat; the BALANCE ' +
+        'is chased later, by hand, and this mints the second checkout for it and returns the public ' +
+        'payment URL for the operator to copy to the guest. STAFF ONLY, and the check is ' +
+        'profiles.role — the JWT role claim is the Postgres role selector, never the business role; ' +
+        '"seo" is excluded, as on the send route. It does NOT rotate quotes.token_hash, so the ' +
+        'guest’s original quote link keeps working. The amount is the booking’s own ' +
+        'balance_due_minor, read server-side; the checkout is minted through the quote entry point ' +
+        '(api_create_quote_payment), which shares api_create_payment’s single-flight lease so a ' +
+        'balance can never fork into two payable sessions. Refused when the quote has no booking yet, ' +
+        'the booking is not confirmed, or nothing is owed.',
+      tags: ['Quotes'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      requestBody: jsonBody(z.object({})),
+      responses: {
+        '200': okJson(
+          z.object({ url: z.string().describe('The balance checkout’s public payment URL') }),
+          'The balance checkout was minted',
+        ),
+        '400': errorResponse('Invalid request'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Staff only'),
+        '404': errorResponse('No such quote'),
+        '409': errorResponse(
+          'No booking yet, the booking is not confirmed, nothing is owed, or a link is already live',
+        ),
+        '429': errorResponse('Too many requests'),
+        '500': errorResponse('Site URL is not configured'),
+      },
+    },
+  },
   '/client-errors': {
     post: {
       operationId: 'reportClientError',
