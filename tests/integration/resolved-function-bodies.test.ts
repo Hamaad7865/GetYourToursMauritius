@@ -165,11 +165,14 @@ const CONTRACTS: ResolvedContract[] = [
   // every downstream "is this fully settled?" read off the column would be wrong. The comment paragraph
   // above the statement names `balance_due_minor` too, so a bare-substring assertion would false-green
   // on exactly that dropped-code / kept-comment shape. Pin the STATEMENT: the assignment to
-  // balance_due_minor via greatest(0, …), summing paid_minor over the purpose-scoped rows.
+  // balance_due_minor via greatest(0, …), summing pay.paid_minor over the booking's payment rows
+  // (from payments pay where pay.booking_id = b.id). Deliberately NOT scoped to a purpose set: an
+  // applied pickup_addon grows total_minor, so its capture must count on the summed side to net out —
+  // the ('booking','balance') scope this shipped with reported a paid pickup fee as still owed.
   {
     fn: 'append_payment_event',
-    must: 'recomputes balance_due_minor as a purpose-scoped sum of paid_minor',
-    code: /\bbalance_due_minor\s*=\s*greatest\s*\(\s*0\s*,[\s\S]*?\bsum\s*\(\s*pay\.paid_minor\s*\)[\s\S]*?\bpurpose\s+in\s*\(\s*'booking'\s*,\s*'balance'\s*\)/,
+    must: 'recomputes balance_due_minor as a sum of paid_minor over the booking’s payment rows',
+    code: /\bbalance_due_minor\s*=\s*greatest\s*\(\s*0\s*,[\s\S]*?\bsum\s*\(\s*pay\.paid_minor\s*\)[\s\S]*?\bfrom\s+payments\s+pay\b[\s\S]*?\bpay\.booking_id\s*=\s*b\.id/,
     alsoSaidInAComment: 'balance_due_minor',
     why:
       'a re-definition from the pre-deposit body drops the balance_due_minor projection, so a paid ' +

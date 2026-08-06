@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createTestDb, type TestDb } from '../db/pglite';
+import { apiBook } from '../db/book';
 
 /**
  * append_payment_event maintains balance_due_minor (Task 3 of the quote-deposit plan).
@@ -155,5 +156,155 @@ describe('append_payment_event maintains balance_due_minor', () => {
     expect(after.balance_due_minor).toBe(90000); // still owed — a failed row settles nothing
     expect(after.status).toBe('confirmed'); // roll-up protection: the paid deposit still holds it
     expect(after.payment_state).toBe('paid'); // 'paid' outranks 'failed' across the two rows
+  });
+});
+
+/**
+ * balance_due_minor must stay consistent with total_minor across ALL of a booking's payment rows —
+ * not just the deposit/balance pair. The late-pickup add-on is the case that proves it: settling a
+ * 'pickup_addon' row fires apply_pickup_request (an AFTER-UPDATE-of-status trigger on payments) from
+ * INSIDE append_payment_event's own `update payments set status=…`, and that trigger GROWS
+ * total_minor by the fee BEFORE the balance_due_minor statement runs in the same call. If the summed
+ * side excluded the add-on row, a fully-paid customer who then pays a pickup supplement would be left
+ * owing the fee (total_minor grew, the sum did not) — a phantom balance on money that is fully paid.
+ * So the projection sums paid_minor over EVERY row: the add-on adds +fee to both sides and nets to 0.
+ */
+describe('append_payment_event keeps balance_due_minor consistent with a grown total_minor', () => {
+  let db: TestDb;
+  let occurrenceId: string;
+  let operatorId: string;
+  let optionId: string;
+
+  const CUSTOMER = 'c0ffee00-0000-4000-8000-0000000000a1';
+  /** North: the activity boards here. */
+  const ACTIVITY_LAT = -20.0;
+  const ACTIVITY_LNG = 57.6;
+  /** South: North↔South is seeded 'far' → sedan €50 for a party of 1–4. */
+  const SOUTH_LAT = -20.5;
+  const SOUTH_LNG = 57.5;
+  const ADULT_MINOR = 7000;
+  const FAR_SEDAN_MINOR = 5000;
+
+  async function call<T = unknown>(fn: string, params: unknown): Promise<T> {
+    const { rows } = await db.pg.query<{ data: T }>(`select ${fn}($1::jsonb) as data`, [
+      JSON.stringify(params),
+    ]);
+    return rows[0]!.data;
+  }
+
+  async function balanceDue(bookingId: string): Promise<number> {
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ balance_due_minor: number }>(
+      `select balance_due_minor from bookings where id = $1`,
+      [bookingId],
+    );
+    return Number(rows[0]!.balance_due_minor);
+  }
+
+  beforeAll(async () => {
+    db = await createTestDb();
+    await db.asOwner();
+    operatorId = (
+      await db.pg.query<{ id: string }>(
+        `insert into operators (name, slug) values ('Balance Pickup Tours', 'balance-pickup-tours') returning id`,
+      )
+    ).rows[0]!.id;
+    await db.pg.query(`insert into auth.users (id) values ($1)`, [CUSTOMER]);
+    await db.pg.query(`insert into profiles (id, role) values ($1, 'customer')`, [CUSTOMER]);
+
+    const activityId = (
+      await db.pg.query<{ id: string }>(
+        `insert into activities (operator_id, slug, type, title, category, status, pickup_available, lat, lng)
+         values ($1, 'balance-pickup-tour', 'activity', 'Balance Pickup Tour', 'Sightseeing tours', 'published', true, $2, $3)
+         returning id`,
+        [operatorId, ACTIVITY_LAT, ACTIVITY_LNG],
+      )
+    ).rows[0]!.id;
+    optionId = (
+      await db.pg.query<{ id: string }>(
+        `insert into activity_options (activity_id, name) values ($1, 'Shared') returning id`,
+        [activityId],
+      )
+    ).rows[0]!.id;
+    await db.pg.query(
+      `insert into activity_option_prices (activity_option_id, label, amount_minor) values ($1, 'Adult', $2)`,
+      [optionId, ADULT_MINOR],
+    );
+    occurrenceId = (
+      await db.pg.query<{ id: string }>(
+        `insert into session_occurrences (activity_option_id, operator_id, starts_at, ends_at, capacity)
+         values ($1, $2, now() + interval '10 days', now() + interval '10 days 4 hours', 40) returning id`,
+        [optionId, operatorId],
+      )
+    ).rows[0]!.id;
+  });
+
+  afterAll(async () => {
+    await db.close();
+  });
+
+  it('a fully-paid customer booking that then pays a late-pickup add-on owes nothing', async () => {
+    // A confirmed + paid ORDINARY customer booking (no deposit) whose pickup is still to arrange.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const booked = await apiBook<{ ref: string }>(db, {
+      occurrenceId,
+      party: { Adult: 1 },
+      pickupPending: true,
+      customerName: 'Add-on Balance Tester',
+      customerEmail: 'addon-balance@example.com',
+      source: 'web',
+      idempotencyKey: 'addon-balance-idem-0001',
+    });
+
+    await db.asOwner();
+    const { rows: b } = await db.pg.query<{ id: string; total_minor: number }>(
+      `select id, total_minor from bookings where ref = $1`,
+      [booked.ref],
+    );
+    const bookingId = b[0]!.id;
+    const totalBefore = Number(b[0]!.total_minor);
+    expect(totalBefore).toBe(ADULT_MINOR);
+
+    // Pay the booking in full through the ledger, exactly as the webhook does.
+    const { rows: pay } = await db.pg.query<{ id: string }>(
+      `insert into payments (booking_id, idempotency_key, amount_minor, status, purpose)
+       values ($1, 'addon-balance-pay', $2, 'pending', 'booking') returning id`,
+      [bookingId, totalBefore],
+    );
+    await db.pg.query(
+      `select append_payment_event($1, 'paid', 'addon-balance-evt', $2, now(), '{}'::jsonb)`,
+      [pay[0]!.id, totalBefore],
+    );
+    // Baseline: a fully-paid customer booking owes nothing (default 0 recomputes to 0).
+    expect(await balanceDue(bookingId)).toBe(0);
+
+    // The guest adds a late pickup and pays the region supplement as a SECOND payments row.
+    await db.as({ sub: CUSTOMER, role: 'authenticated' });
+    const req = await call<{ applied: boolean; feeMinor: number; paymentId: string }>(
+      'api_request_pickup',
+      {
+        bookingRef: booked.ref,
+        pickupLocation: 'Le Morne Beach Villa',
+        pickupLat: SOUTH_LAT,
+        pickupLng: SOUTH_LNG,
+      },
+    );
+    expect(req.applied).toBe(false);
+    expect(req.feeMinor).toBe(FAR_SEDAN_MINOR);
+
+    // Settling the add-on GROWS total_minor by the fee (apply_pickup_request) from inside
+    // append_payment_event, before it recomputes balance_due_minor. The fee is fully paid.
+    await db.asOwner();
+    await db.pg.query(
+      `select append_payment_event($1, 'paid', 'addon-balance-addon-evt', $2, now(), '{}'::jsonb)`,
+      [req.paymentId, FAR_SEDAN_MINOR],
+    );
+
+    const { rows: after } = await db.pg.query<{ total_minor: number; balance_due_minor: number }>(
+      `select total_minor, balance_due_minor from bookings where id = $1`,
+      [bookingId],
+    );
+    expect(Number(after[0]!.total_minor)).toBe(totalBefore + FAR_SEDAN_MINOR); // total grew with the fee
+    expect(Number(after[0]!.balance_due_minor)).toBe(0); // …and the fully-paid guest owes nothing
   });
 });

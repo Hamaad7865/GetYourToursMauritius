@@ -31826,13 +31826,16 @@ comment on function create_payment(jsonb, boolean) is
 -- owed", recomputed after every event as a PROJECTION over the payment rows, never latched from the
 -- single row this event touched (the sticky-failed landmine, [[gytm-sticky-failed-payment-state]]):
 --
---   balance_due_minor = greatest(0, total_minor - sum(paid_minor) over the rows that pay the order
---                                DOWN — purpose in ('booking','balance'))
+--   balance_due_minor = greatest(0, total_minor - sum(paid_minor) over EVERY payment row of the booking)
 --
--- Purpose-scoped on purpose: a 'pickup_addon' capture is its own separately-priced row (it GROWS
--- total_minor by its fee, apply_pickup_request in 20260910000000), so counting it toward the balance
--- would understate what the guest still owes on the quote. balance_due_minor stays OUT of the
--- payment_state enum, so the booking-level roll-up (and everything that reads it, incl. the
+-- Summed over every row, of every purpose, on purpose. total_minor is the running order total: the FULL
+-- quoted price, which GROWS by an applied late-pickup fee (apply_pickup_request in 20260910000000, an
+-- AFTER-UPDATE-of-status trigger on payments that fires from INSIDE the `update payments` a few lines up
+-- in this very function). The minuend already carries every purpose's contribution, so the sum must too
+-- — a 'pickup_addon' capture adds its fee to BOTH sides and nets to zero. Scoping the sum to
+-- ('booking','balance') while total_minor moved with the add-on left a fully-paid guest owing the exact
+-- pickup fee they had just paid (the original bug this statement shipped with). balance_due_minor stays
+-- OUT of the payment_state enum, so the booking-level roll-up (and everything that reads it, incl. the
 -- sticky-failed protection) is byte-for-byte what it was.
 --
 -- ONE MORE TIME, THE WHOLE BODY, VERBATIM. This is the most dangerous function in the repo: re-
@@ -31970,13 +31973,15 @@ begin
 
   -- AMOUNT STILL OWED, maintained here as a projection over the payment ROWS — never latched from the
   -- single row this event touched (that is precisely the sticky-failed class of bug: a booking-level
-  -- figure derived from one child row). total_minor stays the FULL quoted price, so "owed" is the full
-  -- price minus everything that has settled AGAINST THE ORDER. Purpose-scoped to the two rows that pay
-  -- the order down — the deposit ('booking') row and the balance ('balance') row — so a 'pickup_addon'
-  -- capture, which is its own separately-priced row that GROWS total_minor by its fee, is never mistaken
-  -- for money paying off the balance. greatest(0, …) so an overpayment or a refund event can never drive
-  -- balance_due_minor negative. A legacy/customer booking with no balance owed recomputes to 0 unchanged
-  -- (its single 'booking' row covers total_minor), so this is a pure widening for the quote path.
+  -- figure derived from one child row). total_minor is the running order total — the FULL quoted price,
+  -- GROWN by an applied late-pickup fee (apply_pickup_request, the AFTER-UPDATE-of-status trigger that
+  -- fires from inside the `update payments` above) — so "owed" is that total minus everything settled,
+  -- summed over EVERY payment row. Every purpose: the deposit ('booking'), the balance ('balance') AND a
+  -- 'pickup_addon', because the add-on grew total_minor too, so it must count on this side to net back
+  -- out; scoping the sum to ('booking','balance') reported the paid pickup fee as still owed. greatest(0,
+  -- …) so an overpayment, a refund event, or a pickup captured but NOT applied (its fee never reached
+  -- total_minor) can never drive balance_due_minor negative. A legacy/customer booking whose single
+  -- 'booking' row covers total_minor recomputes to 0 unchanged, so this is a pure widening.
   update bookings b
      set balance_due_minor = greatest(
            0,
@@ -31984,7 +31989,6 @@ begin
              select sum(pay.paid_minor)
                from payments pay
               where pay.booking_id = b.id
-                and pay.purpose in ('booking', 'balance')
            ), 0)
          ),
          updated_at = now()
