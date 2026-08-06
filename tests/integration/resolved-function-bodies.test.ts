@@ -158,6 +158,23 @@ const CONTRACTS: ResolvedContract[] = [
       'without it the booking carries deposit_minor/balance_due_minor at their default 0, so the ' +
       'deposit charge collapses to the full total and no balance is ever owed',
   },
+  // append_payment_event maintains balance_due_minor (20260912000000, Task 3). This is the repo's most
+  // dangerous function and has ALREADY been re-declared from a stale body twice; a re-definition from
+  // the pre-deposit copy would silently drop this statement, leaving balance_due_minor frozen at its
+  // conversion value forever — a quote guest's balance would still read as owed after they paid it, and
+  // every downstream "is this fully settled?" read off the column would be wrong. The comment paragraph
+  // above the statement names `balance_due_minor` too, so a bare-substring assertion would false-green
+  // on exactly that dropped-code / kept-comment shape. Pin the STATEMENT: the assignment to
+  // balance_due_minor via greatest(0, …), summing paid_minor over the purpose-scoped rows.
+  {
+    fn: 'append_payment_event',
+    must: 'recomputes balance_due_minor as a purpose-scoped sum of paid_minor',
+    code: /\bbalance_due_minor\s*=\s*greatest\s*\(\s*0\s*,[\s\S]*?\bsum\s*\(\s*pay\.paid_minor\s*\)[\s\S]*?\bpurpose\s+in\s*\(\s*'booking'\s*,\s*'balance'\s*\)/,
+    alsoSaidInAComment: 'balance_due_minor',
+    why:
+      'a re-definition from the pre-deposit body drops the balance_due_minor projection, so a paid ' +
+      'balance never clears the amount owed and the column lies to every reader that trusts it',
+  },
   {
     fn: 'api_claim_quote_bookings',
     must: 'only ever fills a NULL user_id',

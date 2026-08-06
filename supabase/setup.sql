@@ -31816,6 +31816,257 @@ comment on function create_payment(jsonb, boolean) is
   'two entry points cannot drift into two payable sessions for one booking. Internal: service_role '
   'only — the boolean argument is the authorization decision itself.';
 
+
+-- ---------------------------------------------------------------------------------------------------
+-- Task 3 — append_payment_event maintains balance_due_minor.
+--
+-- The deposit is the first `booking` payments row SIZED to it (Task 2), so the confirm-on-paid gate is
+-- UNCHANGED: a deposit-sized row reaching its own amount_minor still flips draft/held/payment_pending
+-- to confirmed and consumes the hold. What this migration adds is one statement — "how much is still
+-- owed", recomputed after every event as a PROJECTION over the payment rows, never latched from the
+-- single row this event touched (the sticky-failed landmine, [[gytm-sticky-failed-payment-state]]):
+--
+--   balance_due_minor = greatest(0, total_minor - sum(paid_minor) over the rows that pay the order
+--                                DOWN — purpose in ('booking','balance'))
+--
+-- Purpose-scoped on purpose: a 'pickup_addon' capture is its own separately-priced row (it GROWS
+-- total_minor by its fee, apply_pickup_request in 20260910000000), so counting it toward the balance
+-- would understate what the guest still owes on the quote. balance_due_minor stays OUT of the
+-- payment_state enum, so the booking-level roll-up (and everything that reads it, incl. the
+-- sticky-failed protection) is byte-for-byte what it was.
+--
+-- ONE MORE TIME, THE WHOLE BODY, VERBATIM. This is the most dangerous function in the repo: re-
+-- declaring it from a stale copy silently reverts an earlier fix ([[gytm-migration-revert-drift]]).
+-- The body below is the WINNING one — 20260910000000 (the LATER of the two prior definitions, so the
+-- one a fully-migrated database actually resolves to), which is itself 20260902000000 plus (a) the
+-- owner_overpayment alert and (b) the refunded-branch guard `coalesce(v_booking_state, v_state) =
+-- 'refunded'` that stops a single refunded child row (e.g. a refunded pickup supplement) from stamping
+-- a still-paid booking 'refunded'. BOTH are carried forward here unchanged; the oversold/called-off/
+-- refund branches are re-applied verbatim. The ONLY change is the balance_due_minor statement, added
+-- after the payment_state roll-up. resolved-function-bodies.test.ts pins that statement against
+-- pg_proc so a future re-definition cannot drop it and keep the comment.
+-- ---------------------------------------------------------------------------------------------------
+
+create or replace function append_payment_event(
+  p_payment_id uuid,
+  p_type text,
+  p_provider_event_id text,
+  p_amount_minor bigint,
+  p_occurred_at timestamptz,
+  p_payload jsonb
+)
+returns payments
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_payment payments;
+  v_paid bigint;
+  v_refunded bigint;
+  v_failed boolean;
+  v_state payment_state;
+  v_booking_state payment_state;
+  v_booking_status booking_status;
+  v_occ_id uuid;
+  v_needed bigint;
+  v_cap bigint;
+  v_used_conf bigint;
+  v_used_hold bigint;
+  v_oversold boolean := false;
+  v_called_off boolean := false;
+begin
+  select * into v_payment from payments where id = p_payment_id for update;
+  if not found then
+    raise exception 'payment_not_found';
+  end if;
+
+  insert into payment_events (payment_id, type, provider_event_id, amount_minor, occurred_at, payload)
+  values (
+    p_payment_id, p_type, p_provider_event_id, coalesce(p_amount_minor, 0),
+    coalesce(p_occurred_at, now()), coalesce(p_payload, '{}'::jsonb)
+  )
+  on conflict (payment_id, provider_event_id, type) do nothing;
+
+  select
+    coalesce(sum(amount_minor) filter (where type in ('paid', 'captured')), 0),
+    coalesce(sum(amount_minor) filter (where type = 'refunded'), 0),
+    bool_or(type = 'failed')
+  into v_paid, v_refunded, v_failed
+  from payment_events
+  where payment_id = p_payment_id;
+
+  if v_paid > 0 and v_refunded >= v_paid then
+    v_state := 'refunded';
+  elsif v_paid > 0 and v_refunded > 0 then
+    v_state := 'partially_refunded';
+  -- amount_minor > 0: a zero-amount payment must never read as fully paid (0 >= 0) -- the 'failed'
+  -- branch below has to win for it.
+  elsif v_payment.amount_minor > 0 and v_paid >= v_payment.amount_minor then
+    v_state := 'paid';
+  elsif v_paid > 0 then
+    v_state := 'pending'; -- underpaid: do not confirm
+  elsif coalesce(v_failed, false) then
+    v_state := 'failed';
+  else
+    v_state := 'pending';
+  end if;
+
+  update payments
+  set status = v_state, paid_minor = v_paid, refunded_minor = v_refunded, updated_at = now()
+  where id = p_payment_id
+  returning * into v_payment;
+
+  -- MORE money than we asked for, on one payments row. Nothing else in this system can see that: the
+  -- reducer's own branches all read `>= amount_minor`, so a second capture on an already-paid row is
+  -- indistinguishable from the first, and the late-pickup apply trigger cannot re-fire on it. It
+  -- should be impossible — but "impossible" is what the double-charge guards keep discovering it is
+  -- not, and the only honest response to money we did not ask for is to tell someone who can return it.
+  if v_payment.amount_minor > 0 and v_paid > v_payment.amount_minor then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    select 'email', 'owner', 'owner_overpayment',
+           jsonb_build_object(
+             'ref', b.ref,
+             'customerName', b.customer_name,
+             'expectedEur', v_payment.amount_minor::float / 100,
+             'paidEur', v_paid::float / 100,
+             'purpose', v_payment.purpose
+           ),
+           b.id,
+           'overpaid:' || v_payment.id::text
+      from bookings b where b.id = v_payment.booking_id
+    on conflict (idempotency_key) do nothing;
+  end if;
+
+  -- BOOKING-level projection, rolled up across every payment row of this booking -- best row wins,
+  -- and 'failed' only when EVERY row failed. Written from the single touched row it was a latch: one
+  -- declined attempt stamped the booking 'failed' forever (nothing else writes this column), which
+  -- silently removed it from api_pending_payment_checkouts and run_booking_maintenance. Ranking
+  -- rather than re-summing the ledger keeps this a pure widening: a booking with one payment row --
+  -- every booking that never hit the fork -- projects exactly what it projected before.
+  -- Ordered paid > partially_refunded > refunded > pending > failed: with two rows after a double
+  -- charge, one refunded and one not, money is still held and 'paid' is the honest answer.
+  select case min(
+           case pay.status
+             when 'paid' then 1
+             when 'partially_refunded' then 2
+             when 'refunded' then 3
+             when 'pending' then 4
+             when 'failed' then 5
+           end
+         )
+         when 1 then 'paid'
+         when 2 then 'partially_refunded'
+         when 3 then 'refunded'
+         when 5 then 'failed'
+         else 'pending'
+         end::payment_state
+    into v_booking_state
+    from payments pay
+   where pay.booking_id = v_payment.booking_id;
+
+  update bookings set payment_state = coalesce(v_booking_state, v_state), updated_at = now()
+  where id = v_payment.booking_id;
+
+  -- AMOUNT STILL OWED, maintained here as a projection over the payment ROWS — never latched from the
+  -- single row this event touched (that is precisely the sticky-failed class of bug: a booking-level
+  -- figure derived from one child row). total_minor stays the FULL quoted price, so "owed" is the full
+  -- price minus everything that has settled AGAINST THE ORDER. Purpose-scoped to the two rows that pay
+  -- the order down — the deposit ('booking') row and the balance ('balance') row — so a 'pickup_addon'
+  -- capture, which is its own separately-priced row that GROWS total_minor by its fee, is never mistaken
+  -- for money paying off the balance. greatest(0, …) so an overpayment or a refund event can never drive
+  -- balance_due_minor negative. A legacy/customer booking with no balance owed recomputes to 0 unchanged
+  -- (its single 'booking' row covers total_minor), so this is a pure widening for the quote path.
+  update bookings b
+     set balance_due_minor = greatest(
+           0,
+           b.total_minor - coalesce((
+             select sum(pay.paid_minor)
+               from payments pay
+              where pay.booking_id = b.id
+                and pay.purpose in ('booking', 'balance')
+           ), 0)
+         ),
+         updated_at = now()
+   where b.id = v_payment.booking_id;
+
+  -- Confirmation stays driven by THIS row reaching 'paid' (v_state), never by the roll-up: a row
+  -- that just captured the full amount is what licenses confirming, and reusing the roll-up here
+  -- would re-run the capacity re-check on every later event of an already-paid booking.
+  if v_state = 'paid' then
+    select status into v_booking_status from bookings where id = v_payment.booking_id;
+
+    if v_booking_status in ('draft', 'held', 'payment_pending') then
+      -- Re-validate capacity per occurrence, excluding this booking's own items/holds.
+      for v_occ_id in
+        select distinct session_occurrence_id from booking_items where booking_id = v_payment.booking_id
+      loop
+        perform 1 from session_occurrences where id = v_occ_id for update;
+        select coalesce(sum(quantity), 0) into v_needed
+        from booking_items where booking_id = v_payment.booking_id and session_occurrence_id = v_occ_id;
+        select capacity into v_cap from session_occurrences where id = v_occ_id;
+        select coalesce(sum(bi.quantity), 0) into v_used_conf
+        from booking_items bi join bookings b on b.id = bi.booking_id
+        where bi.session_occurrence_id = v_occ_id
+          and b.status in ('confirmed', 'completed')
+          and b.id <> v_payment.booking_id;
+        select coalesce(sum(h.quantity), 0) into v_used_hold
+        from booking_holds h
+        where h.session_occurrence_id = v_occ_id
+          and h.status = 'active' and h.expires_at > now()
+          and (h.booking_id is null or h.booking_id <> v_payment.booking_id);
+        if v_needed > v_cap - v_used_conf - v_used_hold then
+          v_oversold := true;
+        end if;
+      end loop;
+
+      -- Was the departure called off while this payment was in flight?
+      --
+      -- Confirming here would tell the guest they are booked onto a trip that is not running. Worse,
+      -- they could never be put right afterwards: api_weather_cancel_occurrence stamps only bookings
+      -- that were ALREADY confirmed+paid when it ran, and it refuses to re-run on an occurrence it
+      -- has already cancelled — so this booking would never receive a `disruption` stamp, and that
+      -- stamp is the ONLY thing that opens the 24h bypass in api_cancel_booking and
+      -- api_reschedule_booking (via booking_awaiting_choice). Charged, told "confirmed", and locked
+      -- out of both the refund and the free reschedule /refunds promises.
+      --
+      -- Route the money back instead — the same answer this function already gives when the seats
+      -- turn out to be gone (oversold) or the booking is no longer live. refund_pending frees the
+      -- capacity immediately and fires enqueue_booking_notification's refund_pending branch, so the
+      -- owner gets a work item and the guest is told.
+      select exists (
+        select 1
+          from booking_items bi
+          join session_occurrences so on so.id = bi.session_occurrence_id
+         where bi.booking_id = v_payment.booking_id
+           and so.status = 'cancelled'
+      ) into v_called_off;
+
+      if v_oversold or v_called_off then
+        update bookings set status = 'refund_pending', updated_at = now() where id = v_payment.booking_id;
+      else
+        update bookings set status = 'confirmed', updated_at = now() where id = v_payment.booking_id;
+        update booking_holds set status = 'consumed'
+        where booking_id = v_payment.booking_id and status = 'active';
+      end if;
+    elsif v_booking_status not in ('confirmed', 'completed') then
+      -- Money captured on an expired/cancelled booking: must be refunded, not confirmed.
+      update bookings set status = 'refund_pending', updated_at = now() where id = v_payment.booking_id;
+    end if;
+  elsif v_state = 'refunded' and coalesce(v_booking_state, v_state) = 'refunded' then
+    update bookings set status = 'refunded', updated_at = now()
+    where id = v_payment.booking_id and status <> 'cancelled';
+    update booking_holds set status = 'released'
+    where booking_id = v_payment.booking_id and status = 'active';
+  end if;
+
+  return v_payment;
+end;
+$$;
+
+revoke execute on function append_payment_event(uuid, text, text, bigint, timestamptz, jsonb) from public, anon, authenticated;
+grant execute on function append_payment_event(uuid, text, text, bigint, timestamptz, jsonb) to service_role;
+
 -- ==================== seed.sql (catalogue) ====================
 -- GENERATED from seed/catalogue.json by `npm run seed:gen`. Do not edit by hand.
 -- Apply on a fresh database via `supabase db reset` (it runs migrations then this file).
