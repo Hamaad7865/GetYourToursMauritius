@@ -825,6 +825,45 @@ booking attachment is the more durable one. Do not widen matching beyond a confi
 
 ---
 
+## Decided 2026-08-06: a free-text line holds no capacity
+
+**Owner's decision: calendar visibility only.** A `custom` quote line records what was sold and when, and
+Part 3 will surface it on the day sheet, but it reserves nothing. There is no occurrence behind it and no
+resource model to consume.
+
+**The consequence, stated so nobody rediscovers it as a bug:** quoting "private catamaran charter, 23 Aug"
+does NOT stop the website selling that same boat on the 23rd. The operator sees the clash on the calendar
+and resolves it by hand. Do not "fix" this by quietly making custom lines take a hold — capacity is
+counted in occurrence units and a free-text line has no occurrence to count against.
+
+A catalogue line is the opposite and always will be: it is refused today
+(`quote_has_catalogue_lines`) precisely BECAUSE the hold path is unbuilt, and the task that builds that
+path must make it take the same hold as an ordinary checkout.
+
+Rentals have no capacity concept at all — `rental_vehicles` has no fleet count — which is Part 2's open
+question 2, not something this part resolves.
+
+---
+
+## Part 4 — AI assistance (PARKED 2026-08-06 by the owner; do not build yet)
+
+Wanted, but deliberately deferred until the quotes module is finished. Recorded here so the shape is not
+re-litigated later. The provider abstraction already exists (`src/lib/ai/`, Gemini via the AI SDK, with a
+tools layer from the road-trip planner), so this is wiring rather than new infrastructure — but ZilAi is
+still blocked on Google billing, which has to be cleared first.
+
+1. **Draft a quote from an enquiry.** Paste or forward the guest's email; get a draft with dates, party
+   size and suggested lines for the operator to correct.
+2. **Suggest catalogue matches** for a vague request, with the right option and price already attached.
+3. **Write and translate the covering note**, including the French version.
+
+**Non-negotiable guardrail: AI drafts lines, it never sets a price.** Prices come from the catalogue or
+from a figure the operator typed. A quote becomes a card charge, and `api_convert_quote` re-derives and
+re-compares the total (`quote_total_mismatch`) before charging — a model-invented amount would be rejected
+there anyway, which is the design working, not a safety net to lean on.
+
+---
+
 ## Self-Review
 
 **Spec coverage:** draft with catalogue + custom lines (Tasks 1, 5, 9) · dates on custom lines (Task 1, `starts_at`/`ends_at`) · send by email with everything requested (Task 6) · link to checkout (Tasks 7, 8) · payment lands in the ledger and fires invoice/confirmation (Task 8 reuses the untouched Peach path) · rentals (Part 2, groundwork in Task 1) · calendar visibility (Part 3, index in Task 1).
