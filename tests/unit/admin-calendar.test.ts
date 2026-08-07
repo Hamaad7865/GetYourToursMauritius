@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  customLineDays,
   mapDayCustomLines,
   mapDaySchedule,
   notifiableCount,
@@ -369,5 +370,80 @@ describe('mapDayCustomLines', () => {
     expect(notifiableCount(dep!)).toBe(1); // the one occurrence party, unaffected by the rental
     expect(line?.kind).toBe('custom');
     expect('notifiable' in line!).toBe(false); // no fan-out flag exists on a custom line
+  });
+});
+
+/* api_admin_calendar_month aggregates session_occurrences + booking_items only, so a day whose ONLY
+ * booking is a converted quote (booking_custom_items, zero booking_items) comes back with pax 0 — and
+ * the month grid gates a cell's clickability on pax/cancelled, so that day was a dead, un-openable
+ * cell and the drawer's custom-line union could never be reached. customLineDays is the month-wide
+ * companion read: the set of Mauritius days that carry at least one VISIBLE custom/rental line, so the
+ * grid can make those days clickable. It reuses mapDayCustomLines, so the same visibility filter
+ * applies — an undated, draft, cancelled or refunded line marks no day. */
+describe('customLineDays', () => {
+  it('marks the Mauritius day a visible custom line falls on', () => {
+    const days = customLineDays([customItem({ starts_at: '2026-08-18T05:00:00Z' })]);
+    expect(days.has('2026-08-18')).toBe(true);
+    expect(days.size).toBe(1);
+  });
+
+  it('marks a rental line’s day too', () => {
+    const days = customLineDays([
+      customItem({
+        kind: 'rental',
+        rental_vehicle_slug: 'nissan-kicks',
+        starts_at: '2026-08-20T06:00:00Z',
+      }),
+    ]);
+    expect(days.has('2026-08-20')).toBe(true);
+  });
+
+  // The +04:00 shift must be applied: 21:00 UTC on the 18th is 01:00 on the 19th in Mauritius, so the
+  // line belongs to the 19th — the same day the drawer (via mauritiusDayBounds) would open it on.
+  it('groups a late-evening line onto the Mauritius day, not the UTC day', () => {
+    const days = customLineDays([customItem({ starts_at: '2026-08-18T21:00:00Z' })]);
+    expect(days.has('2026-08-19')).toBe(true);
+    expect(days.has('2026-08-18')).toBe(false);
+  });
+
+  it('marks no day when there are no custom lines', () => {
+    expect(customLineDays([]).size).toBe(0);
+  });
+
+  // The whole point: a converted quote with only confirmed/completed/held/payment_pending custom lines
+  // must light its day up, or the drawer can never be opened for it.
+  it('treats confirmed, completed, held and payment_pending lines as live', () => {
+    for (const status of ['confirmed', 'completed', 'held', 'payment_pending'] as const) {
+      expect(
+        customLineDays([customItem({ bookings: booking({ status }) })]).has('2026-08-18'),
+      ).toBe(true);
+    }
+  });
+
+  // Visibility filter: a non-live line must NOT make the day clickable, or staff open an empty drawer.
+  it('marks no day for a line whose owning booking is not live', () => {
+    for (const status of [
+      'draft',
+      'expired',
+      'cancelled',
+      'refund_pending',
+      'refunded',
+      'failed',
+    ] as const) {
+      expect(customLineDays([customItem({ bookings: booking({ status }) })]).size).toBe(0);
+    }
+  });
+
+  it('marks no day for an undated line (the date is still to be agreed)', () => {
+    expect(customLineDays([customItem({ starts_at: null })]).size).toBe(0);
+  });
+
+  it('collapses several lines on one day to a single day key', () => {
+    const days = customLineDays([
+      customItem({ id: 'ci1', starts_at: '2026-08-18T05:00:00Z' }),
+      customItem({ id: 'ci2', kind: 'rental', starts_at: '2026-08-18T09:00:00Z' }),
+    ]);
+    expect(days.size).toBe(1);
+    expect(days.has('2026-08-18')).toBe(true);
   });
 });

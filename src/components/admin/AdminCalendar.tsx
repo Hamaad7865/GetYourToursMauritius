@@ -13,6 +13,7 @@ import {
   CALL_OFF_REASONS,
   callOffDeparture,
   loadCalendarMonth,
+  loadCustomLineDays,
   loadDaySchedule,
   loadMoveTargets,
   notifiableCount,
@@ -47,6 +48,17 @@ function bandSummary(booking: DayBooking): string {
 }
 
 /**
+ * What the grid needs to render one day. The month RPC aggregate (`info`) is absent for a day whose
+ * ONLY booking is a converted quote — those are pure `booking_custom_items`, which the RPC never
+ * counts — so `info` is nullable and `hasCustomLines`, read from the separate month-wide custom-line
+ * read, is what keeps such a day clickable.
+ */
+interface DayModel {
+  info: CalendarDay | null;
+  hasCustomLines: boolean;
+}
+
+/**
  * Month grid for the operations calendar.
  *
  * Built on the shared `monthCells()` rather than reusing the customer MonthGrid: that one disables
@@ -55,9 +67,10 @@ function bandSummary(booking: DayBooking): string {
  * TripDatePicker already follows.
  *
  * Availability is materialised for every activity every day, so raw departure counts are noise — a
- * day always has ~45. The grid instead surfaces the days that carry GUESTS: a day with bookings (or a
- * called-off departure) is a solid, clickable cell; an empty day is a quiet, non-interactive number.
- * That way the operator's eye lands straight on the days that need attention.
+ * day always has ~45. The grid instead surfaces the days that carry GUESTS: a day with bookings, a
+ * called-off departure, or a custom/rental line from a converted quote is a solid, clickable cell; an
+ * empty day is a quiet, non-interactive number. That way the operator's eye lands straight on the days
+ * that need attention.
  */
 function AdminMonthGrid({
   month,
@@ -66,7 +79,7 @@ function AdminMonthGrid({
   onPick,
 }: {
   month: Date;
-  byDay: Map<string, CalendarDay>;
+  byDay: Map<string, DayModel>;
   selected: string | null;
   onPick: (key: string) => void;
 }) {
@@ -85,24 +98,28 @@ function AdminMonthGrid({
         {cells.map((cell, i) => {
           if (!cell) return <div key={`pad-${i}`} />;
           const key = nominalDayKey(cell);
-          const info = byDay.get(key);
+          const model = byDay.get(key);
           const isToday = key === todayKey;
           const isSelected = key === selected;
-          const calledOff = (info?.cancelled ?? 0) > 0;
-          const pax = info?.pax ?? 0;
+          const calledOff = (model?.info?.cancelled ?? 0) > 0;
+          const pax = model?.info?.pax ?? 0;
           const booked = pax > 0;
+          // A converted-quote-only day has pax 0 and no called-off departure, but still holds a
+          // dated line the drawer can show — so it must be clickable like a called-off day is.
+          const hasCustomLines = model?.hasCustomLines ?? false;
+          const active = booked || calledOff || hasCustomLines;
           const dateEl = (
             <span
               className={`text-[12.5px] font-bold ${
-                isToday ? 'text-teal' : booked || calledOff ? 'text-ink' : 'text-ink-muted'
+                isToday ? 'text-teal' : active ? 'text-ink' : 'text-ink-muted'
               }`}
             >
               {cell.getDate()}
             </span>
           );
 
-          // Quiet, non-interactive cell for a day with nothing booked and nothing called off.
-          if (!booked && !calledOff) {
+          // Quiet, non-interactive cell only for a day with nothing on it at all.
+          if (!active) {
             return (
               <div
                 key={key}
@@ -121,7 +138,7 @@ function AdminMonthGrid({
               aria-pressed={isSelected}
               aria-label={`${dayLabel(key)} — ${pax} guest${pax === 1 ? '' : 's'} booked${
                 calledOff ? ', has a called-off departure' : ''
-              }`}
+              }${hasCustomLines ? ', has a custom or rental line' : ''}`}
               className={`min-h-[64px] rounded-xl border p-1.5 text-left transition ${
                 isSelected
                   ? 'border-teal bg-teal/10'
@@ -138,6 +155,11 @@ function AdminMonthGrid({
                   </span>
                 )}
                 {calledOff && <span className="block font-bold text-coral">called off</span>}
+                {/* Only surface the custom-line tag when nothing else already lit the cell — a day
+                    that also carries guests or a call-off is clickable on that alone. */}
+                {hasCustomLines && !booked && !calledOff && (
+                  <span className="block font-bold text-ink/80">custom line</span>
+                )}
               </span>
             </button>
           );
@@ -152,7 +174,7 @@ export function AdminCalendar() {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
-  const [byDay, setByDay] = useState<Map<string, CalendarDay>>(new Map());
+  const [byDay, setByDay] = useState<Map<string, DayModel>>(new Map());
   const [monthError, setMonthError] = useState<string | null>(null);
   const [loadingMonth, setLoadingMonth] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
@@ -171,10 +193,23 @@ export function AdminCalendar() {
     let active = true;
     setLoadingMonth(true);
     setMonthError(null);
-    loadCalendarMonth(from, to)
-      .then((rows) => {
+    // Two reads for the one grid: the RPC headcount aggregate, and the days that carry a custom/rental
+    // line the RPC can't see. The custom-line read degrades to "no extra days" on failure rather than
+    // blanking the whole calendar — losing it just brings back the old dead-cell behaviour, whereas a
+    // failed month RPC is a genuine "couldn't load" the operator must know about.
+    Promise.all([
+      loadCalendarMonth(from, to),
+      loadCustomLineDays(from, to).catch(() => new Set<string>()),
+    ])
+      .then(([rows, customDays]) => {
         if (!active) return;
-        setByDay(new Map(rows.map((r) => [r.day, r])));
+        const map = new Map<string, DayModel>();
+        for (const r of rows) map.set(r.day, { info: r, hasCustomLines: customDays.has(r.day) });
+        // A day with ONLY custom lines has no RPC row, so seed it here or it stays un-clickable.
+        for (const day of customDays) {
+          if (!map.has(day)) map.set(day, { info: null, hasCustomLines: true });
+        }
+        setByDay(map);
       })
       .catch((e: unknown) => {
         if (!active) return;

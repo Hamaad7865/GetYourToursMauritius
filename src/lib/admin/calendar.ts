@@ -170,6 +170,21 @@ export function mauritiusDayBounds(day: string): { startUtc: string; endUtc: str
   return { startUtc: start.toISOString(), endUtc: end.toISOString() };
 }
 
+/**
+ * The Mauritius-local calendar day ('YYYY-MM-DD') a UTC instant falls on — the same '+04:00, no DST'
+ * constant `mauritiusDayBounds` applies, read from the other side. The grid keys its cells by this
+ * exact string (`nominalDayKey` of a nominal date), so grouping custom lines by it lands them on the
+ * cell whose drawer would open them. Reading the UTC day directly would shift a late-evening line onto
+ * the wrong cell.
+ */
+export function mauritiusDayKey(iso: string): string {
+  const shifted = new Date(new Date(iso).getTime() + 4 * 60 * 60 * 1000);
+  const y = shifted.getUTCFullYear();
+  const m = String(shifted.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(shifted.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 /** Per-day load for a month, for the grid. Staff-only RPC. */
 export async function loadCalendarMonth(from: string, to: string): Promise<CalendarDay[]> {
   const { data, error } = await getBrowserSupabase().rpc('api_admin_calendar_month', {
@@ -401,6 +416,26 @@ export function mapDayCustomLines(rows: RawDayCustomItem[]): DayCustomLine[] {
   return out;
 }
 
+/**
+ * The set of Mauritius days a month's custom/rental lines fall on. Pure, so the grouping is testable
+ * without a database.
+ *
+ * The month grid gets its per-day headcount from `api_admin_calendar_month`, which aggregates
+ * session_occurrences + booking_items ONLY — it never sees `booking_custom_items`. So a day whose only
+ * booking is a converted quote (custom/rental lines, zero booking_items) comes back with pax 0, and
+ * the grid's `pax > 0 || cancelled > 0` clickability gate leaves it a dead cell the day drawer can
+ * never open. This companion read fills that gap: the grid unions these days into its clickable set.
+ *
+ * It defers entirely to `mapDayCustomLines` for what counts as a line worth showing, so the SAME
+ * visibility filter applies — an undated line, or one whose owning booking is not live (draft,
+ * expired, cancelled, refunded…), marks no day, exactly as it would show no card in the drawer.
+ */
+export function customLineDays(rows: RawDayCustomItem[]): Set<string> {
+  const days = new Set<string>();
+  for (const line of mapDayCustomLines(rows)) days.add(mauritiusDayKey(line.startsAt));
+  return days;
+}
+
 /* The typed browser client does not know `booking_custom_items`: it landed in 20260909000000 and the
  * generated src/lib/supabase/types.ts has not been regenerated (that needs a live database and would
  * sweep in every other pending schema change). Same narrow structural cast as src/lib/admin/quotes.ts,
@@ -459,6 +494,35 @@ export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
   // Read the day in time order — a rental sitting between two departures reads where it belongs.
   entries.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   return entries;
+}
+
+/**
+ * Which days across a month carry at least one visible custom/rental line — the month-wide companion
+ * to `loadCalendarMonth`, so the grid can make a converted-quote-only day clickable (see
+ * `customLineDays` for why the month RPC alone can't). `from`..`to` are the grid's inclusive first and
+ * last day keys; the query spans the same window in UTC (`from`'s day start to the day AFTER `to`), one
+ * cheap read served by the partial `booking_custom_items_starts_idx`, grouped by Mauritius day. Reads
+ * through staff RLS like the rest of admin.
+ */
+export async function loadCustomLineDays(from: string, to: string): Promise<Set<string>> {
+  const { startUtc } = mauritiusDayBounds(from);
+  const { endUtc } = mauritiusDayBounds(to);
+  const supabase = getBrowserSupabase();
+  const { data, error } = await (
+    supabase as unknown as { from(t: 'booking_custom_items'): CustomItemsQuery }
+  )
+    .from('booking_custom_items')
+    .select(
+      `id, kind, description, starts_at, ends_at, rental_vehicle_slug,
+       quantity, unit_amount_minor, subtotal_minor,
+       bookings ( ${BOOKING_FIELDS} )`,
+    )
+    .gte('starts_at', startUtc)
+    .lt('starts_at', endUtc)
+    .order('starts_at', { ascending: true })
+    .returns<RawDayCustomItem[]>();
+  if (error) throw error;
+  return customLineDays(data ?? []);
 }
 
 interface RawTargetRow {
