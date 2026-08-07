@@ -2662,6 +2662,13 @@ export const fr: Record<string, string> = {
   // The payment TERMS. api_convert_quote charges only the deposit at the card form, so these are the
   // figures the guest is actually asked for — the amounts and the percentage are data and stay as
   // rendered, only the sentence around them is translated.
+  // The guest's own booking page, for a quote booking still carrying a balance.
+  'Deposit already paid': 'Acompte déjà réglé',
+  'Balance still to pay': 'Solde restant à régler',
+  'Due by {date}, 24 hours before your first activity.':
+    'À régler avant le {date}, 24 heures avant votre première activité.',
+  'Get in touch to settle it — we will send you a payment link.':
+    'Contactez-nous pour le régler — nous vous enverrons un lien de paiement.',
   // ('Payment' is already translated further up this table — reused, not restated.)
   'Deposit to confirm': 'Acompte à verser',
   'Pay {deposit} now to confirm ({percent} of the total).':
