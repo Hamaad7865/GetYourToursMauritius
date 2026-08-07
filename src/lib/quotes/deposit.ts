@@ -59,3 +59,42 @@ export function depositPercentLabel(bps: number): string {
   if (fraction === 0) return `${whole}%`;
   return `${whole}.${String(fraction).padStart(2, '0').replace(/0$/, '')}%`;
 }
+
+/**
+ * IS THERE A BALANCE THE GUEST ACTUALLY STILL OWES — i.e. has a deposit landed and left a remainder?
+ *
+ * `bookings.balance_due_minor` is NOT the answer on its own, and reading it as one put a false money
+ * figure on two screens:
+ *
+ *  - api_convert_quote INITIALISES it to the whole total (nothing is settled at conversion), so an
+ *    unpaid quote booking carries `balance_due = total` and a positive `deposit_minor`. Gated on
+ *    `> 0`, the guest's own booking page told them "Deposit already paid EUR 0.10 / Balance still to
+ *    pay EUR 1.00" against a EUR 1.00 total, having taken nothing (observed on BMT4FCD5F744FE07).
+ *  - append_payment_event recomputes it as `total - settled` after EVERY event, a `failed` one
+ *    included, so an ORDINARY booking whose card was declined ends up with `balance_due = total`
+ *    too — and the same panel offered to "send a payment link" for a EUR 90.00 booking that never
+ *    existed (BMTC86162DEA4CCD). That one is not a quotes bug at all; it reaches every customer.
+ *
+ * So the test is three facts together, and each one rules out a case above:
+ *
+ *   1. `deposit > 0` — this is a DEPOSIT booking. `deposit_minor` defaults to 0 and only
+ *      api_convert_quote ever sizes it, so an ordinary booking can never reach this panel.
+ *   2. `balanceDue > 0` — something is genuinely outstanding.
+ *   3. `balanceDue < total` — MONEY ARRIVED. This is the one that separates "the deposit settled and
+ *      left a remainder" from "nothing has been paid, so the whole total is still owed". It also
+ *      quietly covers a refunded deposit, which drives the balance back up to the total.
+ *
+ * Unit-agnostic: pass all three in the SAME unit (the guest page holds EUR, the admin drawer EUR,
+ * SQL minor units) — it only ever compares them with each other. Nullish reads as 0, so a DTO from a
+ * database without 20260917000000 simply shows nothing rather than guessing.
+ */
+export function balanceIsOutstanding(input: {
+  deposit: number | null | undefined;
+  balanceDue: number | null | undefined;
+  total: number | null | undefined;
+}): boolean {
+  const deposit = input.deposit ?? 0;
+  const balanceDue = input.balanceDue ?? 0;
+  const total = input.total ?? 0;
+  return deposit > 0 && balanceDue > 0 && balanceDue < total;
+}

@@ -17,6 +17,7 @@ import {
   type PaymentState,
 } from '@/lib/admin/bookings';
 import { avatar } from '@/lib/admin/dashboard';
+import { balanceIsOutstanding } from '@/lib/quotes/deposit';
 import { csvCell } from '@/lib/admin/csv';
 import { IconCalendar, IconUsers, IconX, IconSearch } from '@/components/ui/icons';
 import { childSeatsCost } from '@/lib/services/pricing';
@@ -749,8 +750,16 @@ function BookingDrawer({
               </div>
               {/* A DEPOSIT-CONFIRMED QUOTE BOOKING IS NOT SETTLED. `payment_state` flips to 'paid' the
                   moment the deposit clears, so without this a €1.00 booking with €0.10 taken reads
-                  "Paid" beside its €1.00 total and nothing says the rest is still to collect. */}
-              {booking.balanceDueEur > 0 && (
+                  "Paid" beside its €1.00 total and nothing says the rest is still to collect.
+
+                  Gated on balanceIsOutstanding, NOT on `balanceDueEur > 0`: that column is recomputed
+                  after a FAILED payment too, so the bare test claimed a balance was "still to
+                  collect" on ordinary bookings nobody had ever paid for. */}
+              {balanceIsOutstanding({
+                deposit: booking.depositEur,
+                balanceDue: booking.balanceDueEur,
+                total: booking.totalEur,
+              }) && (
                 <div className="mt-2 flex items-center justify-between rounded-lg bg-gold-light/15 px-3 py-2">
                   <span className="text-[13px] font-bold text-ink">Balance still to collect</span>
                   <span className="text-[15px] font-extrabold text-ink">

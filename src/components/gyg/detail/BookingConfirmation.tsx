@@ -11,6 +11,7 @@ import { IconDownload } from '@/components/ui/icons';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { childSeatsCost } from '@/lib/services/pricing';
 import { isStaffViewing } from '@/lib/booking/staff-view';
+import { balanceIsOutstanding } from '@/lib/quotes/deposit';
 import { whatsappUrl } from '@/lib/seo/site';
 import { transferLegs } from '@/lib/transfers/leg-times';
 import { DisruptionBanner } from './DisruptionBanner';
@@ -477,6 +478,17 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
    * Null when nothing on the booking carries a date — the deadline is then omitted rather than
    * guessed at, because a wrong date on a money screen is worse than no date.
    */
+  /**
+   * Whether there is a balance to tell the guest about at all — a deposit that SETTLED and left a
+   * remainder, never merely "the booking is not fully paid". See balanceIsOutstanding for the two
+   * live bookings the bare `balanceDueEur > 0` misread.
+   */
+  const balanceOutstanding = balanceIsOutstanding({
+    deposit: booking.depositEur,
+    balanceDue: booking.balanceDueEur,
+    total: booking.totalEur,
+  });
+
   const balanceDueBy = (() => {
     if (!booking.firstActivityAt) return null;
     const first = new Date(booking.firstActivityAt);
@@ -625,21 +637,24 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             deposit-confirmed quote booking otherwise reads as fully settled: the guest sees "Booking
             confirmed", a total, and no hint that the rest is due. The deadline is 24h before the
             first dated line, and is omitted entirely when no line carries a date rather than
-            invented. */}
-        {booking.balanceDueEur != null && booking.balanceDueEur > 0 && (
+            invented.
+
+            GATED ON MONEY HAVING ARRIVED, not on `balanceDueEur > 0` — see balanceIsOutstanding.
+            That column starts at the FULL total and is recomputed after a FAILED payment too, so the
+            bare `> 0` told an unpaid guest their deposit was "already paid", and told an ordinary
+            customer whose card was declined that they owed the whole booking. */}
+        {balanceOutstanding && (
           <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4">
-            {booking.depositEur != null && booking.depositEur > 0 && (
-              <div className="flex justify-between text-[13px]">
-                <span className="text-ink-muted">{t('Deposit already paid')}</span>
-                <span className="font-medium text-ink">
-                  <Price eur={booking.depositEur} />
-                </span>
-              </div>
-            )}
+            <div className="flex justify-between text-[13px]">
+              <span className="text-ink-muted">{t('Deposit already paid')}</span>
+              <span className="font-medium text-ink">
+                <Price eur={booking.depositEur ?? 0} />
+              </span>
+            </div>
             <div className="mt-1 flex items-baseline justify-between">
               <span className="text-sm font-bold text-ink">{t('Balance still to pay')}</span>
               <span className="text-lg font-extrabold text-ink">
-                <Price eur={booking.balanceDueEur} />
+                <Price eur={booking.balanceDueEur ?? 0} />
               </span>
             </div>
             {balanceDueBy && (

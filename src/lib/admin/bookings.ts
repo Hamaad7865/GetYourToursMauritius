@@ -62,6 +62,12 @@ export interface BookingRow {
    * the other €0.90 is still to collect.
    */
   balanceDueEur: number;
+  /**
+   * What the guest was asked for UP FRONT, in EUR — `bookings.deposit_minor`. 0 on every ordinary
+   * booking (only api_convert_quote ever sizes it), which is what lets {@link balanceIsOutstanding}
+   * tell a deposit booking's real remainder from a booking that simply has not been paid.
+   */
+  depositEur: number;
   /** Derived headline fields for the list row. */
   activityTitle: string;
   startsAt: string | null;
@@ -220,6 +226,7 @@ interface RawBooking extends RawTransferFields {
   child_seats: number | null;
   transport_minor: number | null;
   balance_due_minor: number | null;
+  deposit_minor: number | null;
   created_at: string;
   booking_items: RawItem[] | null;
   booking_supplements: Array<{
@@ -240,7 +247,7 @@ interface RawBooking extends RawTransferFields {
 const BOOKING_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
   source, currency, total_minor, notes, custom_itinerary, pickup_location, dropoff_location, pickup_pending, child_seats,
-  transport_minor, balance_due_minor, ${TRANSFER_SELECT}, created_at,
+  transport_minor, balance_due_minor, deposit_minor, ${TRANSFER_SELECT}, created_at,
   booking_items (
     price_label, quantity, pax, unit_amount_minor, subtotal_minor,
     session_occurrences ( starts_at ),
@@ -300,6 +307,7 @@ function mapBooking(raw: RawBooking): BookingRow {
     childSeats: raw.child_seats ?? 0,
     transportEur: (raw.transport_minor ?? 0) / 100,
     balanceDueEur: (raw.balance_due_minor ?? 0) / 100,
+    depositEur: (raw.deposit_minor ?? 0) / 100,
     // Sorted by the snapshot's menu position — embedded PostgREST rows arrive unordered, and the
     // drawer must agree with the invoice about the listing order.
     supplements: (raw.booking_supplements ?? [])

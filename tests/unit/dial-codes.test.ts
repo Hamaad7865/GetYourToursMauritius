@@ -142,6 +142,14 @@ describe('composePhone', () => {
     expect(composePhone('+33', '06 12 34 56 78')).toBe('+33 6 12 34 56 78');
   });
 
+  it('KEEPS an Italian leading zero — there the 0 is the number, not a trunk prefix', () => {
+    // Italy's 1998 reform folded the trunk zero into the landline number itself: +39 06 … is the
+    // dialable form and '+39 6 …' does not connect. Stripping it handed the driver a dead number.
+    expect(composePhone('+39', '06 1234 5678')).toBe('+39 06 1234 5678');
+    // An Italian mobile carries no zero to begin with, so it is untouched either way.
+    expect(composePhone('+39', '333 123 4567')).toBe('+39 333 123 4567');
+  });
+
   it('returns empty when there are no digits, so a lone code cannot pass the phone gate', () => {
     // The pickup gate is `phone.trim().length > 0`; '+230' alone would satisfy it with a number no
     // driver can ring.
@@ -166,6 +174,7 @@ describe('split → compose round-trip', () => {
     '+33 6 12 34 56 78',
     '+262 692 000000',
     '+1 415 555 0132',
+    '+39 06 1234 5678',
   ])('leaves %s unchanged when nothing is edited', (stored) => {
     const { dialCode, national } = splitPhone(stored);
     expect(composePhone(dialCode, national)).toBe(stored);

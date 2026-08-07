@@ -176,6 +176,19 @@ export function splitPhone(value: string | null | undefined): {
  * Returns '' when there are no national digits: a lone '+230' is not a phone number, and letting it
  * through would satisfy the "a pickup booking needs a phone" gate with something no driver can ring.
  */
+/**
+ * The country codes whose numbers KEEP a leading zero when dialled internationally.
+ *
+ * Almost everywhere the leading '0' is a trunk prefix — a domestic-dialling artefact that is dropped
+ * the moment a country code goes in front of it (UK 020… → +44 20…). Italy is the standard exception:
+ * its 1998 numbering reform made the leading zero part of the LANDLINE number itself, so +39 06 …
+ * is correct and '+39 6 …' does not connect. Stripping it there would hand the driver a number that
+ * cannot be rung — the exact failure the two-field picker exists to prevent.
+ *
+ * (Italian MOBILES start '3' and carry no zero, so they are unaffected either way.)
+ */
+const KEEPS_LEADING_ZERO = new Set(['+39']);
+
 export function composePhone(dialCode: string | null | undefined, national: string): string {
   const rest = national.trim();
   if (!/\d/.test(rest)) return '';
@@ -184,7 +197,7 @@ export function composePhone(dialCode: string | null | undefined, national: stri
   // full international number into the field.
   if (rest.startsWith('+')) return rest;
   // Strip a national trunk prefix ('0' in the UK, France, South Africa …) — it is never dialled
-  // together with the country code.
-  const trimmed = rest.replace(/^0+(?=\d)/, '');
+  // together with the country code. Except where the zero IS the number: see KEEPS_LEADING_ZERO.
+  const trimmed = KEEPS_LEADING_ZERO.has(dialCode) ? rest : rest.replace(/^0+(?=\d)/, '');
   return `${dialCode} ${trimmed}`;
 }
