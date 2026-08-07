@@ -75,6 +75,16 @@ export function mapDbError(error: unknown): never {
   if (/\bnot_cancellable\b/.test(message)) {
     throw new ConflictError('This booking can no longer be cancelled online.');
   }
+  // "Remove" on an Awaiting-payment cart line (api_release_pending_booking) → friendly 409s. The
+  // settled case is the one that matters: the Peach webhook is asynchronous, so a line can be paid
+  // for between the cart rendering it and the customer clicking Remove. Telling them it is paid is
+  // the honest answer — the seats are theirs, not something to release.
+  if (/\bpayment_settled\b/.test(message)) {
+    throw new ConflictError('This booking has been paid — refresh to see it confirmed.');
+  }
+  if (/\bnot_releasable\b/.test(message)) {
+    throw new ConflictError('This booking can no longer be removed here.');
+  }
   // Reschedule guards (api_reschedule_booking) → friendly 409s. These sit ABOVE the generic
   // `forbidden` branch because first match wins. `target_not_bookable` is deliberately distinct from
   // create_hold's `occurrence_not_bookable`, which is already mapped to a generic validation message.

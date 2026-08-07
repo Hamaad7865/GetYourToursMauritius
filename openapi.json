@@ -7110,6 +7110,237 @@
         }
       }
     },
+    "/bookings/{ref}/release": {
+      "post": {
+        "operationId": "releasePendingBooking",
+        "summary": "Customer removes their own unpaid \"Awaiting payment\" booking from the cart, freeing the seats",
+        "tags": [
+          "Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "ref",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Release result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ref": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "alreadyReleased": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "ref",
+                        "status"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not your booking",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Booking not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Already paid, or no longer removable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/bookings/{ref}/reschedule": {
       "post": {
         "operationId": "rescheduleBooking",

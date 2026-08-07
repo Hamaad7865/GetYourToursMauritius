@@ -790,6 +790,7 @@ export const fr: Record<string, string> = {
   'Your details': 'Vos coordonnées',
   Country: 'Pays',
   'Mobile phone number': 'Numéro de téléphone mobile',
+  'Country calling code': 'Indicatif téléphonique du pays',
   'Go to payment': 'Passer au paiement',
   'Add a phone number so your driver can reach you.':
     'Ajoutez un numéro de téléphone pour que votre chauffeur puisse vous joindre.',
@@ -1612,6 +1613,12 @@ export const fr: Record<string, string> = {
   'Anything else?': 'Autre chose ?',
   'Arrival time': 'Heure d’arrivée',
   'Awaiting payment': 'En attente de paiement',
+  // Removing an "Awaiting payment" line from the cart (releases the held seats).
+  'Yes, remove': 'Oui, retirer',
+  Keep: 'Conserver',
+  "Couldn't remove this — please try again.":
+    'Impossible de retirer cette réservation — veuillez réessayer.',
+  'Remove {title} and release its seats': 'Retirer {title} et libérer ses places',
   'Back to home': 'Retour à l’accueil',
   'Book your transfer': 'Réservez votre transfert',
   'Choose your car or scooter': 'Choisissez votre voiture ou votre scooter',

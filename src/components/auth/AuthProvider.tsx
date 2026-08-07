@@ -5,19 +5,10 @@ import type { ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { supabaseRpc } from '@/lib/supabase/rpc';
+import { welcomeName } from '@/lib/auth/display-name';
 import { useToast } from '@/components/site/ToastProvider';
 import { useT } from '@/components/site/PreferencesProvider';
 import { AuthDialog } from './AuthDialog';
-
-/** Best-effort display name from the auth user's metadata, for the welcome toast. */
-function displayName(user: User | null): string | null {
-  const meta = user?.user_metadata ?? {};
-  const name =
-    (typeof meta.full_name === 'string' && meta.full_name) ||
-    (typeof meta.name === 'string' && meta.name) ||
-    null;
-  return name ? name.split(' ')[0]! : null;
-}
 
 export interface Profile {
   id: string;
@@ -85,8 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
   const t = useT();
 
-  // Load (and create if missing) the caller's profile row under RLS.
-  const loadProfile = useCallback(async (current: User): Promise<void> => {
+  // Load (and create if missing) the caller's profile row under RLS. Resolves to the row's current
+  // full name (null when there isn't one, or the read failed) so a caller that needs to GREET the
+  // person — the welcome toast — can wait for the editable name instead of the frozen signup one.
+  const loadProfile = useCallback(async (current: User): Promise<string | null> => {
     const sb = getBrowserSupabase();
     const { data, error } = await sb
       .from('profiles')
@@ -97,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       // Don't block the session on a profile read hiccup; leave it null.
       setProfile(null);
-      return;
+      return null;
     }
 
     if (data) {
@@ -108,7 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         dateOfBirth: data.date_of_birth,
         role: data.role,
       });
-      return;
+      return data.full_name;
     }
 
     // First sign-in: seed the profile from the auth metadata (role is forced to 'customer'
@@ -143,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           : null,
       );
-      return;
+      return existing?.full_name ?? null;
     }
 
     setProfile(
@@ -157,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         : { id: current.id, fullName, phone: null, dateOfBirth: null, role: 'customer' },
     );
+    return inserted ? inserted.full_name : fullName;
   }, []);
 
   useEffect(() => {
@@ -179,6 +173,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let prevUserId: string | null = null;
     let sawSignedOut = false;
 
+    /**
+     * Greet the person by the name they can actually CHANGE.
+     *
+     * `user_metadata.full_name` is written once at registration and never again, so someone who
+     * corrected their name in /account kept being welcomed as whoever they signed up as — and only
+     * ever by their first word. `profiles.full_name` is the editable one the header and /account
+     * already render, so the toast now waits the one round-trip for it and shows it whole.
+     */
+    const welcome = (name: string | null) => {
+      if (!active) return;
+      showToast({
+        title: t("You're logged in"),
+        description: name
+          ? t('Signed in as {name}.', { name })
+          : t('Signed in to Belle Mare Tours.'),
+      });
+    };
+
     const apply = (nextSession: Session | null) => {
       if (!active) return;
       setSession(nextSession);
@@ -195,15 +207,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // A sign-out: a transition from a real user back to no user (explicit log out, a
       // cross-tab sign-out, or an expired session) — not the initial logged-out load.
       const signedOut = nextId == null && prevUserId != null && foreground;
-      if (freshLogin) {
-        const name = displayName(u);
-        showToast({
-          title: t("You're logged in"),
-          description: name
-            ? t('Signed in as {name}.', { name })
-            : t('Signed in to Belle Mare Tours.'),
-        });
-      } else if (signedOut) {
+      // The welcome toast is deferred to the profile load below — see `welcome`.
+      if (signedOut) {
         showToast({
           title: t('Signed out'),
           description: t('See you next time.'),
@@ -216,7 +221,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (u) {
         if (u.id !== loadedFor) {
           loadedFor = u.id;
-          void loadProfile(u);
+          // Captured, not read from the closure later: by the time the profile resolves another
+          // auth event may have moved `freshLogin` on.
+          const greet = freshLogin;
+          void loadProfile(u).then((name) => {
+            // Fall back to the signup name only when the profile has none (or wouldn't read) —
+            // never greet a named person by their stale one.
+            if (greet) welcome(welcomeName(name, u));
+          });
           // Once per user per page load, alongside the profile row. A guest who paid a quote before
           // they had an account has an ownerless booking the RLS policy cannot match; this is what
           // hands it to them. Idempotent, so running it on every sign-in costs one no-op statement.
