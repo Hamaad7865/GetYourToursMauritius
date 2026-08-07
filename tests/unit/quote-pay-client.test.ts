@@ -103,6 +103,60 @@ describe('quote pay flow', () => {
     );
   });
 
+  it('carries the EUR deposit + total so the pay page can disclose the split', async () => {
+    // A partial-deposit quote (€0.10 deposit on a €1 total → MUR ~5). Without the EUR figures the pay
+    // page would show a bare "MUR 5.00", which reads like a bad exchange rate rather than a deposit.
+    const { outcome } = await run([
+      {
+        status: 200,
+        body: {
+          ok: true,
+          data: {
+            checkoutId: 'CID-123',
+            bookingRef: 'BMT0123456789ABC',
+            chargeCurrency: 'MUR',
+            chargeAmountMinor: 500,
+            depositEurMinor: 10,
+            totalEurMinor: 100,
+          },
+        },
+      },
+    ]);
+
+    expect(outcome.kind).toBe('checkout');
+    if (outcome.kind !== 'checkout') throw new Error('unreachable');
+    expect(outcome.charge).toEqual({
+      chargeCurrency: 'MUR',
+      chargeAmountMinor: 500,
+      depositEurMinor: 10,
+      totalEurMinor: 100,
+    });
+  });
+
+  it('omits the EUR figures when the route sends only one of them', async () => {
+    // The deposit/balance framing needs both; a lone figure can't be turned into a split, so neither
+    // is carried and the notice falls back to naming the MUR charge.
+    const { outcome } = await run([
+      {
+        status: 200,
+        body: {
+          ok: true,
+          data: {
+            checkoutId: 'CID-123',
+            bookingRef: 'BMT0123456789ABC',
+            chargeCurrency: 'MUR',
+            chargeAmountMinor: 500,
+            totalEurMinor: 100,
+          },
+        },
+      },
+    ]);
+
+    expect(outcome.kind).toBe('checkout');
+    if (outcome.kind !== 'checkout') throw new Error('unreachable');
+    expect(outcome.charge).toEqual({ chargeCurrency: 'MUR', chargeAmountMinor: 500 });
+  });
+
   it('retries a checkout_pending race and uses the session the winner recorded', async () => {
     const { outcome, attempts, waits } = await run([
       { status: 409, body: pendingBody },

@@ -166,6 +166,26 @@ async function readConversion(db: PayReadClient, ref: string): Promise<QuoteConv
 }
 
 /**
+ * The booking's EUR deposit + total, in minor units, read after conversion. A quote booking can take a
+ * PARTIAL deposit now (0 < deposit < total), so the pay page frames the pinned MUR charge as "€deposit
+ * now, €balance later" instead of a bare figure that reads like a bad exchange rate (a €0.10 deposit on
+ * a €1 quote → MUR ~5). Display-only: the amount actually charged is the MUR figure api_create_payment
+ * pinned. A read failure simply drops the framing — the charge notice falls back to naming the figure.
+ */
+async function readBookingAmounts(
+  db: PayReadClient,
+  bookingRef: string,
+): Promise<{ depositMinor: number; totalMinor: number } | null> {
+  const { data, error } = await db
+    .from('bookings')
+    .select('deposit_minor, total_minor')
+    .eq('ref', bookingRef)
+    .maybeSingle();
+  if (error || !data) return null;
+  return { depositMinor: minor(data.deposit_minor), totalMinor: minor(data.total_minor) };
+}
+
+/**
  * One message for every re-pricing refusal. It says what happened and what to do, and it deliberately
  * quotes no figures: the guest is looking at the old ones.
  */
@@ -327,7 +347,20 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
     ctx,
   );
 
+  const amounts = await readBookingAmounts(db, bookingRef);
+
   // `bookingRef` alongside the link: the page needs it to hand the guest to /bookings/{ref}/pay with
-  // the session id, and to stash the pinned MUR figure for the charge notice.
-  return jsonOk({ ...link, bookingRef }, { status: 201 });
+  // the session id, and to stash the pinned MUR figure for the charge notice. The EUR deposit + total
+  // ride along too so a partial-deposit quote's pay page can disclose the "€X now, €Y balance later"
+  // split rather than only the converted MUR figure.
+  return jsonOk(
+    {
+      ...link,
+      bookingRef,
+      ...(amounts
+        ? { depositEurMinor: amounts.depositMinor, totalEurMinor: amounts.totalMinor }
+        : {}),
+    },
+    { status: 201 },
+  );
 });

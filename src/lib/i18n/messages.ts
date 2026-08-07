@@ -806,6 +806,8 @@ export const fr: Record<string, string> = {
     'Votre carte sera débitée de {amount} — le total de {eur} converti au taux du jour.',
   'Your card will be charged {amount} at today’s rate.':
     'Votre carte sera débitée de {amount} au taux du jour.',
+  'You’re paying a {deposit} deposit now — {amount} at today’s rate. The {balance} balance is due later.':
+    'Vous payez maintenant un acompte de {deposit} — {amount} au taux du jour. Le solde de {balance} sera à régler plus tard.',
   'Your card will be charged in Mauritian rupees (MUR) at today’s rate.':
     'Votre carte sera débitée en roupies mauriciennes (MUR) au taux du jour.',
   'Your bank may apply its own conversion.': 'Votre banque peut appliquer sa propre conversion.',

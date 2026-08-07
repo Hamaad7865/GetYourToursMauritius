@@ -17,6 +17,10 @@ import { quotePagePath } from './link-cookie';
 export interface QuoteChargeHandoff {
   chargeCurrency: string;
   chargeAmountMinor: number;
+  /** EUR deposit + total (minor units) for a PARTIAL-deposit quote, so the pay page can disclose the
+   *  "€X now, €Y balance later" split instead of a bare MUR figure. Both present together, or neither. */
+  depositEurMinor?: number;
+  totalEurMinor?: number;
 }
 
 export type QuotePayOutcome =
@@ -42,6 +46,8 @@ interface PayBody {
     redirectUrl?: string;
     chargeCurrency?: string;
     chargeAmountMinor?: number;
+    depositEurMinor?: number;
+    totalEurMinor?: number;
   };
   error?: { code?: string; message?: string; details?: { bookingRef?: string } };
 }
@@ -135,11 +141,27 @@ export async function startQuotePayment({
       return { kind: 'error', message: body?.error?.message ?? GENERIC };
     }
 
-    const { checkoutId, bookingRef, redirectUrl, chargeCurrency, chargeAmountMinor } = body.data;
+    const {
+      checkoutId,
+      bookingRef,
+      redirectUrl,
+      chargeCurrency,
+      chargeAmountMinor,
+      depositEurMinor,
+      totalEurMinor,
+    } = body.data;
     if (checkoutId && bookingRef) {
       const charge =
         typeof chargeAmountMinor === 'number' && chargeCurrency
-          ? { chargeCurrency, chargeAmountMinor }
+          ? {
+              chargeCurrency,
+              chargeAmountMinor,
+              // A genuine partial deposit rides along so ChargeNotice frames the charge as a deposit;
+              // both figures travel together or neither does.
+              ...(typeof depositEurMinor === 'number' && typeof totalEurMinor === 'number'
+                ? { depositEurMinor, totalEurMinor }
+                : {}),
+            }
           : undefined;
       return {
         kind: 'checkout',
