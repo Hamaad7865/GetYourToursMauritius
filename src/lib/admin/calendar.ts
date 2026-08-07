@@ -87,6 +87,8 @@ export interface DayBooking {
 }
 
 export interface DayDeparture {
+  /** Discriminates the day-sheet union: this is a real session_occurrence with seats and a headcount. */
+  kind: 'occurrence';
   occurrenceId: string;
   activityOptionId: string;
   startsAt: string;
@@ -101,6 +103,48 @@ export interface DayDeparture {
   pendingPax: number;
   bookings: DayBooking[];
 }
+
+/**
+ * A booking line that lives on NO session_occurrence — a bespoke custom line or a car/scooter rental
+ * carried over from a converted quote (`booking_custom_items`). Such a booking can have zero
+ * `booking_items`, so before this it showed on the operations calendar nowhere. It has no occurrence,
+ * no capacity and no seat count: a rental's `quantity` is VEHICLES, a custom line's is whatever the
+ * operator itemised, so it never enters a headcount and can never be "called off". It appears on the
+ * day its `starts_at` falls on; a line with a null `starts_at` (date still to be agreed) appears on no
+ * day. A multi-day rental shows on its START day only for v1, with `endsAt` on the card.
+ */
+export interface DayCustomLine {
+  /** Discriminates the day-sheet union: a dated line with no occurrence, capacity or headcount. */
+  kind: 'custom';
+  /** The `booking_custom_items` row id — the card's stable key. */
+  id: string;
+  /** The underlying line kind: a bespoke line or a vehicle rental. NOT the union discriminant. */
+  lineKind: 'custom' | 'rental';
+  description: string;
+  /** Non-null by construction — a null-dated line is dropped before it reaches here. */
+  startsAt: string;
+  /** The return day of a multi-day rental, shown on the card since v1 lists the line on its start day. */
+  endsAt: string | null;
+  rentalVehicleSlug: string | null;
+  /** VEHICLES for a rental, an item count for a custom line — never summed into a headcount. */
+  quantity: number;
+  /** Confirmed/completed owning booking — kept for styling parity with a counted departure party. */
+  counted: boolean;
+  subtotalEur: number;
+  bookingId: string;
+  ref: string;
+  status: BookingStatus;
+  paymentState: PaymentState;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string | null;
+  source: string;
+  bookedAt: string;
+  staffNote: string | null;
+}
+
+/** One row of the day sheet: either a real departure or a dated custom/rental line. Discriminated by `kind`. */
+export type DayEntry = DayDeparture | DayCustomLine;
 
 export interface MoveTarget {
   occurrenceId: string;
@@ -172,6 +216,21 @@ export interface RawDayRow {
     price_label: string | null;
     bookings: RawDayBooking | RawDayBooking[] | null;
   }> | null;
+}
+
+/** A `booking_custom_items` row with its owning booking embedded (the same `BOOKING_FIELDS` the
+ *  occurrence query pulls, reused so a custom line carries the guest detail without a second lookup). */
+export interface RawDayCustomItem {
+  id: string;
+  kind: 'custom' | 'rental';
+  description: string;
+  starts_at: string | null;
+  ends_at: string | null;
+  rental_vehicle_slug: string | null;
+  quantity: number;
+  unit_amount_minor: number;
+  subtotal_minor: number;
+  bookings: RawDayBooking | RawDayBooking[] | null;
 }
 
 /** Holds seats: the same set `used_capacity` and `api_admin_calendar_month` count. */
@@ -273,6 +332,7 @@ export function mapDaySchedule(rows: RawDayRow[]): DayDeparture[] {
     bookings.sort((a, b) => Number(b.counted) - Number(a.counted));
 
     out.push({
+      kind: 'occurrence',
       occurrenceId: raw.id,
       activityOptionId: raw.activity_option_id,
       startsAt: raw.starts_at,
@@ -295,22 +355,110 @@ export function notifiableCount(departure: DayDeparture): number {
   return departure.bookings.filter((b) => b.notifiable).length;
 }
 
-/** The booked departures on one Mauritius day, with the full detail of every party on each. */
-export async function loadDaySchedule(day: string): Promise<DayDeparture[]> {
+/**
+ * Shape the raw `booking_custom_items` rows into dated day-sheet lines. Pure, so the date and
+ * visibility rules are testable without a database — a sibling of `mapDaySchedule`.
+ *
+ * A line with no `starts_at` belongs to no day and is dropped (a quote can leave the date open until
+ * it is agreed). A line whose owning booking is not live — draft, expired, cancelled, refunded — is
+ * hidden, mirroring which parties `mapDaySchedule` shows. Crucially there is NO pax here: a rental's
+ * `quantity` counts VEHICLES and a custom line's counts items, so neither is ever a headcount, and
+ * with no occurrence a custom line can never be called off.
+ */
+export function mapDayCustomLines(rows: RawDayCustomItem[]): DayCustomLine[] {
+  const out: DayCustomLine[] = [];
+  for (const raw of rows) {
+    // No date → no day. (The DB query already filters these out; the pure function must too.)
+    if (!raw.starts_at) continue;
+    const b = one(raw.bookings);
+    if (!b) continue;
+    const counted = COUNTED_STATUSES.has(b.status);
+    if (!counted && !PENDING_STATUSES.has(b.status)) continue;
+
+    out.push({
+      kind: 'custom',
+      id: raw.id,
+      lineKind: raw.kind,
+      description: raw.description,
+      startsAt: raw.starts_at,
+      endsAt: raw.ends_at,
+      rentalVehicleSlug: raw.rental_vehicle_slug,
+      quantity: raw.quantity,
+      counted,
+      subtotalEur: raw.subtotal_minor / 100,
+      bookingId: b.id,
+      ref: b.ref,
+      status: b.status,
+      paymentState: b.payment_state,
+      customerName: b.customer_name,
+      customerEmail: b.customer_email,
+      customerPhone: b.customer_phone,
+      source: b.source,
+      bookedAt: b.created_at,
+      staffNote: b.notes,
+    });
+  }
+  return out;
+}
+
+/* The typed browser client does not know `booking_custom_items`: it landed in 20260909000000 and the
+ * generated src/lib/supabase/types.ts has not been regenerated (that needs a live database and would
+ * sweep in every other pending schema change). Same narrow structural cast as src/lib/admin/quotes.ts,
+ * naming exactly the one by-day read this file makes, so a typo is still a compile error. */
+interface CustomItemsQuery {
+  select(columns: string): CustomItemsQuery;
+  gte(column: string, value: string): CustomItemsQuery;
+  lt(column: string, value: string): CustomItemsQuery;
+  order(column: string, opts: { ascending: boolean }): CustomItemsQuery;
+  returns<T>(): PromiseLike<{ data: T | null; error: unknown }>;
+}
+
+/**
+ * Everything booked on one Mauritius day: the real departures AND the dated custom/rental lines that
+ * live on no occurrence (a converted quote can be made entirely of `booking_custom_items`, so those
+ * lines are the only place it shows on the calendar). Two reads — the occurrence sheet and the custom
+ * lines (the partial `booking_custom_items_starts_idx` was built for exactly this by-day query) —
+ * merged into one time-ordered list. Both branches read through staff RLS, like the rest of admin.
+ */
+export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
   const { startUtc, endUtc } = mauritiusDayBounds(day);
-  const { data, error } = await getBrowserSupabase()
-    .from('session_occurrences')
+  const supabase = getBrowserSupabase();
+  const customItems = (supabase as unknown as { from(t: 'booking_custom_items'): CustomItemsQuery })
+    .from('booking_custom_items')
     .select(
-      `id, activity_option_id, starts_at, status, capacity,
-       activity_options ( name, activities ( title ) ),
-       booking_items ( quantity, pax, price_label, bookings ( ${BOOKING_FIELDS} ) )`,
+      `id, kind, description, starts_at, ends_at, rental_vehicle_slug,
+       quantity, unit_amount_minor, subtotal_minor,
+       bookings ( ${BOOKING_FIELDS} )`,
     )
     .gte('starts_at', startUtc)
     .lt('starts_at', endUtc)
     .order('starts_at', { ascending: true })
-    .returns<RawDayRow[]>();
-  if (error) throw error;
-  return mapDaySchedule(data ?? []);
+    .returns<RawDayCustomItem[]>();
+
+  const [occurrences, custom] = await Promise.all([
+    supabase
+      .from('session_occurrences')
+      .select(
+        `id, activity_option_id, starts_at, status, capacity,
+         activity_options ( name, activities ( title ) ),
+         booking_items ( quantity, pax, price_label, bookings ( ${BOOKING_FIELDS} ) )`,
+      )
+      .gte('starts_at', startUtc)
+      .lt('starts_at', endUtc)
+      .order('starts_at', { ascending: true })
+      .returns<RawDayRow[]>(),
+    customItems,
+  ]);
+  if (occurrences.error) throw occurrences.error;
+  if (custom.error) throw custom.error;
+
+  const entries: DayEntry[] = [
+    ...mapDaySchedule(occurrences.data ?? []),
+    ...mapDayCustomLines(custom.data ?? []),
+  ];
+  // Read the day in time order — a rental sitting between two departures reads where it belongs.
+  entries.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  return entries;
 }
 
 interface RawTargetRow {

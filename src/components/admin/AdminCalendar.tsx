@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { monthCells } from '@/lib/calendar/month';
 import { nominalDayKey } from '@/lib/services/day-key';
 import { useDialog } from '@/lib/a11y/useDialog';
-import { eur, fmtDateTime, fmtTime } from '@/lib/admin/format';
+import { eur, fmtDateShort, fmtDateTime, fmtTime } from '@/lib/admin/format';
 import { IconChevron } from '@/components/ui/icons';
 import { AdminHeading, AdminError, BTN_GHOST, SELECT_CLS } from './ui';
 import { PickupFacts, Pill, TransferFacts, paymentPill, statusPill } from './BookingFacts';
@@ -20,7 +20,9 @@ import {
   type CalendarDay,
   type CallOffReason,
   type DayBooking,
+  type DayCustomLine,
   type DayDeparture,
+  type DayEntry,
   type MoveTarget,
 } from '@/lib/admin/calendar';
 
@@ -245,7 +247,7 @@ function DayDrawer({
   onChanged: () => void;
 }) {
   const panelRef = useDialog(true, onClose);
-  const [departures, setDepartures] = useState<DayDeparture[] | null>(null);
+  const [entries, setEntries] = useState<DayEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
@@ -253,11 +255,11 @@ function DayDrawer({
     let active = true;
     setError(null);
     loadDaySchedule(day)
-      .then((rows) => active && setDepartures(rows))
+      .then((rows) => active && setEntries(rows))
       .catch((e: unknown) => {
         if (!active) return;
         setError(e instanceof Error ? e.message : 'Could not load this day.');
-        setDepartures([]);
+        setEntries([]);
       });
     return () => {
       active = false;
@@ -265,10 +267,17 @@ function DayDrawer({
   }, [day, reloadKey]);
 
   const reload = useCallback(() => {
-    setDepartures(null);
+    setEntries(null);
     setReloadKey((k) => k + 1);
     onChanged();
   }, [onChanged]);
+
+  // Split the union so the seat-count summary reads only the real departures — a custom/rental line
+  // holds no seat. `pax`/`pendingPax` exist only on occurrence entries, so this narrowing is required.
+  const departures = entries?.filter((e): e is DayDeparture => e.kind === 'occurrence') ?? [];
+  const customLines = entries?.filter((e): e is DayCustomLine => e.kind === 'custom') ?? [];
+  const guests = departures.reduce((s, d) => s + d.pax, 0);
+  const pendingPax = departures.reduce((s, d) => s + d.pendingPax, 0);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -289,14 +298,17 @@ function DayDrawer({
         <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[#EAEEF0] bg-white px-5 py-4">
           <div>
             <h2 className="font-display text-lg font-semibold text-ink">{dayLabel(day)}</h2>
-            {departures && departures.length > 0 && (
+            {entries && entries.length > 0 && (
               <p className="mt-0.5 text-[12.5px] text-ink-muted">
-                {departures.length} booked departure{departures.length === 1 ? '' : 's'} ·{' '}
-                {departures.reduce((s, d) => s + d.pax, 0)} guests
-                {departures.reduce((s, d) => s + d.pendingPax, 0) > 0 && (
-                  <span className="text-amber-700">
+                {departures.length} booked departure{departures.length === 1 ? '' : 's'} · {guests}{' '}
+                guests
+                {pendingPax > 0 && (
+                  <span className="text-amber-700"> · {pendingPax} awaiting payment</span>
+                )}
+                {customLines.length > 0 && (
+                  <span>
                     {' '}
-                    · {departures.reduce((s, d) => s + d.pendingPax, 0)} awaiting payment
+                    · {customLines.length} other line{customLines.length === 1 ? '' : 's'}
                   </span>
                 )}
               </p>
@@ -309,13 +321,21 @@ function DayDrawer({
 
         <div className="flex flex-col gap-3 p-5">
           {error && <AdminError>{error}</AdminError>}
-          {departures === null && <p className="text-sm text-ink-muted">Loading…</p>}
-          {departures?.length === 0 && !error && (
+          {entries === null && <p className="text-sm text-ink-muted">Loading…</p>}
+          {entries?.length === 0 && !error && (
             <p className="py-10 text-center text-sm text-ink-muted">No bookings on this day.</p>
           )}
-          {departures?.map((d) => (
-            <DepartureCard key={d.occurrenceId} departure={d} onChanged={reload} />
-          ))}
+          {entries?.map((entry) =>
+            entry.kind === 'occurrence' ? (
+              <DepartureCard
+                key={`occ-${entry.occurrenceId}`}
+                departure={entry}
+                onChanged={reload}
+              />
+            ) : (
+              <CustomLineCard key={`ci-${entry.id}`} line={entry} />
+            ),
+          )}
         </div>
       </aside>
     </div>
@@ -460,6 +480,82 @@ function DepartureCard({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * A dated custom or car-rental line from a converted quote. It lives on no departure, so it shows
+ * none of the departure furniture: no capacity, no headcount, and no "call off" control — there is
+ * no occurrence to call off, and a rental's quantity is VEHICLES, not people. It carries what staff
+ * need to run it: what was sold, when (and, for a multi-day rental, until when), who booked it, how
+ * to reach them, and a jump to the full booking.
+ */
+function CustomLineCard({ line }: { line: DayCustomLine }) {
+  const isRental = line.lineKind === 'rental';
+  const unit = isRental ? 'vehicle' : 'item';
+  return (
+    <div
+      className={`rounded-2xl border p-4 ${
+        line.counted ? 'border-[#EAEEF0] bg-white' : 'border-amber-200 bg-amber-50/40'
+      }`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-bold text-ink">{line.description}</p>
+          <p className="text-[12.5px] text-ink-muted">
+            {fmtTime(line.startsAt)}
+            {isRental && line.endsAt && <> · until {fmtDateShort(line.endsAt)}</>}
+            {line.quantity > 1 && (
+              <>
+                {' '}
+                · {line.quantity} {unit}s
+              </>
+            )}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-ink/[0.06] px-2.5 py-1 text-[11px] font-bold text-ink/70">
+          {isRental ? 'Rental' : 'Custom line'}
+        </span>
+      </div>
+
+      <div className="mt-3 flex flex-col gap-2 border-t border-[#F2F4F6] pt-3 text-[12.5px]">
+        <p className="text-ink">
+          <span className="font-bold">{line.ref}</span> · {line.customerName || 'Guest'}
+        </p>
+        {(!line.counted || line.staffNote) && (
+          <span className="flex flex-wrap gap-1">
+            {!line.counted && <Chip tone="amber">Awaiting payment</Chip>}
+            {line.staffNote && <Chip tone="ink">Note</Chip>}
+          </span>
+        )}
+        <div className="flex flex-col gap-0.5">
+          <a
+            href={`mailto:${line.customerEmail}`}
+            className="block truncate text-teal underline underline-offset-2"
+          >
+            {line.customerEmail}
+          </a>
+          {line.customerPhone && (
+            <a
+              href={`tel:${line.customerPhone.replace(/\s+/g, '')}`}
+              className="font-medium text-teal underline underline-offset-2"
+            >
+              {line.customerPhone}
+            </a>
+          )}
+        </div>
+        {line.staffNote && <p className="whitespace-pre-wrap text-ink/80">{line.staffNote}</p>}
+        <p className="text-ink/80">
+          {eur(line.subtotalEur)} · booked {fmtDateTime(line.bookedAt)} · via {line.source}
+        </p>
+        <Link
+          href={`/admin/bookings?open=${line.bookingId}`}
+          className="font-bold text-teal underline underline-offset-2"
+        >
+          Open full booking →
+        </Link>
+      </div>
     </div>
   );
 }

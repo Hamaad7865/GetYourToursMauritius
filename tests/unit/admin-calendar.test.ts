@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { mapDaySchedule, notifiableCount, type RawDayRow } from '@/lib/admin/calendar';
+import {
+  mapDayCustomLines,
+  mapDaySchedule,
+  notifiableCount,
+  type RawDayCustomItem,
+  type RawDayRow,
+} from '@/lib/admin/calendar';
 
 /* The calendar's day sheet is what staff read before driving out to collect people, so the rules it
  * encodes are operational, not cosmetic: who is actually coming, how many seats they hold, which
@@ -63,6 +69,24 @@ function row(items: RawItem[], over: Partial<RawDayRow> = {}): RawDayRow {
     capacity: 12,
     activity_options: { name: 'Shared tour', activities: { title: 'Ile aux Cerfs' } },
     booking_items: items,
+    ...over,
+  };
+}
+
+/** A booking_custom_items row embedding its owning booking — the shape loadDaySchedule's second
+ *  query returns. The embedded booking reuses the same `booking()` factory the occurrence rows use. */
+function customItem(over: Partial<RawDayCustomItem> = {}): RawDayCustomItem {
+  return {
+    id: 'ci1',
+    kind: 'custom',
+    description: 'Private south tour',
+    starts_at: '2026-08-18T05:00:00Z',
+    ends_at: null,
+    rental_vehicle_slug: null,
+    quantity: 1,
+    unit_amount_minor: 20000,
+    subtotal_minor: 20000,
+    bookings: booking(),
     ...over,
   };
 }
@@ -285,5 +309,65 @@ describe('notifiableCount', () => {
       row([item({ price_label: 'Adult' }), item({ price_label: 'Child', quantity: 1 })]),
     ]);
     expect(notifiableCount(dep!)).toBe(1);
+  });
+});
+
+/* A converted-quote booking can be made entirely of booking_custom_items (bespoke lines and car
+ * rentals) with zero booking_items — so it lives on no session_occurrence and, before Phase C,
+ * appeared on the day sheet nowhere. mapDayCustomLines folds those dated lines onto their day as a
+ * separate `kind: 'custom'` entry: no occurrence, no capacity and no seat count — a rental's
+ * `quantity` is VEHICLES, never people, and a line with no date belongs to no day. */
+describe('mapDayCustomLines', () => {
+  it('surfaces a dated custom line as a custom-kind entry with its owning guest', () => {
+    const [line] = mapDayCustomLines([customItem()]);
+    expect(line?.kind).toBe('custom');
+    expect(line?.lineKind).toBe('custom');
+    expect(line?.description).toBe('Private south tour');
+    expect(line?.startsAt).toBe('2026-08-18T05:00:00Z');
+    expect(line?.ref).toBe('BMT001');
+    expect(line?.customerName).toBe('Ada Lovelace');
+    expect(line?.customerEmail).toBe('ada@example.com');
+    expect(line?.subtotalEur).toBe(200);
+  });
+
+  it('surfaces a rental line, carries its return day, and folds no vehicle count into pax', () => {
+    const lines = mapDayCustomLines([
+      customItem({
+        kind: 'rental',
+        description: 'Nissan Kicks — 3 days',
+        rental_vehicle_slug: 'nissan-kicks',
+        quantity: 3, // 3 VEHICLES — must never read as 3 guests
+        ends_at: '2026-08-21T05:00:00Z',
+        subtotal_minor: 90000,
+      }),
+    ]);
+    expect(lines).toHaveLength(1);
+    const line = lines[0]!;
+    expect(line.lineKind).toBe('rental');
+    expect(line.rentalVehicleSlug).toBe('nissan-kicks');
+    expect(line.endsAt).toBe('2026-08-21T05:00:00Z');
+    expect(line.quantity).toBe(3);
+    // A custom entry carries no headcount at all: quantity stays a vehicle count, never a `pax`.
+    expect('pax' in line).toBe(false);
+  });
+
+  it('shows a line with no start date on no day', () => {
+    expect(mapDayCustomLines([customItem({ starts_at: null })])).toEqual([]);
+  });
+
+  it('hides a line whose owning booking is not live', () => {
+    for (const status of ['draft', 'expired', 'cancelled', 'refunded', 'failed'] as const) {
+      expect(mapDayCustomLines([customItem({ bookings: booking({ status }) })])).toEqual([]);
+    }
+  });
+
+  // The call-off UI acts on a departure's occurrence and its bookings. A custom/rental line has
+  // neither, so it must never reach notifiableCount or offer a call-off control.
+  it('keeps custom and rental lines out of the call-off count', () => {
+    const [dep] = mapDaySchedule([row([item()])]);
+    const [line] = mapDayCustomLines([customItem({ kind: 'rental', quantity: 4 })]);
+    expect(notifiableCount(dep!)).toBe(1); // the one occurrence party, unaffected by the rental
+    expect(line?.kind).toBe('custom');
+    expect('notifiable' in line!).toBe(false); // no fan-out flag exists on a custom line
   });
 });
