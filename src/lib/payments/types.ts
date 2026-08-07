@@ -22,6 +22,18 @@ export interface CreateCheckoutInput {
   description: string;
   /** Where the hosted checkout redirects the customer back to. */
   returnUrl: string;
+  /**
+   * Offer the customer a "save this card" opt-in in the widget (Peach `allowStoringDetails`). Only set
+   * for a booking owned by a signed-in user — a guest has no account to attach a token to. The token
+   * comes back ONLY if the customer actually ticks the box, so the harvest must handle its absence.
+   */
+  saveCard?: boolean;
+  /**
+   * Opaque Peach `registrationId` tokens of the signed-in user's saved cards. When present, the widget
+   * surfaces them for one-click reuse (customer-present, stays SAQ A). Server-supplied only — never
+   * round-tripped through the browser.
+   */
+  cardTokens?: string[];
 }
 
 export interface CheckoutSession {
@@ -92,6 +104,19 @@ export interface PaymentEvent {
    * `payments.settlement_review_at` so the owner vets it before the guest travels.
    */
   needsReview?: boolean;
+  /**
+   * Card-on-file harvest (Peach tokenisation). Present on a `getCheckoutStatus` result when the
+   * customer ticked "save card" and Peach returned a reusable `registrationId` token plus card
+   * metadata. Never carried by the webhook (its payload omits `card.*`), so tokens are only ever
+   * harvested via the status re-query. `registrationId` is the opaque token stored server-side; the
+   * rest is display metadata (brand/last4/expiry). All optional — a checkout without a saved card
+   * leaves them absent.
+   */
+  registrationId?: string | null;
+  cardBrand?: string | null;
+  cardLast4?: string | null;
+  cardExpMonth?: number | null;
+  cardExpYear?: number | null;
   raw: unknown;
 }
 

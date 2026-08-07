@@ -156,6 +156,14 @@ export class PeachPaymentProvider implements PaymentProvider {
       shopperResultUrl: input.returnUrl,
     };
     if (this.config.webhookUrl) body.notificationUrl = this.config.webhookUrl;
+    // Card-on-file STORE: `allowStoringDetails` makes the widget show a "save card" checkbox (Peach
+    // returns a registrationId ONLY if the customer ticks it — harvested later from the status payload).
+    if (input.saveCard) body.allowStoringDetails = true;
+    // One-click REUSE: `cardTokens` surfaces the signed-in user's saved cards in the widget. Verified
+    // against the live sandbox: /v2/checkout accepts `cardTokens` on the server body (HTTP 200), so the
+    // opaque tokens stay SERVER-SIDE (never sent to the browser). Do NOT add `allowStoredCards` — Peach
+    // rejects it as an "unknown field" (400), which is what broke checkout for saved-card users before.
+    if (input.cardTokens && input.cardTokens.length > 0) body.cardTokens = input.cardTokens;
 
     const res = await fetchPeach(
       `${trimSlash(this.config.checkoutBaseUrl)}/v2/checkout`,
@@ -263,6 +271,13 @@ export class PeachPaymentProvider implements PaymentProvider {
       amountMinor: Number.isFinite(amount) ? Math.round(amount * 100) : null,
       currency: str('currency'),
       checkoutTerminal: str('result.code') === CANCELLED_BY_USER_CODE,
+      // Card-on-file harvest. `registrationId` + `paymentBrand` are top-level; card.* are dotted keys
+      // in the flat payload. Present only when the customer saved a card; absent otherwise.
+      registrationId: str('registrationId'),
+      cardBrand: str('paymentBrand'),
+      cardLast4: str('card.last4Digits'),
+      cardExpMonth: intOrNull(str('card.expiryMonth')),
+      cardExpYear: intOrNull(str('card.expiryYear')),
       raw: data,
     };
   }
@@ -459,6 +474,13 @@ function timingSafeEqualHex(a: string, b: string): boolean {
 
 function trimSlash(url: string): string {
   return url.replace(/\/+$/, '');
+}
+
+/** Parse a stringy integer field (card expiry month/year) to a number, or null when absent/unparseable. */
+function intOrNull(v: string | null): number | null {
+  if (v == null) return null;
+  const n = Number.parseInt(v, 10);
+  return Number.isFinite(n) ? n : null;
 }
 
 function originOf(url: string): string {

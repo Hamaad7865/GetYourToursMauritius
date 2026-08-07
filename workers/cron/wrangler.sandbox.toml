@@ -1,0 +1,21 @@
+# SANDBOX cron Worker — same code as wrangler.toml, but a DIFFERENT worker name and pointed at the
+# Vercel test deployment instead of production. Deploy from the repo root:
+#
+#   npx wrangler deploy --config workers/cron/wrangler.sandbox.toml
+#   printf '%s' "$INTERNAL_TASK_SECRET" | npx wrangler secret put INTERNAL_TASK_SECRET --config workers/cron/wrangler.sandbox.toml
+#
+# The secret MUST match INTERNAL_TASK_SECRET set on the Vercel project. Prod's gytm-cron is unaffected.
+
+name = "gytm-cron-sandbox"
+main = "src/index.js"
+compatibility_date = "2025-02-01"
+
+[triggers]
+crons = ["*/2 * * * *", "*/5 * * * *"]
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[vars]
+SITE_URL = "https://belle-mare-sandbox.vercel.app"

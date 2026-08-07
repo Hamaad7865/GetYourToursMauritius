@@ -92,12 +92,15 @@ const nextConfig = {
     const cacheLong = 'public, s-maxage=600, stale-while-revalidate=86400';
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://*.peachpayments.com",
-      "style-src 'self' 'unsafe-inline' https://*.googleapis.com",
+      // Peach's embedded Checkout widget loads its card iframe from *.oppwa.com (the OPPWA processor)
+      // and tamper-protection code from *.jscrambler.com — both must be allowed or the widget fails
+      // ("temporary communication error") once this CSP is promoted from Report-Only to enforcing.
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googleapis.com https://*.gstatic.com https://*.peachpayments.com https://*.oppwa.com https://*.jscrambler.com",
+      "style-src 'self' 'unsafe-inline' https://*.googleapis.com https://*.peachpayments.com https://*.oppwa.com",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data: https://fonts.gstatic.com",
-      "connect-src 'self' https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.peachpayments.com",
-      "frame-src 'self' https://*.peachpayments.com https://*.supabase.co",
+      "connect-src 'self' https://*.supabase.co https://*.googleapis.com https://*.gstatic.com https://*.peachpayments.com https://*.oppwa.com https://*.jscrambler.com",
+      "frame-src 'self' https://*.peachpayments.com https://*.supabase.co https://*.oppwa.com",
       "frame-ancestors 'self'",
       "base-uri 'self'",
       "form-action 'self'",

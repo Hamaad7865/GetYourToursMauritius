@@ -18,7 +18,7 @@ export const runtime = 'edge';
  * derived server-side (no client redirect); the amount comes only from the DB.
  */
 export const POST = apiHandler(async (req) => {
-  await requireUser(req);
+  const user = await requireUser(req);
   const input = await parseJsonBody(req, createPaymentInputSchema);
   const ctx = buildServiceContext(req);
   const env = getServerEnv();
@@ -48,6 +48,11 @@ export const POST = apiHandler(async (req) => {
       // 'pickup_addon' re-opens the transport supplement for a pickup added after the booking was
       // paid (the amount lives on the open booking_pickup_requests row, never on this request).
       purpose: input.purpose,
+      // Offer "save card" only to a signed-in caller (a guest has no account to attach a token to).
+      // The widget shows the opt-in; the token is harvested on confirm only if the customer ticks it.
+      saveCard: user.role === 'authenticated',
+      // Their saved cards are surfaced in the widget for one-click reuse (fetched server-side).
+      userId: user.role === 'authenticated' ? user.id : undefined,
     },
     serviceRoleRpcContext(),
   );

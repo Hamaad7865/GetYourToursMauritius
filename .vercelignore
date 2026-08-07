@@ -1,0 +1,20 @@
+# Keep the Vercel upload to just the Next.js app. None of these are needed to
+# build or run the site (they are tooling, SQL, tests, docs, the cron Worker, and
+# large local skill/data caches).
+#
+# NOTE: leading "/" anchors each pattern to the repo ROOT. Without it, a bare name
+# like "supabase" would also match src/lib/supabase/ and break the build.
+/.claude
+/.agents
+/data
+/skills-lock.json
+/supabase
+/scripts
+/tests
+/docs
+/workers
+/.githooks
+/graphify-out
+/sourcemaps-out
+/.superpowers
+/.design-tmp

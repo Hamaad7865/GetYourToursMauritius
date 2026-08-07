@@ -37,6 +37,11 @@ describe('public mutation lockdown (catch-up.sql)', () => {
     // leaves Supabase's stock direct grants to anon/authenticated in place.
     'revoke execute on function create_payment(jsonb, boolean) from public, anon, authenticated;',
     'revoke execute on function api_create_quote_payment(jsonb) from public, anon, authenticated;',
+    // Saved cards (20260913000000): the harvest write is server-only; list/delete are owner-scoped.
+    'revoke execute on function api_save_card(jsonb) from public, anon, authenticated;',
+    'revoke execute on function api_list_saved_cards(jsonb) from public;',
+    'revoke execute on function api_delete_saved_card(jsonb) from public;',
+    'revoke execute on function api_list_card_tokens(jsonb) from public, anon, authenticated;',
   ])('revokes: %s', (stmt) => {
     expect(norm).toContain(stmt.replace(/\s+/g, ' '));
   });
@@ -48,6 +53,10 @@ describe('public mutation lockdown (catch-up.sql)', () => {
     'grant execute on function api_create_payment(jsonb) to authenticated, service_role;',
     'grant execute on function create_payment(jsonb, boolean) to service_role;',
     'grant execute on function api_create_quote_payment(jsonb) to service_role;',
+    'grant execute on function api_save_card(jsonb) to service_role;',
+    'grant execute on function api_list_saved_cards(jsonb) to authenticated, service_role;',
+    'grant execute on function api_delete_saved_card(jsonb) to authenticated, service_role;',
+    'grant execute on function api_list_card_tokens(jsonb) to service_role;',
   ])('restores the intended callers: %s', (stmt) => {
     expect(norm).toContain(stmt.replace(/\s+/g, ' '));
   });

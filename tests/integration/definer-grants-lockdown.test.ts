@@ -55,6 +55,13 @@ const LOCKED = [
   // regression guard, so re-opening it later fails CI instead of shipping. That distinction is the whole
   // point of this list: every entry below was correct on the day it was written too.
   'quote_owner_for_email(text)',
+  // Saved-card harvest (20260913000000). Writes a card-on-file token for ANY user id it is handed, so
+  // it is server-only by construction — the confirm/status path calls it under service-role. An open
+  // grant would let a caller attach a stolen token to their own account (or enumerate).
+  'api_save_card(jsonb)',
+  // Returns the OPAQUE reusable card tokens for a user (20260913000000) — server-only, so the browser
+  // never sees a token it could replay.
+  'api_list_card_tokens(jsonb)',
 ];
 
 describe('internal SECURITY DEFINER functions are locked to service_role', () => {

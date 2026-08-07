@@ -21,7 +21,10 @@ import type {
  * fabricate checkout ids without creating them get `amountMinor: null` back — which is exactly the
  * malformed-provider case the quarantine path exists for.
  */
-const stubCheckouts = new Map<string, { amountMinor: number; currency: string }>();
+const stubCheckouts = new Map<
+  string,
+  { amountMinor: number; currency: string; saveCard?: boolean }
+>();
 
 export class StubPaymentProvider implements PaymentProvider {
   readonly name = 'stub';
@@ -31,6 +34,7 @@ export class StubPaymentProvider implements PaymentProvider {
     stubCheckouts.set(id, {
       amountMinor: Math.round(input.amount * 100),
       currency: input.currency,
+      saveCard: input.saveCard,
     });
     const url = new URL(input.returnUrl);
     url.searchParams.set('stub_session', id);
@@ -77,6 +81,17 @@ export class StubPaymentProvider implements PaymentProvider {
     // so the dev/CI re-query confirmation flow completes end-to-end without a real provider.
     const bookingRef = checkoutId.startsWith('stub_') ? checkoutId.slice('stub_'.length) : null;
     const known = stubCheckouts.get(checkoutId);
+    // When the checkout was created with saveCard, mimic Peach returning a reusable token + card
+    // metadata on the status payload, so the tokenisation harvest runs end-to-end in dev/CI.
+    const saved = known?.saveCard
+      ? {
+          registrationId: `stub_reg_${bookingRef ?? 'unknown'}`,
+          cardBrand: 'VISA',
+          cardLast4: '4242',
+          cardExpMonth: 12,
+          cardExpYear: 2030,
+        }
+      : {};
     return {
       outcome: 'paid',
       bookingRef,
@@ -85,6 +100,7 @@ export class StubPaymentProvider implements PaymentProvider {
       // null, not 'EUR': an id this stub never minted must quarantine as no_currency, exactly like a
       // malformed real-provider payload — see verifyWebhook.
       currency: known?.currency ?? null,
+      ...saved,
       raw: { checkoutId },
     };
   }

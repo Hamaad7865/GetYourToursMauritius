@@ -53,6 +53,7 @@ import {
   wishlistInputSchema,
   wishlistRemoveResultSchema,
 } from '@/lib/validation/wishlist';
+import { savedCardSchema, deleteSavedCardResultSchema } from '@/lib/validation/saved-cards';
 import {
   markAllReadResultSchema,
   markReadResultSchema,
@@ -82,6 +83,7 @@ const okJson = (schema: z.ZodTypeAny, description = 'OK'): ZodOpenApiResponseObj
 const jsonBody = (schema: z.ZodTypeAny) => ({ content: { 'application/json': { schema } } });
 
 const slugParam = z.object({ slug: z.string() });
+const savedCardIdParam = z.object({ id: z.string() });
 const refParam = z.object({ ref: z.string() });
 const idParam = z.object({ id: z.string() });
 const placeIdParam = z.object({ placeId: z.string().min(1) });
@@ -633,6 +635,32 @@ export const apiPaths: ZodOpenApiPathsObject = {
       requestParams: { path: slugParam },
       responses: {
         '200': okJson(wishlistRemoveResultSchema, 'Removed (or was not saved)'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/saved-cards': {
+    get: {
+      operationId: 'listSavedCards',
+      summary:
+        'List the signed-in user’s saved cards (metadata only — never the token), newest first',
+      tags: ['Saved cards'],
+      security: [{ bearerAuth: [] }],
+      responses: {
+        '200': okJson(z.array(savedCardSchema), 'Saved cards'),
+        '401': errorResponse('Authentication required'),
+      },
+    },
+  },
+  '/saved-cards/{id}': {
+    delete: {
+      operationId: 'deleteSavedCard',
+      summary: 'Forget a saved card by id (idempotent)',
+      tags: ['Saved cards'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: savedCardIdParam },
+      responses: {
+        '200': okJson(deleteSavedCardResultSchema, 'Removed'),
         '401': errorResponse('Authentication required'),
       },
     },

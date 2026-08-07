@@ -71,3 +71,12 @@ graphify-out/
 # Private browser source maps, extracted out of the deployable output by
 # scripts/release/extract-source-maps.mjs so they are never served publicly.
 sourcemaps-out/
+
+.vercel
+.env*
+
+# Local tooling caches (skill installs) — never commit
+.agents/
+.claude/skills/
+data/skills/
+skills-lock.json

@@ -88,7 +88,7 @@ export async function reconcilePaymentEvent(
 
   const { data: booking, error: bookingErr } = await admin
     .from('bookings')
-    .select('id')
+    .select('id, user_id')
     .eq('ref', event.bookingRef)
     .maybeSingle();
   if (bookingErr) throw new Error(bookingErr.message); // transient → caller returns 5xx → provider retries
@@ -296,6 +296,29 @@ export async function reconcilePaymentEvent(
         bookingRef: event.bookingRef,
         reason: 'provider_manual_review',
       });
+    }
+  }
+
+  // Card-on-file harvest. A customer-present checkout the customer chose to save carries a reusable
+  // `registrationId` token in the STATUS payload (never the webhook, so this only ever fires on the
+  // sync/cron re-query paths). Store it against the booking owner. Best-effort and LAST: it runs only
+  // after the credit has been proven applied above, and a save failure must never fail or unwind a
+  // confirmed payment. Inert until Phase 2's store flow sets `allowStoringDetails` — `registrationId`
+  // is absent on every checkout that didn't opt in.
+  if (event.outcome === 'paid' && event.registrationId && booking.user_id) {
+    try {
+      await admin.rpc('api_save_card', {
+        p: {
+          userId: booking.user_id,
+          registrationId: event.registrationId,
+          brand: event.cardBrand ?? null,
+          last4: event.cardLast4 ?? null,
+          expMonth: event.cardExpMonth ?? null,
+          expYear: event.cardExpYear ?? null,
+        },
+      });
+    } catch {
+      log.error('reconcile_save_card_failed', { bookingRef: event.bookingRef });
     }
   }
 

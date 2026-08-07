@@ -102,6 +102,15 @@ export const fr: Record<string, string> = {
   'Save a card for faster checkout next time.':
     'Enregistrez une carte pour un paiement plus rapide la prochaine fois.',
   'No saved cards yet': 'Aucune carte enregistrée',
+  'Save a card at checkout for faster payment next time.':
+    'Enregistrez une carte lors du paiement pour régler plus vite la prochaine fois.',
+  'When you pay for a booking, tick “save card” to securely store it here for next time.':
+    'Lorsque vous payez une réservation, cochez « enregistrer la carte » pour la conserver ici en toute sécurité pour la prochaine fois.',
+  'We couldn’t load your saved cards.': 'Impossible de charger vos cartes enregistrées.',
+  'We couldn’t remove that card.': 'Impossible de supprimer cette carte.',
+  Card: 'Carte',
+  Expires: 'Expire',
+  'Removing…': 'Suppression…',
   'When you pay for a booking you’ll be able to securely save your card here for next time.':
     'Lorsque vous payez une réservation, vous pourrez enregistrer votre carte ici en toute sécurité pour la prochaine fois.',
   'Encrypted by Peach Payments — we never see or store your full card number.':

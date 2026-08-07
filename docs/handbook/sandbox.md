@@ -92,6 +92,32 @@ The customer owns some of the seeded bookings, so `/account` and the admin scree
   `cancelled`, `refund_pending` and `refunded`, with matching payment ledgers — so reports, the calendar
   day sheet and the bookings list all show realistic data.
 
+## Mirror the live catalogue (real tours, no PII)
+
+`npm run sandbox:setup` seeds a synthetic catalogue. To make the sandbox show the **real production
+catalogue** instead — the actual activities, options, prices, images and every fare/planner/rental config
+— pull it from live. This uses [`scripts/dump-catalogue.ts`](../../scripts/dump-catalogue.ts), which by
+design copies **no bookings, payments, customers or auth users** — zero personal data, so it's safe for a
+tester-facing sandbox.
+
+Two steps, because they touch two different databases:
+
+```bash
+# 1. Dump the live catalogue — READ-ONLY on production. Point SUPABASE_DB_URL at prod
+#    just for this one command (don't leave prod creds in .env.local).
+SUPABASE_DB_URL="<prod :5432 URI>" npx tsx scripts/dump-catalogue.ts
+#    → writes supabase/seed-live-catalogue.sql
+
+# 2. Apply it to the sandbox (.env.local must point at the sandbox).
+npm run sandbox:from-live
+```
+
+Step 2 replaces the sandbox catalogue with production's, rebuilds ~185 days of availability, and
+re-creates the fake bookings against the real catalogue. It **refuses to run against production**. Re-run
+both steps any time you want to refresh the sandbox with the latest live catalogue. (If you keep a
+`.env.local.prod` copy, step 1 is
+`SUPABASE_DB_URL="$(grep '^SUPABASE_DB_URL=' .env.local.prod | cut -d= -f2-)" npx tsx scripts/dump-catalogue.ts`.)
+
 ## Publish it for testers (a hosted link)
 
 `npm run dev` is fine for you, but remote testers need a URL. Deploy the app to **Vercel**, pointed at
@@ -135,10 +161,23 @@ loudly on every runtime). Email (`RESEND_*`) is optional — unset means no conf
 which is fine for testing.
 
 ```bash
-npx vercel --prod         # build + deploy → prints the live URL
+npx vercel@latest --prod   # build + deploy → prints the live URL
 ```
 
+> **Two gotchas that already bit us:**
+>
+> - Use `npx vercel@latest` for `login`/`link`/deploy. The version pinned in `package.json` (41.7.8) is
+>   too old for the current device-flow login and just prints a deprecation notice.
+> - `.vercelignore` uses **gitignore syntax**, so a bare pattern like `supabase` also excludes
+>   `src/lib/supabase/` and the build dies with `Module not found: @/lib/supabase/browser`. **Anchor
+>   every pattern with a leading `/`** (`/supabase`, `/scripts`, `/tests`, …). The committed
+>   [`.vercelignore`](../../.vercelignore) does this — keeps the 900 MB+ `.claude` cache out of the upload.
+
 ### 3. Point Supabase + Peach at the test URL (once)
+
+> Test **logins work immediately** — the app signs in with email+password (`signInWithPassword`), which
+> needs no redirect allowlist. The Supabase step below is only needed for NEW self-signups and password
+> resets (they use email redirects).
 
 - **Supabase** (sandbox project) → Authentication → URL Configuration → add
   `https://belle-mare-sandbox.vercel.app/**` to the redirect allowlist (keep `http://localhost:3000/**`

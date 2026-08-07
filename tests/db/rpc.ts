@@ -63,6 +63,10 @@ const ALLOWED = new Set([
   'api_log_error',
   'api_purge_error_logs',
   'api_convert_quote',
+  'api_save_card',
+  'api_list_saved_cards',
+  'api_delete_saved_card',
+  'api_list_card_tokens',
 ]);
 
 /**

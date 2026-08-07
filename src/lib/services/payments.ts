@@ -55,6 +55,17 @@ export interface CreatePaymentLinkInput {
    * that stops a booking having two payable Peach sessions. Every guard below applies unchanged.
    */
   authorizedBy?: 'caller' | 'quote';
+  /**
+   * Offer the customer a "save this card" opt-in in the widget (Peach `allowStoringDetails`). Set only
+   * for a signed-in caller — a guest has no account to attach a token to. If the customer ticks it, the
+   * reusable token is harvested from the status re-query and stored by `reconcilePaymentEvent`.
+   */
+  saveCard?: boolean;
+  /**
+   * The signed-in caller's user id. Used to surface their saved cards (`cardTokens`) in the widget for
+   * one-click reuse. Fetched under the service-role port; the opaque tokens never reach the browser.
+   */
+  userId?: string;
 }
 
 /**
@@ -177,6 +188,20 @@ export async function createPaymentLink(
   // round-trips byte-identically against what api_create_payment recorded. No float crosses the
   // provider boundary with sub-cent precision.
   const chargeAmount = chargeMinor / 100;
+  // One-click reuse: surface the signed-in user's saved cards. Their tokens are fetched under the
+  // service-role port (the opaque tokens must never reach the browser) and passed as `cardTokens` on the
+  // checkout — best-effort, so a lookup failure never blocks a fresh checkout.
+  let cardTokens: string[] | undefined;
+  if (input.saveCard && input.userId) {
+    try {
+      const tokens = await callRpc<string[]>(adminCtx, 'api_list_card_tokens', {
+        userId: input.userId,
+      });
+      if (Array.isArray(tokens) && tokens.length > 0) cardTokens = tokens;
+    } catch {
+      /* best-effort — proceed without saved cards */
+    }
+  }
   let session;
   try {
     session = await ctx.payments.createCheckout({
@@ -186,6 +211,8 @@ export async function createPaymentLink(
       customerEmail: payment.customerEmail,
       description: `Belle Mare Tours booking ${payment.bookingRef}`,
       returnUrl: input.returnUrl,
+      saveCard: input.saveCard,
+      cardTokens,
     });
   } catch (error) {
     // We hold the single-flight lease; hand it back so the customer's retry doesn't have to sit out

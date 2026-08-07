@@ -1078,6 +1078,10 @@ export interface Database {
       api_content_defaults: { Args: { p: Json }; Returns: Json };
       api_moderate_guest_review: { Args: { p: Json }; Returns: Json };
       api_flag_settlement_review: { Args: { p: Json }; Returns: Json };
+      api_save_card: { Args: { p: Json }; Returns: Json };
+      api_list_saved_cards: { Args: { p: Json }; Returns: Json };
+      api_delete_saved_card: { Args: { p: Json }; Returns: Json };
+      api_list_card_tokens: { Args: { p: Json }; Returns: Json };
       api_upsert_fx_rate: { Args: { p: Json }; Returns: Json };
       api_fx_rate_status: { Args: { p: Json }; Returns: Json };
     };
