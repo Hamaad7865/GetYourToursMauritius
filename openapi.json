@@ -5862,6 +5862,12 @@
                               "null"
                             ]
                           },
+                          "offerValidUntil": {
+                            "type": [
+                              "string",
+                              "null"
+                            ]
+                          },
                           "title": {
                             "type": "string"
                           },

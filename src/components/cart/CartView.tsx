@@ -135,9 +135,36 @@ function Stepper({
   );
 }
 
-/** A booked-but-unpaid reservation (server) shown in the cart's "Awaiting payment" section. Its own
- *  mm:ss countdown ticks off the real hold expiry; at zero it shows "expired — rebook" and the row drops
- *  on the next pending-bookings fetch (or the 5-min maintenance sweep flips it to expired server-side). */
+/**
+ * Format a Postgres `date` ('2026-08-21') for display.
+ *
+ * Built from the parts rather than `new Date(str)`, which reads a bare date as UTC midnight — west
+ * of Greenwich that renders as the day BEFORE, so an offer valid until the 21st would advertise the
+ * 20th. Falls back to the raw string on anything unparseable rather than printing "Invalid Date".
+ */
+function formatPlainDate(value: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (!m) return value;
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  return Number.isNaN(d.getTime())
+    ? value
+    : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/**
+ * A booked-but-unpaid reservation (server) shown in the cart's "Awaiting payment" section.
+ *
+ * Its deadline depends on what the booking actually reserved, and the two cases are NOT the same:
+ *
+ *  - A web booking holds seats, so it gets the mm:ss countdown off the real hold expiry. At zero it
+ *    reads "expired — rebook" and the row drops on the next pending-bookings fetch (or the 5-min
+ *    maintenance sweep flips it to expired server-side).
+ *  - A QUOTE booking holds nothing — api_convert_quote never calls create_hold, because a custom
+ *    line reserves no capacity — so it has no hold and no countdown. It gets the offer's own
+ *    deadline (`offerValidUntil`) instead. Rendering the countdown branch for it is what produced
+ *    "Pay within 00:00" on an offer with weeks left to run: `holdExpiresAt` was null, so the
+ *    remaining seconds floored at 0 while `expired` stayed false.
+ */
 function PendingRow({
   pb,
   onRemove,
@@ -157,10 +184,14 @@ function PendingRow({
     return () => window.clearInterval(id);
   }, []);
   const expMs = pb.holdExpiresAt ? new Date(pb.holdExpiresAt).getTime() : NaN;
-  const left = Number.isFinite(expMs) ? Math.max(0, Math.floor((expMs - now) / 1000)) : 0;
-  const expired = Number.isFinite(expMs) && left === 0;
+  // Whether this booking reserved anything at all. Everything about the deadline hangs off it: no
+  // hold means there is no countdown to run, not a countdown that has run out.
+  const holdsSeats = Number.isFinite(expMs);
+  const left = holdsSeats ? Math.max(0, Math.floor((expMs - now) / 1000)) : 0;
+  const expired = holdsSeats && left === 0;
   const mm = String(Math.floor(left / 60)).padStart(2, '0');
   const ss = String(left % 60).padStart(2, '0');
+  const offerUntil = !holdsSeats && pb.offerValidUntil ? formatPlainDate(pb.offerValidUntil) : null;
   const date = pb.startsAt
     ? new Date(pb.startsAt).toLocaleDateString(undefined, {
         day: 'numeric',
@@ -210,15 +241,24 @@ function PendingRow({
           <div className="text-[16px] font-extrabold text-ink">
             <Price eur={pb.totalMinor / 100} />
           </div>
+          {/* Three cases, not two. The old two-arm version sent a hold-less quote booking down the
+              countdown arm and printed "Pay within 00:00". */}
           {expired ? (
             <span className="text-[12px] font-semibold text-coral">
               {t('Reservation expired — rebook')}
             </span>
-          ) : (
+          ) : holdsSeats ? (
             <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-coral">
               <IconClock width={12} height={12} /> {t('Pay within {time}', { time: `${mm}:${ss}` })}
             </span>
-          )}
+          ) : offerUntil ? (
+            // An offer's deadline is a date weeks out, not a ticking clock — so it is stated calmly,
+            // in ink-muted rather than the countdown's coral.
+            <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink-muted">
+              <IconClock width={12} height={12} />{' '}
+              {t('Offer valid until {date}', { date: offerUntil })}
+            </span>
+          ) : null}
           {/* Always offered, expired or not: an expired row is exactly the one nobody wants to look
               at any more, and until now neither could be cleared by hand at all. */}
           {confirming ? (
@@ -381,9 +421,13 @@ export function CartView() {
             {t('Awaiting payment')}
           </h2>
           <p className="mt-1 text-[13px] text-ink-muted">
-            {t(
-              'Finish paying before the timer runs out, or your seats are released and you’ll need to book again.',
-            )}
+            {/* Only promise released seats when something here actually holds some. A cart holding
+                only quote bookings reserves no capacity, so the timer sentence would be fiction. */}
+            {pendingBookings.some((pb) => pb.holdExpiresAt)
+              ? t(
+                  'Finish paying before the timer runs out, or your seats are released and you’ll need to book again.',
+                )
+              : t('Finish paying to confirm your booking.')}
           </p>
           <ul className="mt-4 flex flex-col gap-4">
             {pendingBookings.map((pb) => (

@@ -21,6 +21,16 @@ export const pendingBookingSchema = z.object({
   currency: z.string(),
   createdAt: z.string(),
   holdExpiresAt: z.string().nullable(),
+  /**
+   * The offer's own deadline (`quotes.valid_until`), for a booking converted from a QUOTE. Null for
+   * every ordinary booking, and that null is load-bearing: a quote booking has no seat hold — its
+   * lines reserve no capacity — so `holdExpiresAt` is null too, and without this the cart rendered a
+   * countdown of 00:00 on an offer with weeks left to run (20260920000000).
+   *
+   * `.nullish().catch(null)` so a DTO from a database without that migration still parses as "no
+   * offer deadline" rather than 500ing the cart — the same stance the booking DTO takes.
+   */
+  offerValidUntil: z.string().nullish().catch(null),
   title: z.string(),
   startsAt: z.string().nullable(),
 });
