@@ -292,6 +292,16 @@ Belle Mare Tours (internal alert)`,
  * otherwise the drain would mark it 'sent' without delivering it. Failing routes it to retry and
  * eventually 'failed', where it is visible — until a provider for that channel exists.
  */
+/**
+ * Attach the brand name to the From header so an inbox shows "Belle Mare Tours", not the bare mailbox —
+ * a plain `info@bellemaretours.com` renders as "info" in Gmail. Left untouched when the configured value
+ * already carries a display name (contains "<"), so an env like `Belle Mare Tours <info@…>` still wins.
+ */
+function fromWithBrandName(from: string): string {
+  const value = from.trim();
+  return value.includes('<') ? value : `${SITE.name} <${value}>`;
+}
+
 export class ResendNotificationProvider implements NotificationProvider {
   readonly name = 'resend';
 
@@ -327,7 +337,12 @@ export class ResendNotificationProvider implements NotificationProvider {
       attachments?: Array<{ filename: string; content: string }>;
       // A per-message `from` overrides the send-only identity for THIS message only (the quote email
       // goes out as the monitored info@ inbox so a guest can hit Reply); absent, config.from is used.
-    } = { from: message.from ?? this.config.from, to: message.recipient, subject, text };
+    } = {
+      from: fromWithBrandName(message.from ?? this.config.from),
+      to: message.recipient,
+      subject,
+      text,
+    };
     // Mail goes out as bookings@ (send-only, unmonitored). Point Reply at the human inbox so a guest
     // replying to their confirmation reaches us instead of a black hole.
     if (this.config.replyTo) body.reply_to = this.config.replyTo;

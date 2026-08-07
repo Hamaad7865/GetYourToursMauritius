@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ResendNotificationProvider } from '@/lib/notifications/resend';
 import type { NotificationMessage } from '@/lib/notifications/types';
+import { SITE } from '@/lib/seo/site';
 
 const CONFIG = { apiKey: 're_test_key', from: 'bookings@example.com' };
+/** A bare mailbox is sent WITH the brand name so an inbox shows "Belle Mare Tours", not "bookings". */
+const BRANDED = (addr: string) => `${SITE.name} <${addr}>`;
 
 /**
  * The Resend provider POSTs a single JSON body to https://api.resend.com/emails. Task 5 extends it
@@ -62,7 +65,7 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
     const headers = calls[0]?.init.headers as Record<string, string> | undefined;
     expect(headers?.['Idempotency-Key']).toBe('notif:n1');
 
-    expect(body.from).toBe(CONFIG.from);
+    expect(body.from).toBe(BRANDED(CONFIG.from));
     expect(body.to).toBe('guest@example.com');
     expect(body.subject).toBe('Your invoice for BMT-1');
     expect(body.text).toBe('Plain text fallback');
@@ -89,7 +92,7 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
     const { body } = onlyCall(calls);
 
     // The render()-derived subject/text are still the source for plain sends.
-    expect(body.from).toBe(CONFIG.from);
+    expect(body.from).toBe(BRANDED(CONFIG.from));
     expect(body.to).toBe('guest@example.com');
     expect(typeof body.subject).toBe('string');
     expect(String(body.subject).length).toBeGreaterThan(0);
@@ -136,7 +139,22 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
       subject: 'Your quote',
       text: 'Here is your quote',
     });
-    expect(onlyCall(calls).body.from).toBe('info@bellemaretours.com'); // per-message override wins
+    expect(onlyCall(calls).body.from).toBe(BRANDED('info@bellemaretours.com')); // per-message override wins, brand name attached
+  });
+
+  it('leaves an already-named from untouched (an env like "Belle Mare Tours <info@…>" wins)', async () => {
+    const { calls } = mockFetch();
+    await new ResendNotificationProvider(CONFIG).send({
+      id: 'nn',
+      channel: 'email',
+      recipient: 'guest@example.com',
+      template: 'quote_sent',
+      payload: {},
+      from: 'Belle Mare Tours <info@bellemaretours.com>',
+      subject: 'Your quote',
+      text: 'Here is your quote',
+    });
+    expect(onlyCall(calls).body.from).toBe('Belle Mare Tours <info@bellemaretours.com>');
   });
 
   it('falls back to the configured from (RESEND_FROM identity) when the message carries none', async () => {
@@ -148,7 +166,7 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
       template: 'booking_confirmation',
       payload: { ref: 'BMT-1' },
     });
-    expect(onlyCall(calls).body.from).toBe(CONFIG.from); // no per-message from → the send-only identity
+    expect(onlyCall(calls).body.from).toBe(BRANDED(CONFIG.from)); // no per-message from → the send-only identity, branded
   });
 
   it('sets Reply-To to the human inbox — mail goes out as bookings@ but replies must reach a person', async () => {
@@ -161,7 +179,7 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
       payload: { ref: 'BMT-5' },
     });
     const { body } = onlyCall(calls);
-    expect(body.from).toBe('bookings@example.com'); // send-only identity
+    expect(body.from).toBe(BRANDED('bookings@example.com')); // send-only identity, branded
     expect(body.reply_to).toBe('info@example.com'); // monitored inbox
   });
 
