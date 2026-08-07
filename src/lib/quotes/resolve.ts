@@ -1,4 +1,5 @@
 import { quoteTokenMatches } from './token';
+import { DEFAULT_DEPOSIT_BPS } from './deposit';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 
 /**
@@ -67,6 +68,13 @@ export interface PublicQuote {
   currency: string;
   /** Minor units, like the rest of the quotes module — the figure the card is charged. */
   totalMinor: number;
+  /**
+   * The share of the total that CONFIRMS the booking, in basis points (1000 = 10%; 10000 =
+   * pay-in-full). The guest is charged `round(total × bps / 10000)` at the card form, so the page
+   * that asks them to accept has to state it — otherwise the only place the real figure appears is
+   * the payment form itself.
+   */
+  depositBps: number;
   /** A calendar day, `yyyy-mm-dd`, never an instant. */
   validUntil: string;
   /** The operator's covering note TO the guest. The internal one is a different column. */
@@ -233,8 +241,10 @@ function todayUtc(): string {
 }
 
 const QUOTE_COLUMNS =
-  'id, ref, customer_name, status, currency, total_minor, valid_until, intro_note, token_hash, ' +
-  'converted_at, booking_id';
+  // `deposit_bps` is guest-facing: api_convert_quote charges only round(total × bps / 10000) at the
+  // card form, so the page that asks the guest to accept the offer has to be able to say so.
+  'id, ref, customer_name, status, currency, total_minor, deposit_bps, valid_until, intro_note, ' +
+  'token_hash, converted_at, booking_id';
 
 const ITEM_COLUMNS =
   'position, description, price_label, starts_at, ends_at, quantity, unit_amount_minor, ' +
@@ -336,6 +346,9 @@ export async function resolveQuoteForToken(
     customerName: text(data.customer_name),
     currency: text(data.currency),
     totalMinor: minor(data.total_minor),
+    // The column's own default for a row written before it existed — never 0, which would render
+    // "pay EUR 0.00 to confirm" on the guest's own money screen.
+    depositBps: Number(data.deposit_bps ?? DEFAULT_DEPOSIT_BPS),
     validUntil: dateText(data.valid_until),
     introNote: textOrNull(data.intro_note),
     convertedAt,

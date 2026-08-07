@@ -13,6 +13,12 @@ import {
   resolveQuoteForToken,
   type PublicQuoteLine,
 } from '@/lib/quotes/resolve';
+import {
+  balanceMinorOf,
+  depositMinorOf,
+  depositPercentLabel,
+  isPayInFull,
+} from '@/lib/quotes/deposit';
 import { formatMauritiusDateTime } from '@/lib/invoice/mauritius-time';
 import { SITE } from '@/lib/seo/site';
 
@@ -174,6 +180,33 @@ export default async function QuotePage({
           <p className="text-[12.5px] text-ink-muted">
             Valid until {quote.validUntil}. Nothing is reserved until the quote is paid.
           </p>
+
+          {/* WHAT IS DUE NOW. api_convert_quote charges only round(total × deposit_bps / 10000), so
+              without this the guest reads a total, presses Pay, and is asked for a tenth of it — with
+              the rest never named as owed. Hidden once the money has arrived: "pay X to confirm" is
+              stale the moment it has been paid. */}
+          {!paymentReceived && (
+            <div className="mt-4 rounded-xl border border-teal/25 bg-teal/5 p-4">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-teal-dark">
+                {isPayInFull(quote.depositBps) ? 'Payment' : 'Deposit to confirm'}
+              </p>
+              <p className="mt-1 text-[15px] font-bold text-ink">
+                {isPayInFull(quote.depositBps)
+                  ? `Pay ${money(quote.currency, quote.totalMinor)} to confirm your booking.`
+                  : `Pay ${money(
+                      quote.currency,
+                      depositMinorOf(quote.totalMinor, quote.depositBps),
+                    )} now to confirm (${depositPercentLabel(quote.depositBps)} of the total).`}
+              </p>
+              {!isPayInFull(quote.depositBps) && (
+                <p className="mt-1 text-[13px] text-ink-muted">
+                  The balance of{' '}
+                  {money(quote.currency, balanceMinorOf(quote.totalMinor, quote.depositBps))} is
+                  payable later.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* THE MONEY REALLY ARRIVED — the booking says so, not the query string. This is the one
               state that may thank the guest, and the only one that may take the pay affordance away.

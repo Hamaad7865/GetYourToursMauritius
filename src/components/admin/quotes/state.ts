@@ -401,10 +401,20 @@ export function quoteInputFromForm(form: QuoteFormValues): QuoteInput {
 /* Deposit                                                                                       */
 /* ------------------------------------------------------------------------------------------- */
 
-/** The product default: a 10% deposit, in basis points. Mirrors `quotes.deposit_bps`'s schema default. */
-export const DEFAULT_DEPOSIT_BPS = 1000;
-/** Pay-in-full, in basis points — the single-charge path api_convert_quote leaves unchanged. */
-export const PAY_IN_FULL_BPS = 10000;
+/* The deposit ARITHMETIC lives in src/lib/quotes/deposit.ts — one definition shared by this editor,
+ * the guest's quote email and the guest's quote page, because all three print a figure the card is
+ * charged. Re-exported here so the editor's existing imports keep reading from one place. */
+export {
+  DEFAULT_DEPOSIT_BPS,
+  PAY_IN_FULL_BPS,
+  balanceMinorOf,
+  depositMinorOf,
+  depositPercentLabel,
+  isPayInFull,
+} from '@/lib/quotes/deposit';
+// …and imported as well, because `export … from` re-exports without binding the name locally, and
+// this module's own defaults (emptyQuoteForm, formFromQuote) read it.
+import { DEFAULT_DEPOSIT_BPS } from '@/lib/quotes/deposit';
 
 /** Basis points as a whole percent for the editor's % field. 1000 -> 10, 10000 -> 100. */
 export function depositPercentFromBps(bps: number): number {
@@ -421,15 +431,6 @@ export function depositBpsFromPercent(percent: number): number {
   if (!Number.isFinite(percent)) return DEFAULT_DEPOSIT_BPS;
   const clamped = Math.min(100, Math.max(1, Math.round(percent)));
   return clamped * 100;
-}
-
-/**
- * The deposit amount in MINOR units — DISPLAY ONLY. Matches api_convert_quote's own sizing,
- * `round(total_minor * deposit_bps / 10000)`, so what the operator is shown is what the guest is
- * charged to confirm. The balance the operator later collects is `total - this`.
- */
-export function depositMinorOf(totalMinor: number, bps: number): number {
-  return Math.round((totalMinor * bps) / 10000);
 }
 
 /** The quote's total in minor units, or null while a line is still half-typed. Display only —
@@ -746,6 +747,9 @@ export function previewEmailInput(form: QuoteFormValues): QuoteEmailInput {
     validUntil: input.validUntil,
     introNote: input.introNote,
     locale: input.locale ?? 'en',
+    // The preview is EVIDENCE: it must state the same payment terms the send route will, or the
+    // operator signs off on an offer whose deposit sentence they never saw.
+    depositBps: form.depositBps,
     items: input.items.map((item) => ({
       // The send route makes the same substitution (`description ?? price_label`), and so does
       // api_convert_quote when it names the booking_items row — so the preview, the email and the
