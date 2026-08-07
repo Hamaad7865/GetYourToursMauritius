@@ -7,7 +7,12 @@ import {
   depositPercentLabel,
   isPayInFull,
 } from '@/lib/quotes/deposit';
-import { quoteOpenPath, quoteRefLooksValid, quoteTokenLooksValid } from '@/lib/quotes/link-cookie';
+import {
+  quoteBalanceOpenPath,
+  quoteOpenPath,
+  quoteRefLooksValid,
+  quoteTokenLooksValid,
+} from '@/lib/quotes/link-cookie';
 import { lineSubtotalMinor, quoteTotalMinor } from '@/lib/quotes/totals';
 import { SITE } from '@/lib/seo/site';
 import { ValidationError } from '@/lib/services/errors';
@@ -387,6 +392,158 @@ ${introHtml}
   textLines.push(operator);
 
   const text = textLines.join('\n');
+
+  return { subject, html, text };
+}
+
+/** What the guest owes, and the durable link that collects it. See {@link renderQuoteBalanceEmail}. */
+export interface QuoteBalanceEmailInput {
+  ref: string;
+  customerName: string;
+  currency: string;
+  /** MINOR units — `bookings.balance_due_minor`, the figure the balance checkout will charge. */
+  balanceDueMinor: number;
+  /** The quote's own locale, exactly as {@link QuoteEmailInput.locale}. */
+  locale: Locale | string | null | undefined;
+  /** The RAW balance-link token, and NOT a URL — see below. */
+  linkToken: string;
+}
+
+/**
+ * The BALANCE email: the second half of the money on a quote, and the link that collects it.
+ *
+ * The deposit confirmed the booking and reserved the seat; this chases what is left. It exists so
+ * that "Send balance link" DELIVERS the link rather than only minting one for the operator to paste
+ * somewhere by hand — the same shape as sending the quote itself.
+ *
+ * THE LINK IS BUILT HERE, from the raw token, and it is the /api/ OPEN route
+ * (`/api/v1/quotes/{ref}/balance/open?t=…`) — never `/quotes/{ref}/balance?t=…`, which is the
+ * OPERATOR's copy-button URL. A raw token in a rendered page's URL is exported verbatim by GTM's
+ * `page_location` and by client-error-report.ts into `error_logs`; the open route renders no HTML,
+ * loads no tags, and moves the token into an httpOnly cookie before redirecting to the clean page.
+ * Accepting a `payUrl: string` would leave that as a contract only a doc comment could state.
+ *
+ * It REFUSES a non-positive balance and a malformed ref/token, for the same reason
+ * {@link renderQuoteEmail} refuses an unchargeable total: create_payment's balance branch rejects a
+ * charge of nothing, and a dead link is indistinguishable to the guest from a withdrawn one. Both
+ * are cheaper to catch here than after an email has gone out, because an email cannot be recalled.
+ *
+ * Pure, like every other renderer in this directory: no I/O, no clock.
+ */
+export function renderQuoteBalanceEmail(input: QuoteBalanceEmailInput): RenderedEmail {
+  const locale: Locale = isLocale(input.locale) ? input.locale : DEFAULT_LOCALE;
+  const t = (key: string, vars?: Record<string, string | number>) => translate(locale, key, vars);
+  const operator = SITE.operator;
+  const ref = input.ref;
+
+  if (!Number.isSafeInteger(input.balanceDueMinor) || input.balanceDueMinor <= 0) {
+    throw new ValidationError(
+      `Quote ${ref} has no balance to collect (${input.balanceDueMinor} minor units), so there is ` +
+        `nothing to email a payment link for. create_payment's balance branch refuses a charge of ` +
+        `nothing, so the guest would be sent to a page that can only refuse them.`,
+    );
+  }
+  if (!quoteRefLooksValid(ref) || !quoteTokenLooksValid(input.linkToken)) {
+    throw new ValidationError(
+      `Quote ${ref} cannot be emailed a balance link: its ref/token is not a shape the balance open ` +
+        `route accepts (ref must be 1-32 alphanumerics; the token must be 64 lowercase hex ` +
+        `characters). The guest would receive a link that can only ever 404.`,
+    );
+  }
+
+  const payUrl = `${SITE.url}${quoteBalanceOpenPath(ref, input.linkToken)}`;
+  const amount = money(input.currency, input.balanceDueMinor);
+  const supportEmail = escapeHtml(SITE.email);
+  const supportPhone = escapeHtml(SITE.phone);
+  const subject = t('The balance on your {operator} booking {ref}', { operator, ref });
+
+  const html = `<!-- ${escapeHtml(operator)} balance ${escapeHtml(ref)} -->
+<div style="margin:0;padding:0;background:#f3f4f6;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#ffffff;border-radius:8px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;">
+          <tr><td style="background:${ACCENT};font-size:0;line-height:0;height:4px;">&nbsp;</td></tr>
+          <tr>
+            <td style="background:#ffffff;padding:22px 28px 18px;border-bottom:1px solid ${BORDER};">
+              <a href="${SITE.url}" style="text-decoration:none;color:${INK};font-size:18px;font-weight:bold;">
+                <img src="${SITE.url}/logo.png" width="170" alt="${escapeHtml(operator)}"
+                     style="display:block;border:0;width:170px;max-width:170px;height:auto;" />
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px;">
+              <h1 style="margin:0 0 8px 0;color:${INK};font-size:22px;">${escapeHtml(t('The balance on your booking'))}</h1>
+              <p style="margin:0 0 20px 0;color:${MUTED};font-size:14px;line-height:1.5;">
+                ${escapeHtml(
+                  t(
+                    'Hi {name}, your deposit is paid and your booking is confirmed. Here is what is left to settle.',
+                    { name: input.customerName },
+                  ),
+                )}
+              </p>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px 0;">
+                <tr>
+                  <td style="background:#f0fafa;border:1px solid #cfe9ea;border-radius:6px;padding:14px 16px;">
+                    <div style="color:${MUTED};font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:0.06em;">${escapeHtml(t('Balance due'))}</div>
+                    <div style="margin-top:4px;color:${INK};font-size:20px;font-weight:bold;">${escapeHtml(amount)}</div>
+                    <div style="margin-top:3px;color:${MUTED};font-size:13px;">${escapeHtml(t('Quote {ref}', { ref }))}</div>
+                  </td>
+                </tr>
+              </table>
+
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
+                <tr>
+                  <td style="border-radius:6px;background:${ACCENT};">
+                    <a href="${escapeHtml(payUrl)}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;border-radius:6px;">${escapeHtml(t('Pay the balance'))}</a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 20px 0;color:${MUTED};font-size:12.5px;line-height:1.5;word-break:break-all;">
+                ${escapeHtml(t('Or open this link:'))} ${escapeHtml(payUrl)}
+              </p>
+
+              <p style="margin:0;color:${MUTED};font-size:13px;line-height:1.6;">
+                ${t(
+                  'Something to change? Reply to this email, or contact us at {emailLink} or {phone}.',
+                  {
+                    emailLink: `<a href="mailto:${supportEmail}" style="color:${ACCENT};">${supportEmail}</a>`,
+                    phone: supportPhone,
+                  },
+                )}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:18px 28px;background:#f9fafb;border-top:1px solid ${BORDER};color:${MUTED};font-size:12px;">
+              ${escapeHtml(operator)} &middot; ${supportEmail} &middot; ${supportPhone}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</div>`;
+
+  const text = [
+    t('Hi {name},', { name: input.customerName }),
+    '',
+    t('Your deposit is paid and your booking is confirmed. Here is what is left to settle.'),
+    '',
+    `${t('Balance due')}: ${amount} (${t('Quote {ref}', { ref })})`,
+    '',
+    t('Pay the balance:'),
+    payUrl,
+    '',
+    t('Something to change? Reply to this email, or contact us at {emailLink} or {phone}.', {
+      emailLink: SITE.email,
+      phone: SITE.phone,
+    }),
+    '',
+    operator,
+  ].join('\n');
 
   return { subject, html, text };
 }

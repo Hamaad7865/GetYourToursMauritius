@@ -440,7 +440,12 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
     await act('balance', async () => {
       const result = await sendBalanceLink(values.ref!);
       setBalanceLink(result.url);
-      return 'Balance link ready — copy it to the guest.';
+      // The link is emailed to the guest now, like the quote itself. The copy button stays as the
+      // fallback — and is the ONLY route when the mail provider was down, which `emailed: false`
+      // reports rather than swallowing (the token is minted and the URL is live either way).
+      return result.emailed === false
+        ? 'Balance link ready, but the email could not be sent — copy it to the guest.'
+        : `Balance link emailed to ${values.customerEmail || 'the guest'}.`;
     });
   }
 
