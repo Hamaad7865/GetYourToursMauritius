@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   customLineDays,
+  customLineLabel,
+  customLinesByDay,
   mapDayCustomLines,
   mapDaySchedule,
   notifiableCount,
@@ -445,5 +447,90 @@ describe('customLineDays', () => {
     ]);
     expect(days.size).toBe(1);
     expect(days.has('2026-08-18')).toBe(true);
+  });
+});
+
+/* Naming the lines ON the month cell. The grid used to print the words "custom line" and nothing
+ * else, so an operator scanning September could not tell a South Tour from a catamaran from a car
+ * rental without opening every lit day in turn — which is the one thing a month view exists to spare
+ * them. The descriptions were already being fetched by the same query and thrown away. */
+describe('customLinesByDay', () => {
+  it('keeps the lines per day, not just the dates', () => {
+    const byDay = customLinesByDay([
+      customItem({ id: 'a', description: 'Private South Tour', starts_at: '2026-08-18T09:00:00Z' }),
+      customItem({ id: 'b', description: 'Catamaran Cruise', starts_at: '2026-08-19T05:00:00Z' }),
+    ]);
+    expect([...byDay.keys()].sort()).toEqual(['2026-08-18', '2026-08-19']);
+    expect(byDay.get('2026-08-18')!.map((l) => l.description)).toEqual(['Private South Tour']);
+  });
+
+  it('orders a day’s lines by start time, so the cell names what happens first', () => {
+    const byDay = customLinesByDay([
+      customItem({
+        id: 'late',
+        description: 'Afternoon cruise',
+        starts_at: '2026-08-18T09:00:00Z',
+      }),
+      customItem({
+        id: 'early',
+        description: 'Morning transfer',
+        starts_at: '2026-08-18T03:00:00Z',
+      }),
+    ]);
+    expect(byDay.get('2026-08-18')!.map((l) => l.description)).toEqual([
+      'Morning transfer',
+      'Afternoon cruise',
+    ]);
+  });
+
+  it('applies the SAME visibility filter as the day sheet — a dropped line names no day', () => {
+    // An undated line has no day to sit on; mapDayCustomLines drops it and so must this.
+    expect(customLinesByDay([customItem({ starts_at: null })]).size).toBe(0);
+  });
+
+  it('agrees with customLineDays, which is now derived from it', () => {
+    const rows = [
+      customItem({ id: 'a', starts_at: '2026-08-18T05:00:00Z' }),
+      customItem({ id: 'b', starts_at: '2026-08-20T05:00:00Z' }),
+    ];
+    expect([...customLineDays(rows)].sort()).toEqual([...customLinesByDay(rows).keys()].sort());
+  });
+});
+
+describe('customLineLabel', () => {
+  it('keeps a plain description whole', () => {
+    expect(customLineLabel('Private South Tour Mauritius')).toBe('Private South Tour Mauritius');
+  });
+
+  it('drops the trailing detail the calendar already shows', () => {
+    expect(customLineLabel('Nissan March · 09 Sept 2026 – 10 Sept 2026 · 1-day rental')).toBe(
+      'Nissan March',
+    );
+    expect(
+      customLineLabel(
+        'Full day dolphin swimming Ile aux Bénitiers with lunch — Standard · 04 Sept 2026, 12:00 · Adult',
+      ),
+    ).toBe('Full day dolphin swimming Ile aux Bénitiers with lunch');
+  });
+
+  it('KEEPS an en-dash inside a real tour name — the thing it exists to show', () => {
+    // "Catamaran Cruise – Ile Aux Cerfs" is the activity's own title. Splitting on a bare dash would
+    // truncate it to "Catamaran Cruise", which is a different product.
+    expect(
+      customLineLabel('Catamaran Cruise – Ile Aux Cerfs — Standard Sharing Basis · 06 Sept, 12:00'),
+    ).toBe('Catamaran Cruise – Ile Aux Cerfs');
+  });
+
+  it('names a transfer by what it is', () => {
+    expect(
+      customLineLabel(
+        'Round-trip transfer · Catamaran Cruise – Ile Aux Cerfs · from MU, Coastal Road, Quatre Cocos',
+      ),
+    ).toBe('Round-trip transfer');
+  });
+
+  it('never returns empty, whatever it is handed', () => {
+    expect(customLineLabel('· leading separator')).toBe('· leading separator');
+    expect(customLineLabel('   ')).toBe('');
   });
 });

@@ -431,9 +431,51 @@ export function mapDayCustomLines(rows: RawDayCustomItem[]): DayCustomLine[] {
  * expired, cancelled, refunded…), marks no day, exactly as it would show no card in the drawer.
  */
 export function customLineDays(rows: RawDayCustomItem[]): Set<string> {
-  const days = new Set<string>();
-  for (const line of mapDayCustomLines(rows)) days.add(mauritiusDayKey(line.startsAt));
-  return days;
+  return new Set(customLinesByDay(rows).keys());
+}
+
+/**
+ * The same visible lines, kept per Mauritius day rather than reduced to a bare set of dates.
+ *
+ * The month grid used to render the word "custom line" on such a day and nothing else, so an
+ * operator scanning September could not tell a South Tour from a catamaran from a car rental
+ * without opening every day in turn — the whole point of a month view is not having to. The rows
+ * this is built from ALREADY carry `description` (loadCustomLineDays selects it and threw it away),
+ * so naming the line on the cell costs no extra query and no migration.
+ *
+ * Ordered by start time within each day, so the cell names the first thing that happens.
+ */
+export function customLinesByDay(rows: RawDayCustomItem[]): Map<string, DayCustomLine[]> {
+  const byDay = new Map<string, DayCustomLine[]>();
+  for (const line of mapDayCustomLines(rows)) {
+    const key = mauritiusDayKey(line.startsAt);
+    const bucket = byDay.get(key);
+    if (bucket) bucket.push(line);
+    else byDay.set(key, [line]);
+  }
+  for (const lines of byDay.values()) lines.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+  return byDay;
+}
+
+/**
+ * A month-cell-sized label for a quote line, from a description written for a full-width card.
+ *
+ * The descriptions our own quote drafting produces are compound, and everything after the first
+ * separator repeats what the calendar already tells you — the date, the option, the band:
+ *
+ *   "Private South Tour Mauritius"                                    → unchanged
+ *   "Nissan March · 09 Sept 2026 – 10 Sept 2026 · 1-day rental"       → "Nissan March"
+ *   "Catamaran Cruise – Ile Aux Cerfs — Standard · 06 Sept, 12:00…"   → "Catamaran Cruise – Ile Aux Cerfs"
+ *   "Round-trip transfer · Catamaran Cruise… · from MU, Coastal Rd…"  → "Round-trip transfer"
+ *
+ * Split on the em-dash-with-spaces and the middot ONLY. A bare hyphen is part of a real tour name
+ * ("Catamaran Cruise – Ile Aux Cerfs"), so splitting on that would truncate the very thing this is
+ * meant to show. Falls back to the whole description when it carries no separator.
+ */
+export function customLineLabel(description: string): string {
+  const cut = description.search(/\s(?:—|·)\s/);
+  const head = (cut === -1 ? description : description.slice(0, cut)).trim();
+  return head || description.trim();
 }
 
 /* The typed browser client does not know `booking_custom_items`: it landed in 20260909000000 and the
@@ -497,14 +539,19 @@ export async function loadDaySchedule(day: string): Promise<DayEntry[]> {
 }
 
 /**
- * Which days across a month carry at least one visible custom/rental line — the month-wide companion
- * to `loadCalendarMonth`, so the grid can make a converted-quote-only day clickable (see
- * `customLineDays` for why the month RPC alone can't). `from`..`to` are the grid's inclusive first and
- * last day keys; the query spans the same window in UTC (`from`'s day start to the day AFTER `to`), one
- * cheap read served by the partial `booking_custom_items_starts_idx`, grouped by Mauritius day. Reads
- * through staff RLS like the rest of admin.
+ * The visible custom/rental lines across a month, keyed by Mauritius day — the month-wide companion
+ * to `loadCalendarMonth`. It makes a converted-quote-only day clickable (see `customLineDays` for why
+ * the month RPC alone can't) AND gives the grid the line names to print on the cell.
+ *
+ * `from`..`to` are the grid's inclusive first and last day keys; the query spans the same window in
+ * UTC (`from`'s day start to the day AFTER `to`), one cheap read served by the partial
+ * `booking_custom_items_starts_idx`. Reads through staff RLS like the rest of admin. The selected
+ * columns are unchanged — `description` was always fetched, and only ever discarded.
  */
-export async function loadCustomLineDays(from: string, to: string): Promise<Set<string>> {
+export async function loadCustomLinesByDay(
+  from: string,
+  to: string,
+): Promise<Map<string, DayCustomLine[]>> {
   const { startUtc } = mauritiusDayBounds(from);
   const { endUtc } = mauritiusDayBounds(to);
   const supabase = getBrowserSupabase();
@@ -522,7 +569,7 @@ export async function loadCustomLineDays(from: string, to: string): Promise<Set<
     .order('starts_at', { ascending: true })
     .returns<RawDayCustomItem[]>();
   if (error) throw error;
-  return customLineDays(data ?? []);
+  return customLinesByDay(data ?? []);
 }
 
 interface RawTargetRow {
