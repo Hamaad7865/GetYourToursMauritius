@@ -5,6 +5,7 @@ import { BTN_GHOST, Card, INPUT_CLS } from '@/components/admin/ui';
 import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
 import { fmtDate, fmtTime } from '@/lib/admin/format';
 import { TourPicker } from '@/components/admin/quotes/TourPicker';
+import { RentalPicker } from '@/components/admin/quotes/RentalPicker';
 import {
   customLineDraft,
   eurFromMinor,
@@ -55,6 +56,7 @@ export function LinesPane({
   setLines: (lines: QuoteLineDraft[]) => void;
 }) {
   const [picking, setPicking] = useState(false);
+  const [pickingRental, setPickingRental] = useState(false);
   const lines = form.lines;
   const total = formTotalMinor(form);
   const problem = formLineProblem(form);
@@ -71,6 +73,9 @@ export function LinesPane({
           <div className="flex gap-2">
             <button type="button" onClick={() => setPicking(true)} className={BTN_GHOST}>
               <IconPlus width={15} height={15} /> Add tour
+            </button>
+            <button type="button" onClick={() => setPickingRental(true)} className={BTN_GHOST}>
+              <IconPlus width={15} height={15} /> Add rental
             </button>
             <button
               type="button"
@@ -237,6 +242,13 @@ export function LinesPane({
         <TourPicker
           onAdd={(added) => setLines([...lines, ...added])}
           onClose={() => setPicking(false)}
+        />
+      )}
+
+      {pickingRental && (
+        <RentalPicker
+          onAdd={(added) => setLines([...lines, ...added])}
+          onClose={() => setPickingRental(false)}
         />
       )}
     </div>

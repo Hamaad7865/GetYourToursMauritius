@@ -1,6 +1,7 @@
 import { quoteTotalMinor } from '@/lib/quotes/totals';
 import { quoteTodayUtc } from '@/lib/quotes/validity';
 import { fmtDate, fmtTime, mauDay } from '@/lib/admin/format';
+import { rentalDays } from '@/lib/services/pricing';
 import { ValidationError } from '@/lib/services/errors';
 import type {
   QuoteDetail,
@@ -168,7 +169,8 @@ export interface QuoteLineDraft {
    * only while its typed price still equals this — see the module header.
    */
   catalogueUnitMinor: number | null;
-  /** Part 2's. This editor never sets one; it must not drop one either. See `formFromQuote`. */
+  /** Set by {@link rentalLineDraft} for a rental line, null otherwise; the editor must never drop it
+   *  on a `kind='rental'` line either. See `formFromQuote` and `quoteItemRows`. */
   rentalVehicleSlug: string | null;
 }
 
@@ -464,6 +466,76 @@ export function catalogueLineRefusal(option: {
     );
   }
   return null;
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* Adding a rental                                                                               */
+/* ------------------------------------------------------------------------------------------- */
+
+/** The vehicle and dates a rental line is built from. Money is MINOR units, like everything the money
+ *  path touches; the daily rate becomes the line's unit price, and the security deposit is not here at
+ *  all — a refundable hold is not a charge, so it can never reach the total (see {@link rentalLineDraft}). */
+export interface RentalPick {
+  slug: string;
+  name: string;
+  /** The vehicle's daily rate, in minor units — the line's unit price. */
+  dailyRateMinor: number;
+  /** Pick-up and return days as `yyyy-mm-dd`, read as Mauritius wall-clock like every other date here. */
+  pickupDate: string;
+  returnDate: string;
+}
+
+/**
+ * "Nissan March · 23 Aug – 28 Aug 2026 · 5-day rental" — the sentence the guest reads on the offer.
+ *
+ * `quote_items` CHECKs that a non-catalogue line has a description, so this must be non-empty; it also
+ * names the dates the vehicle is held for, which nothing else on a plain rental line records. Mauritius
+ * time, like the rest of the back office. Editable afterwards: it is the guest's line, not a label.
+ */
+export function rentalLineDescription(
+  name: string,
+  pickupDate: string,
+  returnDate: string,
+  days: number,
+): string {
+  const from = fmtDate(`${pickupDate}T00:00:00+04:00`);
+  const to = fmtDate(`${returnDate}T00:00:00+04:00`);
+  const span = from === to ? from : `${from} – ${to}`;
+  return `${name} · ${span} · ${days}-day rental`;
+}
+
+/**
+ * A rental as one quote line, priced days × daily rate.
+ *
+ * `kind='rental'` is load-bearing, not cosmetic: {@link quoteInputFromForm} keeps `rentalVehicleSlug`
+ * only on a rental line, and `quoteItemRows` CLEARS the slug on any other kind — so a line left 'custom'
+ * would drop the vehicle it was sold as, and api_convert_quote's `on delete restrict` FK could never
+ * name it again. The day count is `rentalDays` — the SAME whole-days-from-1 arithmetic the public
+ * RentalWidget prices with (src/lib/services/pricing.ts), so the quoted figure equals what the guest
+ * saw on /rent.
+ *
+ * The pick-up day goes in `date` (not `startsAt`), so the LinesPane date field stays the editable
+ * source of truth exactly as it is for a custom line, and {@link quoteInputFromForm} derives `starts_at`
+ * from it. The security deposit is deliberately not a parameter: a refundable hold is not a charge, and
+ * a figure the helper never sees cannot leak into `quotes.total_minor` (`quote_total_mismatch`).
+ */
+export function rentalLineDraft(pick: RentalPick): QuoteLineDraft {
+  const days = rentalDays(pick.pickupDate, pick.returnDate);
+  return {
+    key: newLineKey(),
+    kind: 'rental',
+    description: rentalLineDescription(pick.name, pick.pickupDate, pick.returnDate, days),
+    priceLabel: '',
+    sessionOccurrenceId: null,
+    activityOptionId: null,
+    startsAt: null,
+    date: pick.pickupDate,
+    time: '',
+    quantityText: String(days),
+    unitText: formatMinorAsEuros(pick.dailyRateMinor),
+    catalogueUnitMinor: null,
+    rentalVehicleSlug: pick.slug,
+  };
 }
 
 /* ------------------------------------------------------------------------------------------- */
