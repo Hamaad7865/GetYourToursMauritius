@@ -8,6 +8,8 @@ import { getServerEnv } from '@/lib/config/env';
 import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { hashQuoteToken, mintQuoteToken } from '@/lib/quotes/token';
+import { getNotificationProvider } from '@/lib/notifications';
+import { renderQuoteBalanceEmail } from '@/lib/email/quote';
 import { quoteBalancePagePath } from '@/lib/quotes/link-cookie';
 import { SITE } from '@/lib/seo/site';
 import { ConfigError, ConflictError, ForbiddenError, NotFoundError } from '@/lib/services/errors';
@@ -159,7 +161,10 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   // be surfaced by mistake.
   const { data: quote, error } = await db
     .from('quotes')
-    .select('id, booking_id')
+    // The guest fields the email needs. `internal_notes` and the token hashes stay unselected: what
+    // is never loaded cannot be surfaced by mistake. `locale` is a property of the OFFER — the same
+    // language its quote, confirmation and VAT invoice were written in — not of the operator here.
+    .select('id, booking_id, customer_name, customer_email, currency, locale')
     .eq('ref', ref)
     .maybeSingle();
   if (error)
@@ -238,7 +243,55 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
   // home besides the guest's copy of the URL: it is never logged and never written to any other column.
   const url = `${SITE.url}${quoteBalancePagePath(ref)}?t=${encodeURIComponent(token)}`;
 
-  return jsonOk({ url });
+  /* AND SEND IT, exactly as the quote itself is sent. The operator's copy button is a fallback, not
+   * the delivery mechanism — leaving it as the only one meant the balance was chased by hand, and a
+   * link that lives only in a clipboard is a link that goes missing.
+   *
+   * IN-REQUEST, not on the `notifications` outbox, and for the reason the send route states: an
+   * outbox row PERSISTS its payload, so queueing this would write a live bearer token into a table
+   * the drain reads, retries and logs against. The token's only homes stay the guest's email and the
+   * `url` returned here.
+   *
+   * The email is rendered from the RAW token (renderQuoteBalanceEmail builds the /api/ open-route
+   * link itself, so no caller can email the page URL that would leak it into GTM or error_logs), and
+   * the render happens AFTER the hash is stored — the link must be resolvable by the time it lands.
+   *
+   * A SEND FAILURE IS NOT A FAILED REQUEST. The token is already stored and `url` is already valid,
+   * so answering 500 would tell the operator nothing was minted while a working link existed; they
+   * would press the button again and rotate a link the guest may already hold. Instead the URL comes
+   * back with `emailed: false` and the operator copies it by hand. */
+  let emailed = false;
+  try {
+    const email = renderQuoteBalanceEmail({
+      ref,
+      customerName: text(quote.customer_name),
+      currency: text(quote.currency),
+      balanceDueMinor,
+      locale: textOrNull(quote.locale),
+      linkToken: token,
+    });
+    await getNotificationProvider().send({
+      // A fresh id per send, never the quote's: the Resend provider keys its Idempotency-Key on it,
+      // and re-sending a balance link is a DIFFERENT email carrying a different link.
+      id: crypto.randomUUID(),
+      channel: 'email',
+      recipient: text(quote.customer_email),
+      template: 'quote_balance',
+      // From the monitored info@ inbox, like the quote — a guest should be able to just hit Reply.
+      from: getServerEnv().QUOTE_FROM ?? SITE.email,
+      // EMPTY, and it stays empty: a payload is the sort of thing that gets logged, and the token is
+      // in the rendered body. The provider only falls back to rendering from it when no body is set.
+      payload: {},
+      subject: email.subject,
+      html: email.html,
+      text: email.text,
+    });
+    emailed = true;
+  } catch {
+    emailed = false;
+  }
+
+  return jsonOk({ url, emailed });
 });
 
 export function OPTIONS(req: Request): Response {

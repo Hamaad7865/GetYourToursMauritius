@@ -2662,6 +2662,18 @@ export const fr: Record<string, string> = {
   // The payment TERMS. api_convert_quote charges only the deposit at the card form, so these are the
   // figures the guest is actually asked for — the amounts and the percentage are data and stay as
   // rendered, only the sentence around them is translated.
+  // The BALANCE email — the second half of the money on a quote. Amounts and the ref are data and
+  // stay as rendered; only the sentences around them are translated.
+  'The balance on your {operator} booking {ref}': 'Le solde de votre réservation {operator} {ref}',
+  'The balance on your booking': 'Le solde de votre réservation',
+  'Hi {name}, your deposit is paid and your booking is confirmed. Here is what is left to settle.':
+    'Bonjour {name}, votre acompte est réglé et votre réservation est confirmée. Voici le solde restant à payer.',
+  'Your deposit is paid and your booking is confirmed. Here is what is left to settle.':
+    'Votre acompte est réglé et votre réservation est confirmée. Voici le solde restant à payer.',
+  // ('Balance due' is already translated further up this table — reused, not restated.)
+  'Quote {ref}': 'Devis {ref}',
+  'Pay the balance': 'Régler le solde',
+  'Pay the balance:': 'Régler le solde :',
   // The guest's own booking page, for a quote booking still carrying a balance.
   'Deposit already paid': 'Acompte déjà réglé',
   'Balance still to pay': 'Solde restant à régler',

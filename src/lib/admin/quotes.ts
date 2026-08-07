@@ -805,6 +805,14 @@ export async function cancelQuote(id: string): Promise<void> {
 export interface SendQuoteResult {
   /** The public, tokenised link the guest was emailed — shown to the operator with a copy button. */
   url: string;
+  /**
+   * Whether the email actually went out (balance link only). FALSE means the link is minted and the
+   * `url` is live, but the mail provider refused — so the operator must copy it by hand rather than
+   * assume the guest has it. Absent on the quote-send path, which fails the whole request instead:
+   * there the email IS the delivery, whereas here a working link already exists and re-pressing the
+   * button would rotate one the guest may already hold.
+   */
+  emailed?: boolean;
 }
 
 /**
@@ -869,7 +877,8 @@ export async function sendBalanceLink(ref: string): Promise<SendQuoteResult> {
   if (!res.ok || !body?.ok || !body.data?.url) {
     throw new Error(body?.error?.message ?? 'Could not create the balance link.');
   }
-  return { url: body.data.url };
+  // `emailed` distinguishes "the guest has it" from "you must copy this" — see SendQuoteResult.
+  return { url: body.data.url, emailed: body.data.emailed };
 }
 
 /**
