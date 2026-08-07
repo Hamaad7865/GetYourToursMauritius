@@ -150,6 +150,35 @@ export const bookingSchema = z.object({
   source: bookingSourceSchema,
   createdAt: z.string(),
   items: z.array(bookingItemSchema),
+  /**
+   * A QUOTE booking's own lines. api_convert_quote writes every non-occurrence line — custom, rental
+   * and the transport add-on — to `booking_custom_items`, so a booking minted from a quote has an
+   * EMPTY {@link items} and its whole itemisation lives here. Ordered by the position the guest read
+   * the offer in. `.catch` so a DTO from a database without 20260917000000 still parses (as "none")
+   * rather than 500ing the page — the same stance as `supplements` and `pendingPickup`.
+   */
+  customItems: z
+    .array(
+      z.object({
+        description: z.string(),
+        quantity: z.number().int().nonnegative(),
+        unitAmountEur: z.number().nonnegative(),
+        subtotalEur: z.number().nonnegative(),
+        startsAt: z.string().nullish(),
+      }),
+    )
+    .nullish()
+    .catch(null),
+  /** What was taken up front, in EUR (0 on a pay-in-full booking). */
+  depositEur: z.number().nonnegative().nullish().catch(null),
+  /**
+   * What is STILL OWED, in EUR. `paymentState` reads 'paid' the moment the deposit clears, so this is
+   * the only field that distinguishes a settled booking from a deposit-confirmed one.
+   */
+  balanceDueEur: z.number().nonnegative().nullish().catch(null),
+  /** The earliest dated line across BOTH line tables — the balance falls due 24h before it. Null when
+   *  nothing on the booking carries a date, and the page then shows no deadline. */
+  firstActivityAt: z.string().nullish().catch(null),
   /** The customer's saved route (sightseeing tours), or null/absent for the standard route. */
   customItinerary: z
     .array(

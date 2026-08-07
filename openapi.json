@@ -5305,6 +5305,64 @@
                             ]
                           }
                         },
+                        "customItems": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "description": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "unitAmountEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "subtotalEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "startsAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "description",
+                              "quantity",
+                              "unitAmountEur",
+                              "subtotalEur"
+                            ]
+                          }
+                        },
+                        "depositEur": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "balanceDueEur": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "firstActivityAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
                         "customItinerary": {
                           "type": [
                             "array",
@@ -6028,6 +6086,64 @@
                               "occurrenceId"
                             ]
                           }
+                        },
+                        "customItems": {
+                          "type": [
+                            "array",
+                            "null"
+                          ],
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "description": {
+                                "type": "string"
+                              },
+                              "quantity": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "unitAmountEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "subtotalEur": {
+                                "type": "number",
+                                "minimum": 0
+                              },
+                              "startsAt": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
+                            },
+                            "required": [
+                              "description",
+                              "quantity",
+                              "unitAmountEur",
+                              "subtotalEur"
+                            ]
+                          }
+                        },
+                        "depositEur": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "balanceDueEur": {
+                          "type": [
+                            "number",
+                            "null"
+                          ],
+                          "minimum": 0
+                        },
+                        "firstActivityAt": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
                         },
                         "customItinerary": {
                           "type": [

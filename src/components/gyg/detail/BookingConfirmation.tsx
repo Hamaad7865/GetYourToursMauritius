@@ -40,6 +40,22 @@ interface Booking {
   totalEur: number;
   currency: string;
   items: BookingItem[];
+  /** A QUOTE booking's lines. Its `items` is empty — api_convert_quote writes custom/rental/transport
+   *  lines to booking_custom_items — so this carries the whole itemisation (20260917000000). */
+  customItems?: Array<{
+    description: string;
+    quantity: number;
+    unitAmountEur: number;
+    subtotalEur: number;
+    startsAt?: string | null;
+  }> | null;
+  /** Taken up front; 0 on a pay-in-full booking. */
+  depositEur?: number | null;
+  /** Still owed. `paymentState` says 'paid' once the DEPOSIT clears, so this is the only field that
+   *  tells a settled booking from a deposit-confirmed one. */
+  balanceDueEur?: number | null;
+  /** Earliest dated line across both line tables — the balance falls due 24h before it. */
+  firstActivityAt?: string | null;
   customItinerary?: Array<{ title: string; area?: string | null }> | null;
   pickupLocation?: string | null;
   dropoffLocation?: string | null;
@@ -455,6 +471,23 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   // The genuinely celebratory states — a success seal + the confetti fire only here, never on a
   // cancellation, refund, or a still-pending payment (those stay calm by design).
   const celebrating = paid && (booking.status === 'confirmed' || booking.status === 'completed');
+
+  /**
+   * When the balance falls due: 24 hours before the first dated line, as a Mauritius calendar day.
+   * Null when nothing on the booking carries a date — the deadline is then omitted rather than
+   * guessed at, because a wrong date on a money screen is worse than no date.
+   */
+  const balanceDueBy = (() => {
+    if (!booking.firstActivityAt) return null;
+    const first = new Date(booking.firstActivityAt);
+    if (Number.isNaN(first.getTime())) return null;
+    return new Date(first.getTime() - 24 * 60 * 60 * 1000).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'Indian/Mauritius',
+    });
+  })();
   // A called-off departure the guest hasn't answered yet. Same predicate as the SQL bypass.
   const awaitingChoice = isAwaitingDisruptionChoice(booking.disruption);
   // A staff account on another guest's booking (RLS admits no one else non-own). Flag it loudly,
@@ -532,6 +565,24 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
               </dd>
             </div>
           ))}
+          {/* A QUOTE BOOKING'S OWN LINES. Its `items` array is empty — api_convert_quote writes
+              custom/rental/transport lines to booking_custom_items — so without these the guest saw a
+              bare total with nothing itemising what they had bought. */}
+          {(booking.customItems ?? []).map((line, i) => (
+            <div key={`custom-${i}`} className="flex justify-between gap-4">
+              <dt className="min-w-0 text-ink-muted">
+                {line.description}
+                {line.quantity > 1 && (
+                  <span className="mt-0.5 block text-[12.5px] text-ink-muted/80">
+                    {line.quantity} × <Price eur={line.unitAmountEur} />
+                  </span>
+                )}
+              </dt>
+              <dd className="shrink-0 font-medium text-ink">
+                <Price eur={line.subtotalEur} />
+              </dd>
+            </div>
+          ))}
           {booking.transportEur != null && booking.transportEur > 0 && (
             <div className="flex justify-between">
               <dt className="text-ink-muted">{t('Door-to-door transport')}</dt>
@@ -569,6 +620,38 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
             </dd>
           </div>
         </dl>
+
+        {/* WHAT IS STILL OWED. `paymentState` flips to 'paid' the moment the DEPOSIT clears, so a
+            deposit-confirmed quote booking otherwise reads as fully settled: the guest sees "Booking
+            confirmed", a total, and no hint that the rest is due. The deadline is 24h before the
+            first dated line, and is omitted entirely when no line carries a date rather than
+            invented. */}
+        {booking.balanceDueEur != null && booking.balanceDueEur > 0 && (
+          <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4">
+            {booking.depositEur != null && booking.depositEur > 0 && (
+              <div className="flex justify-between text-[13px]">
+                <span className="text-ink-muted">{t('Deposit already paid')}</span>
+                <span className="font-medium text-ink">
+                  <Price eur={booking.depositEur} />
+                </span>
+              </div>
+            )}
+            <div className="mt-1 flex items-baseline justify-between">
+              <span className="text-sm font-bold text-ink">{t('Balance still to pay')}</span>
+              <span className="text-lg font-extrabold text-ink">
+                <Price eur={booking.balanceDueEur} />
+              </span>
+            </div>
+            {balanceDueBy && (
+              <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
+                {t('Due by {date}, 24 hours before your first activity.', { date: balanceDueBy })}
+              </p>
+            )}
+            <p className="mt-1.5 text-[12.5px] leading-relaxed text-ink-muted">
+              {t('Get in touch to settle it — we will send you a payment link.')}
+            </p>
+          </div>
+        )}
 
         {(booking.pickupLocation || booking.pickupPending) && (
           <div className="mt-5 border-t border-ink/10 pt-4">
