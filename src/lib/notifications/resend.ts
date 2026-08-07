@@ -254,6 +254,25 @@ Belle Mare Tours (internal alert)`,
       text: `Hi ${name},\n\nThanks — we have received your deposit for booking ${ref}${bal}. Your place is reserved; we will email you a secure link to pay the balance.\n\nBelle Mare Tours`,
     };
   }
+  // The guest's DEPOSIT-FORFEIT notice — their booking is cancelled and the non-refundable deposit is
+  // KEPT (any balance they had paid is refunded). Deliberately NOT booking_refunded, which claims a
+  // full refund. `refundedMinor` decides whether a balance was returned (both-paid) or not (deposit-only).
+  if (message.template === 'deposit_forfeited') {
+    const currency = typeof p.currency === 'string' ? p.currency : 'EUR';
+    const deposit =
+      typeof p.depositMinor === 'number'
+        ? `${currency} ${(p.depositMinor / 100).toFixed(2)}`
+        : 'your deposit';
+    const refundedMinor = typeof p.refundedMinor === 'number' ? p.refundedMinor : 0;
+    const refundLine =
+      refundedMinor > 0
+        ? `We have refunded the ${currency} ${(refundedMinor / 100).toFixed(2)} balance you had paid — please allow a few days for it to appear on your statement. `
+        : '';
+    return {
+      subject: `Your Belle Mare Tours booking ${ref} has been cancelled`,
+      text: `Hi ${name},\n\nYour booking ${ref} has been cancelled. ${refundLine}As agreed when you booked, the deposit of ${deposit} is non-refundable and has been retained.\n\nWe'd be glad to welcome you another time.\n\nBelle Mare Tours`,
+    };
+  }
   // Owner-facing: the balance on a deposit booking has now been paid, settling it in full.
   if (message.template === 'owner_balance_paid') {
     const currency = typeof p.currency === 'string' ? p.currency : 'EUR';

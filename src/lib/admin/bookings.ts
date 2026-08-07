@@ -448,7 +448,12 @@ export async function setBookingStatus(
 /** Record that a manual (Peach-dashboard) refund happened on a refund_pending (or paid) booking.
  *  Calls the staff-only `api_mark_refunded` RPC, which records the refund through the same ledger
  *  path the webhook uses — transitioning the booking to `refunded`, setting refunded_minor, and
- *  firing the `booking_refunded` customer email. Idempotent: a second call is a no-op. */
+ *  firing the `booking_refunded` customer email. Idempotent: a second call is a no-op.
+ *
+ *  EXCEPTION — a quote booking with a genuine PARTIAL deposit (0 < deposit_minor < total_minor): that
+ *  deposit is non-refundable, so the RPC keeps it, reverses only the balance/supplements, and drives the
+ *  booking to `cancelled` (not `refunded`), clears the durable balance link, and emails a
+ *  `deposit_forfeited` notice instead. See docs/handbook/quotes.md §6. */
 export async function markBookingRefunded(id: string): Promise<void> {
   const { error } = await getBrowserSupabase().rpc('api_mark_refunded', { p: { bookingId: id } });
   if (error) throw error;

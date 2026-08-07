@@ -292,8 +292,66 @@ exactly why this must never widen beyond a confirmed, exact (case-insensitive) a
 
 ---
 
-## 6. Landmines
+## 6. The deposit, the balance, and the non-refundable forfeit
 
+A quote can take a **partial deposit** instead of the full price. `quotes.deposit_bps` is the deposit as
+basis points (1000 = 10.00%; 10000 = pay in full, the unchanged behaviour). At conversion
+`api_convert_quote` writes two figures onto the booking and leaves `total_minor` the **full** price
+throughout (it feeds VAT and the operator payout):
+
+- `bookings.deposit_minor` — the deposit charge size. `create_payment` sizes the first `booking`
+  payments row to it, so paying the deposit confirms the booking and reserves the seat with **no change**
+  to the confirm-on-paid gate.
+- `bookings.balance_due_minor` — the **source of truth for "how much is still owed"**, a projection
+  `append_payment_event` recomputes after every event (`greatest(0, total − Σ settled)`). It is kept
+  **out** of the `payment_state` enum on purpose, so the roll-up (and its sticky-failed protection) is
+  untouched. **Never read `payment_state` as "fully settled"** — a deposit-confirmed booking is
+  `payment_state = 'paid'` with a balance still owed; ask `balance_due_minor`.
+
+The **balance** is a separate `purpose = 'balance'` payments row, chased later through a **durable**
+balance link (`quotes.balance_token_hash`, a second credential distinct from `token_hash`). The guest
+gets a **deposit receipt** on the deposit and the full **VAT invoice** only when the balance clears
+(`enqueue_booking_notification` forks on `balance_due_minor`; `notify_balance_paid` fires the invoice).
+That money-path + document split shipped in `20260912000000` / `20260915000000`.
+
+### The deposit is non-refundable (`20260916000000_quote_deposit_forfeit.sql`)
+
+Owner decision: a **genuine partial deposit** (`0 < deposit_minor < total_minor`) is **forfeit** on
+cancellation. When staff hit **Mark refunded** on such a booking, `api_mark_refunded`:
+
+1. **keeps the deposit row** — the reversal loop excludes the single `booking` row
+   (`not (v_partial_deposit and purpose = 'booking')`); the balance row and any pickup supplement are
+   still reversed;
+2. **drives the booking to `cancelled`** — the kept deposit row keeps the roll-up at `paid`, so
+   `append_payment_event` can never move the booking off `refund_pending` on its own. The function sets
+   the terminal status itself. It is **`cancelled`, not `refunded`**: the deposit was kept, so "refunded"
+   would be a false claim _and_ would fire the `booking_refunded` "fully refunded" guest email;
+3. **kills the durable balance link** — refunding the balance rebounds `balance_due_minor` 0 → balance,
+   which on a still-`confirmed` booking would re-arm `resolveBalanceForToken` for a **second charge**. The
+   `cancelled` status already fails that resolver's status gate; on top of that the function clears
+   `quotes.balance_token_hash` (only that column — never `token_hash`), so the link is dead at the token too;
+4. **emails the guest a `deposit_forfeited` notice** — the honest message ("your booking is cancelled;
+   any balance is refunded; the deposit is non-refundable and has been retained"), enqueued directly
+   because the `cancelled` transition mails no guest. `refundedMinor` on the payload lets the copy tell
+   the deposit-only case (nothing else charged) from the both-paid case (balance returned).
+
+A **pay-in-full quote** (`deposit_minor = total_minor`) and every ordinary booking are **not** partial
+deposits — `v_partial_deposit` is false and the whole function is byte-for-byte the pre-forfeit
+behaviour: fully reversed, terminal `refunded`, ordinary `booking_refunded` email.
+
+`api_mark_refunded` is a money-path function this repo has already re-declared from a stale body once, so
+two invariants of the forfeit change are pinned in `tests/integration/resolved-function-bodies.test.ts`
+(the deposit-row exclusion and the balance-link clear) — a re-definition that drops either goes red.
+
+## 7. Landmines
+
+- **A partial deposit is non-refundable — the refund does NOT reverse it.** `api_mark_refunded` keeps
+  the `booking` row, drives the booking to `cancelled` (never `refunded`) and clears
+  `quotes.balance_token_hash`. The naive "just skip the deposit row" fix left the booking stuck in
+  `refund_pending` forever **and** re-armed the balance link for a second charge — both are fixed here,
+  and both are pinned by contract tests. Don't reintroduce the reversal.
+- **`balance_due_minor`, not `payment_state`, answers "is this fully settled?"** A deposit-confirmed
+  booking is `payment_state = 'paid'` with a balance still owed.
 - **Never guard conversion on `booking_id`.** Use `converted_at`. An erasure nulls the first one.
 - **Never put the raw token in a rendered URL.** GTM and the client-error reporter both export it.
 - **Never answer a bad token differently from an unknown ref.** One 404 for everything.
@@ -305,7 +363,7 @@ exactly why this must never widen beyond a confirmed, exact (case-insensitive) a
   `create or replace` never resets an existing ACL. That one-word omission has shipped a live leak from
   this repo twice, and `tests/integration/definer-grants-lockdown.test.ts` is what catches it.
 
-## 7. Not built yet
+## 8. Not built yet
 
 - **Part 2 — rentals.** `kind = 'rental'` and `rental_vehicle_slug` exist so Part 2 needs no migration,
   but no rental pricing or UI ships here. Open: is the deposit charged online, and does the same
