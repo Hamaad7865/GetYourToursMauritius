@@ -1,5 +1,13 @@
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { catalogueLineRefusal } from '@/components/admin/quotes/state';
+import {
+  REGION_DISTANCE_DEFAULT,
+  TRANSPORT_BANDS_DEFAULT,
+  type RegionDistanceMap,
+  type TransportBandFare,
+  type TransportBandPricing,
+  type ZoneBand,
+} from '@/lib/services/pricing';
 
 /**
  * The catalogue, as the quote editor's "Add tour" picker needs it: which tours can be quoted, which
@@ -21,6 +29,15 @@ export interface QuotableActivity {
   title: string;
   status: string;
   pricingMode: string;
+  /**
+   * The activity's home/boarding region and coordinates, for pricing a transport add-on: a transfer
+   * is priced against `coalesce(region, region_from_coords(lat, lng))` (see `activityRegion` in
+   * state.ts). `region_from_coords` needs the pair, so both `lat` and `lng` come along. Null on an
+   * activity whose map location was never set — the transfer then defaults to 0 and is typed by hand.
+   */
+  region: string | null;
+  lat: number | null;
+  lng: number | null;
 }
 
 export interface QuoteTier {
@@ -43,7 +60,7 @@ export interface QuoteDeparture {
 export async function loadQuotableActivities(): Promise<QuotableActivity[]> {
   const { data, error } = await getBrowserSupabase()
     .from('activities')
-    .select('id, title, status, pricing_mode')
+    .select('id, title, status, pricing_mode, region, lat, lng')
     .order('title', { ascending: true });
   if (error) throw error;
   return (data ?? []).map((row) => ({
@@ -51,7 +68,71 @@ export async function loadQuotableActivities(): Promise<QuotableActivity[]> {
     title: row.title,
     status: row.status ?? 'draft',
     pricingMode: row.pricing_mode ?? 'per_person',
+    region: row.region ?? null,
+    lat: row.lat ?? null,
+    lng: row.lng ?? null,
   }));
+}
+
+/**
+ * The transport-fare configuration, for pricing a quote's transfer add-on: the flat fares per
+ * (distance band × vehicle bracket) and the region-pair distances. Both are read from the DB tables
+ * `transport_band_pricing` / `region_zone_distance` — the SAME rows the public booking widget prices
+ * from — so a quoted transfer matches what the guest would have paid booking the activity directly.
+ *
+ * Overlaid on the seed defaults (`TRANSPORT_BANDS_DEFAULT` / `REGION_DISTANCE_DEFAULT`) rather than
+ * replacing them, and falling back to them wholesale on any read error: the fare is only a
+ * SUGGESTION the operator can edit, so a missing or unreachable config must degrade to a sensible
+ * number, never block the drawer. The tables are `select using (true)` (public read), so the
+ * authenticated staff client reads them without a service-role key.
+ */
+export async function loadTransportPricing(): Promise<{
+  bands: TransportBandPricing;
+  distances: RegionDistanceMap;
+}> {
+  const sb = getBrowserSupabase();
+  const bands: TransportBandPricing = {
+    same: { ...TRANSPORT_BANDS_DEFAULT.same },
+    near: { ...TRANSPORT_BANDS_DEFAULT.near },
+    far: { ...TRANSPORT_BANDS_DEFAULT.far },
+  };
+  const distances: RegionDistanceMap = { ...REGION_DISTANCE_DEFAULT };
+
+  const [bandsRes, distRes] = await Promise.all([
+    sb
+      .from('transport_band_pricing')
+      .select('band, sedan_minor, suv_minor, family_minor, van_minor, coaster_minor'),
+    sb.from('region_zone_distance').select('region_a, region_b, band'),
+  ]);
+
+  if (!bandsRes.error && bandsRes.data) {
+    for (const row of bandsRes.data) {
+      const band = row.band as ZoneBand;
+      if (band === 'same' || band === 'near' || band === 'far') {
+        const fare: TransportBandFare = {
+          sedanMinor: row.sedan_minor,
+          suvMinor: row.suv_minor,
+          familyMinor: row.family_minor,
+          vanMinor: row.van_minor,
+          coasterMinor: row.coaster_minor,
+        };
+        bands[band] = fare;
+      }
+    }
+  }
+
+  if (!distRes.error && distRes.data) {
+    for (const row of distRes.data) {
+      if (row.band !== 'near' && row.band !== 'far') continue;
+      // Keyed `${lo}|${hi}` (lexicographic), mirroring regionDistanceBand()'s lookup. The table stores
+      // region_a < region_b, but normalise defensively so the key always matches the reader.
+      const [lo, hi] =
+        row.region_a < row.region_b ? [row.region_a, row.region_b] : [row.region_b, row.region_a];
+      distances[`${lo}|${hi}`] = row.band;
+    }
+  }
+
+  return { bands, distances };
 }
 
 interface OptionWithPrices {

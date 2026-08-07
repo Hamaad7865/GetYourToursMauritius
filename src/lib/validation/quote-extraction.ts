@@ -79,7 +79,17 @@ export type QuoteExtraction = z.infer<typeof quoteExtractionSchema>;
  * carries no slug, so this server-sourced list is what the extraction's `matchedSlug` is looked up in.
  */
 export const draftCandidatesSchema = z.object({
-  activities: z.array(z.object({ id: z.string(), slug: z.string(), title: z.string() })),
+  activities: z.array(
+    z.object({
+      id: z.string(),
+      slug: z.string(),
+      title: z.string(),
+      // The boarding region + pricing mode the draft prices a transport add-on from (Phase 2). Optional
+      // so an older client tolerates a payload without them; the route fills them from searchActivities.
+      region: z.string().nullable().optional(),
+      pricingMode: z.string().optional(),
+    }),
+  ),
   rentals: z.array(z.object({ slug: z.string(), name: z.string(), dailyRateEur: z.number() })),
 });
 export type DraftCandidates = z.infer<typeof draftCandidatesSchema>;
@@ -93,5 +103,9 @@ export const draftFromEmailResponseSchema = z.object({
   available: z.boolean(),
   extraction: quoteExtractionSchema.nullable(),
   candidates: draftCandidatesSchema.nullable(),
+  /** The region the ROUTE resolved the pickup hotel to (server-side geocode), for pricing transfers in
+   *  the browser draft. Null when there was no hotel, no key, or it did not resolve. Optional so the
+   *  response stays backward-compatible. Not part of the AI extraction — the model decides no geography. */
+  pickupRegion: z.string().nullable().optional(),
 });
 export type DraftFromEmailResponse = z.infer<typeof draftFromEmailResponseSchema>;

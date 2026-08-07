@@ -10,6 +10,8 @@ import { extractQuoteFromEmail } from '@/lib/services/quote-extraction';
 import { searchActivities } from '@/lib/services/activities';
 import { listRentalVehicles } from '@/lib/services/rental';
 import { ForbiddenError } from '@/lib/services/errors';
+import { resolvePlaceByText } from '@/lib/maps/google-places';
+import { getServerEnv } from '@/lib/config/env';
 import type { DraftFromEmailResponse } from '@/lib/validation/quote-extraction';
 
 export const runtime = 'edge';
@@ -60,6 +62,26 @@ interface RoleClient {
   from(table: 'profiles'): { select(columns: string): ReadBuilder };
 }
 
+/**
+ * The region a pickup hotel resolves to, for pricing transport add-ons in the browser draft (Phase 2).
+ * The AI decides no geography — it only reports the hotel as free text — so this is resolved here, on
+ * the server, with the Maps key, via one cached Places Text Search. Best effort: no hotel, no key, or a
+ * geocode that finds nothing all yield null, and the draft simply carries no auto-priced transfers.
+ */
+async function resolvePickupRegion(hotel: string | null | undefined): Promise<string | null> {
+  const query = hotel?.trim();
+  if (!query) return null;
+  const env = getServerEnv();
+  const key = env.GOOGLE_MAPS_API_KEY ?? env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? null;
+  if (!key) return null;
+  try {
+    const place = await resolvePlaceByText(query, key);
+    return place?.region ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** The signed-in caller's business role, read through the SERVICE-ROLE client (profiles is RLS-gated). */
 async function callerRole(db: RoleClient, userId: string): Promise<string | null> {
   const { data, error } = await db.from('profiles').select('role').eq('id', userId).maybeSingle();
@@ -84,25 +106,39 @@ export const POST = apiHandler(async (req) => {
 
   const { available, extraction } = await extractQuoteFromEmail(ctx, email);
   if (!available || !extraction) {
-    const body: DraftFromEmailResponse = { available: false, extraction: null, candidates: null };
+    const body: DraftFromEmailResponse = {
+      available: false,
+      extraction: null,
+      candidates: null,
+      pickupRegion: null,
+    };
     return jsonOk(body);
   }
 
   // The candidate lists the browser draft resolves matched slugs against. searchActivities carries the
   // slug AND the id (the id feeds the browser's loadActivityDepartures); the picker's own list omits the
-  // slug, so this server list is the one the extraction was matched against.
-  const [page, fleet] = await Promise.all([
+  // slug, so this server list is the one the extraction was matched against. The pickup region is
+  // resolved alongside, from the hotel the AI read out of the email, so transfers can be auto-priced.
+  const [page, fleet, pickupRegion] = await Promise.all([
     searchActivities(ctx, { page: 1, pageSize: 100 }),
     listRentalVehicles(ctx),
+    resolvePickupRegion(extraction.pickupHotel),
   ]);
 
   const body: DraftFromEmailResponse = {
     available: true,
     extraction,
     candidates: {
-      activities: page.items.map((a) => ({ id: a.id, slug: a.slug, title: a.title })),
+      activities: page.items.map((a) => ({
+        id: a.id,
+        slug: a.slug,
+        title: a.title,
+        region: a.region ?? null,
+        pricingMode: a.pricingMode,
+      })),
       rentals: fleet.map((v) => ({ slug: v.slug, name: v.name, dailyRateEur: v.dailyRateEur })),
     },
+    pickupRegion,
   };
   return jsonOk(body);
 });

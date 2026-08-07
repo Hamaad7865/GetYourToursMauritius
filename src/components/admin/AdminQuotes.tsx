@@ -28,6 +28,9 @@ import {
 import { DraftFromEmail } from '@/components/admin/quotes/DraftFromEmail';
 import { EmailPreview } from '@/components/admin/quotes/EmailPreview';
 import { LinesPane } from '@/components/admin/quotes/LinesPane';
+import { EMPTY_PICKUP, type QuotePickup } from '@/components/admin/quotes/pickup';
+import { AiSparkButton } from '@/components/admin/quotes/AiSpark';
+import type { StatedAmount } from '@/lib/quotes/reconcile';
 import {
   DEFAULT_DEPOSIT_BPS,
   PAY_IN_FULL_BPS,
@@ -284,6 +287,16 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
   const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [pane, setPane] = useState<QuotePaneId>('guest');
+  // The pickup chosen on the map, lifted here so it survives switching panes (LinesPane unmounts when
+  // the operator visits another pane). Session-level only — not persisted on the quote in Phase 1.
+  const [pickup, setPickup] = useState<QuotePickup>(EMPTY_PICKUP);
+  // Figures the pasted enquiry thread itself stated (read from the text when drafting, never the AI),
+  // shown in the lines pane beside the computed total so a discrepancy — the staff €536-vs-€616 case —
+  // is caught before sending. Session-level, like the pickup.
+  const [statedAmounts, setStatedAmounts] = useState<StatedAmount[]>([]);
+  // Whether the Gemini panel is showing. Open by default on a NEW quote — drafting from the guest's
+  // email is how most quotes now start — and toggled from the spark in the toolbar.
+  const [aiOpen, setAiOpen] = useState(true);
   // Unsaved edits are tracked because SEND EMAILS THE STORED ROW, not the form: the route reads the
   // quote back out of the database. Sending with a re-priced form on screen would email the guest
   // the old figure and leave the operator looking at the new one.
@@ -461,7 +474,24 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
           </span>
         }
         action={
-          <span className="flex gap-2">
+          <span className="flex items-center gap-2">
+            {/* The assistant's entry point, in the toolbar where Gmail puts it. Only on a new quote,
+                which is the only place the panel it opens is rendered. Clicking from another pane
+                brings the operator to the panel rather than silently toggling something off-screen. */}
+            {!values.id && (
+              <AiSparkButton
+                label="Draft from an enquiry"
+                expanded={aiOpen}
+                onClick={() => {
+                  if (pane !== 'guest') {
+                    setPane('guest');
+                    setAiOpen(true);
+                    return;
+                  }
+                  setAiOpen((open) => !open);
+                }}
+              />
+            )}
             <button type="button" onClick={onClose} className={BTN_GHOST}>
               Back
             </button>
@@ -528,10 +558,14 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
         <div className="min-w-0 flex-1">
           {pane === 'guest' && (
             <div className="flex flex-col gap-5">
-              {!values.id && (
+              {!values.id && aiOpen && (
                 <DraftFromEmail
                   onBusyChange={setDrafting}
-                  onDraft={(draft) => {
+                  onDraft={(draft, amounts) => {
+                    // Always surface the thread's stated figures for the cross-check banner, even when
+                    // the AI produced no draft (unavailable / by-hand) — that is the whole point of it.
+                    setStatedAmounts(amounts);
+                    if (!draft) return;
                     // A draft replaces the WHOLE form, so guard any work the operator already typed
                     // (the same confirm the withdraw action uses before a destructive change).
                     if (
@@ -688,7 +722,15 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
             </div>
           )}
 
-          {pane === 'lines' && <LinesPane form={values} setLines={setLines} />}
+          {pane === 'lines' && (
+            <LinesPane
+              form={values}
+              setLines={setLines}
+              pickup={pickup}
+              setPickup={setPickup}
+              statedAmounts={statedAmounts}
+            />
+          )}
 
           {pane === 'notes' && (
             <div className="flex flex-col gap-4">

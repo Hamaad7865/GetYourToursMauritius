@@ -3,6 +3,7 @@ process.env.TZ = 'UTC';
 import { describe, expect, it } from 'vitest';
 import { draftFromExtraction, type DraftDeps } from '@/lib/services/quote-draft';
 import { quoteInputFromForm, type QuoteFormValues } from '@/components/admin/quotes/state';
+import { REGION_DISTANCE_DEFAULT, TRANSPORT_BANDS_DEFAULT } from '@/lib/services/pricing';
 import type { QuoteDeparture } from '@/lib/admin/quote-catalogue';
 import type { QuoteExtraction } from '@/lib/validation/quote-extraction';
 
@@ -205,5 +206,85 @@ describe('draftFromExtraction — the French sample email', () => {
     expect(form.lines[0]!.kind).toBe('custom');
     expect(form.lines[0]!.description).toBe('a mystery boat trip');
     expect(form.lines[0]!.unitText).toBe('');
+  });
+});
+
+/**
+ * The transport add-on in the AI draft (Phase 2). When the enquiry names a pickup hotel and the route
+ * resolves it to a region, each PER-PERSON / PER-GROUP excursion gets a round-trip transfer priced by
+ * the same region-distance engine the booking widget uses — never the AI, which still has no price
+ * field. Vehicle-priced tours (whose fare already covers the drive) get none. Opt-in: no pickup region
+ * means no transfers, so the existing behaviour above is unchanged.
+ */
+describe('draftFromExtraction — transport add-on from a resolved pickup', () => {
+  const CANDIDATES_WITH_REGION = {
+    activities: [
+      {
+        id: 'act-dolphin',
+        slug: 'dolphin-swim-benitiers',
+        title: 'Dolphin Swim & Île aux Bénitiers',
+        region: 'West',
+        pricingMode: 'per_person',
+      },
+      {
+        id: 'act-cerfs',
+        slug: 'catamaran-ile-aux-cerfs',
+        title: 'Catamaran to Île aux Cerfs',
+        region: 'East',
+        pricingMode: 'vehicle',
+      },
+    ],
+    rentals: [],
+  };
+
+  // Belle Mare is East; the draft was handed the region the route resolved from the hotel text.
+  const transportDeps: DraftDeps = {
+    today: '2026-08-07',
+    loadCandidates: async () => CANDIDATES_WITH_REGION,
+    loadDepartures: async (activityId, day) => departuresFor[activityId]?.[day] ?? [],
+    pickupRegion: 'East',
+    loadTransportPricing: async () => ({
+      bands: TRANSPORT_BANDS_DEFAULT,
+      distances: REGION_DISTANCE_DEFAULT,
+    }),
+  };
+
+  const TRANSPORT_EXTRACTION: QuoteExtraction = {
+    ...EXTRACTION,
+    activities: [
+      { rawText: 'dauphins', matchedSlug: 'dolphin-swim-benitiers', confidence: 'high' },
+      { rawText: 'catamaran cerfs', matchedSlug: 'catamaran-ile-aux-cerfs', confidence: 'high' },
+    ],
+    rental: { requested: false, matchedSlug: null },
+  };
+
+  it('auto-adds a priced round-trip transfer for a per-person excursion from the pickup', async () => {
+    const form = await draftFromExtraction(TRANSPORT_EXTRACTION, transportDeps);
+    const transfers = form.lines.filter((l) => /round-trip transfer/i.test(l.description));
+    // Only the per-person dolphin swim gets one. Belle Mare (East) → Bénitiers (West) is "far", so a
+    // party of 2 is the sedan bracket: TRANSPORT_BANDS_DEFAULT.far.sedanMinor = 5000 = €50.
+    expect(transfers).toHaveLength(1);
+    const transfer = transfers[0]!;
+    expect(transfer.kind).toBe('custom');
+    expect(transfer.unitText).toBe('50.00');
+    expect(transfer.quantityText).toBe('1'); // one flat fare for the party, not per person
+    expect(transfer.description).toContain('Dolphin Swim');
+    expect(transfer.description).toContain('Crystals Beach Resort Belle Mare');
+  });
+
+  it('never adds a transfer to a vehicle-priced tour (its fare already covers the drive)', async () => {
+    const form = await draftFromExtraction(TRANSPORT_EXTRACTION, transportDeps);
+    const cerfsTransfer = form.lines.find(
+      (l) => /round-trip transfer/i.test(l.description) && /Cerfs/.test(l.description),
+    );
+    expect(cerfsTransfer).toBeUndefined();
+  });
+
+  it('adds no transfers when the pickup could not be resolved to a region', async () => {
+    const form = await draftFromExtraction(TRANSPORT_EXTRACTION, {
+      ...transportDeps,
+      pickupRegion: null,
+    });
+    expect(form.lines.some((l) => /round-trip transfer/i.test(l.description))).toBe(false);
   });
 });

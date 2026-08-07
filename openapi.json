@@ -11412,6 +11412,15 @@
                                   },
                                   "title": {
                                     "type": "string"
+                                  },
+                                  "region": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "pricingMode": {
+                                    "type": "string"
                                   }
                                 },
                                 "required": [
@@ -11447,6 +11456,12 @@
                           "required": [
                             "activities",
                             "rentals"
+                          ]
+                        },
+                        "pickupRegion": {
+                          "type": [
+                            "string",
+                            "null"
                           ]
                         }
                       },
