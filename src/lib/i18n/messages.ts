@@ -1613,6 +1613,11 @@ export const fr: Record<string, string> = {
   'Anything else?': 'Autre chose ?',
   'Arrival time': 'Heure d’arrivée',
   'Awaiting payment': 'En attente de paiement',
+  // A quote booking holds no seats, so its cart row states the offer's deadline instead of a
+  // countdown, and the section blurb drops the "your seats are released" promise.
+  'Offer valid until {date}': 'Offre valable jusqu’au {date}',
+  'Finish paying to confirm your booking.':
+    'Finalisez le paiement pour confirmer votre réservation.',
   // Removing an "Awaiting payment" line from the cart (releases the held seats).
   'Yes, remove': 'Oui, retirer',
   Keep: 'Conserver',
