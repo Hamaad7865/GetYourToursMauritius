@@ -95,6 +95,11 @@ const ServerEnvSchema = z.object({
   // Transactional email (Resend). Without both, notifications fall back to the no-op stub.
   RESEND_API_KEY: z.string().min(1).optional(),
   RESEND_FROM: z.string().min(1).optional(),
+  // Sender identity for QUOTE emails only, e.g. "Belle Mare Tours <info@bellemaretours.com>". A quote
+  // is a priced offer a guest should be able to just Reply to, so it goes out AS the monitored info@
+  // inbox rather than the send-only RESEND_FROM (bookings@) identity — WITHOUT moving the sender of
+  // every confirmation/refund/invoice. Falls back to SITE.email (info@bellemaretours.com) when unset.
+  QUOTE_FROM: z.string().min(1).optional(),
   // Owner alerts: where the "new booking" notifications land. Email defaults to SITE.email when unset.
   OWNER_NOTIFY_EMAIL: z.string().min(1).optional(),
   // WhatsApp owner alerts via the Meta WhatsApp Cloud API. All three are required for delivery:

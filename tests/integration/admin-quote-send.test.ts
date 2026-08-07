@@ -443,6 +443,34 @@ describe('POST /api/v1/admin/quotes/send', () => {
     expect(english.text).toContain('Here is the quote you asked us for');
   });
 
+  it('sends the quote FROM the monitored info@ inbox, not the send-only bookings@ identity', async () => {
+    // Phase D. RESEND_FROM (bookings@) is a send-only identity nobody reads and carries every
+    // confirmation/refund/invoice; a QUOTE is different — a guest reading a priced offer should be
+    // able to hit Reply and reach a person. So the quote_sent message overrides `from` to info@
+    // (SITE.email) per-message, leaving RESEND_FROM — and thus every other template — untouched.
+    const quote = await seedQuote();
+    expect((await send(quote.id)).status).toBe(200);
+    expect(hoisted.sent).toHaveLength(1);
+    expect(hoisted.sent[0]!.from).toBe(SITE.email);
+  });
+
+  it('honours QUOTE_FROM as the quote sender when it is set', async () => {
+    // The optional override for a future re-point of the quote sender, without moving RESEND_FROM.
+    const { resetServerEnvCache } = await import('@/lib/config/env');
+    const previous = process.env.QUOTE_FROM;
+    process.env.QUOTE_FROM = 'quotes@bellemaretours.com';
+    resetServerEnvCache();
+    try {
+      const quote = await seedQuote();
+      expect((await send(quote.id)).status).toBe(200);
+      expect(hoisted.sent[0]!.from).toBe('quotes@bellemaretours.com');
+    } finally {
+      if (previous === undefined) delete process.env.QUOTE_FROM;
+      else process.env.QUOTE_FROM = previous;
+      resetServerEnvCache();
+    }
+  });
+
   // ── What must not be sent ─────────────────────────────────────────────────
   it('refuses a quote whose validity has already passed', async () => {
     const quote = await seedQuote({ validUntilDays: -1 });

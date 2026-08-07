@@ -359,6 +359,11 @@ export const POST = apiHandler(async (req) => {
       channel: 'email',
       recipient: text(quote.customer_email),
       template: 'quote_sent',
+      // A quote is a priced offer a guest should be able to just hit Reply to, so it is sent FROM the
+      // monitored info@ inbox (SITE.email, overridable via QUOTE_FROM) instead of the send-only
+      // bookings@ identity (RESEND_FROM). This per-message override leaves every other template —
+      // every confirmation, refund and invoice — on RESEND_FROM. Reply-To is already info@.
+      from: getServerEnv().QUOTE_FROM ?? SITE.email,
       // EMPTY, and it stays empty. The provider falls back to rendering from `payload` only when the
       // message carries no subject/text — this one carries both — and a payload is the sort of thing
       // that gets logged. The token appears in the rendered body and nowhere else.

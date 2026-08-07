@@ -121,6 +121,36 @@ describe('ResendNotificationProvider.send — HTML + attachments', () => {
     expect(body.text).toBe('Pre-rendered text');
   });
 
+  it('sends AS the per-message from when one is set — a quote goes out from the monitored inbox', async () => {
+    // Phase D: a quote must be sent FROM info@ (the monitored human inbox) instead of the send-only
+    // bookings@ identity (config.from / RESEND_FROM), WITHOUT moving every other template. The message
+    // carries an optional `from`; when present the provider sends AS it and never touches config.from.
+    const { calls } = mockFetch();
+    await new ResendNotificationProvider(CONFIG).send({
+      id: 'nq',
+      channel: 'email',
+      recipient: 'guest@example.com',
+      template: 'quote_sent',
+      payload: {},
+      from: 'info@bellemaretours.com',
+      subject: 'Your quote',
+      text: 'Here is your quote',
+    });
+    expect(onlyCall(calls).body.from).toBe('info@bellemaretours.com'); // per-message override wins
+  });
+
+  it('falls back to the configured from (RESEND_FROM identity) when the message carries none', async () => {
+    const { calls } = mockFetch();
+    await new ResendNotificationProvider(CONFIG).send({
+      id: 'nc',
+      channel: 'email',
+      recipient: 'guest@example.com',
+      template: 'booking_confirmation',
+      payload: { ref: 'BMT-1' },
+    });
+    expect(onlyCall(calls).body.from).toBe(CONFIG.from); // no per-message from → the send-only identity
+  });
+
   it('sets Reply-To to the human inbox — mail goes out as bookings@ but replies must reach a person', async () => {
     const { calls } = mockFetch();
     await new ResendNotificationProvider({ ...CONFIG, replyTo: 'info@example.com' }).send({

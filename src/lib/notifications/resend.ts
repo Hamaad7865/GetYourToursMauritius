@@ -283,7 +283,9 @@ export class ResendNotificationProvider implements NotificationProvider {
       bcc?: string;
       html?: string;
       attachments?: Array<{ filename: string; content: string }>;
-    } = { from: this.config.from, to: message.recipient, subject, text };
+      // A per-message `from` overrides the send-only identity for THIS message only (the quote email
+      // goes out as the monitored info@ inbox so a guest can hit Reply); absent, config.from is used.
+    } = { from: message.from ?? this.config.from, to: message.recipient, subject, text };
     // Mail goes out as bookings@ (send-only, unmonitored). Point Reply at the human inbox so a guest
     // replying to their confirmation reaches us instead of a black hole.
     if (this.config.replyTo) body.reply_to = this.config.replyTo;

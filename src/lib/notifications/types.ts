@@ -15,6 +15,11 @@ export interface NotificationMessage {
   recipient: string;
   template: string;
   payload: Record<string, unknown>;
+  /** Optional per-message sender identity. When set, the provider sends AS this address instead of
+   * its default (RESEND_FROM, the send-only bookings@ identity). This is how a quote goes out FROM
+   * the monitored info@ inbox — so a guest can just hit Reply — WITHOUT moving the sender of every
+   * confirmation/refund/invoice. Absent, the provider's configured `from` is used unchanged. */
+  from?: string;
   /** Pre-rendered fields. When present they are used as-is instead of re-rendering from the
    * template/payload — this is how a fully-built invoice/receipt email is delivered. */
   subject?: string;
