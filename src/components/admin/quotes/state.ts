@@ -1,7 +1,7 @@
 import { quoteTotalMinor } from '@/lib/quotes/totals';
 import { quoteTodayUtc } from '@/lib/quotes/validity';
 import { fmtDate, fmtTime, mauDay } from '@/lib/admin/format';
-import { rentalDays } from '@/lib/services/pricing';
+import { rentalDays, regionFromCoords } from '@/lib/services/pricing';
 import { ValidationError } from '@/lib/services/errors';
 import type {
   QuoteDetail,
@@ -617,6 +617,92 @@ export function rentalLineDraft(pick: RentalPick): QuoteLineDraft {
     unitText: formatMinorAsEuros(pick.dailyRateMinor),
     catalogueUnitMinor: null,
     rentalVehicleSlug: pick.slug,
+  };
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* Adding a transport add-on (transfer)                                                          */
+/* ------------------------------------------------------------------------------------------- */
+
+/**
+ * The boarding region a transport fare is priced against — `coalesce(region, region_from_coords(lat,
+ * lng))`, the SAME resolution the SQL (`transport_fare_minor`, 20260720000000) uses. A quote's
+ * transfer must be priced against the region the guest would have been charged from booking the
+ * activity directly, so this cannot diverge from the server: it reuses `regionFromCoords`, the one
+ * port of those thresholds that the widget, the planner and the server all share.
+ *
+ * Null when the activity carries neither an explicit region nor coordinates — `transportFareMinor`
+ * then returns 0 (no region -> no fee), and the operator types the transfer price by hand.
+ */
+export function activityRegion(activity: {
+  region: string | null;
+  lat: number | null;
+  lng: number | null;
+}): string | null {
+  if (activity.region) return activity.region;
+  if (activity.lat != null && activity.lng != null) {
+    return regionFromCoords(activity.lat, activity.lng);
+  }
+  return null;
+}
+
+/** What a transfer line is built from. The fare is passed in ALREADY COMPUTED (by `transportFareMinor`,
+ *  the authoritative mirror) rather than recomputed here — the same split as `tourLineDrafts`, which
+ *  takes tier amounts it does not re-derive. Money is MINOR units, like everything the money path
+ *  touches. */
+export interface TransferPick {
+  /** The excursion this transfer serves, as it reads on the guest's line. */
+  activityTitle: string;
+  /** The pickup point the fare was priced from — the guest's hotel or address. Blank before one is
+   *  chosen, in which case the "from …" clause is dropped. */
+  pickupLabel: string;
+  /** The ROUND-TRIP fare in minor units, from `transportFareMinor`: a whole-vehicle flat price for the
+   *  party, NOT per person — so the line is quantity 1 × this, exactly like the email's "Transfert
+   *  aller/retour : 60 EUR". 0 when the boarding region is unknown; the line is still built so the
+   *  operator can price it rather than being blocked. */
+  fareMinor: number;
+  /** The excursion day (`yyyy-mm-dd`) this transfer serves, so `booking_custom_items.starts_at` can
+   *  place it on the operations day sheet after conversion. Optional — a dateless transfer is legal. */
+  date?: string;
+}
+
+/** "Round-trip transfer · Dolphin swim at Île aux Bénitiers · from Crystals Beach Resort" — the
+ *  sentence the guest reads. `quote_items` CHECKs a non-catalogue line has a description, so this must
+ *  be non-empty; it names both what the transfer is for and where it collects from. Editable
+ *  afterwards, like every other composed line. */
+export function transferLineDescription(activityTitle: string, pickupLabel: string): string {
+  const from = pickupLabel.trim();
+  return from
+    ? `Round-trip transfer · ${activityTitle} · from ${from}`
+    : `Round-trip transfer · ${activityTitle}`;
+}
+
+/**
+ * A transport add-on as one quote line, priced at the fare it was quoted for.
+ *
+ * It is a `kind='custom'` line, and that is load-bearing, not cosmetic: a transfer has no
+ * `session_occurrence` to hold a seat against and no `activity_option_prices` tier for the pay route
+ * to re-price it from, so a catalogue line would be refused by api_convert_quote. A custom line is the
+ * shape that is chargeable-as-typed — the negotiated figure the operator sees is what the guest pays —
+ * and `quoteItemRows` clears the occurrence/option/slug on it so nothing is left dangling. The pick-up
+ * day rides in `date` (not `startsAt`), exactly like a rental line, so {@link quoteInputFromForm}
+ * derives `starts_at` from it and the LinesPane date field stays the editable source of truth.
+ */
+export function transportLineDraft(pick: TransferPick): QuoteLineDraft {
+  return {
+    key: newLineKey(),
+    kind: 'custom',
+    description: transferLineDescription(pick.activityTitle, pick.pickupLabel),
+    priceLabel: '',
+    sessionOccurrenceId: null,
+    activityOptionId: null,
+    startsAt: null,
+    date: pick.date ?? '',
+    time: '',
+    quantityText: '1',
+    unitText: formatMinorAsEuros(pick.fareMinor),
+    catalogueUnitMinor: null,
+    rentalVehicleSlug: null,
   };
 }
 

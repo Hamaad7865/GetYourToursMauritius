@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { BTN_GHOST, Card, INPUT_CLS } from '@/components/admin/ui';
-import { IconChevron, IconPlus, IconX } from '@/components/ui/icons';
+import { IconChevron, IconPin, IconPlus, IconX } from '@/components/ui/icons';
 import { fmtDate, fmtTime } from '@/lib/admin/format';
 import { TourPicker } from '@/components/admin/quotes/TourPicker';
 import { RentalPicker } from '@/components/admin/quotes/RentalPicker';
+import type { QuotePickup } from '@/components/admin/quotes/pickup';
+import { totalsMismatch, type StatedAmount } from '@/lib/quotes/reconcile';
 import {
   customLineDraft,
   eurFromMinor,
@@ -31,6 +34,18 @@ import {
  * with what would be stored.
  */
 
+/**
+ * The pickup panel is LOADED ON DEMAND, and that is not a micro-optimisation: it reaches
+ * `PickupMap` → `useGoogleMaps` → the Places/marker loader, so a static import would put the whole
+ * Google Maps client in the bundle of every operator who opens a quote — and most never open the
+ * panel. `ssr: false` because the map is browser-only; it mounts the moment the button is pressed.
+ */
+const PickupTransportDrawer = dynamic(
+  () =>
+    import('@/components/admin/quotes/PickupTransportDrawer').then((m) => m.PickupTransportDrawer),
+  { ssr: false },
+);
+
 /** A line's own subtotal, or null while its numbers are still half-typed. */
 function subtotalMinor(line: QuoteLineDraft): number | null {
   try {
@@ -51,15 +66,29 @@ const KIND_LABEL: Record<string, string> = {
 export function LinesPane({
   form,
   setLines,
+  pickup,
+  setPickup,
+  statedAmounts,
 }: {
   form: QuoteFormValues;
   setLines: (lines: QuoteLineDraft[]) => void;
+  pickup: QuotePickup;
+  setPickup: (p: QuotePickup) => void;
+  /** Figures the pasted enquiry thread stated (empty unless drafted from an email). Shown beside the
+   *  total so the operator reconciles against what was promised — the €536-vs-€616 case. */
+  statedAmounts: StatedAmount[];
 }) {
   const [picking, setPicking] = useState(false);
   const [pickingRental, setPickingRental] = useState(false);
+  const [pickingPickup, setPickingPickup] = useState(false);
   const lines = form.lines;
   const total = formTotalMinor(form);
   const problem = formLineProblem(form);
+  // Cross-check the priced total against the figures the email thread itself stated. Lead with the
+  // ones a human called a total; if none were, show every figure mentioned.
+  const statedTotals = statedAmounts.filter((a) => a.isTotal);
+  const reconcileShown = statedTotals.length > 0 ? statedTotals : statedAmounts;
+  const totalMismatch = total !== null && totalsMismatch(total, statedAmounts);
 
   function update(index: number, patch: Partial<QuoteLineDraft>) {
     setLines(lines.map((line, i) => (i === index ? { ...line, ...patch } : line)));
@@ -70,7 +99,7 @@ export function LinesPane({
       <Card>
         <div className="mb-3.5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-[14px] font-extrabold text-ink">Lines</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setPicking(true)} className={BTN_GHOST}>
               <IconPlus width={15} height={15} /> Add tour
             </button>
@@ -83,6 +112,13 @@ export function LinesPane({
               className={BTN_GHOST}
             >
               <IconPlus width={15} height={15} /> Add custom line
+            </button>
+            <button
+              type="button"
+              onClick={() => setPickingPickup(true)}
+              className={`${BTN_GHOST} !border-teal/40 !text-teal-dark hover:!border-teal`}
+            >
+              <IconPin width={15} height={15} /> Pickup &amp; transport
             </button>
           </div>
         </div>
@@ -236,6 +272,31 @@ export function LinesPane({
             {total === null ? '—' : eurFromMinor(total)}
           </span>
         </div>
+
+        {statedAmounts.length > 0 && (
+          <div
+            className={`mt-3 rounded-xl px-4 py-3 text-[12.5px] leading-relaxed ${
+              totalMismatch ? 'bg-coral/10 text-coral' : 'bg-gold-light/20 text-ink'
+            }`}
+          >
+            <p className="font-bold">Cross-check against the email</p>
+            <p className="mt-1">
+              {statedTotals.length > 0
+                ? 'The thread stated these totals: '
+                : 'The thread mentioned these figures: '}
+              <span className="font-semibold">
+                {reconcileShown.map((a) => eurFromMinor(a.amountMinor)).join(' · ')}
+              </span>
+              . This quote totals {total === null ? '—' : eurFromMinor(total)}.
+            </p>
+            {totalMismatch && (
+              <p className="mt-1 font-bold">
+                The total matches none of them — reconcile the lines against what was promised
+                before sending.
+              </p>
+            )}
+          </div>
+        )}
       </Card>
 
       {picking && (
@@ -249,6 +310,16 @@ export function LinesPane({
         <RentalPicker
           onAdd={(added) => setLines([...lines, ...added])}
           onClose={() => setPickingRental(false)}
+        />
+      )}
+
+      {pickingPickup && (
+        <PickupTransportDrawer
+          lines={lines}
+          setLines={setLines}
+          pickup={pickup}
+          setPickup={setPickup}
+          onClose={() => setPickingPickup(false)}
         />
       )}
     </div>

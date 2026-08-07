@@ -1,14 +1,24 @@
-import { loadActivityDepartures, type QuoteDeparture } from '@/lib/admin/quote-catalogue';
+import {
+  loadActivityDepartures,
+  loadTransportPricing,
+  type QuoteDeparture,
+} from '@/lib/admin/quote-catalogue';
 import { proposeSchedule } from '@/lib/quotes/schedule';
 import {
   customLineDraft,
   emptyQuoteForm,
   formatMinorAsEuros,
   tourLineDrafts,
+  transportLineDraft,
   type QuoteFormValues,
   type QuoteLineDraft,
   type TourPick,
 } from '@/components/admin/quotes/state';
+import {
+  transportFareMinor,
+  type RegionDistanceMap,
+  type TransportBandPricing,
+} from '@/lib/services/pricing';
 import type { QuoteExtraction } from '@/lib/validation/quote-extraction';
 
 /**
@@ -39,6 +49,12 @@ export interface DraftActivityCandidate {
   id: string;
   slug: string;
   title: string;
+  /** The boarding region a transfer is priced against. Optional so older callers / fixtures need not
+   *  supply it; the route fills it from searchActivities. Null on an activity with no map location. */
+  region?: string | null;
+  /** The activity's pricing mode. A transport add-on applies only to `per_person` / `per_group` —
+   *  `vehicle` / `vehicle_custom` already price the whole drive. Optional for the same reason. */
+  pricingMode?: string;
 }
 
 /** One rental vehicle the draft can resolve a matched rental slug against. */
@@ -61,8 +77,24 @@ export interface DraftDeps {
   }>;
   /** Defaults to the browser `loadActivityDepartures`; injected in tests. */
   loadDepartures?: (activityId: string, day: string) => Promise<QuoteDeparture[]>;
+  /** The region the ROUTE resolved the pickup hotel to (server-side geocode). When set, each
+   *  per-person / per-group excursion gets a round-trip transfer priced from it; null/absent means no
+   *  transfers (the pre-transport behaviour). Never derived here — the AI does not decide geography. */
+  pickupRegion?: string | null;
+  /** The transport-fare config; defaults to the browser `loadTransportPricing`, injected in tests.
+   *  Only read when `pickupRegion` is set. */
+  loadTransportPricing?: () => Promise<{
+    bands: TransportBandPricing;
+    distances: RegionDistanceMap;
+  }>;
   /** Pins the `valid_until` default in tests. */
   today?: string;
+}
+
+/** A transport add-on applies to per-person / per-group excursions only; vehicle-priced tours already
+ *  cover the drive in their fare (mirrors the exclusion in 20260720000000_activity_transport_pricing). */
+function isTransportEligible(pricingMode: string | undefined): boolean {
+  return pricingMode === 'per_person' || pricingMode === 'per_group';
 }
 
 /** A "rest day between excursions" request, in English or French, means space tours 2 days apart. */
@@ -149,6 +181,13 @@ export async function draftFromExtraction(
     gap,
   );
 
+  // The transport add-on config, loaded once, ONLY when the route resolved the pickup to a region.
+  const pickupRegion = deps.pickupRegion ?? null;
+  const transport = pickupRegion
+    ? await (deps.loadTransportPricing ?? loadTransportPricing)()
+    : null;
+  const pickupLabel = extraction.pickupHotel?.trim() ?? '';
+
   const lines: QuoteLineDraft[] = [];
   for (let i = 0; i < extraction.activities.length; i += 1) {
     const request = extraction.activities[i]!;
@@ -156,6 +195,7 @@ export async function draftFromExtraction(
     const candidate = request.matchedSlug ? (bySlug.get(request.matchedSlug) ?? null) : null;
 
     // A real catalogue line only when we matched a candidate AND have a day to check it on.
+    let priced = false;
     if (candidate && day) {
       const departures = await loadDepartures(candidate.id, day);
       // The first open, quotable departure — one whose shape the money path will accept as a tour line.
@@ -177,7 +217,7 @@ export async function draftFromExtraction(
         // Only a real line if some tier applied to this party; otherwise fall through to custom.
         if (tourLines.length > 0) {
           lines.push(...tourLines);
-          continue;
+          priced = true;
         }
       }
     }
@@ -185,7 +225,32 @@ export async function draftFromExtraction(
     // Fallback: an UNPRICED custom line. Vehicle/private tours, a matched tour with no open occurrence
     // on the chosen day, and an unmatched request (so nothing the customer asked for is dropped) all
     // land here for the operator to price.
-    lines.push(customExcursionLine(candidate?.title ?? request.rawText, day, guests));
+    if (!priced) {
+      lines.push(customExcursionLine(candidate?.title ?? request.rawText, day, guests));
+    }
+
+    // Its round-trip transfer, right after the excursion it serves. Priced from the region engine (the
+    // same fares the booking widget uses), never the AI — eligibility is the activity's pricing mode,
+    // not whether it became a catalogue or custom line, so a per-person tour with no open occurrence
+    // still gets its transfer. The fare is 0 (and the operator prices it) when the activity has no
+    // region; a vehicle-priced tour gets none at all.
+    if (transport && candidate && isTransportEligible(candidate.pricingMode)) {
+      lines.push(
+        transportLineDraft({
+          activityTitle: candidate.title,
+          pickupLabel,
+          fareMinor: transportFareMinor(
+            pickupRegion,
+            candidate.region ?? null,
+            guests,
+            false,
+            transport.bands,
+            transport.distances,
+          ),
+          date: day ?? undefined,
+        }),
+      );
+    }
   }
 
   // The rental becomes its own line, priced from the fleet's real daily rate.

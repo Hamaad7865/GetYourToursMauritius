@@ -670,6 +670,130 @@
     animation: gytWaRingPulse 3s ease-out infinite;
     will-change: transform, opacity;
   }
+
+  /* ── AI draft assistant (/admin/quotes "Draft from an enquiry") ────────────────────
+     The model IS Gemini, so its surface wears Gemini's livery — the blue → purple → rose → amber
+     gradient, not the site's teal. Deliberately the ONE place in the app that departs from the
+     brand palette: it marks "this was written by the assistant, not by us", and staff recognise
+     the mark from Gmail. Every customer-facing surface stays teal.
+
+     `--ai-*` are plain hex (not the brand's RGB-channel tokens) because nothing here needs a
+     Tailwind opacity modifier, and one keyframe — a background-position sweep — drives the
+     skeleton bars, the status text and the launcher halo alike. Frozen under reduced motion. */
+  :root {
+    --ai-blue: #4285f4;
+    --ai-purple: #9b72cb;
+    --ai-rose: #d96570;
+    --ai-amber: #f9ab00;
+    --ai-mist: #eff3fd;
+  }
+  @keyframes aiSheen {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -150% 0;
+    }
+  }
+  /* Static Gemini gradient, for the panel title. */
+  .ai-gradient-text {
+    background-image: linear-gradient(100deg, var(--ai-blue), var(--ai-purple), var(--ai-rose));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  /* The same gradient sweeping over the status text while the model reads the enquiry. */
+  .ai-text-sheen {
+    background-image: linear-gradient(
+      100deg,
+      var(--ai-blue) 20%,
+      var(--ai-rose) 45%,
+      var(--ai-amber) 55%,
+      var(--ai-blue) 80%
+    );
+    background-size: 250% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: aiSheen 2.4s linear infinite;
+  }
+  /* The skeleton lines the draft resolves into. */
+  .ai-skeleton {
+    background: linear-gradient(
+      100deg,
+      var(--ai-mist) 30%,
+      rgb(155 114 203 / 0.22) 50%,
+      var(--ai-mist) 70%
+    );
+    background-size: 250% 100%;
+    animation: aiSheen 1.6s linear infinite;
+  }
+  /* The spark's soft breathing glow (very slow, so the panel reads calm at rest). */
+  @keyframes aiGlow {
+    0%,
+    100% {
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.85;
+      transform: scale(1.12);
+    }
+  }
+  .ai-glow {
+    animation: aiGlow 3.4s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  /* The LAUNCHER — Gmail's Gemini button. At rest it is a quiet white disc; on hover the full
+     Gemini spectrum blooms behind it (a blurred conic ring), the button lifts, and the spark
+     twinkles through 90°. The star is four-fold symmetric, so that rotation lands back on itself:
+     the motion is felt, but the shape never looks like it moved. */
+  .ai-spark-btn {
+    transition:
+      background-color 0.18s ease,
+      box-shadow 0.18s ease,
+      transform 0.18s ease;
+  }
+  .ai-spark-btn:hover,
+  .ai-spark-btn:focus-visible {
+    background-color: var(--ai-mist);
+    box-shadow:
+      0 0 0 4px rgb(66 133 244 / 0.1),
+      0 8px 20px -10px rgb(155 114 203 / 0.65);
+    transform: translateY(-1px);
+  }
+  .ai-spark-btn:active {
+    transform: translateY(0) scale(0.96);
+  }
+  .ai-spark-halo {
+    position: absolute;
+    inset: -3px;
+    border-radius: 999px;
+    background: conic-gradient(
+      from 0deg,
+      var(--ai-blue),
+      var(--ai-purple),
+      var(--ai-rose),
+      var(--ai-amber),
+      var(--ai-blue)
+    );
+    opacity: 0;
+    filter: blur(7px);
+    transition: opacity 0.22s ease;
+    pointer-events: none;
+  }
+  .ai-spark-btn:hover .ai-spark-halo,
+  .ai-spark-btn:focus-visible .ai-spark-halo {
+    opacity: 0.5;
+  }
+  .ai-spark-icon {
+    transition: transform 0.35s cubic-bezier(0.2, 1.3, 0.4, 1);
+  }
+  .ai-spark-btn:hover .ai-spark-icon,
+  .ai-spark-btn:focus-visible .ai-spark-icon {
+    transform: rotate(90deg) scale(1.1);
+  }
 }
 
 /* Honour reduced-motion: no entrance animation, no smooth scroll. */
@@ -753,6 +877,31 @@
   }
   .gyt-wa-ring {
     display: none !important;
+  }
+  /* AI draft assistant: freeze the gradient sweep to a calm still. The skeleton settles to its mist
+     base and the status text to a solid readable blue — its background-clip would otherwise leave
+     the text transparent, i.e. invisible, which is a far worse outcome than a missing animation. */
+  .ai-skeleton {
+    animation: none !important;
+    background: var(--ai-mist) !important;
+  }
+  .ai-text-sheen {
+    animation: none !important;
+    background: none !important;
+    color: #3367d6 !important;
+    -webkit-text-fill-color: #3367d6 !important;
+  }
+  .ai-glow {
+    animation: none !important;
+  }
+  /* The launcher keeps its hover COLOUR (that is feedback, not motion) and loses the lift + twinkle. */
+  .ai-spark-btn,
+  .ai-spark-btn:hover,
+  .ai-spark-btn:active,
+  .ai-spark-icon,
+  .ai-spark-btn:hover .ai-spark-icon {
+    transition: none !important;
+    transform: none !important;
   }
 }
 
