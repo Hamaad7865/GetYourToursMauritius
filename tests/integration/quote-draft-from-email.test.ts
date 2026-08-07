@@ -5,7 +5,6 @@ import { draftFromExtraction, type DraftDeps } from '@/lib/services/quote-draft'
 import { quoteInputFromForm, type QuoteFormValues } from '@/components/admin/quotes/state';
 import type { QuoteDeparture } from '@/lib/admin/quote-catalogue';
 import type { QuoteExtraction } from '@/lib/validation/quote-extraction';
-import type { ServiceContext } from '@/lib/services/context';
 
 /**
  * The whole AI email → draft path (plan Task A2), from a structured extraction to a `QuoteFormValues`
@@ -17,8 +16,6 @@ import type { ServiceContext } from '@/lib/services/context';
  * from the real tier (never a number the AI supplied — the extraction has no price field at all), and
  * every vehicle/private tour becomes a CUSTOM, UNPRICED line the operator prices by hand.
  */
-
-const ctx = { locale: 'en' } as unknown as ServiceContext;
 
 const CANDIDATES = {
   activities: [
@@ -118,7 +115,7 @@ const EXTRACTION: QuoteExtraction = {
 
 describe('draftFromExtraction — the French sample email', () => {
   it('builds a reviewable draft: 4 excursions + a rental, priced only from the catalogue', async () => {
-    const form = await draftFromExtraction(ctx, EXTRACTION, deps);
+    const form = await draftFromExtraction(EXTRACTION, deps);
 
     // Guest header + locale carried straight through.
     expect(form.customerName).toBe('Jean Martin');
@@ -141,7 +138,7 @@ describe('draftFromExtraction — the French sample email', () => {
   });
 
   it('prices the catalogue line from the REAL tier and never from the AI (party = 2)', async () => {
-    const form = await draftFromExtraction(ctx, EXTRACTION, deps);
+    const form = await draftFromExtraction(EXTRACTION, deps);
     const dolphin = form.lines.find((l) => l.kind === 'catalogue')!;
 
     expect(dolphin.description).toContain('Dolphin Swim');
@@ -162,7 +159,7 @@ describe('draftFromExtraction — the French sample email', () => {
   });
 
   it('leaves every vehicle/private tour as a CUSTOM, UNPRICED line for the operator', async () => {
-    const form = await draftFromExtraction(ctx, EXTRACTION, deps);
+    const form = await draftFromExtraction(EXTRACTION, deps);
     const custom = form.lines.filter((l) => l.kind === 'custom');
 
     expect(custom.map((l) => l.description)).toEqual([
@@ -181,7 +178,7 @@ describe('draftFromExtraction — the French sample email', () => {
   });
 
   it('adds the rental as its own line, priced from the real daily rate × days', async () => {
-    const form = await draftFromExtraction(ctx, EXTRACTION, deps);
+    const form = await draftFromExtraction(EXTRACTION, deps);
     const rental = form.lines.find((l) => l.kind === 'rental')!;
 
     expect(rental.rentalVehicleSlug).toBe('economy-auto');
@@ -203,7 +200,7 @@ describe('draftFromExtraction — the French sample email', () => {
       activities: [{ rawText: 'a mystery boat trip', matchedSlug: null, confidence: 'low' }],
       rental: { requested: false, matchedSlug: null },
     };
-    const form = await draftFromExtraction(ctx, extraction, deps);
+    const form = await draftFromExtraction(extraction, deps);
     expect(form.lines).toHaveLength(1);
     expect(form.lines[0]!.kind).toBe('custom');
     expect(form.lines[0]!.description).toBe('a mystery boat trip');

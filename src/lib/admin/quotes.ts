@@ -2,6 +2,7 @@ import { lineSubtotalMinor, quoteTotalMinor, type PricedLine } from '@/lib/quote
 import { assertQuoteStillValid } from '@/lib/quotes/validity';
 import { ValidationError } from '@/lib/services/errors';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
+import type { DraftFromEmailResponse } from '@/lib/validation/quote-extraction';
 
 /* Staff-side quotes: draft, re-price, withdraw, send. Mirrors src/lib/admin/bookings.ts — the
  * authenticated admin talks to Supabase directly through the browser client and the `*_staff` RLS
@@ -851,4 +852,33 @@ export async function sendBalanceLink(ref: string): Promise<SendQuoteResult> {
     throw new Error(body?.error?.message ?? 'Could not create the balance link.');
   }
   return { url: body.data.url };
+}
+
+/**
+ * Read a pasted enquiry email into a structured extraction + the catalogue candidates, through the
+ * staff-authenticated route (the Gemini key is server-only). The BROWSER then composes the draft from
+ * this — see {@link draftFromExtraction} — because the departures loader is browser-only. Mirrors
+ * {@link sendQuote}: bearer from the session, `{ ok, data }` envelope unwrapped. `available` is false
+ * when the model is not configured (billing blocker); the caller then tells the operator to draft by
+ * hand.
+ */
+export async function draftQuoteFromEmail(email: string): Promise<DraftFromEmailResponse> {
+  const staff = await session();
+  const res = await fetch('/api/v1/admin/quotes/draft-from-email', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(staff ? { authorization: `Bearer ${staff.accessToken}` } : {}),
+    },
+    body: JSON.stringify({ email }),
+  });
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: DraftFromEmailResponse;
+    error?: { message?: string };
+  } | null;
+  if (!res.ok || !body?.ok || !body.data) {
+    throw new Error(body?.error?.message ?? 'Could not draft from that email.');
+  }
+  return body.data;
 }

@@ -11185,6 +11185,450 @@
         }
       }
     },
+    "/admin/quotes/draft-from-email": {
+      "post": {
+        "operationId": "draftQuoteFromEmail",
+        "summary": "Read a pasted enquiry email into a draft quote request (staff-only)",
+        "description": "The AI email→draft entry point. Reads a pasted customer enquiry into a structured request (tours matched to catalogue slugs, party, dates, pickup hotel, car rental) plus the catalogue candidates the browser composes the draft from. STAFF ONLY — profiles.role, not the JWT role claim — and it never writes a quote or sends anything: every custom line comes back unpriced for the operator to price. Extraction runs server-side (the model key is server-only); the draft is assembled in the browser. With no model configured it returns available:false and the operator drafts by hand.",
+        "tags": [
+          "Quotes"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The extraction + catalogue candidates, or available:false when no model is configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "available": {
+                          "type": "boolean"
+                        },
+                        "extraction": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "customer": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "email": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "party": {
+                              "type": "object",
+                              "properties": {
+                                "adults": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "children": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                },
+                                "infants": {
+                                  "type": "integer",
+                                  "minimum": 0
+                                }
+                              },
+                              "required": [
+                                "adults"
+                              ]
+                            },
+                            "availability": {
+                              "type": "object",
+                              "properties": {
+                                "from": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "to": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                }
+                              }
+                            },
+                            "pickupHotel": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            },
+                            "locale": {
+                              "type": "string",
+                              "enum": [
+                                "en",
+                                "fr"
+                              ]
+                            },
+                            "activities": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "rawText": {
+                                    "type": "string"
+                                  },
+                                  "matchedSlug": {
+                                    "type": [
+                                      "string",
+                                      "null"
+                                    ]
+                                  },
+                                  "confidence": {
+                                    "type": "string",
+                                    "enum": [
+                                      "high",
+                                      "low"
+                                    ]
+                                  }
+                                },
+                                "required": [
+                                  "rawText",
+                                  "matchedSlug",
+                                  "confidence"
+                                ]
+                              }
+                            },
+                            "rental": {
+                              "type": "object",
+                              "properties": {
+                                "requested": {
+                                  "type": "boolean"
+                                },
+                                "matchedSlug": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ]
+                                },
+                                "days": {
+                                  "type": [
+                                    "integer",
+                                    "null"
+                                  ],
+                                  "exclusiveMinimum": 0
+                                },
+                                "transmission": {
+                                  "type": [
+                                    "string",
+                                    "null"
+                                  ],
+                                  "enum": [
+                                    "automatic",
+                                    "manual",
+                                    null
+                                  ]
+                                }
+                              },
+                              "required": [
+                                "requested",
+                                "matchedSlug"
+                              ]
+                            },
+                            "preferences": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "customer",
+                            "party",
+                            "availability",
+                            "locale",
+                            "activities",
+                            "rental"
+                          ]
+                        },
+                        "candidates": {
+                          "type": [
+                            "object",
+                            "null"
+                          ],
+                          "properties": {
+                            "activities": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string"
+                                  },
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "title": {
+                                    "type": "string"
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "slug",
+                                  "title"
+                                ]
+                              }
+                            },
+                            "rentals": {
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "slug": {
+                                    "type": "string"
+                                  },
+                                  "name": {
+                                    "type": "string"
+                                  },
+                                  "dailyRateEur": {
+                                    "type": "number"
+                                  }
+                                },
+                                "required": [
+                                  "slug",
+                                  "name",
+                                  "dailyRateEur"
+                                ]
+                              }
+                            }
+                          },
+                          "required": [
+                            "activities",
+                            "rentals"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "available",
+                        "extraction",
+                        "candidates"
+                      ]
+                    },
+                    "meta": {
+                      "type": "object",
+                      "properties": {
+                        "page": {
+                          "type": "integer"
+                        },
+                        "pageSize": {
+                          "type": "integer"
+                        },
+                        "total": {
+                          "type": "integer"
+                        },
+                        "totalPages": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "page",
+                        "pageSize",
+                        "total",
+                        "totalPages"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "data"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No email text was supplied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Staff only",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean",
+                      "const": false
+                    },
+                    "error": {
+                      "type": "object",
+                      "properties": {
+                        "code": {
+                          "type": "string"
+                        },
+                        "message": {
+                          "type": "string"
+                        },
+                        "details": {}
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "ok",
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/admin/quotes/{ref}/balance": {
       "post": {
         "operationId": "sendQuoteBalanceLink",

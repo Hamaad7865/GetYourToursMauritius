@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { ZodOpenApiPathsObject, ZodOpenApiResponseObject } from 'zod-openapi';
+import { draftFromEmailResponseSchema } from '@/lib/validation/quote-extraction';
 import {
   errorEnvelopeSchema,
   paginationQuerySchema,
@@ -902,6 +903,35 @@ export const apiPaths: ZodOpenApiPathsObject = {
         ),
         '429': errorResponse('Too many requests'),
         '500': errorResponse('The email could not be sent'),
+      },
+    },
+  },
+  '/admin/quotes/draft-from-email': {
+    post: {
+      operationId: 'draftQuoteFromEmail',
+      summary: 'Read a pasted enquiry email into a draft quote request (staff-only)',
+      description:
+        'The AI email→draft entry point. Reads a pasted customer enquiry into a structured request ' +
+        '(tours matched to catalogue slugs, party, dates, pickup hotel, car rental) plus the catalogue ' +
+        'candidates the browser composes the draft from. STAFF ONLY — profiles.role, not the JWT role ' +
+        'claim — and it never writes a quote or sends anything: every custom line comes back unpriced ' +
+        'for the operator to price. Extraction runs server-side (the model key is server-only); the ' +
+        'draft is assembled in the browser. With no model configured it returns available:false and ' +
+        'the operator drafts by hand.',
+      tags: ['Quotes'],
+      security: [{ bearerAuth: [] }],
+      requestBody: jsonBody(
+        z.object({ email: z.string().describe('The pasted customer enquiry email') }),
+      ),
+      responses: {
+        '200': okJson(
+          draftFromEmailResponseSchema,
+          'The extraction + catalogue candidates, or available:false when no model is configured',
+        ),
+        '400': errorResponse('No email text was supplied'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Staff only'),
+        '429': errorResponse('Too many requests'),
       },
     },
   },

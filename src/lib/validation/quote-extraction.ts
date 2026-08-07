@@ -71,3 +71,27 @@ export const quoteExtractionSchema = z.object({
   preferences: z.string().nullable().optional(),
 });
 export type QuoteExtraction = z.infer<typeof quoteExtractionSchema>;
+
+/**
+ * The catalogue + fleet the draft resolves a matched slug against — fetched SERVER-SIDE by the
+ * draft-from-email route (searchActivities + the rental fleet, which carry slug + id) and handed to the
+ * browser, which runs `draftFromExtraction` with them. The browser picker list (loadQuotableActivities)
+ * carries no slug, so this server-sourced list is what the extraction's `matchedSlug` is looked up in.
+ */
+export const draftCandidatesSchema = z.object({
+  activities: z.array(z.object({ id: z.string(), slug: z.string(), title: z.string() })),
+  rentals: z.array(z.object({ slug: z.string(), name: z.string(), dailyRateEur: z.number() })),
+});
+export type DraftCandidates = z.infer<typeof draftCandidatesSchema>;
+
+/**
+ * The draft-from-email route's response. `available` is false when no Gemini model is configured (the
+ * billing blocker) — then extraction/candidates are null and the operator drafts by hand. When true the
+ * browser composes the draft from `extraction` + `candidates`; nothing is auto-saved or auto-sent.
+ */
+export const draftFromEmailResponseSchema = z.object({
+  available: z.boolean(),
+  extraction: quoteExtractionSchema.nullable(),
+  candidates: draftCandidatesSchema.nullable(),
+});
+export type DraftFromEmailResponse = z.infer<typeof draftFromEmailResponseSchema>;

@@ -25,6 +25,7 @@ import {
   type QuoteRow,
   type QuoteStatus,
 } from '@/lib/admin/quotes';
+import { DraftFromEmail } from '@/components/admin/quotes/DraftFromEmail';
 import { EmailPreview } from '@/components/admin/quotes/EmailPreview';
 import { LinesPane } from '@/components/admin/quotes/LinesPane';
 import {
@@ -286,6 +287,9 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
   // quote back out of the database. Sending with a re-priced form on screen would email the guest
   // the old figure and leave the operator looking at the new one.
   const [dirty, setDirty] = useState(false);
+  // True while the "Draft from email" panel is composing — Save is blocked so a save can't land
+  // mid-compose and orphan the in-flight draft into a duplicate quote.
+  const [drafting, setDrafting] = useState(false);
   /** The public link the last send returned — the raw token's only home on our side. */
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -458,7 +462,7 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
             <button
               type="button"
               onClick={() => void save()}
-              disabled={busy !== null}
+              disabled={busy !== null || drafting}
               className={BTN_PRIMARY}
             >
               {busy === 'save' ? 'Saving…' : 'Save quote'}
@@ -512,138 +516,165 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
 
         <div className="min-w-0 flex-1">
           {pane === 'guest' && (
-            <Card title="Who this offer is for">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Guest name">
-                  <input
-                    value={values.customerName}
-                    onChange={(e) => set('customerName', e.target.value)}
-                    className={INPUT_CLS}
-                    placeholder="Marie Dupont"
-                  />
-                </Field>
-                <Field
-                  label="Email"
-                  hint="Where the offer is sent — and, if it matches a confirmed account, who the paid booking belongs to."
-                >
-                  <input
-                    type="email"
-                    value={values.customerEmail}
-                    onChange={(e) => set('customerEmail', e.target.value)}
-                    className={INPUT_CLS}
-                    placeholder="marie@example.com"
-                  />
-                </Field>
-                <Field label="Phone">
-                  <input
-                    value={values.customerPhone}
-                    onChange={(e) => set('customerPhone', e.target.value)}
-                    className={INPUT_CLS}
-                    placeholder="+230 5 123 4567"
-                  />
-                </Field>
-                <Field
-                  label="Valid until"
-                  hint="After this date the link stops opening and the payment path refuses the quote."
-                >
-                  <input
-                    type="date"
-                    value={values.validUntil}
-                    onChange={(e) => set('validUntil', e.target.value)}
-                    className={INPUT_CLS}
-                  />
-                </Field>
-                <Field
-                  label="Language"
-                  hint="The language of this offer — and of the guest’s confirmation email and VAT invoice after they pay."
-                >
-                  <select
-                    value={values.locale}
-                    onChange={(e) => set('locale', e.target.value === 'fr' ? 'fr' : 'en')}
-                    className={SELECT_CLS}
-                  >
-                    <option value="en">English</option>
-                    <option value="fr">Français</option>
-                  </select>
-                </Field>
-                <Field
-                  label="Currency"
-                  hint="Quotes are EUR only — the payment ledger is EUR-only."
-                >
-                  <input value="EUR" readOnly disabled className={INPUT_CLS} />
-                </Field>
-              </div>
-
-              <div className="mt-4 border-t border-[#EEF1F3] pt-4">
-                <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
-                  <Field
-                    label="Deposit to confirm"
-                    hint="What the guest pays now to lock in the booking. The balance is chased later."
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        min={1}
-                        max={100}
-                        step={1}
-                        value={depositPercent}
-                        disabled={payInFull || converted}
-                        aria-label="Deposit percent"
-                        onChange={(e) =>
-                          set('depositBps', depositBpsFromPercent(Number(e.target.value)))
-                        }
-                        className={`${INPUT_CLS} w-24 disabled:opacity-50`}
-                      />
-                      <span className="text-sm font-bold text-ink-muted">%</span>
-                    </div>
-                  </Field>
-                  <label className="mb-1.5 flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-ink">
+            <div className="flex flex-col gap-5">
+              {!values.id && (
+                <DraftFromEmail
+                  onBusyChange={setDrafting}
+                  onDraft={(draft) => {
+                    // A draft replaces the WHOLE form, so guard any work the operator already typed
+                    // (the same confirm the withdraw action uses before a destructive change).
+                    if (
+                      dirty &&
+                      !window.confirm('Replace what you have entered with the drafted quote?')
+                    ) {
+                      return;
+                    }
+                    setForm(draft);
+                    setDirty(true);
+                    setNotice(
+                      'Draft loaded from the email — review and price the lines before sending.',
+                    );
+                  }}
+                />
+              )}
+              <Card title="Who this offer is for">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Guest name">
                     <input
-                      type="checkbox"
-                      checked={payInFull}
-                      disabled={converted}
-                      onChange={(e) =>
-                        set('depositBps', e.target.checked ? PAY_IN_FULL_BPS : DEFAULT_DEPOSIT_BPS)
-                      }
-                      className="h-4 w-4 rounded border-[#CBD3D8] text-teal accent-teal focus:ring-teal disabled:opacity-50"
+                      value={values.customerName}
+                      onChange={(e) => set('customerName', e.target.value)}
+                      className={INPUT_CLS}
+                      placeholder="Marie Dupont"
                     />
-                    Pay in full (100%)
-                  </label>
+                  </Field>
+                  <Field
+                    label="Email"
+                    hint="Where the offer is sent — and, if it matches a confirmed account, who the paid booking belongs to."
+                  >
+                    <input
+                      type="email"
+                      value={values.customerEmail}
+                      onChange={(e) => set('customerEmail', e.target.value)}
+                      className={INPUT_CLS}
+                      placeholder="marie@example.com"
+                    />
+                  </Field>
+                  <Field label="Phone">
+                    <input
+                      value={values.customerPhone}
+                      onChange={(e) => set('customerPhone', e.target.value)}
+                      className={INPUT_CLS}
+                      placeholder="+230 5 123 4567"
+                    />
+                  </Field>
+                  <Field
+                    label="Valid until"
+                    hint="After this date the link stops opening and the payment path refuses the quote."
+                  >
+                    <input
+                      type="date"
+                      value={values.validUntil}
+                      onChange={(e) => set('validUntil', e.target.value)}
+                      className={INPUT_CLS}
+                    />
+                  </Field>
+                  <Field
+                    label="Language"
+                    hint="The language of this offer — and of the guest’s confirmation email and VAT invoice after they pay."
+                  >
+                    <select
+                      value={values.locale}
+                      onChange={(e) => set('locale', e.target.value === 'fr' ? 'fr' : 'en')}
+                      className={SELECT_CLS}
+                    >
+                      <option value="en">English</option>
+                      <option value="fr">Français</option>
+                    </select>
+                  </Field>
+                  <Field
+                    label="Currency"
+                    hint="Quotes are EUR only — the payment ledger is EUR-only."
+                  >
+                    <input value="EUR" readOnly disabled className={INPUT_CLS} />
+                  </Field>
                 </div>
-                <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
-                  {payInFull ? (
-                    depositAmount === null ? (
-                      <>The guest pays the whole total to confirm — no balance to collect later.</>
+
+                <div className="mt-4 border-t border-[#EEF1F3] pt-4">
+                  <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+                    <Field
+                      label="Deposit to confirm"
+                      hint="What the guest pays now to lock in the booking. The balance is chased later."
+                    >
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          step={1}
+                          value={depositPercent}
+                          disabled={payInFull || converted}
+                          aria-label="Deposit percent"
+                          onChange={(e) =>
+                            set('depositBps', depositBpsFromPercent(Number(e.target.value)))
+                          }
+                          className={`${INPUT_CLS} w-24 disabled:opacity-50`}
+                        />
+                        <span className="text-sm font-bold text-ink-muted">%</span>
+                      </div>
+                    </Field>
+                    <label className="mb-1.5 flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-ink">
+                      <input
+                        type="checkbox"
+                        checked={payInFull}
+                        disabled={converted}
+                        onChange={(e) =>
+                          set(
+                            'depositBps',
+                            e.target.checked ? PAY_IN_FULL_BPS : DEFAULT_DEPOSIT_BPS,
+                          )
+                        }
+                        className="h-4 w-4 rounded border-[#CBD3D8] text-teal accent-teal focus:ring-teal disabled:opacity-50"
+                      />
+                      Pay in full (100%)
+                    </label>
+                  </div>
+                  <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
+                    {payInFull ? (
+                      depositAmount === null ? (
+                        <>
+                          The guest pays the whole total to confirm — no balance to collect later.
+                        </>
+                      ) : (
+                        <>
+                          The guest pays the whole{' '}
+                          <span className="font-bold text-ink">{eurFromMinor(depositAmount)}</span>{' '}
+                          to confirm — no balance to collect later.
+                        </>
+                      )
+                    ) : depositAmount === null || balanceAmount === null ? (
+                      <>
+                        The guest pays {depositPercent}% now to confirm the booking; the rest is
+                        collected later with the balance link.
+                      </>
                     ) : (
                       <>
-                        The guest pays the whole{' '}
-                        <span className="font-bold text-ink">{eurFromMinor(depositAmount)}</span> to
-                        confirm — no balance to collect later.
+                        The guest pays{' '}
+                        <span className="font-bold text-ink">{eurFromMinor(depositAmount)}</span> (
+                        {depositPercent}%) now to confirm; a{' '}
+                        <span className="font-bold text-ink">{eurFromMinor(balanceAmount)}</span>{' '}
+                        balance is collected later with the balance link.
                       </>
-                    )
-                  ) : depositAmount === null || balanceAmount === null ? (
-                    <>
-                      The guest pays {depositPercent}% now to confirm the booking; the rest is
-                      collected later with the balance link.
-                    </>
-                  ) : (
-                    <>
-                      The guest pays{' '}
-                      <span className="font-bold text-ink">{eurFromMinor(depositAmount)}</span> (
-                      {depositPercent}%) now to confirm; a{' '}
-                      <span className="font-bold text-ink">{eurFromMinor(balanceAmount)}</span>{' '}
-                      balance is collected later with the balance link.
-                    </>
-                  )}
-                </p>
-                {converted && (
-                  <p className="mt-1.5 text-[12px] leading-relaxed text-ink-muted">
-                    This quote has been converted, so its deposit can no longer be changed. Send the
-                    balance link from Preview &amp; send.
+                    )}
                   </p>
-                )}
-              </div>
-            </Card>
+                  {converted && (
+                    <p className="mt-1.5 text-[12px] leading-relaxed text-ink-muted">
+                      This quote has been converted, so its deposit can no longer be changed. Send
+                      the balance link from Preview &amp; send.
+                    </p>
+                  )}
+                </div>
+              </Card>
+            </div>
           )}
 
           {pane === 'lines' && <LinesPane form={values} setLines={setLines} />}

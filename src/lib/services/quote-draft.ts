@@ -1,6 +1,3 @@
-import type { ServiceContext } from './context';
-import { searchActivities } from './activities';
-import { listRentalVehicles } from './rental';
 import { loadActivityDepartures, type QuoteDeparture } from '@/lib/admin/quote-catalogue';
 import { proposeSchedule } from '@/lib/quotes/schedule';
 import {
@@ -53,11 +50,16 @@ export interface DraftRentalCandidate {
 }
 
 export interface DraftDeps {
-  /** Defaults to `searchActivities` + `listRentalVehicles`; injected in tests to avoid a DB. */
-  loadCandidates?: (
-    ctx: ServiceContext,
-  ) => Promise<{ activities: DraftActivityCandidate[]; rentals: DraftRentalCandidate[] }>;
-  /** Defaults to `loadActivityDepartures`; injected in tests and by the admin editor's browser client. */
+  /** REQUIRED: the catalogue + fleet the draft resolves matched slugs against. Injected rather than
+   *  fetched here so this module stays browser-safe (no server-service imports): the draft-from-email
+   *  route fetches these server-side and hands them to the browser, which runs the draft; tests inject
+   *  a fixture. The browser picker list (loadQuotableActivities) carries no slug, which is why the
+   *  server candidate list — searchActivities, which has slug + id — is the source. */
+  loadCandidates: () => Promise<{
+    activities: DraftActivityCandidate[];
+    rentals: DraftRentalCandidate[];
+  }>;
+  /** Defaults to the browser `loadActivityDepartures`; injected in tests. */
   loadDepartures?: (activityId: string, day: string) => Promise<QuoteDeparture[]>;
   /** Pins the `valid_until` default in tests. */
   today?: string;
@@ -122,25 +124,10 @@ function rentalLine(vehicle: DraftRentalCandidate, days: number): QuoteLineDraft
   return line;
 }
 
-async function defaultLoadCandidates(
-  ctx: ServiceContext,
-): Promise<{ activities: DraftActivityCandidate[]; rentals: DraftRentalCandidate[] }> {
-  const [page, rentals] = await Promise.all([
-    searchActivities(ctx, { page: 1, pageSize: 100 }),
-    listRentalVehicles(ctx),
-  ]);
-  return {
-    activities: page.items.map((a) => ({ id: a.id, slug: a.slug, title: a.title })),
-    rentals: rentals.map((v) => ({ slug: v.slug, name: v.name, dailyRateEur: v.dailyRateEur })),
-  };
-}
-
 export async function draftFromExtraction(
-  ctx: ServiceContext,
   extraction: QuoteExtraction,
-  deps: DraftDeps = {},
+  deps: DraftDeps,
 ): Promise<QuoteFormValues> {
-  const loadCandidates = deps.loadCandidates ?? defaultLoadCandidates;
   const loadDepartures = deps.loadDepartures ?? loadActivityDepartures;
 
   const form = emptyQuoteForm(deps.today);
@@ -149,7 +136,7 @@ export async function draftFromExtraction(
   form.locale = extraction.locale;
   form.introNote = composeIntroNote(extraction);
 
-  const { activities, rentals } = await loadCandidates(ctx);
+  const { activities, rentals } = await deps.loadCandidates();
   const bySlug = new Map(activities.map((a) => [a.slug, a] as const));
 
   const party = extraction.party;
