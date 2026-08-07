@@ -88,6 +88,8 @@ function quoteFixture(converted: boolean, booking: PublicQuoteBooking | null): P
     customerName: 'Marie Dupont',
     currency: 'EUR',
     totalMinor: 23000,
+    /** 10% — what api_convert_quote actually charges at the card form (EUR 23.00 of EUR 230.00). */
+    depositBps: 1000,
     validUntil: '2026-08-19',
     introNote: 'As discussed on the phone.',
     convertedAt: converted ? '2026-08-06T09:00:00.000Z' : null,

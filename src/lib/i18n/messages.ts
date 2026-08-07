@@ -2659,6 +2659,16 @@ export const fr: Record<string, string> = {
     'Voici le devis que vous nous avez demandé ({ref}).',
   'Valid until {date}. Nothing is reserved until the quote is paid.':
     'Valable jusqu’au {date}. Rien n’est réservé tant que le devis n’est pas payé.',
+  // The payment TERMS. api_convert_quote charges only the deposit at the card form, so these are the
+  // figures the guest is actually asked for — the amounts and the percentage are data and stay as
+  // rendered, only the sentence around them is translated.
+  // ('Payment' is already translated further up this table — reused, not restated.)
+  'Deposit to confirm': 'Acompte à verser',
+  'Pay {deposit} now to confirm ({percent} of the total).':
+    'Réglez {deposit} maintenant pour confirmer ({percent} du total).',
+  'The balance of {balance} is payable later.':
+    'Le solde de {balance} est à régler ultérieurement.',
+  'Pay {total} to confirm your booking.': 'Réglez {total} pour confirmer votre réservation.',
   'View & pay your quote': 'Voir et payer votre devis',
   'View and pay your quote:': 'Voir et payer votre devis :',
   'Or open this link:': 'Ou ouvrez ce lien :',

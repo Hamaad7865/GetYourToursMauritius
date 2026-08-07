@@ -1,6 +1,12 @@
 import { escapeHtml } from './booking-confirmation';
 import { DEFAULT_LOCALE, isLocale, type Locale } from '@/lib/i18n/config';
 import { translate } from '@/lib/i18n/translate';
+import {
+  balanceMinorOf,
+  depositMinorOf,
+  depositPercentLabel,
+  isPayInFull,
+} from '@/lib/quotes/deposit';
 import { quoteOpenPath, quoteRefLooksValid, quoteTokenLooksValid } from '@/lib/quotes/link-cookie';
 import { lineSubtotalMinor, quoteTotalMinor } from '@/lib/quotes/totals';
 import { SITE } from '@/lib/seo/site';
@@ -71,6 +77,17 @@ export interface QuoteEmailInput {
    * falls back to English rather than rendering raw keys.
    */
   locale: Locale | string | null | undefined;
+  /**
+   * The stored `quotes.deposit_bps` — the share of the total that CONFIRMS the booking, in basis
+   * points (1000 = 10%, the schema default; 10000 = pay-in-full).
+   *
+   * REQUIRED, for the reason {@link locale} is: what it prevents is silent. api_convert_quote charges
+   * `round(total × bps / 10000)` at the card form, so an email that omits it shows a guest "EUR
+   * 626.00" and a Pay button, and asks them for EUR 62.60 two clicks later — with the remaining EUR
+   * 563.40 never mentioned as owed at all. Nothing fails; the guest simply is not told the terms of
+   * the offer they are being asked to accept. A caller that forgets this field now fails to compile.
+   */
+  depositBps: number;
   items: QuoteEmailLine[];
   /**
    * The RAW link token — 32 bytes of lowercase hex from {@link import('@/lib/quotes/token').mintQuoteToken}
@@ -183,6 +200,24 @@ export function renderQuoteEmail(input: QuoteEmailInput): RenderedEmail {
   }
   const payUrl = `${SITE.url}${quoteOpenPath(ref, input.linkToken)}`;
   const totalStr = money(currency, input.totalMinor);
+
+  /* WHAT IS DUE NOW, and what is left. Both figures come from the shared deposit module, which is
+   * what api_convert_quote sizes the first charge with — so the sentence below cannot promise a
+   * figure the card is not charged. A pay-in-full quote says so in one line and mentions no balance
+   * at all: "balance: EUR 0.00" would describe a second payment that never comes. */
+  const payInFull = isPayInFull(input.depositBps);
+  const depositStr = money(currency, depositMinorOf(input.totalMinor, input.depositBps));
+  const balanceStr = money(currency, balanceMinorOf(input.totalMinor, input.depositBps));
+  const termsHeading = payInFull ? t('Payment') : t('Deposit to confirm');
+  const termsDue = payInFull
+    ? t('Pay {total} to confirm your booking.', { total: totalStr })
+    : t('Pay {deposit} now to confirm ({percent} of the total).', {
+        deposit: depositStr,
+        percent: depositPercentLabel(input.depositBps),
+      });
+  const termsBalance = payInFull
+    ? ''
+    : t('The balance of {balance} is payable later.', { balance: balanceStr });
   const introNote = input.introNote?.trim() || '';
   const supportEmail = escapeHtml(SITE.email);
   const supportPhone = escapeHtml(SITE.phone);
@@ -261,6 +296,22 @@ ${introHtml}
                 }),
               )}</p>
 
+              <!-- Payment terms: the figure the card is actually charged, above the button that
+                   charges it. -->
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px 0;">
+                <tr>
+                  <td style="background:#f0fafa;border:1px solid #cfe9ea;border-radius:6px;padding:14px 16px;">
+                    <div style="color:${MUTED};font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:0.06em;">${escapeHtml(termsHeading)}</div>
+                    <div style="margin-top:4px;color:${INK};font-size:15px;font-weight:bold;">${escapeHtml(termsDue)}</div>
+                    ${
+                      termsBalance
+                        ? `<div style="margin-top:3px;color:${MUTED};font-size:13px;">${escapeHtml(termsBalance)}</div>`
+                        : ''
+                    }
+                  </td>
+                </tr>
+              </table>
+
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 14px 0;">
                 <tr>
                   <td style="border-radius:6px;background:${ACCENT};">
@@ -318,6 +369,10 @@ ${introHtml}
       date: input.validUntil,
     }),
   );
+  // Same terms, same order as the HTML — the two parts are one message and must not drift.
+  textLines.push('');
+  textLines.push(`${termsHeading}: ${termsDue}`);
+  if (termsBalance) textLines.push(termsBalance);
   textLines.push('');
   textLines.push(t('View and pay your quote:'));
   textLines.push(payUrl);

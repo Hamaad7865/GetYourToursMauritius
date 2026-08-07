@@ -9,6 +9,7 @@ import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
 import { getNotificationProvider } from '@/lib/notifications';
 import { renderQuoteEmail, type QuoteEmailLine } from '@/lib/email/quote';
+import { DEFAULT_DEPOSIT_BPS } from '@/lib/quotes/deposit';
 import { quoteOpenPath } from '@/lib/quotes/link-cookie';
 import { hashQuoteToken, mintQuoteToken } from '@/lib/quotes/token';
 import { assertQuoteStillValid } from '@/lib/quotes/validity';
@@ -231,8 +232,12 @@ export const POST = apiHandler(async (req) => {
       // not of the operator pressing Send. api_convert_quote copies it into `bookings.locale`, which
       // already picks the language of the confirmation email and the VAT invoice — so leaving it
       // unselected would email a French guest an English quote and then French paperwork about it.
-      'id, ref, customer_name, customer_email, status, currency, total_minor, valid_until, ' +
-        'intro_note, converted_at, locale',
+      // `deposit_bps` is on this list for the same reason `locale` is: it is a property of the OFFER
+      // that the guest is entitled to read BEFORE accepting it. api_convert_quote charges only
+      // round(total × bps / 10000) at the card form, so an email sent without it quotes a total and
+      // then asks for a tenth of it, never mentioning the balance still owed.
+      'id, ref, customer_name, customer_email, status, currency, total_minor, deposit_bps, ' +
+        'valid_until, intro_note, converted_at, locale',
     )
     .eq('id', quoteId)
     .maybeSingle();
@@ -307,6 +312,9 @@ export const POST = apiHandler(async (req) => {
     currency: text(quote.currency),
     totalMinor,
     validUntil: dateText(quote.valid_until),
+    // The column's own default, restated for a row written before it existed: a missing deposit must
+    // read as the 10% the RPC would charge, never as 0 (a "pay EUR 0.00 to confirm" email).
+    depositBps: Number(quote.deposit_bps ?? DEFAULT_DEPOSIT_BPS),
     introNote: textOrNull(quote.intro_note),
     // `content_locale` comes back as a plain string; renderQuoteEmail falls back to English for
     // anything that is not a locale it has messages for.

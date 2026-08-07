@@ -29,6 +29,8 @@ const quote = {
   introNote: 'As discussed on the phone.',
   locale: 'en',
   linkToken: TOKEN,
+  /** 10% — the schema default, and the figure the guest's card is actually charged to confirm. */
+  depositBps: 1000,
   items: [
     { description: 'Catamaran cruise, 23 Aug, 2 adults', quantity: 2, unitAmountMinor: 5500 },
     { description: 'Private guide, full day', quantity: 1, unitAmountMinor: 12000 },
@@ -36,6 +38,62 @@ const quote = {
 };
 
 const OPEN_URL = `${SITE.url}/api/v1/quotes/Q7F3A21/open?t=${TOKEN}`;
+
+/**
+ * WHAT THE GUEST ACTUALLY PAYS NOW.
+ *
+ * api_convert_quote sizes the first charge from `quotes.deposit_bps` — `round(total × bps / 10000)` —
+ * so a 10% quote for EUR 230.00 takes EUR 23.00 at the card form and leaves EUR 207.00 owed. The email
+ * printed the TOTAL and a "pay your quote" button and said nothing about either figure, which is the
+ * one number a guest reads a quote to find. An offer that hides its payment terms is not an offer;
+ * the operator's own emails have always spelled out "10% to confirm, balance later" by hand.
+ *
+ * The deposit is never re-derived here from a percentage the template invents: it comes from
+ * `depositMinorOf`, the single definition the editor previews and the conversion RPC both size from.
+ */
+describe('the deposit that confirms the booking', () => {
+  it('states what is due now and what is left, beside the total', () => {
+    const { html, text } = renderQuoteEmail(quote);
+    // 10% of EUR 230.00. Asserted with the currency prefix so it cannot accidentally match inside
+    // the total ("EUR 230.00" does not contain "EUR 23.00").
+    expect(html).toContain('EUR 23.00');
+    expect(html).toContain('EUR 207.00');
+    // The plain-text part must not drift from the HTML — the two are the same message.
+    expect(text).toContain('EUR 23.00');
+    expect(text).toContain('EUR 207.00');
+  });
+
+  it('names the percentage, so the terms are not just a bare figure', () => {
+    expect(renderQuoteEmail(quote).html).toContain('10%');
+  });
+
+  it('sizes the deposit exactly as the conversion RPC does, rounding included', () => {
+    // 3.33% of EUR 230.00 = 765.9 minor units. api_convert_quote stores round(...) = 766, so the
+    // guest must be told EUR 7.66 — a template doing its own floor/ceil would quote a figure the
+    // card is never charged.
+    const { html } = renderQuoteEmail({ ...quote, depositBps: 333 });
+    expect(html).toContain('EUR 7.66');
+    expect(html).toContain(`EUR ${((23000 - 766) / 100).toFixed(2)}`);
+  });
+
+  it('promises no balance when the guest is paying in full', () => {
+    // 10000 bps = the whole total; there is nothing left to collect, so a "balance: EUR 0.00" line
+    // would be a lie about a second payment that never comes.
+    const { html, text } = renderQuoteEmail({ ...quote, depositBps: 10000 });
+    expect(html).not.toMatch(/balance/i);
+    expect(text).not.toMatch(/balance/i);
+    expect(html).not.toContain('EUR 0.00');
+  });
+
+  it('says it in the language the offer was drafted in', () => {
+    // The quote's own locale picks the confirmation email and the VAT invoice too; the sentence that
+    // states the payment terms cannot be the one that reverts to English.
+    const { html } = renderQuoteEmail({ ...quote, locale: 'fr' });
+    expect(html).toContain('EUR 23.00');
+    expect(html).toMatch(/acompte/i);
+    expect(html).not.toMatch(/Deposit to confirm/i);
+  });
+});
 
 describe('quote email', () => {
   it('lists every line and the total', () => {
