@@ -28289,3 +28289,390 @@ drop trigger if exists saved_cards_erase_with_profile on profiles;
 create trigger saved_cards_erase_with_profile
   before delete on profiles
   for each row execute function erase_saved_cards_for_profile();
+
+
+-- ===================================================================================================
+-- 20260915000000_quote_deposit_invoice — the RECEIPT-vs-INVOICE split. Re-applies the WINNING bodies
+-- of enqueue_booking_notification / api_booking_receipt / api_mark_refunded (verbatim apart from the
+-- deposit split) so catch-up carries the latest, and adds the notify_balance_paid trigger. Kept
+-- byte-identical to the migration so catch-up-parity sees no body change.
+-- ===================================================================================================
+create or replace function enqueue_booking_notification()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'confirmed' and old.status is distinct from 'confirmed' then
+    -- THE DEPOSIT SPLIT. A part-paid booking (a deposit settled, a balance still owed) gets a deposit
+    -- RECEIPT; the full 'booking_confirmation' VAT invoice is fired later by notify_balance_paid when the
+    -- balance clears. Everything with balance_due_minor = 0 at confirm — a pay-in-full quote, every
+    -- ordinary catalogue booking — takes the else and is bit-for-bit the pre-deposit behaviour.
+    if new.balance_due_minor > 0 then
+      insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+      values (
+        'email', new.customer_email, 'deposit_receipt',
+        jsonb_build_object(
+          'ref', new.ref, 'customerName', new.customer_name,
+          'totalMinor', new.total_minor, 'depositMinor', new.deposit_minor,
+          'balanceDueMinor', new.balance_due_minor, 'currency', new.currency
+        ),
+        new.id, 'deposit_receipt:' || new.id
+      )
+      on conflict (idempotency_key) do nothing;
+    else
+      insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+      values (
+        'email', new.customer_email, 'booking_confirmation',
+        jsonb_build_object(
+          'ref', new.ref, 'customerName', new.customer_name,
+          'totalMinor', new.total_minor, 'currency', new.currency
+        ),
+        new.id, 'booking_confirmation:' || new.id
+      )
+      on conflict (idempotency_key) do nothing;
+    end if;
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'email', 'owner', 'owner_new_booking',
+      jsonb_build_object(
+        'ref', new.ref, 'customerName', new.customer_name,
+        'totalMinor', new.total_minor, 'currency', new.currency
+      ),
+      new.id, 'owner_new_booking:' || new.id
+    )
+    on conflict (idempotency_key) do nothing;
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'telegram', 'owner', 'owner_new_booking',
+      jsonb_build_object(
+        'ref', new.ref, 'customerName', new.customer_name,
+        'totalMinor', new.total_minor, 'currency', new.currency
+      ),
+      new.id, 'owner_new_booking_tg:' || new.id
+    )
+    on conflict (idempotency_key) do nothing;
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'whatsapp', 'owner', 'owner_new_booking',
+      jsonb_build_object(
+        'ref', new.ref, 'customerName', new.customer_name,
+        'totalMinor', new.total_minor, 'currency', new.currency
+      ),
+      new.id, 'owner_new_booking_wa:' || new.id
+    )
+    on conflict (idempotency_key) do nothing;
+    insert into notifications (user_id, type, title, body, data)
+    select p.id, 'admin_new_booking', 'New booking',
+           coalesce(nullif(new.customer_name, ''), 'A guest') || ' booked ' || new.ref
+             || ' — €' || to_char(new.total_minor / 100.0, 'FM999990.00'),
+           jsonb_build_object('ref', new.ref, 'bookingId', new.id)
+    from profiles p
+    where p.role in ('staff', 'admin')
+      and not exists (
+        select 1 from notifications n
+        where n.user_id = p.id and n.type = 'admin_new_booking'
+          and n.data ->> 'bookingId' = new.id::text
+      );
+    if new.user_id is not null then
+      insert into notifications (user_id, type, title, body, data)
+      select new.user_id, 'booking_confirmed', 'Booking confirmed',
+             'Your booking ' || new.ref || ' is confirmed.',
+             jsonb_build_object('ref', new.ref, 'bookingId', new.id)
+      where not exists (
+        select 1 from notifications n
+        where n.user_id = new.user_id and n.type = 'booking_confirmed'
+          and n.data ->> 'bookingId' = new.id::text
+      );
+    end if;
+  elsif new.status = 'cancelled' and old.status is distinct from 'cancelled' then
+    if new.user_id is not null then
+      insert into notifications (user_id, type, title, body, data)
+      select new.user_id, 'booking_cancelled', 'Booking cancelled',
+             'Your booking ' || new.ref || ' has been cancelled.',
+             jsonb_build_object('ref', new.ref, 'bookingId', new.id)
+      where not exists (
+        select 1 from notifications n
+        where n.user_id = new.user_id and n.type = 'booking_cancelled'
+          and n.data ->> 'bookingId' = new.id::text
+      );
+    end if;
+  elsif new.status = 'refunded' and old.status is distinct from 'refunded' then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'email', new.customer_email, 'booking_refunded',
+      jsonb_build_object('ref', new.ref, 'customerName', new.customer_name),
+      new.id, 'booking_refunded:' || new.id
+    )
+    on conflict (idempotency_key) do nothing;
+    if new.user_id is not null then
+      insert into notifications (user_id, type, title, body, data)
+      select new.user_id, 'booking_refunded', 'Refund issued',
+             'Your booking ' || new.ref || ' has been refunded.',
+             jsonb_build_object('ref', new.ref, 'bookingId', new.id)
+      where not exists (
+        select 1 from notifications n
+        where n.user_id = new.user_id and n.type = 'booking_refunded'
+          and n.data ->> 'bookingId' = new.id::text
+      );
+    end if;
+  elsif new.status = 'refund_pending' and old.status is distinct from 'refund_pending' then
+    if not exists (
+      select 1 from notification_outbox
+      where booking_id = new.id and template = 'booking_cancellation'
+    ) then
+      insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+      values (
+        'email', new.customer_email, 'booking_refund_pending',
+        jsonb_build_object(
+          'ref', new.ref, 'customerName', new.customer_name,
+          'totalMinor', new.total_minor, 'currency', new.currency
+        ),
+        new.id, 'booking_refund_pending:' || new.id
+      )
+      on conflict (idempotency_key) do nothing;
+      insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+      values (
+        'email', 'owner', 'owner_refund_pending',
+        jsonb_build_object(
+          'ref', new.ref, 'customerName', new.customer_name,
+          'totalMinor', new.total_minor, 'currency', new.currency
+        ),
+        new.id, 'owner_refund_pending:' || new.id
+      )
+      on conflict (idempotency_key) do nothing;
+      insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+      values (
+        'telegram', 'owner', 'owner_refund_pending',
+        jsonb_build_object(
+          'ref', new.ref, 'customerName', new.customer_name,
+          'totalMinor', new.total_minor, 'currency', new.currency
+        ),
+        new.id, 'owner_refund_pending_tg:' || new.id
+      )
+      on conflict (idempotency_key) do nothing;
+      insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+      values (
+        'whatsapp', 'owner', 'owner_refund_pending',
+        jsonb_build_object(
+          'ref', new.ref, 'customerName', new.customer_name,
+          'totalMinor', new.total_minor, 'currency', new.currency
+        ),
+        new.id, 'owner_refund_pending_wa:' || new.id
+      )
+      on conflict (idempotency_key) do nothing;
+      insert into notifications (user_id, type, title, body, data)
+      select p.id, 'admin_refund_pending', 'Refund needed',
+             coalesce(nullif(new.customer_name, ''), 'A guest') || ' -- booking ' || new.ref
+               || ' needs a refund in Peach.',
+             jsonb_build_object('ref', new.ref, 'bookingId', new.id)
+      from profiles p
+      where p.role in ('staff', 'admin')
+        and not exists (
+          select 1 from notifications n
+          where n.user_id = p.id and n.type = 'admin_refund_pending'
+            and n.data ->> 'bookingId' = new.id::text
+        );
+    end if;
+  elsif new.status = 'expired' and old.status = 'payment_pending' then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'email', new.customer_email, 'booking_expired',
+      jsonb_build_object('ref', new.ref, 'customerName', new.customer_name),
+      new.id, 'booking_expired:' || new.id
+    )
+    on conflict (idempotency_key) do nothing;
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function enqueue_booking_notification() from public, anon, authenticated;
+grant execute on function enqueue_booking_notification() to service_role;
+
+create or replace function notify_balance_paid(p_payment_id uuid)
+returns void
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_payment payments;
+  v_booking bookings;
+begin
+  select * into v_payment from payments where id = p_payment_id;
+  if not found then
+    return;
+  end if;
+  select * into v_booking from bookings where id = v_payment.booking_id;
+  if not found then
+    return;
+  end if;
+
+  -- Only a LIVE booking gets the settled-in-full invoice (see migration 20260915000000).
+  if v_booking.status not in ('confirmed', 'completed') then
+    return;
+  end if;
+
+  if v_booking.customer_email is not null then
+    insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+    values (
+      'email', v_booking.customer_email, 'booking_confirmation',
+      jsonb_build_object(
+        'ref', v_booking.ref, 'customerName', v_booking.customer_name,
+        'totalMinor', v_booking.total_minor, 'currency', v_booking.currency
+      ),
+      v_booking.id, 'booking_confirmation:' || v_booking.id
+    )
+    on conflict (idempotency_key) do nothing;
+  end if;
+
+  insert into notification_outbox (channel, recipient, template, payload, booking_id, idempotency_key)
+  values (
+    'email', 'owner', 'owner_balance_paid',
+    jsonb_build_object(
+      'ref', v_booking.ref, 'customerName', v_booking.customer_name,
+      'totalMinor', v_booking.total_minor, 'currency', v_booking.currency
+    ),
+    v_booking.id, 'owner_balance_paid:' || v_booking.id
+  )
+  on conflict (idempotency_key) do nothing;
+end;
+$$;
+revoke execute on function notify_balance_paid(uuid) from public, anon, authenticated;
+grant execute on function notify_balance_paid(uuid) to service_role;
+
+create or replace function trg_notify_balance_paid()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  perform notify_balance_paid(new.id);
+  return new;
+end;
+$$;
+revoke execute on function trg_notify_balance_paid() from public, anon, authenticated;
+grant execute on function trg_notify_balance_paid() to service_role;
+
+drop trigger if exists payments_notify_balance_paid on payments;
+create trigger payments_notify_balance_paid
+after update of status on payments
+for each row
+when (new.purpose = 'balance' and new.status = 'paid' and old.status is distinct from 'paid')
+execute function trg_notify_balance_paid();
+
+create or replace function api_booking_receipt(p jsonb)
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = public
+as $$
+declare
+  v_booking_id uuid := nullif(p ->> 'bookingId', '')::uuid;
+  v_base jsonb;
+  v_title text;
+  v_when timestamptz;
+  v_payment jsonb;
+  v_phone text;
+  v_locale text;
+  v_bal bigint;
+  v_addon_charged bigint := 0;
+  v_custom jsonb;
+begin
+  if v_booking_id is null then
+    raise exception 'invalid_request' using detail = 'booking_receipt: bookingId required';
+  end if;
+
+  v_base := booking_json(v_booking_id);
+  if v_base is null then
+    return null;
+  end if;
+
+  select a.title, o.starts_at
+    into v_title, v_when
+    from booking_items bi
+    join session_occurrences o on o.id = bi.session_occurrence_id
+    join activity_options ao on ao.id = bi.activity_option_id
+    join activities a on a.id = ao.activity_id
+   where bi.booking_id = v_booking_id
+   order by o.starts_at asc, bi.created_at asc
+   limit 1;
+
+  -- SETTLED SO FAR, summed across the deposit ('booking') and the balance ('balance') rows; ordinary
+  -- bookings have one 'booking' row so this equals the old limit-1. Only settled rows contribute.
+  select case
+           when count(*) filter (where pay.paid_minor > 0) = 0 then null
+           else jsonb_build_object(
+             'chargedAmountMinor',
+               coalesce(sum(coalesce(pay.charged_amount_minor, pay.amount_minor))
+                        filter (where pay.paid_minor > 0), 0),
+             'chargedCurrency',
+               coalesce(max(coalesce(pay.charged_currency, pay.currency))
+                        filter (where pay.paid_minor > 0), max(pay.currency)),
+             'paidAt', max(paid.occurred_at) filter (where pay.paid_minor > 0),
+             'providerRef', (array_agg(paid.provider_event_id order by paid.occurred_at desc nulls last)
+                             filter (where pay.paid_minor > 0 and paid.provider_event_id is not null))[1]
+           )
+         end
+    into v_payment
+    from payments pay
+    left join lateral (
+      select pe.occurred_at, pe.provider_event_id
+        from payment_events pe
+       where pe.payment_id = pay.id and pe.type in ('paid', 'captured')
+       order by pe.occurred_at asc
+       limit 1
+    ) paid on true
+   where pay.booking_id = v_booking_id
+     and pay.purpose in ('booking', 'balance');
+
+  if v_payment is not null then
+    select coalesce(sum(coalesce(pay.charged_amount_minor, pay.amount_minor)), 0)
+      into v_addon_charged
+      from payments pay
+     where pay.booking_id = v_booking_id
+       and pay.purpose = 'pickup_addon'
+       and pay.paid_minor > 0
+       and exists (
+         select 1 from booking_pickup_requests r
+          where r.payment_id = pay.id and r.applied_at is not null
+       )
+       and coalesce(pay.charged_currency, pay.currency)
+             is not distinct from (v_payment ->> 'chargedCurrency');
+    if v_addon_charged > 0 then
+      v_payment := v_payment || jsonb_build_object(
+        'chargedAmountMinor', (v_payment ->> 'chargedAmountMinor')::bigint + v_addon_charged
+      );
+    end if;
+  end if;
+
+  select b.customer_phone, b.locale::text, b.balance_due_minor
+    into v_phone, v_locale, v_bal
+    from bookings b where b.id = v_booking_id;
+
+  select coalesce(jsonb_agg(jsonb_build_object(
+           'priceLabel', ci.description,
+           'quantity', ci.quantity,
+           'pax', null::int,
+           'unitAmountEur', ci.unit_amount_minor::float / 100,
+           'subtotalEur', ci.subtotal_minor::float / 100
+         ) order by ci.position), '[]'::jsonb)
+    into v_custom
+    from booking_custom_items ci
+   where ci.booking_id = v_booking_id;
+
+  return v_base
+    || jsonb_build_object('items', coalesce(v_base -> 'items', '[]'::jsonb) || v_custom)
+    || jsonb_build_object('activityTitle', v_title, 'when', v_when)
+    || jsonb_build_object('payment', coalesce(v_payment, 'null'::jsonb))
+    || jsonb_build_object('customerPhone', v_phone)
+    || jsonb_build_object('balanceDueMinor', coalesce(v_bal, 0))
+    || jsonb_build_object('locale', v_locale);
+end;
+$$;
+revoke execute on function api_booking_receipt(jsonb) from public, anon, authenticated;
+grant execute on function api_booking_receipt(jsonb) to service_role;

@@ -69,7 +69,16 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
                 </tr>`
     : '';
 
-  const subject = t('Your {operator} booking {ref} — invoice & receipt', { operator, ref });
+  // The deposit split: a part-paid booking (balance still owed) is a DEPOSIT RECEIPT — the copy, the
+  // subject and the attached PDF all say "deposit received, balance due" rather than "paid in full".
+  // A fully-paid booking has balanceDueEur = 0 and every line below is byte-identical to before.
+  const isDeposit = model.balanceDueEur > 0;
+  const amountPaidStr = money(model.currency, model.amountPaidEur);
+  const balanceDueStr = money(model.currency, model.balanceDueEur);
+
+  const subject = isDeposit
+    ? t('Your {operator} booking {ref} — deposit received', { operator, ref })
+    : t('Your {operator} booking {ref} — invoice & receipt', { operator, ref });
 
   // ── HTML ──────────────────────────────────────────────────────────────────
   const lineRows = model.lines
@@ -173,6 +182,18 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
    * Deliberately a code comment and not an HTML one — everything inside the template literal below is
    * shipped to the customer and readable in "view source".
    */
+  const depositRowsHtml = isDeposit
+    ? `
+                <tr>
+                  <td style="padding:6px 0 0 0;color:${ACCENT};font-size:13.5px;font-weight:bold;">${escapeHtml(t('Amount paid'))}</td>
+                  <td style="padding:6px 0 0 0;color:${ACCENT};font-size:13.5px;font-weight:bold;text-align:right;white-space:nowrap;">${escapeHtml(amountPaidStr)}</td>
+                </tr>
+                <tr>
+                  <td style="padding:4px 0 0 0;color:${INK};font-size:13.5px;font-weight:bold;">${escapeHtml(t('Balance due'))}</td>
+                  <td style="padding:4px 0 0 0;color:${INK};font-size:13.5px;font-weight:bold;text-align:right;white-space:nowrap;">${escapeHtml(balanceDueStr)}</td>
+                </tr>`
+    : '';
+
   const html = `<!-- ${escapeHtml(operator)} booking confirmation -->
 <div style="margin:0;padding:0;background:#f3f4f6;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f4f6;padding:24px 0;">
@@ -194,9 +215,16 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
           <!-- body -->
           <tr>
             <td style="padding:28px;">
-              <h1 style="margin:0 0 8px 0;color:${INK};font-size:22px;">${escapeHtml(t('Your booking is confirmed'))} ✅</h1>
+              <h1 style="margin:0 0 8px 0;color:${INK};font-size:22px;">${escapeHtml(isDeposit ? t('We have received your deposit') : t('Your booking is confirmed'))} ✅</h1>
               <p style="margin:0 0 20px 0;color:${MUTED};font-size:14px;line-height:1.5;">
-                ${escapeHtml(t('Thanks for booking with {operator}. Here are your details.', { operator }))}
+                ${escapeHtml(
+                  isDeposit
+                    ? t(
+                        'Thanks for your deposit on your {operator} booking — here are the details, with the balance still to pay shown below.',
+                        { operator },
+                      )
+                    : t('Thanks for booking with {operator}. Here are your details.', { operator }),
+                )}
               </p>
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
@@ -209,12 +237,19 @@ export function renderConfirmationEmail(model: InvoiceModel, bookingUrl?: string
                   <td style="padding:12px 0 0 0;color:${INK};font-size:15px;font-weight:bold;">${escapeHtml(t('Total'))}</td>
                   <td style="padding:12px 0 0 0;color:${INK};font-size:15px;font-weight:bold;text-align:right;white-space:nowrap;">${totalHtml}</td>
                 </tr>
+                ${depositRowsHtml}
                 ${chargedRowHtml}
               </table>
               <p style="margin:4px 0 20px 0;color:${MUTED};font-size:12px;">${escapeHtml(t('(incl. {vatPct}% VAT)', { vatPct }))}</p>
 ${voucherHtml}
               <p style="margin:0 0 20px 0;color:${INK};font-size:14px;line-height:1.5;">
-                ${escapeHtml(t('Your invoice & receipt are attached as a PDF.'))}
+                ${escapeHtml(
+                  isDeposit
+                    ? t(
+                        'Your deposit receipt is attached as a PDF. We will send you a secure link to pay the balance.',
+                      )
+                    : t('Your invoice & receipt are attached as a PDF.'),
+                )}
               </p>
 
               <p style="margin:0;color:${MUTED};font-size:13px;line-height:1.6;">
@@ -241,7 +276,9 @@ ${voucherHtml}
   const textLines = [
     t('Hi {name},', { name: model.customer.name }),
     '',
-    t('Good news — your booking {ref} is confirmed (total {total}).', { ref, total: totalStr }),
+    isDeposit
+      ? t('Good news — we have received your deposit for booking {ref}.', { ref })
+      : t('Good news — your booking {ref} is confirmed (total {total}).', { ref, total: totalStr }),
     '',
     `${t('Activity')}: ${activity}`,
   ];
@@ -271,6 +308,10 @@ ${voucherHtml}
   }
   textLines.push('');
   textLines.push(`${t('Total')}: ${totalStr} ${t('(incl. {vatPct}% VAT)', { vatPct })}`);
+  if (isDeposit) {
+    textLines.push(`${t('Amount paid')}: ${amountPaidStr}`);
+    textLines.push(`${t('Balance due')}: ${balanceDueStr}`);
+  }
   if (chargedStr) textLines.push(`${t('Charged to your card')}: ${chargedStr}`);
   textLines.push('');
   if (tr && bookingUrl) {
@@ -280,7 +321,13 @@ ${voucherHtml}
     textLines.push(bookingUrl);
     textLines.push('');
   }
-  textLines.push(t('Your invoice & receipt are attached as a PDF.'));
+  textLines.push(
+    isDeposit
+      ? t(
+          'Your deposit receipt is attached as a PDF. We will send you a secure link to pay the balance.',
+        )
+      : t('Your invoice & receipt are attached as a PDF.'),
+  );
   textLines.push('');
   textLines.push(
     t('Questions? Contact us at {emailLink} or {phone}.', {

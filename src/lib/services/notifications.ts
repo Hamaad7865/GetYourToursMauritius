@@ -59,10 +59,24 @@ async function enrichBookingConfirmation(
   }
   const { booking, payment } = await loadBookingForReceipt(ctx, message.bookingId);
 
+  // A 'deposit_receipt' is PINNED to render as a receipt for the balance owed at ENQUEUE time (carried on
+  // the outbox payload), never the live balance. If the balance clears before this row drains, the live
+  // balance_due_minor would read 0 and this would silently upgrade into a duplicate full PAID invoice —
+  // and the guest would never receive their deposit receipt. A booking_confirmation keeps the live
+  // balance (0 by the time it fires), so the full invoice always renders paid-in-full.
+  const depositReceiptBalance =
+    message.template === 'deposit_receipt' && typeof message.payload.balanceDueMinor === 'number'
+      ? message.payload.balanceDueMinor
+      : null;
+  const bookingForModel =
+    depositReceiptBalance != null
+      ? { ...booking, balanceDueMinor: depositReceiptBalance }
+      : booking;
+
   // Deterministic issue date: the card's paid timestamp, else the drain's injected clock (never an
   // ungoverned new Date()) so tests stay reproducible.
   const issuedAt = payment.paidAt ?? ctx.now().toISOString();
-  const model = buildInvoice(booking, { ...payment, issuedAt }, INVOICE_BUSINESS);
+  const model = buildInvoice(bookingForModel, { ...payment, issuedAt }, INVOICE_BUSINESS);
 
   const bookingUrl = `${SITE.url}/bookings/${model.booking.ref}`;
   const email = renderConfirmationEmail(model, bookingUrl);
@@ -141,6 +155,14 @@ async function enrichOwnerNewBooking(
       ? ` (card: ${payment.chargedCurrency} ${(payment.chargedAmountMinor / 100).toFixed(2)})`
       : '';
   const total = `€${booking.totalEur.toFixed(2)}${chargedNote}`;
+  // A deposit booking (part-paid) — tell the owner what actually LANDED vs what is still owed, so the
+  // full order value is not misread as "the whole amount was taken". balanceDueMinor is 0 for every
+  // ordinary fully-paid booking, so this note is absent there.
+  const balanceDueMinor = booking.balanceDueMinor ?? 0;
+  const depositNote =
+    balanceDueMinor > 0
+      ? ` [DEPOSIT: €${(booking.totalEur - balanceDueMinor / 100).toFixed(2)} paid, €${(balanceDueMinor / 100).toFixed(2)} balance due]`
+      : '';
   const what = booking.activityTitle || 'a booking';
   // Item-less bookings (rare custom itineraries) have no headcount — omit the guests clause rather
   // than announcing "0 guests".
@@ -149,7 +171,7 @@ async function enrichOwnerNewBooking(
   const line = refund
     ? `${booking.customerName || 'A guest'}'s PAID booking of ${what} on ${when} — ${guests}${total} ` +
       `(ref ${booking.ref}) needs a refund in Peach (oversell race or paid after expiry).`
-    : `${booking.customerName || 'A guest'} booked ${what} on ${when} — ${guests}${total} (ref ${booking.ref}).`;
+    : `${booking.customerName || 'A guest'} booked ${what} on ${when} — ${guests}${total} (ref ${booking.ref})${depositNote}.`;
   const adminUrl = `${SITE.url}/admin/bookings?q=${encodeURIComponent(booking.ref)}`;
 
   // The age-band MIX, which the bare headcount hides: "4 guests" and "2 × Adult · 1 × Child · 1 × Infant"
@@ -418,7 +440,9 @@ export async function drainNotifications(
   for (const message of messages) {
     try {
       resolveOwnerRecipient(message);
-      if (message.template === 'booking_confirmation') {
+      if (message.template === 'booking_confirmation' || message.template === 'deposit_receipt') {
+        // Both render through the same path: buildInvoice carries balance_due_minor, so the email +
+        // PDF present a DEPOSIT RECEIPT (balance owed) or the full PAID invoice (settled) off the data.
         await enrichBookingConfirmation(ctx, message);
       } else if (
         message.template === 'owner_new_booking' ||

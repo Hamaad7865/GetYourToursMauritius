@@ -142,7 +142,16 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   // Document title block, right-aligned, anchored to the header's top band.
   const savedY = y;
   y = headerTopY;
-  textRight(t('TAX INVOICE / RECEIPT'), CONTENT_RIGHT, { size: 13, font: bold });
+  // A part-paid booking (balance still owed) is a PAYMENT RECEIPT, not a TAX INVOICE — the full VAT
+  // invoice is issued once the balance clears. A fully-paid booking is byte-identical to before.
+  textRight(
+    t(model.balanceDueEur > 0 ? 'PAYMENT RECEIPT' : 'TAX INVOICE / RECEIPT'),
+    CONTENT_RIGHT,
+    {
+      size: 13,
+      font: bold,
+    },
+  );
   y -= 16;
   textRight(`${t('Invoice No')}: ${model.invoiceNumber}`, CONTENT_RIGHT, { size: 9, color: MUTED });
   y -= 12;
@@ -297,6 +306,22 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
     font: bold,
   });
   y -= 14;
+  // The deposit split (Task 6/7): when a balance is still owed, spell out what has settled and what is
+  // left, right under the order Total. Absent (balanceDue = 0) for every fully-paid booking, so an
+  // ordinary invoice is unchanged.
+  if (model.balanceDueEur > 0) {
+    textRight(`${t('Amount paid')}: ${currency} ${model.amountPaidEur.toFixed(2)}`, CONTENT_RIGHT, {
+      size: 11,
+      font: bold,
+      color: ACCENT,
+    });
+    y -= 14;
+    textRight(`${t('Balance due')}: ${currency} ${model.balanceDueEur.toFixed(2)}`, CONTENT_RIGHT, {
+      size: 11,
+      font: bold,
+    });
+    y -= 14;
+  }
   // Cross-currency charge disclosure (MUR since 2026-07-30) — in the TOTALS block, not the PAID box
   // (whose 64pt height is fully consumed; a fourth line would render outside its border). The rate
   // printed is the EFFECTIVE one (chargedAmount / total), so the document's own arithmetic closes.
@@ -314,8 +339,10 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   }
   y -= 16;
 
-  // 7. PAID stamp — a bordered box on the left.
+  // 7. PAID stamp — a bordered box on the left. A part-paid booking is stamped DEPOSIT PAID (the box
+  // shows the deposit that WAS charged); the amount still owed is spelled out in the totals block above.
   const pay = model.payment;
+  const paidInFull = model.balanceDueEur <= 0;
   const boxX = MARGIN;
   const boxTop = y;
   const boxWidth = 230;
@@ -330,7 +357,13 @@ export async function renderInvoicePdf(model: InvoiceModel): Promise<Uint8Array>
   });
   // Draw the box's contents with a local cursor so the outer `y` math stays simple.
   let by = boxTop - 18;
-  page.drawText(toWinAnsi(t('PAID')), { x: boxX + 12, y: by, size: 16, font: bold, color: ACCENT });
+  page.drawText(toWinAnsi(paidInFull ? t('PAID') : t('DEPOSIT PAID')), {
+    x: boxX + 12,
+    y: by,
+    size: 16,
+    font: bold,
+    color: ACCENT,
+  });
   const chargeParts: string[] = [];
   if (pay && typeof pay.chargedAmount === 'number') {
     chargeParts.push(

@@ -2567,6 +2567,20 @@ export const fr: Record<string, string> = {
     'Votre e-bon de transfert aéroport — celui à montrer à votre chauffeur — est enregistré dans votre réservation. Ouvrez-le sur votre téléphone à tout moment ; aucune pièce jointe à télécharger depuis cet e-mail.',
   'Your invoice & receipt are attached as a PDF.':
     'Votre facture et votre reçu sont joints au format PDF.',
+  // Deposit split (invoice-vs-receipt) — the receipt document, its email copy and the PDF stamp/labels.
+  'PAYMENT RECEIPT': 'REÇU DE PAIEMENT',
+  'DEPOSIT PAID': 'ACOMPTE PAYÉ',
+  'Amount paid': 'Montant payé',
+  'Balance due': 'Solde à payer',
+  'Your {operator} booking {ref} — deposit received':
+    'Votre réservation {operator} {ref} — acompte reçu',
+  'We have received your deposit': 'Nous avons bien reçu votre acompte',
+  'Thanks for your deposit on your {operator} booking — here are the details, with the balance still to pay shown below.':
+    'Merci pour votre acompte sur votre réservation {operator} — voici les détails, avec le solde restant à payer indiqué ci-dessous.',
+  'Your deposit receipt is attached as a PDF. We will send you a secure link to pay the balance.':
+    'Votre reçu d’acompte est joint au format PDF. Nous vous enverrons un lien sécurisé pour régler le solde.',
+  'Good news — we have received your deposit for booking {ref}.':
+    'Bonne nouvelle — nous avons bien reçu votre acompte pour la réservation {ref}.',
   'Questions? Contact us at {emailLink} or {phone}.':
     'Des questions ? Contactez-nous à {emailLink} ou au {phone}.',
   'Hi {name},': 'Bonjour {name},',

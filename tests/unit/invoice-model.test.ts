@@ -235,3 +235,58 @@ describe('buildInvoice — the optional supplements', () => {
     expect(inv.lines).toHaveLength(1);
   });
 });
+
+/* The deposit split (Task 6/7): a part-paid booking carries balance_due_minor, from which the model
+ * derives amountPaidEur = totalGross − balanceDue. fxRate divides by amountPaidEur, NOT the order total —
+ * the whole point of the fix: charging a 10% deposit and dividing the MUR charge by the FULL EUR total
+ * reported a rate ~10× too small on the customer's tax document. */
+describe('buildInvoice — the deposit split', () => {
+  const base = {
+    ref: 'BMT-DEP',
+    customerName: 'Marie',
+    customerEmail: 'm@x.com',
+    currency: 'EUR',
+    activityTitle: 'Private South Tour',
+    when: '2026-08-09T06:00:00Z',
+    pickupLocation: null,
+    dropoffLocation: null,
+    childSeats: 0,
+    transportEur: 0,
+    items: [{ priceLabel: 'Private day tour', quantity: 1, pax: null, subtotalEur: 1000 }],
+  };
+
+  it('a 10% deposit: amountPaid = deposit, balance = 90%, fxRate divides by the deposit not the total', () => {
+    const inv = buildInvoice(
+      { ...base, totalEur: 1000, balanceDueMinor: 90000 }, // €1000 order, €900 still owed
+      { chargedAmountMinor: 530000, chargedCurrency: 'MUR' }, // MUR 5,300.00 for the €100 deposit
+      business,
+    );
+    expect(inv.totalGrossEur).toBe(1000);
+    expect(inv.balanceDueEur).toBe(900);
+    expect(inv.amountPaidEur).toBe(100);
+    expect(inv.payment.isConverted).toBe(true);
+    // 5300 / 100 = 53 (the real rate). The bug divided by the total: 5300 / 1000 = 5.3.
+    expect(inv.payment.fxRate).toBeCloseTo(53, 5);
+  });
+
+  it('a fully-paid booking is unchanged: balance 0, amountPaid = total, fxRate = charged / total', () => {
+    const inv = buildInvoice(
+      { ...base, totalEur: 1000 }, // no balanceDueMinor → fully paid
+      { chargedAmountMinor: 5300000, chargedCurrency: 'MUR' }, // MUR 53,000.00 for the full €1000
+      business,
+    );
+    expect(inv.balanceDueEur).toBe(0);
+    expect(inv.amountPaidEur).toBe(1000);
+    expect(inv.payment.fxRate).toBeCloseTo(53, 5);
+  });
+
+  it('clamps a stray balance into [0, total] so the arithmetic can never invert', () => {
+    const inv = buildInvoice(
+      { ...base, totalEur: 100, balanceDueMinor: 999999 },
+      { chargedAmountMinor: 0, chargedCurrency: 'EUR' },
+      business,
+    );
+    expect(inv.balanceDueEur).toBe(100);
+    expect(inv.amountPaidEur).toBe(0);
+  });
+});

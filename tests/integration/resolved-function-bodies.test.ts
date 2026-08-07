@@ -215,6 +215,31 @@ const CONTRACTS: ResolvedContract[] = [
       'a `lower()`-only compare cannot see a booking whose stored address carries the whitespace it ' +
       'was quoted with — the guest paid, and their own sign-in can never pick that booking up',
   },
+  // The deposit RECEIPT-vs-INVOICE split (20260915000000_quote_deposit_invoice).
+  {
+    fn: 'enqueue_booking_notification',
+    must: 'emails a deposit_receipt (not the full invoice) when the deposit is partial',
+    code: /\bnew\.balance_due_minor\s*>\s*0\b[\s\S]*?'deposit_receipt'/,
+    why:
+      'a re-definition reverting to the unconditional booking_confirmation would send a deposit-paid ' +
+      'guest the FULL VAT invoice for money they have not paid yet',
+  },
+  {
+    fn: 'notify_balance_paid',
+    must: 'enqueues the full booking_confirmation invoice when the balance clears',
+    code: /notification_outbox[\s\S]*?'booking_confirmation'/,
+    why:
+      'the balance settling is a booking-status no-op, so ONLY this trigger fires the full invoice — ' +
+      'drop it and a fully-paid deposit booking never receives its VAT invoice',
+  },
+  {
+    fn: 'api_booking_receipt',
+    must: 'exposes balance_due_minor to the receipt renderer',
+    code: /'balancedueminor'\s*,\s*coalesce\s*\(\s*v_bal/,
+    why:
+      'without it buildInvoice cannot tell a deposit receipt from a paid invoice — the PAID stamp and ' +
+      'the fxRate (charged / amountPaid) both go wrong',
+  },
 ];
 
 /**

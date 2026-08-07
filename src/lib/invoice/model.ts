@@ -46,6 +46,9 @@ export interface InvoiceBookingInput {
   currency: string;
   /** Order total in EUR, VAT-inclusive — the authoritative figure the lines must reconcile to. */
   totalEur: number;
+  /** Amount still owed in EUR MINOR units (bookings.balance_due_minor). Absent/0 for a fully-paid
+   *  booking; > 0 for a deposit-confirmed booking, which turns the document into a RECEIPT. */
+  balanceDueMinor?: number | null;
   /** Activity title (NOT in booking_json; the caller supplies it). */
   activityTitle: string;
   /** Occurrence date/time, ISO string (NOT in booking_json; the caller supplies it). */
@@ -143,6 +146,12 @@ export interface InvoiceModel {
   vatRatePct: number;
   vatAmountEur: number;
   totalGrossEur: number;
+  /** Amount SETTLED so far in EUR (totalGross − balanceDue): the deposit on a receipt, the full total
+   *  on an invoice. fxRate divides by THIS, not totalGross, so a 10% deposit's rate is not ~10× wrong. */
+  amountPaidEur: number;
+  /** Amount still owed in EUR (0 = paid in full). > 0 makes this document a DEPOSIT RECEIPT: the PDF
+   *  gates its PAID stamp off and shows "Amount paid / Balance due", the email adopts the receipt copy. */
+  balanceDueEur: number;
   currency: string;
   payment: {
     chargedAmount: number;
@@ -151,11 +160,12 @@ export interface InvoiceModel {
      *  2026-07-30. Renderers show the conversion line only when set, so EUR-era documents are
      *  byte-identical to before. */
     isConverted: boolean;
-    /** The EFFECTIVE EUR→chargedCurrency rate (chargedAmount / totalGrossEur), null when not
-     *  converted. Deliberately derived from the two printed figures rather than copied from
-     *  payments.charged_fx_rate, so the arithmetic ON THE DOCUMENT closes exactly even after the
-     *  whole-rupee rounding of the pin. (MUR is an ISO exponent-2 currency, so the /100 in
-     *  chargedAmount stays aligned with the provider boundary.) */
+    /** The EFFECTIVE EUR→chargedCurrency rate (chargedAmount / amountPaidEur — the amount THIS charge
+     *  settled, NOT the order total). Deliberately derived from the two printed figures rather than
+     *  copied from payments.charged_fx_rate, so the arithmetic ON THE DOCUMENT closes exactly even
+     *  after the whole-rupee rounding of the pin, AND a deposit charge (which settles a fraction of the
+     *  total) divides by the fraction it actually paid rather than the whole order. (MUR is an ISO
+     *  exponent-2 currency, so the /100 in chargedAmount stays aligned with the provider boundary.) */
     fxRate: number | null;
     paidAt?: string | null;
     providerRef?: string | null;
@@ -251,6 +261,16 @@ export function buildInvoice(
   );
   const vatAmountEur = round2(totalGrossEur - subtotalNetEur);
 
+  // The deposit split: what is still owed (from bookings.balance_due_minor), and therefore what has
+  // actually settled. Clamped into [0, totalGross] so a stray value can never invert the arithmetic.
+  // For an ordinary fully-paid booking balanceDue is 0 and amountPaid is the whole total — every
+  // downstream figure (fxRate, the PAID stamp, the email copy) is then byte-identical to before.
+  const balanceDueEur = Math.min(
+    Math.max(round2((booking.balanceDueMinor ?? 0) / 100), 0),
+    totalGrossEur,
+  );
+  const amountPaidEur = round2(totalGrossEur - balanceDueEur);
+
   return {
     invoiceNumber: booking.ref,
     issuedAt: payment.issuedAt ?? payment.paidAt ?? '',
@@ -270,8 +290,10 @@ export function buildInvoice(
     vatRatePct: VAT_RATE_PCT,
     vatAmountEur,
     totalGrossEur,
+    amountPaidEur,
+    balanceDueEur,
     currency: booking.currency,
-    payment: buildPaymentBlock(payment, booking.currency, totalGrossEur),
+    payment: buildPaymentBlock(payment, booking.currency, amountPaidEur),
   };
 }
 
@@ -279,7 +301,7 @@ export function buildInvoice(
 function buildPaymentBlock(
   payment: InvoicePaymentInput,
   invoiceCurrency: string,
-  totalGrossEur: number,
+  amountPaidEur: number,
 ): InvoiceModel['payment'] {
   const chargedAmount = round2(payment.chargedAmountMinor / 100);
   const isConverted =
@@ -288,7 +310,10 @@ function buildPaymentBlock(
     chargedAmount,
     chargedCurrency: payment.chargedCurrency,
     isConverted,
-    fxRate: isConverted && totalGrossEur > 0 ? chargedAmount / totalGrossEur : null,
+    // Divide by the EUR amount THIS charge settled, not the order total: a deposit charge is a fraction
+    // of the total, so charged/total would report a rate ~1/depositFraction too small. amountPaidEur is
+    // the total for a fully-paid booking, so ordinary invoices are unchanged.
+    fxRate: isConverted && amountPaidEur > 0 ? chargedAmount / amountPaidEur : null,
     paidAt: payment.paidAt ?? null,
     providerRef: payment.providerRef ?? null,
   };

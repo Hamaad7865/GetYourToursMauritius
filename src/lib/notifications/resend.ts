@@ -241,6 +241,29 @@ Belle Mare Tours (internal alert)`,
       text: `Hi ${name},\n\nYour reservation ${ref} wasn't paid in time, so we've released the seats. If you'd still like to go, just book again on our website — it only takes a minute.\n\nBelle Mare Tours`,
     };
   }
+  // Deposit receipt (part-paid quote booking). Normally pre-rendered by enrichBookingConfirmation with
+  // the branded HTML + PDF; this is the belt-and-braces text fallback.
+  if (message.template === 'deposit_receipt') {
+    const currency = typeof p.currency === 'string' ? p.currency : 'EUR';
+    const bal =
+      typeof p.balanceDueMinor === 'number'
+        ? ` (balance ${currency} ${(p.balanceDueMinor / 100).toFixed(2)} still to pay)`
+        : '';
+    return {
+      subject: `Deposit received for your Belle Mare Tours booking ${ref}`,
+      text: `Hi ${name},\n\nThanks — we have received your deposit for booking ${ref}${bal}. Your place is reserved; we will email you a secure link to pay the balance.\n\nBelle Mare Tours`,
+    };
+  }
+  // Owner-facing: the balance on a deposit booking has now been paid, settling it in full.
+  if (message.template === 'owner_balance_paid') {
+    const currency = typeof p.currency === 'string' ? p.currency : 'EUR';
+    const total =
+      typeof p.totalMinor === 'number' ? ` (${currency} ${(p.totalMinor / 100).toFixed(2)})` : '';
+    return {
+      subject: `Balance paid: booking ${ref} settled in full`,
+      text: `The balance on booking ${ref}${total} by ${name} has been paid — it is now settled in full. The full VAT invoice has gone to the guest.\n\nBelle Mare Tours (internal alert)`,
+    };
+  }
   return { subject: `Belle Mare Tours — ${message.template}`, text: `Reference: ${ref}` };
 }
 
@@ -292,7 +315,11 @@ export class ResendNotificationProvider implements NotificationProvider {
     // Silently copy the owner on the customer's CONFIRMATION only (the email + invoice the guest got).
     // BCC, so the customer never sees the internal address and a reply-all can't reach it. A BCC that
     // fails to deliver (e.g. info@ routing not set up) never blocks the customer's own copy.
-    if (this.config.bcc && message.template === 'booking_confirmation') body.bcc = this.config.bcc;
+    if (
+      this.config.bcc &&
+      (message.template === 'booking_confirmation' || message.template === 'deposit_receipt')
+    )
+      body.bcc = this.config.bcc;
     if (message.html) body.html = message.html;
     if (message.attachments?.length) {
       // Resend's attachment shape is { filename, content } where content is base64; it infers the

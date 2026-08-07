@@ -36,6 +36,9 @@ const receiptSchema = z.object({
   customerPhone: z.string().nullable().optional(),
   currency: z.string(),
   totalEur: z.number(),
+  /** Amount still owed in EUR minor units (bookings.balance_due_minor); 0 for a fully-paid booking,
+   *  > 0 for a deposit-confirmed one. Absent on legacy receipts → treated as 0 (fully paid). */
+  balanceDueMinor: z.number().nullable().optional(),
   activityTitle: z.string().nullable().optional(),
   when: z.string().nullable().optional(),
   pickupLocation: z.string().nullable().optional(),
@@ -101,6 +104,7 @@ export async function loadBookingForReceipt(
     customerPhone: r.customerPhone ?? null,
     currency: r.currency,
     totalEur: r.totalEur,
+    balanceDueMinor: r.balanceDueMinor ?? 0,
     activityTitle: r.activityTitle ?? '',
     when: r.when ?? '',
     pickupLocation: r.pickupLocation ?? null,
