@@ -240,6 +240,28 @@ const CONTRACTS: ResolvedContract[] = [
       'without it buildInvoice cannot tell a deposit receipt from a paid invoice — the PAID stamp and ' +
       'the fxRate (charged / amountPaid) both go wrong',
   },
+  // The NON-REFUNDABLE quote deposit (20260916000000_quote_deposit_forfeit). api_mark_refunded has
+  // ALREADY been re-declared from a stale body once (the late-pickup fix), and it is a money-path
+  // function, so its forfeit logic is exactly the kind a later re-definition would silently drop. Two
+  // invariants, each a HIGH bug the adversarial review found in the naive version, each pinned so a
+  // revert to the pre-forfeit body (which refunds the deposit and never touches the link) goes RED.
+  {
+    fn: 'api_mark_refunded',
+    must: 'EXCLUDES the non-refundable deposit row from the reversal loop',
+    code: /\bnot\s*\(\s*v_partial_deposit\s+and\s+purpose\s*=\s*'booking'\s*\)/,
+    alsoSaidInAComment: "not (v_partial_deposit and purpose = 'booking')",
+    why:
+      'a re-definition from the pre-forfeit body reverses the deposit too, so a quote guest who agreed ' +
+      'to a non-refundable deposit is refunded it in full on every cancellation',
+  },
+  {
+    fn: 'api_mark_refunded',
+    must: 'clears quotes.balance_token_hash so a refunded balance cannot re-arm the durable link',
+    code: /\bupdate\s+quotes\s+set\s+balance_token_hash\s*=\s*null\b/,
+    why:
+      'refunding the balance rebounds balance_due_minor 0 -> balance; without killing the link (and the ' +
+      'terminal status beside it) the guest could pay the balance a SECOND time',
+  },
 ];
 
 /**
