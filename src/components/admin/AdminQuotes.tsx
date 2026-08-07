@@ -20,6 +20,7 @@ import {
   loadQuote,
   loadQuotes,
   saveQuote,
+  sendBalanceLink,
   sendQuote,
   type QuoteRow,
   type QuoteStatus,
@@ -27,8 +28,13 @@ import {
 import { EmailPreview } from '@/components/admin/quotes/EmailPreview';
 import { LinesPane } from '@/components/admin/quotes/LinesPane';
 import {
+  DEFAULT_DEPOSIT_BPS,
+  PAY_IN_FULL_BPS,
   QUOTE_PANES,
   QUOTE_STATUS_LABEL,
+  depositBpsFromPercent,
+  depositMinorOf,
+  depositPercentFromBps,
   emptyQuoteForm,
   eurFromMinor,
   formFromQuote,
@@ -283,6 +289,9 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
   /** The public link the last send returned — the raw token's only home on our side. */
   const [link, setLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  /** The durable balance link the last "Send balance link" returned, for a converted quote. */
+  const [balanceLink, setBalanceLink] = useState<string | null>(null);
+  const [balanceCopied, setBalanceCopied] = useState(false);
 
   const reload = useCallback(async (quoteId: string) => {
     const detail = await loadQuote(quoteId);
@@ -313,6 +322,14 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
   const values = form;
   const total = formTotalMinor(values);
   const sendBlocked = sendRefusal(values);
+  // Deposit shown as a %; the euro amounts are DISPLAY ONLY (computed the way the conversion RPC
+  // sizes the charge), and null while a line is still half-typed so nothing shows a bogus figure.
+  const converted = Boolean(values.convertedAt);
+  const payInFull = values.depositBps >= PAY_IN_FULL_BPS;
+  const depositPercent = depositPercentFromBps(values.depositBps);
+  const depositAmount = total === null ? null : depositMinorOf(total, values.depositBps);
+  const balanceAmount =
+    total === null || depositAmount === null ? null : Math.max(0, total - depositAmount);
 
   function set<K extends keyof QuoteFormValues>(key: K, value: QuoteFormValues[K]) {
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
@@ -386,6 +403,32 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
       // Clipboard blocked (permissions, insecure context). The link is in a selectable input
       // beside the button, so there is always a way to get it out.
       setCopied(false);
+    }
+  }
+
+  /**
+   * Mint the DURABLE balance link for a converted, deposit-confirmed quote, and show it to copy. The
+   * amount still owed lives on the BOOKING (`balance_due_minor`), not the quote, and is read
+   * server-side by the route — so the button is enabled for any converted quote and the route's own
+   * 409 ("nothing owed") is surfaced verbatim for a pay-in-full quote that is already fully paid.
+   */
+  async function sendBalance() {
+    if (!values.ref) return;
+    await act('balance', async () => {
+      const result = await sendBalanceLink(values.ref!);
+      setBalanceLink(result.url);
+      return 'Balance link ready — copy it to the guest.';
+    });
+  }
+
+  async function copyBalance() {
+    if (!balanceLink) return;
+    try {
+      await navigator.clipboard.writeText(balanceLink);
+      setBalanceCopied(true);
+      window.setTimeout(() => setBalanceCopied(false), 2000);
+    } catch {
+      setBalanceCopied(false);
     }
   }
 
@@ -530,6 +573,76 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
                   <input value="EUR" readOnly disabled className={INPUT_CLS} />
                 </Field>
               </div>
+
+              <div className="mt-4 border-t border-[#EEF1F3] pt-4">
+                <div className="flex flex-wrap items-end gap-x-5 gap-y-3">
+                  <Field
+                    label="Deposit to confirm"
+                    hint="What the guest pays now to lock in the booking. The balance is chased later."
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        step={1}
+                        value={depositPercent}
+                        disabled={payInFull || converted}
+                        aria-label="Deposit percent"
+                        onChange={(e) =>
+                          set('depositBps', depositBpsFromPercent(Number(e.target.value)))
+                        }
+                        className={`${INPUT_CLS} w-24 disabled:opacity-50`}
+                      />
+                      <span className="text-sm font-bold text-ink-muted">%</span>
+                    </div>
+                  </Field>
+                  <label className="mb-1.5 flex cursor-pointer items-center gap-2 text-[13px] font-semibold text-ink">
+                    <input
+                      type="checkbox"
+                      checked={payInFull}
+                      disabled={converted}
+                      onChange={(e) =>
+                        set('depositBps', e.target.checked ? PAY_IN_FULL_BPS : DEFAULT_DEPOSIT_BPS)
+                      }
+                      className="h-4 w-4 rounded border-[#CBD3D8] text-teal accent-teal focus:ring-teal disabled:opacity-50"
+                    />
+                    Pay in full (100%)
+                  </label>
+                </div>
+                <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
+                  {payInFull ? (
+                    depositAmount === null ? (
+                      <>The guest pays the whole total to confirm — no balance to collect later.</>
+                    ) : (
+                      <>
+                        The guest pays the whole{' '}
+                        <span className="font-bold text-ink">{eurFromMinor(depositAmount)}</span> to
+                        confirm — no balance to collect later.
+                      </>
+                    )
+                  ) : depositAmount === null || balanceAmount === null ? (
+                    <>
+                      The guest pays {depositPercent}% now to confirm the booking; the rest is
+                      collected later with the balance link.
+                    </>
+                  ) : (
+                    <>
+                      The guest pays{' '}
+                      <span className="font-bold text-ink">{eurFromMinor(depositAmount)}</span> (
+                      {depositPercent}%) now to confirm; a{' '}
+                      <span className="font-bold text-ink">{eurFromMinor(balanceAmount)}</span>{' '}
+                      balance is collected later with the balance link.
+                    </>
+                  )}
+                </p>
+                {converted && (
+                  <p className="mt-1.5 text-[12px] leading-relaxed text-ink-muted">
+                    This quote has been converted, so its deposit can no longer be changed. Send the
+                    balance link from Preview &amp; send.
+                  </p>
+                )}
+              </div>
             </Card>
           )}
 
@@ -606,6 +719,16 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
                   >
                     {busy === 'withdraw' ? 'Withdrawing…' : 'Withdraw'}
                   </button>
+                  {converted && (
+                    <button
+                      type="button"
+                      onClick={() => void sendBalance()}
+                      disabled={busy !== null || !values.ref}
+                      className={BTN_GHOST}
+                    >
+                      {busy === 'balance' ? 'Creating link…' : 'Send balance link'}
+                    </button>
+                  )}
                 </div>
                 {values.status === 'sent' && (
                   <p className="mt-3 text-[12px] leading-relaxed text-ink-muted">
@@ -635,6 +758,61 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
                       Shown once, here. It is not stored on our side — only the hash of it is — so
                       if you lose it, press Send again and the guest gets a fresh link.
                     </p>
+                  </div>
+                )}
+
+                {converted && (
+                  <div className="mt-4 border-t border-[#EEF1F3] pt-4">
+                    <p className="mb-1.5 text-[12.5px] font-bold text-ink">Balance</p>
+                    <p className="mb-3 text-[12.5px] leading-relaxed text-ink-muted">
+                      {payInFull || balanceAmount === 0 ? (
+                        <>
+                          This was a pay-in-full quote, so the guest already paid the whole amount —
+                          there should be no balance to collect. The link refuses if nothing is
+                          owed.
+                        </>
+                      ) : balanceAmount === null ? (
+                        <>
+                          The deposit confirmed the booking and reserved the seat. Send the durable
+                          balance link and the guest can pay the remainder whenever — it stays live
+                          until the balance clears.
+                        </>
+                      ) : (
+                        <>
+                          The deposit confirmed the booking. A{' '}
+                          <span className="font-bold text-ink">{eurFromMinor(balanceAmount)}</span>{' '}
+                          balance is still to collect — send the durable balance link and the guest
+                          can pay it whenever.
+                        </>
+                      )}
+                    </p>
+                    {balanceLink && (
+                      <div className="rounded-xl border border-[#E2E7EA] bg-[#F7F8FA] p-3.5">
+                        <p className="mb-2 text-[12.5px] font-bold text-ink">
+                          The guest’s balance link — copy it to them
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <input
+                            readOnly
+                            value={balanceLink}
+                            aria-label="Balance payment link"
+                            onFocus={(e) => e.currentTarget.select()}
+                            className={`${INPUT_CLS} min-w-[220px] flex-1 font-mono text-[12px]`}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => void copyBalance()}
+                            className={BTN_GHOST}
+                          >
+                            {balanceCopied ? 'Copied' : 'Copy link'}
+                          </button>
+                        </div>
+                        <p className="mt-2 text-[12px] leading-relaxed text-ink-muted">
+                          Durable: it mints a fresh checkout each time the guest opens it, so it
+                          works for as long as the balance is owed.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </Card>

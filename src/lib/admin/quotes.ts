@@ -75,6 +75,13 @@ export interface QuoteRow {
   status: QuoteStatus;
   currency: string;
   totalMinor: number;
+  /**
+   * The deposit that confirms the booking, in BASIS POINTS of the total (1000 = 10.00%, the schema
+   * default; 10000 = pay-in-full, the unchanged single-charge path). api_convert_quote sizes the
+   * first payments row from this; the balance is chased later. Optional on the row type only so a
+   * fixture need not restate the schema default — mapQuote always provides it.
+   */
+  depositBps?: number;
   /** ISO date (yyyy-mm-dd). api_convert_quote refuses a quote whose validity has passed. */
   validUntil: string;
   introNote: string | null;
@@ -117,6 +124,14 @@ export interface QuoteInput {
   /** Narrow on purpose, so a UI author cannot widen the money path. See {@link QuoteCurrency}. */
   currency?: QuoteCurrency;
   locale?: QuoteLocale;
+  /**
+   * The deposit that confirms the booking, in BASIS POINTS (1000 = 10%; 10000 = pay-in-full).
+   * Optional and WRITE-ONLY-WHEN-SUPPLIED, exactly like {@link currency} and {@link locale}: `null`
+   * means "the caller said nothing", not "reset it". saveQuote FULL-REPLACES the guest/note fields,
+   * so a `deposit_bps` on that side would let an edit from a form (or an AI email-to-draft) with no
+   * deposit input silently clear the stored deposit. Its default (1000) belongs to the INSERT alone.
+   */
+  depositBps?: number;
   /** Accepted so a form object can be passed straight in, and then DISCARDED. See `quoteRowTotal`. */
   totalMinor?: number;
   items: QuoteItemInput[];
@@ -267,7 +282,7 @@ function db(): QuotesClient {
 
 const QUOTE_COLUMNS =
   'id, ref, customer_name, customer_email, customer_phone, status, currency, total_minor, ' +
-  'valid_until, intro_note, internal_notes, sent_at, booking_id, converted_at, locale, ' +
+  'deposit_bps, valid_until, intro_note, internal_notes, sent_at, booking_id, converted_at, locale, ' +
   'created_at, updated_at';
 
 const ITEM_COLUMNS =
@@ -312,6 +327,7 @@ function mapQuote(raw: Row): QuoteRow {
     status: text(raw.status) as QuoteStatus,
     currency: text(raw.currency),
     totalMinor: minor(raw.total_minor),
+    depositBps: Number(raw.deposit_bps ?? 1000),
     validUntil: dateText(raw.valid_until),
     introNote: textOrNull(raw.intro_note),
     internalNotes: textOrNull(raw.internal_notes),
@@ -530,11 +546,13 @@ export async function loadQuote(id: string): Promise<QuoteDetail | null> {
  * WHAT AN EDIT REPLACES, and what it leaves alone. The guest and note fields — `customerName`,
  * `customerEmail`, `customerPhone`, `validUntil`, `introNote`, `internalNotes` — are a FULL REPLACE:
  * omitting one CLEARS the stored column, exactly as `items` clears the lines it does not list. The
- * caller must therefore hand over the whole quote, not a patch. `currency` and `locale` are the
- * exception and are written only when supplied, because there a default is not a value: `locale` is
- * copied into `bookings.locale` at conversion and picks the language of the confirmation email and
- * the VAT invoice, so defaulting it on every write turns a French offer into an English invoice the
- * moment it is re-priced by a form that has no locale input. Both defaults belong to the INSERT.
+ * caller must therefore hand over the whole quote, not a patch. `currency`, `locale` and `deposit_bps`
+ * are the exception and are written only when supplied, because there a default is not a value:
+ * `locale` is copied into `bookings.locale` at conversion and picks the language of the confirmation
+ * email and the VAT invoice, so defaulting it on every write turns a French offer into an English
+ * invoice the moment it is re-priced by a form that has no locale input; `deposit_bps` sizes the
+ * booking's first charge, so defaulting it likewise resets a negotiated deposit. All three defaults
+ * belong to the INSERT.
  *
  * `currency` and `locale` are checked here as well as typed, because a cast or a JSON body erases the
  * type. EUR is not a default with alternatives — see {@link QuoteCurrency}.
@@ -580,6 +598,22 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
     throw new ValidationError(`A quote's locale must be 'en' or 'fr', not '${locale}'.`);
   }
 
+  // The deposit size in BASIS POINTS, validated like currency/locale — the half that survives a cast
+  // or a JSON body — and landing before ANY statement is issued. `null` means "the caller said
+  // nothing" (leave the stored deposit alone on an edit; take the INSERT default), NOT "reset it".
+  // Mirror the column's own CHECK (`between 1 and 10000`) so a bad value is a readable refusal here
+  // rather than a raw constraint error at INSERT: 10000 = pay-in-full, 1000 = the default 10%.
+  const depositBps: number | null = input.depositBps ?? null;
+  if (
+    depositBps !== null &&
+    (!Number.isInteger(depositBps) || depositBps < 1 || depositBps > 10000)
+  ) {
+    throw new ValidationError(
+      `A quote's deposit must be a whole percentage between 1% and 100% ` +
+        `(1–10000 basis points), not ${depositBps}.`,
+    );
+  }
+
   const rows = quoteItemRows(input.items);
   const fields: Row = {
     customer_name: customerName,
@@ -603,6 +637,10 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
     // into an English invoice, silently, on a quote the guest read in French.
     if (currency !== null) fields.currency = currency;
     if (locale !== null) fields.locale = locale;
+    // Write-only-when-supplied, for the same reason locale is: the deposit is copied into the
+    // booking's first-charge size at conversion, and an edit from a form (or an AI draft) with no
+    // deposit input must not reset it. Absent from `fields` above (the full-replace side) on purpose.
+    if (depositBps !== null) fields.deposit_bps = depositBps;
 
     // The line replacement is gated on this having matched: the lines are the itemisation behind the
     // stored total, and deleting them for an edit that was refused is exactly the state the guard is
@@ -625,6 +663,7 @@ export async function saveQuote(input: QuoteInput): Promise<string> {
         ...fields,
         currency: currency ?? 'EUR',
         locale: locale ?? 'en',
+        deposit_bps: depositBps ?? 1000,
         ref: mintQuoteRef(),
         created_by: staff?.userId ?? null,
       })

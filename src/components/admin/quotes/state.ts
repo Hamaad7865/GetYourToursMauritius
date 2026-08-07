@@ -193,6 +193,14 @@ export interface QuoteFormValues {
   introNote: string;
   /** Staff-only. Never rendered into the email or the public page — see `previewEmailInput`. */
   internalNotes: string;
+  /**
+   * The deposit that confirms the booking, in BASIS POINTS of the total (1000 = 10.00%, the default;
+   * 10000 = pay-in-full, the unchanged single-charge path). Held as bps, not a float percent: the
+   * editor shows `bps / 100` as a whole percent and never round-trips a float, exactly as money is
+   * PARSED rather than multiplied. Copied into `quotes.deposit_bps`, which api_convert_quote sizes
+   * the first charge from — the rest is chased later with the balance link.
+   */
+  depositBps: number;
   lines: QuoteLineDraft[];
 }
 
@@ -235,6 +243,7 @@ export function emptyQuoteForm(today: string = quoteTodayUtc()): QuoteFormValues
     locale: 'en',
     introNote: '',
     internalNotes: '',
+    depositBps: DEFAULT_DEPOSIT_BPS,
     lines: [],
   };
 }
@@ -260,6 +269,9 @@ export function formFromQuote(quote: QuoteDetail): QuoteFormValues {
     locale: quote.locale === 'fr' ? 'fr' : 'en',
     introNote: quote.introNote ?? '',
     internalNotes: quote.internalNotes ?? '',
+    // The stored deposit comes back EXACTLY — a non-round percent (an AI draft, a manual set)
+    // survives re-opening and saving untouched. Defaulted only if a row somehow carries none.
+    depositBps: quote.depositBps ?? DEFAULT_DEPOSIT_BPS,
     lines: quote.items.map((item) => ({
       key: newLineKey(),
       kind: item.kind,
@@ -346,8 +358,44 @@ export function quoteInputFromForm(form: QuoteFormValues): QuoteInput {
     internalNotes: form.internalNotes.trim() || null,
     currency: 'EUR',
     locale: form.locale,
+    depositBps: form.depositBps,
     items,
   };
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* Deposit                                                                                       */
+/* ------------------------------------------------------------------------------------------- */
+
+/** The product default: a 10% deposit, in basis points. Mirrors `quotes.deposit_bps`'s schema default. */
+export const DEFAULT_DEPOSIT_BPS = 1000;
+/** Pay-in-full, in basis points — the single-charge path api_convert_quote leaves unchanged. */
+export const PAY_IN_FULL_BPS = 10000;
+
+/** Basis points as a whole percent for the editor's % field. 1000 -> 10, 10000 -> 100. */
+export function depositPercentFromBps(bps: number): number {
+  return Math.round(bps / 100);
+}
+
+/**
+ * A whole percent the operator typed, as basis points, clamped to the schema's 1..100% range. 20 ->
+ * 2000. Integer arithmetic, so no float ever holds the deposit; a blank or non-number degrades to
+ * the default rather than throwing on a keystroke — the editor field is a number input, not free
+ * text, and the money-path CHECK (`between 1 and 10000`) is re-asserted at save.
+ */
+export function depositBpsFromPercent(percent: number): number {
+  if (!Number.isFinite(percent)) return DEFAULT_DEPOSIT_BPS;
+  const clamped = Math.min(100, Math.max(1, Math.round(percent)));
+  return clamped * 100;
+}
+
+/**
+ * The deposit amount in MINOR units — DISPLAY ONLY. Matches api_convert_quote's own sizing,
+ * `round(total_minor * deposit_bps / 10000)`, so what the operator is shown is what the guest is
+ * charged to confirm. The balance the operator later collects is `total - this`.
+ */
+export function depositMinorOf(totalMinor: number, bps: number): number {
+  return Math.round((totalMinor * bps) / 10000);
 }
 
 /** The quote's total in minor units, or null while a line is still half-typed. Display only —
