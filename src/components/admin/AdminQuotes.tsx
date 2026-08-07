@@ -33,6 +33,7 @@ import {
   PAY_IN_FULL_BPS,
   QUOTE_PANES,
   QUOTE_STATUS_LABEL,
+  convertedBookingKind,
   depositBpsFromPercent,
   depositMinorOf,
   depositPercentFromBps,
@@ -329,6 +330,11 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
   // Deposit shown as a %; the euro amounts are DISPLAY ONLY (computed the way the conversion RPC
   // sizes the charge), and null while a line is still half-typed so nothing shows a bogus figure.
   const converted = Boolean(values.convertedAt);
+  // `converted` only means a booking was minted (the guest opened checkout). `bookingKind` reads the
+  // booking's LIVE status, so the banner + the balance UI can tell paid from pending from
+  // abandoned-unpaid instead of blindly claiming the guest paid.
+  const bookingKind = convertedBookingKind(values.bookingStatus);
+  const bookingPaid = bookingKind === 'paid';
   const payInFull = values.depositBps >= PAY_IN_FULL_BPS;
   const depositPercent = depositPercentFromBps(values.depositBps);
   const depositAmount = total === null ? null : depositMinorOf(total, values.depositBps);
@@ -482,8 +488,13 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
       )}
       {values.convertedAt && (
         <p className="mb-4 rounded-xl bg-gold-light/20 px-4 py-3 text-[13px] leading-relaxed text-ink">
-          The guest has accepted and paid this quote, so its lines and total can no longer be
-          changed. The booking is the live record now — find it on the bookings screen.
+          {bookingKind === 'paid'
+            ? 'The guest has accepted and paid this quote, so its lines and total can no longer be changed. The booking is the live record now — find it on the bookings screen.'
+            : bookingKind === 'pending'
+              ? 'The guest has opened checkout for this quote but hasn’t finished paying — nothing is locked in yet, and it confirms once the deposit settles. Its lines can’t be changed while that checkout is open.'
+              : bookingKind === 'abandoned'
+                ? 'The guest opened checkout but didn’t complete payment, so this quote’s booking expired without being paid — nothing was charged. The quote is still open: the guest can pay from their existing link, which mints a fresh booking.'
+                : 'This quote was converted to a booking that is now closed. Check the bookings screen for its current state.'}
         </p>
       )}
 
@@ -750,7 +761,7 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
                   >
                     {busy === 'withdraw' ? 'Withdrawing…' : 'Withdraw'}
                   </button>
-                  {converted && (
+                  {bookingPaid && (
                     <button
                       type="button"
                       onClick={() => void sendBalance()}
@@ -792,7 +803,7 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
                   </div>
                 )}
 
-                {converted && (
+                {bookingPaid && (
                   <div className="mt-4 border-t border-[#EEF1F3] pt-4">
                     <p className="mb-1.5 text-[12.5px] font-bold text-ink">Balance</p>
                     <p className="mb-3 text-[12.5px] leading-relaxed text-ink-muted">

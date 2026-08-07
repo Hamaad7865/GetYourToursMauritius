@@ -99,6 +99,10 @@ export interface QuoteRow {
 
 export interface QuoteDetail extends QuoteRow {
   items: QuoteItem[];
+  /** The converted booking's live status ('confirmed'/'completed' = actually paid; anything else = the
+   *  guest has not paid — checkout still open, or the booking expired/failed/was cancelled unpaid). Null
+   *  when the quote has no booking yet. The only thing that separates a paid quote from an abandoned one. */
+  bookingStatus: string | null;
 }
 
 /** One line as the editor holds it. `quantity` + `unitAmountMinor` make it a `PricedLine`. */
@@ -512,7 +516,21 @@ export async function loadQuote(id: string): Promise<QuoteDetail | null> {
     .order('position', { ascending: true });
   if (itemsError) throw itemsError;
 
-  return { ...mapQuote(data), items: (items ?? []).map(mapItem) };
+  // The converted booking's live status — the only thing that separates a quote whose deposit actually
+  // settled from one whose guest opened checkout and never finished (that booking then expires unpaid,
+  // while converted_at stays stamped). Without it the editor cannot tell "paid" from "abandoned".
+  let bookingStatus: string | null = null;
+  const convertedBookingId = textOrNull(data.booking_id);
+  if (convertedBookingId) {
+    const { data: booking } = await getBrowserSupabase()
+      .from('bookings')
+      .select('status')
+      .eq('id', convertedBookingId)
+      .maybeSingle();
+    bookingStatus = booking?.status ?? null;
+  }
+
+  return { ...mapQuote(data), items: (items ?? []).map(mapItem), bookingStatus };
 }
 
 /**

@@ -179,9 +179,15 @@ export interface QuoteFormValues {
   /** Null until the first save — the public ref is minted by `saveQuote`. */
   ref: string | null;
   status: QuoteStatus;
-  /** Non-null once the guest has paid: the editor refuses to re-price a converted offer. */
+  /** Non-null once the quote has been CONVERTED to a booking (the guest opened checkout) — NOT proof of
+   *  payment. `bookingStatus` says whether that booking actually settled. The editor refuses to re-price
+   *  a converted offer regardless. */
   convertedAt: string | null;
   bookingId: string | null;
+  /** The converted booking's LIVE status: 'confirmed'/'completed' = the deposit or full amount actually
+   *  settled; 'payment_pending' = the guest opened checkout but hasn't paid; anything else = the booking
+   *  expired/failed/was cancelled unpaid. Null until the quote has a booking. Read-only metadata. */
+  bookingStatus: string | null;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -236,6 +242,7 @@ export function emptyQuoteForm(today: string = quoteTodayUtc()): QuoteFormValues
     status: 'draft',
     convertedAt: null,
     bookingId: null,
+    bookingStatus: null,
     customerName: '',
     customerEmail: '',
     customerPhone: '',
@@ -262,6 +269,7 @@ export function formFromQuote(quote: QuoteDetail): QuoteFormValues {
     status: quote.status,
     convertedAt: quote.convertedAt,
     bookingId: quote.bookingId,
+    bookingStatus: quote.bookingStatus,
     customerName: quote.customerName,
     customerEmail: quote.customerEmail,
     customerPhone: quote.customerPhone ?? '',
@@ -288,6 +296,32 @@ export function formFromQuote(quote: QuoteDetail): QuoteFormValues {
       rentalVehicleSlug: item.rentalVehicleSlug,
     })),
   };
+}
+
+/**
+ * How the editor should describe a CONVERTED quote's booking, from the booking's LIVE status — because
+ * `convertedAt` alone means "a booking was minted" (the guest opened checkout), NOT that they paid.
+ *  - 'paid'      — the deposit or full amount settled (confirmed/completed): lines locked, live record.
+ *  - 'pending'   — checkout opened, not yet paid (payment_pending/held/draft).
+ *  - 'abandoned' — the booking expired/failed unpaid: nothing was charged, the guest can pay again.
+ *  - 'other'     — cancelled/refunded/unknown: point the operator at the bookings screen.
+ */
+export type ConvertedBookingKind = 'paid' | 'pending' | 'abandoned' | 'other';
+export function convertedBookingKind(bookingStatus: string | null): ConvertedBookingKind {
+  switch (bookingStatus) {
+    case 'confirmed':
+    case 'completed':
+      return 'paid';
+    case 'payment_pending':
+    case 'held':
+    case 'draft':
+      return 'pending';
+    case 'expired':
+    case 'failed':
+      return 'abandoned';
+    default:
+      return 'other';
+  }
 }
 
 /** Move a line one place up (-1) or down (+1). Out of range is a no-op, never a dropped line. */

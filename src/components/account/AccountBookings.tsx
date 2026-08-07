@@ -27,9 +27,15 @@ interface BookingRow {
   status: string;
   payment_state: string;
   total_minor: number;
+  /** The deposit taken (a partial deposit is 0 < deposit_minor < total_minor); 0 for a full charge. */
+  deposit_minor: number;
+  balance_due_minor: number;
   currency: string;
   created_at: string;
   booking_items: BookingItem[];
+  /** Custom/quote lines (a converted quote's lines live HERE, not in booking_items). Used for the card
+   *  title and so a custom-only booking doesn't read as "0 guests". */
+  booking_custom_items: { description: string; quantity: number }[];
 }
 
 const STATUS_STYLES: Record<string, string> = {
@@ -69,7 +75,10 @@ function tripTitle(b: BookingRow): string | null {
     const t = i.session_occurrences?.activity_options?.activities?.title;
     if (t) return t;
   }
-  return null;
+  // A converted quote has no booking_items — its lines are custom, so name the card from the first
+  // custom line rather than falling all the way back to the bare ref.
+  const custom = b.booking_custom_items?.find((c) => c.description?.trim());
+  return custom?.description?.trim() ?? null;
 }
 
 function BookingCard({ b }: { b: BookingRow }) {
@@ -78,6 +87,10 @@ function BookingCard({ b }: { b: BookingRow }) {
   // Vehicle bookings store the headcount in pax (quantity is the vehicle count = 1); fall back to
   // quantity for per-person/per-group lines — same as the admin manifest's coalesce(pax, quantity).
   const guests = b.booking_items.reduce((sum, i) => sum + (i.pax ?? i.quantity), 0);
+  // A genuine PARTIAL deposit (0 < deposit < total): only then does the guest pay a fraction now, and
+  // the card should say so — otherwise a small deposit (e.g. a €0.10 deposit on a €1 quote → MUR ~5)
+  // reads like a broken exchange rate.
+  const isPartialDeposit = b.deposit_minor > 0 && b.deposit_minor < b.total_minor;
   const date = tripDate(b);
   const when = date ? formatDate(date.toISOString(), language) : formatDate(b.created_at, language);
   const title = tripTitle(b);
@@ -100,8 +113,17 @@ function BookingCard({ b }: { b: BookingRow }) {
         </div>
         <p className="mt-1 text-[13px] text-ink-muted">
           {title ? `${b.ref} · ` : ''}
-          {when} · {guests} {guests === 1 ? t('guest') : t('guests')}
+          {when}
+          {/* Only per-person lines have a headcount — a custom/quote line does not, so don't say
+              "0 guests" for one. */}
+          {guests > 0 ? ` · ${guests} ${guests === 1 ? t('guest') : t('guests')}` : ''}
         </p>
+        {awaitingPayment && isPartialDeposit && (
+          <p className="mt-1.5 text-[12px] leading-relaxed text-teal-dark">
+            {t('Deposit due now:')} <Price eur={b.deposit_minor / 100} /> · {t('Total:')}{' '}
+            <Price eur={b.total_minor / 100} />
+          </p>
+        )}
         {awaitingPayment && (
           // Above the stretched link so Pay stays independently clickable.
           <div className="relative z-10 mt-2">
@@ -139,8 +161,12 @@ export function AccountBookings() {
       const { data, error } = await getBrowserSupabase()
         .from('bookings')
         .select(
-          'ref, status, payment_state, total_minor, currency, created_at, booking_items(price_label, quantity, pax, session_occurrences(starts_at, activity_options(activities(title, slug))))',
+          'ref, status, payment_state, total_minor, deposit_minor, balance_due_minor, currency, created_at, booking_items(price_label, quantity, pax, session_occurrences(starts_at, activity_options(activities(title, slug)))), booking_custom_items(description, quantity)',
         )
+        // Filter to the SIGNED-IN user's OWN bookings explicitly. For a customer this just matches RLS;
+        // for a staff/admin it stops "My bookings" (a personal view) from listing every booking in the
+        // system via the staff RLS branch — that belongs on the admin screen, not here.
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .returns<BookingRow[]>();
       if (!active) return;

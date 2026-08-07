@@ -14,6 +14,7 @@ import {
   PREVIEW_LINK_TOKEN,
   QUOTE_PANES,
   catalogueLineRefusal,
+  convertedBookingKind,
   customLineDraft,
   defaultValidUntil,
   emptyQuoteForm,
@@ -275,6 +276,7 @@ describe('the line list', () => {
 describe('re-opening a saved quote', () => {
   const detail: QuoteDetail = {
     id: 'quote-1',
+    bookingStatus: null,
     ref: 'Q0123456789AB',
     customerName: 'Marie Dupont',
     customerEmail: 'marie@example.com',
@@ -518,3 +520,22 @@ function findAll(node: unknown, target: unknown, out: ElementLike[] = []): Eleme
   findAll(node.props?.children, target, out);
   return out;
 }
+
+describe('convertedBookingKind — reads the booking status, not just "converted"', () => {
+  it('reads a booking that actually settled as paid', () => {
+    expect(convertedBookingKind('confirmed')).toBe('paid');
+    expect(convertedBookingKind('completed')).toBe('paid');
+  });
+  it('reads an open checkout as pending, not paid', () => {
+    expect(convertedBookingKind('payment_pending')).toBe('pending');
+  });
+  it('reads an expired/failed booking as abandoned — the guest never paid', () => {
+    expect(convertedBookingKind('expired')).toBe('abandoned');
+    expect(convertedBookingKind('failed')).toBe('abandoned');
+  });
+  it('reads a cancelled/refunded/unknown booking as other', () => {
+    expect(convertedBookingKind('cancelled')).toBe('other');
+    expect(convertedBookingKind('refunded')).toBe('other');
+    expect(convertedBookingKind(null)).toBe('other');
+  });
+});

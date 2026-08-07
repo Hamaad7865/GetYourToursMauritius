@@ -859,6 +859,8 @@ export const fr: Record<string, string> = {
     'Merci de ne pas fermer cette page ni revenir en arrière.',
   'Starting…': 'Démarrage…',
   'Pay now': 'Payer maintenant',
+  'Deposit due now:': 'Acompte à payer maintenant :',
+  'Total:': 'Total :',
   'Try again': 'Réessayer',
   'Door-to-door transport': 'Transport de porte à porte',
   'Child seats ({n})': 'Sièges enfant ({n})',

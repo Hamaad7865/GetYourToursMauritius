@@ -101,6 +101,7 @@ function input(over: Partial<QuoteInput> = {}): QuoteInput {
 function detail(over: Partial<QuoteDetail> = {}): QuoteDetail {
   return {
     id: 'q1',
+    bookingStatus: null,
     ref: 'Q0123456789AB',
     customerName: 'Marie Dupont',
     customerEmail: 'marie@example.com',
