@@ -774,7 +774,22 @@ export const apiPaths: ZodOpenApiPathsObject = {
       requestParams: { path: refParam },
       responses: {
         '201': okJson(
-          paymentLinkSchema.extend({ bookingRef: z.string() }),
+          paymentLinkSchema.extend({
+            bookingRef: z.string(),
+            depositEurMinor: z
+              .number()
+              .int()
+              .optional()
+              .describe(
+                'EUR deposit charged now, minor units. Present for a partial-deposit quote (0 < ' +
+                  'deposit < total); the pay page frames the MUR charge as a deposit. Display-only.',
+              ),
+            totalEurMinor: z
+              .number()
+              .int()
+              .optional()
+              .describe('EUR booking total, minor units. The balance owed is total − deposit.'),
+          }),
           'Checkout link for the converted booking',
         ),
         '404': errorResponse('No readable quote for this link'),

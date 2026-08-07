@@ -127,7 +127,12 @@ function BookingCard({ b }: { b: BookingRow }) {
         {awaitingPayment && (
           // Above the stretched link so Pay stays independently clickable.
           <div className="relative z-10 mt-2">
-            <ResumePaymentButton bookingRef={b.ref} label={t('Pay now')} />
+            <ResumePaymentButton
+              bookingRef={b.ref}
+              label={t('Pay now')}
+              depositMinor={b.deposit_minor}
+              totalMinor={b.total_minor}
+            />
           </div>
         )}
       </div>

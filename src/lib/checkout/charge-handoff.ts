@@ -26,6 +26,10 @@ export interface ChargeHandoff {
   chargeAmountMinor: number;
   /** The EUR booking total in minor units, for the "converted from" phrasing. Optional. */
   totalEurMinor?: number;
+  /** The EUR deposit taken NOW, in minor units, when this is a genuine PARTIAL deposit
+   *  (0 < deposit < total). Present only alongside totalEurMinor; lets the pay page frame the MUR
+   *  charge as a deposit + balance instead of a bare figure that can read like a bad exchange rate. */
+  depositEurMinor?: number;
   at: number;
 }
 

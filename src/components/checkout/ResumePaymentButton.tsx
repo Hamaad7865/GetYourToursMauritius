@@ -32,6 +32,10 @@ export function useResumePayment(
    *  separate payments row on the same booking, so the booking's own already-paid state is no
    *  obstacle (api_create_payment scopes its guards by purpose). */
   purpose?: 'booking' | 'pickup_addon',
+  /** EUR deposit + total for a genuine PARTIAL deposit (0 < deposit < total). When present, the pay
+   *  page discloses "€X deposit now, €Y balance later" instead of a bare MUR figure that can read like
+   *  a bad exchange rate. A full charge leaves this undefined. */
+  deposit?: { depositEurMinor: number; totalEurMinor: number },
 ) {
   const { session } = useAuth();
   const t = useT();
@@ -96,12 +100,21 @@ export function useResumePayment(
         // we're navigating away, so the button stays disabled until the page unloads.)
         // Hand the ring's position over so the pay page continues it instead of restarting.
         savePayHandoff(SESSION_COMPLETE_PERCENT, Date.now());
-        // And the server-pinned card charge (MUR), so the pay page discloses the exact figure.
+        // And the server-pinned card charge (MUR), so the pay page discloses the exact figure. For a
+        // genuine PARTIAL deposit, carry the EUR deposit + total too, so the pay page can frame that
+        // MUR figure as the deposit (a €0.10 deposit → MUR ~5 reads like a bad rate without it).
         if (typeof link.chargeAmountMinor === 'number' && link.chargeCurrency) {
+          const depositFields =
+            deposit &&
+            deposit.depositEurMinor > 0 &&
+            deposit.depositEurMinor < deposit.totalEurMinor
+              ? { depositEurMinor: deposit.depositEurMinor, totalEurMinor: deposit.totalEurMinor }
+              : {};
           saveChargeHandoff({
             ref: bookingRef,
             chargeCurrency: link.chargeCurrency,
             chargeAmountMinor: link.chargeAmountMinor,
+            ...depositFields,
           });
         }
         window.location.href = `/bookings/${bookingRef}/pay?cid=${encodeURIComponent(link.checkoutId)}`;
@@ -116,7 +129,7 @@ export function useResumePayment(
       setBusy(false);
       clearPayHandoff();
     }
-  }, [busy, session, bookingRef, purpose, t]);
+  }, [busy, session, bookingRef, purpose, deposit, t]);
 
   return { resume, busy, error, notPayable };
 }
@@ -129,14 +142,24 @@ export function ResumePaymentButton({
   bookingRef,
   label,
   className,
+  depositMinor,
+  totalMinor,
 }: {
   bookingRef: string;
   /** CTA text — defaults to the shared "Complete payment" string. */
   label?: string;
   className?: string;
+  /** EUR deposit + total (minor units) for a PARTIAL-deposit booking, so the pay page can disclose the
+   *  deposit/balance split. Pass both; a full charge (deposit 0 or == total) discloses nothing extra. */
+  depositMinor?: number;
+  totalMinor?: number;
 }) {
   const t = useT();
-  const { resume, busy, error } = useResumePayment(bookingRef);
+  const deposit =
+    depositMinor != null && totalMinor != null
+      ? { depositEurMinor: depositMinor, totalEurMinor: totalMinor }
+      : undefined;
+  const { resume, busy, error } = useResumePayment(bookingRef, undefined, deposit);
 
   return (
     <>
