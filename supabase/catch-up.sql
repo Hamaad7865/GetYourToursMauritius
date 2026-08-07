@@ -27149,6 +27149,17 @@ alter table payments add constraint payments_purpose_check
   check (purpose in ('booking', 'pickup_addon', 'balance'));
 
 
+-- ---- migration 20260914000000_quote_balance_link (durable balance link) ----------------------------
+-- The staff "Send balance link" flow stores the SHA-256 of a durable, re-openable balance-link token
+-- here; the raw token lives only in the URL the operator copies to the guest. Separate from token_hash
+-- (the deposit/quote link) so minting a balance link never rotates the guest's original quote link.
+-- Nullable, no default: an absent hash is "no balance link", and resolveBalanceForToken fails closed on
+-- a null stored hash exactly as the deposit resolver does. App-layer authorization only — nothing
+-- SQL-side changes (the balance's payability, amount, lease and reconcile sweep all shipped in
+-- 20260912000000).
+alter table quotes add column if not exists balance_token_hash text;
+
+
 -- ---------------------------------------------------------------------------------------------------
 -- Task 2 — deposit sizing at conversion + charge. Re-applies api_convert_quote and create_payment (the
 -- shared checkout body) verbatim apart from the deposit logic, so this migration — the LATER file — is

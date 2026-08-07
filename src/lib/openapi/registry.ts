@@ -756,6 +756,61 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/quotes/{ref}/balance/open': {
+    get: {
+      operationId: 'openQuoteBalanceLink',
+      summary: 'Open a durable balance link: move its token into an httpOnly cookie and redirect',
+      description:
+        'The balance link’s analogue of /quotes/{ref}/open. The operator’s link is ' +
+        '/quotes/{ref}/balance?t=…, and the balance page redirects that ?t= here; this authenticates ' +
+        'nothing — it validates only the shape of the ref and token, sets an httpOnly, Secure, ' +
+        'SameSite=Lax cookie (a DISTINCT name from the deposit link’s) scoped to this quote’s balance ' +
+        'paths, and 302s to /quotes/{ref}/balance. The token is deliberately kept out of any rendered ' +
+        'page URL, where GTM (page_location) and the client-error reporter (window.location.href) ' +
+        'would both export it. A request with no valid token still redirects, so nothing here reveals ' +
+        'which quote refs exist.',
+      tags: ['Quotes'],
+      requestParams: {
+        path: refParam,
+        query: z.object({ t: z.string().describe('The raw balance-link token') }),
+      },
+      responses: {
+        '302': {
+          description: 'Redirect to the balance page (cookie set only for a well-formed token)',
+        },
+        '404': errorResponse('Malformed quote reference'),
+        '429': errorResponse('Too many requests'),
+      },
+    },
+  },
+  '/quotes/{ref}/balance/pay': {
+    post: {
+      operationId: 'payQuoteBalance',
+      summary: 'Pay a quote’s balance: mint a fresh balance checkout on the guest’s click',
+      description:
+        'The balance’s analogue of /quotes/{ref}/pay, and what makes the balance link DURABLE — the ' +
+        'checkout is minted on THIS click, not when staff sent the link, so the URL works for as long ' +
+        'as the balance is owed. Authenticated by the BALANCE LINK TOKEN, in the httpOnly cookie ' +
+        '/quotes/{ref}/balance/open set — never by a bearer token, because the guest has no account. ' +
+        'There is no request body: the cookie is the credential. It mints through the quote entry ' +
+        'point (api_create_quote_payment, purpose "balance"), which shares api_create_payment’s ' +
+        'single-flight lease, so two opens of the link reuse ONE session rather than fork two. Every ' +
+        'refusal to open the balance — unknown ref, wrong/absent token, no booking, a not-confirmed ' +
+        'booking, or a fully-paid one — is the same 404, so nothing here reveals which quote refs ' +
+        'exist.',
+      tags: ['Quotes'],
+      requestParams: { path: refParam },
+      responses: {
+        '201': okJson(
+          paymentLinkSchema.extend({ bookingRef: z.string() }),
+          'Checkout link for the balance charge',
+        ),
+        '404': errorResponse('No readable balance for this link'),
+        '409': errorResponse('The balance is not ready to pay'),
+        '429': errorResponse('Too many requests'),
+      },
+    },
+  },
   '/quotes/{ref}/receipt': {
     get: {
       operationId: 'getQuoteReceipt',
@@ -825,34 +880,38 @@ export const apiPaths: ZodOpenApiPathsObject = {
   '/admin/quotes/{ref}/balance': {
     post: {
       operationId: 'sendQuoteBalanceLink',
-      summary: 'Mint the balance payment link for a deposit-confirmed quote (staff-only)',
+      summary: 'Mint a DURABLE balance payment link for a deposit-confirmed quote (staff-only)',
       description:
         'A quote guest pays a DEPOSIT that confirms the booking and reserves the seat; the BALANCE ' +
-        'is chased later, by hand, and this mints the second checkout for it and returns the public ' +
-        'payment URL for the operator to copy to the guest. STAFF ONLY, and the check is ' +
+        'is chased later, by hand. This mints a DURABLE balance-link token (it no longer mints a ' +
+        'checkout at send time — a Peach session expires in ~30 minutes, and an accountless guest ' +
+        'cannot re-mint one). It stores only the token’s SHA-256 in quotes.balance_token_hash and ' +
+        'returns /quotes/{ref}/balance?t=<rawToken>; the guest’s page mints a FRESH checkout on the ' +
+        'click, so the URL works for as long as the balance is owed. STAFF ONLY, and the check is ' +
         'profiles.role — the JWT role claim is the Postgres role selector, never the business role; ' +
-        '"seo" is excluded, as on the send route. It does NOT rotate quotes.token_hash, so the ' +
-        'guest’s original quote link keeps working. The amount is the booking’s own ' +
-        'balance_due_minor, read server-side; the checkout is minted through the quote entry point ' +
-        '(api_create_quote_payment), which shares api_create_payment’s single-flight lease so a ' +
-        'balance can never fork into two payable sessions. Refused when the quote has no booking yet, ' +
-        'the booking is not confirmed, or nothing is owed.',
+        '"seo" is excluded, as on the send route. It writes ONLY balance_token_hash, never ' +
+        'quotes.token_hash, so the guest’s original quote link keeps working. Refused when the quote ' +
+        'has no booking yet, the booking is not confirmed, or nothing is owed.',
       tags: ['Quotes'],
       security: [{ bearerAuth: [] }],
       requestParams: { path: refParam },
       requestBody: jsonBody(z.object({})),
       responses: {
         '200': okJson(
-          z.object({ url: z.string().describe('The balance checkout’s public payment URL') }),
-          'The balance checkout was minted',
+          z.object({
+            url: z
+              .string()
+              .describe(
+                'The durable balance link (/quotes/{ref}/balance?t=…) to copy to the guest',
+              ),
+          }),
+          'The durable balance link was minted',
         ),
         '400': errorResponse('Invalid request'),
         '401': errorResponse('Authentication required'),
         '403': errorResponse('Staff only'),
         '404': errorResponse('No such quote'),
-        '409': errorResponse(
-          'No booking yet, the booking is not confirmed, nothing is owed, or a link is already live',
-        ),
+        '409': errorResponse('No booking yet, the booking is not confirmed, or nothing is owed'),
         '429': errorResponse('Too many requests'),
         '500': errorResponse('Site URL is not configured'),
       },

@@ -352,3 +352,94 @@ export async function resolveQuoteForToken(
     })),
   };
 }
+
+/**
+ * The balance a guest still owes, as the DURABLE balance page (/quotes/{ref}/balance) may show it.
+ *
+ * GUEST-FACING FIELDS ONLY — the same privacy stance, and for the same reason, as {@link PublicQuote}:
+ * `internal_notes` ("margin is thin, don't discount further") lives on this very quote row and is
+ * never selected here, and the booking's own contact details, pricing breakdown and notes are not read
+ * at all. Nothing here filters them out; they are never loaded.
+ */
+export interface PublicQuoteBalance {
+  /** The QUOTE ref — the path segment the balance page and its pay route are keyed on. */
+  ref: string;
+  customerName: string;
+  currency: string;
+  /** Minor units — the amount still owed, the figure the balance checkout will charge. */
+  balanceDueMinor: number;
+}
+
+/** `internal_notes` and `token_hash` are deliberately absent — see {@link PublicQuoteBalance}. */
+const BALANCE_QUOTE_COLUMNS = 'id, ref, customer_name, currency, booking_id, balance_token_hash';
+
+/**
+ * The balance behind a DURABLE balance link, or null.
+ *
+ * The balance's analogue of {@link resolveQuoteForToken}, and it fails closed in the exact same shape:
+ * ONE indistinguishable null for every refusal — unknown ref, a token that does not hash to the stored
+ * `balance_token_hash`, a null stored hash (staff never sent a balance link, or a pay-in-full quote
+ * that owes nothing), no booking behind the quote, a booking that is not `confirmed`, and a fully-paid
+ * one. `quotes.ref` is the path segment of a link that gets forwarded, so a per-case status would turn
+ * the balance page into an existence oracle just as it would the quote page; the caller therefore has
+ * exactly one branch, a balance or the not-found page.
+ *
+ * The token matched is `balance_token_hash`, NEVER `token_hash`: the deposit link and the balance link
+ * are separate credentials on the same row, so opening one never opens the other, and minting a
+ * balance link (which writes only `balance_token_hash`) never touches the deposit link the guest is
+ * still holding.
+ *
+ * The two payability conditions — confirmed, and `balance_due_minor > 0` — mirror create_payment's own
+ * 'balance' branch, so the page never renders a Pay button the charge would then reject. They are the
+ * balance's "there is nothing to collect" refusals, the counterpart of the quote page's cancelled /
+ * lapsed pair.
+ */
+export async function resolveBalanceForToken(
+  ref: string,
+  token: string,
+): Promise<PublicQuoteBalance | null> {
+  // A token that is not 32 bytes of lowercase hex can never match a stored SHA-256. This is where an
+  // absent `?t=` (and the cookie a wrong token was skipped from) lands.
+  if (!ref || !/^[0-9a-f]{64}$/.test(token)) return null;
+
+  const db = createServiceRoleClient() as unknown as QuotesReadClient;
+
+  const { data, error } = await db
+    .from('quotes')
+    .select(BALANCE_QUOTE_COLUMNS)
+    .eq('ref', ref)
+    .maybeSingle();
+  // A read that FAILED is not a quote that does not exist, but the caller has one branch by design,
+  // and answering "no" to a transient database fault is the fail-closed direction.
+  if (error || !data) return null;
+
+  // Constant-time, and false on a null stored hash — a quote with no balance link is not openable.
+  if (!(await quoteTokenMatches(token, textOrNull(data.balance_token_hash)))) return null;
+
+  // No booking behind the quote (never paid, or the deposit booking was erased and the FK nulled the
+  // pointer): there is no balance to collect. Same single null.
+  const bookingId = data.booking_id == null ? null : text(data.booking_id);
+  if (!bookingId) return null;
+
+  const { data: booking, error: bookingError } = await db
+    .from('bookings')
+    .select('status, balance_due_minor')
+    .eq('id', bookingId)
+    .maybeSingle();
+  if (bookingError || !booking) return null;
+
+  // Payable ONLY on a confirmed booking that still owes something. A booking that is not confirmed
+  // (cancelled, refunded, expired) and a fully-paid one (balance_due_minor <= 0, the balance already
+  // collected) are BOTH refused — the same single null, no oracle.
+  const status = text(booking.status);
+  const balanceDueMinor = minor(booking.balance_due_minor);
+  if (status !== 'confirmed') return null;
+  if (balanceDueMinor <= 0) return null;
+
+  return {
+    ref: text(data.ref),
+    customerName: text(data.customer_name),
+    currency: text(data.currency),
+    balanceDueMinor,
+  };
+}

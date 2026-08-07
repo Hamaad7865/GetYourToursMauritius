@@ -1,0 +1,30 @@
+-- Durable balance link — the balance link a guest can open days later and re-mint a fresh checkout on.
+--
+-- The deposit link is durable already: the guest opens the emailed /quotes/{ref} page and clicks Pay,
+-- which mints a FRESH Peach checkout on the click (api_create_quote_payment → create_payment). The
+-- BALANCE link was not: the staff route minted the balance checkout AT SEND TIME and handed the
+-- operator a /bookings/{ref}/pay?cid=<checkoutId> URL. A Peach checkout session expires in ~30 minutes,
+-- so that link died within the hour and an accountless guest — who has no account to re-mint from — was
+-- left with a dead URL. Owner decision: the balance link must be durable the same way the deposit is.
+--
+-- The fix is one column. quotes.balance_token_hash stores the SHA-256 of a durable balance-link token
+-- (minted by the staff "Send balance link" route, mintQuoteToken/hashQuoteToken in
+-- src/lib/quotes/token.ts). The raw token lives only in the URL the operator copies to the guest
+-- (/quotes/{ref}/balance?t=<rawToken>); the guest's page resolves it (resolveBalanceForToken in
+-- src/lib/quotes/resolve.ts, fail-closed exactly like the deposit's resolveQuoteForToken) and its Pay
+-- button mints a FRESH balance checkout on each click, so the URL works for as long as the balance is
+-- owed no matter how long after it was sent.
+--
+-- SEPARATE FROM token_hash ON PURPOSE. token_hash is the DEPOSIT/quote link's hash; balance_token_hash
+-- is the BALANCE link's. Minting a balance link writes ONLY this column, so the guest's original quote
+-- link (their deposit came in on it, and their receipt/booking page is reachable through it) keeps
+-- working. Nullable: a quote has no balance link until staff send one, and most never will (a
+-- pay-in-full quote owes nothing). No default, no backfill — an absent hash is "no balance link", and
+-- resolveBalanceForToken fails closed on a null stored hash exactly as the deposit resolver does.
+--
+-- App-layer authorization only, so this migration is JUST the column: the balance's payability, its
+-- server-owned amount, its single-flight checkout lease and its reconcile sweep all shipped in
+-- 20260912000000 (create_payment's 'balance' branch, api_create_quote_payment's 'balance' purpose,
+-- api_pending_payment_checkouts' 'balance' sweep). Nothing SQL-side changes here.
+
+alter table quotes add column balance_token_hash text;

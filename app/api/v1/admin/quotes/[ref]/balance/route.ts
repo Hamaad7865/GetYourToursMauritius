@@ -4,12 +4,11 @@ import { preflightResponse } from '@/lib/http/cors';
 import { requireUser } from '@/lib/http/auth';
 import { jsonOk } from '@/lib/http/envelope';
 import { rateLimit } from '@/lib/http/rate-limit';
-import { serviceRoleRpcContext } from '@/lib/http/context';
 import { getServerEnv } from '@/lib/config/env';
 import { isSiteUrlConfiguredForLive } from '@/lib/config/runtime';
 import { createServiceRoleClient } from '@/lib/supabase/admin';
-import { createPaymentLink } from '@/lib/services/payments';
-import { quotePagePath, quotePayReturnUrl } from '@/lib/quotes/link-cookie';
+import { hashQuoteToken, mintQuoteToken } from '@/lib/quotes/token';
+import { quoteBalancePagePath } from '@/lib/quotes/link-cookie';
 import { SITE } from '@/lib/seo/site';
 import { ConfigError, ConflictError, ForbiddenError, NotFoundError } from '@/lib/services/errors';
 
@@ -22,10 +21,28 @@ type RouteCtx = { params: Promise<{ ref: string }> };
  * (src/lib/admin/quotes.ts `sendBalanceLink`).
  *
  * A quote guest pays a DEPOSIT (Task 2 of the quote-deposit plan) which confirms the booking and
- * reserves the seat; the BALANCE is chased later, by hand, with a second payment link. This route
- * mints that balance checkout and hands the operator the public payment URL to copy to the guest
- * (over WhatsApp or their own email). It is the balance's analogue of admin/quotes/send/route.ts, and
- * it borrows that route's STAFF GATE verbatim.
+ * reserves the seat; the BALANCE is chased later, by hand, with a second payment link. This route mints
+ * a DURABLE balance link and hands the operator the public URL to copy to the guest (over WhatsApp or
+ * their own email).
+ *
+ * ── WHY DURABLE, AND WHY THIS ROUTE NO LONGER MINTS A CHECKOUT ────────────────────────────────────
+ * It used to mint the balance CHECKOUT here, at send time, and return /bookings/{ref}/pay?cid=… . A
+ * Peach checkout session expires in ~30 minutes, so that link died within the hour — and an accountless
+ * quote guest has no account to re-mint from, so the balance became uncollectable until staff sent a
+ * fresh link. The deposit link never had this problem: the public /quotes/{ref} page mints a FRESH
+ * checkout on the guest's CLICK, days later if need be. The balance now works the same way.
+ *
+ * So this route mints a durable balance-link TOKEN (mintQuoteToken), stores only its SHA-256 in
+ * `quotes.balance_token_hash`, and returns /quotes/{ref}/balance?t=<rawToken>. The guest's page resolves
+ * that token (resolveBalanceForToken) and its Pay button mints the checkout on the click
+ * (/api/v1/quotes/{ref}/balance/pay → api_create_quote_payment purpose='balance'). Nothing expires but
+ * the balance itself: the URL keeps working for as long as `balance_due_minor > 0`.
+ *
+ * ── IT MUST NOT ROTATE `token_hash` ──────────────────────────────────────────────────────────────
+ * `balance_token_hash` is a SEPARATE column from `token_hash` (the deposit/quote link's hash) precisely
+ * so that minting a balance link never breaks the link the guest is still holding — the one their
+ * deposit came in on, and the one their receipt/booking page is reachable through. This route writes
+ * ONLY `balance_token_hash`.
  *
  * ── THE STAFF GATE (copied from the send route, and for the same reasons) ─────────────────────────
  * `requireUser(req).role` is the JWT's POSTGRES role selector — 'authenticated' for staff and customer
@@ -34,41 +51,22 @@ type RouteCtx = { params: Promise<{ ref: string }> };
  * it can answer for any caller). 'seo' IS NOT ADMITTED, exactly as on the send route: a quote carries
  * the guest's name, their email, and the operator's own margin note on the same row.
  *
- * ── WHY IT MINTS RATHER THAN ROTATES A TOKEN ──────────────────────────────────────────────────────
- * The send route's job is to write `quotes.token_hash`; this route MUST NOT. Rotating it would kill the
- * link the guest is still holding (the one their deposit came in on, and the one their receipt/booking
- * page is reachable through). The balance is not a new offer — it is a second charge on a booking that
- * already exists — so there is nothing to re-mint a token for. The public URL is the balance CHECKOUT's
- * own payment URL, minted by `createPaymentLink({ purpose: 'balance', authorizedBy: 'quote' })`:
- *
- *   * `purpose: 'balance'` because the deposit already CONFIRMED the booking, so a second 'booking' row
- *     would trip create_payment's booking-payability guard (booking_not_payable). The balance is a
- *     separate purpose with its own payability branch — allowed on a confirmed booking that still owes
- *     something — exactly as the late-pickup add-on is (20260912000000, Task 4). Its amount is the
- *     booking's own `balance_due_minor`, read server-side, never from a caller.
- *   * `authorizedBy: 'quote'` because a quote booking has NO user_id — the guest has no account — so
- *     api_create_payment's identity check would refuse it. The quote entry point
- *     (api_create_quote_payment) skips that check and is service-role-only; both entry points share the
- *     one create_payment body, so they take the SAME single-flight checkout lease and one balance can
- *     never fork into two payable sessions. `serviceRoleRpcContext()` is passed as BOTH ports, like the
- *     quote pay route: there is no caller identity here by design.
- *
- * ── WHAT IT REFUSES BEFORE MINTING ANYTHING ──────────────────────────────────────────────────────
+ * ── WHAT IT REFUSES BEFORE MINTING A TOKEN ───────────────────────────────────────────────────────
  * Each refusal is a readable 409/404 the operator can act on, taken from the booking's own state so it
- * never opens a checkout that create_payment would only reject:
+ * never hands out a link the balance branch of create_payment would only reject:
  *
  *   1. No such quote → 404.
  *   2. A quote with no booking yet → the guest has not paid the deposit, so there is no booking to
  *      collect a balance on. 409.
  *   3. A booking that is not `confirmed` → the deposit has not settled (or the booking died), so there
- *      is no balance to send yet. 409. (create_payment's balance branch enforces the same, in SQL.)
+ *      is no balance to send yet. 409.
  *   4. `balance_due_minor <= 0` → the booking is fully paid (a pay-in-full quote, or a balance already
- *      collected). There is nothing to charge, so no balance row is opened. 409. This is the readable
- *      form of create_payment's own `balance_already_paid`, taken here so the operator gets a 409
- *      instead of an unmapped 500.
+ *      collected). There is nothing to charge, so no link is minted. 409.
  *
- * The reads are the service-role client's, like the send route; the typed client does not know the
- * quotes tables (they are not in the generated types), so the same narrow structural cast is used.
+ * The reads and the write are the service-role client's, like the send route; the typed client does not
+ * know the quotes tables (they are not in the generated types), so the same narrow structural cast is
+ * used. `internal_notes` is deliberately never selected — what is never loaded cannot be surfaced by
+ * mistake.
  */
 
 // The ref is the path segment; nothing else is caller-supplied. A body is still parsed so a malformed
@@ -92,9 +90,15 @@ interface ReadBuilder extends PromiseLike<{ data: Row[] | null; error: unknown }
   maybeSingle(): PromiseLike<{ data: Row | null; error: unknown }>;
 }
 
+interface WriteBuilder extends PromiseLike<{ data: Row[] | null; error: unknown }> {
+  eq(column: string, value: string): WriteBuilder;
+  select(columns: string): WriteBuilder;
+}
+
 interface BalanceClient {
   from(table: 'quotes' | 'bookings' | 'profiles'): {
     select(columns: string): ReadBuilder;
+    update(payload: Row): WriteBuilder;
   };
 }
 
@@ -124,8 +128,7 @@ async function callerRole(db: BalanceClient, userId: string): Promise<string | n
 }
 
 export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
-  // Before the auth check, as on every other rate-limited route here. The budget protected is the
-  // payment provider's checkout-create endpoint.
+  // Before the auth check, as on every other rate-limited route here.
   await rateLimit(req, 'admin_quote_balance', 20, 60);
 
   const user = await requireUser(req);
@@ -139,31 +142,31 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
 
   const { ref } = await params;
 
-  // FAIL CLOSED on the site URL, like the quote pay route: createPaymentLink builds BOTH the Peach
-  // return URL and — via `originOf` in peach.ts — the Origin header Peach is sent, from
-  // NEXT_PUBLIC_SITE_URL. A deploy that forgot it would mint a checkout that redirects the guest to
-  // localhost. Checked BEFORE anything is minted.
+  // FAIL CLOSED on the site URL, like the send route: the link that goes to the guest is absolute
+  // (`${SITE.url}/quotes/{ref}/balance?t=…`), and a deploy that forgot NEXT_PUBLIC_SITE_URL would hand
+  // the operator a localhost link to copy. Checked BEFORE a token is minted.
   if (!isSiteUrlConfiguredForLive(getServerEnv())) {
     throw new ConfigError(
       'site_url_not_configured: NEXT_PUBLIC_SITE_URL is unset or points at localhost on a ' +
-        'production-like runtime. It builds the balance checkout’s return URL + Origin; refusing to ' +
-        'create a checkout that would redirect the guest to localhost.',
+        'production-like runtime. It builds the balance link the operator copies to the guest; ' +
+        'refusing to hand out a localhost link.',
       { code: 'site_url_not_configured' },
     );
   }
 
-  // The quote, and the booking its deposit already minted. `internal_notes` and `token_hash` are
-  // deliberately NOT selected: neither is needed to mint the balance link, and what is never loaded
-  // cannot be surfaced by mistake.
+  // The quote, and the booking its deposit already minted. `internal_notes` and the token hashes are
+  // deliberately NOT selected: none is needed to mint the balance link, and what is never loaded cannot
+  // be surfaced by mistake.
   const { data: quote, error } = await db
     .from('quotes')
-    .select('booking_id')
+    .select('id, booking_id')
     .eq('ref', ref)
     .maybeSingle();
   if (error)
     throw new Error(String((error as { message?: string }).message ?? 'quote read failed'));
   if (!quote) throw new NotFoundError('Not found');
 
+  const quoteId = text(quote.id);
   const bookingId = textOrNull(quote.booking_id);
   if (!bookingId) {
     throw new ConflictError(
@@ -181,9 +184,8 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
     throw new Error(
       String((bookingError as { message?: string }).message ?? 'booking read failed'),
     );
-  // The booking is gone — an erasure hard-deletes an unpaid quote booking and the FK nulls the pointer,
-  // but a converted_at that pointed at a live one is what we just read. Treat a missing row as "nothing
-  // to collect", not a 500.
+  // The booking is gone — an erasure hard-deletes an unpaid quote booking and the FK nulls the pointer.
+  // Treat a missing row as "nothing to collect", not a 500.
   if (!booking) {
     throw new ConflictError(
       `Quote ${ref} has no live booking behind it, so there is no balance to collect.`,
@@ -206,47 +208,35 @@ export const POST = apiHandler<RouteCtx>(async (req, { params }) => {
     );
   }
 
-  // Both ports are the service role, like the quote pay route: there is no caller identity here by
-  // design, and api_create_quote_payment / api_record_payment_checkout are granted to service_role only.
-  const ctx = serviceRoleRpcContext();
-  const link = await createPaymentLink(
-    ctx,
-    {
-      bookingRef,
-      // The QUOTE page, like the pay route: a card taking the redirect-based 3-D Secure path returns
-      // the guest top-level to this URL, and a quote guest has no account to sign in to.
-      returnUrl: quotePayReturnUrl(ref),
-      purpose: 'balance',
-      authorizedBy: 'quote',
-    },
-    ctx,
-  );
-
-  // The public payment URL for the operator's copy button — built the SAME way the deposit guest is
-  // sent to their card form (src/lib/quotes/pay-client.ts), and for the same reason: the PRODUCTION
-  // provider is Peach, an EMBEDDED widget, whose createCheckout returns a `checkoutId` and NO
-  // `redirectUrl` (src/lib/payments/peach.ts). Keying this on `redirectUrl` — the field only the dev
-  // stub ever populates — would 409 every real mint. So mount the widget from the checkout id at
-  // /bookings/{ref}/pay?cid=…, with `return=` back to the guest's own quote page (the pay page's
-  // default, /bookings/{ref}, shows a sign-in wall to a guest who has no account). `redirectUrl` stays
-  // only as the hosted-redirect / dev-stub fallback. A reused still-live session also carries the
-  // checkout id, so the operator still gets a working link on a repeat click rather than a 409.
-  const url = link.checkoutId
-    ? `${SITE.url}/bookings/${encodeURIComponent(bookingRef)}/pay` +
-      `?cid=${encodeURIComponent(link.checkoutId)}` +
-      `&return=${encodeURIComponent(quotePagePath(ref))}`
-    : (link.redirectUrl ?? null);
-
-  // Neither an embedded checkout id nor a hosted redirect URL: createPaymentLink always returns one or
-  // the other, so this is unreachable in practice — but a money-path route must never hand the operator
-  // an empty string to copy and tell them the guest can pay.
-  if (!url) {
-    throw new ConfigError(
-      'checkout_link_unavailable: the payment provider returned neither a checkout id nor a redirect ' +
-        'URL, so there is nothing for the guest to pay against. Try again shortly.',
-      { code: 'checkout_link_unavailable' },
+  // Mint the durable balance-link token, store ONLY its hash, and NEVER touch `token_hash`. A re-send
+  // (staff pressing the button again) rotates `balance_token_hash` and supersedes the previous balance
+  // link — the same one-hash-per-column behaviour as the deposit link — but the guest's original quote
+  // link is on a different column and keeps working. Storing the token (not the raw value) is what makes
+  // a leaked database backup unable to mint a working link.
+  const token = mintQuoteToken();
+  const { data: updated, error: writeError } = await db
+    .from('quotes')
+    .update({
+      balance_token_hash: await hashQuoteToken(token),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', quoteId)
+    .select('id');
+  if (writeError)
+    throw new Error(String((writeError as { message?: string }).message ?? 'quote write failed'));
+  if (!updated || updated.length === 0) {
+    // The quote was erased between the read and the write. Nothing was minted.
+    throw new ConflictError(
+      `Quote ${ref} was removed while the balance link was being created, so no link was minted.`,
     );
   }
+
+  // The durable public URL for the operator's copy button — the balance PAGE, carrying the raw token.
+  // The page redirects that `?t=` through the balance open route (which moves the token into an
+  // httpOnly cookie and 302s to the clean page) before it renders, so the token is never handed to GTM
+  // or written to error_logs — the same protection the deposit link has. This is the raw token's only
+  // home besides the guest's copy of the URL: it is never logged and never written to any other column.
+  const url = `${SITE.url}${quoteBalancePagePath(ref)}?t=${encodeURIComponent(token)}`;
 
   return jsonOk({ url });
 });

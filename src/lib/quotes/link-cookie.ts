@@ -35,6 +35,18 @@ import { SITE } from '@/lib/seo/site';
 export const QUOTE_TOKEN_COOKIE = 'bmt_quote_token';
 
 /**
+ * The BALANCE link's own cookie — a DISTINCT name from the deposit's, deliberately.
+ *
+ * A guest can hold both links (they paid the deposit on one; staff sent the balance on the other), and
+ * `/quotes/{ref}/balance` sits UNDER `/quotes/{ref}` — so by RFC 6265 §5.1.4 path-match the deposit
+ * cookie (Path=/quotes/{ref}) is ALSO sent to the balance page. A shared name would then put two
+ * same-name cookies on the one request, and which the balance route reads would be path-length-order-
+ * dependent and fragile. Distinct names never cross: the balance routes read only this cookie, the
+ * deposit routes only {@link QUOTE_TOKEN_COOKIE}, and each ignores the other.
+ */
+export const QUOTE_BALANCE_TOKEN_COOKIE = 'bmt_quote_balance_token';
+
+/**
  * Two hours.
  *
  * Long enough to cover the whole job — read the offer, fetch a card, pass 3-D Secure, come back to the
@@ -109,6 +121,81 @@ export function quotePagePath(ref: string): string {
   return `/quotes/${ref}`;
 }
 
+/* ── The BALANCE link — the durable, re-openable second charge ──────────────────────────────────────
+ *
+ * Same shape as the deposit link, one scope along: the operator copies /quotes/{ref}/balance?t=<token>
+ * to the guest, the balance page redirects that ?t= through the balance open route (which moves the
+ * token into the httpOnly cookie below and 302s to the clean page), and the clean page's Pay button
+ * mints a FRESH balance checkout on each click. Durable because nothing is minted until the click, so
+ * the URL keeps working for as long as the balance is owed — the whole point of the redesign.
+ * -------------------------------------------------------------------------------------------------- */
+
+/** The two paths the balance cookie is scoped to: the balance page and the route its Pay button posts
+ *  to. Neither is `Path=/` for the same reason the deposit's is not — the credential must not ride
+ *  every request on the site. */
+export function quoteBalanceCookiePaths(ref: string): [string, string] {
+  return [`/quotes/${ref}/balance`, `/api/v1/quotes/${ref}/balance`];
+}
+
+/**
+ * The raw balance-link token from a request's cookies, or null. THE credential for the balance pay
+ * route (there is no account to check — a quote guest has none). Reads {@link
+ * QUOTE_BALANCE_TOKEN_COOKIE} only, so the deposit cookie that is also in scope on the balance page is
+ * ignored. A value that is not 32 bytes of lowercase hex can never match a stored SHA-256, so it is
+ * skipped rather than trusted.
+ */
+export function readQuoteBalanceTokenCookie(req: Request): string | null {
+  const header = req.headers.get('cookie');
+  if (!header) return null;
+  for (const part of header.split(';')) {
+    const [name, ...rest] = part.trim().split('=');
+    if (name !== QUOTE_BALANCE_TOKEN_COOKIE) continue;
+    const value = rest.join('=');
+    if (quoteTokenLooksValid(value)) return value;
+  }
+  return null;
+}
+
+/**
+ * The `Set-Cookie` values that hand the balance token to the balance page and its pay route, and to
+ * nothing else. Secure unconditionally (accepted on localhost too, so there is no dev-only plaintext
+ * branch), HttpOnly so no script holds it, SameSite=Lax so the guest comes back from Peach's hosted
+ * 3-D Secure step with the cookie attached — all exactly as the deposit cookie.
+ */
+export function buildQuoteBalanceTokenCookies(ref: string, token: string): string[] {
+  return quoteBalanceCookiePaths(ref).map(
+    (path) =>
+      `${QUOTE_BALANCE_TOKEN_COOKIE}=${token}; Path=${path}; Max-Age=${QUOTE_TOKEN_MAX_AGE_SECONDS}; ` +
+      `HttpOnly; Secure; SameSite=Lax`,
+  );
+}
+
+/** The clean balance page the guest ends up on: no token in the URL, so no GTM ping or error-log row
+ *  can carry it away — the same reason the deposit page's URL is token-free. */
+export function quoteBalancePagePath(ref: string): string {
+  return `/quotes/${ref}/balance`;
+}
+
+/**
+ * The open route that strips `?t=` off the balance page's URL into the httpOnly cookie. The balance
+ * page redirects a raw `?t=` here before rendering (so no HTML, no GTM tag, no error report ever sees
+ * the token), exactly as the deposit page redirects to {@link quoteOpenPath}.
+ */
+export function quoteBalanceOpenPath(ref: string, token: string): string {
+  return `/api/v1/quotes/${encodeURIComponent(ref)}/balance/open?t=${encodeURIComponent(token)}`;
+}
+
+/**
+ * THE `returnUrl` THE BALANCE PAY ROUTE HANDS `createPaymentLink`. Absolute, and this origin — the
+ * same contract as {@link quotePayReturnUrl}: a card taking the redirect-based 3-D Secure path is sent
+ * top-level back to whatever `shopperResultUrl` Peach was given, and a quote guest has no account to
+ * sign in to, so it must be their own balance page and not the /bookings default. Absolute + same-
+ * origin are load-bearing because peach.ts derives the Origin header from this URL.
+ */
+export function quoteBalancePayReturnUrl(ref: string): string {
+  return `${SITE.url}${quoteBalancePagePath(ref)}`;
+}
+
 /**
  * Is this relative path one of THIS module's public quote pages?
  *
@@ -116,9 +203,14 @@ export function quotePagePath(ref: string): string {
  * Peach widget never came up. The default, /bookings/{ref}/pay minus the `?cid`, renders
  * PayPageFallback — whose first branch is "Please sign in to complete your payment", i.e. a sign-in
  * wall in front of the one customer who has no account by design. A quote guest's retry belongs on
- * their own quote page instead: its "Complete payment" posts to /api/v1/quotes/{ref}/pay, which the
- * link-token cookie authenticates, and that route reuses the payable booking and mints a fresh
- * checkout.
+ * their own quote page instead: its "Complete payment" posts to /api/v1/quotes/{ref}/pay (the deposit)
+ * or /api/v1/quotes/{ref}/balance/pay (the balance), which the link-token cookie authenticates, and
+ * that route mints a fresh checkout.
+ *
+ * BOTH the deposit page (/quotes/{ref}) AND the durable balance page (/quotes/{ref}/balance) qualify:
+ * each is a token-cookie-authenticated page whose Pay button re-mints, so each is a place the
+ * accountless guest can recover a failed payment. The /bookings fallback would only ask either to sign
+ * in. The optional `/balance` segment is the only shape widening admitted.
  *
  * The ref is re-validated with {@link quoteRefLooksValid} rather than trusted: the caller's value came
  * off a query parameter, and this answer sends a browser somewhere on the screen right after a card
@@ -126,7 +218,7 @@ export function quotePagePath(ref: string): string {
  * the shape.
  */
 export function isQuotePagePath(path: string): boolean {
-  const match = /^\/quotes\/([^/?#]+)$/.exec(path);
+  const match = /^\/quotes\/([^/?#]+)(?:\/balance)?$/.exec(path);
   return match !== null && quoteRefLooksValid(match[1]!);
 }
 

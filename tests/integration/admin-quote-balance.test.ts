@@ -4,41 +4,39 @@ import { makeSupabaseShim, type SupabaseShim } from '../db/supabase-pglite';
 import { pgliteServiceRoleRpc } from '../db/rpc';
 import { setRouteContext } from '../db/route-context';
 import { StubPaymentProvider } from '@/lib/payments/stub';
-import type {
-  CheckoutSession,
-  CreateCheckoutInput,
-  PaymentEvent,
-  PaymentProvider,
-} from '@/lib/payments/types';
 import { createStubAiProvider } from '@/lib/ai/stub';
+import { hashQuoteToken } from '@/lib/quotes/token';
 import { SITE } from '@/lib/seo/site';
 
 /**
  * POST /api/v1/admin/quotes/:ref/balance — the operator's "Send balance link" button (Task 5 of the
- * quote-deposit plan; src/lib/admin/quotes.ts `sendBalanceLink`).
+ * quote-deposit plan; src/lib/admin/quotes.ts `sendBalanceLink`), in its DURABLE form.
  *
  * The deposit confirms the booking and reserves the seat; the balance is chased later by hand. This
- * route mints the balance CHECKOUT for a converted, deposit-confirmed quote booking and hands the
- * operator the public payment URL to copy to the guest. It is the balance's analogue of the send
- * route, so it shares that route's STAFF GATE to the letter — profiles.role, admin OR staff, the SEO
- * hire EXCLUDED (a quote carries the guest's name, email and the operator's margin note) — and, like
- * the send route, its refusals must write nothing and mint nothing.
+ * route used to mint the balance CHECKOUT at send time (a ~30-minute Peach session that died within the
+ * hour, leaving an accountless guest with a dead link). It now mints a DURABLE balance-link TOKEN
+ * instead, stores only its SHA-256 in `quotes.balance_token_hash`, and returns
+ * /quotes/{ref}/balance?t=<rawToken> — the guest's own page mints the checkout FRESH on the click, so
+ * the URL works for as long as the balance is owed.
  *
  * What is asserted here:
  *   - THE STAFF GATE. `requireUser().role` is the JWT's Postgres role selector ('authenticated' for
  *     staff and customer alike), never the business role, so the check runs against real `profiles`
  *     rows: no bearer → 401, a signed-in customer / the SEO hire / no-profile → 403, admin AND staff
  *     admitted.
- *   - NOTHING OWED → 409. A pay-in-full quote (deposit_bps = 10000) is fully paid the moment its
- *     deposit settles, so there is no balance to collect and no balance row may be opened.
- *   - SUCCESS returns { url }, the balance checkout's public payment URL for the copy button.
+ *   - SUCCESS returns { url } = the DURABLE /quotes/{ref}/balance?t=<token> page URL, and stores
+ *     hashQuoteToken(token) in `balance_token_hash` — the token round-trips.
+ *   - IT DOES NOT ROTATE `token_hash` (the deposit/quote link's hash): the guest's original link keeps
+ *     working.
+ *   - IT MINTS NO CHECKOUT: no `balance` payments row is created at send time (that happens on the
+ *     guest's click, in a different route).
+ *   - NOTHING OWED → 409, and NO token is written. A pay-in-full quote (deposit_bps = 10000) is fully
+ *     paid the moment its deposit settles.
  *   - THE STAFF-ONLY MARGIN NOTE never leaks: quotes.internal_notes appears nowhere in the response.
  *
  * `requireUser` is faked (the JWT itself is covered elsewhere); the STAFF check is not — the trap it
  * avoids (reading the JWT's Postgres-role claim as the business role) cannot be caught by a mock that
- * hands back a business role nobody uses. `serviceRoleRpcContext` is the PGlite service-role port +
- * the stub payment provider, so createPaymentLink runs the real api_create_quote_payment body and the
- * stub returns a real hosted-checkout redirect URL.
+ * hands back a business role nobody uses.
  */
 
 const ADMIN = 'a1a1a1a1-a1a1-a1a1-a1a1-a1a1a1a1a1a1';
@@ -46,6 +44,9 @@ const STAFF = 'b2b2b2b2-b2b2-b2b2-b2b2-b2b2b2b2b2b2';
 const CUSTOMER = 'c3c3c3c3-c3c3-c3c3-c3c3-c3c3c3c3c3c3';
 const SEO = 'd4d4d4d4-d4d4-d4d4-d4d4-d4d4d4d4d4d4';
 const NO_PROFILE = 'e5e5e5e5-e5e5-e5e5-e5e5-e5e5e5e5e5e5';
+
+/** A sentinel deposit/quote-link hash seeded on every quote, so a test can prove it is left untouched. */
+const DEPOSIT_TOKEN_HASH = 'd'.repeat(64);
 
 const hoisted = vi.hoisted(() => ({
   shim: null as SupabaseShim | null,
@@ -85,30 +86,6 @@ vi.mock('@/lib/http/auth', async () => {
 
 const { POST } = await import('../../app/api/v1/admin/quotes/[ref]/balance/route');
 
-/**
- * A provider shaped like the PRODUCTION one (Peach): an EMBEDDED widget, so `createCheckout` returns a
- * `checkoutId` and NO hosted `redirectUrl` (src/lib/payments/peach.ts returns `{ id, checkoutId,
- * provider }`). The dev stub is the only provider that ever yields a `redirectUrl`, so a route that
- * keys its response on `redirectUrl` looks green under the stub yet 409s every real mint. Only
- * `createCheckout` is exercised by this route.
- */
-class PeachLikeProvider implements PaymentProvider {
-  readonly name = 'peach-like';
-  async createCheckout(input: CreateCheckoutInput): Promise<CheckoutSession> {
-    return {
-      id: `chk_${input.bookingRef}`,
-      checkoutId: `chk_${input.bookingRef}`,
-      provider: this.name,
-    };
-  }
-  async verifyWebhook(): Promise<PaymentEvent> {
-    throw new Error('not used by this route');
-  }
-  async getCheckoutStatus(): Promise<PaymentEvent> {
-    throw new Error('not used by this route');
-  }
-}
-
 describe('POST /api/v1/admin/quotes/:ref/balance', () => {
   let db: TestDb;
   let seq = 0;
@@ -123,7 +100,8 @@ describe('POST /api/v1/admin/quotes/:ref/balance', () => {
   /**
    * A sent quote with one custom line summing to `totalMinor`, converted through the real RPC and its
    * DEPOSIT settled — exactly the state "Send balance link" is pressed against: a confirmed quote
-   * booking that still owes its balance (or, for deposit_bps = 10000, owes nothing).
+   * booking that still owes its balance (or, for deposit_bps = 10000, owes nothing). A sentinel
+   * `token_hash` is seeded so a test can prove the balance flow never touches it.
    */
   async function depositConfirmed(
     totalMinor: number,
@@ -135,9 +113,16 @@ describe('POST /api/v1/admin/quotes/:ref/balance', () => {
     await db.asOwner();
     const { rows } = await db.pg.query<{ id: string }>(
       `insert into quotes (ref, customer_name, customer_email, status, valid_until, total_minor,
-                           deposit_bps, internal_notes, sent_at)
-       values ($1, 'Marie Dupont', $2, 'sent', current_date + 7, $3, $4, $5, now()) returning id`,
-      [quoteRef, `balr${seq}@example.com`, totalMinor, depositBps, internalNotes],
+                           deposit_bps, internal_notes, token_hash, sent_at)
+       values ($1, 'Marie Dupont', $2, 'sent', current_date + 7, $3, $4, $5, $6, now()) returning id`,
+      [
+        quoteRef,
+        `balr${seq}@example.com`,
+        totalMinor,
+        depositBps,
+        internalNotes,
+        DEPOSIT_TOKEN_HASH,
+      ],
     );
     const quoteId = rows[0]!.id;
     await db.pg.query(
@@ -165,7 +150,7 @@ describe('POST /api/v1/admin/quotes/:ref/balance', () => {
     return { quoteRef, bookingRef };
   }
 
-  /** Invoke the route as the cron/operator would, with the ambient session as owner for the shim reads. */
+  /** Invoke the route as the operator would, with the ambient session as owner for the shim reads. */
   async function sendBalance(
     ref: string,
     bearer: string | null = 'admin-token',
@@ -192,6 +177,18 @@ describe('POST /api/v1/admin/quotes/:ref/balance', () => {
       [bookingRef],
     );
     return rows[0]!.n;
+  }
+
+  /** The two link hashes on a quote, read as the owner. */
+  async function tokenHashes(
+    quoteRef: string,
+  ): Promise<{ tokenHash: string | null; balanceTokenHash: string | null }> {
+    await db.asOwner();
+    const { rows } = await db.pg.query<{
+      token_hash: string | null;
+      balance_token_hash: string | null;
+    }>(`select token_hash, balance_token_hash from quotes where ref = $1`, [quoteRef]);
+    return { tokenHash: rows[0]!.token_hash, balanceTokenHash: rows[0]!.balance_token_hash };
   }
 
   beforeAll(async () => {
@@ -238,17 +235,17 @@ describe('POST /api/v1/admin/quotes/:ref/balance', () => {
 
   // ── The staff gate ────────────────────────────────────────────────────────
   it('refuses a caller with no bearer token', async () => {
-    const { quoteRef, bookingRef } = await depositConfirmed(100000, 1000);
+    const { quoteRef } = await depositConfirmed(100000, 1000);
     expect((await sendBalance(quoteRef, null)).status).toBe(401);
-    expect(await balanceRowCount(bookingRef)).toBe(0);
+    expect((await tokenHashes(quoteRef)).balanceTokenHash).toBeNull();
   });
 
   it('refuses a signed-in customer — the JWT role claim is not the business role', async () => {
     // THE TRAP: `requireUser().role` is 'authenticated' for staff and customer alike, so a gate
-    // written against it would let this through and mint a stranger's balance checkout.
-    const { quoteRef, bookingRef } = await depositConfirmed(100000, 1000);
+    // written against it would let this through and mint a stranger's balance link.
+    const { quoteRef } = await depositConfirmed(100000, 1000);
     expect((await sendBalance(quoteRef, 'customer-token')).status).toBe(403);
-    expect(await balanceRowCount(bookingRef)).toBe(0);
+    expect((await tokenHashes(quoteRef)).balanceTokenHash).toBeNull();
   });
 
   it('refuses a signed-in user with no profile row at all', async () => {
@@ -272,42 +269,69 @@ describe('POST /api/v1/admin/quotes/:ref/balance', () => {
     expect((await sendBalance('QNOPE404')).status).toBe(404);
   });
 
-  // ── The mint itself ───────────────────────────────────────────────────────
-  it('returns the balance checkout’s public payment URL for the copy button', async () => {
+  // ── The durable link it mints ──────────────────────────────────────────────
+  it('returns the durable /quotes/{ref}/balance?t=<token> URL and stores its hash', async () => {
     const { quoteRef, bookingRef } = await depositConfirmed(100000, 1000); // EUR 1000, 10% deposit
 
     const res = await sendBalance(quoteRef);
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
-    // The public hosted-checkout URL the operator copies. The dev stub bounces the guest back to the
-    // quote page (the returnUrl), so the URL is anchored to this quote and carries the live session.
-    expect(typeof body.data.url).toBe('string');
-    expect(body.data.url.startsWith(`${SITE.url}/quotes/${quoteRef}`)).toBe(true);
-    expect(body.data.url).toContain('stub_session');
 
-    // …and a real 'balance' row was minted, sized to the amount still owed (total - deposit).
-    expect(await balanceRowCount(bookingRef)).toBe(1);
-    const { rows } = await db.pg.query<{ amount: string; owed: string }>(
-      `select p.amount_minor as amount, b.balance_due_minor as owed
-         from payments p join bookings b on b.id = p.booking_id
-        where b.ref = $1 and p.purpose = 'balance'`,
-      [bookingRef],
-    );
-    expect(Number(rows[0]!.amount)).toBe(90000);
-    // The balance is not settled by minting the link, so the booking still owes it.
-    expect(Number(rows[0]!.owed)).toBe(90000);
+    // The durable balance PAGE URL, carrying the raw token — NOT a /bookings pay URL with a checkout id.
+    const url: string = body.data.url;
+    expect(url.startsWith(`${SITE.url}/quotes/${quoteRef}/balance?t=`)).toBe(true);
+    const token = new URL(url).searchParams.get('t')!;
+    expect(token).toMatch(/^[0-9a-f]{64}$/);
+
+    // The token round-trips: its SHA-256 is what landed in balance_token_hash.
+    const { balanceTokenHash } = await tokenHashes(quoteRef);
+    expect(balanceTokenHash).toBe(await hashQuoteToken(token));
+
+    // NO checkout was minted at send time — that is now the guest's click, in a different route.
+    expect(await balanceRowCount(bookingRef)).toBe(0);
   });
 
-  it('refuses a fully-paid booking — nothing is owed, so no balance link is minted', async () => {
+  it('does NOT rotate token_hash — the guest’s original quote link keeps working', async () => {
+    const { quoteRef } = await depositConfirmed(100000, 1000);
+    const before = await tokenHashes(quoteRef);
+    expect(before.tokenHash).toBe(DEPOSIT_TOKEN_HASH);
+
+    const res = await sendBalance(quoteRef);
+    expect(res.status).toBe(200);
+
+    const after = await tokenHashes(quoteRef);
+    // The deposit/quote link's hash is untouched; only the balance link's hash was written.
+    expect(after.tokenHash).toBe(DEPOSIT_TOKEN_HASH);
+    expect(after.balanceTokenHash).not.toBeNull();
+    expect(after.balanceTokenHash).not.toBe(DEPOSIT_TOKEN_HASH);
+  });
+
+  it('a re-send rotates the balance token (one hash per column, like the deposit link)', async () => {
+    const { quoteRef } = await depositConfirmed(100000, 1000);
+    const first = new URL((await (await sendBalance(quoteRef)).json()).data.url).searchParams.get(
+      't',
+    );
+    const firstHash = (await tokenHashes(quoteRef)).balanceTokenHash;
+    const second = new URL((await (await sendBalance(quoteRef)).json()).data.url).searchParams.get(
+      't',
+    );
+    const secondHash = (await tokenHashes(quoteRef)).balanceTokenHash;
+
+    expect(second).not.toBe(first);
+    expect(secondHash).not.toBe(firstHash);
+    expect(secondHash).toBe(await hashQuoteToken(second!));
+  });
+
+  it('refuses a fully-paid booking — nothing is owed, so no link is minted', async () => {
     // A pay-in-full quote (deposit_bps = 10000): the deposit IS the whole total, so balance_due_minor
-    // reaches 0 the moment it settles. There is nothing to collect, so the route refuses with a 409
-    // and does NOT open a balance checkout.
-    const { quoteRef, bookingRef } = await depositConfirmed(100000, 10000);
+    // reaches 0 the moment it settles. There is nothing to collect, so the route refuses with a 409 and
+    // writes NO balance token.
+    const { quoteRef } = await depositConfirmed(100000, 10000);
     const res = await sendBalance(quoteRef);
     expect(res.status).toBe(409);
     expect((await res.json()).error.message).toMatch(/fully paid|nothing (is )?owed|no balance/i);
-    expect(await balanceRowCount(bookingRef)).toBe(0);
+    expect((await tokenHashes(quoteRef)).balanceTokenHash).toBeNull();
   });
 
   it('never surfaces the staff-only internal note in its response', async () => {
@@ -317,47 +341,5 @@ describe('POST /api/v1/admin/quotes/:ref/balance', () => {
     expect(res.status).toBe(200);
     const raw = JSON.stringify(await res.json());
     expect(raw).not.toContain(secret);
-  });
-
-  // ── The URL handed to the operator, on the PRODUCTION provider ─────────────
-  it('builds an embedded-widget pay URL from the checkoutId when the provider returns no redirectUrl (Peach)', async () => {
-    // Production runs Peach, an embedded-widget provider whose createCheckout returns a checkoutId and
-    // NO redirectUrl. Keying the response on redirectUrl 409s every real mint ("generated moments ago
-    // and is still live"), because only the dev stub ever populates redirectUrl. The operator's
-    // copyable URL must instead mount the widget at /bookings/{ref}/pay?cid=…, exactly as the DEPOSIT
-    // guest is sent there (src/lib/quotes/pay-client.ts), with return= pointing back at the quote page.
-    const { quoteRef, bookingRef } = await depositConfirmed(100000, 1000);
-
-    setRouteContext({
-      db: pgliteServiceRoleRpc(db.pg),
-      payments: new PeachLikeProvider(),
-      ai: createStubAiProvider(),
-      now: () => new Date(),
-      locale: 'en',
-    });
-    let res: Response | null = null;
-    try {
-      res = await sendBalance(quoteRef);
-    } finally {
-      // Restore the stub provider so the remaining tests are unaffected.
-      setRouteContext({
-        db: pgliteServiceRoleRpc(db.pg),
-        payments: new StubPaymentProvider(),
-        ai: createStubAiProvider(),
-        now: () => new Date(),
-        locale: 'en',
-      });
-    }
-
-    expect(res).not.toBeNull();
-    expect(res!.status).toBe(200);
-    const body = await res!.json();
-    expect(body.ok).toBe(true);
-    // The exact URL the deposit flow builds for an embedded session: absolute, the booking's pay page,
-    // the minted checkout id, and return= back to this quote page.
-    expect(body.data.url).toBe(
-      `${SITE.url}/bookings/${bookingRef}/pay?cid=chk_${bookingRef}` +
-        `&return=${encodeURIComponent(`/quotes/${quoteRef}`)}`,
-    );
   });
 });
