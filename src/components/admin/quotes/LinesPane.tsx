@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import dynamic from 'next/dynamic';
 import { BTN_GHOST, Card, INPUT_CLS } from '@/components/admin/ui';
 import { IconChevron, IconPin, IconPlus, IconX } from '@/components/ui/icons';
@@ -73,7 +73,9 @@ export function LinesPane({
   form: QuoteFormValues;
   setLines: (lines: QuoteLineDraft[]) => void;
   pickup: QuotePickup;
-  setPickup: (p: QuotePickup) => void;
+  /** The raw state setter, not a narrowed `(p) => void`: the drawer updates the label and the coords
+   *  from two separate callbacks fired in ONE event, so both have to compose functionally. */
+  setPickup: Dispatch<SetStateAction<QuotePickup>>;
   /** Figures the pasted enquiry thread stated (empty unless drafted from an email). Shown beside the
    *  total so the operator reconciles against what was promised — the €536-vs-€616 case. */
   statedAmounts: StatedAmount[];

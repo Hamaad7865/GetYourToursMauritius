@@ -12,6 +12,8 @@ import {
   getHoldStatus,
   releaseHoldRequest,
   fetchMyPendingBookings,
+  // Aliased: `removePending` below is the hook's action, this is the bare HTTP call it wraps.
+  releasePendingBooking as releasePendingBookingRequest,
   type PendingBooking,
 } from './holdClient';
 import {
@@ -401,6 +403,29 @@ export function useCart(opts?: { withPending?: boolean }) {
     write(read().filter((i) => i.id !== id));
   }, []);
 
+  /**
+   * Remove an "Awaiting payment" line: expire the unpaid booking server-side and hand its seats back.
+   *
+   * The local drop is applied to the SHARED cache and broadcast, not just to this instance's state,
+   * so the header badge loses its count in the same tick as the row leaves the page. On a refusal —
+   * the booking was paid between render and click — nothing is dropped and `refreshPending` re-reads
+   * the truth, so the row either disappears (now confirmed) or stays with the message shown.
+   */
+  const removePending = useCallback(
+    async (ref: string): Promise<{ ok: boolean; message?: string }> => {
+      const res = await releasePendingBookingRequest(ref);
+      if (!res.ok) {
+        await refreshPending();
+        return res;
+      }
+      pendingCache = pendingCache.filter((pb) => pb.ref !== ref);
+      window.dispatchEvent(new Event(PENDING_EVENT));
+      setPendingBookings(pendingCache);
+      return { ok: true };
+    },
+    [refreshPending],
+  );
+
   // Accumulate in integer cents so a basket of several lines can't drift (0.1 + 0.2 ≠ 0.3 in
   // floating point); each itemTotal is already cent-rounded, so *100 is exact.
   const subtotal =
@@ -418,6 +443,7 @@ export function useCart(opts?: { withPending?: boolean }) {
     markUnavailable,
     reconcile,
     pendingBookings,
+    removePending,
     pendingCount: pendingBookings.length,
     count: items.length + pendingBookings.length,
     subtotal,

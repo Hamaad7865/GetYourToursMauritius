@@ -131,3 +131,32 @@ export async function fetchMyPendingBookings(): Promise<PendingBooking[]> {
     return [];
   }
 }
+
+export interface ReleasePendingOutcome {
+  ok: boolean;
+  /** The server's message when it refused — already customer-facing (see mapDbError). */
+  message?: string;
+}
+
+/**
+ * Remove an "Awaiting payment" booking, freeing its seats now instead of at the hold's expiry.
+ *
+ * Unlike the fire-and-forget hold release above this one REPORTS, because the customer asked for it
+ * and is watching: a refusal (the booking was paid between render and click, so it is theirs and the
+ * seats are not ours to release) has to reach them rather than vanish into a console warning. Never
+ * throws — a network failure comes back as `ok: false` with no message and the row simply stays.
+ */
+export async function releasePendingBooking(ref: string): Promise<ReleasePendingOutcome> {
+  try {
+    const res = await fetch(`/api/v1/bookings/${encodeURIComponent(ref)}/release`, {
+      method: 'POST',
+      headers: await authHeaders(),
+    });
+    const body = await res.json().catch(() => null);
+    if (res.ok && body?.ok) return { ok: true };
+    const message = typeof body?.error?.message === 'string' ? body.error.message : undefined;
+    return { ok: false, message };
+  } catch {
+    return { ok: false };
+  }
+}

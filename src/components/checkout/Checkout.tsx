@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -15,6 +15,13 @@ import { transfers, type Transfer } from '@/lib/content/transfers';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1 } from '@/lib/checkout/pickup';
+import {
+  DEFAULT_DIAL_CODE,
+  DIAL_CODES,
+  composePhone,
+  dialCodeForCountry,
+  splitPhone,
+} from '@/lib/phone/dial-codes';
 import { clearDraft, loadDraft, saveDraft } from '@/lib/checkout/draft';
 import { resolveIdemKey } from '@/lib/checkout/idempotency';
 import { PayProgress } from '@/components/checkout/PayProgress';
@@ -52,6 +59,9 @@ const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 // the same element (the hint is an aria-live region that announces WHY the Next/Pay CTA is disabled).
 const PICKUP_HINT_ID = 'checkout-pickup-hint';
 const PHONE_HINT_ID = 'checkout-phone-hint';
+// The tel input is no longer wrapped by its <label> (the dial-code select sits beside it), so the
+// label points at it by id instead.
+const PHONE_INPUT_ID = 'checkout-phone';
 
 // A short list of common visitor nationalities for the personal-details step. Mauritius is first
 // (the home market), then the largest source markets. The chosen country IS sent on the booking
@@ -424,8 +434,26 @@ export function Checkout() {
   // Personal-details (step ②) form state. Name + phone seed from the profile once it loads (see the
   // effect below); country defaults to the home market. Email is the account email, shown read-only.
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
   const [country, setCountry] = useState<string>(COUNTRIES[0]);
+  // The phone is stored as ONE string on the booking, but edited as two controls: a dial-code select
+  // and the national digits. `national` — not the composed value — is the input's state, because
+  // recomposing on every keystroke would strip the space the customer is in the middle of typing
+  // between digit groups, making a grouped number impossible to enter.
+  const [dialCode, setDialCode] = useState<string>(DEFAULT_DIAL_CODE);
+  const [national, setNational] = useState('');
+  // What gets saved, gated on and submitted. Empty when there are no digits, so a lone '+230'
+  // cannot satisfy the "a pickup booking needs a phone" gate below.
+  const phone = useMemo(() => composePhone(dialCode, national), [dialCode, national]);
+  // Set once the customer edits either half, so the profile prefill can never overwrite their entry.
+  const phoneTouchedRef = useRef(false);
+  // Seed both halves from a stored one-string number (profile prefill, restored draft).
+  const applyStoredPhone = useCallback((stored: string) => {
+    const parsed = splitPhone(stored);
+    // A number saved without a recognisable code keeps its digits and the current code stays put —
+    // better than guessing a country onto someone's number.
+    if (parsed.dialCode) setDialCode(parsed.dialCode);
+    setNational(parsed.national);
+  }, []);
   const [busy, setBusy] = useState(false);
   // Which milestone of the pay round-trip we're on, or null when not paying. Separate from `busy`,
   // which also covers the step 1 -> 2 transition; only the pay flow gets the progress ring.
@@ -501,8 +529,10 @@ export function Checkout() {
   // from the session below and never stored in form state.
   useEffect(() => {
     if (profile?.fullName) setName((cur) => cur || profile.fullName!);
-    if (profile?.phone) setPhone((cur) => cur || profile.phone!);
-  }, [profile]);
+    // The ref, not `national`, is the "already filled" test: the saved number splits into two
+    // controls, and a customer who deliberately cleared the field must not have it refilled.
+    if (profile?.phone && !phoneTouchedRef.current) applyStoredPhone(profile.phone);
+  }, [profile, applyStoredPhone]);
 
   // Prefill the pickup from the widget's stash (keyed by occurrence). The coordinates drive the
   // region-based transport fare the server computes; read post-mount to avoid an SSR mismatch.
@@ -571,12 +601,17 @@ export function Checkout() {
     if (d.childSeatWanted != null) setChildSeatWanted(d.childSeatWanted);
     if (d.childSeatAge != null) setChildSeatAge(d.childSeatAge);
     if (d.name != null) setName(d.name);
-    if (d.phone != null) setPhone(d.phone);
+    if (d.phone != null) {
+      // A restored draft is the customer's own entry — mark it touched so the profile prefill,
+      // whose effect runs again when the profile finally loads, cannot overwrite it.
+      phoneTouchedRef.current = true;
+      applyStoredPhone(d.phone);
+    }
     if (d.country != null) setCountry(d.country);
     if (d.gender != null) setGender(d.gender);
     if (d.company != null) setCompany(d.company);
     if (d.specialNotes != null) setSpecialNotes(d.specialNotes);
-  }, [occ]);
+  }, [occ, applyStoredPhone]);
 
   // Mirror the answers so the restore above has something to find. Gated on `hydrated` so the first
   // pass — which still holds the pre-restore values — cannot overwrite the draft it is about to read.
@@ -1856,7 +1891,16 @@ export function Checkout() {
                   {t('Country')}
                   <select
                     value={country}
-                    onChange={(e) => setCountry(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setCountry(next);
+                      // Follow the country into the dial code below — someone who says they are from
+                      // France means +33. Digits already typed are kept, and the picker stays free
+                      // for the traveller whose phone is not from where they live. "Other" maps to
+                      // nothing and leaves the code alone.
+                      const code = dialCodeForCountry(next);
+                      if (code) setDialCode(code);
+                    }}
                     autoComplete="country-name"
                     className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
                   >
@@ -1867,21 +1911,49 @@ export function Checkout() {
                     ))}
                   </select>
                 </label>
-                <label className="block text-[13px] font-semibold text-ink">
-                  {t('Mobile phone number')}
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    type="tel"
-                    autoComplete="tel"
-                    placeholder="+230 5xxx xxxx"
-                    // When a phone is required but missing, point at the gate hint so a screen-reader
-                    // user hears WHY "Go to payment" is disabled.
-                    aria-describedby={!canAdvanceDetails ? PHONE_HINT_ID : undefined}
-                    aria-invalid={!canAdvanceDetails}
-                    className="mt-1 w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
-                  />
-                </label>
+                <div className="block text-[13px] font-semibold text-ink">
+                  <label htmlFor={PHONE_INPUT_ID}>{t('Mobile phone number')}</label>
+                  {/* Two controls, one stored number. The code is picked rather than typed so a
+                      visitor's home-format number ("07700 900123") never reaches the driver
+                      undiallable — see src/lib/phone/dial-codes.ts. */}
+                  <div className="mt-1 flex gap-2">
+                    <select
+                      value={dialCode}
+                      onChange={(e) => {
+                        phoneTouchedRef.current = true;
+                        setDialCode(e.target.value);
+                      }}
+                      // Named for screen readers: visually the label above covers the pair, but the
+                      // select on its own would just announce "+230".
+                      aria-label={t('Country calling code')}
+                      className="w-[7.5rem] shrink-0 rounded-xl border border-ink/15 bg-white px-2.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                    >
+                      {DIAL_CODES.map((d) => (
+                        // Code before name: the control is narrow, and the code is the part that has
+                        // to stay readable when the label is clipped.
+                        <option key={d.code} value={d.code}>
+                          {d.flag} {d.code} {d.name}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      id={PHONE_INPUT_ID}
+                      value={national}
+                      onChange={(e) => {
+                        phoneTouchedRef.current = true;
+                        setNational(e.target.value);
+                      }}
+                      type="tel"
+                      autoComplete="tel-national"
+                      placeholder="5xxx xxxx"
+                      // When a phone is required but missing, point at the gate hint so a screen-reader
+                      // user hears WHY "Go to payment" is disabled.
+                      aria-describedby={!canAdvanceDetails ? PHONE_HINT_ID : undefined}
+                      aria-invalid={!canAdvanceDetails}
+                      className="min-w-0 flex-1 rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm font-normal outline-none focus:border-teal"
+                    />
+                  </div>
+                </div>
                 {isAirport && (
                   <>
                     <label className="block text-[13px] font-semibold text-ink">

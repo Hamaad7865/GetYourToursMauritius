@@ -147,6 +147,30 @@ export async function cancelBooking(ctx: ServiceContext, ref: string): Promise<C
   return cancelResultSchema.parse(data);
 }
 
+const releaseResultSchema = z.object({
+  ref: z.string(),
+  status: z.string(),
+  alreadyReleased: z.boolean().optional(),
+});
+export type ReleaseResult = z.infer<typeof releaseResultSchema>;
+
+/**
+ * Remove an "Awaiting payment" line from the cart: expire the unpaid booking and hand its seats back
+ * now instead of at the end of the 30-minute hold.
+ *
+ * Deliberately NOT `cancelBooking` — that path is for a confirmed, paid booking and owes the guest a
+ * refund and the owner an alert. `api_release_pending_booking` re-checks ownership server-side and
+ * refuses any booking with money against it (`payment_settled` → 409), because a Peach webhook can
+ * settle between the cart rendering the line and the customer clicking Remove. Idempotent.
+ */
+export async function releasePendingBooking(
+  ctx: ServiceContext,
+  ref: string,
+): Promise<ReleaseResult> {
+  const data = await callRpc(ctx, 'api_release_pending_booking', { ref });
+  return releaseResultSchema.parse(data);
+}
+
 const rescheduleResultSchema = z.object({
   ref: z.string(),
   occurrenceId: z.string(),

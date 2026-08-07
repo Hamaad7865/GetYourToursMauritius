@@ -493,6 +493,30 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
+  '/bookings/{ref}/release': {
+    post: {
+      operationId: 'releasePendingBooking',
+      summary:
+        'Customer removes their own unpaid "Awaiting payment" booking from the cart, freeing the seats',
+      tags: ['Bookings'],
+      security: [{ bearerAuth: [] }],
+      requestParams: { path: refParam },
+      responses: {
+        '200': okJson(
+          z.object({
+            ref: z.string(),
+            status: z.string(),
+            alreadyReleased: z.boolean().optional(),
+          }),
+          'Release result',
+        ),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Not your booking'),
+        '404': errorResponse('Booking not found'),
+        '409': errorResponse('Already paid, or no longer removable'),
+      },
+    },
+  },
   '/bookings/{ref}/reschedule': {
     post: {
       operationId: 'rescheduleBooking',

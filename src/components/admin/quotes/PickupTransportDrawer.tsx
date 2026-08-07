@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { BTN_GHOST, BTN_PRIMARY, Field, INPUT_CLS, SELECT_CLS } from '@/components/admin/ui';
 import { IconPlus, IconX } from '@/components/ui/icons';
@@ -33,7 +33,7 @@ function isTransportEligible(a: QuotableActivity): boolean {
 }
 
 /**
- * A left-hand panel to set the guest's pickup on a Google map and attach round-trip TRANSFER lines,
+ * A right-hand panel to set the guest's pickup on a Google map and attach round-trip TRANSFER lines,
  * each auto-priced from that pickup by the same region-distance engine the public booking widget uses
  * (`transportFareMinor`). The suggested fare is EDITABLE afterwards on the line, so a negotiated price
  * (or an activity with no map location) is a keystroke away, never a wall.
@@ -52,7 +52,8 @@ export function PickupTransportDrawer({
   lines: QuoteLineDraft[];
   setLines: (lines: QuoteLineDraft[]) => void;
   pickup: QuotePickup;
-  setPickup: (p: QuotePickup) => void;
+  /** The raw state setter — see the PickupMap call below for why it must be functional. */
+  setPickup: Dispatch<SetStateAction<QuotePickup>>;
   onClose: () => void;
 }) {
   const dialogRef = useDialog(true, onClose);
@@ -122,7 +123,9 @@ export function PickupTransportDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-start">
+    // Right-hand side, like every other drawer in the admin — it slides in from the edge the
+    // "Pickup & transport" button lives on, so the panel does not cross the page to open.
+    <div className="fixed inset-0 z-50 flex justify-end">
       <button
         type="button"
         aria-label="Close the pickup panel"
@@ -134,7 +137,7 @@ export function PickupTransportDrawer({
         role="dialog"
         aria-modal="true"
         aria-label="Set pickup and add transfers"
-        className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-y-auto bg-white shadow-2xl sm:rounded-r-2xl"
+        className="relative flex h-[100dvh] w-full max-w-md flex-col overflow-y-auto bg-white shadow-2xl sm:rounded-l-2xl"
       >
         <header className="sticky top-0 z-10 flex items-center justify-between border-b border-[#EAEEF0] bg-white px-5 py-3.5">
           <span className="font-display text-lg font-semibold text-ink">
@@ -167,10 +170,15 @@ export function PickupTransportDrawer({
               Search the guest’s hotel or drag the pin. Transfer prices are worked out from how far
               it is from where each excursion boards.
             </p>
+            {/* BOTH updates are functional. A single keystroke fires onChange(label) AND
+                onCoords(null) — PickupMap drops any resolved point the moment the text is edited
+                freely — and React batches them. Written as object replacements, the second call
+                rebuilt the object from the label captured BEFORE the keystroke, so every character
+                typed was reverted in the same tick and the field looked frozen. */}
             <PickupMap
               value={pickup.label}
-              onChange={(label) => setPickup({ ...pickup, label })}
-              onCoords={(coords) => setPickup({ label: pickup.label, coords })}
+              onChange={(label) => setPickup((cur) => ({ ...cur, label }))}
+              onCoords={(coords) => setPickup((cur) => ({ ...cur, coords }))}
               placeholder="Guest’s hotel or address"
             />
             {pickupRegion ? (

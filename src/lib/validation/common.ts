@@ -48,7 +48,9 @@ export type PaymentState = z.infer<typeof paymentStateSchema>;
  * MUST list every label of the `booking_source` Postgres enum — `'quote'` was appended by migration
  * 20260909000000_quotes.sql, and its absence here made GET /api/v1/bookings/{ref} answer 500 for
  * every quote booking (the guest saw "Something went wrong" on a booking they had just paid for).
- * tests/unit/enum-zod-parity.test.ts derives the labels from the migrations and fails on any drift.
+ * tests/unit/enum-zod-parity.test.ts derives the labels from the migrations and fails on any drift;
+ * tests/integration/schema.test.ts checks the same rule against the APPLIED schema's pg_enum, for
+ * this enum and for `booking_status` / `payment_state` alongside it.
  */
 export const bookingSourceSchema = z.enum(['web', 'ai_chat', 'whatsapp', 'quote']);
 export type BookingSource = z.infer<typeof bookingSourceSchema>;

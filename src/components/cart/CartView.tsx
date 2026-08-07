@@ -138,9 +138,20 @@ function Stepper({
 /** A booked-but-unpaid reservation (server) shown in the cart's "Awaiting payment" section. Its own
  *  mm:ss countdown ticks off the real hold expiry; at zero it shows "expired — rebook" and the row drops
  *  on the next pending-bookings fetch (or the 5-min maintenance sweep flips it to expired server-side). */
-function PendingRow({ pb }: { pb: PendingBooking }) {
+function PendingRow({
+  pb,
+  onRemove,
+}: {
+  pb: PendingBooking;
+  onRemove: (ref: string) => Promise<{ ok: boolean; message?: string }>;
+}) {
   const t = useT();
   const [now, setNow] = useState(() => Date.now());
+  // Removing releases real seats, so it asks first — inline rather than window.confirm, which is
+  // unstyled, blocks the tab, and reads as a browser error on mobile.
+  const [confirming, setConfirming] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(id);
@@ -157,6 +168,20 @@ function PendingRow({ pb }: { pb: PendingBooking }) {
         year: 'numeric',
       })
     : '';
+  async function confirmRemove() {
+    if (removing) return;
+    setRemoving(true);
+    setRemoveError(null);
+    const res = await onRemove(pb.ref);
+    // On success the row is gone from the list on the next render — no need to unset `removing`,
+    // and leaving it set keeps the buttons inert through the unmount.
+    if (!res.ok) {
+      setRemoving(false);
+      setConfirming(false);
+      setRemoveError(res.message ?? t("Couldn't remove this — please try again."));
+    }
+  }
+
   return (
     <li className="flex flex-col gap-3 rounded-2xl border border-coral/30 bg-coral/[0.03] p-3.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
@@ -174,6 +199,11 @@ function PendingRow({ pb }: { pb: PendingBooking }) {
           )}
           <span className="font-mono">{pb.ref}</span>
         </div>
+        {removeError && (
+          <p role="alert" className="mt-1.5 text-[12px] font-semibold text-coral">
+            {removeError}
+          </p>
+        )}
       </div>
       <div className="flex items-center gap-3">
         <div className="text-right">
@@ -189,6 +219,44 @@ function PendingRow({ pb }: { pb: PendingBooking }) {
               <IconClock width={12} height={12} /> {t('Pay within {time}', { time: `${mm}:${ss}` })}
             </span>
           )}
+          {/* Always offered, expired or not: an expired row is exactly the one nobody wants to look
+              at any more, and until now neither could be cleared by hand at all. */}
+          {confirming ? (
+            <span className="mt-0.5 flex items-center justify-end gap-2 text-[12px] font-semibold">
+              <button
+                type="button"
+                onClick={confirmRemove}
+                disabled={removing}
+                className="text-coral hover:underline disabled:opacity-50"
+              >
+                {removing ? t('Removing…') : t('Yes, remove')}
+              </button>
+              <span className="text-ink-muted/50" aria-hidden>
+                |
+              </span>
+              <button
+                type="button"
+                onClick={() => setConfirming(false)}
+                disabled={removing}
+                className="text-ink-muted hover:text-ink disabled:opacity-50"
+              >
+                {t('Keep')}
+              </button>
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setRemoveError(null);
+                setConfirming(true);
+              }}
+              // The seats, not just the row: the label has to say what the click gives back.
+              aria-label={t('Remove {title} and release its seats', { title: pb.title })}
+              className="mt-0.5 inline-flex items-center gap-1 text-[12px] font-semibold text-ink-muted hover:text-coral"
+            >
+              <IconX width={12} height={12} /> {t('Remove')}
+            </button>
+          )}
         </div>
         {!expired && <ResumePaymentButton bookingRef={pb.ref} />}
       </div>
@@ -198,8 +266,16 @@ function PendingRow({ pb }: { pb: PendingBooking }) {
 
 export function CartView() {
   const t = useT();
-  const { items, pendingBookings, removeHeld, setGuests, subtotal, markHeld, markUnavailable } =
-    useCart({ withPending: true });
+  const {
+    items,
+    pendingBookings,
+    removePending,
+    removeHeld,
+    setGuests,
+    subtotal,
+    markHeld,
+    markUnavailable,
+  } = useCart({ withPending: true });
   const [mounted, setMounted] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -311,7 +387,7 @@ export function CartView() {
           </p>
           <ul className="mt-4 flex flex-col gap-4">
             {pendingBookings.map((pb) => (
-              <PendingRow key={pb.ref} pb={pb} />
+              <PendingRow key={pb.ref} pb={pb} onRemove={removePending} />
             ))}
           </ul>
         </section>
