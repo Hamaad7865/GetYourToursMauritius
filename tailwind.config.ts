@@ -31,7 +31,11 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ['var(--font-display)', 'Georgia', 'serif'],
+        // The brand serif (Fraunces) was retired on request — the app now uses ONE consistent sans
+        // everywhere. `display` is deliberately kept as an alias of the body font so the ~90 existing
+        // `font-display` usages (headings, prices, hero) need no per-file edit and simply render in
+        // Plus Jakarta Sans. Reintroducing a display face is a one-line change here.
+        display: ['var(--font-body)', 'system-ui', '-apple-system', 'sans-serif'],
         sans: ['var(--font-body)', 'system-ui', '-apple-system', 'sans-serif'],
       },
       borderRadius: {

@@ -8,8 +8,9 @@ import { getT } from '@/lib/i18n/server';
  * An animated backdrop (pure CSS + inline SVG, no JS): a vertical teal depth gradient with
  * heavily-blurred, screen-blended radial "light" blobs that drift via transform — sunlight
  * wandering under turquoise water — plus one calm waterline wave. Under prefers-reduced-motion it
- * freezes to a composed still. The headline is an oversized Fraunces stack with "your way." in
- * italic; the open right side carries a sliding wall of real Belle Mare trip photos (HeroGallery).
+ * freezes to a composed still. The headline is an oversized display stack (the brand sans, since the
+ * Fraunces serif was retired) with "your way." in italic; the open right side carries a sliding wall
+ * of real Belle Mare trip photos (HeroGallery).
  * The section is NOT clipped so the navbar search dropdowns spill over the white body below.
  */
 export async function GygHero({ children }: { children?: ReactNode }) {

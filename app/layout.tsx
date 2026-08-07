@@ -1,21 +1,14 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google';
+import { Plus_Jakarta_Sans } from 'next/font/google';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { GoogleTagManager, GoogleTagManagerNoScript } from '@/components/site/GoogleTagManager';
 import { organizationJsonLd, websiteJsonLd } from '@/lib/seo/jsonld';
 import './globals.css';
 
-const display = Fraunces({
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-  // Ship the real italic face — the hero's signature word relies on Fraunces' true italic,
-  // not a synthesized oblique.
-  style: ['normal', 'italic'],
-  variable: '--font-display',
-  display: 'swap',
-});
-
+// The brand serif (Fraunces) was retired on request: the app uses ONE sans everywhere now. Tailwind's
+// `font-display` token is aliased to this same body font (see tailwind.config.ts), so every heading
+// renders Plus Jakarta Sans and no `font-display`/`italic` usage needs touching.
 const body = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
@@ -56,7 +49,7 @@ export const metadata: Metadata = {
 // real page. `lang` starts at 'en' and the preferences provider updates document.lang client-side.
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} ${body.variable}`}>
+    <html lang="en" className={body.variable}>
       <body>
         <GoogleTagManagerNoScript />
         <JsonLd data={organizationJsonLd()} />

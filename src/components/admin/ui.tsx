@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 /* Shared back-office form/card primitives, matching the handoff mockup's field styling
- * (#EAEEF0 cards, #E2E7EA inputs on #F7F8FA with a teal focus, Fraunces page headings).
+ * (#EAEEF0 cards, #E2E7EA inputs on #F7F8FA with a teal focus, sans page headings).
  * Used across the admin screens so they stay visually consistent. */
 
 export const INPUT_CLS =
