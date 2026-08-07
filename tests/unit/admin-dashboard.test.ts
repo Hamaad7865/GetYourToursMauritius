@@ -30,6 +30,8 @@ function booking(over: Partial<BookingRow>): BookingRow {
     childSeats: 0,
     transportEur: 0,
     supplements: [],
+    customItems: [],
+    balanceDueEur: 0,
     transfer: null,
     ...over,
   };

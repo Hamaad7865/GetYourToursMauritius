@@ -47,6 +47,21 @@ export interface BookingRow {
   notes: string | null;
   createdAt: string;
   items: BookingItemRow[];
+  /**
+   * A QUOTE booking's non-occurrence lines — custom, rental and transport — from
+   * `booking_custom_items`. They carry the whole itemisation of a quote-sourced booking, so a drawer
+   * that reads only {@link items} has nothing to show for it (see {@link bookingExtraCharges}).
+   */
+  customItems: BookingCustomItemRow[];
+  /**
+   * What is still OWED on this booking, in EUR — `bookings.balance_due_minor`, the source of truth
+   * the balance link charges from. Non-zero only on a deposit-confirmed quote booking.
+   *
+   * The drawer needs it because `payment_state` alone says 'paid' the moment the DEPOSIT settles: a
+   * €1.00 booking with €0.10 taken reads "Paid" beside a €1.00 total, and nothing on the screen says
+   * the other €0.90 is still to collect.
+   */
+  balanceDueEur: number;
   /** Derived headline fields for the list row. */
   activityTitle: string;
   startsAt: string | null;
@@ -204,6 +219,7 @@ interface RawBooking extends RawTransferFields {
   pickup_pending: boolean | null;
   child_seats: number | null;
   transport_minor: number | null;
+  balance_due_minor: number | null;
   created_at: string;
   booking_items: RawItem[] | null;
   booking_supplements: Array<{
@@ -212,19 +228,26 @@ interface RawBooking extends RawTransferFields {
     total_minor: number;
     position: number;
   }> | null;
+  booking_custom_items: Array<{
+    description: string;
+    quantity: number;
+    subtotal_minor: number;
+    position: number;
+  }> | null;
   payments: RawPaymentLite[] | null;
 }
 
 const BOOKING_SELECT = `
   id, ref, status, payment_state, customer_name, customer_email, customer_phone,
   source, currency, total_minor, notes, custom_itinerary, pickup_location, dropoff_location, pickup_pending, child_seats,
-  transport_minor, ${TRANSFER_SELECT}, created_at,
+  transport_minor, balance_due_minor, ${TRANSFER_SELECT}, created_at,
   booking_items (
     price_label, quantity, pax, unit_amount_minor, subtotal_minor,
     session_occurrences ( starts_at ),
     activity_options ( name, activities ( title ) )
   ),
-  booking_supplements ( name, qty, total_minor, position )
+  booking_supplements ( name, qty, total_minor, position ),
+  booking_custom_items ( description, quantity, subtotal_minor, position )
 `;
 
 function mapItem(raw: RawItem): BookingItemRow {
@@ -276,6 +299,7 @@ function mapBooking(raw: RawBooking): BookingRow {
     pickupPending: raw.pickup_pending ?? false,
     childSeats: raw.child_seats ?? 0,
     transportEur: (raw.transport_minor ?? 0) / 100,
+    balanceDueEur: (raw.balance_due_minor ?? 0) / 100,
     // Sorted by the snapshot's menu position — embedded PostgREST rows arrive unordered, and the
     // drawer must agree with the invoice about the listing order.
     supplements: (raw.booking_supplements ?? [])
@@ -286,8 +310,26 @@ function mapBooking(raw: RawBooking): BookingRow {
         qty: s.qty,
         totalEur: s.total_minor / 100,
       })),
+    // Ordered by `position`, like the supplements above and for the same reason: an embedded
+    // PostgREST relation arrives unordered, and `position` is the order the guest read the quote in.
+    customItems: (raw.booking_custom_items ?? [])
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((line) => ({
+        description: line.description,
+        quantity: line.quantity,
+        subtotalEur: line.subtotal_minor / 100,
+      })),
     transfer: mapTransfer(raw),
   };
+}
+
+/** One `booking_custom_items` row: a priced booking line with no session occurrence behind it. */
+export interface BookingCustomItemRow {
+  /** What was sold, in the words the guest read on the quote. NOT NULL in the schema. */
+  description: string;
+  quantity: number;
+  subtotalEur: number;
 }
 
 /** A charge that is inside `totalEur` but has no `booking_items` row of its own. */
@@ -314,6 +356,18 @@ function round2(n: number): number {
  */
 export function bookingExtraCharges(booking: BookingRow): BookingChargeLine[] {
   const lines: BookingChargeLine[] = [];
+
+  // A quote booking's OWN lines. They are not an "extra charge" in the way transport is — they are
+  // the itemisation itself — but this is the one list the drawer renders beside `items`, and a quote
+  // booking has no `items` at all. Listed first, in `position` order, so the drawer reads in the
+  // order the guest read the offer.
+  for (const line of booking.customItems) {
+    const label = line.description.trim() || 'Quote line';
+    lines.push({
+      label: line.quantity > 1 ? `${label} (${line.quantity})` : label,
+      amountEur: round2(line.subtotalEur),
+    });
+  }
 
   if (booking.transportEur > 0) {
     lines.push({ label: 'Door-to-door transport', amountEur: round2(booking.transportEur) });

@@ -747,6 +747,17 @@ function BookingDrawer({
                 <span className="text-sm font-bold text-ink">Total</span>
                 <span className="text-lg font-extrabold text-ink">{eur(booking.totalEur)}</span>
               </div>
+              {/* A DEPOSIT-CONFIRMED QUOTE BOOKING IS NOT SETTLED. `payment_state` flips to 'paid' the
+                  moment the deposit clears, so without this a €1.00 booking with €0.10 taken reads
+                  "Paid" beside its €1.00 total and nothing says the rest is still to collect. */}
+              {booking.balanceDueEur > 0 && (
+                <div className="mt-2 flex items-center justify-between rounded-lg bg-gold-light/15 px-3 py-2">
+                  <span className="text-[13px] font-bold text-ink">Balance still to collect</span>
+                  <span className="text-[15px] font-extrabold text-ink">
+                    {eur(booking.balanceDueEur)}
+                  </span>
+                </div>
+              )}
             </section>
 
             <section className="rounded-xl border border-ink/10 p-4">
