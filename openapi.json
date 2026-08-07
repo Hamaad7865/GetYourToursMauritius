@@ -5177,7 +5177,8 @@
                     "enum": [
                       "web",
                       "ai_chat",
-                      "whatsapp"
+                      "whatsapp",
+                      "quote"
                     ]
                   },
                   "idempotencyKey": {
@@ -5259,7 +5260,8 @@
                           "enum": [
                             "web",
                             "ai_chat",
-                            "whatsapp"
+                            "whatsapp",
+                            "quote"
                           ]
                         },
                         "createdAt": {
@@ -5982,7 +5984,8 @@
                           "enum": [
                             "web",
                             "ai_chat",
-                            "whatsapp"
+                            "whatsapp",
+                            "quote"
                           ]
                         },
                         "createdAt": {

@@ -1111,7 +1111,7 @@ export interface Database {
         | 'refund_pending'
         | 'refunded'
         | 'failed';
-      booking_source: 'web' | 'ai_chat' | 'whatsapp';
+      booking_source: 'web' | 'ai_chat' | 'whatsapp' | 'quote';
       payment_state: 'pending' | 'paid' | 'partially_refunded' | 'refunded' | 'failed';
       lead_status: 'new' | 'contacted' | 'converted';
       notification_channel: 'email' | 'whatsapp';
