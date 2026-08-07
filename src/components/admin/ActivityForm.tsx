@@ -59,6 +59,9 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   );
   const [loading, setLoading] = useState(mode === 'edit');
   const [saving, setSaving] = useState(false);
+  // Shows the "Saved ✓" confirmation after a successful save. Cleared the moment any field is
+  // edited again (see `set`/`onTitle`/`onSlug`/`editFr`), so it only ever marks the current state.
+  const [justSaved, setJustSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [slugLocked, setSlugLocked] = useState(mode === 'edit');
   const [active, setActive] = useState<SectionId>(defaultSection(false));
@@ -96,8 +99,19 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   // never in a `useState` initialiser — `window` doesn't exist during SSR, so seeding state from it
   // would make the client's first render disagree with the server's.
   useEffect(() => {
-    const requested = new URLSearchParams(window.location.search).get('s');
+    const params = new URLSearchParams(window.location.search);
+    const requested = params.get('s');
     if (isSectionId(requested, contentOnly)) setActive(requested);
+    // A brand-new tour redirects to its own edit URL with ?saved=1 after Create, so the owner lands
+    // INSIDE the tour they just made with the confirmation showing. Strip the flag so a reload
+    // doesn't re-show it.
+    if (params.get('saved') === '1') {
+      setJustSaved(true);
+      setSubmitted(true);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('saved');
+      window.history.replaceState(null, '', url);
+    }
   }, [contentOnly]);
 
   useEffect(() => {
@@ -113,6 +127,19 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
       .finally(() => setLoading(false));
   }, [mode, id]);
 
+  // Re-read the activity from the DB into the form after a save. This is what lets an edit-mode save
+  // STAY in the tour: newly-added options/supplements come back carrying their fresh database ids, so
+  // the next save reconciles them in place instead of inserting duplicates.
+  async function reloadInto(activityId: string) {
+    const [v, t] = await Promise.all([
+      loadActivityForEdit(activityId),
+      loadActivityTranslation(activityId),
+    ]);
+    if (v) setValues(v);
+    setFr(t ? t.form : EMPTY_ACTIVITY_TRANSLATION);
+    setFrSource(t?.source);
+  }
+
   if (loading) return <p className="text-sm text-ink-muted">Loading…</p>;
   if (!values) return <p className="text-sm text-coral">{error ?? 'Not found.'}</p>;
   const v = values;
@@ -124,7 +151,15 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   const issues = submitted ? sectionIssues(v, contentOnly) : {};
 
   function set<K extends keyof ActivityFormValues>(key: K, val: ActivityFormValues[K]) {
+    setJustSaved(false);
     setValues((prev) => (prev ? { ...prev, [key]: val } : prev));
+  }
+
+  // The French pane edits `fr` directly (not through `set`); wrap it so those edits also drop the
+  // stale "Saved ✓" badge.
+  function editFr(next: React.SetStateAction<ActivityTranslationForm>) {
+    setJustSaved(false);
+    setFr(next);
   }
 
   function selectSection(next: SectionId) {
@@ -140,6 +175,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setJustSaved(false);
     setSubmitted(true);
     // One pane is on screen, so an error about a private option is useless while you're looking at
     // Basics. Check before writing and go to the pane that owns the problem.
@@ -152,16 +188,31 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
     }
     setSaving(true);
     try {
-      let activityId = id;
-      if (mode === 'new') activityId = await createActivity(v, { contentOnly });
-      else if (id) await updateActivity(id, v, { contentOnly });
-      // Saving the activity always saves its French alongside it — the owner typing (or simply
-      // reviewing and clicking Save) IS the review, so this also clears the machine-draft badge.
-      if (activityId) await saveActivityTranslation(activityId, fr);
-      router.push('/admin/activities');
-      router.refresh();
+      if (mode === 'new') {
+        const newId = await createActivity(v, { contentOnly });
+        // Saving the activity always saves its French alongside it — the owner typing (or simply
+        // reviewing and clicking Save) IS the review, so this also clears the machine-draft badge.
+        await saveActivityTranslation(newId, fr);
+        // Stay IN the tour instead of bouncing to the list: switch this editor over to the tour that
+        // was just created so a second save edits it in place (no duplicate). ?saved=1 re-shows the
+        // confirmation after the edit page remounts with fresh, id-carrying data.
+        router.replace(`/admin/activities/${newId}/edit?s=${current}&saved=1`);
+        router.refresh();
+        return;
+      }
+      if (id) {
+        await updateActivity(id, v, { contentOnly });
+        await saveActivityTranslation(id, fr);
+        // Reload so newly-added options/supplements pick up their database ids, then stay on the
+        // current pane with a "Saved ✓" confirmation rather than leaving the tour.
+        await reloadInto(id);
+        setJustSaved(true);
+        // Revalidate the public site's server components so the change shows there too.
+        router.refresh();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not save the activity.');
+    } finally {
       setSaving(false);
     }
   }
@@ -206,7 +257,7 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
         {current === 'french' && (
           <FrenchSection
             fr={fr}
-            setFr={setFr}
+            setFr={editFr}
             frSource={frSource}
             // The supplements' FR labels live on the activity_supplements rows themselves, saved by
             // the main save path — not the translation upsert. The restricted 'seo' role can't write
@@ -238,9 +289,27 @@ export function ActivityForm({ mode, id }: { mode: 'new' | 'edit'; id?: string }
             onClick={() => router.push('/admin/activities')}
             className="inline-flex items-center justify-center rounded-xl border border-[#E2E7EA] bg-white px-5 py-2.5 text-[13.5px] font-semibold text-ink hover:border-teal hover:text-teal"
           >
-            Cancel
+            {mode === 'new' ? 'Cancel' : 'Back to tours'}
           </button>
-          <span className="ml-auto text-[12px] text-ink-muted">Saves every section</span>
+          {justSaved ? (
+            <span
+              role="status"
+              className="ml-auto inline-flex items-center gap-1.5 text-[12.5px] font-bold text-teal"
+            >
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path
+                  d="M5 10.5l3.2 3.2L15 7"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Saved — you’re still in this tour
+            </span>
+          ) : (
+            <span className="ml-auto text-[12px] text-ink-muted">Saving keeps you in the tour</span>
+          )}
         </div>
       </div>
     </form>
