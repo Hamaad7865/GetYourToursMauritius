@@ -493,14 +493,26 @@ describe('the screen is reachable', () => {
     expect(navForRole('seo').map((item) => item.href)).not.toContain('/admin/quotes');
   });
 
+  /**
+   * Its own timeout, because the global 20s is a bound on the WRONG thing here. This test does two
+   * dynamic imports of the heaviest modules in the app, and under a full 275-file parallel run on a
+   * cold cache that transform work can outlast 20s — so a correct page failed roughly half the time
+   * (3 of 6 full runs on 2026-08-09, with and without unrelated changes). What is asserted is "the
+   * page renders AdminQuotes", never "it imports in under twenty seconds", and a flaky red is worse
+   * than a slow green: it teaches everyone to re-run instead of read.
+   *
+   * Raising the ceiling weakens nothing — a page that renders the wrong thing, or fails to import at
+   * all, still fails exactly as before. Same reasoning as the tool-parameter lint rule this branch
+   * adds: a bound that turns a slow-but-correct case into a failure is in the wrong place.
+   */
   it('renders the quotes screen at /admin/quotes', async () => {
-    // Not a string match on the file: the page module is imported and its element tree searched for
-    // the component itself, so a page that renders something else — or fails to import at all —
-    // fails here.
+    // Not a string match on the file: the page module is imported and its element tree searched
+    // for the component itself, so a page that renders something else — or fails to import at all
+    // — fails here.
     const { default: QuotesPage } = await import('../../app/(site)/admin/quotes/page');
     const { AdminQuotes } = await import('@/components/admin/AdminQuotes');
     expect(findAll(QuotesPage(), AdminQuotes)).toHaveLength(1);
-  });
+  }, 60_000);
 });
 
 type ElementLike = { type: unknown; props: Record<string, unknown> };
