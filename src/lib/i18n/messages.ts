@@ -2189,6 +2189,7 @@ export const fr: Record<string, string> = {
     'Une sélection de nos expériences les plus réservées — touchez-en une pour voir les dates, prix et la confirmation instantanée.',
   'Belle Mare & the east coast': 'Belle Mare et la côte est',
   'Things to do in Belle Mare': 'Activités à faire à Belle Mare',
+  'Belle Mare area guide': 'Guide de la région de Belle Mare',
   'Our tours': 'Nos excursions',
   'Travel guide': 'Guide de voyage',
   'Belle Mare Tours FAQ': 'FAQ Belle Mare Tours',
@@ -2356,7 +2357,6 @@ export const fr: Record<string, string> = {
   'Day trips from Belle Mare': 'Excursions à la journée depuis Belle Mare',
   'Where to eat near Belle Mare': 'Où manger près de Belle Mare',
   'Getting around from Belle Mare': 'Se déplacer depuis Belle Mare',
-  'Belle Mare area guide': 'Guide de la région de Belle Mare',
   'Belle Mare activities — FAQ': 'Activités à Belle Mare — FAQ',
   'Book it all in one place': 'Tout réserver au même endroit',
 
@@ -2393,6 +2393,12 @@ export const fr: Record<string, string> = {
   'Browse all Mauritius attractions →': 'Parcourir toutes les attractions de Maurice →',
   'Beaches near {name}': 'Plages près de {name}',
   'Where to stay in {name}': 'Où loger à {name}',
+  // The described-hotel cards on a destination guide (Belle Mare today).
+  'These are the hotels we collect from — so if yours is here, we already know the gate, the drive and the journey time.':
+    'Voici les hôtels où nous venons vous chercher — si le vôtre y figure, nous connaissons déjà l’entrée, le trajet et la durée.',
+  'Staying somewhere else? We collect from there too —':
+    'Vous logez ailleurs ? Nous venons vous y chercher aussi —',
+  'tell us the hotel and we will quote it': 'indiquez-nous l’hôtel et nous vous ferons un devis',
   'Getting to {name}': 'Se rendre à {name}',
   'See airport transfers & prices →': 'Voir les transferts aéroport et les tarifs →',
   "What's nearby": 'À proximité',

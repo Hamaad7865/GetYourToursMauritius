@@ -4,12 +4,32 @@ import { notFound } from 'next/navigation';
 import { InfoPage, EnquireRow } from '@/components/site/InfoPage';
 import { JsonLd } from '@/components/seo/JsonLd';
 import { getArea, areaMetaTitle, areaMetaDescription, localisedArea } from '@/lib/content/areas';
-import { destinationJsonLd, breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
+import { hotelGroupsFor, hotelsFor } from '@/lib/content/destination-hotels';
+import { mergedFaq } from '@/lib/content/destination-faq-extra';
+import { RevealGroup } from '@/components/site/RevealGroup';
+import {
+  destinationJsonLd,
+  breadcrumbListJsonLd,
+  faqPageJsonLd,
+  itemListJsonLd,
+} from '@/lib/seo/jsonld';
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE } from '@/lib/seo/site';
 import { getT, getLocale } from '@/lib/i18n/server';
 
 export const runtime = 'edge';
+
+/**
+ * Hero photography per destination, from OUR OWN library under /public.
+ *
+ * Only our own (or properly licensed) files belong here. Resort press images and stock comps are
+ * neither ours to publish nor useful — every listing site already runs them, so they are a
+ * duplicate-image signal rather than an asset. A destination with no entry renders the plain hero
+ * band, which is the correct fallback until a licensed photo exists.
+ */
+const AREA_HERO: Record<string, string | undefined> = {
+  'belle-mare': '/activities/palmar-beach.jpg',
+};
 
 /** Areas that have a dedicated long-form things-to-do guide beyond this overview page. */
 const AREA_GUIDES: Record<string, string> = {
@@ -69,10 +89,24 @@ export default async function DestinationDetailPage({
   const t = await getT();
   const locale = await getLocale();
   const a = localisedArea(rawArea, locale);
+  // Described hotels for this destination, when we have them. Null keeps the plain pills below.
+  const hotelGroups = hotelGroupsFor(slug);
+  const hotels = hotelsFor(slug);
+  // The generated guide's FAQ plus the People-Also-Ask questions Google actually shows for this
+  // place. ONE array feeds both the FAQPage JSON-LD and the visible accordion, so they cannot drift.
+  const faq = mergedFaq(a.faq, slug, locale);
 
   return (
     <>
       <JsonLd data={destinationJsonLd({ name: a.name, description: a.intro, path: a.path })} />
+      {/* The described hotel roster as an ItemList. It is the part of this page nothing else
+          publishes in one place, so it is worth making machine-readable. Entries point at our own
+          transfers page: we are describing where we COLLECT from, not reselling the hotels. */}
+      {hotels.length > 0 && (
+        <JsonLd
+          data={itemListJsonLd(hotels.map((h) => ({ name: h.name, path: '/airport-transfers' })))}
+        />
+      )}
       <JsonLd
         data={breadcrumbListJsonLd([
           { name: t('Home'), path: '/' },
@@ -80,12 +114,13 @@ export default async function DestinationDetailPage({
           { name: a.name, path: a.path },
         ])}
       />
-      <JsonLd data={faqPageJsonLd(a.faq)} />
+      <JsonLd data={faqPageJsonLd(faq)} />
 
       <InfoPage
         eyebrow={t('Destination guide · {region} coast', { region: a.region })}
         title={t('{name}, Mauritius', { name: a.name })}
         intro={a.intro}
+        heroImage={AREA_HERO[a.slug]}
       >
         {/* Breadcrumb */}
         <nav
@@ -158,23 +193,70 @@ export default async function DestinationDetailPage({
           </section>
         )}
 
-        {/* Where to stay */}
-        {a.stayOptions && a.stayOptions.length > 0 && (
+        {/* Where to stay. A destination with DESCRIBED hotels (destination-hotels.ts) gets grouped
+            cards — which end of the beach each sits on, and what a guest actually finds there. Any
+            other destination keeps the plain `stayOptions` pills, so nothing regresses while only
+            one guide has the long-form data. */}
+        {hotelGroups ? (
           <section className="mt-9 border-t border-ink/10 pt-8">
             <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
               {t('Where to stay in {name}', { name: a.name })}
             </h2>
-            <div className="mt-4 flex flex-wrap gap-2.5">
-              {a.stayOptions.map((s) => (
-                <span
-                  key={s}
-                  className="rounded-full border border-ink/12 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
-                >
-                  {s}
-                </span>
-              ))}
-            </div>
+            <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink/75">
+              {t(
+                'These are the hotels we collect from — so if yours is here, we already know the gate, the drive and the journey time.',
+              )}
+            </p>
+            {hotelGroups.map((group) => (
+              <div key={group.area} className="mt-7">
+                <h3 className="text-[16px] font-extrabold text-ink">{group.area}</h3>
+                <p className="mt-1 max-w-2xl text-[14px] leading-relaxed text-ink-muted">
+                  {group.blurb}
+                </p>
+                {/* One observer per group, stagger in CSS — the shared reveal used across the site,
+                    which no-ops under prefers-reduced-motion and renders plain without JS. */}
+                <RevealGroup className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {group.hotels.map((h) => (
+                    <article
+                      key={h.slug}
+                      className="rounded-2xl border border-ink/10 bg-white p-4 shadow-[0_1px_3px_rgba(10,46,54,0.05)] transition hover:border-teal/40 hover:shadow-[0_6px_18px_rgba(10,46,54,0.08)]"
+                    >
+                      <h4 className="text-[15.5px] font-bold leading-snug text-ink">{h.name}</h4>
+                      <p className="mt-1.5 text-[14px] leading-relaxed text-ink/75">
+                        {h.description}
+                      </p>
+                    </article>
+                  ))}
+                </RevealGroup>
+              </div>
+            ))}
+            <p className="mt-6 text-[14.5px] leading-relaxed text-ink/75">
+              {t('Staying somewhere else? We collect from there too —')}{' '}
+              <Link href="/contact" className="font-bold text-teal hover:text-teal-dark">
+                {t('tell us the hotel and we will quote it')}
+              </Link>
+              .
+            </p>
           </section>
+        ) : (
+          a.stayOptions &&
+          a.stayOptions.length > 0 && (
+            <section className="mt-9 border-t border-ink/10 pt-8">
+              <h2 className="text-[22px] font-extrabold tracking-tight text-ink">
+                {t('Where to stay in {name}', { name: a.name })}
+              </h2>
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                {a.stayOptions.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-full border border-ink/12 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )
         )}
 
         {/* Getting there */}
@@ -241,7 +323,7 @@ export default async function DestinationDetailPage({
             {t('Frequently asked questions')}
           </h2>
           <div className="mt-4 flex flex-col gap-2.5">
-            {a.faq.map((f) => (
+            {faq.map((f) => (
               <details
                 key={f.q}
                 className="group rounded-xl border border-ink/10 bg-white px-4 py-3 open:bg-cream/40"
