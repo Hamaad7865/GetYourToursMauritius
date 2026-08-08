@@ -1,12 +1,15 @@
 'use client';
 
 import { useRef, useState, type FormEvent, type ReactNode } from 'react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth/AuthProvider';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { Logo } from '@/components/site/Logo';
 import { AdminBell } from '@/components/admin/AdminBell';
+import { AiSparkButton } from '@/components/admin/quotes/AiSpark';
+import { AssistantProvider, useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import { avatar } from '@/lib/admin/dashboard';
 import {
   BOTTOM_NAV_HREFS,
@@ -23,9 +26,31 @@ import {
   IconLogOut,
 } from '@/components/ui/icons';
 
+// The assistant column is loaded on demand and never on the server: it is reachable from every
+// admin screen, so a static import would put the whole chat in the first paint of each of them.
+const AssistantPanel = dynamic(
+  () => import('@/components/admin/assistant/AssistantPanel').then((m) => m.AssistantPanel),
+  { ssr: false },
+);
+
 /** The dark-teal back-office shell: sticky sidebar (desktop), frosted top bar, and a slide-in
- *  drawer + bottom nav on mobile. Renders the active screen as `children`. */
+ *  drawer + bottom nav on mobile. Renders the active screen as `children`, beside the assistant. */
 export function AdminShell({ children }: { children: ReactNode }) {
+  return (
+    <AssistantProvider>
+      <AdminShellInner>{children}</AdminShellInner>
+    </AssistantProvider>
+  );
+}
+
+/** The launcher, in the top bar of every admin screen. Staff only — it reads guests and money. */
+function AssistantLauncher() {
+  const assistant = useAssistant();
+  if (!assistant) return null;
+  return <AiSparkButton label="Ask Gemini" expanded={assistant.open} onClick={assistant.toggle} />;
+}
+
+function AdminShellInner({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, profile, signOut } = useAuth();
@@ -182,6 +207,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             </form>
           )}
           <div className="ml-auto flex items-center gap-2.5">
+            {!isSeoRole && <AssistantLauncher />}
             {!isSeoRole && <AdminBell />}
             <Link
               href="/admin/activities/new"
@@ -205,7 +231,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        {/* Screen content */}
+        {/* Screen content. `max-w-[1320px]` is a cap, not a width, so when the assistant column
+            opens this simply reflows narrower — nothing is occluded (the owner's note: the centre
+            should diminish, not get covered). */}
         <main className="mx-auto w-full max-w-[1320px] flex-1 px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10">
           {children}
         </main>
@@ -237,6 +265,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </button>
         </nav>
       </div>
+
+      {/* ===== The assistant column =====
+          A SIBLING of the main column, not an overlay: from lg it animates its own width, so the
+          content beside it reflows. Below lg it fixes itself over the screen (no room to split). */}
+      {!isSeoRole && <AssistantPanel />}
     </div>
   );
 }

@@ -744,19 +744,103 @@
     animation: aiGlow 3.4s ease-in-out infinite;
     will-change: transform, opacity;
   }
-  /* The chat panel's entrance — Gmail's side-panel slide. A KEYFRAME rather than a JS-flipped
-     transition on purpose: it plays whenever the class lands, with no requestAnimationFrame timing
-     to miss (used via motion-safe:animate-[aiPanelIn_…] in AiChatPanel.tsx, so reduced-motion
-     never sees it). */
-  @keyframes aiPanelIn {
+  /* ---- The assistant column ----------------------------------------------------------------
+     Everything below animates TRANSFORM and OPACITY only (never width/height/top on the moving
+     element itself), stays inside 150–320ms, and is frozen wholesale by the reduced-motion block
+     further down. The panel's own open/close is a width+transform transition on the <aside>, so
+     the main column reflows rather than being covered. */
+
+  /* A message (and its action cards) arriving in the thread: up and in, quick, once. */
+  @keyframes aiMsgIn {
     from {
-      transform: translateX(calc(100% + 12px));
+      transform: translateY(6px);
       opacity: 0;
     }
     to {
-      transform: translateX(0);
+      transform: translateY(0);
       opacity: 1;
     }
+  }
+  .ai-msg-in {
+    animation: aiMsgIn 0.22s ease-out both;
+  }
+  /* A proposal card lands a touch slower and with a hint of scale — it is asking for a decision. */
+  @keyframes aiCardIn {
+    from {
+      transform: translateY(8px) scale(0.985);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+  .ai-card-in {
+    animation: aiCardIn 0.28s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+  }
+  /* The empty-state openers, staggered 60ms apart by an inline animation-delay. */
+  .ai-suggestion {
+    animation: aiMsgIn 0.3s ease-out both;
+  }
+  .ai-suggestion:hover {
+    transform: translateY(-1px);
+  }
+  /* The screen chip: a small pop, so a route change is felt rather than just read. */
+  @keyframes aiChipIn {
+    from {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  .ai-chip {
+    animation: aiChipIn 0.24s ease-out both;
+  }
+  /* The idle spark breathes on the empty state — the one ambient motion, very slow. */
+  @keyframes aiSparkFloat {
+    0%,
+    100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-4px) rotate(8deg);
+    }
+  }
+  .ai-spark-float {
+    animation: aiSparkFloat 4.5s ease-in-out infinite;
+  }
+  /* The mobile scrim fades rather than snapping in. */
+  @keyframes aiScrimIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  .ai-scrim {
+    animation: aiScrimIn 0.2s ease-out both;
+  }
+  /* Apply: the one primary action on a card, in the Gemini spectrum so it reads as the assistant's
+     own. The sweep runs only on hover, so nothing animates while the operator is reading. */
+  .ai-apply-btn {
+    background: linear-gradient(100deg, #4285f4, #9b72cb 55%, #d96570);
+    background-size: 160% 100%;
+    background-position: 0% 50%;
+    transition:
+      background-position 0.45s ease,
+      box-shadow 0.2s ease,
+      transform 0.12s ease;
+  }
+  .ai-apply-btn:hover:not(:disabled) {
+    background-position: 100% 50%;
+    box-shadow: 0 4px 14px -4px rgba(66, 133, 244, 0.55);
+  }
+  .ai-apply-btn:active:not(:disabled) {
+    transform: scale(0.985);
   }
 
   /* The LAUNCHER — Gmail's Gemini button. At rest it is a quiet white disc; on hover the full
@@ -916,6 +1000,30 @@
   .ai-spark-btn:hover .ai-spark-icon {
     transition: none !important;
     transform: none !important;
+  }
+  /* The assistant column: every entrance settles instantly at its RESTING state — visible, in
+     place, full opacity. `both` fill on the keyframes would otherwise leave a killed animation
+     holding its `from` frame (translated and transparent), i.e. content that never appears. */
+  .ai-msg-in,
+  .ai-card-in,
+  .ai-suggestion,
+  .ai-chip,
+  .ai-scrim,
+  .ai-spark-float {
+    animation: none !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+  .ai-suggestion:hover {
+    transform: none !important;
+  }
+  /* Apply keeps its gradient and its colour feedback; it loses the sweep and the press-scale. */
+  .ai-apply-btn,
+  .ai-apply-btn:hover:not(:disabled),
+  .ai-apply-btn:active:not(:disabled) {
+    transition: none !important;
+    transform: none !important;
+    background-position: 0% 50% !important;
   }
 }
 

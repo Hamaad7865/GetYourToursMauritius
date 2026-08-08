@@ -2,9 +2,9 @@ import { z } from 'zod';
 import type { ZodOpenApiPathsObject, ZodOpenApiResponseObject } from 'zod-openapi';
 import { draftFromEmailResponseSchema } from '@/lib/validation/quote-extraction';
 import {
-  quoteAssistantRequestSchema,
-  quoteAssistantResponseSchema,
-} from '@/lib/validation/quote-assistant';
+  adminAssistantRequestSchema,
+  adminAssistantResponseSchema,
+} from '@/lib/validation/admin-assistant';
 import {
   errorEnvelopeSchema,
   paginationQuerySchema,
@@ -978,10 +978,10 @@ export const apiPaths: ZodOpenApiPathsObject = {
       },
     },
   },
-  '/admin/quotes/assistant': {
+  '/admin/assistant': {
     post: {
-      operationId: 'askQuoteAssistant',
-      summary: 'One turn of the staff Gemini chat (staff-only)',
+      operationId: 'askAdminAssistant',
+      summary: 'One turn of the back-office Gemini assistant (staff-only)',
       description:
         'The chattable assistant in the quotes screen. The browser sends the visible thread (the ' +
         'route holds no state); the reply is grounded by READ-ONLY tools over our own data — the ' +
@@ -993,10 +993,10 @@ export const apiPaths: ZodOpenApiPathsObject = {
         'available:false and the panel says so.',
       tags: ['Quotes'],
       security: [{ bearerAuth: [] }],
-      requestBody: jsonBody(quoteAssistantRequestSchema),
+      requestBody: jsonBody(adminAssistantRequestSchema),
       responses: {
         '200': okJson(
-          quoteAssistantResponseSchema,
+          adminAssistantResponseSchema,
           'The grounded reply, or available:false when no model is configured',
         ),
         '400': errorResponse('No messages, or a thread over the cap'),
