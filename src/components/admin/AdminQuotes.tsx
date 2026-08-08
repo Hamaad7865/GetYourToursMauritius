@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useAuth } from '@/components/auth/AuthProvider';
 import {
   AdminError,
@@ -91,11 +92,52 @@ const STATUS_FILTERS: Array<{ value: 'all' | QuoteStatus; label: string }> = [
   { value: 'cancelled', label: 'Withdrawn' },
 ];
 
+// Loaded on first open only, and never on the server: the chat is an add-on to this screen, so its
+// code must not weigh down the operator opening a quote (the PickupTransportDrawer precedent — a
+// heavy import here once timed out an unrelated import-only test).
+const AiChatPanel = dynamic(
+  () => import('@/components/admin/quotes/AiChatPanel').then((m) => m.AiChatPanel),
+  { ssr: false },
+);
+
+/** The quote on screen, summarised for the assistant — context, never instructions. */
+function chatContextOf(values: QuoteFormValues, totalMinor: number | null): string {
+  const lines = values.lines
+    .slice(0, 8)
+    .map(
+      (line) =>
+        `- ${line.description || '(untitled line)'} × ${line.quantityText || '1'}${
+          line.unitText ? ` @ €${line.unitText}` : ' (unpriced)'
+        }`,
+    );
+  return [
+    `Quote ${values.ref ?? '(new, unsaved)'} · status ${values.status}`,
+    `Guest: ${values.customerName || '—'} <${values.customerEmail || '—'}>`,
+    `Total: ${totalMinor === null ? 'not computable yet' : eurFromMinor(totalMinor)} · valid until ${values.validUntil} · deposit ${depositPercentFromBps(values.depositBps)}%`,
+    ...(lines.length ? ['Lines:', ...lines] : ['No lines yet.']),
+    values.lines.length > 8 ? `(+${values.lines.length - 8} more lines)` : '',
+  ]
+    .filter(Boolean)
+    .join('\n');
+}
+
 export function AdminQuotes() {
   const { profile } = useAuth();
   const isStaff = profile?.role === 'admin' || profile?.role === 'staff';
   // 'list', or the quote being edited (null id = a new one).
   const [editing, setEditing] = useState<{ id: string | null } | null>(null);
+  // The Gemini chat panel: mounted on first open and kept mounted (closing only slides it away),
+  // so the thread survives switching between the list and an editor. The context rides along from
+  // whichever screen pressed the spark.
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatEverOpened, setChatEverOpened] = useState(false);
+  const [chatContext, setChatContext] = useState<string | null>(null);
+
+  const openChat = useCallback((context: string | null) => {
+    setChatContext(context);
+    setChatEverOpened(true);
+    setChatOpen(true);
+  }, []);
 
   if (profile && !isStaff) {
     return (
@@ -109,23 +151,47 @@ export function AdminQuotes() {
     );
   }
 
-  if (editing) {
-    return (
-      <QuoteEditor
-        id={editing.id}
-        onClose={() => setEditing(null)}
-        key={editing.id ?? 'new-quote'}
-      />
-    );
-  }
-  return <QuoteList onOpen={(id) => setEditing({ id })} />;
+  return (
+    <>
+      {editing ? (
+        <QuoteEditor
+          id={editing.id}
+          onClose={() => setEditing(null)}
+          key={editing.id ?? 'new-quote'}
+          chatOpen={chatOpen}
+          onAskGemini={openChat}
+        />
+      ) : (
+        <QuoteList
+          onOpen={(id) => setEditing({ id })}
+          chatOpen={chatOpen}
+          onAskGemini={() => openChat(null)}
+        />
+      )}
+      {chatEverOpened && (
+        <AiChatPanel
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+          quoteContext={chatContext}
+        />
+      )}
+    </>
+  );
 }
 
 /* ------------------------------------------------------------------------------------------- */
 /* The list                                                                                      */
 /* ------------------------------------------------------------------------------------------- */
 
-function QuoteList({ onOpen }: { onOpen: (id: string | null) => void }) {
+function QuoteList({
+  onOpen,
+  chatOpen,
+  onAskGemini,
+}: {
+  onOpen: (id: string | null) => void;
+  chatOpen: boolean;
+  onAskGemini: () => void;
+}) {
   const [rows, setRows] = useState<QuoteRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<'all' | QuoteStatus>('all');
@@ -161,9 +227,12 @@ function QuoteList({ onOpen }: { onOpen: (id: string | null) => void }) {
         title="Quotes"
         subtitle={rows ? `${filtered.length} of ${rows.length} quotes · newest first` : 'Loading…'}
         action={
-          <button type="button" onClick={() => onOpen(null)} className={BTN_PRIMARY}>
-            <IconPlus width={16} height={16} /> New quote
-          </button>
+          <span className="flex items-center gap-2">
+            <AiSparkButton label="Ask Gemini" expanded={chatOpen} onClick={onAskGemini} />
+            <button type="button" onClick={() => onOpen(null)} className={BTN_PRIMARY}>
+              <IconPlus width={16} height={16} /> New quote
+            </button>
+          </span>
         }
       />
 
@@ -280,7 +349,17 @@ function QuoteList({ onOpen }: { onOpen: (id: string | null) => void }) {
 /* The editor                                                                                    */
 /* ------------------------------------------------------------------------------------------- */
 
-function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }) {
+function QuoteEditor({
+  id,
+  onClose,
+  chatOpen,
+  onAskGemini,
+}: {
+  id: string | null;
+  onClose: () => void;
+  chatOpen: boolean;
+  onAskGemini: (context: string | null) => void;
+}) {
   const [form, setForm] = useState<QuoteFormValues | null>(id ? null : emptyQuoteForm());
   const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState<string | null>(null);
@@ -294,9 +373,6 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
   // shown in the lines pane beside the computed total so a discrepancy — the staff €536-vs-€616 case —
   // is caught before sending. Session-level, like the pickup.
   const [statedAmounts, setStatedAmounts] = useState<StatedAmount[]>([]);
-  // Whether the Gemini panel is showing. Open by default on a NEW quote — drafting from the guest's
-  // email is how most quotes now start — and toggled from the spark in the toolbar.
-  const [aiOpen, setAiOpen] = useState(true);
   // Unsaved edits are tracked because SEND EMAILS THE STORED ROW, not the form: the route reads the
   // quote back out of the database. Sending with a re-priced form on screen would email the guest
   // the old figure and leave the operator looking at the new one.
@@ -480,23 +556,15 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
         }
         action={
           <span className="flex items-center gap-2">
-            {/* The assistant's entry point, in the toolbar where Gmail puts it. Only on a new quote,
-                which is the only place the panel it opens is rendered. Clicking from another pane
-                brings the operator to the panel rather than silently toggling something off-screen. */}
-            {!values.id && (
-              <AiSparkButton
-                label="Draft from an enquiry"
-                expanded={aiOpen}
-                onClick={() => {
-                  if (pane !== 'guest') {
-                    setPane('guest');
-                    setAiOpen(true);
-                    return;
-                  }
-                  setAiOpen((open) => !open);
-                }}
-              />
-            )}
+            {/* The assistant's entry point, in the toolbar where Gmail puts it: the spark slides in
+                the CHAT panel, carrying a summary of the quote on screen so "what's the total?" or
+                "add a transfer for this hotel?" can be answered about THIS quote. The paste-an-email
+                draft panel is separate and lives on every new quote below. */}
+            <AiSparkButton
+              label="Ask Gemini"
+              expanded={chatOpen}
+              onClick={() => onAskGemini(chatContextOf(values, total))}
+            />
             <button type="button" onClick={onClose} className={BTN_GHOST}>
               Back
             </button>
@@ -563,7 +631,7 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
         <div className="min-w-0 flex-1">
           {pane === 'guest' && (
             <div className="flex flex-col gap-5">
-              {!values.id && aiOpen && (
+              {!values.id && (
                 <DraftFromEmail
                   onBusyChange={setDrafting}
                   onDraft={(draft, amounts) => {
