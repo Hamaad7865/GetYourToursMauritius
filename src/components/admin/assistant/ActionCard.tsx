@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { applyAssistantAction } from '@/lib/admin/assistant';
+import { useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import { refusalMessage } from '@/components/admin/quotes/state';
 import type { AssistantAction, TourContentPatch } from '@/lib/validation/admin-assistant';
 
@@ -96,6 +97,8 @@ function PatchPreview({ patch }: { patch: TourContentPatch }) {
 
 export function ActionCard({ action }: { action: AssistantAction }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const assistant = useAssistant();
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState<{ message: string; href: string | null } | null>(null);
@@ -104,19 +107,38 @@ export function ActionCard({ action }: { action: AssistantAction }) {
   const patch = action.kind === 'draft_quote_from_email' ? null : action.patch;
   const changeCount = patch ? Object.keys(patch).length : 0;
 
+  /**
+   * Go where the work continues. `router.push` to the page you are ALREADY on is a no-op that does
+   * not remount anything, so the hand-off itself must never depend on the navigation happening —
+   * it rides the assistant context, and this only moves the operator if they are elsewhere.
+   */
+  function goTo(href: string) {
+    if (pathname !== href.split('?')[0]) router.push(href);
+  }
+
   async function apply() {
     setBusy(true);
     setError(null);
     try {
-      const result = await applyAssistantAction(action);
+      const result = await applyAssistantAction(action, {
+        handOffQuoteEmail: assistant?.handOffQuoteEmail,
+      });
       setDone(result);
-      // The hand-off actions are only useful if the operator lands where the work continues.
-      if (action.kind === 'draft_quote_from_email' && result.href) router.push(result.href);
+      // A drafted quote is worth landing on immediately; a tour edit is not (the operator is
+      // usually mid-conversation), so that one waits behind the receipt's "Open it".
+      if (action.kind === 'draft_quote_from_email' && result.href) goTo(result.href);
     } catch (err) {
       setError(refusalMessage(err, 'That could not be applied.'));
     } finally {
       setBusy(false);
     }
+  }
+
+  /** The receipt's button: re-hand the enquiry over, in case the first landing was dismissed. */
+  function reopen() {
+    if (!done?.href) return;
+    if (action.kind === 'draft_quote_from_email') assistant?.handOffQuoteEmail(action.email);
+    goTo(done.href);
   }
 
   if (done) {
@@ -131,7 +153,7 @@ export function ActionCard({ action }: { action: AssistantAction }) {
         {done.href && (
           <button
             type="button"
-            onClick={() => router.push(done.href!)}
+            onClick={reopen}
             className="mt-2 rounded-lg bg-teal px-3 py-1.5 text-[12px] font-bold text-white transition-colors hover:bg-teal-dark"
           >
             Open it

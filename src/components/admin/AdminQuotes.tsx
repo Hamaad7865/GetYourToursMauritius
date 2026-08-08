@@ -29,8 +29,7 @@ import { DraftFromEmail } from '@/components/admin/quotes/DraftFromEmail';
 import { EmailPreview } from '@/components/admin/quotes/EmailPreview';
 import { LinesPane } from '@/components/admin/quotes/LinesPane';
 import { EMPTY_PICKUP, type QuotePickup } from '@/components/admin/quotes/pickup';
-import { useAssistantContext } from '@/components/admin/assistant/AssistantProvider';
-import { ASSISTANT_QUOTE_EMAIL_KEY } from '@/lib/admin/assistant';
+import { useAssistant, useAssistantContext } from '@/components/admin/assistant/AssistantProvider';
 import type { StatedAmount } from '@/lib/quotes/reconcile';
 import {
   DEFAULT_DEPOSIT_BPS,
@@ -119,19 +118,13 @@ export function AdminQuotes() {
   // 'list', or the quote being edited (null id = a new one).
   const [editing, setEditing] = useState<{ id: string | null } | null>(null);
 
-  // The assistant hands an enquiry over by opening a NEW quote with the thread parked in
-  // sessionStorage (never the URL — it is a customer's email). Pick it up once, then clear both the
-  // hand-off and the query flag so a refresh doesn't re-open the same draft.
+  // The assistant hands an enquiry over through its context. Keyed on the VALUE, not on mount:
+  // applying while already on this screen changes no route and remounts nothing, so a mount-effect
+  // (what this was) silently did nothing — the bug the operator hit as "pressing open does nothing".
+  const handoff = useAssistant()?.quoteHandoff ?? null;
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('assistant') !== 'draft') return;
-    if (!sessionStorage.getItem(ASSISTANT_QUOTE_EMAIL_KEY)) return;
-    setEditing({ id: null });
-    params.delete('assistant');
-    const qs = params.toString();
-    window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
-  }, []);
+    if (handoff) setEditing({ id: null });
+  }, [handoff]);
 
   if (profile && !isStaff) {
     return (

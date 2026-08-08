@@ -123,6 +123,20 @@ export function AssistantPanel() {
     if (open) inputRef.current?.focus();
   }, [open]);
 
+  /**
+   * Grow the composer to fit what is in it, up to a cap. A `rows={1}` textarea keeps ONE line's
+   * height no matter what is pasted, so a pasted email thread — the main thing this box is for —
+   * showed as a single scrolling line. Driven by the VALUE rather than by the keystroke, so it is
+   * also right when text arrives programmatically (a suggestion, a hand-off) and when it is cleared
+   * after sending. `height = auto` first, or scrollHeight can only ever ratchet upwards.
+   */
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${Math.min(el.scrollHeight, 168)}px`;
+  }, [input, open]);
+
   // Esc closes — the panel is not modal on desktop, but Esc is still the expected way out.
   useEffect(() => {
     if (!open || !assistant) return;
@@ -218,7 +232,11 @@ export function AssistantPanel() {
         // transition is what makes the content "diminish" rather than get hidden.
         // The left border belongs to the OPEN state only: a closed `lg:w-0` column that still owns
         // a 1px border draws a hairline seam down the edge of every admin screen.
-        className={`fixed inset-y-0 right-0 z-[61] w-[min(400px,100vw)] shrink-0 transform-gpu overflow-hidden bg-white transition-[transform,width,opacity] duration-300 ease-out motion-reduce:transition-none lg:static lg:h-dvh lg:translate-x-0 lg:shadow-none ${
+        // `lg:sticky lg:top-0` — NOT `lg:static`. A static column is exactly one viewport tall and
+        // scrolls away with the page, leaving white space beside a long form. Sticky is still
+        // in-flow, so it keeps its width and keeps pushing the content, but stays pinned as the
+        // operator scrolls — the same trick the admin sidebar uses.
+        className={`fixed inset-y-0 right-0 z-[61] w-[min(400px,100vw)] shrink-0 transform-gpu overflow-hidden bg-white transition-[transform,width,opacity] duration-300 ease-out motion-reduce:transition-none lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 lg:shadow-none ${
           open
             ? 'translate-x-0 border-l border-[#E7EBEE] shadow-2xl lg:w-[400px] lg:opacity-100'
             : 'pointer-events-none translate-x-full border-l-0 shadow-none lg:w-0 lg:opacity-0'
@@ -226,7 +244,7 @@ export function AssistantPanel() {
       >
         {/* The inner column keeps its 400px while the wrapper animates to 0, so the contents slide
             out cleanly instead of reflowing into a 0px sliver mid-transition. */}
-        <div className="flex h-dvh w-[min(400px,100vw)] flex-col lg:sticky lg:top-0">
+        <div className="flex h-dvh w-[min(400px,100vw)] flex-col">
           <header className="flex items-center gap-2.5 border-b border-[#E7EBEE] px-4 py-3">
             <GeminiSpark size={18} />
             <span className="text-[15px] font-bold text-ink">Gemini</span>
@@ -338,7 +356,9 @@ export function AssistantPanel() {
                 placeholder="Ask Gemini, or paste an enquiry"
                 aria-label="Ask Gemini"
                 disabled={busy}
-                className="slim-bar max-h-32 min-h-[36px] w-full flex-1 resize-none bg-transparent py-2 text-[13.5px] text-ink outline-none placeholder:text-ink-muted/70 disabled:opacity-60"
+                // The height is driven by the effect above; the cap here matches its 168px so the
+                // box scrolls internally past ~7 lines instead of eating the thread.
+                className="slim-bar max-h-[168px] min-h-[36px] w-full flex-1 resize-none bg-transparent py-2 text-[13.5px] leading-relaxed text-ink outline-none placeholder:text-ink-muted/70 disabled:opacity-60"
               />
               {/* 44×44 on touch, tightened to 32 from sm where a mouse is doing the aiming. */}
               <button

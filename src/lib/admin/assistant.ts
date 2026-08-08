@@ -107,11 +107,24 @@ export interface AppliedAction {
   href: string | null;
 }
 
+export interface ApplyDeps {
+  /**
+   * Hand a pasted enquiry to the quotes screen. Injected from the assistant context rather than
+   * written to sessionStorage or the URL: a query-flag hand-off read by a mount-effect silently did
+   * NOTHING when the operator applied while already on /admin/quotes (same route → no remount → the
+   * effect never re-fired). A context setter is a state change, so it lands either way.
+   */
+  handOffQuoteEmail?: (email: string) => void;
+}
+
 /**
  * Execute an approved proposal. Throws on refusal (RLS, validation) so the panel can show the real
  * message — the same `refusalMessage` treatment the rest of admin gives a PostgREST error.
  */
-export async function applyAssistantAction(action: AssistantAction): Promise<AppliedAction> {
+export async function applyAssistantAction(
+  action: AssistantAction,
+  deps: ApplyDeps = {},
+): Promise<AppliedAction> {
   if (action.kind === 'create_tour') {
     const title = action.patch.title?.trim();
     if (!title) throw new Error('That draft has no title — ask the assistant to name the tour.');
@@ -141,14 +154,14 @@ export async function applyAssistantAction(action: AssistantAction): Promise<App
   }
 
   // draft_quote_from_email — handing off to the quotes screen, which owns the drafting pipeline
-  // (the departures loader it needs is browser-only). The thread travels in sessionStorage rather
-  // than the URL: it is a customer's email, and a query string would land in history and logs.
-  sessionStorage.setItem(ASSISTANT_QUOTE_EMAIL_KEY, action.email);
+  // (the departures loader it needs is browser-only). The thread goes through the assistant context;
+  // the href only moves the operator there if they are somewhere else.
+  if (!deps.handOffQuoteEmail) {
+    throw new Error('The quotes screen is not available from here.');
+  }
+  deps.handOffQuoteEmail(action.email);
   return {
     message: 'Opening a new quote with this enquiry — review and price the lines before sending.',
-    href: '/admin/quotes?assistant=draft',
+    href: '/admin/quotes',
   };
 }
-
-/** Where a handed-off enquiry waits for the quotes screen to pick it up. */
-export const ASSISTANT_QUOTE_EMAIL_KEY = 'bmt.assistant.quoteEmail';
