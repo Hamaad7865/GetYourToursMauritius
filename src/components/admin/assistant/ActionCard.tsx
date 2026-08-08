@@ -164,7 +164,7 @@ export function ActionCard({ action }: { action: AssistantAction }) {
   }
 
   return (
-    <div className="ai-card-in overflow-hidden rounded-xl border border-ink/12 bg-white shadow-sm">
+    <div className="ai-card-in overflow-hidden rounded-xl border border-ink/15 bg-white shadow-sm">
       <div className="flex items-start gap-2 px-3 pt-3">
         <span className="mt-0.5 text-[#9B72CB]">
           <Sparkle />

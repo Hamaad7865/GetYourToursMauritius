@@ -125,7 +125,7 @@ export function AdminContentDefaults() {
                 className={`flex items-center justify-between rounded-xl border px-3.5 py-2.5 text-left text-[13.5px] transition ${
                   active
                     ? 'border-teal bg-teal/[0.06] font-bold text-teal-dark'
-                    : 'border-ink/12 text-ink hover:border-teal/60'
+                    : 'border-ink/15 text-ink hover:border-teal/60'
                 }`}
               >
                 <span>{c.name}</span>

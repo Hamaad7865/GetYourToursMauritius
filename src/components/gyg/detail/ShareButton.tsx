@@ -28,7 +28,7 @@ export function ShareButton({ title }: { title: string }) {
     <button
       type="button"
       onClick={share}
-      className="flex items-center gap-2 rounded-xl border border-ink/14 px-3.5 py-2 text-[13.5px] font-semibold text-ink hover:border-teal hover:text-teal"
+      className="flex items-center gap-2 rounded-xl border border-ink/15 px-3.5 py-2 text-[13.5px] font-semibold text-ink hover:border-teal hover:text-teal"
     >
       <IconShare width={16} height={16} /> {copied ? t('Link copied') : t('Share')}
     </button>

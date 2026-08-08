@@ -12,7 +12,7 @@ export async function SearchFilterBar({ params }: { params: BrowseParams }) {
   return (
     <form method="get" action="/activities" className="flex items-center gap-2 sm:gap-2.5">
       {params.category && <input type="hidden" name="category" value={params.category} />}
-      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-ink/12 bg-white px-3 py-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-ink/15 bg-white px-3 py-3">
         <IconSearch width={18} height={18} className="shrink-0 text-teal" />
         <input
           type="search"
@@ -23,7 +23,7 @@ export async function SearchFilterBar({ params }: { params: BrowseParams }) {
           className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-muted"
         />
       </div>
-      <label className="flex shrink-0 items-center gap-1.5 rounded-xl border border-ink/12 bg-white px-2.5 py-3 text-sm">
+      <label className="flex shrink-0 items-center gap-1.5 rounded-xl border border-ink/15 bg-white px-2.5 py-3 text-sm">
         <span className="hidden font-semibold text-ink-muted sm:inline">{t('Type')}</span>
         <select
           name="type"

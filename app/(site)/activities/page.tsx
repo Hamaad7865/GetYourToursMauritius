@@ -207,7 +207,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
               {page > 1 ? (
                 <Link
                   href={`/activities${browseQueryString({ ...params, page: page - 1 })}`}
-                  className="rounded-xl border border-ink/12 bg-white px-4 py-2.5 font-semibold text-ink hover:border-teal"
+                  className="rounded-xl border border-ink/15 bg-white px-4 py-2.5 font-semibold text-ink hover:border-teal"
                   rel="prev"
                 >
                   ← {t('Previous')}
@@ -223,7 +223,7 @@ export default async function ActivitiesPage({ searchParams }: { searchParams: S
               {page < totalPages ? (
                 <Link
                   href={`/activities${browseQueryString({ ...params, page: page + 1 })}`}
-                  className="rounded-xl border border-ink/12 bg-white px-4 py-2.5 font-semibold text-ink hover:border-teal"
+                  className="rounded-xl border border-ink/15 bg-white px-4 py-2.5 font-semibold text-ink hover:border-teal"
                   rel="next"
                 >
                   {t('Next')} →
