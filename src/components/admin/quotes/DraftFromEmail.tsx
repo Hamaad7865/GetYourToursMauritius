@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { draftQuoteFromEmail } from '@/lib/admin/quotes';
+import { ASSISTANT_QUOTE_EMAIL_KEY } from '@/lib/admin/assistant';
 import { draftFromExtraction } from '@/lib/services/quote-draft';
 import { loadActivityDepartures, loadTransportPricing } from '@/lib/admin/quote-catalogue';
 import { extractStatedAmounts, type StatedAmount } from '@/lib/quotes/reconcile';
@@ -109,13 +110,30 @@ export function DraftFromEmail({
     return () => clearInterval(id);
   }, [busy]);
 
-  async function run() {
+  // An enquiry handed over by the assistant ("turn this email into a quote"): it parked the thread
+  // in sessionStorage and opened a new quote here. Consume it ONCE — removing the key before the
+  // run so a re-render or a refresh cannot draft the same enquiry twice — and draft immediately, so
+  // the operator lands on a filled editor rather than on a box they must press again.
+  const handedOver = useRef(false);
+  useEffect(() => {
+    if (handedOver.current || typeof window === 'undefined') return;
+    const pending = sessionStorage.getItem(ASSISTANT_QUOTE_EMAIL_KEY);
+    if (!pending) return;
+    handedOver.current = true;
+    sessionStorage.removeItem(ASSISTANT_QUOTE_EMAIL_KEY);
+    setEmail(pending);
+    void run(pending);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** `override` is the assistant hand-off: state has not flushed yet, so the text comes in directly. */
+  async function run(override?: string) {
     // Clear every prior status FIRST, so the empty-email error can never render beneath a stale
     // summary or "AI unavailable" notice from an earlier run.
     setError(null);
     setNotice(null);
     setSummary(null);
-    const text = email.trim();
+    const text = (override ?? email).trim();
     if (!text) {
       setError('Paste the enquiry email first.');
       return;

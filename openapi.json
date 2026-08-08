@@ -12006,10 +12006,10 @@
         }
       }
     },
-    "/admin/quotes/assistant": {
+    "/admin/assistant": {
       "post": {
-        "operationId": "askQuoteAssistant",
-        "summary": "One turn of the staff Gemini chat (staff-only)",
+        "operationId": "askAdminAssistant",
+        "summary": "One turn of the back-office Gemini assistant (staff-only)",
         "description": "The chattable assistant in the quotes screen. The browser sends the visible thread (the route holds no state); the reply is grounded by READ-ONLY tools over our own data — the published catalogue, open departures with real price tiers, the transport fare tables, a booking or quote by ref, and the rental fleet. The model is instructed that every figure must come from a tool result, and there is no writing tool at all: changing data stays in the operator’s hands. STAFF ONLY — profiles.role, not the JWT role claim; \"seo\" is excluded (replies surface guests’ names and money). With no model configured it returns available:false and the panel says so.",
         "tags": [
           "Quotes"
@@ -12040,7 +12040,7 @@
                         "content": {
                           "type": "string",
                           "minLength": 1,
-                          "maxLength": 8000
+                          "maxLength": 20000
                         }
                       },
                       "required": [
@@ -12051,12 +12051,32 @@
                     "minItems": 1,
                     "maxItems": 24
                   },
-                  "quoteContext": {
+                  "page": {
                     "type": [
-                      "string",
+                      "object",
                       "null"
                     ],
-                    "maxLength": 4000
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "maxLength": 200
+                      },
+                      "screen": {
+                        "type": "string",
+                        "maxLength": 80
+                      },
+                      "detail": {
+                        "type": [
+                          "string",
+                          "null"
+                        ],
+                        "maxLength": 4000
+                      }
+                    },
+                    "required": [
+                      "path",
+                      "screen"
+                    ]
                   }
                 },
                 "required": [
@@ -12089,11 +12109,258 @@
                             "string",
                             "null"
                           ]
+                        },
+                        "actions": {
+                          "type": "array",
+                          "items": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "create_tour"
+                                  },
+                                  "label": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "caveat": {
+                                    "type": "string",
+                                    "maxLength": 400
+                                  },
+                                  "patch": {
+                                    "type": "object",
+                                    "properties": {
+                                      "title": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      },
+                                      "summary": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
+                                      "description": {
+                                        "type": "string",
+                                        "maxLength": 8000
+                                      },
+                                      "location": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      },
+                                      "meetingPoint": {
+                                        "type": "string",
+                                        "maxLength": 400
+                                      },
+                                      "cancellationPolicy": {
+                                        "type": "string",
+                                        "maxLength": 2000
+                                      },
+                                      "seoTitle": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      },
+                                      "seoDescription": {
+                                        "type": "string",
+                                        "maxLength": 400
+                                      },
+                                      "highlights": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 300
+                                        },
+                                        "maxItems": 12
+                                      },
+                                      "inclusions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 300
+                                        },
+                                        "maxItems": 20
+                                      },
+                                      "exclusions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 300
+                                        },
+                                        "maxItems": 20
+                                      },
+                                      "whatToBring": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 300
+                                        },
+                                        "maxItems": 20
+                                      },
+                                      "importantInfo": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 500
+                                        },
+                                        "maxItems": 20
+                                      }
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "label",
+                                  "caveat",
+                                  "patch"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "update_tour"
+                                  },
+                                  "label": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "caveat": {
+                                    "type": "string",
+                                    "maxLength": 400
+                                  },
+                                  "activityId": {
+                                    "type": "string",
+                                    "maxLength": 80
+                                  },
+                                  "activityTitle": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "patch": {
+                                    "type": "object",
+                                    "properties": {
+                                      "title": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      },
+                                      "summary": {
+                                        "type": "string",
+                                        "maxLength": 1000
+                                      },
+                                      "description": {
+                                        "type": "string",
+                                        "maxLength": 8000
+                                      },
+                                      "location": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      },
+                                      "meetingPoint": {
+                                        "type": "string",
+                                        "maxLength": 400
+                                      },
+                                      "cancellationPolicy": {
+                                        "type": "string",
+                                        "maxLength": 2000
+                                      },
+                                      "seoTitle": {
+                                        "type": "string",
+                                        "maxLength": 200
+                                      },
+                                      "seoDescription": {
+                                        "type": "string",
+                                        "maxLength": 400
+                                      },
+                                      "highlights": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 300
+                                        },
+                                        "maxItems": 12
+                                      },
+                                      "inclusions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 300
+                                        },
+                                        "maxItems": 20
+                                      },
+                                      "exclusions": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 300
+                                        },
+                                        "maxItems": 20
+                                      },
+                                      "whatToBring": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 300
+                                        },
+                                        "maxItems": 20
+                                      },
+                                      "importantInfo": {
+                                        "type": "array",
+                                        "items": {
+                                          "type": "string",
+                                          "maxLength": 500
+                                        },
+                                        "maxItems": 20
+                                      }
+                                    }
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "label",
+                                  "caveat",
+                                  "activityId",
+                                  "activityTitle",
+                                  "patch"
+                                ]
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "kind": {
+                                    "type": "string",
+                                    "const": "draft_quote_from_email"
+                                  },
+                                  "label": {
+                                    "type": "string",
+                                    "maxLength": 200
+                                  },
+                                  "caveat": {
+                                    "type": "string",
+                                    "maxLength": 400
+                                  },
+                                  "email": {
+                                    "type": "string",
+                                    "maxLength": 20000
+                                  }
+                                },
+                                "required": [
+                                  "kind",
+                                  "label",
+                                  "caveat",
+                                  "email"
+                                ]
+                              }
+                            ]
+                          },
+                          "maxItems": 4,
+                          "default": []
                         }
                       },
                       "required": [
                         "available",
-                        "reply"
+                        "reply",
+                        "actions"
                       ]
                     },
                     "meta": {
