@@ -42,6 +42,8 @@ const STATIC_ROUTES = new Set([
   '/activities',
   '/airport-transfers',
   '/attractions',
+  // The Belle Mare area guide: a top-level route, not /destinations/<slug>, since the URL move.
+  '/belle-mare',
   '/belle-mare-tours',
   '/blog',
   '/cart',

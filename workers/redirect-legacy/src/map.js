@@ -284,8 +284,11 @@ export const EXACT = {
     '/blog/swimming-with-dolphins-mauritius',
   '/en/article/swimming-with-dolphins-in-mauritius-dive-into-adventure-with-belle-mare-tours':
     '/blog/swimming-with-dolphins-mauritius',
-  '/article/belle-mare-tout-ce-quil-faut-savoir-sur-la-region': '/destinations/belle-mare',
-  '/en/article/welcome-to-belle-mare-paradise-in-mauritius': '/destinations/belle-mare',
+  // The Belle Mare guide moved to the bare /belle-mare. Pointed straight at the new URL rather than
+  // left on the old one: /destinations/belle-mare still 308s, so the old target would work, but it
+  // would make these two the only entries in the map that cost a visitor a second hop.
+  '/article/belle-mare-tout-ce-quil-faut-savoir-sur-la-region': '/belle-mare',
+  '/en/article/welcome-to-belle-mare-paradise-in-mauritius': '/belle-mare',
   '/en/article/stopovers-in-mauritius-top-excursions-cruise-ship': '/activities',
   '/article/escales-ile-maurice-les-top-excursions-bateau-croisiere': '/activities',
   '/article/mettez-les-voiles-au-paradis-la-beaute-des-croisieres-en-catamaran-a-lile-maurice':

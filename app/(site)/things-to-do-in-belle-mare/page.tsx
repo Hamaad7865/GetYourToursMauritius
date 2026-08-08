@@ -21,7 +21,7 @@ export const runtime = 'edge';
 /* The local "belle mare things to do / belle mare activities" landing page. ONE page deliberately
    covers that whole query cluster — the two searches share an intent (and a SERP), and splitting them
    across near-duplicate pages would cannibalise this domain's thin early authority. The island-wide
-   sibling is /attractions; the area overview (where to stay, who it suits) is /destinations/belle-mare —
+   sibling is /attractions; the area overview (where to stay, who it suits) is /belle-mare —
    this page is the activity-first middle: what to actually DO from a Belle Mare base. */
 
 const PATH = '/things-to-do-in-belle-mare';
@@ -152,8 +152,7 @@ export default async function ThingsToDoInBelleMarePage() {
               championnat et une plage publique célèbre bordée de filaos et de casuarinas — tout en
               étant assez proche de Trou d’Eau Douce pour que l’excursion la plus célèbre de l’île,
               l’Île aux Cerfs, soit pratiquement à votre porte. Découvrez le guide complet de la
-              région sur la page{' '}
-              <InlineLink href="/destinations/belle-mare">Belle Mare, Maurice</InlineLink>, ou
+              région sur la page <InlineLink href="/belle-mare">Belle Mare, Maurice</InlineLink>, ou
               faites connaissance avec l’équipe locale derrière ce site sur{' '}
               <InlineLink href="/belle-mare-tours">Belle Mare Tours</InlineLink>.
             </p>
@@ -164,8 +163,7 @@ export default async function ThingsToDoInBelleMarePage() {
               the busy north — five-star resorts, championship golf and a famous public beach backed
               by casuarina and filao trees — yet close enough to Trou d’Eau Douce that the island’s
               most famous day trip, Île aux Cerfs, is practically on your doorstep. Read the full
-              area guide at{' '}
-              <InlineLink href="/destinations/belle-mare">Belle Mare, Mauritius</InlineLink>, or
+              area guide at <InlineLink href="/belle-mare">Belle Mare, Mauritius</InlineLink>, or
               meet the local team behind this site at{' '}
               <InlineLink href="/belle-mare-tours">Belle Mare Tours</InlineLink>.
             </p>
@@ -369,7 +367,7 @@ export default async function ThingsToDoInBelleMarePage() {
           )}
           <RelatedLinks
             links={[
-              { label: t('Belle Mare area guide'), href: '/destinations/belle-mare' },
+              { label: t('Belle Mare area guide'), href: '/belle-mare' },
               { label: t('Car & scooter rental'), href: '/rent' },
               { label: t('Île aux Cerfs tours'), href: '/ile-aux-cerfs-tours' },
               { label: t('Catamaran cruises'), href: '/mauritius-catamaran-cruise' },
