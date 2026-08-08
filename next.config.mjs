@@ -73,6 +73,15 @@ const nextConfig = {
       { source: '/mauritius-activities', destination: '/activities', permanent: true },
       { source: '/things-to-do-in-mauritius', destination: '/attractions', permanent: true },
       { source: '/airport-transfer', destination: '/airport-transfers', permanent: true },
+      // The Belle Mare area guide moved to the bare /belle-mare (AREA_PATH_OVERRIDES in
+      // src/lib/content/areas.ts). It is the page Google already cites for "belle mare" and the
+      // target of the visitemaurice.com retirement Worker, so the old URL must keep resolving —
+      // the 308 chains that equity onto the new one rather than stranding it.
+      //
+      // BOTH locales need a rule. next.config redirects run BEFORE middleware, so /fr/... is still
+      // literally /fr/... at this point and never matches the bare source.
+      { source: '/destinations/belle-mare', destination: '/belle-mare', permanent: true },
+      { source: '/fr/destinations/belle-mare', destination: '/fr/belle-mare', permanent: true },
     ];
   },
   // Security + edge-caching headers.

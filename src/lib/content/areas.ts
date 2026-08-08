@@ -38,8 +38,26 @@ export interface Area extends AreaContent {
   path: string;
 }
 
+/**
+ * Area guides that live at a top-level URL instead of under /destinations.
+ *
+ * Belle Mare is the brand's own place name and the phrase the site most needs to rank for, so its
+ * guide sits at the bare /belle-mare. This map is the SINGLE place that move is expressed: `path`
+ * is what the /destinations index links to, what the sitemap emits (both languages), and what the
+ * page's canonical, breadcrumb and Place JSON-LD all read, so they cannot fall out of step. The old
+ * /destinations/belle-mare 308s here from next.config.mjs — see the redirect block there, which
+ * also carries the /fr twin (config redirects run BEFORE the locale middleware, so the prefixed
+ * path needs its own rule and does not inherit this one).
+ *
+ * Adding an entry here without the matching redirect strands the old URL on a live page that
+ * nothing links to; the pair is guarded by tests/unit/belle-mare-page.test.ts.
+ */
+export const AREA_PATH_OVERRIDES: Record<string, string> = {
+  'belle-mare': '/belle-mare',
+};
+
 export function destinationPath(slug: string): string {
-  return `/destinations/${slug}`;
+  return AREA_PATH_OVERRIDES[slug] ?? `/destinations/${slug}`;
 }
 
 export const AREA_REGION_ORDER: AreaRegion[] = ['North', 'East', 'South', 'West', 'Central'];

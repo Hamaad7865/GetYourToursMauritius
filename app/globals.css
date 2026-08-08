@@ -533,6 +533,41 @@
     animation-delay: 560ms;
   }
 
+  /* /belle-mare hero. The eyebrow, the two name lines and the intro rise in sequence on load —
+     staggered by per-element `[animation-delay:…]` utilities rather than nth-child, because they
+     are siblings of different kinds inside the headline stack, not a uniform list.
+
+     `both` matters: the fill holds the FROM frame before the delay elapses (no flash of final-
+     position text) and the TO frame after (no snap back). It also means the reduced-motion kill
+     below cannot be `animation: none` on its own — that would strand opacity at 0. */
+  @keyframes bmRise {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .bm-rise {
+    animation: bmRise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /* The "scroll down" cue at the foot of the hero. Applied via Tailwind's `motion-safe:` variant,
+     so it is already absent under reduced motion — no kill needed. */
+  @keyframes bmCue {
+    0%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.5;
+    }
+    50% {
+      transform: translateY(8px);
+      opacity: 1;
+    }
+  }
+
   /* Trust strip (homepage, above the fold). Three layers so nothing fights over `transform`: the
      grid child fades up via .gyt-reveal, the badge pops in on the same 70ms stagger (--trust-d)
      and scales on hover, and the emoji inside runs its own idle. The pop is `backwards`-only —
@@ -956,6 +991,14 @@
   .gyt-reveal.is-in > * {
     animation: none !important;
     opacity: 1 !important;
+  }
+  /* The /belle-mare hero entrance. Same trap as the reveal above and worse in consequence: this one
+     carries the H1, so killing the animation without restating the final frame leaves the page's
+     main heading invisible. Reset transform AND opacity. */
+  .bm-rise {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
   }
   /* Trust-strip badge pop, hover scale and the five emoji idles. `!important` beats the
      `.gyt-reveal.is-in` descendant specificity; the resting state is the natural full-size

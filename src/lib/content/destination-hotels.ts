@@ -17,6 +17,15 @@
  * genuinely free-licensed or permissioned file exists — Wikimedia Commons and Unsplash carry
  * commercially usable Mauritius photography, and a hotel's own press office will usually grant a
  * partner operator written permission. Fill it in then, not before.
+ *
+ * "We have a verbal OK from the hotels" does NOT settle this on its own, and it is worth writing
+ * down why, because the question keeps coming back. A Google Images result for a resort is mostly
+ * NOT the resort's own file: OTAs (Booking, Expedia) commission and license their own shoots,
+ * travel bloggers and photographers hold their own copyright, and stock agencies watermark-free
+ * comps circulate widely. The hotel can only grant what the hotel owns. So the permission has to
+ * arrive WITH the files — a press-kit link, a Drive folder, an email naming the images — and then
+ * they get dropped in as `/public/hotels/<slug>.webp` and named here. A hotel with no `image` set
+ * renders as a typographic card, which is a designed state, not a gap.
  */
 
 export interface DestinationHotel {
@@ -26,9 +35,22 @@ export interface DestinationHotel {
   /** Which stretch of coast — drives the grouping and the sub-heads on the page. */
   area: string;
   description: string;
-  /** A licensed image under /public. Optional and currently unset everywhere: see the header. */
+  /** A licensed image under /public (convention: `/hotels/<slug>.webp`). See the header. */
   image?: string;
 }
+
+/**
+ * Journey time to SSR for a hotel we do NOT run a transfer page for — the area figure from the
+ * Belle Mare guide's own `gettingThere` copy, as a bare range (the page appends the localised
+ * "min", so never put a unit here).
+ *
+ * There is deliberately NO per-hotel override in this file. `_transfers.gen.ts` already carries a
+ * real `durationMinFromAirport` for thirteen of these fourteen properties, and it is what the
+ * hotel's own /airport-transfers/<slug> page publishes. A second, hand-derived figure here means
+ * the same site quotes two different journey times for one hotel — which is exactly what happened
+ * on the first pass (Anahita Golf read ≈40 here and 50 on its transfer page). One source only.
+ */
+export const DEFAULT_AIRPORT_MINUTES = '45–60';
 
 export interface HotelGroup {
   area: string;
