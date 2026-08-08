@@ -1,9 +1,17 @@
-import { generateText, tool, type CoreMessage, type LanguageModelV1 } from 'ai';
+import {
+  generateText,
+  tool,
+  InvalidToolArgumentsError,
+  NoSuchToolError,
+  type CoreMessage,
+  type LanguageModelV1,
+} from 'ai';
 import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { plannerModel } from './planner-agent';
 import {
-  tourContentPatchSchema,
+  clampTourContentPatch,
+  tourContentPatchInputSchema,
   type AssistantAction,
   type AssistantMessage,
   type AssistantPageContext,
@@ -93,6 +101,16 @@ export interface AssistantPort {
 }
 
 /**
+ * Trim and cap a model-supplied string. Every length limit in this file lives HERE, inside `execute`,
+ * never in a tool's `parameters` — a bound there is validated by the SDK before `execute` runs and
+ * throws as an unhandled 500 rather than rejecting the value. Enforced by the `no-restricted-syntax`
+ * rule in eslint.config.mjs; the reasoning is written out there.
+ */
+function capped(value: string | null | undefined, max: number): string {
+  return (value ?? '').trim().slice(0, max);
+}
+
+/**
  * The tools, built over the port. `collect` gathers proposals raised during the turn — the propose_*
  * tools are pure: they validate a shape and hand it to the collector, and touch nothing else.
  */
@@ -103,11 +121,11 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'Search the published activity catalogue. Returns slug, title, category, region and ' +
         'pricing mode. Use the slug with other tools. Empty query lists everything.',
       parameters: z.object({
-        query: z.string().max(120).optional().describe('Free-text filter over title/category/slug'),
+        query: z.string().nullish().describe('Free-text filter over title/category/slug'),
       }),
       execute: async ({ query }) => {
         const all = await port.listCatalogue();
-        const q = query?.trim().toLowerCase() ?? '';
+        const q = capped(query, 120).toLowerCase();
         const hits = q
           ? all.filter((a) =>
               [a.title, a.category, a.slug, a.region ?? ''].join(' ').toLowerCase().includes(q),
@@ -122,10 +140,11 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'The full CONTENT of one tour by slug — summary, description, highlights, inclusions, ' +
         'exclusions, what to bring, important info. Read a tour with this before copying any of ' +
         'its content onto another tour, so the copy is the real text and not a paraphrase.',
-      parameters: z.object({ slug: z.string().max(200) }),
+      parameters: z.object({ slug: z.string() }),
       execute: async ({ slug }) => {
-        const tour = await port.readTour(slug);
-        return tour ? { found: true, tour } : { found: false, note: `No tour "${slug}".` };
+        const key = capped(slug, 200);
+        const tour = await port.readTour(key);
+        return tour ? { found: true, tour } : { found: false, note: `No tour "${key}".` };
       },
     }),
 
@@ -134,14 +153,24 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'The OPEN departures of one activity on one day (yyyy-mm-dd), with the real price tiers ' +
         '(EUR) a quote line is built from. A departure with a refusal cannot be a catalogue line.',
       parameters: z.object({
-        slug: z.string().max(200),
-        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'yyyy-mm-dd'),
+        slug: z.string(),
+        date: z.string().describe('yyyy-mm-dd'),
       }),
       execute: async ({ slug, date }) => {
-        const departures = await port.activityDepartures(slug, date);
-        if (departures === null) return { found: false, note: `No activity "${slug}".` };
+        const key = capped(slug, 200);
+        const day = capped(date, 10);
+        // The shape check is HERE rather than a `.regex()` in the parameters for the same reason as
+        // the length caps: a model writing "next Tuesday" should be told that, not 500 the chat.
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+          return {
+            found: false,
+            note: `"${day}" is not a date I can use — pass one calendar day as yyyy-mm-dd.`,
+          };
+        }
+        const departures = await port.activityDepartures(key, day);
+        if (departures === null) return { found: false, note: `No activity "${key}".` };
         if (departures.length === 0) {
-          return { found: true, departures: [], note: `No open departure on ${date}.` };
+          return { found: true, departures: [], note: `No open departure on ${day}.` };
         }
         return { found: true, departures };
       },
@@ -152,13 +181,23 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'The round-trip hotel transfer fare (EUR) for an activity, from the transport fare tables ' +
         'the booking widget uses. Give the hotel name (geocoded to a region) or a pickup region.',
       parameters: z.object({
-        activitySlug: z.string().max(200),
-        guests: z.number().int().min(1).max(60),
-        hotel: z.string().max(200).optional(),
-        pickupRegion: z.string().max(80).optional(),
+        activitySlug: z.string(),
+        guests: z.number().describe('Party size, 1–60'),
+        hotel: z.string().nullish(),
+        pickupRegion: z.string().nullish(),
       }),
-      execute: async (input) => {
-        const fare = await port.transferFare(input);
+      execute: async ({ activitySlug, guests, hotel, pickupRegion }) => {
+        // Party size is CLAMPED, not rejected: `.int().min(1).max(60)` in the parameters turned a
+        // model writing 0, 61 or 2.5 into a 500. A clamped number still prices a real transfer.
+        const party = Math.min(60, Math.max(1, Math.round(Number(guests) || 1)));
+        const fare = await port.transferFare({
+          activitySlug: capped(activitySlug, 200),
+          guests: party,
+          // The port takes undefined, not null — launder at the boundary so `.nullish()` above can
+          // absorb the explicit null a model sends for "no hotel".
+          hotel: capped(hotel, 200) || undefined,
+          pickupRegion: capped(pickupRegion, 80) || undefined,
+        });
         if (!fare) {
           return {
             found: false,
@@ -179,19 +218,21 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
     lookup_booking: tool({
       description:
         'A booking by its BMT… reference: status, payment state, guest, totals, balance still due.',
-      parameters: z.object({ ref: z.string().max(40) }),
+      parameters: z.object({ ref: z.string() }),
       execute: async ({ ref }) => {
-        const row = await port.lookupBooking(ref);
-        return row ? { found: true, booking: row } : { found: false, note: `No booking ${ref}.` };
+        const key = capped(ref, 40);
+        const row = await port.lookupBooking(key);
+        return row ? { found: true, booking: row } : { found: false, note: `No booking ${key}.` };
       },
     }),
 
     lookup_quote: tool({
       description: 'A quote by its Q… reference: status, guest, total, validity, conversion.',
-      parameters: z.object({ ref: z.string().max(40) }),
+      parameters: z.object({ ref: z.string() }),
       execute: async ({ ref }) => {
-        const row = await port.lookupQuote(ref);
-        return row ? { found: true, quote: row } : { found: false, note: `No quote ${ref}.` };
+        const key = capped(ref, 40);
+        const row = await port.lookupQuote(key);
+        return row ? { found: true, quote: row } : { found: false, note: `No quote ${key}.` };
       },
     }),
 
@@ -212,16 +253,20 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'highlights. If the operator asked to copy content from another tour, read_tour it first ' +
         'and reuse its actual text.',
       parameters: z.object({
-        label: z.string().max(200).describe('Card header, e.g. Create draft tour "Sunset cruise"'),
-        patch: tourContentPatchSchema,
+        label: z.string().describe('Card header, e.g. Create draft tour "Sunset cruise"'),
+        patch: tourContentPatchInputSchema,
       }),
-      execute: async ({ label, patch }) => {
-        if (!patch.title?.trim()) {
+      execute: async ({ label, patch: raw }) => {
+        // Clamped, not rejected. The strict schema's `.max(8000)` on a description was the likeliest
+        // 500 in this file: the prompt ASKS for 2–4 short paragraphs, and a model overrunning a
+        // length it was merely asked for is ordinary. Truncating still gives the operator a card.
+        const patch = clampTourContentPatch(raw);
+        if (!patch.title) {
           return { proposed: false, note: 'A new tour needs a title — ask the operator for one.' };
         }
         collect({
           kind: 'create_tour',
-          label,
+          label: capped(label, 200),
           caveat: 'Created as a draft with no prices — add pricing and publish it yourself.',
           patch,
         });
@@ -239,19 +284,21 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'first — never invent an id. Send ONLY the fields that change; a list field REPLACES the ' +
         'existing list, so include the full intended list. You cannot change prices or publishing.',
       parameters: z.object({
-        label: z.string().max(200),
-        slug: z.string().max(200).describe('The slug of the tour to change'),
-        patch: tourContentPatchSchema,
+        label: z.string(),
+        slug: z.string().describe('The slug of the tour to change'),
+        patch: tourContentPatchInputSchema,
       }),
-      execute: async ({ label, slug, patch }) => {
-        const tour = await port.readTour(slug);
-        if (!tour) return { proposed: false, note: `No tour "${slug}" — search_catalogue first.` };
+      execute: async ({ label, slug, patch: raw }) => {
+        const key = capped(slug, 200);
+        const patch = clampTourContentPatch(raw);
+        const tour = await port.readTour(key);
+        if (!tour) return { proposed: false, note: `No tour "${key}" — search_catalogue first.` };
         if (Object.keys(patch).length === 0) {
           return { proposed: false, note: 'Nothing to change — say what should be different.' };
         }
         collect({
           kind: 'update_tour',
-          label,
+          label: capped(label, 200),
           caveat: 'Content only — prices, options and publishing are untouched.',
           activityId: tour.id,
           activityTitle: tour.title,
@@ -271,15 +318,25 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
         'pasted text back VERBATIM — the quote pipeline re-reads it and prices from the ' +
         'catalogue; do not summarise it and do not quote a price yourself.',
       parameters: z.object({
-        label: z.string().max(200),
-        email: z.string().min(20).max(20000).describe('The pasted enquiry, verbatim'),
+        label: z.string(),
+        email: z.string().describe('The pasted enquiry, verbatim'),
       }),
       execute: async ({ label, email }) => {
+        // `.min(20).max(20000)` here was the worst pairing in the file: the LONG side 500s exactly
+        // when the operator pastes a real email thread — the thing this tool exists for — and the
+        // short side 500s instead of saying what is wrong. Now truncate, and refuse in words.
+        const text = capped(email, 20000);
+        if (text.length < 20) {
+          return {
+            proposed: false,
+            note: 'That is too little text to price a quote from — paste the enquiry itself.',
+          };
+        }
         collect({
           kind: 'draft_quote_from_email',
-          label,
+          label: capped(label, 200),
           caveat: 'Opens a new quote with the drafted lines — review and price before sending.',
-          email,
+          email: text,
         });
         return {
           proposed: true,
@@ -337,16 +394,31 @@ export async function runAdminAssistant(
   const actions: AssistantAction[] = [];
   const messages: CoreMessage[] = input.messages.map((m) => ({ role: m.role, content: m.content }));
 
-  const result = await generateText({
-    model,
-    system: systemPrompt(ctx.now().toISOString().slice(0, 10), input.page),
-    messages,
-    tools: buildAssistantTools(port, (a) => actions.push(a)),
-    // Enough for search → read → propose in one question; mirrors runPlannerTurn's cap.
-    maxSteps: 10,
-  });
+  let text: string;
+  try {
+    const result = await generateText({
+      model,
+      system: systemPrompt(ctx.now().toISOString().slice(0, 10), input.page),
+      messages,
+      tools: buildAssistantTools(port, (a) => actions.push(a)),
+      // Enough for search → read → propose in one question; mirrors runPlannerTurn's cap.
+      maxSteps: 10,
+    });
+    text = result.text;
+  } catch (err) {
+    // The same backstop runPlannerTurn carries, and this file is why it is worth having twice: the
+    // lint rule and the clamps above close every KNOWN way a model argument can be malformed, but
+    // that list is only as long as the failures seen so far. An unforeseen shape still throws out of
+    // generateText, and the operator would watch the assistant break on a mistake the MODEL made.
+    //
+    // Scoped to exactly the two errors that mean "malformed tool call". A Gemini outage or a quota
+    // refusal is a real fault and must keep propagating to apiHandler and into error_logs — a polite
+    // reply there would hide an outage. Any proposal already collected this turn survives.
+    if (!InvalidToolArgumentsError.isInstance(err) && !NoSuchToolError.isInstance(err)) throw err;
+    text = 'Sorry — I lost my thread there. Could you ask me that again?';
+  }
 
-  const reply = result.text.trim();
+  const reply = text.trim();
   return {
     available: true,
     // A tool-only final step can leave empty text; never show the operator a blank bubble.
