@@ -8,10 +8,15 @@ import type { AddBlockReason } from '@/lib/planner/constraints';
 import type { PlannerRouteCalc } from '@/lib/planner/route';
 import type { PlannerQuote } from '@/lib/planner/pricing';
 import type { BmtActivity } from '@/lib/planner/our-activities';
-import type { ChatMsg, Boost } from './types';
+import type { ChatMsg, Boost, TripProposal } from './types';
+import type { PlacePreview } from '@/lib/planner/place-lookup';
+import type { SavedChat } from '@/lib/planner/chat-history';
 import { fmtDur } from './planner-constants';
 import { Thumb } from './Thumb';
 import { ActivityCard } from './ActivityCard';
+import { RichText } from './RichText';
+import { ChatHistory } from './ChatHistory';
+import { TripProposalCard } from './TripProposalCard';
 import { useVoiceInput } from './useVoiceInput';
 import { Price } from '@/components/site/Price';
 import { usePreferences, useT } from '@/components/site/PreferencesProvider';
@@ -55,6 +60,13 @@ export function ChatCopilot({
   onAddPlace,
   addReasonById,
   bmtBySlug,
+  previewByName,
+  savedChats,
+  sessionId,
+  onResumeChat,
+  onDeleteChat,
+  onAcceptProposal,
+  appliedProposals,
 }: {
   messages: ChatMsg[];
   typing: boolean;
@@ -76,10 +88,26 @@ export function ChatCopilot({
   addReasonById: (id: string) => AddBlockReason;
   /** Trip mode: known Belle Mare Tours activities by slug, for the recommendation cards. */
   bmtBySlug?: Map<string, BmtActivity & { seatsLeft?: number | null }>;
+  /** Resolve a name ZilAi emphasised to its photos + description, for the hover preview. */
+  previewByName?: (name: string) => PlacePreview | null;
+  /** Conversations saved in this browser, newest first. */
+  savedChats?: SavedChat[];
+  /** The session on screen, so history can label it rather than offering it as "old". */
+  sessionId?: string;
+  onResumeChat?: (chat: SavedChat) => void;
+  onDeleteChat?: (id: string) => void;
+  /** Turn a proposed multi-day split into a real trip. */
+  onAcceptProposal?: (proposal: TripProposal) => void;
+  /** `from` dates of proposals already accepted — their cards stay as a record, without a button. */
+  appliedProposals?: Set<string>;
 }) {
   const { t, language } = usePreferences();
   const [draft, setDraft] = useState('');
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [dismissedProposals, setDismissedProposals] = useState<Set<string>>(new Set());
   const bodyRef = useRef<HTMLDivElement>(null);
+  // Stamped once per open so every row's "2h ago" is measured against the same moment.
+  const [historyNow, setHistoryNow] = useState(0);
   // Voice dictation into the message field (Web Speech API, client-only). Recognise in the user's
   // chosen language; appends to whatever they've typed so they can review before sending.
   const voice = useVoiceInput({
@@ -229,7 +257,7 @@ export function ChatCopilot({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#FBFDFC]">
+    <div className="relative flex h-full min-h-0 flex-col bg-[#FBFDFC]">
       {/* header */}
       <div className="flex items-center gap-2.5 border-b border-[#EEF4F3] bg-white px-4 py-[13px]">
         <div className="relative h-[34px] w-[34px] shrink-0">
@@ -250,17 +278,54 @@ export function ChatCopilot({
             {typing ? t('planning…') : t('Local expert · online')}
           </div>
         </div>
-        {stops.length > 0 && (
-          <button
-            type="button"
-            onClick={onClear}
-            aria-label={t('Start over')}
-            className="ml-auto cursor-pointer rounded-[9px] border border-[#EEF4F3] bg-white px-[11px] py-1.5 text-xs font-semibold text-ink-muted"
-          >
-            {t('Reset')}
-          </button>
-        )}
+        <div className="ml-auto flex items-center gap-1.5">
+          {onResumeChat && (
+            <button
+              type="button"
+              onClick={() => {
+                setHistoryNow(Date.now());
+                setHistoryOpen(true);
+              }}
+              aria-label={t('Your saved chats')}
+              title={t('Your saved chats')}
+              className="grid cursor-pointer place-items-center rounded-[9px] border border-[#EEF4F3] bg-white p-[7px] text-ink-muted hover:text-teal"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <path
+                  d="M12 8v4l2.5 2.5M3.5 12a8.5 8.5 0 1 0 2.6-6.1M3 4v4h4"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
+          {stops.length > 0 && (
+            <button
+              type="button"
+              onClick={onClear}
+              aria-label={t('Start over')}
+              className="cursor-pointer rounded-[9px] border border-[#EEF4F3] bg-white px-[11px] py-1.5 text-xs font-semibold text-ink-muted"
+            >
+              {t('Reset')}
+            </button>
+          )}
+        </div>
       </div>
+
+      <ChatHistory
+        open={historyOpen}
+        chats={savedChats ?? []}
+        currentId={sessionId ?? ''}
+        now={historyNow}
+        onResume={(chat) => {
+          onResumeChat?.(chat);
+          setHistoryOpen(false);
+        }}
+        onDelete={(id) => onDeleteChat?.(id)}
+        onClose={() => setHistoryOpen(false)}
+      />
 
       {/* body */}
       <div ref={bodyRef} className="flex min-h-0 flex-1 flex-col gap-[11px] overflow-y-auto p-4">
@@ -303,17 +368,30 @@ export function ChatCopilot({
               </div>
             );
           }
+          if (m.kind === 'trip-proposal') {
+            if (dismissedProposals.has(m.proposal.from)) return null;
+            return (
+              <TripProposalCard
+                key={i}
+                proposal={m.proposal}
+                applied={appliedProposals?.has(m.proposal.from) ?? false}
+                onAccept={(p) => onAcceptProposal?.(p)}
+                onDismiss={() => setDismissedProposals((s) => new Set(s).add(m.proposal.from))}
+              />
+            );
+          }
           const isU = m.role === 'user';
           return (
             <div
               key={i}
               className={`max-w-[84%] animate-float-in px-[13px] py-2.5 text-[13.5px] font-medium leading-[1.5] ${
                 isU
-                  ? 'self-end rounded-[16px_16px_4px_16px] bg-ink text-white shadow-[0_6px_16px_rgba(10,46,54,.16)]'
+                  ? 'self-end whitespace-pre-wrap rounded-[16px_16px_4px_16px] bg-ink text-white shadow-[0_6px_16px_rgba(10,46,54,.16)]'
                   : 'self-start rounded-[4px_16px_16px_16px] border border-[#EAF2F1] bg-white text-ink shadow-[0_4px_14px_rgba(10,46,54,.05)]'
               }`}
             >
-              {m.text}
+              {/* ZilAi writes Markdown emphasis + bullets; the visitor's own words are shown verbatim. */}
+              {isU ? m.text : <RichText text={m.text} preview={previewByName} />}
             </div>
           );
         })}

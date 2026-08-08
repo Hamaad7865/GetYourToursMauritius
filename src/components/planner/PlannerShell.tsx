@@ -31,7 +31,19 @@ import type { BmtActivity, BmtCandidate } from '@/lib/planner/our-activities';
 import { nominalDayKey, utcDayKey } from '@/lib/services/day-key';
 import { detectPickup, geolocationAlreadyGranted } from '@/lib/geo/detect-pickup';
 import type { PlannerPlace } from '@/lib/validation/planner';
-import type { ChatMsg, Boost } from './types';
+import type { ChatMsg, Boost, TripProposal } from './types';
+import { buildPreviewIndex, findPreview, type PlacePreview } from '@/lib/planner/place-lookup';
+import {
+  deleteSavedChat,
+  hasVisitorTurn,
+  isWorthSaving,
+  loadSavedChats,
+  persistChat,
+  planSignature,
+  snapshotTitle,
+  type PlannerSnapshot,
+  type SavedChat,
+} from '@/lib/planner/chat-history';
 import { useMoney, useT } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
 
@@ -108,8 +120,15 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
   const [isMobile, setIsMobile] = useState(false);
   const [mobileTab, setMobileTab] = useState<'chat' | 'day' | 'map'>('chat');
   const [shared, setShared] = useState(false);
+  // ── saved chats: this conversation's id, the shelf we render, and which proposals were accepted ──
+  const [sessionId, setSessionId] = useState('');
+  const [savedChats, setSavedChats] = useState<SavedChat[]>([]);
+  const [appliedProposals, setAppliedProposals] = useState<Set<string>>(new Set());
   const initRef = useRef(false);
   const lastOptimizedKey = useRef('');
+  /** The plan this visit OPENED with (a shared link). A session that only looks at it has nothing new
+   *  to remember — the link already carries the plan — so history stays a shelf of real work. */
+  const openedPlan = useRef('');
 
   const addToCatalog = useCallback((ps: PlannerPlace[]) => {
     if (!ps.length) return;
@@ -302,6 +321,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     // single-day deep-links below.
     const tripPlan = parseTripParams(params, MAX_STOPS);
     if (tripPlan) {
+      openedPlan.current = planSignature([], tripPlan);
       setDays(tripPlan);
       setRangeFrom(tripPlan[0]!.date);
       setRangeTo(tripPlan[tripPlan.length - 1]!.date);
@@ -357,6 +377,10 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
           if (tourName) setBannerTour(tourName.slice(0, 80));
           if (places.length) {
             addToCatalog(places);
+            openedPlan.current = planSignature(
+              places.map((p) => p.id),
+              null,
+            );
             setStopIds(places.map((p) => p.id));
             setHasBuilt(true);
             setChat([
@@ -403,6 +427,10 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
           const places: PlannerPlace[] = res.ok ? res.data : [];
           if (places.length) {
             addToCatalog(places);
+            openedPlan.current = planSignature(
+              places.map((p) => p.id),
+              null,
+            );
             setStopIds(places.map((p) => p.id));
             setHasBuilt(true);
             if (tour) {
@@ -505,24 +533,26 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
       return next;
     });
   }, []);
-  const toggleBmtLayer = useCallback(() => {
-    setShowBmtLayer((on) => !on);
-    if (bmtAll === null) {
-      (async () => {
-        setBmtLoading(true);
-        try {
-          const res = await fetch('/api/planner/our-activities').then((r) => r.json());
-          const list: BmtActivity[] = res.ok ? res.data : [];
-          setBmtAll(list);
-          mergeBmtList(list);
-        } catch {
-          setBmtAll([]); // failed fetch: the toggle just shows nothing extra
-        } finally {
-          setBmtLoading(false);
-        }
-      })();
+  /** Load the catalogue list once. Anchored activity cards, branded markers and the chat's hover
+   *  previews all need it, so it can't stay welded to the map's browse toggle. */
+  const ensureBmtList = useCallback(async () => {
+    if (bmtAll !== null) return;
+    setBmtLoading(true);
+    try {
+      const res = await fetch('/api/planner/our-activities').then((r) => r.json());
+      const list: BmtActivity[] = res.ok ? res.data : [];
+      setBmtAll(list);
+      mergeBmtList(list);
+    } catch {
+      setBmtAll([]); // failed fetch: callers just show nothing extra
+    } finally {
+      setBmtLoading(false);
     }
   }, [bmtAll, mergeBmtList]);
+  const toggleBmtLayer = useCallback(() => {
+    setShowBmtLayer((on) => !on);
+    void ensureBmtList();
+  }, [ensureBmtList]);
 
   // ── stop ops ──
   // Raw committer (no guards) — used by the guarded user/AI-driven adds below and trusted REPLACE paths.
@@ -715,6 +745,149 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
     setBoost(null);
   }
 
+  // ── saved chats ──────────────────────────────────────────────────────────────────────────────
+  // The conversation lives in the visitor's own browser (see chat-history.ts): the planner is public,
+  // and the URL already carries the plan but never the chat or the resolved Google places.
+
+  // One id per visit, minted on mount so every save overwrites this session's slot instead of
+  // filling the shelf with near-identical copies.
+  useEffect(() => {
+    setSessionId(crypto.randomUUID());
+    setSavedChats(loadSavedChats());
+  }, []);
+
+  /** Everything needed to put the visitor back where they left off. */
+  const buildSnapshot = useCallback((): PlannerSnapshot => {
+    const ids = new Set<string>(stopIds);
+    for (const d of days ?? []) {
+      for (const id of d.stopIds) ids.add(id);
+      if (d.dinnerId) ids.add(d.dinnerId);
+    }
+    for (const m of chat) if (m.kind === 'place') ids.add(m.id);
+    return {
+      chat,
+      stopIds,
+      days,
+      places: [...ids].map((id) => catalog.get(id)).filter((p): p is PlannerPlace => Boolean(p)),
+      pickup: { id: pickup.id, name: pickup.name, lat: pickup.lat, lng: pickup.lng },
+      dropoff: dropoff
+        ? { id: dropoff.id, name: dropoff.name, lat: dropoff.lat, lng: dropoff.lng }
+        : null,
+    };
+  }, [chat, stopIds, days, catalog, pickup, dropoff]);
+
+  // Save as they go, debounced — a chat is worth resuming long before they think to save it, and
+  // there is no "save" button to forget to press.
+  useEffect(() => {
+    if (!sessionId) return;
+    const snapshot = buildSnapshot();
+    if (!isWorthSaving(snapshot)) return;
+    // Opening a shared link and just looking at it isn't work worth remembering — the link already
+    // carries that plan, and saving it would mint a fresh near-duplicate entry on every reload.
+    if (!hasVisitorTurn(snapshot) && planSignature(stopIds, days) === openedPlan.current) return;
+    const timer = setTimeout(() => {
+      setSavedChats(
+        persistChat({
+          id: sessionId,
+          savedAt: Date.now(),
+          title: snapshotTitle(snapshot),
+          snapshot,
+        }),
+      );
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [sessionId, buildSnapshot, stopIds, days]);
+
+  /** Reopen a saved chat: its conversation, its day/trip and the places both need to render. */
+  const resumeChat = useCallback(
+    (saved: SavedChat) => {
+      const s = saved.snapshot;
+      addToCatalog(s.places);
+      setChat(s.chat);
+      setStopIds(s.stopIds);
+      setDays(s.days);
+      setActiveDayIdx(0);
+      setRangeFrom(s.days?.[0]?.date ?? '');
+      setRangeTo(s.days?.[s.days.length - 1]?.date ?? '');
+      setPickup(s.pickup);
+      setDropoff(s.dropoff);
+      setWantsDropoff(Boolean(s.dropoff));
+      setBoost(null);
+      setTyping(false);
+      setHasBuilt(s.chat.length > 0 || s.stopIds.length > 0);
+      // Resuming continues that conversation, so later saves overwrite ITS slot rather than
+      // leaving the visitor with two copies of the same plan.
+      setSessionId(saved.id);
+      // A restored trip may anchor activities whose catalogue data this visit never loaded.
+      if ((s.days ?? []).some((d) => d.activitySlug)) void ensureBmtList();
+      setMobileTab('chat');
+    },
+    [addToCatalog, ensureBmtList],
+  );
+
+  const removeSavedChat = useCallback((id: string) => setSavedChats(deleteSavedChat(id)), []);
+
+  // ── hover previews for the names ZilAi emphasises ──
+  // Our own tours are indexed first: when a name matches both a catalogue tour and a Google place,
+  // the bookable one is what the visitor wants to see.
+  const previewIndex = useMemo(() => {
+    const previews: PlacePreview[] = [];
+    for (const a of bmtCatalog.values()) {
+      previews.push({
+        name: a.title,
+        category: a.category,
+        region: a.region,
+        blurb: a.summary,
+        facts: a.durationMinutes ? [fmtDur(a.durationMinutes)] : [],
+        images: a.imageUrls?.length ? a.imageUrls : a.heroImageUrl ? [a.heroImageUrl] : [],
+        href: `/activities/${a.slug}`,
+        priceLabel: a.fromPriceEur != null ? t('from {p}', { p: money(a.fromPriceEur) }) : null,
+        ratingLabel: a.ratingAvg != null ? `★ ${a.ratingAvg.toFixed(1)} (${a.ratingCount})` : null,
+      });
+    }
+    for (const p of catalog.values()) {
+      previews.push({
+        name: p.name,
+        category: p.category,
+        region: p.region,
+        blurb: p.blurb,
+        // Google gives an editorial summary for only a minority of places, so the card leans on the
+        // facts we always have: how long a stop there takes, and when it shuts.
+        facts: [
+          t('{d} here', { d: fmtDur(p.durationMin) }),
+          ...(p.closesAt ? [t('closes {time}', { time: p.closesAt })] : []),
+        ],
+        images: p.imageUrls?.length ? p.imageUrls : p.imageUrl ? [p.imageUrl] : [],
+        href: null,
+        priceLabel: null,
+        ratingLabel: null,
+      });
+    }
+    return buildPreviewIndex(previews);
+  }, [bmtCatalog, catalog, money, t]);
+  const previewByName = useCallback(
+    (name: string) => findPreview(previewIndex, name),
+    [previewIndex],
+  );
+
+  /** Accept ZilAi's proposed split: the range becomes real days, each carrying its offered tour. */
+  const acceptProposal = useCallback(
+    (proposal: TripProposal) => {
+      applyRange(proposal.from, proposal.to);
+      const bySlug = new Map(proposal.days.map((d) => [d.date, d.activitySlug]));
+      setDays((prev) =>
+        prev
+          ? prev.map((d) => (bySlug.has(d.date) ? { ...d, activitySlug: bySlug.get(d.date)! } : d))
+          : prev,
+      );
+      setAppliedProposals((s) => new Set(s).add(proposal.from));
+      setHasBuilt(true);
+      // Anchored cards + branded markers need the catalogue list.
+      void ensureBmtList();
+    },
+    [applyRange, ensureBmtList],
+  );
+
   // ── chat (real grounded agent over live Google Places) ──
   async function sendChat(text: string) {
     const trimmed = text.trim();
@@ -769,6 +942,15 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
           ? res.data.recommendations
           : [];
         mergeBmtRecommendations(recommendations);
+        // A multi-day split ZilAi is OFFERING — rendered as a card under its reply. Nothing changes
+        // until the visitor taps it, so a proposal can never reshape a plan behind their back.
+        const proposal: TripProposal | null =
+          res.data.proposedTrip && Array.isArray(res.data.proposedTrip.days)
+            ? (res.data.proposedTrip as TripProposal)
+            : null;
+        const proposalCards: ChatMsg[] = proposal
+          ? [{ role: 'assistant', kind: 'trip-proposal', proposal }]
+          : [];
 
         if (tripPayload && committedDays.length) {
           // Merge the committed days into the trip by date (uncommitted days stay untouched).
@@ -809,6 +991,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
             ...c,
             { role: 'assistant', kind: 'text', text: reply },
             ...newActivityCards,
+            ...proposalCards,
             { role: 'assistant', kind: 'summary' } as ChatMsg,
           ]);
         } else if (!tripPayload && places.length) {
@@ -820,10 +1003,15 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
             ...c,
             { role: 'assistant', kind: 'text', text: reply },
             ...newOnes.map((id) => ({ role: 'assistant', kind: 'place', id }) as ChatMsg),
+            ...proposalCards,
             { role: 'assistant', kind: 'summary' } as ChatMsg,
           ]);
         } else {
-          setChat((c) => [...c, { role: 'assistant', kind: 'text', text: reply }]);
+          setChat((c) => [
+            ...c,
+            { role: 'assistant', kind: 'text', text: reply },
+            ...proposalCards,
+          ]);
         }
       } else {
         setChat((c) => [
@@ -1151,6 +1339,13 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
       onAddPlace={addStopId}
       addReasonById={(id) => addBlockReason(catalog.get(id)?.region ?? null, dayRegions)}
       bmtBySlug={bmtCatalog}
+      previewByName={previewByName}
+      savedChats={savedChats}
+      sessionId={sessionId}
+      onResumeChat={resumeChat}
+      onDeleteChat={removeSavedChat}
+      onAcceptProposal={acceptProposal}
+      appliedProposals={appliedProposals}
     />
   );
   const map = (

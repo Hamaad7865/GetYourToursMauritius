@@ -555,6 +555,22 @@ export const fr: Record<string, string> = {
   'Local expert · online': 'Expert local · en ligne',
   'Start over': 'Recommencer',
   Reset: 'Réinitialiser',
+  // Saved chats (kept in the visitor's own browser).
+  'Your saved chats': 'Vos conversations enregistrées',
+  'Nothing saved yet. Your plans are kept on this device as you chat, so you can pick one back up here.':
+    'Rien d’enregistré pour l’instant. Vos plans sont conservés sur cet appareil au fil de la conversation, pour que vous puissiez en reprendre un ici.',
+  '{n}-day trip': 'séjour de {n} jours',
+  'Delete {title}': 'Supprimer {title}',
+  // The hover preview on a place ZilAi named.
+  view: 'voir',
+  // ('About {name}' already exists further down — the content pages use the same string.)
+  'from {p}': 'à partir de {p}',
+  // ('closes {time}' and 'About {name}' are already defined elsewhere in this table.)
+  // ZilAi's offer to spread the tours over separate days.
+  '{n} days, one at a time': '{n} jours, un à la fois',
+  'Split my plan into these days': 'Répartir mon plan sur ces jours',
+  'Not now': 'Pas maintenant',
+  '✓ Added to your trip': '✓ Ajouté à votre séjour',
   'Plan your day with me': 'Planifiez votre journée avec moi',
   'Describe it above, tap a starter, or browse places — I’ll build the route and keep the price live.':
     'Décrivez-la ci-dessus, choisissez une suggestion ou parcourez les lieux — je construis l’itinéraire et garde le prix en temps réel.',

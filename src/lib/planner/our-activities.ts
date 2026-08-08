@@ -30,6 +30,10 @@ export interface BmtActivity {
   ratingAvg: number | null;
   ratingCount: number;
   heroImageUrl: string | null;
+  /** The catalogue's own short description, for the chat's hover preview. */
+  summary: string | null;
+  /** Hero + up to two more photos, for the same preview. */
+  imageUrls: string[];
   durationMinutes: number | null;
   minAdvanceDays: number;
 }
@@ -40,7 +44,9 @@ const EXCLUDED_SLUGS = new Set(['custom-road-trip']);
 // v2: summaries carry lat/lng/region themselves now — the bump orphans v1 lists assembled from the
 // old per-activity fallback resolution (itinerary stops / Places title searches), whose points were
 // wrong for every activity without admin-set coords.
-const LIST_CACHE_KEY = 'bmt-activities:v2';
+// v3: entries now carry `summary` + `imageUrls` for the chat's hover preview — a cached v2 list would
+// render those cards with no words and no photos, so the bump retires it.
+const LIST_CACHE_KEY = 'bmt-activities:v3';
 const LIST_TTL_MS = 60 * 60 * 1000; // the assembled list: 1h (prices/ratings drift slowly)
 const COORDS_TTL_MS = 30 * 24 * 60 * 60 * 1000; // resolved coords: 30d (places don't move)
 const COORDS_MISS_TTL_MS = 6 * 60 * 60 * 1000; // unresolved: 6h, so a flaky lookup retries soon
@@ -171,6 +177,13 @@ export async function listBmtActivities(
       ratingAvg: s.ratingAvg,
       ratingCount: s.ratingCount,
       heroImageUrl: s.heroImage?.url ?? null,
+      // The chat's hover preview shows what a tour actually is — its own words and its own photos,
+      // not just a price. Three images is what the card has room for.
+      summary: s.summary,
+      imageUrls: [s.heroImage?.url, ...s.images.map((i) => i.url)]
+        .filter((u): u is string => Boolean(u))
+        .filter((u, i, all) => all.indexOf(u) === i)
+        .slice(0, 3),
       durationMinutes: s.durationMinutes,
       minAdvanceDays: s.minAdvanceDays,
     });
