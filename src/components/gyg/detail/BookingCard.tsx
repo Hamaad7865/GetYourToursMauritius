@@ -126,7 +126,7 @@ export function BookingCard({ type, title, fromPriceEur, options, languages }: B
               <IconChevron width={16} height={16} className="text-ink-muted" />
             </button>
             {partsOpen && (
-              <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 flex items-center justify-between rounded-xl border border-ink/12 bg-white px-4 py-3 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+              <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 flex items-center justify-between rounded-xl border border-ink/15 bg-white px-4 py-3 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
                 <span className="text-sm font-semibold text-ink">
                   {isGroup ? t('Group size') : t('Guests')}
                 </span>

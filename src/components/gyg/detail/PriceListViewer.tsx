@@ -17,7 +17,7 @@ export function PriceListViewer({ url, label }: { url: string; label?: string | 
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ink/12 bg-ink/[0.02] p-4">
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-ink/15 bg-ink/[0.02] p-4">
         <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-coral/10 text-coral">
           <IconDocument width={22} height={22} />
         </span>
@@ -44,7 +44,7 @@ export function PriceListViewer({ url, label }: { url: string; label?: string | 
 
       {/* Rendered only after an explicit click (desktop) — so nothing loads the PDF on page open. */}
       {open && (
-        <div className="mt-3 hidden overflow-hidden rounded-2xl border border-ink/12 bg-ink/[0.02] shadow-sm lg:block">
+        <div className="mt-3 hidden overflow-hidden rounded-2xl border border-ink/15 bg-ink/[0.02] shadow-sm lg:block">
           <iframe src={`${url}#view=FitH`} title={t('Price list')} className="h-[78vh] w-full" />
         </div>
       )}

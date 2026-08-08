@@ -317,7 +317,7 @@ export function BookingWidget() {
               <IconChevron width={16} height={16} className="text-ink-muted" />
             </button>
             {open === 'parts' && (
-              <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
+              <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/15 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]">
                 {isAgeBanded ? (
                   <div className="flex flex-col divide-y divide-ink/[0.08]">
                     {bandTiers.map((tier) => {
@@ -505,7 +505,7 @@ export function BookingWidget() {
                 <div
                   role="dialog"
                   aria-label={t('Choose a date')}
-                  className="absolute right-0 top-[calc(100%+6px)] z-30 w-[min(92vw,21rem)] rounded-2xl border border-ink/12 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] sm:w-[40rem]"
+                  className="absolute right-0 top-[calc(100%+6px)] z-30 w-[min(92vw,21rem)] rounded-2xl border border-ink/15 bg-white p-4 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)] sm:w-[40rem]"
                 >
                   {/* Nav: prev far-left, month name(s) centred, next far-right. */}
                   <div className="mb-2 flex items-center justify-between gap-2">
@@ -611,7 +611,7 @@ export function BookingWidget() {
                 <div
                   role="listbox"
                   aria-label={t('Guide language')}
-                  className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/12 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]"
+                  className="absolute left-0 right-0 top-[calc(100%+6px)] z-20 rounded-xl border border-ink/15 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]"
                 >
                   {activity.languages.map((l) => {
                     const active = l === lang;

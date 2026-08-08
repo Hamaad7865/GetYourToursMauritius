@@ -47,7 +47,7 @@ export function InfoPage({
                 aria-hidden
                 className="absolute inset-0 h-full w-full object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-tr from-[#03262b]/95 via-[#0a4953]/88 to-[#0E8C92]/55" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-[#03262b]/95 via-[#0a4953]/90 to-[#0E8C92]/55" />
             </>
           )}
           {heroArt}

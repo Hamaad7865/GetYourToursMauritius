@@ -33,7 +33,7 @@ export function ChatHistory({
   const older = chats.filter((c) => c.id !== currentId);
 
   return (
-    <div className="absolute inset-0 z-20 flex flex-col bg-white/97 backdrop-blur-sm">
+    <div className="absolute inset-0 z-20 flex flex-col bg-white/95 backdrop-blur-sm">
       <div className="flex items-center gap-2.5 border-b border-[#EEF4F3] px-4 py-[13px]">
         <span className="font-display text-[15px] font-semibold text-ink">
           {t('Your saved chats')}
