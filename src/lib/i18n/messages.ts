@@ -2405,6 +2405,38 @@ export const fr: Record<string, string> = {
   'Explore from {name}': 'Explorer depuis {name}',
   'Browse tours & activities': 'Parcourir les excursions et activités',
   'Plan a custom day with AI': 'Planifier une journée sur mesure avec l’IA',
+  // The bespoke /belle-mare guide: its hero, its section headings and its hotel rail. The rest of
+  // that page's copy is the shared `areas` record, already translated in _areas.fr.gen.ts.
+  'The whitest sand on the island, a lagoon held back by a distant reef, and fourteen hotels whose gate we already know.':
+    'Le sable le plus blanc de l’île, un lagon retenu par un récif lointain, et quatorze hôtels dont nous connaissons déjà l’entrée.',
+  'The white sand and turquoise lagoon at Belle Mare, east coast Mauritius':
+    'Le sable blanc et le lagon turquoise de Belle Mare, côte est de Maurice',
+  'Photo via Wikimedia Commons': 'Photo via Wikimedia Commons',
+  'Dive in': 'Plongez',
+  'The coast': 'La côte',
+  'Read the full things-to-do guide →': 'Lire le guide complet des activités →',
+  '{beach}, east coast Mauritius': '{beach}, côte est de Maurice',
+  Commons: 'Commons',
+  'Where to stay': 'Où loger',
+  // The "where to stay" headline is split across two lines so the second can carry the accent
+  // colour; keeping them as two keys lets French break at its own natural point.
+  'If yours is here, we already know': 'Si le vôtre y figure, nous connaissons déjà',
+  'the gate, the drive and the time.': 'l’entrée, le trajet et la durée.',
+  min: 'min',
+  Airport: 'Aéroport',
+  Selected: 'Sélectionné',
+  '{n} of {total} · {inGroup} in this group': '{n} sur {total} · {inGroup} dans ce groupe',
+  'Previous hotel': 'Hôtel précédent',
+  'Next hotel': 'Hôtel suivant',
+  'Choose hotel': 'Choisir cet hôtel',
+  'Photo:': 'Photo :',
+  '{hotel}, Belle Mare, Mauritius': '{hotel}, Belle Mare, Maurice',
+  'Quote my pickup from here': 'Devis pour une prise en charge ici',
+  'See transfer prices': 'Voir les tarifs de transfert',
+  minutes: 'minutes',
+  'from SSR': 'depuis SSR',
+  'Book a private day tour or excursion, or design your own day around {name} with our free AI road-trip planner — with door-to-door pickup and instant confirmation.':
+    'Réservez une excursion privée à la journée, ou composez votre propre journée autour de {name} avec notre planificateur de road trip IA gratuit — avec prise en charge porte à porte et confirmation immédiate.',
   'Mauritius travel guide': 'Guide de voyage à Maurice',
   '{region} Mauritius': 'Maurice — {region}',
   'See them your way': 'Découvrez-les à votre façon',
