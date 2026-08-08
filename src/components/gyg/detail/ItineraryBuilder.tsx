@@ -99,7 +99,7 @@ function StopChooser({
           role="radiogroup"
           aria-label={t('Choose a place for {stop}', { stop: stopTitle })}
           onKeyDown={onKeyDown}
-          className="absolute left-0 top-[calc(100%+6px)] z-20 w-64 max-w-[78vw] rounded-xl border border-ink/12 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]"
+          className="absolute left-0 top-[calc(100%+6px)] z-20 w-64 max-w-[78vw] rounded-xl border border-ink/15 bg-white p-1.5 shadow-[0_24px_50px_-22px_rgba(10,46,54,0.4)]"
         >
           {choices.map((c, ci) => {
             const active = selected === ci;

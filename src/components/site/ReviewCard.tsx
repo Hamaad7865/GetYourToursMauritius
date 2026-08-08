@@ -32,7 +32,7 @@ export function ReviewCard({ review: r }: { review: FeaturedReview }) {
       <blockquote className="mt-2 line-clamp-6 text-[14px] leading-relaxed text-ink/75">
         {r.text}
       </blockquote>
-      <figcaption className="mt-4 flex items-center justify-between border-t border-ink/8 pt-3 text-[12.5px]">
+      <figcaption className="mt-4 flex items-center justify-between border-t border-ink/10 pt-3 text-[12.5px]">
         <span className="font-bold text-ink">
           {r.author}
           {r.authorLocation ? (

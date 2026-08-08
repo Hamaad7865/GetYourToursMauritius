@@ -70,7 +70,7 @@ export function TrustStrip() {
   return (
     <section
       aria-label="Why book with Belle Mare Tours"
-      className="border-b border-ink/8 bg-cream/70"
+      className="border-b border-ink/10 bg-cream/70"
     >
       <RevealGroup className="mx-auto grid max-w-shell grid-cols-2 gap-x-6 gap-y-5 px-6 py-6 sm:grid-cols-3 lg:grid-cols-5">
         {ITEMS.map((it, i) => {

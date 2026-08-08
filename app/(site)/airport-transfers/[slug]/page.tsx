@@ -201,7 +201,7 @@ export default async function TransferDetailPage({
                   {hotel.nearbyAttractions.map((a) => (
                     <li
                       key={a}
-                      className="rounded-full border border-ink/12 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
+                      className="rounded-full border border-ink/15 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
                     >
                       {a}
                     </li>

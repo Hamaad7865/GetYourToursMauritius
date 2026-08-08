@@ -184,7 +184,7 @@ export default async function DestinationDetailPage({
               {a.beaches.map((b) => (
                 <span
                   key={b}
-                  className="rounded-full border border-ink/12 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
+                  className="rounded-full border border-ink/15 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
                 >
                   {b}
                 </span>
@@ -249,7 +249,7 @@ export default async function DestinationDetailPage({
                 {a.stayOptions.map((s) => (
                   <span
                     key={s}
-                    className="rounded-full border border-ink/12 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
+                    className="rounded-full border border-ink/15 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
                   >
                     {s}
                   </span>
@@ -283,7 +283,7 @@ export default async function DestinationDetailPage({
               {a.nearbyAttractions.map((n) => (
                 <span
                   key={n}
-                  className="rounded-full border border-ink/12 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
+                  className="rounded-full border border-ink/15 bg-white px-3.5 py-1.5 text-[13.5px] text-ink/80"
                 >
                   {n}
                 </span>

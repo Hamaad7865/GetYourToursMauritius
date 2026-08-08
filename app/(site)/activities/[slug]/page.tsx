@@ -239,7 +239,7 @@ export default async function ActivityDetailPage({
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
-              <span className="flex items-center gap-2 rounded-xl border border-ink/14 px-3.5 py-2 text-[13.5px] font-semibold text-ink">
+              <span className="flex items-center gap-2 rounded-xl border border-ink/15 px-3.5 py-2 text-[13.5px] font-semibold text-ink">
                 <WishHeart
                   slug={activity.slug}
                   size={16}

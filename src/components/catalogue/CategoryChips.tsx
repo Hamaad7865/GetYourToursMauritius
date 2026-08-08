@@ -65,7 +65,7 @@ export function CategoryChips({ active }: { active?: string }) {
           ref={active ? undefined : activeRef}
           className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
             active
-              ? 'border-ink/12 bg-white text-ink hover:border-teal'
+              ? 'border-ink/15 bg-white text-ink hover:border-teal'
               : 'border-transparent bg-ink text-cream'
           }`}
         >
@@ -81,7 +81,7 @@ export function CategoryChips({ active }: { active?: string }) {
               className={`whitespace-nowrap rounded-full border px-4 py-2 text-sm font-semibold ${
                 isActive
                   ? 'border-transparent bg-ink text-cream'
-                  : 'border-ink/12 bg-white text-ink hover:border-teal'
+                  : 'border-ink/15 bg-white text-ink hover:border-teal'
               }`}
             >
               {t(category.name)}

@@ -13,7 +13,7 @@ export async function SiteHeader() {
 
         <Link
           href="/activities"
-          className="hidden flex-1 items-center gap-3 rounded-xl border border-ink/12 bg-cream/60 px-3 py-2.5 text-left md:flex"
+          className="hidden flex-1 items-center gap-3 rounded-xl border border-ink/15 bg-cream/60 px-3 py-2.5 text-left md:flex"
         >
           <IconSearch className="text-teal" />
           <span className="flex-1 text-sm font-medium text-ink-muted">

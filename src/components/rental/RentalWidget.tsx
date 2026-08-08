@@ -105,7 +105,7 @@ function VehicleCard({
       className={`relative flex flex-col gap-3 rounded-2xl border p-3 text-left transition ${
         selected
           ? 'border-teal ring-2 ring-teal/40 bg-teal/[0.04]'
-          : 'border-ink/12 hover:border-teal/60 hover:bg-cream/40'
+          : 'border-ink/15 hover:border-teal/60 hover:bg-cream/40'
       }`}
     >
       {selected && (
