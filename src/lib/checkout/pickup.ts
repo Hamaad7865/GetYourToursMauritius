@@ -1,3 +1,23 @@
+/**
+ * Does a vehicle collect this party door to door — i.e. is pickup MANDATORY rather than offered?
+ * True for both vehicle pricing modes: 'vehicle' (sightseeing tours) and 'vehicle_custom' (the AI
+ * road-trip product). They differ only in which config table the brackets are read from.
+ *
+ * Lives here, not next to pricingModeSchema, on purpose: this module is deliberately dependency-free
+ * so the checkout client bundle can import it without dragging zod and the pricing service in with it.
+ *
+ * It is also NOT a blanket replacement for the many `pricingMode === 'vehicle'` checks around the
+ * catalogue — those describe the sightseeing product specifically, and the planner activity is hidden
+ * from every catalogue surface, so they never see it. Use this where the question really is "does a
+ * vehicle collect them?".
+ *
+ * Takes a plain string because it reads a loosely-typed API response; an unknown mode answers false,
+ * which is the conservative direction (pickup offered rather than assumed).
+ */
+export function isVehiclePriced(pricingMode: string | null | undefined): boolean {
+  return pricingMode === 'vehicle' || pricingMode === 'vehicle_custom';
+}
+
 export interface Step1State {
   wantsPickup: boolean;
   address: string;

@@ -4,9 +4,14 @@ import { REGIONS } from '@/lib/services/pricing';
 
 // Catalogue DTOs — these match the `api_*` Postgres function output exactly.
 
-/** How an activity is priced: per head, per group (ceil), or one flat price by the vehicle the
- *  party needs (sightseeing tours). */
-export const pricingModeSchema = z.enum(['per_person', 'per_group', 'vehicle']);
+/** How an activity is priced: per head, per group (ceil), one flat price by the vehicle the party
+ *  needs (sightseeing tours), or `vehicle_custom` — the same vehicle brackets read from
+ *  planner_pricing instead of sightseeing_pricing, which is the AI road-trip product's parallel
+ *  money path. `vehicle_custom` must stay listed even though no customer-facing surface branches on
+ *  it: this enum's job is to ADMIT every value the column can hold, and the mode reaching a mirror
+ *  that lacks it makes the activity unreadable rather than mispriced (see
+ *  tests/unit/enum-zod-parity.test.ts). */
+export const pricingModeSchema = z.enum(['per_person', 'per_group', 'vehicle', 'vehicle_custom']);
 export type PricingMode = z.infer<typeof pricingModeSchema>;
 
 export const tourPriceSchema = z.object({

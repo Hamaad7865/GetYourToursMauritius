@@ -219,6 +219,79 @@ describe('runPlannerTurn — range mode', () => {
     expect(result.days[0]!.activitySlug).toBe('catamaran-bbq');
   });
 
+  it('accepts an explicit null for the optional day fields', async () => {
+    // Gemini sends `"activitySlug": null` for "this day has no activity" rather than omitting the
+    // key. Zod's `.optional()` accepts undefined but NOT null, so the whole turn died in argument
+    // validation — a 500 for a plan that was otherwise perfectly good. (error_logs, 2026-08-08.)
+    const model = scriptedModel([
+      {
+        toolName: 'set_trip_plan',
+        args: {
+          days: [
+            {
+              date: '2026-09-01',
+              placeIds: ['pl-belle-mare'],
+              activitySlug: null,
+              dinnerPlaceId: null,
+            },
+          ],
+        },
+      },
+      { text: 'done' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: 'just the beach' }], trip: trip() },
+      model,
+    );
+    expect(result.days.map((d) => d.date)).toEqual(['2026-09-01']);
+    expect(result.days[0]!.activitySlug).toBeNull();
+    expect(result.days[0]!.dinner).toBeNull();
+    expect(result.days[0]!.places.map((p) => p.name)).toEqual(['Belle Mare Beach']);
+  });
+
+  it('resolves a repeated date once, keeping the last version of it', async () => {
+    // The parameters no longer cap the array, so the fan-out bound has to hold in execute: resolving
+    // a day calls the (billed) Routes API, and "last write per date wins" was always the semantic —
+    // so a date sent twice must cost one resolution, not two.
+    const { resolveItinerary } = await import('@/lib/planner/tools');
+    vi.mocked(resolveItinerary).mockClear();
+    const model = scriptedModel([
+      {
+        toolName: 'set_trip_plan',
+        args: {
+          days: [
+            { date: '2026-09-01', placeIds: ['pl-ile'] },
+            { date: '2026-09-01', placeIds: ['pl-belle-mare'] }, // same date, corrected
+          ],
+        },
+      },
+      { text: 'done' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: 'no, the other beach' }], trip: trip() },
+      model,
+    );
+    expect(vi.mocked(resolveItinerary)).toHaveBeenCalledTimes(1);
+    expect(result.days).toHaveLength(1);
+    expect(result.days[0]!.places.map((p) => p.name)).toEqual(['Belle Mare Beach']);
+  });
+
+  it('treats a commit of no days as a conversational slip, not a server fault', async () => {
+    const model = scriptedModel([
+      { toolName: 'set_trip_plan', args: { days: [] } },
+      { text: 'Which days would you like me to plan?' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: 'plan it' }], trip: trip() },
+      model,
+    );
+    expect(result.reply).toBe('Which days would you like me to plan?');
+    expect(result.days).toEqual([]);
+  });
+
   it('resolves the dinner suggestion from the day’s known places', async () => {
     const model = scriptedModel([
       {
@@ -299,6 +372,62 @@ describe('runPlannerTurn — single-day mode unchanged', () => {
     expect(result.recommendations[0]!.seatsLeft).toBeNull();
   });
 
+  it('survives a model slip that would fail the SDK’s argument validation', async () => {
+    // MAX_STOPS + 1 ids. The tool DESCRIBES itself as returning "ids dropped over the 6-stop cap",
+    // and resolveItinerary really does cap and report them — but a `.max(MAX_STOPS)` on the
+    // parameters rejected the call before execute ever ran, so the over-cap case the tool was built
+    // to handle escaped as an unhandled 500 instead. (Logged in error_logs on 2026-08-08.)
+    const model = scriptedModel([
+      {
+        toolName: 'set_itinerary',
+        args: { placeIds: ['pl-belle-mare', 'a', 'b', 'c', 'd', 'e', 'f'] },
+      },
+      { text: 'I trimmed it to six stops.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      {
+        messages: [{ role: 'user', content: 'add everything' }],
+        itinerary: [place('pl-belle-mare', 'Belle Mare Beach')],
+      },
+      model,
+    );
+    expect(result.reply).toBe('I trimmed it to six stops.');
+    expect(result.places.map((p) => p.name)).toEqual(['Belle Mare Beach']);
+  });
+
+  it('absorbs an unforeseen malformed tool call without losing what was already committed', async () => {
+    // The backstop, tested through the one hole the schemas can't close: a tool name that doesn't
+    // exist. Nothing in set_itinerary's parameters can pre-empt this, so it stands in for the
+    // next-unforeseen-slip case the catch was written for. The day committed one step earlier must
+    // survive — a model fumble on step 2 must not throw away step 1's work.
+    const model = scriptedModel([
+      { toolName: 'set_itinerary', args: { placeIds: ['pl-belle-mare'] } },
+      { toolName: 'set_the_itinerary_please', args: {} },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      {
+        messages: [{ role: 'user', content: 'a beach day' }],
+        itinerary: [place('pl-belle-mare', 'Belle Mare Beach')],
+      },
+      model,
+    );
+    expect(result.reply).toContain('lost my thread');
+    expect(result.places.map((p) => p.name)).toEqual(['Belle Mare Beach']);
+  });
+
+  it('still lets a real provider failure through — a graceful reply must not hide an outage', async () => {
+    const model = new MockLanguageModelV1({
+      doGenerate: async () => {
+        throw new Error('Gemini quota exceeded');
+      },
+    });
+    await expect(
+      runPlannerTurn(ctx, { messages: [{ role: 'user', content: 'hi' }] }, model),
+    ).rejects.toThrow('Gemini quota exceeded');
+  });
+
   it('offers a multi-day split, dropping an invented slug and a repeated one', async () => {
     const model = scriptedModel([
       { toolName: 'search_our_activities', args: { q: 'Catamaran' } },
@@ -346,6 +475,37 @@ describe('runPlannerTurn — single-day mode unchanged', () => {
       model,
     );
     expect(result.proposedTrip).toBeNull();
+  });
+
+  it('accepts an explicit null for a day with no tour — the common case for a split', async () => {
+    // propose_trip_days used `.optional()`, which admits undefined but NOT null. Gemini writes
+    // `"activitySlug": null` for "nothing booked that day", and on THIS tool that is the ordinary
+    // case, not an edge — a two-day split with one free day would have 500'd the whole turn. Same
+    // field name, same slip that broke set_trip_plan on 2026-08-08 (error_logs).
+    const model = scriptedModel([
+      { toolName: 'search_our_activities', args: { q: 'Catamaran' } },
+      {
+        toolName: 'propose_trip_days',
+        args: {
+          days: [
+            { date: '2026-09-01', activitySlug: 'catamaran-bbq', note: null },
+            { date: '2026-09-02', activitySlug: null, note: 'A slow day on the beach' },
+          ],
+        },
+      },
+      { text: 'Two days, one tour.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: "We're here two days" }] },
+      model,
+    );
+    expect(result.reply).toBe('Two days, one tour.');
+    expect(result.proposedTrip!.days.map((d) => [d.date, d.activitySlug])).toEqual([
+      ['2026-09-01', 'catamaran-bbq'],
+      ['2026-09-02', null],
+    ]);
+    expect(result.proposedTrip!.days[0]!.note).toBeNull();
   });
 
   it('returns the graceful fallback (all fields present) when no model is configured', async () => {

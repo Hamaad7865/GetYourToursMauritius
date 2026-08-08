@@ -254,7 +254,8 @@
                             "enum": [
                               "per_person",
                               "per_group",
-                              "vehicle"
+                              "vehicle",
+                              "vehicle_custom"
                             ],
                             "default": "per_person"
                           },
@@ -543,7 +544,8 @@
                           "enum": [
                             "per_person",
                             "per_group",
-                            "vehicle"
+                            "vehicle",
+                            "vehicle_custom"
                           ],
                           "default": "per_person"
                         },
@@ -8805,7 +8807,8 @@
                             "enum": [
                               "per_person",
                               "per_group",
-                              "vehicle"
+                              "vehicle",
+                              "vehicle_custom"
                             ],
                             "default": "per_person"
                           },
