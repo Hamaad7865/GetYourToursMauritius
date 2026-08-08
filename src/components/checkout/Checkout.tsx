@@ -14,7 +14,7 @@ import { useBottomBarOffset } from '@/lib/ui/useBottomBarOffset';
 import { transfers, type Transfer } from '@/lib/content/transfers';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
-import { canAdvanceStep1 } from '@/lib/checkout/pickup';
+import { canAdvanceStep1, isVehiclePriced } from '@/lib/checkout/pickup';
 import {
   DEFAULT_DIAL_CODE,
   DIAL_CODES,
@@ -702,7 +702,11 @@ export function Checkout() {
         if (!active || !body.ok) return;
         const a = body.data;
         // Authoritative pickup-mandatory signal: a vehicle-priced tour is collected door to door.
-        if (a?.pricingMode) setIsVehicleTour(a.pricingMode === 'vehicle');
+        // BOTH vehicle modes count — 'vehicle_custom' is the AI road-trip product, the most
+        // door-to-door thing on the site. This line OVERWRITES the `unit === 'per vehicle'` seed the
+        // planner's own checkout link supplies, so a check that misses a mode doesn't fail loudly:
+        // it silently downgrades that booking to the optional "Do you want pickup?" step.
+        if (a?.pricingMode) setIsVehicleTour(isVehiclePriced(a.pricingMode));
         if (a?.region && a?.transportBands && a?.regionDistances) {
           setFares({ region: a.region, bands: a.transportBands, distances: a.regionDistances });
         }

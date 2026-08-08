@@ -5,6 +5,7 @@ import {
   bookingStatusSchema,
   paymentStateSchema,
 } from '@/lib/validation/common';
+import { pricingModeSchema } from '@/lib/validation/tours';
 
 /**
  * Postgres enums whose labels the API re-validates on the way OUT, paired with the Zod enum that
@@ -24,6 +25,19 @@ const ENUM_PARITY: ReadonlyArray<readonly [string, readonly string[]]> = [
   ['booking_source', bookingSourceSchema.options],
   ['booking_status', bookingStatusSchema.options],
   ['payment_state', paymentStateSchema.options],
+];
+
+/**
+ * The same contract for the columns whose "enum" is a CHECK constraint. The list above could not see
+ * these — it reads pg_enum — and that gap is not hypothetical: `activities.pricing_mode` gained
+ * 'vehicle_custom' for the AI road-trip product, `pricingModeSchema` did not, and once the planner
+ * activity was published `GET /api/v1/activities/custom-road-trip` 500'd on every request (found in
+ * error_logs 2026-08-08, the same way 'quote' was).
+ *
+ * Keyed by constraint name, so a column name shared by two tables stays unambiguous.
+ */
+const CHECK_PARITY: ReadonlyArray<readonly [string, readonly string[]]> = [
+  ['activities_pricing_mode_check', pricingModeSchema.options],
 ];
 
 describe('schema: catalogue migrations', () => {
@@ -93,6 +107,23 @@ describe('schema: catalogue migrations', () => {
       ).toEqual([...expected].sort());
     },
   );
+
+  it.each(CHECK_PARITY)('keeps %s in step with its Zod schema', async (conname, expected) => {
+    const { rows } = await db.pg.query<{ def: string }>(
+      `select pg_get_constraintdef(oid) as def from pg_constraint where conname = $1`,
+      [conname],
+    );
+    expect(rows, `${conname} does not exist in the migrated schema`).toHaveLength(1);
+    // Postgres normalises the clause to `CHECK ((col = ANY (ARRAY['a'::text, 'b'::text])))`, so the
+    // labels come out of the server's own rendering rather than out of the migration text.
+    const labels = [...rows[0]!.def.matchAll(/'([^']+)'::text/g)].map((m) => m[1]!);
+    expect(labels, `no labels parsed out of ${conname}: ${rows[0]!.def}`).not.toHaveLength(0);
+    expect(
+      [...labels].sort(),
+      `${conname} allows [${labels.join(', ')}] but its Zod enum accepts [${expected.join(', ')}] — ` +
+        `a value only one side knows about 500s every read of a row carrying it`,
+    ).toEqual([...expected].sort());
+  });
 
   it('exposes the Supabase auth shim (auth.uid resolves from JWT claims)', async () => {
     await db.as({ sub: '11111111-1111-1111-1111-111111111111', role: 'authenticated' });

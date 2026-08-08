@@ -1,4 +1,10 @@
-import { generateText, tool, type LanguageModelV1 } from 'ai';
+import {
+  generateText,
+  tool,
+  InvalidToolArgumentsError,
+  NoSuchToolError,
+  type LanguageModelV1,
+} from 'ai';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import type { ServiceContext } from './context';
@@ -141,6 +147,26 @@ const EMPTY_RESULT: Omit<PlannerTurnResult, 'reply'> = {
 /** Availability lookups are DB RPCs fanned out per date — bound the whole turn, not just one call. */
 const MAX_AVAILABILITY_DATES_PER_TURN = 14;
 
+/**
+ * How many place ids one commit will actually RESOLVE. The day's real cap is MAX_STOPS and
+ * filterItinerary enforces it, but resolving is what costs money (unknown ids become Place Details
+ * calls), so the over-cap ids the model sends still need a ceiling — just not one that throws.
+ * Headroom above MAX_STOPS so a list padded with ids that turn out to be unknown or far-region can
+ * still fill a day.
+ */
+const MAX_RESOLVED_PLACE_IDS = MAX_STOPS * 2;
+
+/**
+ * Bound a model-supplied id list without rejecting the call. Anything past the ceiling is handed
+ * back by name so the model can be told what was ignored instead of being handed an exception.
+ */
+function boundPlaceIds(requested: string[]): { placeIds: string[]; ignoredOverLimit: string[] } {
+  return {
+    placeIds: requested.slice(0, MAX_RESOLVED_PLACE_IDS),
+    ignoredOverLimit: requested.slice(MAX_RESOLVED_PLACE_IDS),
+  };
+}
+
 export async function runPlannerTurn(
   ctx: ServiceContext,
   input: PlannerTurnInput,
@@ -184,16 +210,24 @@ export async function runPlannerTurn(
   const searchPlacesTool = tool({
     description:
       'Search real Mauritius places (live Google Places) by free text, category and/or region.',
+    // `.nullish()` throughout, not `.optional()`: the model writes an explicit null for "no filter"
+    // as readily as it omits the key, and only one of those two survives `.optional()`. See the note
+    // on set_trip_plan — a constraint in the parameters is a 500, the same constraint in execute is a
+    // fact the model can act on. Nulls are laundered back to undefined here, at the boundary, so
+    // PlacesSearchArgs stays undefined-only.
     parameters: z.object({
-      query: z.string().optional(),
+      query: z.string().nullish(),
       category: z
         .string()
-        .optional()
+        .nullish()
         .describe('Beach|Waterfall|Viewpoint|Nature|Culture|Garden|Island|Market|Landmark|Food'),
-      region: z.string().optional().describe('North|South|East|West|Central'),
+      region: z.string().nullish().describe('North|South|East|West|Central'),
     }),
-    execute: async (args) => {
-      const places = await searchPlannerPlaces(args, apiKey);
+    execute: async ({ query, category, region }) => {
+      const places = await searchPlannerPlaces(
+        { query: query ?? undefined, category: category ?? undefined, region: region ?? undefined },
+        apiKey,
+      );
       for (const p of places) discovered.set(p.id, p);
       return places.slice(0, 12).map((p) => ({
         id: p.id,
@@ -215,19 +249,22 @@ export async function runPlannerTurn(
   const searchOurActivitiesTool = tool({
     description:
       "Search Belle Mare Tours' own bookable activities. With dates, every result is availability-checked for its date (real seats). OMIT dates when the visitor has not said when they want to go — you then get catalogue facts (price, duration, rating) with no availability, and you must ask them which date. Optionally filter by region, category keyword, and/or q — a free-text title match for questions about one specific activity.",
+    // Unbounded and null-tolerant for the reasons given on set_trip_plan. The `.max(7)` that used to
+    // sit on `dates` bought nothing it wasn't already getting: execute dedupes, drops any date outside
+    // the trip, and stops at MAX_AVAILABILITY_DATES_PER_TURN — so an over-long list costs the same
+    // whether it is refused or trimmed, and refusing it costs the visitor the whole turn.
     parameters: z.object({
       dates: z
         .array(z.string())
-        .max(7)
-        .optional()
+        .nullish()
         .describe(
           'Dates to check, YYYY-MM-DD. Omit entirely if the visitor has not chosen a date.',
         ),
-      region: z.string().optional().describe('North|South|East|West|Central'),
-      category: z.string().optional().describe('e.g. Catamaran|Hiking|Snorkeling'),
+      region: z.string().nullish().describe('North|South|East|West|Central'),
+      category: z.string().nullish().describe('e.g. Catamaran|Hiking|Snorkeling'),
       q: z
         .string()
-        .optional()
+        .nullish()
         .describe('Free-text activity title match, e.g. "Catamaran Sunset Cruise"'),
     }),
     execute: async ({ dates, region, category, q }) => {
@@ -317,13 +354,20 @@ export async function runPlannerTurn(
     set_itinerary: tool({
       description:
         'Commit the chosen day as an ordered list of place ids. Returns the real total drive time, any unknown ids, ids rejected as too far from the day, and ids dropped over the 6-stop cap.',
-      // No `.min(1)`: an empty array used to fail the SDK's argument validation BEFORE execute ran,
-      // and AI_InvalidToolArgumentsError escaped as an unhandled 500 — the visitor saw the planner
-      // break because the MODEL made a mistake. (Logged in error_logs on 2026-08-01.) A model slip is
-      // a conversational problem, not a server fault: accept the call, refuse to act on it, and hand
-      // back a fact the model can recover from on its next turn.
-      parameters: z.object({ placeIds: z.array(z.string()).max(MAX_STOPS) }),
-      execute: async ({ placeIds }) => {
+      // No bounds of any kind here — not `.min(1)`, and (since 2026-08-08) not `.max(MAX_STOPS)`
+      // either. A bound in the PARAMETERS fails the SDK's argument validation BEFORE execute runs,
+      // and AI_InvalidToolArgumentsError escapes as an unhandled 500 — the visitor sees the planner
+      // break because the MODEL made a mistake. A model slip is a conversational problem, not a
+      // server fault: accept the call, refuse to act on the bad part, and hand back a fact the model
+      // can recover from on its next turn. Both slips are logged in error_logs (empty array
+      // 2026-08-01; seven ids against a six-stop cap 2026-08-08).
+      //
+      // The cap itself is not lost — it moves one layer in, where it was always enforced anyway:
+      // filterItinerary caps the day at MAX_STOPS and names what it dropped, which this tool already
+      // reports as droppedOverCap and its own description already promises.
+      parameters: z.object({ placeIds: z.array(z.string()) }),
+      execute: async ({ placeIds: requested }) => {
+        const { placeIds, ignoredOverLimit } = boundPlaceIds(requested);
         if (placeIds.length === 0) {
           // Deliberately does NOT commit: an empty list would otherwise wipe a day the visitor has
           // already built. `committed` is left untouched, so the existing itinerary survives.
@@ -347,6 +391,7 @@ export async function runPlannerTurn(
           unknownIds: resolved.unknownIds,
           rejectedFarRegion: resolved.rejectedFarRegion.map((p) => p.name),
           droppedOverCap: resolved.droppedOverCap.map((p) => p.name),
+          ...(ignoredOverLimit.length ? { ignoredOverLimit } : {}),
           totalDriveMinutes: resolved.route.totalMinutes,
           estimate: resolved.route.estimate,
         };
@@ -374,18 +419,26 @@ export async function runPlannerTurn(
     set_trip_plan: tool({
       description:
         "Commit the plan for one or more trip days (only the days you are creating or changing). Each day: its date, the ordered place ids (lunch included), an optional dinnerPlaceId, and an optional activitySlug from search_our_activities. Returns each day's real drive time and any unknown/rejected/dropped ids.",
+      // Deliberately unbounded and null-tolerant, for the same reason as set_itinerary above: every
+      // constraint expressed HERE turns a model slip into an unhandled 500, while the same constraint
+      // expressed in execute becomes a fact the model can act on. Specifically:
+      //  - `.nullish()`, not `.optional()` — Gemini writes `"activitySlug": null` for "no activity on
+      //    this day" rather than omitting the key, and `.optional()` admits undefined but not null.
+      //    Both fields are already read for truthiness below, so null needs no other handling.
+      //    (error_logs, 2026-08-08.)
+      //  - no `.min(1)` / `.max(7)` on days — an empty commit is answered with an empty result, and
+      //    the real bound is validDates: a date outside the trip is reported as unknownDates before
+      //    anything billed runs, so a model sending fifty days still costs at most the trip's length.
+      //  - no `.max(MAX_STOPS)` on placeIds — capped by filterItinerary and reported as droppedOverCap.
       parameters: z.object({
-        days: z
-          .array(
-            z.object({
-              date: z.string().describe('One of the trip dates, YYYY-MM-DD'),
-              placeIds: z.array(z.string()).max(MAX_STOPS),
-              dinnerPlaceId: z.string().optional(),
-              activitySlug: z.string().optional(),
-            }),
-          )
-          .min(1)
-          .max(7),
+        days: z.array(
+          z.object({
+            date: z.string().describe('One of the trip dates, YYYY-MM-DD'),
+            placeIds: z.array(z.string()),
+            dinnerPlaceId: z.string().nullish(),
+            activitySlug: z.string().nullish(),
+          }),
+        ),
       }),
       execute: async ({ days }) => {
         const perDay: Array<Record<string, unknown>> = [];
@@ -402,13 +455,22 @@ export async function runPlannerTurn(
           return false;
         };
 
-        for (const day of days) {
+        // Collapse repeats before doing any work. `committedDays.set` already means "last write per
+        // date wins", so keeping only the last entry for a date is the same plan — but it is also
+        // what keeps the billed fan-out bounded now that the parameters no longer cap the array:
+        // resolving a day calls the Routes API, so fifty copies of one date would otherwise be fifty
+        // route calls for one day's plan. After this, the loop runs at most once per trip date.
+        const byDate = new Map<string, (typeof days)[number]>();
+        for (const day of days) byDate.set(day.date, day);
+
+        for (const day of byDate.values()) {
           if (!validDates.has(day.date)) {
             unknownDates.push(day.date);
             continue;
           }
+          const { placeIds, ignoredOverLimit } = boundPlaceIds(day.placeIds);
           const resolved = await resolveItinerary(
-            day.placeIds,
+            placeIds,
             discovered,
             apiKey,
             existingByDate.get(day.date) ?? [],
@@ -445,6 +507,7 @@ export async function runPlannerTurn(
             unknownIds: resolved.unknownIds,
             rejectedFarRegion: resolved.rejectedFarRegion.map((p) => p.name),
             droppedOverCap: resolved.droppedOverCap.map((p) => p.name),
+            ...(ignoredOverLimit.length ? { ignoredOverLimit } : {}),
             totalDriveMinutes: resolved.route.totalMinutes,
             dinner: dinner?.name ?? null,
             ...(dinner === null && day.dinnerPlaceId ? { unknownDinnerId: day.dinnerPlaceId } : {}),
@@ -457,19 +520,36 @@ export async function runPlannerTurn(
     }),
   };
 
-  const result = await generateText({
-    model,
-    system: trip
-      ? RANGE_SYSTEM_PROMPT + currentTripContext(trip)
-      : SYSTEM_PROMPT + currentDayContext(input.itinerary ?? []),
-    messages: input.messages,
-    tools: trip ? rangeTools : singleDayTools,
-    // Each step can call a BILLED tool (search_places → Google Places, set_itinerary → Routes API), so
-    // this bounds the billed fan-out per turn. Single-day: search → commit → reply, so 4 leaves
-    // headroom for one retry. Range mode plans up to 7 days (region searches + Food searches + our
-    // activities + commit + a retry), so it gets a higher — still hard — cap.
-    maxSteps: trip ? 12 : 4,
-  });
+  let text: string;
+  try {
+    const result = await generateText({
+      model,
+      system: trip
+        ? RANGE_SYSTEM_PROMPT + currentTripContext(trip)
+        : SYSTEM_PROMPT + currentDayContext(input.itinerary ?? []),
+      messages: input.messages,
+      tools: trip ? rangeTools : singleDayTools,
+      // Each step can call a BILLED tool (search_places → Google Places, set_itinerary → Routes API), so
+      // this bounds the billed fan-out per turn. Single-day: search → commit → reply, so 4 leaves
+      // headroom for one retry. Range mode plans up to 7 days (region searches + Food searches + our
+      // activities + commit + a retry), so it gets a higher — still hard — cap.
+      maxSteps: trip ? 12 : 4,
+    });
+    text = result.text;
+  } catch (err) {
+    // Last line of defence for the whole malformed-tool-call class. Every KNOWN slip is absorbed by
+    // the tool schemas above, which is where it belongs — the model is told what it got wrong and
+    // fixes it on the next step. This catch exists because that list is only as complete as the
+    // slips seen so far: a shape nobody has thought of yet is still validated by the SDK, still
+    // throws out of generateText, and would still reach the visitor as a broken planner.
+    //
+    // Scoped to exactly the two errors that mean "the MODEL sent something malformed". A Gemini
+    // outage, a quota refusal or a Places failure is a real fault and must keep propagating to
+    // apiHandler — it belongs in error_logs, where a graceful reply would hide it.
+    if (!InvalidToolArgumentsError.isInstance(err) && !NoSuchToolError.isInstance(err)) throw err;
+    text =
+      "Sorry — I lost my thread there. Could you say that again? Everything you've planned so far is safe.";
+  }
 
   const itinerary = committed as ResolvedItinerary | null;
   const days = [...committedDays.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -477,7 +557,7 @@ export async function runPlannerTurn(
   // these), deduped by slug.
   const recommendations = [...surfacedBmt.values()];
   return {
-    reply: result.text,
+    reply: text,
     places: itinerary ? itinerary.places : [],
     route: itinerary ? itinerary.route : null,
     rejectedFarRegion: itinerary ? itinerary.rejectedFarRegion.map((p) => p.name) : [],

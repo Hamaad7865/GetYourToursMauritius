@@ -59,7 +59,10 @@ type ActivitiesRow = {
   duration_minutes: number | null;
   meeting_point: string | null;
   pickup_available: boolean;
-  pricing_mode: 'per_person' | 'per_group' | 'vehicle';
+  /** Mirrors activities_pricing_mode_check, widened with 'vehicle_custom' by 20260617210000 (the AI
+   *  road-trip product's parallel money path). Kept in step with pricingModeSchema — a row this type
+   *  says is impossible is a row the code will not handle. */
+  pricing_mode: 'per_person' | 'per_group' | 'vehicle' | 'vehicle_custom';
   daily_capacity: number | null;
   min_advance_days: number;
   languages: string[];
@@ -100,7 +103,7 @@ type ActivitiesInsert = {
   duration_minutes?: number | null;
   meeting_point?: string | null;
   pickup_available?: boolean;
-  pricing_mode?: 'per_person' | 'per_group' | 'vehicle';
+  pricing_mode?: 'per_person' | 'per_group' | 'vehicle' | 'vehicle_custom';
   daily_capacity?: number | null;
   min_advance_days?: number;
   languages?: string[];
@@ -456,9 +459,10 @@ type PaymentsRow = {
   prev_provider_checkout_id: string | null;
   checkout_claimed_until: string | null;
   /** Which money this row is for (20260910000000). 'booking' is the booking total; 'pickup_addon' is
-   *  the transport supplement for a pickup added after the booking was paid. api_create_payment scopes
-   *  every lookup by this — a booking re-pay must never pick up the add-on row. */
-  purpose: 'booking' | 'pickup_addon';
+   *  the transport supplement for a pickup added after the booking was paid; 'balance' is the
+   *  remainder after a deposit (payments_purpose_check gained it in the deposit split). api_create_payment
+   *  scopes every lookup by this — a booking re-pay must never pick up the add-on row. */
+  purpose: 'booking' | 'pickup_addon' | 'balance';
   created_at: string;
   updated_at: string;
 };
@@ -475,7 +479,7 @@ type PaymentsInsert = {
   charged_amount_minor?: number | null;
   charged_currency?: string | null;
   provider_checkout_id?: string | null;
-  purpose?: 'booking' | 'pickup_addon';
+  purpose?: 'booking' | 'pickup_addon' | 'balance';
   created_at?: string;
   updated_at?: string;
 };
