@@ -139,7 +139,13 @@ export function mapGooglePlace(raw: RawPlace): PlannerPlace | null {
   const lng = raw.location?.longitude;
   if (!id || !name || typeof lat !== 'number' || typeof lng !== 'number') return null;
   const category = categoryFromTypes(raw.types ?? [], name);
-  const photoName = raw.photos?.[0]?.name;
+  // Google returns many photos; we keep the first three for the preview card. Each one is a billed
+  // Photo request when it's actually loaded, so the card fetches them lazily on hover — listing them
+  // here costs nothing until someone looks.
+  const photoNames = (raw.photos ?? [])
+    .map((p) => p.name)
+    .filter((n): n is string => Boolean(n))
+    .slice(0, 3);
   return {
     id,
     name,
@@ -150,7 +156,8 @@ export function mapGooglePlace(raw: RawPlace): PlannerPlace | null {
     durationMin: durationForCategory(category),
     closesAt: closesAtFromHours(raw.regularOpeningHours),
     blurb: raw.editorialSummary?.text ?? null,
-    imageUrl: photoName ? photoProxyUrl(photoName) : null,
+    imageUrl: photoNames[0] ? photoProxyUrl(photoNames[0]) : null,
+    ...(photoNames.length ? { imageUrls: photoNames.map(photoProxyUrl) } : {}),
   };
 }
 

@@ -1,16 +1,3 @@
-/** A message in the ZilAi chat. Text bubbles plus the design's rich place + summary cards, and (range
- *  mode) a branded Belle Mare Tours activity recommendation card anchored to a trip date. */
-export type ChatMsg =
-  | { role: 'user' | 'assistant'; kind: 'text'; text: string }
-  | { role: 'assistant'; kind: 'place'; id: string; why?: string }
-  | { role: 'assistant'; kind: 'summary' }
-  /** `date` is null when the visitor hasn't chosen one — the card then invites them to pick, rather
-   *  than naming a day nobody selected. */
-  | { role: 'assistant'; kind: 'activity'; slug: string; date: string | null };
-
-/** An opening-hours nudge: a stop that closes early sits too late in the order. */
-export interface Boost {
-  place: string;
-  close: string;
-  id: string;
-}
+/** The planner's chat types live in `lib` so the history serializer and the chat share one
+ *  definition; re-exported here because every planner component imports them from this path. */
+export type { ChatMsg, Boost, TripProposal, TripProposalDay } from '@/lib/planner/chat';

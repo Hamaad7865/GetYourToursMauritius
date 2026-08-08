@@ -40,6 +40,8 @@ const CANDIDATE: BmtCandidate = {
   ratingAvg: 4.8,
   ratingCount: 1158,
   heroImageUrl: null,
+  summary: null,
+  imageUrls: [],
   durationMinutes: 480,
   minAdvanceDays: 1,
   date: '2026-09-01',
@@ -297,6 +299,55 @@ describe('runPlannerTurn — single-day mode unchanged', () => {
     expect(result.recommendations[0]!.seatsLeft).toBeNull();
   });
 
+  it('offers a multi-day split, dropping an invented slug and a repeated one', async () => {
+    const model = scriptedModel([
+      { toolName: 'search_our_activities', args: { q: 'Catamaran' } },
+      {
+        toolName: 'propose_trip_days',
+        args: {
+          days: [
+            { date: '2026-09-02', activitySlug: 'catamaran-bbq', note: 'Full day on the water' },
+            { date: '2026-09-01', activitySlug: 'made-up-cruise' }, // never surfaced → no tour
+            { date: 'not-a-date', activitySlug: 'catamaran-bbq' }, // junk date → whole day dropped
+            { date: '2026-09-03', activitySlug: 'catamaran-bbq' }, // already used → no tour
+          ],
+        },
+      },
+      { text: 'Three days, one thing each.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: "We're here for three days" }] },
+      model,
+    );
+    expect(result.proposedTrip).not.toBeNull();
+    expect(result.proposedTrip!.from).toBe('2026-09-01');
+    expect(result.proposedTrip!.to).toBe('2026-09-03');
+    // Sorted by date, and the tour survives on exactly one day — the one it was offered for.
+    expect(result.proposedTrip!.days.map((d) => [d.date, d.activitySlug])).toEqual([
+      ['2026-09-01', null],
+      ['2026-09-02', 'catamaran-bbq'],
+      ['2026-09-03', null],
+    ]);
+    expect(result.proposedTrip!.days[1]!.activityTitle).toBe('Catamaran Cruise with BBQ');
+    expect(result.proposedTrip!.days[1]!.note).toBe('Full day on the water');
+    // A proposal is an OFFER — it must not touch the day the visitor already has.
+    expect(result.places).toEqual([]);
+  });
+
+  it('does not offer a split it cannot make (fewer than two real dates)', async () => {
+    const model = scriptedModel([
+      { toolName: 'propose_trip_days', args: { days: [{ date: '2026-09-01' }] } },
+      { text: 'Which days are you here?' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: 'split it up' }] },
+      model,
+    );
+    expect(result.proposedTrip).toBeNull();
+  });
+
   it('returns the graceful fallback (all fields present) when no model is configured', async () => {
     const result = await runPlannerTurn(
       { ai: { name: 'stub', model: '' } } as unknown as ServiceContext,
@@ -306,5 +357,62 @@ describe('runPlannerTurn — single-day mode unchanged', () => {
     expect(result.reply).toContain("can't reach ZilAi");
     expect(result.days).toEqual([]);
     expect(result.recommendations).toEqual([]);
+    expect(result.proposedTrip).toBeNull();
+  });
+});
+
+/* The failure this whole guard exists for: Gemini searched, described a lovely day in prose, and
+ * committed nothing — so the visitor read "I cannot directly display a map for you. However, you can
+ * easily find these locations on any map application" while their map stayed empty. */
+describe('runPlannerTurn — a searched-for plan must reach the map', () => {
+  it('makes the model commit when it described places without committing them', async () => {
+    const model = scriptedModel([
+      { toolName: 'search_places', args: { region: 'South' } },
+      { text: 'I cannot directly display a map for you, but here are the names.' },
+      // The repair turn:
+      { toolName: 'set_itinerary', args: { placeIds: ['pl-belle-mare'] } },
+      { text: '**Belle Mare Beach** is on your map — 55 min of driving.' },
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      {
+        messages: [{ role: 'user', content: 'plan me a day in the south' }],
+        itinerary: [place('pl-belle-mare', 'Belle Mare Beach')],
+      },
+      model,
+    );
+    expect(result.places.map((p) => p.name)).toEqual(['Belle Mare Beach']);
+    expect(result.reply).toContain('on your map');
+    expect(result.reply).not.toContain('cannot');
+  });
+
+  it('leaves a pure question alone — no phantom itinerary from an answer', async () => {
+    const model = scriptedModel([
+      { toolName: 'search_our_activities', args: { q: 'Catamaran Cruise with BBQ' } },
+      { text: 'It runs 8 hours from €75.' },
+      { text: 'A REPAIR TURN RAN' }, // only reachable if the guard fired
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: 'Tell me about Catamaran Cruise with BBQ' }] },
+      model,
+    );
+    expect(result.reply).toBe('It runs 8 hours from €75.');
+    expect(result.places).toEqual([]);
+  });
+
+  it('keeps the original reply when the model still refuses to commit', async () => {
+    const model = scriptedModel([
+      { toolName: 'search_places', args: { region: 'North' } },
+      { text: 'That is too far from your day — it would be a separate trip.' },
+      { text: 'still not committing' }, // the repair turn, which commits nothing
+    ]);
+    const result = await runPlannerTurn(
+      ctx,
+      { messages: [{ role: 'user', content: 'add Grand Baie' }] },
+      model,
+    );
+    expect(result.reply).toBe('That is too far from your day — it would be a separate trip.');
+    expect(result.places).toEqual([]);
   });
 });

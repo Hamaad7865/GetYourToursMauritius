@@ -17,6 +17,10 @@ export const plannerPlaceSchema = z.object({
   closesAt: z.string().nullable(),
   blurb: z.string().nullable(),
   imageUrl: z.string().nullable(),
+  /** Up to four photos for the place preview card (`imageUrl` stays the single thumbnail). Optional
+   *  so places already sitting in the durable places_cache — written before this field existed —
+   *  keep parsing instead of dropping out of the catalogue. */
+  imageUrls: z.array(z.string()).max(4).optional(),
 });
 
 export type PlannerPlace = z.infer<typeof plannerPlaceSchema>;

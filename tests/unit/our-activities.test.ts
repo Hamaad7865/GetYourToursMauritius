@@ -111,6 +111,8 @@ const act = (over: Partial<BmtActivity>): BmtActivity => ({
   ratingAvg: 4.5,
   ratingCount: 100,
   heroImageUrl: null,
+  summary: null,
+  imageUrls: [],
   durationMinutes: 480,
   minAdvanceDays: 1,
   ...over,
