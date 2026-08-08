@@ -2,6 +2,10 @@ import { z } from 'zod';
 import type { ZodOpenApiPathsObject, ZodOpenApiResponseObject } from 'zod-openapi';
 import { draftFromEmailResponseSchema } from '@/lib/validation/quote-extraction';
 import {
+  quoteAssistantRequestSchema,
+  quoteAssistantResponseSchema,
+} from '@/lib/validation/quote-assistant';
+import {
   errorEnvelopeSchema,
   paginationQuerySchema,
   successEnvelopeSchema,
@@ -968,6 +972,34 @@ export const apiPaths: ZodOpenApiPathsObject = {
           'The extraction + catalogue candidates, or available:false when no model is configured',
         ),
         '400': errorResponse('No email text was supplied'),
+        '401': errorResponse('Authentication required'),
+        '403': errorResponse('Staff only'),
+        '429': errorResponse('Too many requests'),
+      },
+    },
+  },
+  '/admin/quotes/assistant': {
+    post: {
+      operationId: 'askQuoteAssistant',
+      summary: 'One turn of the staff Gemini chat (staff-only)',
+      description:
+        'The chattable assistant in the quotes screen. The browser sends the visible thread (the ' +
+        'route holds no state); the reply is grounded by READ-ONLY tools over our own data — the ' +
+        'published catalogue, open departures with real price tiers, the transport fare tables, a ' +
+        'booking or quote by ref, and the rental fleet. The model is instructed that every figure ' +
+        'must come from a tool result, and there is no writing tool at all: changing data stays in ' +
+        'the operator’s hands. STAFF ONLY — profiles.role, not the JWT role claim; "seo" is ' +
+        'excluded (replies surface guests’ names and money). With no model configured it returns ' +
+        'available:false and the panel says so.',
+      tags: ['Quotes'],
+      security: [{ bearerAuth: [] }],
+      requestBody: jsonBody(quoteAssistantRequestSchema),
+      responses: {
+        '200': okJson(
+          quoteAssistantResponseSchema,
+          'The grounded reply, or available:false when no model is configured',
+        ),
+        '400': errorResponse('No messages, or a thread over the cap'),
         '401': errorResponse('Authentication required'),
         '403': errorResponse('Staff only'),
         '429': errorResponse('Too many requests'),

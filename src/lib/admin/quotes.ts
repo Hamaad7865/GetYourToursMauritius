@@ -3,6 +3,7 @@ import { assertQuoteStillValid } from '@/lib/quotes/validity';
 import { ValidationError } from '@/lib/services/errors';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import type { DraftFromEmailResponse } from '@/lib/validation/quote-extraction';
+import type { AssistantMessage, QuoteAssistantResponse } from '@/lib/validation/quote-assistant';
 
 /* Staff-side quotes: draft, re-price, withdraw, send. Mirrors src/lib/admin/bookings.ts — the
  * authenticated admin talks to Supabase directly through the browser client and the `*_staff` RLS
@@ -906,6 +907,35 @@ export async function draftQuoteFromEmail(email: string): Promise<DraftFromEmail
   } | null;
   if (!res.ok || !body?.ok || !body.data) {
     throw new Error(body?.error?.message ?? 'Could not draft from that email.');
+  }
+  return body.data;
+}
+
+/**
+ * One turn of the admin Gemini chat: the visible thread goes up, a tool-grounded reply comes back.
+ * Same shape as {@link draftQuoteFromEmail} — bearer from the session, `{ ok, data }` envelope —
+ * and the route holds no state, so the PANEL owns the conversation.
+ */
+export async function askQuoteAssistant(
+  messages: AssistantMessage[],
+  quoteContext: string | null,
+): Promise<QuoteAssistantResponse> {
+  const staff = await session();
+  const res = await fetch('/api/v1/admin/quotes/assistant', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(staff ? { authorization: `Bearer ${staff.accessToken}` } : {}),
+    },
+    body: JSON.stringify({ messages, quoteContext }),
+  });
+  const body = (await res.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: QuoteAssistantResponse;
+    error?: { message?: string };
+  } | null;
+  if (!res.ok || !body?.ok || !body.data) {
+    throw new Error(body?.error?.message ?? 'The assistant did not answer — try again.');
   }
   return body.data;
 }

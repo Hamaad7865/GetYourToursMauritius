@@ -744,6 +744,20 @@
     animation: aiGlow 3.4s ease-in-out infinite;
     will-change: transform, opacity;
   }
+  /* The chat panel's entrance — Gmail's side-panel slide. A KEYFRAME rather than a JS-flipped
+     transition on purpose: it plays whenever the class lands, with no requestAnimationFrame timing
+     to miss (used via motion-safe:animate-[aiPanelIn_…] in AiChatPanel.tsx, so reduced-motion
+     never sees it). */
+  @keyframes aiPanelIn {
+    from {
+      transform: translateX(calc(100% + 12px));
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
 
   /* The LAUNCHER — Gmail's Gemini button. At rest it is a quiet white disc; on hover the full
      Gemini spectrum blooms behind it (a blurred conic ring), the button lifts, and the spark
