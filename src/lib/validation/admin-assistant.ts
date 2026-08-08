@@ -62,6 +62,86 @@ export const tourContentPatchSchema = z.object({
 });
 export type TourContentPatch = z.infer<typeof tourContentPatchSchema>;
 
+/**
+ * The same fields with NO bounds, for an AI tool's `parameters` — and only there.
+ *
+ * The bounds above are a real guardrail on what reaches the database, so they stay exactly as they
+ * are. But a bound in a tool's `parameters` is not a guardrail at all: the AI SDK validates model
+ * arguments BEFORE `execute` runs, so a description one character over 8000 does not get rejected —
+ * it throws out of generateText and 500s the operator's whole chat. And the model overrunning a
+ * length it was merely ASKED for in the prompt is the ordinary case, not an edge one. (See the
+ * `no-restricted-syntax` rule in eslint.config.mjs, which cannot see this schema because it is
+ * hoisted out of the tool call — the reason the split has to be made deliberately here.)
+ *
+ * So the model writes into this shape and `clampTourContentPatch` narrows it to the strict one.
+ * Nothing is loosened: the strict schema is still what validates the action on the wire.
+ * `.nullish()` throughout, because a model sends an explicit null as readily as it omits a key.
+ */
+export const tourContentPatchInputSchema = z.object({
+  title: z.string().nullish(),
+  summary: z.string().nullish(),
+  description: z.string().nullish(),
+  location: z.string().nullish(),
+  meetingPoint: z.string().nullish(),
+  cancellationPolicy: z.string().nullish(),
+  seoTitle: z.string().nullish(),
+  seoDescription: z.string().nullish(),
+  highlights: z.array(z.string()).nullish(),
+  inclusions: z.array(z.string()).nullish(),
+  exclusions: z.array(z.string()).nullish(),
+  whatToBring: z.array(z.string()).nullish(),
+  importantInfo: z.array(z.string()).nullish(),
+});
+export type TourContentPatchInput = z.infer<typeof tourContentPatchInputSchema>;
+
+/** Field limits, mirroring tourContentPatchSchema. Kept in step by a parity test rather than by
+ *  cleverness — a admin-assistant-clamp test feeds a maximally-oversized patch through this and
+ *  asserts tourContentPatchSchema accepts the result, so a limit changed on one side fails. */
+const TEXT_LIMITS = {
+  title: 200,
+  summary: 1000,
+  description: 8000,
+  location: 200,
+  meetingPoint: 400,
+  cancellationPolicy: 2000,
+  seoTitle: 200,
+  seoDescription: 400,
+} as const;
+const LIST_LIMITS = {
+  highlights: { items: 12, chars: 300 },
+  inclusions: { items: 20, chars: 300 },
+  exclusions: { items: 20, chars: 300 },
+  whatToBring: { items: 20, chars: 300 },
+  importantInfo: { items: 20, chars: 500 },
+} as const;
+
+/**
+ * Narrow a model-authored patch to something tourContentPatchSchema accepts: truncate, drop the
+ * keys it did not set, and drop empty strings/lists.
+ *
+ * Absent keys must STAY absent — a patch means "change only these fields", so writing an explicit
+ * undefined-turned-empty-string would blank a field the operator never asked to touch.
+ */
+export function clampTourContentPatch(input: TourContentPatchInput): TourContentPatch {
+  const out: Record<string, unknown> = {};
+  for (const [key, max] of Object.entries(TEXT_LIMITS)) {
+    const raw = input[key as keyof typeof TEXT_LIMITS];
+    if (raw === null || raw === undefined) continue;
+    const value = raw.trim().slice(0, max);
+    if (value) out[key] = value;
+  }
+  for (const [key, limit] of Object.entries(LIST_LIMITS)) {
+    const raw = input[key as keyof typeof LIST_LIMITS];
+    if (raw === null || raw === undefined) continue;
+    const value = raw
+      .map((item) => item.trim().slice(0, limit.chars))
+      .filter(Boolean)
+      .slice(0, limit.items);
+    if (value.length) out[key] = value;
+  }
+  return out as TourContentPatch;
+}
+
 export const assistantActionSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('create_tour'),
