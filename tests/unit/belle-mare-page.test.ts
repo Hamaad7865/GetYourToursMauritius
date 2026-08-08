@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import nextConfig from '../../next.config.mjs';
 import { AREA_PATH_OVERRIDES, areas, destinationPath, getArea } from '@/lib/content/areas';
 import { hotelsFor, DEFAULT_AIRPORT_MINUTES } from '@/lib/content/destination-hotels';
@@ -22,6 +23,15 @@ import { LOCALE_PREFIX } from '@/lib/i18n/routing';
 const ROOT = new URL('../../', import.meta.url).pathname.replace(/^\/([a-z]:)/i, '$1');
 
 type Redirect = { source: string; destination: string; permanent?: boolean };
+
+/** Every .ts/.tsx under a directory. Source scan, as this repo already guards drift that way. */
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const full = join(dir, name);
+    if (statSync(full).isDirectory()) return sourceFiles(full);
+    return /\.tsx?$/.test(name) ? [full] : [];
+  });
+}
 
 async function redirects(): Promise<Redirect[]> {
   const all = (await nextConfig.redirects?.()) ?? [];
@@ -49,6 +59,30 @@ describe('AREA_PATH_OVERRIDES', () => {
     for (const path of Object.values(AREA_PATH_OVERRIDES)) {
       expect(existsSync(`${ROOT}app/(site)${path}/page.tsx`), `no route for ${path}`).toBe(true);
     }
+  });
+
+  /*
+   * Internal links must name the CANONICAL url, not the redirect.
+   *
+   * The 308 keeps the old URL working, which is exactly why this rots silently: every link still
+   * resolves, so nothing looks broken. But the site-wide footer entry for this guide exists
+   * specifically to feed it internal signal (see the comment in SiteFooter.tsx) — and a sitewide
+   * link pointing at a redirect spends that signal on a hop. This caught four real ones the day
+   * the page moved, the footer among them.
+   */
+  it('links to the canonical url everywhere, never to the redirect', () => {
+    const offenders: string[] = [];
+    for (const file of sourceFiles(`${ROOT}src`).concat(sourceFiles(`${ROOT}app`))) {
+      const src = readFileSync(file, 'utf8');
+      // Only link positions — `href="…"` and `href: '…'` — so prose in comments does not trip it.
+      for (const m of src.matchAll(/href[=:]\s*\{?\s*['"]\/destinations\/([a-z0-9-]+)['"]/g)) {
+        const slug = m[1] ?? '';
+        if (AREA_PATH_OVERRIDES[slug]) {
+          offenders.push(`${file.slice(ROOT.length)} → /destinations/${slug}`);
+        }
+      }
+    }
+    expect(offenders, `link the canonical url instead:\n${offenders.join('\n')}`).toEqual([]);
   });
 
   it('308s the vacated /destinations URL onto the override, in BOTH locales', async () => {

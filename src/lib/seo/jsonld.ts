@@ -67,7 +67,7 @@ export function organizationJsonLd(): Record<string, unknown> {
  * `organizationJsonLd` above describes the BUSINESS; this describes the SITE, and it is the node
  * Google leans on to decide which URL is a brand's home. That distinction matters here because
  * "Belle Mare Tours" collides with the place name, and several of our own pages are plausible
- * answers for it (`/things-to-do-in-belle-mare`, `/belle-mare-tours`, `/destinations/belle-mare`) —
+ * answers for it (`/things-to-do-in-belle-mare`, `/belle-mare-tours`, `/belle-mare`) —
  * on a young domain Google's pick between them is unstable and has flipped day to day.
  *
  * `publisher` ties the site back to the TravelAgency `@id`, so the two nodes read as one entity

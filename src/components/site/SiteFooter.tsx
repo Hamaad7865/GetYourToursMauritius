@@ -50,7 +50,7 @@ const COLUMNS = [
       // legacy visitemaurice.com article 301s into it). It was reachable only from /destinations,
       // the things-to-do guide and the sitemap — so the site's own indexed pages passed it nothing.
       // A footer entry links it from every page on the site.
-      { label: 'Belle Mare area guide', href: '/destinations/belle-mare' },
+      { label: 'Belle Mare area guide', href: '/belle-mare' },
       { label: 'Things to do in Belle Mare', href: '/things-to-do-in-belle-mare' },
       { label: 'Mauritius travel blog', href: '/blog' },
       { label: 'Belle Mare Tours', href: '/belle-mare-tours' },
