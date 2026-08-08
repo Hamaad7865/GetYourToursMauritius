@@ -49,6 +49,19 @@ interface AssistantState {
   /** A prompt handed to the panel to send once it mounts; the panel clears it. */
   pendingPrompt: string | null;
   clearPendingPrompt: () => void;
+  /**
+   * An enquiry handed from the assistant to the quotes screen ("turn this email into a quote").
+   *
+   * It travels through CONTEXT rather than the URL or sessionStorage, and that is the fix for a real
+   * bug: the hand-off used to be a `?assistant=draft` flag read by a mount-effect, so applying while
+   * ALREADY on /admin/quotes did nothing at all — the route did not change, the screen never
+   * remounted, and the effect never re-fired. A context value is a state change, so every consumer
+   * re-renders whether or not a navigation happened. It also keeps a customer's email out of the URL
+   * (history, logs, GTM `page_location`).
+   */
+  quoteHandoff: string | null;
+  handOffQuoteEmail: (email: string) => void;
+  clearQuoteHandoff: () => void;
 }
 
 const Ctx = createContext<AssistantState | null>(null);
@@ -79,6 +92,7 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
   const [thread, setThread] = useState<AssistantThreadItem[]>([]);
   const [detail, setDetail] = useState<string | null>(null);
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
+  const [quoteHandoff, setQuoteHandoff] = useState<string | null>(null);
 
   // A screen's detail describes THAT screen; leaving it must not carry stale context to the next.
   useEffect(() => {
@@ -92,6 +106,8 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
     if (prompt) setPendingPrompt(prompt);
   }, []);
   const clearPendingPrompt = useCallback(() => setPendingPrompt(null), []);
+  const handOffQuoteEmail = useCallback((email: string) => setQuoteHandoff(email), []);
+  const clearQuoteHandoff = useCallback(() => setQuoteHandoff(null), []);
 
   const page = useMemo<AssistantPageContext>(
     () => ({ path: pathname, screen: screenName(pathname), detail }),
@@ -110,8 +126,23 @@ export function AssistantProvider({ children }: { children: ReactNode }) {
       ask,
       pendingPrompt,
       clearPendingPrompt,
+      quoteHandoff,
+      handOffQuoteEmail,
+      clearQuoteHandoff,
     }),
-    [open, toggle, thread, page, registerDetail, ask, pendingPrompt, clearPendingPrompt],
+    [
+      open,
+      toggle,
+      thread,
+      page,
+      registerDetail,
+      ask,
+      pendingPrompt,
+      clearPendingPrompt,
+      quoteHandoff,
+      handOffQuoteEmail,
+      clearQuoteHandoff,
+    ],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

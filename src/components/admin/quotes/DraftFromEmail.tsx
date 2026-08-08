@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { draftQuoteFromEmail } from '@/lib/admin/quotes';
-import { ASSISTANT_QUOTE_EMAIL_KEY } from '@/lib/admin/assistant';
+import { useAssistant } from '@/components/admin/assistant/AssistantProvider';
 import { draftFromExtraction } from '@/lib/services/quote-draft';
 import { loadActivityDepartures, loadTransportPricing } from '@/lib/admin/quote-catalogue';
 import { extractStatedAmounts, type StatedAmount } from '@/lib/quotes/reconcile';
@@ -110,21 +110,20 @@ export function DraftFromEmail({
     return () => clearInterval(id);
   }, [busy]);
 
-  // An enquiry handed over by the assistant ("turn this email into a quote"): it parked the thread
-  // in sessionStorage and opened a new quote here. Consume it ONCE — removing the key before the
-  // run so a re-render or a refresh cannot draft the same enquiry twice — and draft immediately, so
-  // the operator lands on a filled editor rather than on a box they must press again.
-  const handedOver = useRef(false);
+  // An enquiry handed over by the assistant ("turn this email into a quote"). Keyed on the context
+  // VALUE, so it lands whether or not a navigation happened — and cleared immediately, both so the
+  // same enquiry cannot be drafted twice and so the next hand-off is a fresh value that re-fires
+  // this. Drafts at once, so the operator arrives at a filled editor rather than a box to press.
+  const assistant = useAssistant();
+  const handoff = assistant?.quoteHandoff ?? null;
+  const clearHandoff = assistant?.clearQuoteHandoff;
   useEffect(() => {
-    if (handedOver.current || typeof window === 'undefined') return;
-    const pending = sessionStorage.getItem(ASSISTANT_QUOTE_EMAIL_KEY);
-    if (!pending) return;
-    handedOver.current = true;
-    sessionStorage.removeItem(ASSISTANT_QUOTE_EMAIL_KEY);
-    setEmail(pending);
-    void run(pending);
+    if (!handoff) return;
+    clearHandoff?.();
+    setEmail(handoff);
+    void run(handoff);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [handoff]);
 
   /** `override` is the assistant hand-off: state has not flushed yet, so the text comes in directly. */
   async function run(override?: string) {

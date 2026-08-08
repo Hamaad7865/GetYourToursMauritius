@@ -16,6 +16,18 @@ import { describe, expect, it } from 'vitest';
 const ROOT = join(__dirname, '..', '..');
 const source = (path: string) => readFileSync(join(ROOT, path), 'utf8');
 
+/**
+ * The same file with `//` comments removed. A negative assertion ("this class is gone") otherwise
+ * fails on the comment that EXPLAINS why it is gone — which would push the next author to delete
+ * the explanation to make the test pass, exactly backwards.
+ */
+const code = (path: string) =>
+  source(path)
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .split('\n')
+    .map((line) => line.replace(/(^|\s)\/\/.*$/, '$1'))
+    .join('\n');
+
 describe('the assistant is global', () => {
   it('lives in the admin shell, wrapped in its provider', () => {
     const shell = source('src/components/admin/AdminShell.tsx');
@@ -45,13 +57,29 @@ describe('the assistant is global', () => {
 describe('the panel pushes the content instead of covering it', () => {
   const panel = source('src/components/admin/assistant/AssistantPanel.tsx');
 
-  it('becomes a static, width-animated column from lg', () => {
-    // `lg:static` is what takes it out of the overlay layer; the width pair is what makes the main
-    // column reflow. Losing either one silently restores the covering behaviour the owner rejected.
-    expect(panel).toContain('lg:static');
+  it('becomes an in-flow, width-animated column from lg', () => {
+    // The width pair is what makes the main column reflow. Losing it silently restores the
+    // covering behaviour the owner rejected.
     expect(panel).toContain('lg:w-[400px]');
     expect(panel).toContain('lg:w-0');
     expect(panel).toContain('transition-[transform,width,opacity]');
+  });
+
+  it('is STICKY, not static — a static column scrolls away and leaves white space', () => {
+    // Reported by the owner: scrolling a long quote form left blank space beside it. A static
+    // column is exactly one viewport tall and scrolls off with the page; sticky stays in flow (so
+    // it still pushes the content) but pins to the viewport.
+    expect(panel).toContain('lg:sticky');
+    expect(panel).toContain('lg:top-0');
+    expect(code('src/components/admin/assistant/AssistantPanel.tsx')).not.toContain('lg:static');
+  });
+
+  it('grows the composer to fit a pasted thread, up to a cap', () => {
+    // A rows={1} textarea keeps one line's height however much is pasted — and pasting an email
+    // thread is the main thing this box is for. Driven by the VALUE so a programmatic fill grows too.
+    expect(panel).toMatch(/el\.style\.height = 'auto'/);
+    expect(panel).toMatch(/Math\.min\(el\.scrollHeight, 168\)/);
+    expect(panel).toContain('max-h-[168px]');
   });
 
   it('keeps a scrim ONLY below lg, where it genuinely overlays', () => {
@@ -64,6 +92,40 @@ describe('the panel pushes the content instead of covering it', () => {
 
   it('keeps the honest disclaimer', () => {
     expect(panel).toContain('Gemini can make mistakes');
+  });
+});
+
+describe('the quote hand-off survives being applied on the quotes screen itself', () => {
+  // The bug this guards: the hand-off was a `?assistant=draft` flag read by a MOUNT effect. Applying
+  // while already on /admin/quotes changed no route, remounted nothing, and the effect never
+  // re-fired — "pressing open does nothing". It now travels as context state, which every consumer
+  // re-renders on regardless of navigation.
+  it('carries the enquiry through the assistant context, not the URL or sessionStorage', () => {
+    const provider = source('src/components/admin/assistant/AssistantProvider.tsx');
+    expect(provider).toContain('quoteHandoff');
+    expect(provider).toContain('handOffQuoteEmail');
+
+    const lib = source('src/lib/admin/assistant.ts');
+    expect(lib).toContain('handOffQuoteEmail');
+    // A customer's email must never reach the URL or storage. Matched on the CALLS, not the word:
+    // the module's comment explains why neither is used, and should stay readable.
+    expect(code('src/lib/admin/assistant.ts')).not.toMatch(/sessionStorage/);
+    expect(lib).not.toContain('assistant=draft');
+  });
+
+  it('both consumers key their effect on the VALUE, never on mount alone', () => {
+    const quotes = source('src/components/admin/AdminQuotes.tsx');
+    expect(quotes).toMatch(/useEffect\([\s\S]{0,120}?\}, \[handoff\]\)/);
+    expect(code('src/components/admin/AdminQuotes.tsx')).not.toContain('assistant=draft');
+
+    const draft = source('src/components/admin/quotes/DraftFromEmail.tsx');
+    expect(draft).toMatch(/\}, \[handoff\]\)/);
+    expect(code('src/components/admin/quotes/DraftFromEmail.tsx')).not.toContain('sessionStorage');
+  });
+
+  it('navigating to the page you are already on is guarded, since push would be a no-op', () => {
+    const card = source('src/components/admin/assistant/ActionCard.tsx');
+    expect(card).toMatch(/pathname !== href\.split\('\?'\)\[0\]/);
   });
 });
 
