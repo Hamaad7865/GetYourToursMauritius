@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { ServiceContext } from './context';
 import { callRpc } from './rpc';
-import { NotFoundError } from './errors';
+import { NotFoundError, ValidationError } from './errors';
 import {
   bookingSchema,
   bookingSummarySchema,
@@ -9,6 +9,7 @@ import {
   type BookingHistoryQuery,
   type BookingSummary,
   type CreateBookingInput,
+  type CustomItinerary,
 } from '@/lib/validation/booking';
 
 /** A payment_pending booking surfaced in the cart's "Awaiting payment" section. `holdExpiresAt` is the
@@ -77,12 +78,60 @@ export async function listMyBookings(
  * `actorUserId` for the booking-owner linkage + the F23 replay-disclosure guard. Trustworthy precisely
  * because only the server (service_role) can execute the RPC.
  */
+const hasStops = (route: CustomItinerary | undefined): boolean =>
+  Array.isArray(route) && route.length > 0;
+
+/**
+ * Decide the route this booking will carry, and refuse to create one that cannot be delivered.
+ *
+ * The client's copy WINS when it has one — the customer may have reordered or swapped stops after
+ * the spot was held, and the hold's copy is a snapshot of the older day. The hold is the fallback,
+ * for the case this exists to fix: the route lived only in the visitor's sessionStorage between the
+ * planner and checkout, and when that vanished the booking still went through with nothing on it
+ * (BMTFF77DC5CDD471 — a paid full-day private vehicle with no route, unrecoverable because nothing
+ * server-side had ever seen one).
+ *
+ * The refusal is last and applies ONLY to `vehicle_custom`, whose whole deliverable is the list of
+ * places. It is a backstop, not the user-facing guard: the hold now carries the route, so a customer
+ * should never reach it. Refusing beats confirming — an error the customer can retry is recoverable,
+ * a paid trip nobody can drive is not. Every other pricing mode keeps working with no route at all.
+ */
+async function resolveCustomRoute(
+  ctx: ServiceContext,
+  input: CreateBookingInput,
+): Promise<CustomItinerary> {
+  if (hasStops(input.itinerary)) return input.itinerary;
+
+  const ctxData = await callRpc(ctx, 'api_hold_route', {
+    occurrenceId: input.occurrenceId,
+    holdId: input.holdId ?? null,
+  });
+  const parsed = z
+    .object({ pricingMode: z.string().nullish(), itinerary: z.unknown().nullish() })
+    .catch({ pricingMode: null, itinerary: null })
+    .parse(ctxData);
+
+  const fromHold = z
+    .array(z.object({ title: z.string() }).passthrough())
+    .catch([])
+    .parse(parsed.itinerary ?? []) as NonNullable<CustomItinerary>;
+  if (fromHold.length > 0) return fromHold;
+
+  if (parsed.pricingMode === 'vehicle_custom') {
+    throw new ValidationError(
+      'This custom trip has no route on it, so we cannot book it — please rebuild your day in the planner and try again.',
+    );
+  }
+  return input.itinerary ?? null;
+}
+
 export async function createBooking(
   ctx: ServiceContext,
   input: CreateBookingInput,
   actorUserId?: string | null,
 ): Promise<Booking> {
   const idempotencyKey = input.idempotencyKey ?? crypto.randomUUID();
+  const itinerary = await resolveCustomRoute(ctx, input);
   const data = await callRpc(ctx, 'api_book', {
     actorUserId: actorUserId ?? null,
     occurrenceId: input.occurrenceId,
@@ -90,7 +139,7 @@ export async function createBooking(
     party: input.party,
     suv: input.suv ?? false,
     holdId: input.holdId ?? null,
-    itinerary: input.itinerary ?? null,
+    itinerary,
     pickupLocation: input.pickupLocation ?? null,
     dropoffLocation: input.dropoffLocation ?? null,
     pickupPending: input.pickupPending ?? false,

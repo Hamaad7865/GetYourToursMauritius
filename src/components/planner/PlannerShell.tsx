@@ -17,6 +17,7 @@ import { FeaturesSection } from './FeaturesSection';
 import { TrustSection } from './TrustSection';
 import { FaqSection } from './FaqSection';
 import { PICKUPS, PRESETS, fmtDur, type PlannerPoint } from './planner-constants';
+import { reportClientError } from '@/lib/client-error-report';
 import { computePlannerRoute } from '@/lib/planner/route';
 import { plannerQuote, type PlannerQuote } from '@/lib/planner/pricing';
 import { addBlockReason, dayRegionLabel, MAX_STOPS } from '@/lib/planner/constraints';
@@ -1102,6 +1103,17 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
       }
       const occ = slot.occurrenceId;
       const idem = crypto.randomUUID();
+      // Built BEFORE the hold so it can travel with it. The day's stops are the whole deliverable of
+      // a custom road trip, and they used to reach the server only at pay, carried across the
+      // planner→checkout gap by sessionStorage alone — so a browser that dropped that key produced a
+      // paid trip with no route and no way to recover one (BMTFF77DC5CDD471, 9 Aug 2026). Sending it
+      // with the hold means the server has it from the first moment it knows about this booking.
+      const itinerary = stops.map((s) => ({
+        title: s.name,
+        area: s.region,
+        lat: s.lat,
+        lng: s.lng,
+      }));
       let holdId = '';
       let expiresAt = '';
       try {
@@ -1113,6 +1125,7 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
             expectedSlug: CUSTOM_SLUG,
             people: party,
             idempotencyKey: idem,
+            itinerary,
           }),
         }).then((r) => r.json());
         if (res.ok) {
@@ -1127,15 +1140,17 @@ export function PlannerShell({ mayUseDeviceLocation = false }: { mayUseDeviceLoc
           `gytm:hold:${occ}`,
           JSON.stringify({ holdId, expiresAt, idem }),
         );
-        const itinerary = stops.map((s) => ({
-          title: s.name,
-          area: s.region,
-          lat: s.lat,
-          lng: s.lng,
-        }));
         window.sessionStorage.setItem(`gytm:itinerary:${CUSTOM_SLUG}`, JSON.stringify(itinerary));
-      } catch {
-        /* sessionStorage unavailable — checkout falls back */
+      } catch (err) {
+        // Checkout still falls back to the hold's copy, so this is no longer fatal — but it is the
+        // exact moment the old bug began, and it happened in total silence. Now it lands in
+        // error_logs, where the owner's "what broke?" query can see it. Reporting only; a storage
+        // failure must never stop a booking that the server can complete without it.
+        reportClientError({
+          kind: 'planner-itinerary-stash-failed',
+          message: err instanceof Error ? err.message : 'sessionStorage write failed',
+          source: `stops=${itinerary.length} hold=${holdId ? 'yes' : 'no'}`,
+        });
       }
       const dateText = new Date(`${bookingDate}T00:00:00`).toLocaleDateString('en-GB', {
         day: 'numeric',

@@ -15,6 +15,7 @@ import { transfers, type Transfer } from '@/lib/content/transfers';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import type { TransportBands, RegionDistances } from '@/lib/validation/tours';
 import { canAdvanceStep1, isVehiclePriced } from '@/lib/checkout/pickup';
+import { reportClientError } from '@/lib/client-error-report';
 import {
   DEFAULT_DIAL_CODE,
   DIAL_CODES,
@@ -366,6 +367,10 @@ export function Checkout() {
   // doesn't apply. Seeded synchronously from the URL `unit` (no flash) and confirmed from the
   // activity's pricingMode by the fetch below.
   const [isVehicleTour, setIsVehicleTour] = useState(unit === 'per vehicle');
+  // 'vehicle_custom' specifically — the AI road-trip product, whose deliverable IS the route. Only
+  // this mode makes a missing itinerary a problem worth reporting; a normal 'vehicle' sightseeing
+  // tour has a fixed published route and never carries one.
+  const [isCustomTrip, setIsCustomTrip] = useState(false);
   const [pickupLoc, setPickupLoc] = useState(pickupParam);
   // Resolved pickup coordinates — drive the region-based transport fee the server charges. Prefilled
   // from the widget's stash (below) or captured when the customer picks a place / drags the pin here.
@@ -707,6 +712,7 @@ export function Checkout() {
         // planner's own checkout link supplies, so a check that misses a mode doesn't fail loudly:
         // it silently downgrades that booking to the optional "Do you want pickup?" step.
         if (a?.pricingMode) setIsVehicleTour(isVehiclePriced(a.pricingMode));
+        setIsCustomTrip(a?.pricingMode === 'vehicle_custom');
         if (a?.region && a?.transportBands && a?.regionDistances) {
           setFares({ region: a.region, bands: a.transportBands, distances: a.regionDistances });
         }
@@ -955,6 +961,17 @@ export function Checkout() {
       // the gate itself (an absent route never counts as drift, see routeDrift) but it would put a
       // route on the payload that the hash didn't cover.
       const itin = readItinerary();
+      // The moment the old bug became invisible. A custom road trip whose route is not in this tab
+      // is now RECOVERABLE — the server falls back to the copy stored on the hold — but it is still
+      // a fault worth seeing, because the fallback is the last line and it is silent when it works.
+      // Reported, never blocking: the server decides whether this booking can proceed.
+      if (isCustomTrip && !itin) {
+        reportClientError({
+          kind: 'custom-trip-route-missing-at-pay',
+          message: 'No itinerary in sessionStorage at pay for a vehicle_custom booking',
+          source: `slug=${slug} from=${fromWidget ? 'widget' : fromCart ? 'cart' : 'other'} hold=${holdId ? 'yes' : 'no'}`,
+        });
+      }
       const rt = routeHash(itin);
 
       // Create the booking once (idempotent + remembered); a retry reuses it.

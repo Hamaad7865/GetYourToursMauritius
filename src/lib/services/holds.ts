@@ -22,6 +22,10 @@ export async function createHold(
     people: input.people,
     idempotencyKey: `${idempotencyKey}:hold`,
     userId: userId ?? null,
+    // The route, captured at the first moment the server hears about this booking. It is what makes
+    // a custom road trip deliverable, and it used to live only in the visitor's tab until pay — so a
+    // browser that lost it lost it for good. See resolveCustomRoute in ./bookings.ts for the read.
+    itinerary: input.itinerary ?? null,
   });
   return holdResultSchema.parse(data);
 }
