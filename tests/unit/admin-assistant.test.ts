@@ -55,8 +55,24 @@ function makePort(overrides: Partial<AssistantPort> = {}): AssistantPort {
         category: 'Sea',
         region: 'East',
         pricingMode: 'per_person',
+        fromPriceEur: 55,
       },
     ],
+    tourPricing: async (slug, guests) =>
+      slug === 'south-tour'
+        ? {
+            slug,
+            title: 'Private South Tour Mauritius',
+            pricingMode: 'vehicle',
+            fromPriceEur: 90,
+            vehicle: {
+              guests,
+              vehicle: guests <= 4 ? 'Sedan' : 'Van',
+              totalEur: guests <= 4 ? 90 : 150,
+              table: { 'Sedan 1-4': 90, 'Van 7-14': 150 },
+            },
+          }
+        : null,
     readTour: async (slug) => (TOURS[slug] ? { ...TOURS[slug]! } : null),
     activityDepartures: async () => [],
     transferFare: async () => null,
@@ -82,8 +98,65 @@ describe('the assistant proposes but never writes', () => {
       'read_tour',
       'rental_fleet',
       'search_catalogue',
+      'tour_pricing',
       'transfer_fare',
     ]);
+  });
+
+  /* The back office quoted an operator "70 EUR" for a tour whose configured Sedan price is 90 — the
+   * stale SIGHTSEEING_DEFAULT seed. The prompt already banned inventing figures; what was missing was
+   * any tool that could price a tour WITHOUT a departure date, so the model had no honest answer to
+   * give. These pin the tool that closes that hole. */
+  describe('tour_pricing — a price the operator can repeat to a guest', () => {
+    it('prices a sightseeing tour per VEHICLE for the party, not per person', async () => {
+      const tools = buildAssistantTools(makePort(), () => {});
+      const out = await tools.tour_pricing.execute!({ slug: 'south-tour', guests: 2 }, CALL);
+      expect(out).toMatchObject({
+        found: true,
+        pricing: { pricingMode: 'vehicle', vehicle: { vehicle: 'Sedan', totalEur: 90, guests: 2 } },
+      });
+    });
+
+    it('defaults to a party of 2 and clamps a nonsense party instead of throwing', async () => {
+      const tools = buildAssistantTools(makePort(), () => {});
+      const noGuests = await tools.tour_pricing.execute!({ slug: 'south-tour' }, CALL);
+      expect(noGuests.pricing!.vehicle!.guests).toBe(2);
+      // A model slip must be corrected, never surfaced as a 500 (see the eslint rule on bounds).
+      const silly = await tools.tour_pricing.execute!({ slug: 'south-tour', guests: 0 }, CALL);
+      expect(silly.pricing!.vehicle!.guests).toBe(1);
+      const huge = await tools.tour_pricing.execute!({ slug: 'south-tour', guests: 900 }, CALL);
+      expect(huge.pricing!.vehicle!.guests).toBe(25);
+    });
+
+    it('reports an unknown tour rather than pricing something else', async () => {
+      const tools = buildAssistantTools(makePort(), () => {});
+      const out = await tools.tour_pricing.execute!({ slug: 'no-such-tour', guests: 2 }, CALL);
+      expect(out.found).toBe(false);
+    });
+
+    it('relays `unavailable` instead of a number when pricing is not configured', async () => {
+      const tools = buildAssistantTools(
+        makePort({
+          tourPricing: async (slug) => ({
+            slug,
+            title: 'Unpriced tour',
+            pricingMode: 'vehicle',
+            fromPriceEur: null,
+            unavailable: 'This sightseeing tour has no vehicle pricing configured.',
+          }),
+        }),
+        () => {},
+      );
+      const out = await tools.tour_pricing.execute!({ slug: 'south-tour', guests: 2 }, CALL);
+      expect(out.pricing!.unavailable).toMatch(/no vehicle pricing/i);
+      expect(out.pricing!.vehicle).toBeUndefined();
+    });
+  });
+
+  it('search_catalogue carries the from-price, so a price question has an anchor', async () => {
+    const tools = buildAssistantTools(makePort(), () => {});
+    const out = await tools.search_catalogue.execute!({ query: 'catamaran' }, CALL);
+    expect(out.activities[0]).toMatchObject({ fromPriceEur: 55 });
   });
 
   it('propose_new_tour collects a draft proposal and touches no data', async () => {

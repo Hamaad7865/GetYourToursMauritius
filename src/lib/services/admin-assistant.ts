@@ -67,6 +67,38 @@ export interface AssistantTour {
   importantInfo: string[];
 }
 
+/**
+ * What one tour costs, WITHOUT needing a departure date.
+ *
+ * `activity_departures` can price a day, but ONLY a day — so "what does the South tour cost for 2?"
+ * had no grounded answer available, and the model filled the hole with a figure of its own (observed
+ * in the back office: "70 EUR" for a tour whose configured Sedan price is 90). A number the operator
+ * may repeat to a guest has to come from the catalogue, so this exists to make the honest answer the
+ * reachable one.
+ */
+export interface AssistantPricing {
+  slug: string;
+  title: string;
+  pricingMode: string;
+  /** The catalogue's own "from" price — the same figure the storefront card shows. */
+  fromPriceEur: number | null;
+  /** Vehicle-mode (sightseeing) tours: the flat per-vehicle table + the bracket that fits `guests`. */
+  vehicle?: {
+    guests: number;
+    vehicle: string;
+    totalEur: number;
+    table: Record<string, number>;
+  };
+  /** Per-person / per-group tours: each option's real tier prices. */
+  options?: Array<{
+    name: string;
+    privateBaseEur: number | null;
+    tiers: Array<{ label: string; eur: number }>;
+  }>;
+  /** Set when a price could NOT be established. The assistant must relay this, never guess past it. */
+  unavailable?: string;
+}
+
 /** Everything the assistant can look up. READ-ONLY — there is deliberately no write method. */
 export interface AssistantPort {
   listCatalogue(): Promise<
@@ -76,8 +108,12 @@ export interface AssistantPort {
       category: string;
       region: string | null;
       pricingMode: string;
+      /** The catalogue "from" price, so even a bare search grounds a price question. */
+      fromPriceEur: number | null;
     }>
   >;
+  /** One tour's real prices for a party size — no departure date required. */
+  tourPricing(slug: string, guests: number): Promise<AssistantPricing | null>;
   /** One tour's full content by slug — the source for "copy the highlights from X". */
   readTour(slug: string): Promise<AssistantTour | null>;
   activityDepartures(slug: string, day: string): Promise<AssistantDeparture[] | null>;
@@ -132,6 +168,28 @@ export function buildAssistantTools(port: AssistantPort, collect: (a: AssistantA
             )
           : all;
         return { count: hits.length, activities: hits.slice(0, 12) };
+      },
+    }),
+
+    tour_pricing: tool({
+      description:
+        'What one tour COSTS for a party size, with no departure date needed — the flat per-vehicle ' +
+        'price for a sightseeing tour, or the real option tiers otherwise. Use this for ANY "how ' +
+        'much / what is the price" question. Never state a tour price that did not come from here ' +
+        'or from activity_departures.',
+      // Bounds live in execute, not in `parameters` — see `capped` above and the eslint rule.
+      parameters: z.object({
+        slug: z.string(),
+        guests: z.number().nullish().describe('Party size; defaults to 2'),
+      }),
+      execute: async ({ slug, guests }) => {
+        const key = capped(slug, 200);
+        // A model writing 0, 200 or 2.5 must be corrected, not 500 the chat.
+        const raw = typeof guests === 'number' && Number.isFinite(guests) ? Math.round(guests) : 2;
+        const party = Math.min(Math.max(raw, 1), 25);
+        const pricing = await port.tourPricing(key, party);
+        if (!pricing) return { found: false, note: `No tour "${key}".` };
+        return { found: true, pricing };
       },
     }),
 
@@ -353,6 +411,7 @@ function systemPrompt(today: string, page: AssistantPageContext | null | undefin
     '',
     'Rules:',
     '- Any figure — a price, a fare, a total, an availability — MUST come from a tool result in this conversation. NEVER invent, estimate or remember one. If the tools return nothing, say what is missing instead.',
+    '- Asked what a tour costs, call tour_pricing (it needs no date). A sightseeing tour is priced PER VEHICLE for the bracket that fits the party, not per person — quote that exact total and name the vehicle. If tour_pricing returns `unavailable`, say the price is not configured and stop; do not substitute a number from anywhere else.',
     '- Prices are in EUR unless a tool says otherwise.',
     '- You never change anything directly. To DO something, call a propose_* tool: the operator gets a card and presses Apply. Say plainly that you have proposed it and what they still need to do.',
     '- You can write tour CONTENT (titles, summaries, descriptions, highlights, inclusions). You cannot set prices, options, capacity or publish anything — a tour you create is a draft to be priced by a human.',

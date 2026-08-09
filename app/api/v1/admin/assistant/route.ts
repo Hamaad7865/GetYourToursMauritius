@@ -9,9 +9,10 @@ import {
   runAdminAssistant,
   type AssistantDeparture,
   type AssistantPort,
+  type AssistantPricing,
   type AssistantTour,
 } from '@/lib/services/admin-assistant';
-import { searchActivities } from '@/lib/services/activities';
+import { searchActivities, getActivity } from '@/lib/services/activities';
 import { listRentalVehicles } from '@/lib/services/rental';
 import { ForbiddenError } from '@/lib/services/errors';
 import { resolvePlaceByText } from '@/lib/maps/google-places';
@@ -19,6 +20,7 @@ import { getServerEnv } from '@/lib/config/env';
 import { catalogueLineRefusal } from '@/components/admin/quotes/state';
 import {
   transportFareMinor,
+  sightseeingQuote,
   REGION_DISTANCE_DEFAULT,
   TRANSPORT_BANDS_DEFAULT,
   type RegionDistanceMap,
@@ -139,6 +141,9 @@ export const POST = apiHandler(async (req) => {
       category: a.category,
       region: a.region ?? null,
       pricingMode: a.pricingMode,
+      // Carried so a price question is answerable from a plain search. Without it the assistant knew
+      // a tour existed but not what it cost, and answered anyway.
+      fromPriceEur: a.fromPriceEur,
     })),
   );
 
@@ -188,14 +193,79 @@ export const POST = apiHandler(async (req) => {
   const port: AssistantPort = {
     listCatalogue: () =>
       cataloguePromise.then((items) =>
-        items.map(({ slug, title, category, region, pricingMode }) => ({
+        items.map(({ slug, title, category, region, pricingMode, fromPriceEur }) => ({
           slug,
           title,
           category,
           region,
           pricingMode,
+          fromPriceEur,
         })),
       ),
+
+    /**
+     * A tour's real prices for a party, no date needed.
+     *
+     * Vehicle-mode tours are priced by `sightseeingQuote` — the same function the booking widget and
+     * the SQL `create_booking` mirror — over the activity's OWN `vehiclePricing`. It deliberately
+     * does NOT fall back to `SIGHTSEEING_DEFAULT` when that config is missing: those defaults are a
+     * stale seed (Sedan €70 against a configured €90), and quoting a plausible wrong number to an
+     * operator who will repeat it to a guest is worse than admitting the gap.
+     */
+    tourPricing: async (slug, guests): Promise<AssistantPricing | null> => {
+      const key = slug.trim();
+      const summary = (await cataloguePromise).find((a) => a.slug === key);
+      if (!summary) return null;
+      const base: AssistantPricing = {
+        slug: summary.slug,
+        title: summary.title,
+        pricingMode: summary.pricingMode,
+        fromPriceEur: summary.fromPriceEur,
+      };
+
+      const detail = await getActivity(ctx, key).catch(() => null);
+      if (!detail) return { ...base, unavailable: 'Could not load this tour to price it.' };
+
+      if (summary.pricingMode === 'vehicle') {
+        const cfg = detail.vehiclePricing;
+        if (!cfg) {
+          return {
+            ...base,
+            unavailable:
+              'This sightseeing tour has no vehicle pricing configured — set it in admin → Pricing.',
+          };
+        }
+        try {
+          const quote = sightseeingQuote(guests, false, cfg);
+          return {
+            ...base,
+            vehicle: {
+              guests,
+              vehicle: quote.vehicle,
+              totalEur: quote.totalEur,
+              table: {
+                'Sedan 1-4': cfg.sedanEur,
+                'SUV 1-4': cfg.suvEur,
+                'Family car 5-6': cfg.familyEur,
+                'Van 7-14': cfg.vanEur,
+                'Coaster 15-25': cfg.coasterEur,
+              },
+            },
+          };
+        } catch {
+          return { ...base, unavailable: `A party of ${guests} is outside this tour's vehicles.` };
+        }
+      }
+
+      return {
+        ...base,
+        options: detail.options.map((o) => ({
+          name: o.name,
+          privateBaseEur: o.privateBaseEur ?? null,
+          tiers: o.prices.map((p) => ({ label: p.label, eur: p.amountEur })),
+        })),
+      };
+    },
 
     // Content columns straight off the row: this is what "copy the highlights from X" reads, and
     // what the operator's browser will write back through the tested activity-write path.
