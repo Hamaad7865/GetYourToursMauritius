@@ -6,6 +6,7 @@ const ALLOWED = new Set([
   'api_get_activity',
   'api_list_availability',
   'api_create_hold',
+  'api_hold_route',
   'api_book',
   'api_create_payment',
   'api_create_quote_payment',

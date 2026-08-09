@@ -12,6 +12,32 @@ const latSchema = z.number().finite().min(-90).max(90);
 /** Longitude in degrees: finite (rejects NaN/Infinity) and within the valid -180..180 range. */
 const lngSchema = z.number().finite().min(-180).max(180);
 
+/**
+ * A customer-built route (the AI planner's day, or a sightseeing tour's chosen stops).
+ *
+ * Shared by the BOOK and the HOLD payloads deliberately: the route is now sent twice — once when the
+ * hold is taken and again at pay — so that losing it in the browser between those two moments cannot
+ * lose it altogether (see api_create_hold's note and resolveCustomRoute in services/bookings.ts). Two
+ * copies of the same shape would drift, and a route the hold accepts but the booking rejects would
+ * resurrect the bug in a new place.
+ *
+ * The bounds here are correct and must stay: this is an attacker-reachable HTTP boundary where an
+ * oversized payload should be a clean 400. (Not to be confused with an AI tool's `parameters`, where
+ * the identical bound is a 500 — see the no-restricted-syntax rule in eslint.config.mjs.)
+ */
+export const customItinerarySchema = z
+  .array(
+    z.object({
+      title: z.string().min(1).max(120),
+      area: z.string().max(120).nullish(),
+      lat: latSchema.optional(),
+      lng: lngSchema.optional(),
+    }),
+  )
+  .max(30)
+  .nullish();
+export type CustomItinerary = z.infer<typeof customItinerarySchema>;
+
 // --- Booking ----------------------------------------------------------------
 export const createBookingInputSchema = z.object({
   occurrenceId: z.string().uuid(),
@@ -40,17 +66,7 @@ export const createBookingInputSchema = z.object({
   /** The customer's chosen route (sightseeing tours). Free + informational; bounded so a tampered
    *  payload is a clean 400, not a DB blowup. nullish (not optional): the checkout always sends
    *  `itinerary: null` when there's no custom route, and `.optional()` rejects an explicit null. */
-  itinerary: z
-    .array(
-      z.object({
-        title: z.string().min(1).max(120),
-        area: z.string().max(120).nullish(),
-        lat: latSchema.optional(),
-        lng: lngSchema.optional(),
-      }),
-    )
-    .max(30)
-    .nullish(),
+  itinerary: customItinerarySchema,
   /** The customer's pickup location entered at checkout (pickup/sightseeing tours). Informational;
    *  bounded so a tampered payload is a clean 400, not a DB blowup. */
   pickupLocation: z.string().trim().max(200).nullish(),
@@ -323,6 +339,12 @@ export const createHoldInputSchema = z.object({
   expectedSlug: z.string().min(1).max(120).optional(),
   people: z.number().int().min(1).max(1000),
   idempotencyKey: z.string().min(8).max(200).optional(),
+  /** The route, sent EARLY so the server holds a copy from the moment the spot is reserved.
+   *  A custom road trip's stops used to exist only in the visitor's sessionStorage between the
+   *  planner and checkout; when that vanished, the booking still completed and the operator was left
+   *  with a paid full-day private vehicle and no idea where to drive (BMTFF77DC5CDD471, 9 Aug 2026).
+   *  Stored on the hold, and read back at pay if the browser no longer has it. */
+  itinerary: customItinerarySchema,
 });
 export type CreateHoldInput = z.infer<typeof createHoldInputSchema>;
 

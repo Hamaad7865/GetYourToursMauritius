@@ -4086,6 +4086,43 @@
                     "type": "string",
                     "minLength": 8,
                     "maxLength": 200
+                  },
+                  "itinerary": {
+                    "type": [
+                      "array",
+                      "null"
+                    ],
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "area": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "maxLength": 120
+                        },
+                        "lat": {
+                          "type": "number",
+                          "minimum": -90,
+                          "maximum": 90
+                        },
+                        "lng": {
+                          "type": "number",
+                          "minimum": -180,
+                          "maximum": 180
+                        }
+                      },
+                      "required": [
+                        "title"
+                      ]
+                    },
+                    "maxItems": 30
                   }
                 },
                 "required": [
