@@ -45,7 +45,9 @@ bootstrapped**. Before that, see the three manual fallback sections further down
 git push main
   → CI (typecheck, lint, format, coverage, build, pages:build, cron dry-run, e2e, actionlint)
   → CI packages .vercel/output/static ONCE into a checksummed, manifested artifact (push-to-main only)
-  → Release workflow triggers (workflow_run, only on CI success)
+  → Release workflow triggers (workflow_run, filtered to CI runs whose head branch is main;
+      resolve-provenance is skipped unless that CI run was a SUCCESSFUL push — so a PR build,
+      or a failed/cancelled main build, produces no Release run and no red)
       1. resolve-provenance      — proves: CI succeeded, was a push, was main, was this repo,
                                     not a fork; verifies the artifact SHA + checksum; verifies the
                                     SHA is reachable from origin/main

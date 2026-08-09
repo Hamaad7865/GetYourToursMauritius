@@ -10,9 +10,17 @@
 name: Release
 
 on:
+  # `branches` here matches the head branch of the TRIGGERING CI run, and it is what keeps this
+  # workflow from running at all on a ref that has no release to make. CI runs on `pull_request`
+  # too, and a `workflow_run` trigger with no branch filter matches EVERY completion of it — so
+  # without this line each push to a feature branch with an open PR created its own Release run,
+  # which `resolve-provenance` then refused. Half of all Release runs were that red, which is how
+  # a repo learns to ignore red — and a red CI is what silently stops the Cloudflare deploy.
+  # Narrow the TRIGGER, never the provenance checks below: they are what make a release safe.
   workflow_run:
     workflows: ['CI']
     types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       ci_run_id:
@@ -37,6 +45,18 @@ permissions:
 jobs:
   # ── Provenance gate — proves this run is allowed to touch deployment secrets at all ──────────
   resolve-provenance:
+    # `on.workflow_run` can filter by branch but NOT by conclusion or by what triggered the CI run,
+    # so the cases the trigger filter can't express are gated here: CI on main that failed or was
+    # cancelled (a cancellation still counts as "completed"), and the odd PR opened FROM main. A
+    # false `if` SKIPS this job — and with it every job in the `needs:` chain — so those land grey
+    # instead of red, leaving the already-red CI run as the one signal. This decides whether the
+    # gate below is INVOKED; it does not replace it. `workflow_dispatch` passes through because the
+    # manual-retry path resolves and validates its CI run inside the step itself.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

@@ -396,6 +396,25 @@ Covered in [deployment.md](deployment.md#the-cron-worker--the-part-everyone-forg
 this list too. Edit `workers/cron/`, push, see green CI and a green Pages deploy — and the old code is
 still running against the old URL.
 
+### A `workflow_run` trigger with no `branches:` filter fires for every PR build
+
+`release.yml` runs on `workflow_run` from `CI`. CI also runs on `pull_request`, and `workflow_run`
+matches **every** completion of the named workflow unless you filter it — so from the day the pipeline
+went live, each push to a feature branch with an open PR created its own Release run. `resolve-provenance`
+refused them correctly ("CI run was not triggered by a push"), which meant roughly **half of all Release
+runs on main were red** while every real deploy succeeded. Nothing was broken; the signal was. A repo
+where red is normal is a repo where the red that matters — a failed CI, which silently stops the
+Cloudflare deploy — goes unread.
+
+Fixed 2026-08-09: `branches: [main]` on the trigger (it matches the **triggering** run's head branch, so
+a PR build never starts a Release run at all), plus a job-level `if` on `resolve-provenance` for the two
+cases a branch filter cannot express — CI on main that failed or was **cancelled**, since a cancellation
+also counts as "completed". Those now **skip** (grey) instead of failing.
+
+The rule: when a gate is refusing runs it should never have been handed, fix what invokes it. Relaxing
+`resolve-provenance` to let those runs pass would have turned a noise problem into a deploy-safety one.
+`tests/unit/release-trigger.test.ts` pins both the trigger filter and the in-job assertions.
+
 ### `MUR_PER_EUR` is a dead environment variable
 
 Documented in `.env.example`; read by no code. Tuning it does nothing.
