@@ -103,6 +103,13 @@ Do not skip ahead. Each step assumes the previous one is done.
     you've actually watched step 8-9 succeed — passing repository tests is NOT the same as a
     verified production release.
 
+> **Missing from the list above, and still not configured:** `main` has **no branch protection** —
+> `gh api repos/<owner>/<repo>/branches/main/protection` returns 404 (checked 2026-08-09). Nothing
+> stops a PR merging while CI is red, and a red CI is exactly what silently stops the Cloudflare
+> deploy. `ci.yml`'s header asks for `verify`, `e2e`, `lint-workflows` and `release-artifact` to be
+> required status checks on `main`; set them in Settings → Branches. Until that's done, every
+> guarantee on this page rests on nobody merging red by hand.
+
 ### Repository secrets to add
 
 | Secret                            | Used by                            | Least-privilege scope                                                                                                                                                                                                                                                              |
