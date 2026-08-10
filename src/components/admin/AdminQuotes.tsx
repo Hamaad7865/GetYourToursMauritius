@@ -17,8 +17,10 @@ import { IconArrowRight, IconPlus, IconSearch } from '@/components/ui/icons';
 import { fmtDate, fmtDateShort } from '@/lib/admin/format';
 import {
   cancelQuote,
+  duplicateQuote,
   loadQuote,
   loadQuotes,
+  reinstateQuote,
   saveQuote,
   sendBalanceLink,
   sendQuote,
@@ -139,7 +141,14 @@ export function AdminQuotes() {
   }
 
   return editing ? (
-    <QuoteEditor id={editing.id} onClose={() => setEditing(null)} key={editing.id ?? 'new-quote'} />
+    <QuoteEditor
+      id={editing.id}
+      onClose={() => setEditing(null)}
+      // Duplicating leaves this quote and opens the COPY. The `key` below is the id, so switching it
+      // remounts the editor rather than leaving the old quote's form state on the new row.
+      onOpen={(id) => setEditing({ id })}
+      key={editing.id ?? 'new-quote'}
+    />
   ) : (
     <QuoteList onOpen={(id) => setEditing({ id })} />
   );
@@ -304,7 +313,16 @@ function QuoteList({ onOpen }: { onOpen: (id: string | null) => void }) {
 /* The editor                                                                                    */
 /* ------------------------------------------------------------------------------------------- */
 
-function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }) {
+function QuoteEditor({
+  id,
+  onClose,
+  onOpen,
+}: {
+  id: string | null;
+  onClose: () => void;
+  /** Leave this quote and open another — the copy `duplicate()` just created. */
+  onOpen: (id: string) => void;
+}) {
   const [form, setForm] = useState<QuoteFormValues | null>(id ? null : emptyQuoteForm());
   const [loading, setLoading] = useState(Boolean(id));
   const [error, setError] = useState<string | null>(null);
@@ -428,7 +446,8 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
     if (
       !window.confirm(
         `Withdraw quote ${values.ref ?? ''}? The guest's link stops working and the offer can no ` +
-          `longer be paid. This cannot be undone — draft a new quote instead.`,
+          `longer be paid. You do NOT need to withdraw to change it — edit the lines and press ` +
+          `Re-send instead. If you do withdraw, Reinstate puts it back to a draft.`,
       )
     ) {
       return;
@@ -437,7 +456,34 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
       await cancelQuote(values.id!);
       setLink(null);
       await reload(values.id!);
-      return 'Withdrawn. The guest’s link no longer opens.';
+      return 'Withdrawn. The guest’s link no longer opens — press Reinstate to work on it again.';
+    });
+  }
+
+  /** Un-withdraw: back to a draft, with the withdrawn link left dead. See `reinstateQuote`. */
+  async function reinstate() {
+    if (!values.id) return;
+    await act('reinstate', async () => {
+      await reinstateQuote(values.id!);
+      setLink(null);
+      await reload(values.id!);
+      return 'Back to a draft. Change what you need, then press Send — the guest gets a fresh link.';
+    });
+  }
+
+  /**
+   * Copy this quote into a new draft and open it. The only way to re-offer a quote the guest has
+   * already paid for, and the fastest way to reuse one for a different date or a different guest.
+   */
+  async function duplicate() {
+    if (!values.id) return;
+    if (dirty && !window.confirm('Duplicate the SAVED quote? Unsaved changes are not copied.')) {
+      return;
+    }
+    await act('duplicate', async () => {
+      const copyId = await duplicateQuote(values.id!);
+      onOpen(copyId);
+      return null;
     });
   }
 
@@ -508,6 +554,20 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
             <button type="button" onClick={onClose} className={BTN_GHOST}>
               Back
             </button>
+            {values.id && (
+              // Available on EVERY saved quote, including a paid one — that is the case with no other
+              // way out, since a converted quote's lines are the itemisation behind a real charge and
+              // the service refuses to edit them.
+              <button
+                type="button"
+                onClick={() => void duplicate()}
+                disabled={busy !== null || drafting}
+                className={BTN_GHOST}
+                title="Copy the guest, the lines, the notes and the deposit into a new draft"
+              >
+                {busy === 'duplicate' ? 'Duplicating…' : 'Duplicate'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => void save()}
@@ -532,12 +592,22 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
       {values.convertedAt && (
         <p className="mb-4 rounded-xl bg-gold-light/20 px-4 py-3 text-[13px] leading-relaxed text-ink">
           {bookingKind === 'paid'
-            ? 'The guest has accepted and paid this quote, so its lines and total can no longer be changed. The booking is the live record now — find it on the bookings screen.'
+            ? 'The guest has accepted and paid this quote, so its lines and total can no longer be changed. The booking is the live record now — find it on the bookings screen. To offer them a change, press Duplicate: it copies the guest, the lines and the deposit into a new draft and leaves this one alone.'
             : bookingKind === 'pending'
               ? 'The guest has opened checkout for this quote but hasn’t finished paying — nothing is locked in yet, and it confirms once the deposit settles. Its lines can’t be changed while that checkout is open.'
               : bookingKind === 'abandoned'
                 ? 'The guest opened checkout but didn’t complete payment, so this quote’s booking expired without being paid — nothing was charged. The quote is still open: the guest can pay from their existing link, which mints a fresh booking.'
                 : 'This quote was converted to a booking that is now closed. Check the bookings screen for its current state.'}
+        </p>
+      )}
+      {values.status === 'cancelled' && !values.convertedAt && (
+        // The way back, stated where the operator lands rather than only on the Send pane — a
+        // withdrawn quote is exactly the one they would otherwise start retyping.
+        <p className="mb-4 rounded-xl bg-[#F7F8FA] px-4 py-3 text-[13px] leading-relaxed text-ink">
+          This quote is withdrawn and its old link no longer opens. Nothing is lost:{' '}
+          <span className="font-bold">Reinstate as a draft</span> on the Send pane puts it back so
+          you can change it and send a fresh link, or <span className="font-bold">Duplicate</span>{' '}
+          copies it into a new offer.
         </p>
       )}
 
@@ -808,14 +878,27 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
                         : 'Send to the guest'}
                     <IconArrowRight width={15} height={15} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => void withdraw()}
-                    disabled={busy !== null || values.status === 'cancelled' || !values.id}
-                    className={`${BTN_GHOST} !border-coral/40 !text-coral hover:!border-coral`}
-                  >
-                    {busy === 'withdraw' ? 'Withdrawing…' : 'Withdraw'}
-                  </button>
+                  {values.status === 'cancelled' ? (
+                    // The way back out of a withdrawal. Without it this screen's only advice was to
+                    // retype the whole offer into a new quote.
+                    <button
+                      type="button"
+                      onClick={() => void reinstate()}
+                      disabled={busy !== null || !values.id}
+                      className={BTN_GHOST}
+                    >
+                      {busy === 'reinstate' ? 'Reinstating…' : 'Reinstate as a draft'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => void withdraw()}
+                      disabled={busy !== null || !values.id}
+                      className={`${BTN_GHOST} !border-coral/40 !text-coral hover:!border-coral`}
+                    >
+                      {busy === 'withdraw' ? 'Withdrawing…' : 'Withdraw'}
+                    </button>
+                  )}
                   {bookingPaid && (
                     <button
                       type="button"
@@ -829,8 +912,13 @@ function QuoteEditor({ id, onClose }: { id: string | null; onClose: () => void }
                 </div>
                 {values.status === 'sent' && (
                   <p className="mt-3 text-[12px] leading-relaxed text-ink-muted">
-                    Re-sending mints a NEW link and the previous one stops working — which is what
-                    you want after a re-price, and what to avoid if the guest is mid-payment.
+                    <span className="font-bold text-ink">
+                      To change a sent quote, just change it.
+                    </span>{' '}
+                    Edit the lines, save, and press Re-send — there is no need to withdraw first,
+                    and nothing is charged until the guest pays. Re-sending mints a NEW link and the
+                    previous one stops working, which is what you want after a re-price and what to
+                    avoid if the guest is mid-payment.
                   </p>
                 )}
 

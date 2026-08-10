@@ -39,7 +39,8 @@ vi.mock('@/lib/supabase/browser', () => ({
   },
 }));
 
-const { loadQuotes, loadQuote, saveQuote, cancelQuote } = await import('@/lib/admin/quotes');
+const { loadQuotes, loadQuote, saveQuote, cancelQuote, reinstateQuote, duplicateQuote } =
+  await import('@/lib/admin/quotes');
 
 const GUEST = {
   customerName: 'Marie Dupont',
@@ -827,5 +828,307 @@ describe('admin quote service (RLS + real schema)', () => {
     expect(Number(row.total_minor), 'a customer re-priced an offer they do not own').toBe(90000);
     expect(row.line_count).toBe(1);
     expect(Number(row.lines_minor)).toBe(90000);
+  });
+
+  /* ------------------------------------------------------------------------------------------- */
+  /* Reinstating a withdrawn offer                                                                 */
+  /*                                                                                               */
+  /* Withdrawing used to be a one-way door, so the house habit was to withdraw and then retype the  */
+  /* whole offer for what was usually a one-line change. These pin the door open — and pin shut the */
+  /* two ways it must not open: onto a booking that took money, and onto a live link.               */
+  /* ------------------------------------------------------------------------------------------- */
+
+  /** `token_hash` is what makes a link work; sending sets it, reinstating must clear it. */
+  async function readLinkState(
+    id: string,
+  ): Promise<{ tokenHash: string | null; sentAt: string | null }> {
+    await db.asOwner();
+    const { rows } = await db.pg.query<{ token_hash: string | null; sent_at: string | null }>(
+      `select token_hash, sent_at::text as sent_at from quotes where id = $1`,
+      [id],
+    );
+    return { tokenHash: rows[0]!.token_hash, sentAt: rows[0]!.sent_at };
+  }
+
+  /** What the send route leaves behind: a stored hash, a `sent` status and a send time. */
+  async function markSent(id: string): Promise<void> {
+    await db.asOwner();
+    await db.pg.query(
+      `update quotes set status = 'sent', token_hash = 'stored-hash-of-the-emailed-token', sent_at = now()
+        where id = $1`,
+      [id],
+    );
+  }
+
+  it('reinstates a withdrawn quote as a draft, with the withdrawn link left dead', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+    await markSent(id);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await cancelQuote(id);
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await reinstateQuote(id);
+
+    const row = await readQuote(id);
+    // 'draft', not 'sent': there is no link any more, and api_convert_quote's whitelist is
+    // ('sent', 'accepted'), so this is both the honest state and the unpayable one.
+    expect(row.status, 'a reinstated quote did not come back as a draft').toBe('draft');
+
+    const link = await readLinkState(id);
+    expect(
+      link.tokenHash,
+      'reinstating republished the offer at the URL the guest was already holding',
+    ).toBeNull();
+    expect(
+      link.sentAt,
+      'reinstating erased the record that this offer had once been emailed',
+    ).not.toBeNull();
+
+    // The lines are the whole point: this is the retyping the operator no longer has to do.
+    expect(row.line_count).toBe(1);
+    expect(Number(row.lines_minor)).toBe(50000);
+    expect(Number(row.total_minor)).toBe(50000);
+  });
+
+  it('reinstates a quote whose booking died without ever taking money', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    // The guest opened checkout and wandered off; the maintenance sweep expired the booking. The
+    // gate is the BOOKING's state, never `converted_at` — gating on the latter would refuse every
+    // write to a quote api_convert_quote is perfectly willing to re-arm, which is the trap
+    // cancelQuote's header documents.
+    const booking = await mintBooking('expired', 'pending');
+    await linkConversion(id, booking.id);
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await cancelQuote(id);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    await reinstateQuote(id);
+
+    const row = await readQuote(id);
+    expect(row.status, 'a converted-but-dead quote could not be re-drafted').toBe('draft');
+  });
+
+  it('refuses to reinstate a quote the guest has already paid for', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    const booking = await mintBooking('confirmed', 'paid');
+    await linkConversion(id, booking.id);
+
+    // 'draft' beside a booking_id and a converted_at that say the guest paid is simply false, and it
+    // would put the offer back on a workbench whose Save button rewrites the itemisation behind a
+    // real charge.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const message = await reinstateQuote(id).then(
+      () => '',
+      (error: unknown) => (error as Error).message,
+    );
+    expect(message, 'a paid quote was put back to a draft').not.toBe('');
+    expect(message, 'the refusal does not name the booking the operator must act on').toContain(
+      booking.ref,
+    );
+
+    const row = await readQuote(id);
+    expect(row.status).toBe('accepted');
+  });
+
+  it('refuses to reinstate a quote whose booking is still alive and unpaid', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    // The guest is at Peach with the card in their hand. api_create_payment answers to the BOOKING,
+    // so re-drafting the offer would not stop that charge — it would only leave the operator editing
+    // lines that are about to be paid for.
+    const booking = await mintBooking('payment_pending', 'pending');
+    await linkConversion(id, booking.id);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const message = await reinstateQuote(id).then(
+      () => '',
+      (error: unknown) => (error as Error).message,
+    );
+    expect(message, 'a quote with a live checkout was put back to a draft').not.toBe('');
+    expect(message, 'the refusal does not name the booking to cancel first').toContain(booking.ref);
+  });
+
+  it('refuses to reinstate a quote that was never withdrawn, leaving its live link alone', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const id = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+    await markSent(id);
+
+    // THE HARM THIS GUARDS. Reinstating nulls `token_hash`; run it on a SENT quote and the link the
+    // guest is reading dies for no reason the operator asked for. The status test lives in the
+    // UPDATE's own WHERE clause, so this is not a check that can be raced past.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const message = await reinstateQuote(id).then(
+      () => '',
+      (error: unknown) => (error as Error).message,
+    );
+    expect(message, 'a sent quote was silently re-drafted').not.toBe('');
+    expect(message, 'the refusal does not say a sent quote can just be edited').toMatch(
+      /edited and re-sent/i,
+    );
+
+    const link = await readLinkState(id);
+    expect(link.tokenHash, 'the guest’s live link was killed by a refused reinstate').toBe(
+      'stored-hash-of-the-emailed-token',
+    );
+    const row = await readQuote(id);
+    expect(row.status).toBe('sent');
+  });
+
+  /* ------------------------------------------------------------------------------------------- */
+  /* Duplicating                                                                                   */
+  /*                                                                                               */
+  /* The escape hatch for the one quote that genuinely cannot be edited in place — the paid one —   */
+  /* and the reason no offer ever has to be re-keyed by hand again.                                 */
+  /* ------------------------------------------------------------------------------------------- */
+
+  it('copies a quote into a fresh draft: same lines, new ref, no link and no conversion', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const sourceId = await saveQuote({
+      ...GUEST,
+      introNote: 'Dear Marie, here is the private boat day we discussed.',
+      internalNotes: 'Margin is thin at this price.',
+      locale: 'fr',
+      depositBps: 2500,
+      items: [
+        { kind: 'custom', description: 'Private skipper', quantity: 3, unitAmountMinor: 4500 },
+        {
+          kind: 'custom',
+          description: 'Transfert aller/retour',
+          quantity: 1,
+          unitAmountMinor: 6000,
+        },
+      ],
+    });
+    await markSent(sourceId);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copyId = await duplicateQuote(sourceId);
+    expect(copyId, 'the copy is the same row as its source').not.toBe(sourceId);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copy = await loadQuote(copyId);
+    const source = await loadQuote(sourceId);
+
+    // Everything an operator would otherwise re-key, in the owner's order.
+    expect(
+      copy!.items.map((item) => [item.description, item.quantity, item.unitAmountMinor]),
+    ).toEqual(source!.items.map((item) => [item.description, item.quantity, item.unitAmountMinor]));
+    expect(Number(copy!.totalMinor)).toBe(19500);
+    expect(copy!.customerEmail).toBe(source!.customerEmail);
+    expect(copy!.introNote).toBe(source!.introNote);
+    expect(copy!.internalNotes).toBe(source!.internalNotes);
+    // `locale` picks the language of the confirmation email and the VAT invoice, and `deposit_bps`
+    // sizes the first charge — a copy that resets either quietly re-negotiates the offer.
+    expect(copy!.locale, 'a French offer was copied into an English one').toBe('fr');
+    expect(copy!.depositBps, 'a negotiated deposit was reset to the default by the copy').toBe(
+      2500,
+    );
+
+    // …and nothing that belongs to the ORIGINAL's identity or its link.
+    expect(copy!.ref).not.toBe(source!.ref);
+    expect(copy!.status).toBe('draft');
+    expect(copy!.convertedAt).toBeNull();
+    expect(copy!.bookingId).toBeNull();
+    const copyLink = await readLinkState(copyId);
+    expect(copyLink.tokenHash, 'the copy inherited the original’s live link').toBeNull();
+    expect(copyLink.sentAt, 'the copy claims to have been emailed already').toBeNull();
+
+    // The source is untouched — this is a copy, not a move.
+    const sourceRow = await readQuote(sourceId);
+    expect(sourceRow.status).toBe('sent');
+    expect(sourceRow.line_count).toBe(2);
+    const sourceLink = await readLinkState(sourceId);
+    expect(sourceLink.tokenHash).toBe('stored-hash-of-the-emailed-token');
+  });
+
+  it('duplicates a PAID quote, which is the only way to re-offer one', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const sourceId = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+    const booking = await mintBooking('confirmed', 'paid');
+    await linkConversion(sourceId, booking.id);
+
+    // saveQuote refuses to edit this one, and rightly: its lines are the itemisation behind a real
+    // charge. Before duplicate() the operator's only option was to retype the offer.
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copyId = await duplicateQuote(sourceId);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copy = await loadQuote(copyId);
+    expect(copy!.status).toBe('draft');
+    expect(copy!.convertedAt, 'the copy inherited the original’s conversion').toBeNull();
+    expect(copy!.items).toHaveLength(1);
+
+    // The paid quote and its booking are exactly as they were.
+    const sourceRow = await readQuote(sourceId);
+    expect(sourceRow.status).toBe('accepted');
+    expect(Number(sourceRow.total_minor)).toBe(50000);
+  });
+
+  it('re-opens the validity window when the source quote has gone stale', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const sourceId = await saveQuote({
+      ...GUEST,
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    // The quote most worth duplicating is the one that sat unanswered until its window closed —
+    // written straight to the column, because saveQuote refuses a past date by design.
+    await db.asOwner();
+    await db.pg.query(`update quotes set valid_until = current_date - 30 where id = $1`, [
+      sourceId,
+    ]);
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copyId = await duplicateQuote(sourceId);
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copy = await loadQuote(copyId);
+
+    const today = new Date().toISOString().slice(0, 10);
+    expect(
+      copy!.validUntil >= today,
+      'the copy was born expired — unopenable by the guest and unchargeable',
+    ).toBe(true);
+  });
+
+  it('keeps a still-open validity window exactly as the operator negotiated it', async () => {
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const sourceId = await saveQuote({
+      ...GUEST,
+      validUntil: '2099-06-30',
+      items: [{ kind: 'custom', description: 'Charter', quantity: 1, unitAmountMinor: 50000 }],
+    });
+
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copyId = await duplicateQuote(sourceId);
+    await db.as({ sub: STAFF, role: 'authenticated' });
+    const copy = await loadQuote(copyId);
+
+    expect(copy!.validUntil, 'a live deadline was silently rewritten by the copy').toBe(
+      '2099-06-30',
+    );
   });
 });

@@ -38,6 +38,29 @@ export function quoteTodayUtc(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+/** How long a fresh offer stands, in days. Two weeks: long enough to be answered, short enough that
+ *  a quoted departure has probably not moved. The operator can change it on every quote. */
+export const QUOTE_VALIDITY_DAYS = 14;
+
+/**
+ * `today + 14 days`, as `yyyy-mm-dd`.
+ *
+ * UTC arithmetic, matching `quoteTodayUtc` — api_convert_quote compares `valid_until` against
+ * Postgres's `current_date` (UTC on Supabase), so a default computed from a local midnight would be
+ * a day out for an operator in Mauritius (UTC+4) for part of every day.
+ *
+ * Two callers, and they are the same decision seen twice: `emptyQuoteForm` dates a NEW offer, and
+ * `duplicateQuote` re-dates a COPY of one whose own window has closed — which is precisely the quote
+ * an operator would otherwise retype. It lives here rather than in the editor because the second
+ * caller is a lib function, and because the rule that reads the date (`assertQuoteStillValid`, below)
+ * is the rule that decides what a usable one is.
+ */
+export function defaultValidUntil(today: string = quoteTodayUtc()): string {
+  const day = new Date(`${today.slice(0, 10)}T00:00:00Z`);
+  day.setUTCDate(day.getUTCDate() + QUOTE_VALIDITY_DAYS);
+  return day.toISOString().slice(0, 10);
+}
+
 export interface QuoteValidityOptions {
   /** The quote's public ref, when the caller has one — the send path always does. */
   ref?: string | null;

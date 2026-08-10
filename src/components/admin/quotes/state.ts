@@ -1,5 +1,5 @@
 import { quoteTotalMinor } from '@/lib/quotes/totals';
-import { quoteTodayUtc } from '@/lib/quotes/validity';
+import { defaultValidUntil, quoteTodayUtc } from '@/lib/quotes/validity';
 import { fmtDate, fmtTime, mauDay } from '@/lib/admin/format';
 import { rentalDays, regionFromCoords } from '@/lib/services/pricing';
 import { ValidationError } from '@/lib/services/errors';
@@ -105,22 +105,14 @@ export function parseQuantity(input: string, label: string): number {
 /* Dates                                                                                         */
 /* ------------------------------------------------------------------------------------------- */
 
-/** How long a fresh offer stands, in days. Two weeks: long enough to be answered, short enough that
- *  a quoted departure has probably not moved. The operator can change it on every quote. */
-export const QUOTE_VALIDITY_DAYS = 14;
-
 /**
- * `today + 14 days`, as `yyyy-mm-dd`.
- *
- * UTC arithmetic, matching `quoteTodayUtc` — api_convert_quote compares `valid_until` against
- * Postgres's `current_date` (UTC on Supabase), so a default computed from a local midnight would be
- * a day out for an operator in Mauritius (UTC+4) for part of every day.
+ * The validity window itself now lives in src/lib/quotes/validity.ts, beside the rule that reads it
+ * (`assertQuoteStillValid`). It moved because `duplicateQuote` — a lib function — has to pick a fresh
+ * date for a copy of an offer whose own date has gone by, and a lib importing this components module
+ * to learn how long an offer stands would be the wrong direction. Re-exported here so every existing
+ * caller and test keeps its import.
  */
-export function defaultValidUntil(today: string = quoteTodayUtc()): string {
-  const day = new Date(`${today.slice(0, 10)}T00:00:00Z`);
-  day.setUTCDate(day.getUTCDate() + QUOTE_VALIDITY_DAYS);
-  return day.toISOString().slice(0, 10);
-}
+export { QUOTE_VALIDITY_DAYS, defaultValidUntil } from '@/lib/quotes/validity';
 
 /**
  * A Mauritius wall-clock date + time as an instant.
@@ -768,20 +760,48 @@ export function previewEmailInput(form: QuoteFormValues): QuoteEmailInput {
  * The route makes every one of these checks again (it is the only thing that can, and the only
  * writer of the token). This is the operator-facing half: a disabled button with no reason beside it
  * is indistinguishable from a broken screen.
+ *
+ * EVERY REFUSAL NAMES THE WAY OUT, and that is not politeness. Three of the four used to end in
+ * "draft a new one for this guest", which is how re-keying an entire offer became the house habit for
+ * what is usually a one-line change. A withdrawn quote is reinstated, a stale one is re-dated, and a
+ * paid one is duplicated — so the sentence says which button to press instead of implying there is
+ * none. (A quote that is merely SENT is not refused at all: editing it and pressing Re-send is the
+ * normal path, and always was.)
+ *
+ * The stale-date check is the one refusal that is not about `status`. Nothing sets `status` to
+ * 'expired' — a quote goes stale by its `valid_until` passing — so without it the only warning is the
+ * send route's own error AFTER the operator has pressed the button, on the single most common reason
+ * an old offer is being re-sent at all. `today` is injectable and compared as 'yyyy-mm-dd' with `<`,
+ * exactly as `assertQuoteStillValid` and api_convert_quote compare it, so this cannot refuse a quote
+ * the route would have sent.
  */
-export function sendRefusal(form: QuoteFormValues): string | null {
+export function sendRefusal(form: QuoteFormValues, today: string = quoteTodayUtc()): string | null {
   if (!form.id) return 'Save the quote first — sending emails the stored offer, not the form.';
   if (form.convertedAt || form.status === 'accepted') {
     return (
       'This quote has been accepted, so it can no longer be sent: re-sending mints a new link and ' +
-      'breaks the one the guest is paying with. Their booking is the live record now.'
+      'breaks the one the guest is paying with. Their booking is the live record now — press ' +
+      'Duplicate if you need to offer this guest something else.'
     );
   }
   if (form.status === 'cancelled') {
-    return 'This quote has been withdrawn, so its link no longer opens. Draft a new one for this guest.';
+    return (
+      'This quote has been withdrawn, so its link no longer opens. Press “Reinstate as a draft” to ' +
+      'work on it again — you do not have to retype it.'
+    );
   }
   if (form.status === 'expired') {
-    return 'This quote has expired, so the payment path would refuse it. Draft a new one for this guest.';
+    return (
+      'This quote has expired, so the payment path would refuse it. Move the valid-until date ' +
+      'forward, or press Duplicate to copy it into a fresh offer.'
+    );
+  }
+  if (form.validUntil && form.validUntil.slice(0, 10) < today.slice(0, 10)) {
+    return (
+      `This quote was only valid until ${form.validUntil}, which has passed — the guest’s link would ` +
+      `not open and the payment path would refuse it. Move the valid-until date forward on the ` +
+      `guest pane and save, then send.`
+    );
   }
   return null;
 }

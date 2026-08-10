@@ -47,6 +47,9 @@ import { fmtDate } from '@/lib/admin/format';
  * a leaked internal note, a "Something went wrong" over a message that named the fix.
  */
 
+/** The day `form()` builds its quote on. Passed to anything that would otherwise read a clock. */
+const TODAY = '2026-08-06';
+
 const OCCURRENCE = '22222222-2222-2222-2222-222222222222';
 const OPTION = '33333333-3333-3333-3333-333333333333';
 /** 09:00 in Mauritius (UTC+4), which is the timezone the whole back office renders in. */
@@ -54,7 +57,7 @@ const DEPARTURE = '2026-08-23T05:00:00.000Z';
 
 function form(over: Partial<QuoteFormValues> = {}): QuoteFormValues {
   return {
-    ...emptyQuoteForm('2026-08-06'),
+    ...emptyQuoteForm(TODAY),
     customerName: 'Marie Dupont',
     customerEmail: 'marie@example.com',
     ...over,
@@ -424,17 +427,56 @@ describe('why Send is unavailable', () => {
     // Every one of these is refused by app/api/v1/admin/quotes/send/route.ts as well — it is the
     // only thing that can be trusted, being the only writer of the token. What is worth having here
     // is the sentence: a disabled button with no reason beside it reads as a broken screen.
-    expect(sendRefusal(form({ id: null }))).toMatch(/save/i);
-    expect(sendRefusal(form({ id: 'q1', convertedAt: '2026-08-07T09:00:00.000Z' }))).toMatch(
+    //
+    // `TODAY` is passed to every call: `form()` dates its quote from a fixed day, so a refusal that
+    // read the wall clock would start firing on its own once that date went by and these
+    // expectations would fail on a calendar boundary rather than on a change.
+    expect(sendRefusal(form({ id: null }), TODAY)).toMatch(/save/i);
+    expect(sendRefusal(form({ id: 'q1', convertedAt: '2026-08-07T09:00:00.000Z' }), TODAY)).toMatch(
       /accepted/i,
     );
-    expect(sendRefusal(form({ id: 'q1', status: 'cancelled' }))).toMatch(/withdrawn/i);
-    expect(sendRefusal(form({ id: 'q1', status: 'expired' }))).toMatch(/expired/i);
+    expect(sendRefusal(form({ id: 'q1', status: 'cancelled' }), TODAY)).toMatch(/withdrawn/i);
+    expect(sendRefusal(form({ id: 'q1', status: 'expired' }), TODAY)).toMatch(/expired/i);
   });
 
   it('is silent on a draft and on a re-send', () => {
-    expect(sendRefusal(form({ id: 'q1', status: 'draft' }))).toBeNull();
-    expect(sendRefusal(form({ id: 'q1', status: 'sent' }))).toBeNull();
+    // A SENT quote is not refused, and that is the whole of "edit it and send it again": the
+    // operator changes the lines, saves, and presses Re-send. Nothing about this screen ever
+    // required withdrawing first, and this is the assertion that says so.
+    expect(sendRefusal(form({ id: 'q1', status: 'draft' }), TODAY)).toBeNull();
+    expect(sendRefusal(form({ id: 'q1', status: 'sent' }), TODAY)).toBeNull();
+  });
+
+  it('names the button that gets each dead end moving again', () => {
+    // Three of these sentences used to end in "draft a new one for this guest", which is how
+    // re-keying a whole offer became the habit for what is usually a one-line change. Each now
+    // names the action that avoids that, so the refusal is a route rather than a wall.
+    expect(
+      sendRefusal(form({ id: 'q1', status: 'cancelled' }), TODAY),
+      'a withdrawn quote does not point at Reinstate',
+    ).toMatch(/reinstate/i);
+    expect(
+      sendRefusal(form({ id: 'q1', convertedAt: '2026-08-07T09:00:00.000Z' }), TODAY),
+      'a paid quote does not point at Duplicate',
+    ).toMatch(/duplicate/i);
+    expect(
+      sendRefusal(form({ id: 'q1', status: 'expired' }), TODAY),
+      'an expired quote does not say the date can be moved forward',
+    ).toMatch(/valid-until|duplicate/i);
+  });
+
+  it('catches a quote that went stale on the shelf, before the operator presses Send', () => {
+    // Nothing sets `status` to 'expired' — a quote goes stale by its `valid_until` passing — and a
+    // stale offer is the single most common reason an old quote is being re-sent at all. Without
+    // this the only warning is the send route's error AFTER the press.
+    const stale = form({ id: 'q1', status: 'sent', validUntil: '2026-08-09' });
+    expect(sendRefusal(stale, '2026-08-10'), 'a dead offer looked sendable').toMatch(/2026-08-09/);
+
+    // `<`, never `<=`: api_convert_quote charges an offer valid UNTIL today all day, and a guard
+    // stricter than the charge it predicts refuses quotes the route would have sent.
+    expect(
+      sendRefusal(form({ id: 'q1', status: 'sent', validUntil: '2026-08-10' }), '2026-08-10'),
+    ).toBeNull();
   });
 });
 

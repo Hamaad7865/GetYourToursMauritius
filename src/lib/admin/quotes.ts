@@ -1,5 +1,5 @@
 import { lineSubtotalMinor, quoteTotalMinor, type PricedLine } from '@/lib/quotes/totals';
-import { assertQuoteStillValid } from '@/lib/quotes/validity';
+import { assertQuoteStillValid, defaultValidUntil, quoteTodayUtc } from '@/lib/quotes/validity';
 import { ValidationError } from '@/lib/services/errors';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import type { DraftFromEmailResponse } from '@/lib/validation/quote-extraction';
@@ -757,6 +757,47 @@ const UNPAID_PAYMENT_STATES = new Set(['pending', 'failed']);
  * reports it — a different refusal would tell a signed-in guest which quote ids exist.
  */
 export async function cancelQuote(id: string): Promise<void> {
+  await assertNoBookingInTheWay(id, {
+    paid: (bookingRef) =>
+      `The guest has already paid for this quote, so the offer can no longer be withdrawn. ` +
+      `Cancel or refund booking ${bookingRef} on the bookings screen; duplicate this quote if you ` +
+      `need to offer them something else.`,
+    live: (bookingRef) =>
+      `This quote has been converted into booking ${bookingRef}, which is still live — the guest ` +
+      `may be paying for it right now, and withdrawing the offer would not stop that charge. ` +
+      `Cancel booking ${bookingRef} on the bookings screen first, then withdraw the quote.`,
+  });
+
+  const { data, error: writeError } = await db()
+    .from('quotes')
+    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id');
+  if (writeError) throw writeError;
+  if (!data || data.length === 0) throw new Error('This quote no longer exists.');
+}
+
+/**
+ * The gate both `cancelQuote` and `reinstateQuote` stand behind: a quote whose linked BOOKING holds
+ * money, or could still take some, is not an offer either of them may move.
+ *
+ * Extracted so the rule is written once. The two callers push the offer in opposite directions —
+ * withdrawing makes it unpayable, reinstating makes it draftable again — but the question they have
+ * to ask first is identical, and it is the one `cancelQuote`'s header explains at length: NOT
+ * `converted_at`, which api_convert_quote deliberately re-arms past, but the booking's own state.
+ *
+ * Both refusals are safe to share because both writes can only make the quote LESS payable
+ * ('cancelled' and 'draft' are equally outside api_convert_quote's ('sent', 'accepted') whitelist),
+ * so a conversion landing in the read-then-write window leaves the bookings screen owning a live
+ * booking beside an unsendable quote — never a charge against an offer nobody agreed to.
+ *
+ * The messages are the caller's, because "withdraw" and "reinstate" are different things to be told
+ * you cannot do, and a generic sentence would name neither the action nor the way out of it.
+ */
+async function assertNoBookingInTheWay(
+  id: string,
+  refusal: { paid: (bookingRef: string) => string; live: (bookingRef: string) => string },
+): Promise<void> {
   const { data: quote, error } = await db()
     .from('quotes')
     .select('booking_id')
@@ -766,40 +807,153 @@ export async function cancelQuote(id: string): Promise<void> {
   if (!quote) throw new Error('This quote no longer exists.');
 
   const bookingId = textOrNull(quote.booking_id);
-  if (bookingId) {
-    const { data: booking, error: bookingError } = await db()
-      .from('bookings')
-      .select('ref, status, payment_state')
-      .eq('id', bookingId)
-      .maybeSingle();
-    if (bookingError) throw bookingError;
-    // No row means the booking is GONE (an erasure hard-deletes an unpaid one, and the FK then
-    // nulls booking_id). Nothing holds money and nothing can take any, so the offer is withdrawable.
-    if (booking) {
-      const bookingRef = textOrNull(booking.ref) ?? bookingId;
-      if (!UNPAID_PAYMENT_STATES.has(text(booking.payment_state))) {
-        throw new Error(
-          `The guest has already paid for this quote, so the offer can no longer be withdrawn. ` +
-            `Cancel or refund booking ${bookingRef} on the bookings screen; draft a new quote for anything else.`,
-        );
-      }
-      if (!DEAD_BOOKING_STATUSES.has(text(booking.status))) {
-        throw new Error(
-          `This quote has been converted into booking ${bookingRef}, which is still live — the guest ` +
-            `may be paying for it right now, and withdrawing the offer would not stop that charge. ` +
-            `Cancel booking ${bookingRef} on the bookings screen first, then withdraw the quote.`,
-        );
-      }
-    }
-  }
+  if (!bookingId) return;
 
-  const { data, error: writeError } = await db()
+  const { data: booking, error: bookingError } = await db()
+    .from('bookings')
+    .select('ref, status, payment_state')
+    .eq('id', bookingId)
+    .maybeSingle();
+  if (bookingError) throw bookingError;
+  // No row means the booking is GONE (an erasure hard-deletes an unpaid one, and the FK then
+  // nulls booking_id). Nothing holds money and nothing can take any, so the offer is movable.
+  if (!booking) return;
+
+  const bookingRef = textOrNull(booking.ref) ?? bookingId;
+  if (!UNPAID_PAYMENT_STATES.has(text(booking.payment_state))) {
+    throw new Error(refusal.paid(bookingRef));
+  }
+  if (!DEAD_BOOKING_STATUSES.has(text(booking.status))) {
+    throw new Error(refusal.live(bookingRef));
+  }
+}
+
+/**
+ * Un-withdraw: put a `cancelled` quote back on the workbench as a `draft`, so it can be re-priced and
+ * sent again instead of being retyped.
+ *
+ * WHY THIS EXISTS. Withdrawing was a one-way door, and the operator's habit was to walk through it
+ * before every re-price: withdraw, then rebuild the same offer line by line in a new quote. Nothing
+ * required that — `saveQuote` leaves `status` alone precisely so a SENT quote can be re-priced and
+ * re-sent — but once a quote is `cancelled` there was no way back, and the editor said so ("draft a
+ * new quote instead"). This is the way back.
+ *
+ * BACK TO `draft`, NOT `sent`, AND THE TOKEN GOES. Those two are one decision. A quote's public page
+ * opens only when the raw token in the URL hashes to the stored `token_hash` (resolveQuoteForToken),
+ * so nulling that column is what makes the withdrawn link STAY dead — reinstating must not quietly
+ * republish an offer at a URL the guest, or whoever they forwarded it to, is still holding. With no
+ * token there is no link, and `sent` would then be a lie; `draft` is the honest state and it is also
+ * the safe one, since api_convert_quote's whitelist is ('sent', 'accepted'). Pressing Send is what
+ * re-issues the offer, and it mints a fresh link the same way a first send does.
+ *
+ * `sent_at` is deliberately LEFT ALONE. It records that this offer was emailed at that moment, which
+ * remains true; clearing it would erase the only trace that the guest ever saw a version of it.
+ *
+ * THE STATUS IS IN THE WHERE CLAUSE, not checked beforehand. Reinstating is defined only for a
+ * withdrawn quote — run it on a `sent` one and it would null a live `token_hash` and break the link
+ * of a guest who is mid-negotiation, which is the precise harm this function exists to avoid. Putting
+ * the test in the UPDATE makes that impossible rather than unlikely, and the zero-row answer is then
+ * disambiguated by a read, exactly as `updateUnconvertedQuote` disambiguates its own.
+ */
+export async function reinstateQuote(id: string): Promise<void> {
+  await assertNoBookingInTheWay(id, {
+    paid: (bookingRef) =>
+      `The guest has already paid for this quote, so it cannot be put back to a draft. ` +
+      `Booking ${bookingRef} is the live record now — duplicate this quote if you need to offer them something else.`,
+    live: (bookingRef) =>
+      `This quote has been converted into booking ${bookingRef}, which is still live — the guest may ` +
+      `be paying for it right now, and re-drafting the offer would not stop that charge. Cancel ` +
+      `booking ${bookingRef} on the bookings screen first, or duplicate this quote instead.`,
+  });
+
+  const { data, error } = await db()
     .from('quotes')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+    .update({ status: 'draft', token_hash: null, updated_at: new Date().toISOString() })
     .eq('id', id)
+    .eq('status', 'cancelled')
     .select('id');
-  if (writeError) throw writeError;
-  if (!data || data.length === 0) throw new Error('This quote no longer exists.');
+  if (error) throw error;
+  if (data && data.length > 0) return;
+
+  const { data: existing, error: readError } = await db()
+    .from('quotes')
+    .select('status')
+    .eq('id', id)
+    .maybeSingle();
+  if (readError) throw readError;
+  if (!existing) throw new Error('This quote no longer exists.');
+  throw new Error(
+    `Only a withdrawn quote can be put back to a draft, and this one is ${text(existing.status)}. ` +
+      `A quote that has not been withdrawn can be edited and re-sent as it stands.`,
+  );
+}
+
+/**
+ * Copy a quote into a fresh, editable draft, and hand back the new quote's id.
+ *
+ * THE ESCAPE HATCH FOR EVERY QUOTE THAT CANNOT BE EDITED IN PLACE. Re-pricing a `sent` quote and
+ * sending it again is the normal path and always was; `reinstateQuote` re-opens a withdrawn one. What
+ * neither can do is touch a quote the guest has ACCEPTED AND PAID — its lines are the itemisation
+ * behind a real charge, `saveQuote` refuses them by design, and that refusal is correct. Before this,
+ * the only way to offer that guest a changed trip was to retype the whole offer. Now it is one press,
+ * and the paid quote is left exactly as it stands.
+ *
+ * WHAT IS COPIED: the guest, every line in its stored order, both notes, the negotiated deposit, and
+ * the locale — everything an operator would otherwise re-key. `currency` is pinned to EUR rather than
+ * copied, because it is the one field a copy must not propagate blindly (see {@link QuoteCurrency}).
+ *
+ * WHAT IS NOT: the ref, the link token, `sent_at`, and every conversion column. This goes through
+ * `saveQuote` with no `id`, so it takes the INSERT path — a new `ref`, `created_by` set to whoever
+ * pressed the button, and a `status` of `draft`. There is no path by which a copy inherits the
+ * original's link, and no statement here touches the source row at all.
+ *
+ * THE DATE IS RE-OPENED WHEN IT HAS TO BE. `saveQuote` refuses a `valid_until` that has already gone
+ * by, and the quote most worth duplicating is usually the one that sat unanswered until its window
+ * closed — so a source date still in the future is kept (the operator's negotiated deadline survives
+ * the copy) and a lapsed one is replaced with a fresh {@link defaultValidUntil} window rather than
+ * failing at the very case this exists for.
+ *
+ * A CATALOGUE LINE'S OCCURRENCE CANNOT HAVE VANISHED UNDERNEATH THE COPY, which is why this needs no
+ * fallback for one: `quote_items.session_occurrence_id` is NO ACTION and the SOURCE quote still holds
+ * its rows, so the occurrence is pinned for as long as there is something to duplicate —
+ * stop_availability_atomic closes a quoted slot instead of deleting it (migration 20260909000000, 6a)
+ * and deleteActivity is refused outright. The copied line CAN name a departure that has since sailed
+ * or been closed, and that is a judgement for the operator looking at the draft, not a reason to
+ * silently drop a priced line.
+ */
+export async function duplicateQuote(id: string): Promise<string> {
+  const source = await loadQuote(id);
+  if (!source) throw new Error('This quote no longer exists.');
+
+  const today = quoteTodayUtc();
+  // Both are 'yyyy-mm-dd', so this is the same comparison assertQuoteStillValid makes.
+  const validUntil = source.validUntil >= today ? source.validUntil : defaultValidUntil(today);
+
+  return saveQuote({
+    customerName: source.customerName,
+    customerEmail: source.customerEmail,
+    customerPhone: source.customerPhone,
+    validUntil,
+    introNote: source.introNote,
+    internalNotes: source.internalNotes,
+    currency: 'EUR',
+    locale: source.locale === 'fr' ? 'fr' : 'en',
+    depositBps: source.depositBps,
+    // `loadQuote` returns the lines ordered by `position`, and `quoteItemRows` re-derives position
+    // from this array's index — so the copy keeps the owner's order.
+    items: source.items.map((item) => ({
+      kind: item.kind,
+      sessionOccurrenceId: item.sessionOccurrenceId,
+      activityOptionId: item.activityOptionId,
+      priceLabel: item.priceLabel,
+      description: item.description,
+      startsAt: item.startsAt,
+      endsAt: item.endsAt,
+      rentalVehicleSlug: item.rentalVehicleSlug,
+      quantity: item.quantity,
+      unitAmountMinor: item.unitAmountMinor,
+    })),
+  });
 }
 
 export interface SendQuoteResult {
