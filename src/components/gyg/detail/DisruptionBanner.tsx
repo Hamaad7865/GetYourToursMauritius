@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useT, usePreferences } from '@/components/site/PreferencesProvider';
 import { formatLocaleDate } from '@/lib/i18n/format';
 import { whatsappUrl } from '@/lib/seo/site';
+import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import {
   pickRescheduleDates,
   rescheduleAvailabilityUrl,
@@ -49,6 +50,7 @@ export function DisruptionBanner({
   onResolved: () => Promise<unknown> | void;
 }) {
   const t = useT();
+  const waNumber = useWhatsAppNumber();
   const { language } = usePreferences();
 
   const [mode, setMode] = useState<'idle' | 'dates' | 'confirmRefund'>('idle');
@@ -226,6 +228,7 @@ export function DisruptionBanner({
                   t('Hi Belle Mare Tours! My trip {ref} was called off — can we find a new date?', {
                     ref: booking.ref,
                   }),
+                  waNumber,
                 )}
                 target="_blank"
                 rel="noopener noreferrer"

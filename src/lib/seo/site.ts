@@ -73,8 +73,14 @@ export const CATEGORIES = [
   'Sightseeing tours',
 ] as const;
 
-/** wa.me deep link with a pre-filled message (digits-only number derived from SITE.phone). */
-export function whatsappUrl(message: string): string {
-  const number = SITE.phone.replace(/[^\d]/g, '');
-  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
+/**
+ * wa.me deep link with a pre-filled message. The number is digits-only (wa.me wants a bare
+ * international number). It defaults to `SITE.phone` so every existing call is unchanged, but the
+ * customer-facing "Chat on WhatsApp" number is admin-editable: server code passes the resolved value
+ * from `getWhatsAppNumber()` and client components from `useWhatsAppNumber()`. An empty or malformed
+ * override falls back to `SITE.phone` rather than minting a broken `wa.me//` link.
+ */
+export function whatsappUrl(message: string, number: string = SITE.phone): string {
+  const digits = number.replace(/[^\d]/g, '') || SITE.phone.replace(/[^\d]/g, '');
+  return `https://wa.me/${digits}?text=${encodeURIComponent(message)}`;
 }

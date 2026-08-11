@@ -13,6 +13,7 @@ import {
 } from '@/lib/admin/dashboard';
 import type { BookingStatus } from '@/lib/admin/bookings';
 import { RevenueChart } from '@/components/admin/RevenueChart';
+import { WhatsAppNumberCard } from '@/components/admin/WhatsAppNumberCard';
 import {
   IconBookings,
   IconWallet,
@@ -388,6 +389,9 @@ export function AdminDashboard() {
               ))
             )}
           </Card>
+
+          {/* Settings — the editable "Chat on WhatsApp" number. */}
+          <WhatsAppNumberCard />
         </div>
       </div>
     </div>

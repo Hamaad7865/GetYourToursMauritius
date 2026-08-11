@@ -39,6 +39,21 @@ describe('whatsappUrl', () => {
   it('percent-encodes the message so punctuation cannot truncate it', () => {
     expect(whatsappUrl('Hi! A & B?')).toContain('text=Hi!%20A%20%26%20B%3F');
   });
+
+  // The admin-editable number rides in as the second argument (server: getWhatsAppNumber(); client:
+  // useWhatsAppNumber()). It is normalised to digits exactly like the default.
+  it('uses a provided number over the site default, digits only', () => {
+    expect(whatsappUrl('hi', '+230 5 111 2222')).toBe('https://wa.me/23051112222?text=hi');
+  });
+
+  // A blank or garbage override must never mint `wa.me//?...` — it falls back to the site number, so
+  // an unset/cleared setting or a bad stored value still produces a working link.
+  it('falls back to the site number when the override has no digits', () => {
+    const fallback = `https://wa.me/${SITE.phone.replace(/[^\d]/g, '')}?text=hi`;
+    expect(whatsappUrl('hi', '')).toBe(fallback);
+    expect(whatsappUrl('hi', '   ')).toBe(fallback);
+    expect(whatsappUrl('hi', 'not a number')).toBe(fallback);
+  });
 });
 
 describe('WhatsApp entry points', () => {

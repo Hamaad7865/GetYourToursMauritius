@@ -6,6 +6,7 @@ import type { TourOption } from '@/lib/validation/tours';
 import { lineTotalEur } from '@/lib/catalogue/detail';
 import { whatsappUrl } from '@/lib/seo/site';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
+import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import { Price } from '@/components/site/Price';
 import {
   IconBolt,
@@ -40,6 +41,7 @@ export interface BookingPanelProps {
  */
 export function BookingPanel({ type, title, fromPriceEur, options, languages }: BookingPanelProps) {
   const t = useT();
+  const waNumber = useWhatsAppNumber();
   const money = useMoney();
   const isTransport = type === 'transport';
   const [participants, setParticipants] = useState(2);
@@ -209,7 +211,7 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
         </div>
 
         <a
-          href={whatsappUrl(message)}
+          href={whatsappUrl(message, waNumber)}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-[13px] bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark"

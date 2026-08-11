@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { useT } from '@/components/site/PreferencesProvider';
+import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import { useToast } from '@/components/site/ToastProvider';
 import { Price } from '@/components/site/Price';
 import { buildInquiryMessage, inquiryReady, packInquiryContact } from '@/lib/catalogue/inquiry';
@@ -27,6 +28,7 @@ export interface InquiryActivity {
  */
 export function InquiryWidget({ activity }: { activity: InquiryActivity }) {
   const t = useT();
+  const waNumber = useWhatsAppNumber();
   const { showToast } = useToast();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -178,7 +180,7 @@ export function InquiryWidget({ activity }: { activity: InquiryActivity }) {
 
         <div className="mt-4 flex flex-col gap-2.5">
           <a
-            href={ready ? whatsappUrl(message) : undefined}
+            href={ready ? whatsappUrl(message, waNumber) : undefined}
             target="_blank"
             rel="noopener noreferrer"
             aria-disabled={!ready}

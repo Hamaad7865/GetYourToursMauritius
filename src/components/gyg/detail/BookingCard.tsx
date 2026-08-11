@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import type { TourType } from '@/lib/validation/common';
 import type { TourOption } from '@/lib/validation/tours';
 import { useT } from '@/components/site/PreferencesProvider';
+import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import { whatsappUrl } from '@/lib/seo/site';
 import {
   IconBolt,
@@ -45,6 +46,7 @@ export interface BookingCardProps {
  *  Peach checkout) routes to an interim WhatsApp reservation. */
 export function BookingCard({ type, title, fromPriceEur, options, languages }: BookingCardProps) {
   const t = useT();
+  const waNumber = useWhatsAppNumber();
   const isTransport = type === 'transport';
   const cheapest = cheapestTier(options);
   const isGroup = cheapest?.maxGuests != null;
@@ -202,7 +204,7 @@ export function BookingCard({ type, title, fromPriceEur, options, languages }: B
         </div>
 
         <a
-          href={whatsappUrl(message)}
+          href={whatsappUrl(message, waNumber)}
           target="_blank"
           rel="noopener noreferrer"
           className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-xl bg-teal px-4 py-[15px] text-base font-bold text-white shadow-[0_12px_24px_-12px_rgba(14,140,146,0.7)] hover:bg-teal-dark"

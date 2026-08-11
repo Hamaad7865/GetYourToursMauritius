@@ -5,6 +5,7 @@ import type { RentalVehicle } from '@/lib/validation/rental';
 import { rentalDays, rentalTotalEur } from '@/lib/services/pricing';
 import { whatsappUrl } from '@/lib/seo/site';
 import { useT } from '@/components/site/PreferencesProvider';
+import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import {
   IconCalendar,
   IconCheck,
@@ -152,6 +153,7 @@ function VehicleCard({
  *  with a ready-to-send message. No online payment — booking is confirmed over WhatsApp. */
 export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
   const t = useT();
+  const waNumber = useWhatsAppNumber();
   const [selected, setSelected] = useState(vehicles[0]?.slug ?? '');
   const [pickup, setPickup] = useState('');
   const [ret, setRet] = useState('');
@@ -325,7 +327,7 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
         </div>
 
         <a
-          href={ready ? whatsappUrl(message) : undefined}
+          href={ready ? whatsappUrl(message, waNumber) : undefined}
           target="_blank"
           rel="noopener noreferrer"
           aria-disabled={!ready}

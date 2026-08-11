@@ -5,8 +5,10 @@ import { PreferencesProvider } from '@/components/site/PreferencesProvider';
 import { ToastProvider } from '@/components/site/ToastProvider';
 import { ContactFloat } from '@/components/site/ContactFloat';
 import { EnquiryContextProvider } from '@/components/site/EnquiryContext';
+import { WhatsAppNumberProvider } from '@/components/site/WhatsAppNumberProvider';
 import { getLocale, getServerCurrency } from '@/lib/i18n/server';
 import { getUsdRate } from '@/lib/money/fx';
+import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 
 export const runtime = 'edge';
 
@@ -18,10 +20,11 @@ export const runtime = 'edge';
  * can't ship the implicit /_not-found route when it inherits runtime logic from the root layout.
  */
 export default async function SiteLayout({ children }: { children: ReactNode }) {
-  const [locale, currency, usdRate] = await Promise.all([
+  const [locale, currency, usdRate, whatsappNumber] = await Promise.all([
     getLocale(),
     getServerCurrency(),
     getUsdRate(),
+    getWhatsAppNumber(),
   ]);
   return (
     <PreferencesProvider
@@ -29,15 +32,19 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       initialCurrency={currency}
       initialUsdRate={usdRate}
     >
-      {/* Wraps BOTH the page and the float: an activity page publishes itself into this context so
-          ContactFloat, which sits above every page in the tree, can prefill its enquiry form. */}
-      <EnquiryContextProvider>
-        <ToastProvider>
-          <AuthProvider>{children}</AuthProvider>
-        </ToastProvider>
-        <ContactFloat />
-      </EnquiryContextProvider>
-      <CookieNotice />
+      {/* The admin-editable "Chat on WhatsApp" number, seeded once here so every client-side wa.me
+          link (ContactFloat, the footer, booking cards, ...) reflects an edit without a redeploy. */}
+      <WhatsAppNumberProvider value={whatsappNumber}>
+        {/* Wraps BOTH the page and the float: an activity page publishes itself into this context so
+            ContactFloat, which sits above every page in the tree, can prefill its enquiry form. */}
+        <EnquiryContextProvider>
+          <ToastProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </ToastProvider>
+          <ContactFloat />
+        </EnquiryContextProvider>
+        <CookieNotice />
+      </WhatsAppNumberProvider>
     </PreferencesProvider>
   );
 }
