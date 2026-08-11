@@ -3,6 +3,7 @@ import { Logo } from './Logo';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { IconChat, IconMail } from '@/components/ui/icons';
 import { getT } from '@/lib/i18n/server';
+import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 
 /**
  * Stand-in for the WhatsApp deep link in the static COLUMNS below. The real href carries a
@@ -80,11 +81,11 @@ const COLUMNS = [
 ];
 
 export async function SiteFooter() {
-  const t = await getT();
+  const [t, waNumber] = await Promise.all([getT(), getWhatsAppNumber()]);
   // Both WhatsApp entry points used to be href="#whatsapp" — which was this footer's OWN id, so
   // clicking "Chat on WhatsApp" scrolled to the footer and did nothing else. The id is gone with
   // them: nothing else referenced it, and a self-referencing anchor is what disguised the bug.
-  const whatsapp = whatsappUrl(t('Hi Belle Mare Tours! I have a question.'));
+  const whatsapp = whatsappUrl(t('Hi Belle Mare Tours! I have a question.'), waNumber);
   return (
     <footer className="bg-ink text-cream/80">
       <div className="mx-auto max-w-shell px-6 pb-7 pt-14">

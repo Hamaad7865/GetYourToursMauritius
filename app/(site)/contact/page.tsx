@@ -6,6 +6,7 @@ import { ContactForm } from '@/components/site/ContactForm';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { IconChat, IconMail, IconPin } from '@/components/ui/icons';
 import { getT } from '@/lib/i18n/server';
+import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 
 export const runtime = 'edge';
 
@@ -18,13 +19,15 @@ const DEFAULT_METADATA: Metadata = {
 };
 
 export default async function ContactPage() {
-  const t = await getT();
+  const [t, waNumber] = await Promise.all([getT(), getWhatsAppNumber()]);
   const channels = [
     {
       icon: <IconChat width={20} height={20} />,
       label: t('WhatsApp'),
-      value: SITE.phone,
-      href: whatsappUrl(t('Hi Belle Mare Tours! I have a question.')),
+      // The admin-editable WhatsApp number — shown AND linked here so the "WhatsApp" row can never
+      // display one number while its chat link opens another.
+      value: waNumber,
+      href: whatsappUrl(t('Hi Belle Mare Tours! I have a question.'), waNumber),
       note: t('Fastest reply'),
     },
     {

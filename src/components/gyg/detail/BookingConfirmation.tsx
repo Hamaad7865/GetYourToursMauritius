@@ -13,6 +13,7 @@ import { childSeatsCost } from '@/lib/services/pricing';
 import { isStaffViewing } from '@/lib/booking/staff-view';
 import { balanceIsOutstanding } from '@/lib/quotes/deposit';
 import { whatsappUrl } from '@/lib/seo/site';
+import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import { transferLegs } from '@/lib/transfers/leg-times';
 import { DisruptionBanner } from './DisruptionBanner';
 import { isAwaitingDisruptionChoice } from '@/lib/booking/reschedule-dates';
@@ -120,6 +121,7 @@ const STATUS_COPY: Record<string, { title: string; tone: string }> = {
 
 export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
   const t = useT();
+  const waNumber = useWhatsAppNumber();
   const money = useMoney();
   const { user, session, loading: authLoading, openAuth } = useAuth();
   const params = useSearchParams();
@@ -941,6 +943,7 @@ export function BookingConfirmation({ bookingRef }: { bookingRef: string }) {
                     t('Hi Belle Mare Tours! I need to cancel my booking {ref}.', {
                       ref: booking.ref,
                     }),
+                    waNumber,
                   )}
                   target="_blank"
                   rel="noopener noreferrer"

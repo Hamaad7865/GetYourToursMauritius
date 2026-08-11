@@ -979,6 +979,21 @@ type ErrorLogsInsert = {
   context?: Json | null;
 };
 
+/** 20260922000000 — the admin-editable "Chat on WhatsApp" number. Singleton row (id is always true);
+ *  null whatsapp_number means "fall back to SITE.phone". Public read, staff update. */
+type BusinessSettingsRow = {
+  id: boolean;
+  whatsapp_number: string | null;
+  updated_at: string;
+  updated_by: string | null;
+};
+type BusinessSettingsInsert = {
+  id?: boolean;
+  whatsapp_number?: string | null;
+  updated_at?: string;
+  updated_by?: string | null;
+};
+
 type TableDef<Row, Insert> = { Row: Row; Insert: Insert; Update: Partial<Insert>; Relationships: [] };
 
 export interface Database {
@@ -1029,6 +1044,7 @@ export interface Database {
         ActivityContentDefaultsInsert
       >;
       error_logs: TableDef<ErrorLogsRow, ErrorLogsInsert>;
+      business_settings: TableDef<BusinessSettingsRow, BusinessSettingsInsert>;
     };
     Views: { [_ in never]: never };
     Functions: {

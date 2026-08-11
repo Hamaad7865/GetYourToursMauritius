@@ -27,6 +27,7 @@ import {
   type AirportFare,
 } from '@/lib/services/pricing';
 import { getT, getLocale } from '@/lib/i18n/server';
+import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 
 export const runtime = 'edge';
 
@@ -143,6 +144,7 @@ const eur = (cents: number) => `€${centsToEur(cents)}`;
 export default async function AirportTransfersPage() {
   const t = await getT();
   const locale = await getLocale();
+  const waNumber = await getWhatsAppNumber();
   // FAQ text feeds faqPageJsonLd() below verbatim. Not routed through the flat t() catalogue —
   // instead we pick between a local English and French copy by locale, so whichever array is
   // picked is the SAME array the visible accordion renders, and the two can never diverge.
@@ -1339,6 +1341,7 @@ export default async function AirportTransfersPage() {
               <a
                 href={whatsappUrl(
                   'Hi Belle Mare Tours! I’d like an airport transfer. Here are my flight details and party size:',
+                  waNumber,
                 )}
                 target="_blank"
                 rel="noopener noreferrer"

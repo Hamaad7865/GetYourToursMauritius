@@ -9,6 +9,7 @@ import { JsonLd } from '@/components/seo/JsonLd';
 import { breadcrumbListJsonLd, faqPageJsonLd } from '@/lib/seo/jsonld';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { getLocale, getT } from '@/lib/i18n/server';
+import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 import { RevealOnScroll } from '@/components/about/RevealOnScroll';
 import { HeroWaves } from '@/components/about/HeroWaves';
 import { BAND_PHOTO, STORY_PHOTOS, PHOTO_CREDITS } from '@/lib/content/about-photos';
@@ -247,6 +248,7 @@ function ChevronDown() {
 export default async function AboutPage() {
   const t = await getT();
   const locale = await getLocale();
+  const waNumber = await getWhatsAppNumber();
   /* Grouped in the reader's own locale — 1,076 in English, 1 076 in French. Both numbers come
      from the scraped TripAdvisor/Google pool, so the claim can never drift from the data. */
   const reviewCount = reviewStats.total.toLocaleString(locale === 'fr' ? 'fr-FR' : 'en-GB');
@@ -1727,7 +1729,7 @@ export default async function AboutPage() {
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3.5">
               <a
-                href={whatsappUrl(t('Hi! I’d like to plan my trip to Mauritius.'))}
+                href={whatsappUrl(t('Hi! I’d like to plan my trip to Mauritius.'), waNumber)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2.5 rounded-full px-[30px] py-4 text-[17px] font-bold no-underline transition hover:-translate-y-0.5"

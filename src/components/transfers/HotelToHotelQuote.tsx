@@ -8,6 +8,7 @@ import { parseApiJson } from '@/lib/http/fetch-json';
 import { transfers } from '@/lib/content/transfers';
 import { TRANSFER_LOCATIONS } from '@/lib/content/transfer-locations';
 import { whatsappUrl } from '@/lib/seo/site';
+import { useWhatsAppNumber } from '@/components/site/WhatsAppNumberProvider';
 import {
   HOTEL_TRANSFER_FARE_DEFAULT,
   HOTEL_TRANSFER_RETURN_DISCOUNT_PCT_DEFAULT,
@@ -315,6 +316,7 @@ function TypeaheadField({
  */
 export function HotelToHotelQuote() {
   const t = useT();
+  const waNumber = useWhatsAppNumber();
   const router = useRouter();
   const today = useMemo(() => ymd(new Date()), []);
 
@@ -735,7 +737,7 @@ export function HotelToHotelQuote() {
         <p className="mt-3 text-[13px] font-medium" style={{ color: INK_SOFT }}>
           {t('That date isn’t open online just yet —')}{' '}
           <a
-            href={whatsappUrl(waMessage)}
+            href={whatsappUrl(waMessage, waNumber)}
             target="_blank"
             rel="noopener noreferrer"
             className="font-bold underline"

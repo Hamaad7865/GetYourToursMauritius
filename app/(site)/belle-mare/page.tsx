@@ -26,6 +26,7 @@ import {
 import { overrideMetadata } from '@/lib/seo/override';
 import { SITE, OG_IMAGE, whatsappUrl } from '@/lib/seo/site';
 import { getT, getLocale } from '@/lib/i18n/server';
+import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 
 export const runtime = 'edge';
 
@@ -80,6 +81,7 @@ export default async function BelleMarePage() {
 
   const t = await getT();
   const locale = await getLocale();
+  const waNumber = await getWhatsAppNumber();
   const a = localisedArea(raw, locale);
   const groups = hotelGroupsFor(SLUG) ?? [];
   const hotels = hotelsFor(SLUG);
@@ -119,6 +121,7 @@ export default async function BelleMarePage() {
         href: transfer ? transferPath(h.slug) : '/airport-transfers',
         enquiryHref: whatsappUrl(
           `Hi ${SITE.operator}! I'm staying at ${h.name} in ${a.name} and would like a pickup quote.`,
+          waNumber,
         ),
         position: t('{n} of {total} · {inGroup} in this group', {
           n: index + 1,
@@ -440,6 +443,7 @@ export default async function BelleMarePage() {
               <a
                 href={whatsappUrl(
                   `Hi ${SITE.operator}! I'm staying in ${a.name} and would like to plan some tours and a transfer.`,
+                  waNumber,
                 )}
                 target="_blank"
                 rel="noopener noreferrer"

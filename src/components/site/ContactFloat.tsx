@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { whatsappUrl } from '@/lib/seo/site';
 import { useT } from './PreferencesProvider';
+import { useWhatsAppNumber } from './WhatsAppNumberProvider';
 import { useEnquiryActivity, type EnquiryActivity } from './EnquiryContext';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { IconChat, IconX } from '@/components/ui/icons';
@@ -79,6 +80,7 @@ function EnquiryPanel({
   onClose: () => void;
 }) {
   const t = useT();
+  const waNumber = useWhatsAppNumber();
   const nameRef = useRef<HTMLInputElement>(null);
   // APG dialog behaviour: scroll-lock, Escape, focus move-in/return, and a Tab focus trap.
   const dialogRef = useDialog(true, onClose, () => nameRef.current);
@@ -172,7 +174,7 @@ function EnquiryPanel({
                 )}
               </p>
               <a
-                href={whatsappUrl(enquiryWhatsAppMessage(activity?.title))}
+                href={whatsappUrl(enquiryWhatsAppMessage(activity?.title), waNumber)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-teal-dark px-5 py-3 text-sm font-bold text-white hover:bg-teal-dark/90"
@@ -292,7 +294,7 @@ function EnquiryPanel({
               </button>
 
               <a
-                href={whatsappUrl(enquiryWhatsAppMessage(activity?.title))}
+                href={whatsappUrl(enquiryWhatsAppMessage(activity?.title), waNumber)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-0.5 inline-flex items-center justify-center gap-1.5 py-1 text-[13px] font-bold text-teal hover:text-teal-dark hover:underline"

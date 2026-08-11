@@ -5,6 +5,7 @@ import { SiteFooter } from '@/components/site/SiteFooter';
 import { SITE, whatsappUrl } from '@/lib/seo/site';
 import { IconArrowRight, IconChat, IconChevron } from '@/components/ui/icons';
 import { getT } from '@/lib/i18n/server';
+import { getWhatsAppNumber } from '@/lib/settings/whatsapp-number';
 
 /** Branded shell for the static landing pages (About, Rent, Taxi, …): solid header,
  *  a teal hero band with title + intro, the page body, then the footer. */
@@ -83,14 +84,14 @@ export function InfoPage({
 
 /** WhatsApp + phone call-to-action row used at the foot of each landing page. */
 export async function EnquireRow({ message }: { message: string }) {
-  const t = await getT();
+  const [t, waNumber] = await Promise.all([getT(), getWhatsAppNumber()]);
   return (
     <div className="mt-10 flex flex-wrap items-center gap-3 rounded-2xl border border-ink/10 bg-cream/60 p-5">
       <p className="mr-auto text-[15px] font-bold text-ink">
         {t('Ready to book or have a question?')}
       </p>
       <a
-        href={whatsappUrl(message)}
+        href={whatsappUrl(message, waNumber)}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-2 rounded-full bg-teal px-5 py-2.5 text-sm font-bold text-white hover:bg-teal-dark"
