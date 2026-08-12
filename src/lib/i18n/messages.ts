@@ -149,6 +149,8 @@ export const fr: Record<string, string> = {
   'Next weekend': 'Ce week-end',
   'Previous month': 'Mois précédent',
   'Next month': 'Mois suivant',
+  'Previous years': 'Années précédentes',
+  'Next years': 'Années suivantes',
   'Remove {label}': 'Retirer {label}',
   'Add {label}': 'Ajouter {label}',
   '{date}, unavailable': '{date}, indisponible',

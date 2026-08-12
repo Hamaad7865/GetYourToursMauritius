@@ -31,6 +31,7 @@ import { DraftFromEmail } from '@/components/admin/quotes/DraftFromEmail';
 import { EmailPreview } from '@/components/admin/quotes/EmailPreview';
 import { LinesPane } from '@/components/admin/quotes/LinesPane';
 import { EMPTY_PICKUP, type QuotePickup } from '@/components/admin/quotes/pickup';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { useAssistant, useAssistantContext } from '@/components/admin/assistant/AssistantProvider';
 import type { StatedAmount } from '@/lib/quotes/reconcile';
 import {
@@ -710,10 +711,9 @@ function QuoteEditor({
                     label="Valid until"
                     hint="After this date the link stops opening and the payment path refuses the quote."
                   >
-                    <input
-                      type="date"
+                    <DatePicker
                       value={values.validUntil}
-                      onChange={(e) => set('validUntil', e.target.value)}
+                      onChange={(v) => set('validUntil', v)}
                       className={INPUT_CLS}
                     />
                   </Field>

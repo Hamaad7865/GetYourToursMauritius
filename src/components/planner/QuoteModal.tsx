@@ -9,6 +9,7 @@ import { fmtDur } from './planner-constants';
 import { useT, useMoney } from '@/components/site/PreferencesProvider';
 import { Price } from '@/components/site/Price';
 import { DATE_TIME_INPUT } from '@/components/ui/date-input';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 const inputCls =
   'w-full rounded-[11px] border border-[#E3EEEC] bg-white px-[13px] py-[11px] text-[14.5px] text-ink outline-none focus:border-teal';
@@ -147,14 +148,13 @@ export function QuoteModal({
                     })}
                   </div>
                 ) : (
-                  <input
+                  <DatePicker
                     id="q-date"
-                    required
-                    type="date"
-                    min={minDate}
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className={`${inputCls} ${DATE_TIME_INPUT}`}
+                    min={minDate}
+                    onChange={setDate}
+                    ariaLabel={t('Date')}
+                    className={inputCls}
                   />
                 )}
               </div>
@@ -250,7 +250,8 @@ export function QuoteModal({
 
             <button
               type="submit"
-              disabled={booking || !quote}
+              // `!date` replaces the date input's old native `required` now that the picker is a button.
+              disabled={booking || !quote || !date}
               className="w-full cursor-pointer rounded-[13px] py-3.5 text-[15.5px] font-extrabold text-white shadow-[0_10px_24px_rgba(14,140,146,.3)] disabled:opacity-50"
               style={{
                 background: booking ? '#0B5C63' : 'linear-gradient(135deg,#13A0A6,#0B5C63)',

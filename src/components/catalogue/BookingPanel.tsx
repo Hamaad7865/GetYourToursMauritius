@@ -18,6 +18,7 @@ import {
   IconPlus,
   IconShield,
 } from '@/components/ui/icons';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 const MAX_PARTICIPANTS = 12;
 
@@ -170,23 +171,21 @@ export function BookingPanel({ type, title, fromPriceEur, options, languages }: 
             </div>
           )}
 
-          <label className="relative flex cursor-pointer items-center gap-3 rounded-[13px] border border-ink/15 px-3.5 py-3 focus-within:border-teal">
-            <IconCalendar width={18} height={18} className="text-teal" />
+          <DatePicker
+            value={date}
+            min={minDate || undefined}
+            onChange={setDate}
+            ariaLabel={t('Choose a date')}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-[13px] border border-ink/15 px-3.5 py-3 text-left hover:border-teal focus-visible:border-teal focus-visible:outline-none"
+          >
+            <IconCalendar width={18} height={18} className="shrink-0 text-teal" />
             <span className="flex-1">
               <span className="block text-[11px] font-bold uppercase tracking-wider text-teal">
                 {isTransport ? t('Arrival date') : t('Date')}
               </span>
               <span className="block text-[13.5px] font-semibold text-ink">{dateText}</span>
             </span>
-            <input
-              type="date"
-              value={date}
-              min={minDate || undefined}
-              onChange={(e) => setDate(e.target.value)}
-              aria-label={t('Choose a date')}
-              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-            />
-          </label>
+          </DatePicker>
 
           {!isTransport && languages.length > 0 && (
             <div className="flex items-center gap-3 rounded-[13px] border border-ink/15 px-3.5 py-3">

@@ -5,8 +5,8 @@ import { useAuth } from '@/components/auth/AuthProvider';
 import { getBrowserSupabase } from '@/lib/supabase/browser';
 import { useT } from '@/components/site/PreferencesProvider';
 import { SignedOutPrompt, AccountSpinner } from './AccountChrome';
-import { DATE_TIME_INPUT } from '@/components/ui/date-input';
 import { PhoneField } from '@/components/phone/PhoneField';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 export function AccountProfile() {
   const t = useT();
@@ -93,16 +93,17 @@ export function AccountProfile() {
               checkout, so a home-format number never reaches the driver undiallable. */}
           <PhoneField value={phone} onChange={setPhone} />
         </div>
-        <label className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5">
           <span className="text-[13px] font-bold text-ink">{t('Date of birth')}</span>
-          <input
-            type="date"
+          <DatePicker
             value={dob}
             max={today}
-            onChange={(e) => setDob(e.target.value)}
-            className={`rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink outline-none focus:border-teal ${DATE_TIME_INPUT}`}
+            min="1920-01-01"
+            onChange={setDob}
+            ariaLabel={t('Date of birth')}
+            className="rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm text-ink focus:border-teal"
           />
-        </label>
+        </div>
 
         {error && (
           <p role="alert" className="text-[13px] font-medium text-coral">

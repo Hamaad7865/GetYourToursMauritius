@@ -6,6 +6,7 @@ import { Price } from '@/components/site/Price';
 import { useT } from '@/components/site/PreferencesProvider';
 import { parseApiJson } from '@/lib/http/fetch-json';
 import { DATE_FIELD_WRAPPER, DATE_TIME_INPUT } from '@/components/ui/date-input';
+import { DatePicker } from '@/components/ui/DatePicker';
 import {
   AIRPORT_FARE_DEFAULT,
   AIRPORT_RETURN_DISCOUNT_PCT_DEFAULT,
@@ -384,12 +385,11 @@ export function TransferBookingWidget({
             <span className="flex items-center gap-1.5">
               <IconCalendar width={15} height={15} className="text-teal" /> {t('Arrival date')}
             </span>
-            <input
-              type="date"
+            <DatePicker
               value={date}
               min={today}
-              onChange={(e) => setDate(e.target.value)}
-              className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
+              onChange={setDate}
+              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
             />
           </label>
           <label className={`block text-[13px] font-semibold text-ink ${DATE_FIELD_WRAPPER}`}>
@@ -410,12 +410,11 @@ export function TransferBookingWidget({
               <span className="flex items-center gap-1.5">
                 <IconCalendar width={15} height={15} className="text-teal" /> {t('Return date')}
               </span>
-              <input
-                type="date"
+              <DatePicker
                 value={returnDate}
                 min={date || today}
-                onChange={(e) => setReturnDate(e.target.value)}
-                className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
+                onChange={setReturnDate}
+                className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
               />
             </label>
             <label className={`block text-[13px] font-semibold text-ink ${DATE_FIELD_WRAPPER}`}>

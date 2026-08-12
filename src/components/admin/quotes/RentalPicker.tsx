@@ -7,6 +7,7 @@ import { IconX } from '@/components/ui/icons';
 import { mauDay } from '@/lib/admin/format';
 import { loadRentalFleet, type RentalVehicleInput } from '@/lib/admin/rental';
 import { eurToCents, rentalDays } from '@/lib/services/pricing';
+import { DatePicker } from '@/components/ui/DatePicker';
 import {
   eurFromMinor,
   refusalMessage,
@@ -135,11 +136,9 @@ export function RentalPicker({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Pick-up">
-              <input
-                type="date"
+              <DatePicker
                 value={pickup}
-                onChange={(e) => {
-                  const v = e.target.value;
+                onChange={(v) => {
                   setPickup(v);
                   if (ret && Date.parse(`${ret}T00:00:00Z`) < Date.parse(`${v}T00:00:00Z`))
                     setRet(v);
@@ -148,11 +147,10 @@ export function RentalPicker({
               />
             </Field>
             <Field label="Return">
-              <input
-                type="date"
+              <DatePicker
                 value={ret}
                 min={pickup || undefined}
-                onChange={(e) => setRet(e.target.value)}
+                onChange={setRet}
                 className={INPUT_CLS}
               />
             </Field>

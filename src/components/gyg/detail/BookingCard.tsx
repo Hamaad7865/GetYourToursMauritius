@@ -18,6 +18,7 @@ import {
   IconShield,
   IconUsers,
 } from '@/components/ui/icons';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 function eur(n: number): string {
   return Number.isInteger(n) ? `€${n}` : `€${n.toFixed(2)}`;
@@ -160,19 +161,17 @@ export function BookingCard({ type, title, fromPriceEur, options, languages }: B
           </div>
 
           {/* Date */}
-          <label className="relative flex cursor-pointer items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-3 focus-within:border-teal">
-            <IconCalendar width={18} height={18} className="text-teal" />
-            <span className="flex-1 text-[14px] font-semibold text-ink">{dateText}</span>
-            <IconChevron width={16} height={16} className="text-ink-muted" />
-            <input
-              type="date"
-              value={date}
-              min={minDate || undefined}
-              onChange={(e) => setDate(e.target.value)}
-              aria-label={t('Select a date')}
-              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-            />
-          </label>
+          <DatePicker
+            value={date}
+            min={minDate || undefined}
+            onChange={setDate}
+            ariaLabel={t('Select a date')}
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-ink/15 px-3.5 py-3 hover:border-teal focus-visible:border-teal focus-visible:outline-none"
+          >
+            <IconCalendar width={18} height={18} className="shrink-0 text-teal" />
+            <span className="flex-1 text-left text-[14px] font-semibold text-ink">{dateText}</span>
+            <IconChevron width={16} height={16} className="shrink-0 text-ink-muted" />
+          </DatePicker>
 
           {/* Language */}
           {languages.length > 0 && (

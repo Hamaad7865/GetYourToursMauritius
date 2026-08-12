@@ -16,6 +16,7 @@ import {
 import type { RegionDistanceMap, TransportBandPricing } from '@/lib/services/pricing';
 import type { QuotePickup } from '@/components/admin/quotes/pickup';
 import { totalsMismatch, type StatedAmount } from '@/lib/quotes/reconcile';
+import { DatePicker } from '@/components/ui/DatePicker';
 import {
   customLineDraft,
   eurFromMinor,
@@ -201,11 +202,10 @@ export function LinesPane({
                       </p>
                     ) : (
                       <>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={line.date}
-                          onChange={(e) => update(index, { date: e.target.value })}
-                          aria-label={`Line ${index + 1} date`}
+                          onChange={(v) => update(index, { date: v })}
+                          ariaLabel={`Line ${index + 1} date`}
                           className={INPUT_CLS}
                         />
                         <input

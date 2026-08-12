@@ -14,7 +14,7 @@ import {
   IconUsers,
   IconInfo,
 } from '@/components/ui/icons';
-import { DATE_TIME_INPUT } from '@/components/ui/date-input';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 /** Friendly label for a vehicle's class (free-text category → display). Returned strings are English
  *  source text — callers must pass them through t() at the display site. */
@@ -256,28 +256,25 @@ export function RentalWidget({ vehicles }: { vehicles: RentalVehicle[] }) {
             <span className="mb-1 flex items-center gap-1.5">
               <IconCalendar width={14} height={14} className="text-teal" /> {t('Pick-up')}
             </span>
-            <input
-              type="date"
-              className={`${fieldClass} ${DATE_TIME_INPUT}`}
+            <DatePicker
               value={pickup}
               min={today || undefined}
-              onChange={(e) => {
-                const v = e.target.value;
+              onChange={(v) => {
                 setPickup(v);
                 if (ret && Date.parse(`${ret}T00:00:00Z`) < Date.parse(`${v}T00:00:00Z`)) setRet(v);
               }}
+              className={fieldClass}
             />
           </label>
           <label className="text-[12.5px] font-semibold text-ink">
             <span className="mb-1 flex items-center gap-1.5">
               <IconCalendar width={14} height={14} className="text-teal" /> {t('Return')}
             </span>
-            <input
-              type="date"
-              className={`${fieldClass} ${DATE_TIME_INPUT}`}
+            <DatePicker
               value={ret}
               min={pickup || today || undefined}
-              onChange={(e) => setRet(e.target.value)}
+              onChange={setRet}
+              className={fieldClass}
             />
           </label>
         </div>

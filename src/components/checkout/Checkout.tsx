@@ -53,6 +53,7 @@ import {
   IconUsers,
 } from '@/components/ui/icons';
 import { DATE_TIME_INPUT } from '@/components/ui/date-input';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 const STEPS = ['Trip & pickup', 'Contact', 'Payment'];
 
@@ -1606,11 +1607,11 @@ export function Checkout() {
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           <label className="block text-[13px] font-semibold text-ink">
                             {t('Arrival date')} <span className="text-coral-dark">*</span>
-                            <input
-                              type="date"
+                            <DatePicker
                               value={arrivalDate}
-                              onChange={(e) => setArrivalDate(e.target.value)}
-                              className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
+                              onChange={setArrivalDate}
+                              ariaLabel={t('Arrival date')}
+                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
                             />
                           </label>
                           <label className="block text-[13px] font-semibold text-ink">
@@ -1635,11 +1636,11 @@ export function Checkout() {
                         <div className="mt-2 grid grid-cols-2 gap-2">
                           <label className="block text-[13px] font-semibold text-ink">
                             {t('Pickup date')} <span className="text-coral-dark">*</span>
-                            <input
-                              type="date"
+                            <DatePicker
                               value={departureDate}
-                              onChange={(e) => setDepartureDate(e.target.value)}
-                              className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
+                              onChange={setDepartureDate}
+                              ariaLabel={t('Pickup date')}
+                              className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
                             />
                           </label>
                           <label className="block text-[13px] font-semibold text-ink">
@@ -1734,11 +1735,11 @@ export function Checkout() {
                     <div className="grid grid-cols-2 gap-2">
                       <label className="block text-[13px] font-semibold text-ink">
                         {t('Pickup date')} <span className="text-coral-dark">*</span>
-                        <input
-                          type="date"
+                        <DatePicker
                           value={arrivalDate}
-                          onChange={(e) => setArrivalDate(e.target.value)}
-                          className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
+                          onChange={setArrivalDate}
+                          ariaLabel={t('Pickup date')}
+                          className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
                         />
                       </label>
                       <label className="block text-[13px] font-semibold text-ink">
@@ -1757,11 +1758,11 @@ export function Checkout() {
                       <div className="grid grid-cols-2 gap-2 rounded-xl border border-ink/10 bg-teal/[0.04] p-3.5">
                         <label className="block text-[13px] font-semibold text-ink">
                           {t('Return date')} <span className="text-coral-dark">*</span>
-                          <input
-                            type="date"
+                          <DatePicker
                             value={departureDate}
-                            onChange={(e) => setDepartureDate(e.target.value)}
-                            className={`mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal outline-none focus:border-teal ${DATE_TIME_INPUT}`}
+                            onChange={setDepartureDate}
+                            ariaLabel={t('Return date')}
+                            className="mt-1 w-full rounded-xl border border-ink/15 px-3 py-2.5 text-sm font-normal focus:border-teal"
                           />
                         </label>
                         <label className="block text-[13px] font-semibold text-ink">

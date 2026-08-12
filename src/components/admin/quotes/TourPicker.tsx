@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { BTN_GHOST, BTN_PRIMARY, Field, INPUT_CLS, SELECT_CLS } from '@/components/admin/ui';
 import { IconX } from '@/components/ui/icons';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { fmtDate, fmtTime, mauDay } from '@/lib/admin/format';
 import {
   loadActivityDepartures,
@@ -169,12 +170,7 @@ export function TourPicker({
               </select>
             </Field>
             <Field label="Date">
-              <input
-                type="date"
-                value={day}
-                onChange={(e) => setDay(e.target.value)}
-                className={INPUT_CLS}
-              />
+              <DatePicker value={day} onChange={setDay} className={INPUT_CLS} />
             </Field>
           </div>
 

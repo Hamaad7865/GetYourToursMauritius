@@ -8,7 +8,8 @@ import { useWhatsAppNumber } from './WhatsAppNumberProvider';
 import { useEnquiryActivity, type EnquiryActivity } from './EnquiryContext';
 import { useDialog } from '@/lib/a11y/useDialog';
 import { IconChat, IconX } from '@/components/ui/icons';
-import { DATE_FIELD_WRAPPER, DATE_TIME_INPUT } from '@/components/ui/date-input';
+import { DATE_FIELD_WRAPPER } from '@/components/ui/date-input';
+import { DatePicker } from '@/components/ui/DatePicker';
 import { enquiryReady, enquiryWhatsAppMessage, packEnquiryContact } from '@/lib/catalogue/enquiry';
 
 const PANEL_ID = 'enquiry-panel';
@@ -131,9 +132,6 @@ function EnquiryPanel({
 
   const field =
     'w-full rounded-xl border border-ink/15 px-3.5 py-2.5 text-sm outline-none focus:border-teal';
-  // The two-up date/number row needs the native-control fixes on top (see date-input.ts): without
-  // them iOS painted the date field grey and overflowed it under "People".
-  const dateField = `${field} ${DATE_TIME_INPUT}`;
   const numberField = `${field} min-w-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none`;
   const labelText = 'mb-1 block text-[12.5px] font-bold text-ink';
 
@@ -245,13 +243,7 @@ function EnquiryPanel({
                 <div className="grid grid-cols-2 gap-2.5">
                   <label className={`block ${DATE_FIELD_WRAPPER}`}>
                     <span className={labelText}>{t('Preferred date')}</span>
-                    <input
-                      type="date"
-                      min={todayStr}
-                      className={dateField}
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                    />
+                    <DatePicker value={date} min={todayStr} onChange={setDate} className={field} />
                   </label>
                   <label className={`block ${DATE_FIELD_WRAPPER}`}>
                     <span className={labelText}>{t('People')}</span>

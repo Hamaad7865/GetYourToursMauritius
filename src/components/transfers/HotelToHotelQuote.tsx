@@ -23,6 +23,7 @@ import {
 } from '@/lib/services/pricing';
 import { useGoogleMaps } from '@/lib/maps/useGoogleMaps';
 import { DATE_TIME_INPUT } from '@/components/ui/date-input';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 const SLUG = 'hotel-transfer';
 const MAX_PARTY = 25;
@@ -619,13 +620,11 @@ export function HotelToHotelQuote() {
             style={{ color: INK_SOFT }}
           >
             {t('Pickup date')}
-            <input
-              type="date"
+            <DatePicker
               value={date}
               min={today}
-              onChange={(e) => setDate(e.target.value)}
-              className={`mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal ${DATE_TIME_INPUT}`}
-              style={{ borderColor: 'rgba(17,32,31,0.15)' }}
+              onChange={setDate}
+              className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2.5 text-sm font-semibold text-ink focus:border-teal"
             />
           </label>
           <label
@@ -649,13 +648,11 @@ export function HotelToHotelQuote() {
               style={{ color: INK_SOFT }}
             >
               {t('Return date')}
-              <input
-                type="date"
+              <DatePicker
                 value={returnDate}
                 min={date || today}
-                onChange={(e) => setReturnDate(e.target.value)}
-                className={`mt-1 w-full rounded-xl border bg-white px-3 py-2.5 text-sm font-semibold text-ink outline-none focus:border-teal ${DATE_TIME_INPUT}`}
-                style={{ borderColor: 'rgba(17,32,31,0.15)' }}
+                onChange={setReturnDate}
+                className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-3 py-2.5 text-sm font-semibold text-ink focus:border-teal"
               />
             </label>
             <label

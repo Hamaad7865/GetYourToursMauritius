@@ -159,10 +159,10 @@ export function DialCodeSelect({
 
       {open && (
         <div
-          className="absolute left-0 top-[calc(100%+0.375rem)] z-50 w-[19rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-ink/12 bg-white shadow-[0_16px_48px_-12px_rgba(10,46,54,0.28)]"
+          className="absolute left-0 top-[calc(100%+0.375rem)] z-50 w-[19rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-ink/10 bg-white shadow-[0_16px_48px_-12px_rgba(10,46,54,0.28)]"
           onKeyDown={onListKeyDown}
         >
-          <div className="border-b border-ink/8 p-2">
+          <div className="border-b border-ink/10 p-2">
             <input
               ref={searchRef}
               value={query}

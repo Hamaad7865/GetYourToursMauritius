@@ -3,6 +3,7 @@
 import { Card, Field, INPUT_CLS, TEXTAREA_CLS } from '@/components/admin/ui';
 import { CURRENCY_SYMBOL } from '@/lib/documents/money';
 import type { DocumentFormValues } from './state';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 export function DetailsPane({
   form,
@@ -21,19 +22,17 @@ export function DetailsPane({
       <Card title="Dates">
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Issue date">
-            <input
-              type="date"
+            <DatePicker
               value={form.issueDate}
-              onChange={(e) => onChange({ issueDate: e.target.value })}
+              onChange={(v) => onChange({ issueDate: v })}
               className={INPUT_CLS}
             />
           </Field>
           {isQuote ? (
             <Field label="Valid until" hint="Shown on the quotation as its validity date.">
-              <input
-                type="date"
+              <DatePicker
                 value={form.validUntil}
-                onChange={(e) => onChange({ validUntil: e.target.value })}
+                onChange={(v) => onChange({ validUntil: v })}
                 className={INPUT_CLS}
               />
             </Field>
@@ -42,10 +41,9 @@ export function DetailsPane({
               label="Payment due by"
               hint="Shown on the invoice; leave blank for 'due on receipt'."
             >
-              <input
-                type="date"
+              <DatePicker
                 value={form.dueDate}
-                onChange={(e) => onChange({ dueDate: e.target.value })}
+                onChange={(v) => onChange({ dueDate: v })}
                 className={INPUT_CLS}
               />
             </Field>
@@ -95,10 +93,9 @@ export function DetailsPane({
               />
             </Field>
             <Field label="Paid on">
-              <input
-                type="date"
+              <DatePicker
                 value={form.paidAt}
-                onChange={(e) => onChange({ paidAt: e.target.value })}
+                onChange={(v) => onChange({ paidAt: v })}
                 className={INPUT_CLS}
               />
             </Field>

@@ -8,7 +8,7 @@ import { useToast } from '@/components/site/ToastProvider';
 import { Price } from '@/components/site/Price';
 import { buildInquiryMessage, inquiryReady, packInquiryContact } from '@/lib/catalogue/inquiry';
 import { IconCalendar, IconChat, IconMail } from '@/components/ui/icons';
-import { DATE_TIME_INPUT } from '@/components/ui/date-input';
+import { DatePicker } from '@/components/ui/DatePicker';
 
 export interface InquiryActivity {
   id: string;
@@ -128,13 +128,7 @@ export function InquiryWidget({ activity }: { activity: InquiryActivity }) {
           <div className="grid grid-cols-2 gap-2.5">
             <label className="block">
               <span className={labelClass}>{t('Preferred date')}</span>
-              <input
-                type="date"
-                min={todayStr}
-                className={`${inputClass} ${DATE_TIME_INPUT}`}
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-              />
+              <DatePicker value={date} min={todayStr} onChange={setDate} className={inputClass} />
             </label>
             <label className="block">
               <span className={labelClass}>{t('People')}</span>
