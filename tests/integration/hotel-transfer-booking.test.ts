@@ -88,7 +88,17 @@ describe('hotel-to-hotel transfer booking: band pricing + zero-trust', () => {
       { pickupSlug: 'lux-belle-mare', dropoffSlug: 'paradis-beachcomber', tripType: 'one_way' },
       'h2h-far-00000001',
     );
-    expect(booking.totalEur).toBe(60); // far band, Sedan
+    expect(booking.totalEur).toBe(60); // far band, Sedan-bracket price
+
+    // The line reads the airport vocabulary the customer picked (Standard car), not create_booking's
+    // 'Sedan' — option and price_label agree. The €-amount is still the Sedan-bracket fare above.
+    const { rows: items } = await db.pg.query<{ price_label: string }>(
+      `select bi.price_label from booking_items bi
+         join bookings b on b.id = bi.booking_id
+        where b.ref = $1`,
+      [booking.ref],
+    );
+    expect(items[0]?.price_label).toBe('Standard car');
 
     const got = await call<Record<string, unknown>>(db, 'api_get_booking', { ref: booking.ref });
     expect(got.pickupHotelSlug).toBe('lux-belle-mare');

@@ -96,6 +96,17 @@ describe('airport-transfer booking: zone pricing + the new form fields persist',
     });
     expect(booking.totalEur).toBe(35); // Zone 2 Standard car, one-way
 
+    // The line's vehicle name is the AIRPORT vocabulary the customer actually picked (Standard car),
+    // not the sightseeing 'Sedan' create_booking stamps — so the option and the price_label agree
+    // (the line used to read "Standard car (…) · 1 × Sedan"). Sightseeing tours keep their own Sedan/Van.
+    const { rows: items } = await db.pg.query<{ price_label: string }>(
+      `select bi.price_label from booking_items bi
+         join bookings b on b.id = bi.booking_id
+        where b.ref = $1`,
+      [booking.ref],
+    );
+    expect(items[0]?.price_label).toBe('Standard car');
+
     const got = await call<Record<string, unknown>>(db, 'api_get_booking', { ref: booking.ref });
     expect(got.tripDirection).toBe('arrival');
     expect(got.tripType).toBe('one_way');
