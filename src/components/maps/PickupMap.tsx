@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
+import { placeLabel } from '@/lib/maps/place-label';
 import { useT } from '@/components/site/PreferencesProvider';
 import { toLatLng } from './pin';
 
@@ -102,7 +103,9 @@ export function PickupMap({
           place({ lat, lng });
           onCoordsRef.current?.({ lat, lng });
         }
-        onChangeRef.current(p.formatted_address ?? p.name ?? inputRef.current?.value ?? '');
+        // Keep the hotel NAME and its address together (Google splits them) — de-duped and
+        // voucher-safe. See src/lib/maps/place-label.ts.
+        onChangeRef.current(placeLabel(p, inputRef.current?.value ?? ''));
       });
     } catch {
       autocomplete = null;
