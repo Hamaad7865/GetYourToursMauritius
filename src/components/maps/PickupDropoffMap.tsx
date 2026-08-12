@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useGoogleMaps, MAP_ID } from '@/lib/maps/useGoogleMaps';
+import { placeLabel } from '@/lib/maps/place-label';
 import { pinElement, toLatLng } from './pin';
 
 /* Belle Mare, east-coast Mauritius — the default map centre when no pickup is chosen yet. */
@@ -159,7 +160,9 @@ export function PickupDropoffMap({
             onCoordsRef.current?.({ lat, lng });
             fitToMarkers();
           }
-          onChangeRef.current(p.formatted_address ?? p.name ?? input.value ?? '');
+          // Keep the hotel NAME and its address together (Google splits them) — de-duped and
+          // voucher-safe. See src/lib/maps/place-label.ts.
+          onChangeRef.current(placeLabel(p, input.value));
         });
         return ac;
       } catch {
@@ -295,9 +298,7 @@ export function PickupDropoffMap({
               onDropoffCoordsRef.current?.({ lat, lng });
               fitRef.current?.();
             }
-            onDropoffChangeRef.current(
-              p.formatted_address ?? p.name ?? dropoffInputRef.current?.value ?? '',
-            );
+            onDropoffChangeRef.current(placeLabel(p, dropoffInputRef.current?.value ?? ''));
           });
           dropoffAcRef.current = ac;
         } catch {
